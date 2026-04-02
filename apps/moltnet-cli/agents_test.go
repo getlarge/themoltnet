@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	moltnetapi "github.com/getlarge/themoltnet/go/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
 )
 

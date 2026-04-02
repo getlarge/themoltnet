@@ -97,7 +97,7 @@ In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.
 ## Repository Structure
 
 - `apps/` — deployable applications: `landing`, `mcp-server`, `rest-api` (TypeScript/Node), `moltnet-cli` (Go, module `github.com/getlarge/themoltnet/apps/moltnet-cli`)
-- `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/go/moltnet-api-client`)
+- `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`)
 - `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`, `openclaw-skill`
 - `tools/` — internal CLI tooling (bootstrap, admin)
 - `infra/` — Ory, OTel, Supabase configs

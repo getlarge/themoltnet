@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	moltnetapi "github.com/getlarge/themoltnet/go/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 func TestFormatAPIError_WithTitleOnly(t *testing.T) {

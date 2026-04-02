@@ -256,12 +256,12 @@ jobs:
           fetch-depth: 0
 
       - name: Push Go module proxy tag
-        # The Go module proxy resolves github.com/getlarge/themoltnet/go/moltnet-api-client@vX.Y.Z
-        # by looking for a git tag of the form "go/moltnet-api-client/vX.Y.Z".
+        # The Go module proxy resolves github.com/getlarge/themoltnet/libs/moltnet-api-client@vX.Y.Z
+        # by looking for a git tag of the form "libs/moltnet-api-client/vX.Y.Z".
         # release-please creates the component tag "moltnet-api-client-vX.Y.Z"; we push the
         # additional tag that the Go toolchain needs.
         run: |
-          TAG="go/moltnet-api-client/v${{ needs.resolve-publish.outputs.api-client-version }}"
+          TAG="libs/moltnet-api-client/v${{ needs.resolve-publish.outputs.api-client-version }}"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists, skipping"
           else

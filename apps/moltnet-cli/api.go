@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	moltnetapi "github.com/getlarge/themoltnet/go/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 // tokenSecuritySource implements moltnetapi.SecuritySource using a TokenManager.

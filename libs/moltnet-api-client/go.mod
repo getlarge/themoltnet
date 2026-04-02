@@ -1,4 +1,4 @@
-module github.com/getlarge/themoltnet/go/moltnet-api-client
+module github.com/getlarge/themoltnet/libs/moltnet-api-client
 
 go 1.25.0
 
