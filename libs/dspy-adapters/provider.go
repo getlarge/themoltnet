@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
-	"github.com/getlarge/themoltnet/go/dspy-adapters/claudecode"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
 )
 
 // InitProvider creates and configures a dspy-go LLM for the given provider and model.

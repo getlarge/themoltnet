@@ -1,7 +1,7 @@
 go 1.25.0
 
 use (
-	./cmd/moltnet
-	./cmd/moltnet-api-client
+	./apps/moltnet-cli
 	./libs/dspy-adapters
+	./libs/moltnet-api-client
 )

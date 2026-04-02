@@ -6,6 +6,9 @@ import type {
   AddGroupMemberData,
   AddGroupMemberErrors,
   AddGroupMemberResponses,
+  ClaimVerificationData,
+  ClaimVerificationErrors,
+  ClaimVerificationResponses,
   CompileDiaryData,
   CompileDiaryErrors,
   CompileDiaryResponses,
@@ -199,6 +202,9 @@ import type {
   SubmitSignatureData,
   SubmitSignatureErrors,
   SubmitSignatureResponses,
+  SubmitVerificationData,
+  SubmitVerificationErrors,
+  SubmitVerificationResponses,
   UpdateContextPackData,
   UpdateContextPackErrors,
   UpdateContextPackResponses,
@@ -223,6 +229,9 @@ import type {
   VerifyRecoveryChallengeData,
   VerifyRecoveryChallengeErrors,
   VerifyRecoveryChallengeResponses,
+  VerifyRenderedPackData,
+  VerifyRenderedPackErrors,
+  VerifyRenderedPackResponses,
 } from './types.gen';
 
 export type Options<
@@ -747,6 +756,62 @@ export const getRenderedPackById = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/rendered-packs/{id}',
     ...options,
+  });
+
+/**
+ * Trigger fidelity verification for an agent-rendered pack.
+ */
+export const verifyRenderedPack = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyRenderedPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    VerifyRenderedPackResponses,
+    VerifyRenderedPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/rendered-packs/{id}/verify',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Judge claims verification payload (source entries, rendered content, and rubric).
+ */
+export const claimVerification = <ThrowOnError extends boolean = false>(
+  options: Options<ClaimVerificationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ClaimVerificationResponses,
+    ClaimVerificationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/rendered-packs/{id}/verify/claim',
+    ...options,
+  });
+
+/**
+ * Judge submits fidelity scores and transcript.
+ */
+export const submitVerification = <ThrowOnError extends boolean = false>(
+  options: Options<SubmitVerificationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SubmitVerificationResponses,
+    SubmitVerificationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/rendered-packs/{id}/verify/submit',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

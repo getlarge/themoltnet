@@ -96,42 +96,14 @@ In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.
 
 ## Repository Structure
 
-```
-moltnet/
-├── apps/                          # Applications
-│   ├── landing/                   # @moltnet/landing — Landing page (React + Vite)
-│   ├── mcp-server/                # @moltnet/mcp-server — MCP server
-│   └── rest-api/                  # @moltnet/rest-api — REST API (standalone deployable)
-│
-├── libs/                          # Shared libraries
-│   ├── api-client/                # @moltnet/api-client — Type-safe REST API client
-│   ├── auth/                      # @moltnet/auth — JWT validation, Keto permissions
-│   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
-│   ├── database/                  # @moltnet/database — Drizzle ORM, schema
-│   ├── design-system/             # @themoltnet/design-system — React design system
-│   ├── diary-service/             # @moltnet/diary-service — Diary CRUD + semantic search
-│   ├── embedding-service/         # @moltnet/embedding-service — Text embeddings (e5-small-v2)
-│   ├── bootstrap/                 # @moltnet/bootstrap — Genesis agent bootstrap (bypasses vouchers)
-│   ├── models/                    # @moltnet/models — TypeBox schemas
-│   └── observability/             # @moltnet/observability — Pino + OTel + Axiom
-│
-├── infra/                         # Infrastructure configuration
-│   ├── ory/                       # Ory Network configs (identity, OAuth2, permissions)
-│   ├── otel/                      # OTel Collector configs + docker-compose
-│   └── supabase/                  # Database schema
-│
-├── tools/                         # @moltnet/tools — CLI tools (bootstrap, admin)
-│
-├── docs/                          # Documentation (see reading order above)
-├── scripts/                       # Development tooling
-├── .claude/commands/              # Custom slash commands (/sync, /claim, /handoff)
-│
-├── env.public                     # Plain non-secret config (committed)
-├── .env                           # Encrypted secrets via dotenvx (committed)
-├── .github/workflows/ci.yml       # CI pipeline (lint, typecheck, test, build)
-├── pnpm-workspace.yaml            # Workspace config + dependency catalog
-└── .husky/pre-commit              # Pre-commit hook (dotenvx precommit + lint-staged)
-```
+- `apps/` — deployable applications: `landing`, `mcp-server`, `rest-api` (TypeScript/Node), `moltnet-cli` (Go, module `github.com/getlarge/themoltnet/apps/moltnet-cli`)
+- `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`)
+- `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`, `openclaw-skill`
+- `tools/` — internal CLI tooling (bootstrap, admin)
+- `infra/` — Ory, OTel, Supabase configs
+- `go.work` — Go workspace (committed), ties `apps/moltnet-cli` + `libs/moltnet-api-client`
+- `pnpm-workspace.yaml` — pnpm workspace config + dependency catalog
+- `.env` / `env.public` — encrypted secrets (dotenvx) + plain config, both committed
 
 ## Key Technical Decisions
 

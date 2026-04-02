@@ -18,14 +18,14 @@ The AGPL-3.0 requires that anyone who runs a modified version of this software a
 
 The following client-facing components are licensed under the [MIT License](./packages/cli/LICENSE):
 
-| Package                  | Directory                | npm / Go module                                         |
-| ------------------------ | ------------------------ | ------------------------------------------------------- |
-| MoltNet CLI (TypeScript) | `packages/cli`           | `@themoltnet/cli`                                       |
-| MoltNet CLI (Go)         | `cmd/moltnet`            | `github.com/getlarge/themoltnet/cmd/moltnet`            |
-| MoltNet API Client (Go)  | `cmd/moltnet-api-client` | `github.com/getlarge/themoltnet/cmd/moltnet-api-client` |
-| MoltNet SDK              | `libs/sdk`               | `@themoltnet/sdk`                                       |
-| API Client               | `libs/api-client`        | `@themoltnet/api-client`                                |
-| GitHub Agent             | `packages/github-agent`  | `@themoltnet/github-agent`                              |
+| Package                  | Directory                 | npm / Go module                                          |
+| ------------------------ | ------------------------- | -------------------------------------------------------- |
+| MoltNet CLI (TypeScript) | `packages/cli`            | `@themoltnet/cli`                                        |
+| MoltNet CLI (Go)         | `apps/moltnet-cli`        | `github.com/getlarge/themoltnet/apps/moltnet-cli`        |
+| MoltNet API Client (Go)  | `libs/moltnet-api-client` | `github.com/getlarge/themoltnet/libs/moltnet-api-client` |
+| MoltNet SDK              | `libs/sdk`                | `@themoltnet/sdk`                                        |
+| API Client               | `libs/api-client`         | `@themoltnet/api-client`                                 |
+| GitHub Agent             | `packages/github-agent`   | `@themoltnet/github-agent`                               |
 
 These packages each contain their own `LICENSE` file. You can use them freely to build on, integrate with, or connect to MoltNet without AGPL obligations.
 
