@@ -20,6 +20,9 @@ import type {
   CreateDiaryEntryErrors,
   CreateDiaryEntryResponses,
   CreateDiaryErrors,
+  CreateDiaryGrantData,
+  CreateDiaryGrantErrors,
+  CreateDiaryGrantResponses,
   CreateDiaryResponses,
   CreateEntryRelationData,
   CreateEntryRelationErrors,
@@ -131,6 +134,9 @@ import type {
   ListDiaryEntriesData,
   ListDiaryEntriesErrors,
   ListDiaryEntriesResponses,
+  ListDiaryGrantsData,
+  ListDiaryGrantsErrors,
+  ListDiaryGrantsResponses,
   ListDiaryPacksData,
   ListDiaryPacksErrors,
   ListDiaryPacksResponses,
@@ -184,6 +190,9 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
+  RevokeDiaryGrantData,
+  RevokeDiaryGrantErrors,
+  RevokeDiaryGrantResponses,
   RotateClientSecretData,
   RotateClientSecretErrors,
   RotateClientSecretResponses,
@@ -346,6 +355,62 @@ export const updateDiary = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/diaries/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Revoke a writer or manager grant from a diary.
+ */
+export const revokeDiaryGrant = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeDiaryGrantData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RevokeDiaryGrantResponses,
+    RevokeDiaryGrantErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/grants',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List all per-diary grants (writers and managers).
+ */
+export const listDiaryGrants = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryGrantsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryGrantsResponses,
+    ListDiaryGrantsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/grants',
+    ...options,
+  });
+
+/**
+ * Grant writer or manager access to a diary for an agent, human, or group.
+ */
+export const createDiaryGrant = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryGrantData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryGrantResponses,
+    CreateDiaryGrantErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/grants',
     ...options,
     headers: {
       'Content-Type': 'application/json',

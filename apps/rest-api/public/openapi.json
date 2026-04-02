@@ -5575,6 +5575,379 @@
         "tags": ["diary"]
       }
     },
+    "/diaries/{id}/grants": {
+      "delete": {
+        "description": "Revoke a writer or manager grant from a diary.",
+        "operationId": "revokeDiaryGrant",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": ["writer"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["manager"],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "subjectId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "subjectNs": {
+                    "anyOf": [
+                      {
+                        "enum": ["Agent"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["Human"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["Group"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": ["subjectId", "subjectNs", "role"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["revoked"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "get": {
+        "description": "List all per-diary grants (writers and managers).",
+        "operationId": "listDiaryGrants",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "grants": {
+                      "items": {
+                        "properties": {
+                          "role": {
+                            "anyOf": [
+                              {
+                                "enum": ["writer"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["manager"],
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "subjectId": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "subjectNs": {
+                            "anyOf": [
+                              {
+                                "enum": ["Agent"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["Human"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["Group"],
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": ["subjectId", "subjectNs", "role"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["grants"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "post": {
+        "description": "Grant writer or manager access to a diary for an agent, human, or group.",
+        "operationId": "createDiaryGrant",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": ["writer"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["manager"],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "subjectId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "subjectNs": {
+                    "anyOf": [
+                      {
+                        "enum": ["Agent"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["Human"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["Group"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": ["subjectId", "subjectNs", "role"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "role": {
+                      "anyOf": [
+                        {
+                          "enum": ["writer"],
+                          "type": "string"
+                        },
+                        {
+                          "enum": ["manager"],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "subjectId": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "subjectNs": {
+                      "anyOf": [
+                        {
+                          "enum": ["Agent"],
+                          "type": "string"
+                        },
+                        {
+                          "enum": ["Human"],
+                          "type": "string"
+                        },
+                        {
+                          "enum": ["Group"],
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["subjectId", "subjectNs", "role"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
     "/diaries/{id}/packs": {
       "get": {
         "description": "List persisted context packs for a diary. Use `expand=entries` to include entry content.",

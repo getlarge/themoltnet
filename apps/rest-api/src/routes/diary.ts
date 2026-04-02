@@ -6,8 +6,13 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  CreateDiaryGrantSchema,
+  DiaryGrantListResponseSchema,
+  DiaryGrantResponseSchema,
   DiaryParamsSchema,
   ProblemDetailsSchema,
+  RevokeDiaryGrantSchema,
+  RevokedResponseSchema,
   TeamHeaderOptionalSchema,
   TeamHeaderRequiredSchema,
 } from '@moltnet/models';
@@ -275,8 +280,175 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // TODO(chunk-3): per-diary grant routes
-  // POST /diaries/:id/grants — grant writers/managers (agent, human, or group)
-  // DELETE /diaries/:id/grants/:subjectId — revoke grant
-  // GET /diaries/:id/grants — list grants
+  // ── Grant Writer/Manager ─────────────────────────────────────
+  server.post(
+    '/diaries/:id/grants',
+    {
+      schema: {
+        operationId: 'createDiaryGrant',
+        tags: ['diary'],
+        description:
+          'Grant writer or manager access to a diary for an agent, human, or group.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        body: CreateDiaryGrantSchema,
+        response: {
+          201: DiaryGrantResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const canManage = await fastify.permissionChecker.canManageDiary(
+        id,
+        identityId,
+        callerNs,
+      );
+      if (!canManage) {
+        throw createProblem(
+          'forbidden',
+          'Only diary managers can grant access',
+        );
+      }
+
+      const { subjectId, subjectNs, role } = request.body;
+      const ketoNs = mapSubjectNs(subjectNs);
+
+      if (role === 'writer') {
+        await fastify.relationshipWriter.grantDiaryWriters(
+          id,
+          subjectId,
+          ketoNs,
+        );
+      } else {
+        await fastify.relationshipWriter.grantDiaryManagers(
+          id,
+          subjectId,
+          ketoNs,
+        );
+      }
+
+      return reply.status(201).send({ subjectId, subjectNs, role });
+    },
+  );
+
+  // ── List Grants ────────────────────────────────────────────────
+  server.get(
+    '/diaries/:id/grants',
+    {
+      schema: {
+        operationId: 'listDiaryGrants',
+        tags: ['diary'],
+        description: 'List all per-diary grants (writers and managers).',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        response: {
+          200: DiaryGrantListResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const canRead = await fastify.permissionChecker.canReadDiary(
+        id,
+        identityId,
+        callerNs,
+      );
+      if (!canRead) {
+        throw createProblem('forbidden', 'No read access to this diary');
+      }
+
+      const tuples = await fastify.relationshipReader.listDiaryGrants(id);
+      return {
+        grants: tuples.map((t) => ({
+          subjectId: t.subjectId,
+          subjectNs: t.subjectNs as 'Agent' | 'Human' | 'Group',
+          role: t.role,
+        })),
+      };
+    },
+  );
+
+  // ── Revoke Grant ───────────────────────────────────────────────
+  server.delete(
+    '/diaries/:id/grants',
+    {
+      schema: {
+        operationId: 'revokeDiaryGrant',
+        tags: ['diary'],
+        description: 'Revoke a writer or manager grant from a diary.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        body: RevokeDiaryGrantSchema,
+        response: {
+          200: RevokedResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const canManage = await fastify.permissionChecker.canManageDiary(
+        id,
+        identityId,
+        callerNs,
+      );
+      if (!canManage) {
+        throw createProblem(
+          'forbidden',
+          'Only diary managers can revoke access',
+        );
+      }
+
+      const { subjectId, subjectNs, role } = request.body;
+      const ketoNs = mapSubjectNs(subjectNs);
+
+      if (role === 'writer') {
+        await fastify.relationshipWriter.revokeDiaryWriter(
+          id,
+          subjectId,
+          ketoNs,
+        );
+      } else {
+        await fastify.relationshipWriter.revokeDiaryManager(
+          id,
+          subjectId,
+          ketoNs,
+        );
+      }
+
+      return { revoked: true };
+    },
+  );
+}
+
+function mapSubjectNs(ns: 'Agent' | 'Human' | 'Group'): KetoNamespace {
+  switch (ns) {
+    case 'Agent':
+      return KetoNamespace.Agent;
+    case 'Human':
+      return KetoNamespace.Human;
+    case 'Group':
+      return KetoNamespace.Group;
+  }
 }

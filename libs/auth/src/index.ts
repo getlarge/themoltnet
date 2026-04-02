@@ -42,6 +42,7 @@ export {
 } from './plugin.js';
 export {
   createRelationshipReader,
+  type DiaryGrantTuple,
   type GroupMemberTuple,
   type RelationshipReader,
   type TeamIdWithRole,

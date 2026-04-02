@@ -44,6 +44,12 @@ type Handler interface {
 	//
 	// POST /diaries/{diaryId}/entries
 	CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq, params CreateDiaryEntryParams) (CreateDiaryEntryRes, error)
+	// CreateDiaryGrant implements createDiaryGrant operation.
+	//
+	// Grant writer or manager access to a diary for an agent, human, or group.
+	//
+	// POST /diaries/{id}/grants
+	CreateDiaryGrant(ctx context.Context, req *CreateDiaryGrantReq, params CreateDiaryGrantParams) (CreateDiaryGrantRes, error)
 	// CreateEntryRelation implements createEntryRelation operation.
 	//
 	// Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) —
@@ -279,6 +285,12 @@ type Handler interface {
 	//
 	// GET /diaries/{diaryId}/entries
 	ListDiaryEntries(ctx context.Context, params ListDiaryEntriesParams) (ListDiaryEntriesRes, error)
+	// ListDiaryGrants implements listDiaryGrants operation.
+	//
+	// List all per-diary grants (writers and managers).
+	//
+	// GET /diaries/{id}/grants
+	ListDiaryGrants(ctx context.Context, params ListDiaryGrantsParams) (ListDiaryGrantsRes, error)
 	// ListDiaryPacks implements listDiaryPacks operation.
 	//
 	// List persisted context packs for a diary. Use `expand=entries` to include entry content.
@@ -390,6 +402,12 @@ type Handler interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
+	// RevokeDiaryGrant implements revokeDiaryGrant operation.
+	//
+	// Revoke a writer or manager grant from a diary.
+	//
+	// DELETE /diaries/{id}/grants
+	RevokeDiaryGrant(ctx context.Context, req *RevokeDiaryGrantReq, params RevokeDiaryGrantParams) (RevokeDiaryGrantRes, error)
 	// RotateClientSecret implements rotateClientSecret operation.
 	//
 	// Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is
