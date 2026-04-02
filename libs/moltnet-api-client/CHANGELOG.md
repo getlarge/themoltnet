@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.7.0...moltnet-api-client-v1.7.1) (2026-04-02)
+
+
+### Codegen
+
+* **codegen:** regenerate TS and Go clients for listDiaryRenderedPacks ([4286cfb](https://github.com/getlarge/themoltnet/commit/4286cfb76a71ae19a2bc00f323be00b12a8c5106))
+
 ## [1.7.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.6.0...moltnet-api-client-v1.7.0) (2026-04-02)
 
 
