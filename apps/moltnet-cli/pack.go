@@ -476,6 +476,72 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 	return printJSON(pack)
 }
 
+// runPackListCmd lists context packs for a diary.
+func runPackListCmd(apiURL, credPath, diaryID string, limit, offset int, expand string) error {
+	diaryUUID, err := uuid.Parse(diaryID)
+	if err != nil {
+		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	params := moltnetapi.ListDiaryPacksParams{ID: diaryUUID}
+	if limit > 0 {
+		params.Limit = moltnetapi.NewOptInt(limit)
+	}
+	if offset > 0 {
+		params.Offset = moltnetapi.NewOptInt(offset)
+	}
+	if expand == "entries" {
+		params.Expand = moltnetapi.NewOptListDiaryPacksExpand(moltnetapi.ListDiaryPacksExpandEntries)
+	}
+
+	res, err := client.ListDiaryPacks(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("pack list: %w", err)
+	}
+
+	list, ok := res.(*moltnetapi.ContextPackResponseList)
+	if !ok {
+		return formatAPIError(res)
+	}
+
+	return printJSON(list)
+}
+
+// runPackGetCmd fetches a single context pack by ID.
+func runPackGetCmd(apiURL, credPath, packID, expand string) error {
+	packUUID, err := uuid.Parse(packID)
+	if err != nil {
+		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	params := moltnetapi.GetContextPackByIdParams{ID: packUUID}
+	if expand == "entries" {
+		params.Expand = moltnetapi.NewOptGetContextPackByIdExpand(moltnetapi.GetContextPackByIdExpandEntries)
+	}
+
+	res, err := client.GetContextPackById(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("pack get: %w", err)
+	}
+
+	pack, ok := res.(*moltnetapi.ContextPackResponse)
+	if !ok {
+		return formatAPIError(res)
+	}
+
+	return printJSON(pack)
+}
+
 // --- Legacy wrappers preserved for existing tests ---
 
 // runPackProvenance is the legacy flag-parsing entry point, preserved for existing tests.

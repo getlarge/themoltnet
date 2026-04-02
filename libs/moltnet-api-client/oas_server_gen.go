@@ -303,6 +303,12 @@ type Handler interface {
 	//
 	// GET /diaries/{id}/packs
 	ListDiaryPacks(ctx context.Context, params ListDiaryPacksParams) (ListDiaryPacksRes, error)
+	// ListDiaryRenderedPacks implements listDiaryRenderedPacks operation.
+	//
+	// List rendered packs for a diary. Optionally filter by source pack ID or render method.
+	//
+	// GET /diaries/{id}/rendered-packs
+	ListDiaryRenderedPacks(ctx context.Context, params ListDiaryRenderedPacksParams) (ListDiaryRenderedPacksRes, error)
 	// ListDiaryTags implements listDiaryTags operation.
 	//
 	// List distinct tags used across all entries in a diary, with counts.

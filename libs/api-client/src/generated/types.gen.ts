@@ -707,6 +707,16 @@ export type RenderedPackWithContent = {
   createdAt: string;
 };
 
+export type RenderedPackList = {
+  items: Array<RenderedPack>;
+  /**
+   * Total number of matching rendered packs.
+   */
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type VerifyRenderedPackResponse = {
   verificationId: string;
   nonce: string;
@@ -2597,6 +2607,61 @@ export type GetLatestRenderedPackResponses = {
 
 export type GetLatestRenderedPackResponse =
   GetLatestRenderedPackResponses[keyof GetLatestRenderedPackResponses];
+
+export type ListDiaryRenderedPacksData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: {
+    limit?: number;
+    offset?: number;
+    /**
+     * Filter by source pack ID
+     */
+    sourcePackId?: string;
+    /**
+     * Filter by render method label
+     */
+    renderMethod?: string;
+  };
+  url: '/diaries/{id}/rendered-packs';
+};
+
+export type ListDiaryRenderedPacksErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryRenderedPacksError =
+  ListDiaryRenderedPacksErrors[keyof ListDiaryRenderedPacksErrors];
+
+export type ListDiaryRenderedPacksResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackList;
+};
+
+export type ListDiaryRenderedPacksResponse =
+  ListDiaryRenderedPacksResponses[keyof ListDiaryRenderedPacksResponses];
 
 export type GetRenderedPackByIdData = {
   body?: never;

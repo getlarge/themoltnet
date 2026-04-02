@@ -453,6 +453,15 @@ func (UnimplementedHandler) ListDiaryPacks(ctx context.Context, params ListDiary
 	return r, ht.ErrNotImplemented
 }
 
+// ListDiaryRenderedPacks implements listDiaryRenderedPacks operation.
+//
+// List rendered packs for a diary. Optionally filter by source pack ID or render method.
+//
+// GET /diaries/{id}/rendered-packs
+func (UnimplementedHandler) ListDiaryRenderedPacks(ctx context.Context, params ListDiaryRenderedPacksParams) (r ListDiaryRenderedPacksRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListDiaryTags implements listDiaryTags operation.
 //
 // List distinct tags used across all entries in a diary, with counts.

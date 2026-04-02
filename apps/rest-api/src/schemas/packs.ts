@@ -333,6 +333,18 @@ export const RenderedPackSchema = Type.Object(
   { $id: 'RenderedPack' },
 );
 
+export const RenderedPackListSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(RenderedPackSchema)),
+    total: Type.Number({
+      description: 'Total number of matching rendered packs.',
+    }),
+    limit: Type.Number(),
+    offset: Type.Number(),
+  },
+  { $id: 'RenderedPackList' },
+);
+
 export const RenderedPackResultSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),

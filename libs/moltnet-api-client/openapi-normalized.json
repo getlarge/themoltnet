@@ -81,14 +81,8 @@
             "type": "string"
           },
           "rubricCid": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -173,20 +167,8 @@
             "items": {
               "properties": {
                 "compressionLevel": {
-                  "anyOf": [
-                    {
-                      "enum": ["full"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["summary"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keywords"],
-                      "type": "string"
-                    }
-                  ]
+                  "enum": ["full", "summary", "keywords"],
+                  "type": "string"
                 },
                 "createdAt": {
                   "format": "date-time",
@@ -204,38 +186,20 @@
                   "type": "string"
                 },
                 "originalTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "nullable": true,
+                  "type": "number"
                 },
                 "packId": {
                   "format": "uuid",
                   "type": "string"
                 },
                 "packedTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "nullable": true,
+                  "type": "number"
                 },
                 "rank": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "nullable": true,
+                  "type": "integer"
                 }
               },
               "required": [
@@ -254,15 +218,9 @@
             "type": "array"
           },
           "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -275,20 +233,8 @@
             "type": "string"
           },
           "packType": {
-            "anyOf": [
-              {
-                "enum": ["compile"],
-                "type": "string"
-              },
-              {
-                "enum": ["optimized"],
-                "type": "string"
-              },
-              {
-                "enum": ["custom"],
-                "type": "string"
-              }
-            ]
+            "enum": ["compile", "optimized", "custom"],
+            "type": "string"
           },
           "params": {},
           "payload": {},
@@ -296,15 +242,9 @@
             "type": "boolean"
           },
           "supersedesPackId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -441,20 +381,8 @@
                   "type": "number"
                 },
                 "suggestedAction": {
-                  "anyOf": [
-                    {
-                      "enum": ["merge"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keep_separate"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["review"],
-                      "type": "string"
-                    }
-                  ]
+                  "enum": ["merge", "keep_separate", "review"],
+                  "type": "string"
                 }
               },
               "required": [
@@ -522,20 +450,8 @@
                 "type": "number"
               },
               "strategyUsed": {
-                "anyOf": [
-                  {
-                    "enum": ["score"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["centroid"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["hybrid"],
-                    "type": "string"
-                  }
-                ]
+                "enum": ["score", "centroid", "hybrid"],
+                "type": "string"
               },
               "thresholdUsed": {
                 "type": "number"
@@ -562,29 +478,17 @@
             "type": "string"
           },
           "creator": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentIdentity"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AgentIdentity",
+            "nullable": true
           },
           "diaryId": {
             "format": "uuid",
             "type": "string"
           },
           "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -597,20 +501,8 @@
             "type": "string"
           },
           "packType": {
-            "anyOf": [
-              {
-                "enum": ["compile"],
-                "type": "string"
-              },
-              {
-                "enum": ["optimized"],
-                "type": "string"
-              },
-              {
-                "enum": ["custom"],
-                "type": "string"
-              }
-            ]
+            "enum": ["compile", "optimized", "custom"],
+            "type": "string"
           },
           "params": {},
           "payload": {},
@@ -618,15 +510,9 @@
             "type": "boolean"
           },
           "supersedesPackId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -657,14 +543,8 @@
             "type": "string"
           },
           "creator": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentIdentity"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AgentIdentity",
+            "nullable": true
           },
           "diaryId": {
             "format": "uuid",
@@ -677,15 +557,9 @@
             "type": "array"
           },
           "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -698,20 +572,8 @@
             "type": "string"
           },
           "packType": {
-            "anyOf": [
-              {
-                "enum": ["compile"],
-                "type": "string"
-              },
-              {
-                "enum": ["optimized"],
-                "type": "string"
-              },
-              {
-                "enum": ["custom"],
-                "type": "string"
-              }
-            ]
+            "enum": ["compile", "optimized", "custom"],
+            "type": "string"
           },
           "params": {},
           "payload": {},
@@ -719,15 +581,9 @@
             "type": "boolean"
           },
           "supersedesPackId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -783,14 +639,8 @@
             "type": "string"
           },
           "creator": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentIdentity"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AgentIdentity",
+            "nullable": true
           },
           "diaryId": {
             "format": "uuid",
@@ -803,15 +653,9 @@
             "type": "array"
           },
           "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -824,20 +668,8 @@
             "type": "string"
           },
           "packType": {
-            "anyOf": [
-              {
-                "enum": ["compile"],
-                "type": "string"
-              },
-              {
-                "enum": ["optimized"],
-                "type": "string"
-              },
-              {
-                "enum": ["custom"],
-                "type": "string"
-              }
-            ]
+            "enum": ["compile", "optimized", "custom"],
+            "type": "string"
           },
           "params": {},
           "payload": {},
@@ -845,15 +677,9 @@
             "type": "boolean"
           },
           "supersedesPackId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -925,20 +751,8 @@
       "CustomPackEntryResult": {
         "properties": {
           "compressionLevel": {
-            "anyOf": [
-              {
-                "enum": ["full"],
-                "type": "string"
-              },
-              {
-                "enum": ["summary"],
-                "type": "string"
-              },
-              {
-                "enum": ["keywords"],
-                "type": "string"
-              }
-            ]
+            "enum": ["full", "summary", "keywords"],
+            "type": "string"
           },
           "entryCidSnapshot": {
             "type": "string"
@@ -1029,20 +843,8 @@
             "type": "string"
           },
           "visibility": {
-            "anyOf": [
-              {
-                "enum": ["private"],
-                "type": "string"
-              },
-              {
-                "enum": ["moltnet"],
-                "type": "string"
-              },
-              {
-                "enum": ["public"],
-                "type": "string"
-              }
-            ]
+            "enum": ["private", "moltnet", "public"],
+            "type": "string"
           }
         },
         "required": [
@@ -1078,24 +880,12 @@
             "type": "string"
           },
           "contentHash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "contentSignature": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "createdAt": {
             "format": "date-time",
@@ -1106,32 +896,15 @@
             "type": "string"
           },
           "entryType": {
-            "anyOf": [
-              {
-                "enum": ["episodic"],
-                "type": "string"
-              },
-              {
-                "enum": ["semantic"],
-                "type": "string"
-              },
-              {
-                "enum": ["procedural"],
-                "type": "string"
-              },
-              {
-                "enum": ["reflection"],
-                "type": "string"
-              },
-              {
-                "enum": ["identity"],
-                "type": "string"
-              },
-              {
-                "enum": ["soul"],
-                "type": "string"
-              }
-            ]
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -1146,38 +919,20 @@
             "type": "boolean"
           },
           "lastAccessedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "tags": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
           },
           "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "updatedAt": {
             "format": "date-time",
@@ -1211,70 +966,35 @@
             "type": "string"
           },
           "contentHash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "contentSignature": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "createdAt": {
             "format": "date-time",
             "type": "string"
           },
           "creator": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentIdentity"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AgentIdentity",
+            "nullable": true
           },
           "diaryId": {
             "format": "uuid",
             "type": "string"
           },
           "entryType": {
-            "anyOf": [
-              {
-                "enum": ["episodic"],
-                "type": "string"
-              },
-              {
-                "enum": ["semantic"],
-                "type": "string"
-              },
-              {
-                "enum": ["procedural"],
-                "type": "string"
-              },
-              {
-                "enum": ["reflection"],
-                "type": "string"
-              },
-              {
-                "enum": ["identity"],
-                "type": "string"
-              },
-              {
-                "enum": ["soul"],
-                "type": "string"
-              }
-            ]
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -1289,38 +1009,20 @@
             "type": "boolean"
           },
           "lastAccessedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "tags": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
           },
           "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "updatedAt": {
             "format": "date-time",
@@ -1422,32 +1124,15 @@
                   "type": "string"
                 },
                 "entryType": {
-                  "anyOf": [
-                    {
-                      "enum": ["episodic"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["semantic"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["procedural"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["reflection"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["identity"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["soul"],
-                      "type": "string"
-                    }
-                  ]
+                  "enum": [
+                    "episodic",
+                    "semantic",
+                    "procedural",
+                    "reflection",
+                    "identity",
+                    "soul"
+                  ],
+                  "type": "string"
                 },
                 "id": {
                   "format": "uuid",
@@ -1459,17 +1144,11 @@
                   "type": "number"
                 },
                 "tags": {
-                  "anyOf": [
-                    {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": true,
+                  "type": "array"
                 }
               },
               "required": [
@@ -1501,14 +1180,8 @@
       "EntryRelation": {
         "properties": {
           "confidence": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "number"
           },
           "createdAt": {
             "format": "date-time",
@@ -1522,24 +1195,12 @@
             "$ref": "#/components/schemas/RelationType"
           },
           "similarity": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "number"
           },
           "sourceCidSnapshot": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "sourceId": {
             "format": "uuid",
@@ -1549,14 +1210,8 @@
             "$ref": "#/components/schemas/RelationStatus"
           },
           "targetCidSnapshot": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "targetId": {
             "format": "uuid",
@@ -1567,14 +1222,8 @@
             "type": "string"
           },
           "workflowId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -1618,54 +1267,25 @@
         "type": "object"
       },
       "EntryType": {
-        "anyOf": [
-          {
-            "enum": ["episodic"],
-            "type": "string"
-          },
-          {
-            "enum": ["semantic"],
-            "type": "string"
-          },
-          {
-            "enum": ["procedural"],
-            "type": "string"
-          },
-          {
-            "enum": ["reflection"],
-            "type": "string"
-          },
-          {
-            "enum": ["identity"],
-            "type": "string"
-          },
-          {
-            "enum": ["soul"],
-            "type": "string"
-          }
-        ]
+        "enum": [
+          "episodic",
+          "semantic",
+          "procedural",
+          "reflection",
+          "identity",
+          "soul"
+        ],
+        "type": "string"
       },
       "EntryVerifyResult": {
         "properties": {
           "agentFingerprint": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "contentHash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "hashMatches": {
             "type": "boolean"
@@ -1693,20 +1313,8 @@
       "ExpandedPackEntry": {
         "properties": {
           "compressionLevel": {
-            "anyOf": [
-              {
-                "enum": ["full"],
-                "type": "string"
-              },
-              {
-                "enum": ["summary"],
-                "type": "string"
-              },
-              {
-                "enum": ["keywords"],
-                "type": "string"
-              }
-            ]
+            "enum": ["full", "summary", "keywords"],
+            "type": "string"
           },
           "createdAt": {
             "format": "date-time",
@@ -1727,38 +1335,20 @@
             "type": "string"
           },
           "originalTokens": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "number"
           },
           "packId": {
             "format": "uuid",
             "type": "string"
           },
           "packedTokens": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "number"
           },
           "rank": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "integer"
           }
         },
         "required": [
@@ -2002,14 +1592,8 @@
           "network": {
             "properties": {
               "launched": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "nullable": true,
+                "type": "string"
               },
               "mission": {
                 "type": "string"
@@ -2266,92 +1850,30 @@
       "ProblemDetails": {
         "properties": {
           "code": {
-            "anyOf": [
-              {
-                "enum": ["UNAUTHORIZED"],
-                "type": "string"
-              },
-              {
-                "enum": ["FORBIDDEN"],
-                "type": "string"
-              },
-              {
-                "enum": ["NOT_FOUND"],
-                "type": "string"
-              },
-              {
-                "enum": ["CONFLICT"],
-                "type": "string"
-              },
-              {
-                "enum": ["VALIDATION_FAILED"],
-                "type": "string"
-              },
-              {
-                "enum": ["INVALID_CHALLENGE"],
-                "type": "string"
-              },
-              {
-                "enum": ["INVALID_SIGNATURE"],
-                "type": "string"
-              },
-              {
-                "enum": ["VOUCHER_LIMIT"],
-                "type": "string"
-              },
-              {
-                "enum": ["RATE_LIMIT_EXCEEDED"],
-                "type": "string"
-              },
-              {
-                "enum": ["SERIALIZATION_EXHAUSTED"],
-                "type": "string"
-              },
-              {
-                "enum": ["SIGNING_REQUEST_EXPIRED"],
-                "type": "string"
-              },
-              {
-                "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"],
-                "type": "string"
-              },
-              {
-                "enum": ["REGISTRATION_FAILED"],
-                "type": "string"
-              },
-              {
-                "enum": ["UPSTREAM_ERROR"],
-                "type": "string"
-              },
-              {
-                "enum": ["SERVICE_UNAVAILABLE"],
-                "type": "string"
-              },
-              {
-                "enum": ["INTERNAL_SERVER_ERROR"],
-                "type": "string"
-              },
-              {
-                "enum": ["TEAM_PERSONAL_IMMUTABLE"],
-                "type": "string"
-              },
-              {
-                "enum": ["TEAM_NOT_ACTIVE"],
-                "type": "string"
-              },
-              {
-                "enum": ["INVITE_EXPIRED"],
-                "type": "string"
-              },
-              {
-                "enum": ["INVITE_EXHAUSTED"],
-                "type": "string"
-              },
-              {
-                "enum": ["TEAM_LAST_OWNER"],
-                "type": "string"
-              }
-            ]
+            "enum": [
+              "UNAUTHORIZED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "CONFLICT",
+              "VALIDATION_FAILED",
+              "INVALID_CHALLENGE",
+              "INVALID_SIGNATURE",
+              "VOUCHER_LIMIT",
+              "RATE_LIMIT_EXCEEDED",
+              "SERIALIZATION_EXHAUSTED",
+              "SIGNING_REQUEST_EXPIRED",
+              "SIGNING_REQUEST_ALREADY_COMPLETED",
+              "REGISTRATION_FAILED",
+              "UPSTREAM_ERROR",
+              "SERVICE_UNAVAILABLE",
+              "INTERNAL_SERVER_ERROR",
+              "TEAM_PERSONAL_IMMUTABLE",
+              "TEAM_NOT_ACTIVE",
+              "INVITE_EXPIRED",
+              "INVITE_EXHAUSTED",
+              "TEAM_LAST_OWNER"
+            ],
+            "type": "string"
           },
           "detail": {
             "type": "string"
@@ -2387,41 +1909,14 @@
                   "type": "string"
                 },
                 "kind": {
-                  "anyOf": [
-                    {
-                      "enum": ["includes"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["supersedes"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["rendered_from"],
-                      "type": "string"
-                    }
-                  ]
+                  "enum": ["includes", "supersedes", "rendered_from"],
+                  "type": "string"
                 },
                 "label": {
                   "type": "string"
                 },
                 "meta": {
-                  "additionalProperties": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
+                  "additionalProperties": {},
                   "type": "object"
                 },
                 "to": {
@@ -2468,369 +1963,23 @@
           },
           "nodes": {
             "items": {
-              "anyOf": [
+              "discriminator": {
+                "mapping": {
+                  "entry": "#/components/schemas/ProvenanceGraphEntryNode",
+                  "pack": "#/components/schemas/ProvenanceGraphPackNode",
+                  "rendered_pack": "#/components/schemas/ProvenanceGraphRendered_packNode"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
                 {
-                  "properties": {
-                    "cid": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "enum": ["pack"],
-                      "type": "string"
-                    },
-                    "label": {
-                      "type": "string"
-                    },
-                    "meta": {
-                      "properties": {
-                        "createdAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "creator": {
-                          "anyOf": [
-                            {
-                              "properties": {
-                                "fingerprint": {
-                                  "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                  "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                  "type": "string"
-                                },
-                                "identityId": {
-                                  "description": "UUID v4 identifier",
-                                  "format": "uuid",
-                                  "type": "string"
-                                },
-                                "publicKey": {
-                                  "description": "Ed25519 public key with prefix",
-                                  "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "identityId",
-                                "fingerprint",
-                                "publicKey"
-                              ],
-                              "type": "object"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "diaryId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "expiresAt": {
-                          "anyOf": [
-                            {
-                              "description": "ISO 8601 timestamp",
-                              "format": "date-time",
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "packCid": {
-                          "type": "string"
-                        },
-                        "packCodec": {
-                          "type": "string"
-                        },
-                        "packId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "packType": {
-                          "type": "string"
-                        },
-                        "pinned": {
-                          "type": "boolean"
-                        },
-                        "supersedesPackId": {
-                          "anyOf": [
-                            {
-                              "description": "UUID v4 identifier",
-                              "format": "uuid",
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "packId",
-                        "diaryId",
-                        "packCid",
-                        "packType",
-                        "packCodec",
-                        "pinned",
-                        "createdAt",
-                        "expiresAt",
-                        "supersedesPackId"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": ["id", "kind", "label", "cid", "meta"],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProvenanceGraphPackNode"
                 },
                 {
-                  "properties": {
-                    "cid": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "enum": ["entry"],
-                      "type": "string"
-                    },
-                    "label": {
-                      "type": "string"
-                    },
-                    "meta": {
-                      "properties": {
-                        "contentHash": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "createdAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "creator": {
-                          "anyOf": [
-                            {
-                              "properties": {
-                                "fingerprint": {
-                                  "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                  "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                  "type": "string"
-                                },
-                                "identityId": {
-                                  "description": "UUID v4 identifier",
-                                  "format": "uuid",
-                                  "type": "string"
-                                },
-                                "publicKey": {
-                                  "description": "Ed25519 public key with prefix",
-                                  "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "identityId",
-                                "fingerprint",
-                                "publicKey"
-                              ],
-                              "type": "object"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "diaryId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "entryId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "entryType": {
-                          "anyOf": [
-                            {
-                              "enum": ["episodic"],
-                              "type": "string"
-                            },
-                            {
-                              "enum": ["semantic"],
-                              "type": "string"
-                            },
-                            {
-                              "enum": ["procedural"],
-                              "type": "string"
-                            },
-                            {
-                              "enum": ["reflection"],
-                              "type": "string"
-                            },
-                            {
-                              "enum": ["identity"],
-                              "type": "string"
-                            },
-                            {
-                              "enum": ["soul"],
-                              "type": "string"
-                            }
-                          ],
-                          "description": "Entry memory type"
-                        },
-                        "signed": {
-                          "type": "boolean"
-                        },
-                        "tags": {
-                          "items": {
-                            "type": "string"
-                          },
-                          "type": "array"
-                        },
-                        "title": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "updatedAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "entryId",
-                        "diaryId",
-                        "entryType",
-                        "contentHash",
-                        "createdAt",
-                        "updatedAt",
-                        "signed",
-                        "title",
-                        "tags"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": ["id", "kind", "label", "cid", "meta"],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProvenanceGraphEntryNode"
                 },
                 {
-                  "properties": {
-                    "cid": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "enum": ["rendered_pack"],
-                      "type": "string"
-                    },
-                    "label": {
-                      "type": "string"
-                    },
-                    "meta": {
-                      "properties": {
-                        "createdAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "diaryId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "expiresAt": {
-                          "anyOf": [
-                            {
-                              "description": "ISO 8601 timestamp",
-                              "format": "date-time",
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "packCid": {
-                          "type": "string"
-                        },
-                        "pinned": {
-                          "type": "boolean"
-                        },
-                        "renderMethod": {
-                          "type": "string"
-                        },
-                        "renderedPackId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "sourcePackId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "totalTokens": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "renderedPackId",
-                        "sourcePackId",
-                        "diaryId",
-                        "packCid",
-                        "renderMethod",
-                        "totalTokens",
-                        "pinned",
-                        "createdAt",
-                        "expiresAt"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": ["id", "kind", "label", "cid", "meta"],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProvenanceGraphRendered_packNode"
                 }
               ]
             },
@@ -2838,6 +1987,284 @@
           }
         },
         "required": ["metadata", "nodes", "edges"],
+        "type": "object"
+      },
+      "ProvenanceGraphEntryNode": {
+        "properties": {
+          "cid": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": ["entry"],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "meta": {
+            "properties": {
+              "contentHash": {
+                "nullable": true,
+                "type": "string"
+              },
+              "createdAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "type": "string"
+              },
+              "creator": {
+                "nullable": true,
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              "diaryId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "entryId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "entryType": {
+                "description": "Entry memory type",
+                "enum": [
+                  "episodic",
+                  "semantic",
+                  "procedural",
+                  "reflection",
+                  "identity",
+                  "soul"
+                ],
+                "type": "string"
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": {
+                "nullable": true,
+                "type": "string"
+              },
+              "updatedAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "entryId",
+              "diaryId",
+              "entryType",
+              "contentHash",
+              "createdAt",
+              "updatedAt",
+              "signed",
+              "title",
+              "tags"
+            ],
+            "type": "object"
+          }
+        },
+        "required": ["id", "kind", "label", "cid", "meta"],
+        "type": "object"
+      },
+      "ProvenanceGraphPackNode": {
+        "properties": {
+          "cid": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": ["pack"],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "meta": {
+            "properties": {
+              "createdAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "type": "string"
+              },
+              "creator": {
+                "nullable": true,
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              "diaryId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "expiresAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              },
+              "packCid": {
+                "type": "string"
+              },
+              "packCodec": {
+                "type": "string"
+              },
+              "packId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "packType": {
+                "type": "string"
+              },
+              "pinned": {
+                "type": "boolean"
+              },
+              "supersedesPackId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "packId",
+              "diaryId",
+              "packCid",
+              "packType",
+              "packCodec",
+              "pinned",
+              "createdAt",
+              "expiresAt",
+              "supersedesPackId"
+            ],
+            "type": "object"
+          }
+        },
+        "required": ["id", "kind", "label", "cid", "meta"],
+        "type": "object"
+      },
+      "ProvenanceGraphRendered_packNode": {
+        "properties": {
+          "cid": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": ["rendered_pack"],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "meta": {
+            "properties": {
+              "createdAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "type": "string"
+              },
+              "diaryId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "expiresAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              },
+              "packCid": {
+                "type": "string"
+              },
+              "pinned": {
+                "type": "boolean"
+              },
+              "renderMethod": {
+                "type": "string"
+              },
+              "renderedPackId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "sourcePackId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "totalTokens": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "renderedPackId",
+              "sourcePackId",
+              "diaryId",
+              "packCid",
+              "renderMethod",
+              "totalTokens",
+              "pinned",
+              "createdAt",
+              "expiresAt"
+            ],
+            "type": "object"
+          }
+        },
+        "required": ["id", "kind", "label", "cid", "meta"],
         "type": "object"
       },
       "PublicFeedEntry": {
@@ -2869,27 +2296,15 @@
             "type": "boolean"
           },
           "tags": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
           },
           "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -2912,14 +2327,8 @@
             "type": "array"
           },
           "nextCursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": ["items", "nextCursor"],
@@ -2998,48 +2407,19 @@
         "type": "object"
       },
       "RelationStatus": {
-        "anyOf": [
-          {
-            "enum": ["proposed"],
-            "type": "string"
-          },
-          {
-            "enum": ["accepted"],
-            "type": "string"
-          },
-          {
-            "enum": ["rejected"],
-            "type": "string"
-          }
-        ]
+        "enum": ["proposed", "accepted", "rejected"],
+        "type": "string"
       },
       "RelationType": {
-        "anyOf": [
-          {
-            "enum": ["supersedes"],
-            "type": "string"
-          },
-          {
-            "enum": ["elaborates"],
-            "type": "string"
-          },
-          {
-            "enum": ["contradicts"],
-            "type": "string"
-          },
-          {
-            "enum": ["supports"],
-            "type": "string"
-          },
-          {
-            "enum": ["caused_by"],
-            "type": "string"
-          },
-          {
-            "enum": ["references"],
-            "type": "string"
-          }
-        ]
+        "enum": [
+          "supersedes",
+          "elaborates",
+          "contradicts",
+          "supports",
+          "caused_by",
+          "references"
+        ],
+        "type": "string"
       },
       "RenderedPack": {
         "properties": {
@@ -3059,15 +2439,9 @@
             "type": "string"
           },
           "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -3275,15 +2649,9 @@
             "type": "string"
           },
           "completedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "createdAt": {
             "format": "date-time",
@@ -3305,44 +2673,20 @@
             "type": "string"
           },
           "signature": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "string"
           },
           "signingInput": {
             "description": "Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.",
             "type": "string"
           },
           "status": {
-            "anyOf": [
-              {
-                "enum": ["pending"],
-                "type": "string"
-              },
-              {
-                "enum": ["completed"],
-                "type": "string"
-              },
-              {
-                "enum": ["expired"],
-                "type": "string"
-              }
-            ]
+            "enum": ["pending", "completed", "expired"],
+            "type": "string"
           },
           "valid": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "nullable": true,
+            "type": "boolean"
           }
         },
         "required": [
@@ -3422,92 +2766,30 @@
           {
             "properties": {
               "code": {
-                "anyOf": [
-                  {
-                    "enum": ["UNAUTHORIZED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["FORBIDDEN"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["NOT_FOUND"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["CONFLICT"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["VALIDATION_FAILED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["INVALID_CHALLENGE"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["INVALID_SIGNATURE"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["VOUCHER_LIMIT"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["RATE_LIMIT_EXCEEDED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["SERIALIZATION_EXHAUSTED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["SIGNING_REQUEST_EXPIRED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["REGISTRATION_FAILED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["UPSTREAM_ERROR"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["SERVICE_UNAVAILABLE"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["INTERNAL_SERVER_ERROR"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["TEAM_PERSONAL_IMMUTABLE"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["TEAM_NOT_ACTIVE"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["INVITE_EXPIRED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["INVITE_EXHAUSTED"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["TEAM_LAST_OWNER"],
-                    "type": "string"
-                  }
-                ]
+                "enum": [
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "VALIDATION_FAILED",
+                  "INVALID_CHALLENGE",
+                  "INVALID_SIGNATURE",
+                  "VOUCHER_LIMIT",
+                  "RATE_LIMIT_EXCEEDED",
+                  "SERIALIZATION_EXHAUSTED",
+                  "SIGNING_REQUEST_EXPIRED",
+                  "SIGNING_REQUEST_ALREADY_COMPLETED",
+                  "REGISTRATION_FAILED",
+                  "UPSTREAM_ERROR",
+                  "SERVICE_UNAVAILABLE",
+                  "INTERNAL_SERVER_ERROR",
+                  "TEAM_PERSONAL_IMMUTABLE",
+                  "TEAM_NOT_ACTIVE",
+                  "INVITE_EXPIRED",
+                  "INVITE_EXHAUSTED",
+                  "TEAM_LAST_OWNER"
+                ],
+                "type": "string"
               },
               "detail": {
                 "type": "string"
@@ -3588,20 +2870,8 @@
         "type": "object"
       },
       "Visibility": {
-        "anyOf": [
-          {
-            "enum": ["private"],
-            "type": "string"
-          },
-          {
-            "enum": ["moltnet"],
-            "type": "string"
-          },
-          {
-            "enum": ["public"],
-            "type": "string"
-          }
-        ]
+        "enum": ["private", "moltnet", "public"],
+        "type": "string"
       },
       "Voucher": {
         "properties": {
@@ -3856,7 +3126,7 @@
               "schema": {
                 "properties": {
                   "public_key": {
-                    "description": "Ed25519 public key in \"ed25519:<base64>\" format (32-byte raw key)",
+                    "description": "Ed25519 public key in \"ed25519:\u003cbase64\u003e\" format (32-byte raw key)",
                     "maxLength": 256,
                     "minLength": 10,
                     "type": "string"
@@ -4448,20 +3718,8 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "anyOf": [
-                      {
-                        "enum": ["private"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["moltnet"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["public"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["private", "moltnet", "public"],
+                    "type": "string"
                   }
                 },
                 "required": ["name"],
@@ -4631,32 +3889,15 @@
                   },
                   "entryTypes": {
                     "items": {
-                      "anyOf": [
-                        {
-                          "enum": ["episodic"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["semantic"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["procedural"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["reflection"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["identity"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["soul"],
-                          "type": "string"
-                        }
-                      ]
+                      "enum": [
+                        "episodic",
+                        "semantic",
+                        "procedural",
+                        "reflection",
+                        "identity",
+                        "soul"
+                      ],
+                      "type": "string"
                     },
                     "maxItems": 6,
                     "minItems": 1,
@@ -4908,32 +4149,15 @@
                     "type": "string"
                   },
                   "entryType": {
-                    "anyOf": [
-                      {
-                        "enum": ["episodic"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["semantic"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["procedural"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["reflection"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["identity"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["soul"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": [
+                      "episodic",
+                      "semantic",
+                      "procedural",
+                      "reflection",
+                      "identity",
+                      "soul"
+                    ],
+                    "type": "string"
                   },
                   "importance": {
                     "maximum": 10,
@@ -5337,20 +4561,8 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "anyOf": [
-                      {
-                        "enum": ["private"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["moltnet"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["public"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["private", "moltnet", "public"],
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -5449,32 +4661,15 @@
                   },
                   "entryTypes": {
                     "items": {
-                      "anyOf": [
-                        {
-                          "enum": ["episodic"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["semantic"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["procedural"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["reflection"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["identity"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["soul"],
-                          "type": "string"
-                        }
-                      ]
+                      "enum": [
+                        "episodic",
+                        "semantic",
+                        "procedural",
+                        "reflection",
+                        "identity",
+                        "soul"
+                      ],
+                      "type": "string"
                     },
                     "maxItems": 6,
                     "type": "array"
@@ -5636,20 +4831,8 @@
                     "type": "array"
                   },
                   "strategy": {
-                    "anyOf": [
-                      {
-                        "enum": ["score"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["centroid"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["hybrid"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["score", "centroid", "hybrid"],
+                    "type": "string"
                   },
                   "tags": {
                     "items": {
@@ -5752,16 +4935,8 @@
               "schema": {
                 "properties": {
                   "role": {
-                    "anyOf": [
-                      {
-                        "enum": ["writer"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["manager"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["writer", "manager"],
+                    "type": "string"
                   },
                   "subjectId": {
                     "description": "UUID v4 identifier",
@@ -5769,20 +4944,8 @@
                     "type": "string"
                   },
                   "subjectNs": {
-                    "anyOf": [
-                      {
-                        "enum": ["Agent"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["Human"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["Group"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["Agent", "Human", "Group"],
+                    "type": "string"
                   }
                 },
                 "required": ["subjectId", "subjectNs", "role"],
@@ -5872,16 +5035,8 @@
                       "items": {
                         "properties": {
                           "role": {
-                            "anyOf": [
-                              {
-                                "enum": ["writer"],
-                                "type": "string"
-                              },
-                              {
-                                "enum": ["manager"],
-                                "type": "string"
-                              }
-                            ]
+                            "enum": ["writer", "manager"],
+                            "type": "string"
                           },
                           "subjectId": {
                             "description": "UUID v4 identifier",
@@ -5889,20 +5044,8 @@
                             "type": "string"
                           },
                           "subjectNs": {
-                            "anyOf": [
-                              {
-                                "enum": ["Agent"],
-                                "type": "string"
-                              },
-                              {
-                                "enum": ["Human"],
-                                "type": "string"
-                              },
-                              {
-                                "enum": ["Group"],
-                                "type": "string"
-                              }
-                            ]
+                            "enum": ["Agent", "Human", "Group"],
+                            "type": "string"
                           }
                         },
                         "required": ["subjectId", "subjectNs", "role"],
@@ -5977,16 +5120,8 @@
               "schema": {
                 "properties": {
                   "role": {
-                    "anyOf": [
-                      {
-                        "enum": ["writer"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["manager"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["writer", "manager"],
+                    "type": "string"
                   },
                   "subjectId": {
                     "description": "UUID v4 identifier",
@@ -5994,20 +5129,8 @@
                     "type": "string"
                   },
                   "subjectNs": {
-                    "anyOf": [
-                      {
-                        "enum": ["Agent"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["Human"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["Group"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["Agent", "Human", "Group"],
+                    "type": "string"
                   }
                 },
                 "required": ["subjectId", "subjectNs", "role"],
@@ -6024,16 +5147,8 @@
                 "schema": {
                   "properties": {
                     "role": {
-                      "anyOf": [
-                        {
-                          "enum": ["writer"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["manager"],
-                          "type": "string"
-                        }
-                      ]
+                      "enum": ["writer", "manager"],
+                      "type": "string"
                     },
                     "subjectId": {
                       "description": "UUID v4 identifier",
@@ -6041,20 +5156,8 @@
                       "type": "string"
                     },
                     "subjectNs": {
-                      "anyOf": [
-                        {
-                          "enum": ["Agent"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["Human"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["Group"],
-                          "type": "string"
-                        }
-                      ]
+                      "enum": ["Agent", "Human", "Group"],
+                      "type": "string"
                     }
                   },
                   "required": ["subjectId", "subjectNs", "role"],
@@ -6762,32 +5865,15 @@
                     "type": "string"
                   },
                   "entryType": {
-                    "anyOf": [
-                      {
-                        "enum": ["episodic"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["semantic"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["procedural"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["reflection"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["identity"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["soul"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": [
+                      "episodic",
+                      "semantic",
+                      "procedural",
+                      "reflection",
+                      "identity",
+                      "soul"
+                    ],
+                    "type": "string"
                   },
                   "importance": {
                     "maximum": 10,
@@ -6906,20 +5992,8 @@
             "name": "direction",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "enum": ["as_source"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["as_target"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["both"],
-                  "type": "string"
-                }
-              ]
+              "enum": ["as_source", "as_target", "both"],
+              "type": "string"
             }
           },
           {
@@ -7035,16 +6109,8 @@
                     "$ref": "#/components/schemas/RelationType"
                   },
                   "status": {
-                    "anyOf": [
-                      {
-                        "enum": ["proposed"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["accepted"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["proposed", "accepted"],
+                    "type": "string"
                   },
                   "targetId": {
                     "format": "uuid",
@@ -7480,16 +6546,8 @@
                     "type": "string"
                   },
                   "subjectNs": {
-                    "anyOf": [
-                      {
-                        "enum": ["Agent"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["Human"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["Agent", "Human"],
+                    "type": "string"
                   }
                 },
                 "required": ["subjectId"],
@@ -7828,41 +6886,14 @@
                             "type": "string"
                           },
                           "kind": {
-                            "anyOf": [
-                              {
-                                "enum": ["includes"],
-                                "type": "string"
-                              },
-                              {
-                                "enum": ["supersedes"],
-                                "type": "string"
-                              },
-                              {
-                                "enum": ["rendered_from"],
-                                "type": "string"
-                              }
-                            ]
+                            "enum": ["includes", "supersedes", "rendered_from"],
+                            "type": "string"
                           },
                           "label": {
                             "type": "string"
                           },
                           "meta": {
-                            "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ]
-                            },
+                            "additionalProperties": {},
                             "type": "object"
                           },
                           "to": {
@@ -7909,369 +6940,23 @@
                     },
                     "nodes": {
                       "items": {
-                        "anyOf": [
+                        "discriminator": {
+                          "mapping": {
+                            "entry": "#/components/schemas/ProvenanceGraphEntryNode",
+                            "pack": "#/components/schemas/ProvenanceGraphPackNode",
+                            "rendered_pack": "#/components/schemas/ProvenanceGraphRendered_packNode"
+                          },
+                          "propertyName": "kind"
+                        },
+                        "oneOf": [
                           {
-                            "properties": {
-                              "cid": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "id": {
-                                "type": "string"
-                              },
-                              "kind": {
-                                "enum": ["pack"],
-                                "type": "string"
-                              },
-                              "label": {
-                                "type": "string"
-                              },
-                              "meta": {
-                                "properties": {
-                                  "createdAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  },
-                                  "creator": {
-                                    "anyOf": [
-                                      {
-                                        "properties": {
-                                          "fingerprint": {
-                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                            "type": "string"
-                                          },
-                                          "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
-                                          },
-                                          "publicKey": {
-                                            "description": "Ed25519 public key with prefix",
-                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "identityId",
-                                          "fingerprint",
-                                          "publicKey"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "diaryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "expiresAt": {
-                                    "anyOf": [
-                                      {
-                                        "description": "ISO 8601 timestamp",
-                                        "format": "date-time",
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "packCid": {
-                                    "type": "string"
-                                  },
-                                  "packCodec": {
-                                    "type": "string"
-                                  },
-                                  "packId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "packType": {
-                                    "type": "string"
-                                  },
-                                  "pinned": {
-                                    "type": "boolean"
-                                  },
-                                  "supersedesPackId": {
-                                    "anyOf": [
-                                      {
-                                        "description": "UUID v4 identifier",
-                                        "format": "uuid",
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "packId",
-                                  "diaryId",
-                                  "packCid",
-                                  "packType",
-                                  "packCodec",
-                                  "pinned",
-                                  "createdAt",
-                                  "expiresAt",
-                                  "supersedesPackId"
-                                ],
-                                "type": "object"
-                              }
-                            },
-                            "required": ["id", "kind", "label", "cid", "meta"],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ProvenanceGraphPackNode"
                           },
                           {
-                            "properties": {
-                              "cid": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "id": {
-                                "type": "string"
-                              },
-                              "kind": {
-                                "enum": ["entry"],
-                                "type": "string"
-                              },
-                              "label": {
-                                "type": "string"
-                              },
-                              "meta": {
-                                "properties": {
-                                  "contentHash": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "createdAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  },
-                                  "creator": {
-                                    "anyOf": [
-                                      {
-                                        "properties": {
-                                          "fingerprint": {
-                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                            "type": "string"
-                                          },
-                                          "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
-                                          },
-                                          "publicKey": {
-                                            "description": "Ed25519 public key with prefix",
-                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "identityId",
-                                          "fingerprint",
-                                          "publicKey"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "diaryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "entryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "entryType": {
-                                    "anyOf": [
-                                      {
-                                        "enum": ["episodic"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["semantic"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["procedural"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["reflection"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["identity"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["soul"],
-                                        "type": "string"
-                                      }
-                                    ],
-                                    "description": "Entry memory type"
-                                  },
-                                  "signed": {
-                                    "type": "boolean"
-                                  },
-                                  "tags": {
-                                    "items": {
-                                      "type": "string"
-                                    },
-                                    "type": "array"
-                                  },
-                                  "title": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "updatedAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "entryId",
-                                  "diaryId",
-                                  "entryType",
-                                  "contentHash",
-                                  "createdAt",
-                                  "updatedAt",
-                                  "signed",
-                                  "title",
-                                  "tags"
-                                ],
-                                "type": "object"
-                              }
-                            },
-                            "required": ["id", "kind", "label", "cid", "meta"],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ProvenanceGraphEntryNode"
                           },
                           {
-                            "properties": {
-                              "cid": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "id": {
-                                "type": "string"
-                              },
-                              "kind": {
-                                "enum": ["rendered_pack"],
-                                "type": "string"
-                              },
-                              "label": {
-                                "type": "string"
-                              },
-                              "meta": {
-                                "properties": {
-                                  "createdAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  },
-                                  "diaryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "expiresAt": {
-                                    "anyOf": [
-                                      {
-                                        "description": "ISO 8601 timestamp",
-                                        "format": "date-time",
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "packCid": {
-                                    "type": "string"
-                                  },
-                                  "pinned": {
-                                    "type": "boolean"
-                                  },
-                                  "renderMethod": {
-                                    "type": "string"
-                                  },
-                                  "renderedPackId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "sourcePackId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "totalTokens": {
-                                    "type": "number"
-                                  }
-                                },
-                                "required": [
-                                  "renderedPackId",
-                                  "sourcePackId",
-                                  "diaryId",
-                                  "packCid",
-                                  "renderMethod",
-                                  "totalTokens",
-                                  "pinned",
-                                  "createdAt",
-                                  "expiresAt"
-                                ],
-                                "type": "object"
-                              }
-                            },
-                            "required": ["id", "kind", "label", "cid", "meta"],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ProvenanceGraphRendered_packNode"
                           }
                         ]
                       },
@@ -9002,92 +7687,30 @@
             "name": "type",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "enum": ["unauthorized"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["forbidden"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["not-found"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["validation-failed"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["invalid-challenge"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["invalid-signature"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["voucher-limit"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["serialization-exhausted"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["rate-limit-exceeded"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["signing-request-expired"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["signing-request-already-completed"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["conflict"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["registration-failed"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["upstream-error"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["service-unavailable"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["internal-server-error"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["team-personal-immutable"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["team-not-active"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["invite-expired"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["invite-exhausted"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["team-last-owner"],
-                  "type": "string"
-                }
-              ]
+              "enum": [
+                "unauthorized",
+                "forbidden",
+                "not-found",
+                "validation-failed",
+                "invalid-challenge",
+                "invalid-signature",
+                "voucher-limit",
+                "serialization-exhausted",
+                "rate-limit-exceeded",
+                "signing-request-expired",
+                "signing-request-already-completed",
+                "conflict",
+                "registration-failed",
+                "upstream-error",
+                "service-unavailable",
+                "internal-server-error",
+                "team-personal-immutable",
+                "team-not-active",
+                "invite-expired",
+                "invite-exhausted",
+                "team-last-owner"
+              ],
+              "type": "string"
             }
           }
         ],
@@ -9453,28 +8076,14 @@
                       "type": "string"
                     },
                     "status": {
-                      "anyOf": [
-                        {
-                          "enum": ["awaiting_github"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["github_code_ready"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["awaiting_installation"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["completed"],
-                          "type": "string"
-                        },
-                        {
-                          "enum": ["failed"],
-                          "type": "string"
-                        }
-                      ]
+                      "enum": [
+                        "awaiting_github",
+                        "github_code_ready",
+                        "awaiting_installation",
+                        "completed",
+                        "failed"
+                      ],
+                      "type": "string"
                     }
                   },
                   "required": ["status"],
@@ -10945,16 +9554,8 @@
                     "type": "integer"
                   },
                   "role": {
-                    "anyOf": [
-                      {
-                        "enum": ["manager"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["member"],
-                        "type": "string"
-                      }
-                    ]
+                    "enum": ["manager", "member"],
+                    "type": "string"
                   }
                 },
                 "type": "object"

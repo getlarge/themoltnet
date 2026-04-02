@@ -1,13 +1,15 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { PackServiceError } from '@moltnet/context-pack-service';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import { DiaryServiceError } from '@moltnet/diary-service';
+import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import {
   PackParamsSchema,
+  RenderedPackListSchema,
   RenderedPackParamsSchema,
   RenderedPackPreviewSchema,
   RenderedPackResultSchema,
@@ -235,6 +237,103 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       }
 
       return rendered;
+    },
+  );
+
+  // GET /diaries/:id/rendered-packs — List rendered packs for a diary
+  const RenderedPackListQuerySchema = Type.Object({
+    limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+    offset: Type.Optional(Type.Integer({ minimum: 0 })),
+    sourcePackId: Type.Optional(
+      Type.String({ format: 'uuid', description: 'Filter by source pack ID' }),
+    ),
+    renderMethod: Type.Optional(
+      Type.String({ description: 'Filter by render method label' }),
+    ),
+  });
+
+  server.get(
+    '/diaries/:id/rendered-packs',
+    {
+      schema: {
+        operationId: 'listDiaryRenderedPacks',
+        tags: ['diary'],
+        description:
+          'List rendered packs for a diary. Optionally filter by source pack ID or render method.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        querystring: RenderedPackListQuerySchema,
+        response: {
+          200: Type.Ref(RenderedPackListSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+      try {
+        diary = await fastify.diaryService.findDiary(
+          request.params.id,
+          identityId,
+          subjectNs,
+        );
+      } catch (err) {
+        if (err instanceof DiaryServiceError) {
+          switch (err.code) {
+            case 'not_found':
+              throw createProblem('not-found', err.message);
+            case 'forbidden':
+              throw createProblem('forbidden', err.message);
+            default:
+              throw createProblem('internal', err.message);
+          }
+        }
+        throw err;
+      }
+
+      const limit = request.query.limit ?? 20;
+      const offset = request.query.offset ?? 0;
+      const { items, total } = await fastify.renderedPackRepository.listByDiary(
+        diary.id,
+        limit,
+        offset,
+        {
+          sourcePackId: request.query.sourcePackId,
+          renderMethod: request.query.renderMethod,
+        },
+      );
+
+      // Batch-check read permission via each rendered pack's source pack.
+      const sourcePackIds = [...new Set(items.map((rp) => rp.sourcePackId))];
+      let allowedSourcePacks: Map<string, boolean>;
+      try {
+        allowedSourcePacks = await fastify.permissionChecker.canReadPacks(
+          sourcePackIds,
+          identityId,
+          subjectNs,
+        );
+      } catch (error) {
+        request.log.error(
+          { err: error, diaryId: diary.id },
+          'Failed to batch-check rendered pack permissions',
+        );
+        throw createProblem('internal', 'Failed to verify pack permissions');
+      }
+
+      const visibleItems = items.filter(
+        (rp) => allowedSourcePacks.get(rp.sourcePackId) ?? false,
+      );
+      const deniedOnPage = items.length - visibleItems.length;
+      const adjustedTotal = total - deniedOnPage;
+
+      return { items: visibleItems, total: adjustedTotal, limit, offset };
     },
   );
 
