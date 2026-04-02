@@ -10,6 +10,7 @@ import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   ENTRY_TYPES_CSV_PATTERN,
   EntryParamsSchema,
+  entryTypeLiterals,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
 } from '@moltnet/models';
@@ -66,16 +67,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
           importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
-          entryType: Type.Optional(
-            Type.Union([
-              Type.Literal('episodic'),
-              Type.Literal('semantic'),
-              Type.Literal('procedural'),
-              Type.Literal('reflection'),
-              Type.Literal('identity'),
-              Type.Literal('soul'),
-            ]),
-          ),
+          entryType: Type.Optional(Type.Union(entryTypeLiterals)),
           contentHash: Type.Optional(
             Type.String({
               pattern: '^bafk[a-z2-7]+$',
@@ -331,8 +323,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
           entryTypes: Type.Optional(
             Type.String({
-              pattern:
-                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$',
+              pattern: ENTRY_TYPES_CSV_PATTERN,
               maxLength: 100,
               description: 'Comma-separated entry types to scope the tag count',
             }),
@@ -384,16 +375,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
     ),
     importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
-    entryType: Type.Optional(
-      Type.Union([
-        Type.Literal('episodic'),
-        Type.Literal('semantic'),
-        Type.Literal('procedural'),
-        Type.Literal('reflection'),
-        Type.Literal('identity'),
-        Type.Literal('soul'),
-      ]),
-    ),
+    entryType: Type.Optional(Type.Union(entryTypeLiterals)),
   });
 
   const getEntry = async (
@@ -682,17 +664,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           entryTypes: Type.Optional(
-            Type.Array(
-              Type.Union([
-                Type.Literal('episodic'),
-                Type.Literal('semantic'),
-                Type.Literal('procedural'),
-                Type.Literal('reflection'),
-                Type.Literal('identity'),
-                Type.Literal('soul'),
-              ]),
-              { minItems: 1, maxItems: 6 },
-            ),
+            Type.Array(Type.Union(entryTypeLiterals), {
+              minItems: 1,
+              maxItems: 6,
+            }),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
         }),

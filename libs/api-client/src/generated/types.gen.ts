@@ -673,6 +673,16 @@ export type RenderedPack = {
   createdAt: string;
 };
 
+export type RenderedPackList = {
+  items: Array<RenderedPack>;
+  /**
+   * Total number of matching rendered packs.
+   */
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type RenderedPackResult = {
   id: string;
   packCid: string;
@@ -705,16 +715,6 @@ export type RenderedPackWithContent = {
   totalTokens: number;
   pinned: boolean;
   createdAt: string;
-};
-
-export type RenderedPackList = {
-  items: Array<RenderedPack>;
-  /**
-   * Total number of matching rendered packs.
-   */
-  total: number;
-  limit: number;
-  offset: number;
 };
 
 export type VerifyRenderedPackResponse = {

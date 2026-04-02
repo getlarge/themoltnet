@@ -15,6 +15,7 @@ import {
   RevokedResponseSchema,
   TeamHeaderOptionalSchema,
   TeamHeaderRequiredSchema,
+  visibilityLiterals,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -60,13 +61,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         headers: TeamHeaderRequiredSchema,
         body: Type.Object({
           name: Type.String({ minLength: 1, maxLength: 255 }),
-          visibility: Type.Optional(
-            Type.Union([
-              Type.Literal('private'),
-              Type.Literal('moltnet'),
-              Type.Literal('public'),
-            ]),
-          ),
+          visibility: Type.Optional(Type.Union(visibilityLiterals)),
         }),
         response: {
           201: Type.Ref(DiaryCatalogSchema),
@@ -191,13 +186,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         params: DiaryParamsSchema,
         body: Type.Object({
           name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
-          visibility: Type.Optional(
-            Type.Union([
-              Type.Literal('private'),
-              Type.Literal('moltnet'),
-              Type.Literal('public'),
-            ]),
-          ),
+          visibility: Type.Optional(Type.Union(visibilityLiterals)),
         }),
         response: {
           200: Type.Ref(DiaryCatalogSchema),
