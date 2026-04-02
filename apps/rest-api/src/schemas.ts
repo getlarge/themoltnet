@@ -1042,6 +1042,18 @@ export const RenderedPackWithContentSchema = Type.Object(
   { $id: 'RenderedPackWithContent' },
 );
 
+export const RenderedPackListSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(RenderedPackSchema)),
+    total: Type.Number({
+      description: 'Total number of matching rendered packs.',
+    }),
+    limit: Type.Number(),
+    offset: Type.Number(),
+  },
+  { $id: 'RenderedPackList' },
+);
+
 // ── Fidelity Verification ─────────────────────────────────
 
 export const VerifyRenderedPackBodySchema = Type.Object(
@@ -1183,6 +1195,7 @@ export const sharedSchemas = [
   RenderedPackResultSchema,
   RenderedPackPreviewSchema,
   RenderedPackWithContentSchema,
+  RenderedPackListSchema,
   VerifyRenderedPackResponseSchema,
   ClaimVerificationResponseSchema,
   SubmitVerificationResponseSchema,

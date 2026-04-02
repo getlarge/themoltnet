@@ -6,7 +6,8 @@
  * GC pattern as context packs.
  */
 
-import { and, asc, desc, eq, inArray, lte } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, lte } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -86,13 +87,36 @@ export function createRenderedPackRepository(db: Database) {
         .limit(limit);
     },
 
-    async listByDiary(diaryId: string, limit = 50): Promise<RenderedPack[]> {
-      return getExecutor(db)
-        .select()
-        .from(renderedPacks)
-        .where(eq(renderedPacks.diaryId, diaryId))
-        .orderBy(desc(renderedPacks.createdAt))
-        .limit(limit);
+    async listByDiary(
+      diaryId: string,
+      limit = 50,
+      offset = 0,
+      filters: { sourcePackId?: string; renderMethod?: string } = {},
+    ): Promise<{ items: RenderedPack[]; total: number }> {
+      const conditions: SQL[] = [eq(renderedPacks.diaryId, diaryId)];
+      if (filters.sourcePackId) {
+        conditions.push(eq(renderedPacks.sourcePackId, filters.sourcePackId));
+      }
+      if (filters.renderMethod) {
+        conditions.push(eq(renderedPacks.renderMethod, filters.renderMethod));
+      }
+      const where = and(...conditions);
+
+      const [items, [{ value: total }]] = await Promise.all([
+        getExecutor(db)
+          .select()
+          .from(renderedPacks)
+          .where(where)
+          .orderBy(desc(renderedPacks.createdAt))
+          .limit(limit)
+          .offset(offset),
+        getExecutor(db)
+          .select({ value: count() })
+          .from(renderedPacks)
+          .where(where),
+      ]);
+
+      return { items, total };
     },
 
     async listExpiredUnpinned(
