@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	moltnetapi "github.com/getlarge/themoltnet/go/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 type stubVouchHandler struct {

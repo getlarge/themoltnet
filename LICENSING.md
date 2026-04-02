@@ -22,7 +22,7 @@ The following client-facing components are licensed under the [MIT License](./pa
 | ------------------------ | ------------------------ | ------------------------------------------------------- |
 | MoltNet CLI (TypeScript) | `packages/cli`           | `@themoltnet/cli`                                       |
 | MoltNet CLI (Go)         | `apps/moltnet-cli`            | `github.com/getlarge/themoltnet/apps/moltnet-cli`            |
-| MoltNet API Client (Go)  | `libs/moltnet-api-client` | `github.com/getlarge/themoltnet/go/moltnet-api-client` |
+| MoltNet API Client (Go)  | `libs/moltnet-api-client` | `github.com/getlarge/themoltnet/libs/moltnet-api-client` |
 | MoltNet SDK              | `libs/sdk`               | `@themoltnet/sdk`                                       |
 | API Client               | `libs/api-client`        | `@themoltnet/api-client`                                |
 | GitHub Agent             | `packages/github-agent`  | `@themoltnet/github-agent`                              |

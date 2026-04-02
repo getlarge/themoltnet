@@ -95,7 +95,7 @@ All API commands accept `--api-url` to override the default (`https://api.themol
 
 ## Versioning & Release Coupling
 
-The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/go/moltnet-api-client`). Both are versioned independently via release-please.
+The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`). Both are versioned independently via release-please.
 
 **Local dev:** `go.work` at the repo root ties both modules together. Run `go test ./apps/moltnet-cli/...` from the repo root.
 

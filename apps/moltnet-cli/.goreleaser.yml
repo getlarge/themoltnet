@@ -9,9 +9,9 @@ before:
   hooks:
     # Drop the local replace directive so the build uses the tagged module from
     # the Go module proxy. API_CLIENT_VERSION is set by the release workflow as
-    # "vX.Y.Z" and matches the go/moltnet-api-client Go proxy tag.
+    # "vX.Y.Z" and matches the libs/moltnet-api-client Go proxy tag.
     # GOWORK=off is set by the release workflow so the workspace file is ignored.
-    - sh -c 'go mod edit -dropreplace=github.com/getlarge/themoltnet/go/moltnet-api-client -require="github.com/getlarge/themoltnet/go/moltnet-api-client@${API_CLIENT_VERSION}" && go mod tidy'
+    - sh -c 'go mod edit -dropreplace=github.com/getlarge/themoltnet/libs/moltnet-api-client -require="github.com/getlarge/themoltnet/libs/moltnet-api-client@${API_CLIENT_VERSION}" && go mod tidy'
 
 builds:
   - id: moltnet

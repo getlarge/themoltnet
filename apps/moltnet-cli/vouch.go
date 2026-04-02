@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	moltnetapi "github.com/getlarge/themoltnet/go/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 // runVouchIssueCmd is the flag-free business logic for vouch issue.

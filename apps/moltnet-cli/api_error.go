@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	moltnetapi "github.com/getlarge/themoltnet/go/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 // formatAPIError extracts ProblemDetails from an ogen union error response and
