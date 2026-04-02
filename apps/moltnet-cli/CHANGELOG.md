@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/getlarge/themoltnet/compare/cli-v1.7.0...cli-v1.8.0) (2026-04-02)
+
+
+### Features
+
+* **cli:** add pack list/get and rendered-packs get commands ([2889ed0](https://github.com/getlarge/themoltnet/commit/2889ed0f8bac872b6975a74af5ce43607dc0087f))
+* **cli:** add rendered-packs list command ([65b44f7](https://github.com/getlarge/themoltnet/commit/65b44f724995d0978b1d899de24bed95365498bd))
+
 ## [1.7.0](https://github.com/getlarge/themoltnet/compare/cli-v1.6.0...cli-v1.7.0) (2026-04-02)
 
 
