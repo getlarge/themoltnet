@@ -5,7 +5,7 @@
   "include-component-in-tag": true,
   "include-v-in-tag": true,
   "packages": {
-    "cmd/moltnet": {
+    "apps/moltnet-cli": {
       "bump-minor-pre-major": true,
       "component": "cli",
       "extra-files": [
@@ -17,7 +17,7 @@
       ],
       "release-type": "go"
     },
-    "cmd/moltnet-api-client": {
+    "libs/moltnet-api-client": {
       "bump-minor-pre-major": true,
       "component": "moltnet-api-client",
       "release-type": "go"
@@ -43,13 +43,6 @@
       "release-type": "simple"
     }
   },
-  "plugins": [
-    {
-      "components": ["cli", "moltnet-api-client"],
-      "groupName": "go-cli",
-      "type": "linked-versions"
-    }
-  ],
   "separate-pull-requests": false,
   "tag-separator": "-"
 }
