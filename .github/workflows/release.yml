@@ -349,17 +349,8 @@ jobs:
           # Resolve the api-client version: use the resolved output when
           # the api-client is being released in the same run, otherwise fall
           # back to the version recorded in the manifest.
-          API_CLIENT_VER="${{ needs.resolve-publish.outputs.api-client-version }}"
-          if [ -z "$API_CLIENT_VER" ]; then
-            API_CLIENT_VER=$(jq -r '.["libs/moltnet-api-client"]' .release-please-manifest.json)
-          fi
-          echo "api_client_version=v${API_CLIENT_VER}" >> "$GITHUB_OUTPUT"
-
-          DSPY_VER="${{ needs.resolve-publish.outputs.dspy-adapters-version }}"
-          if [ -z "$DSPY_VER" ]; then
-            DSPY_VER=$(jq -r '.["libs/dspy-adapters"]' .release-please-manifest.json)
-          fi
-          echo "dspy_adapters_version=v${DSPY_VER}" >> "$GITHUB_OUTPUT"
+          # No version resolution needed: go.mod pins both libs directly;
+          # goreleaser builds with GOWORK=off and resolves from the proxy.
 
       - name: Generate GitHub App token for Homebrew tap
         uses: actions/create-github-app-token@v1
@@ -378,8 +369,6 @@ jobs:
         env:
           GOWORK: off
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
-          API_CLIENT_VERSION: ${{ steps.tag.outputs.api_client_version }}
-          DSPY_ADAPTERS_VERSION: ${{ steps.tag.outputs.dspy_adapters_version }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload binaries to GitHub Release

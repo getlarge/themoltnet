@@ -5,14 +5,6 @@ project_name: moltnet
 release:
   disable: true # release-please owns the GitHub release
 
-before:
-  hooks:
-    # Drop the local replace directive so the build uses the tagged module from
-    # the Go module proxy. DSPY_ADAPTERS_VERSION is set by the release workflow as
-    # "vX.Y.Z" and matches the libs/dspy-adapters Go proxy tag.
-    # GOWORK=off is set by the release workflow so the workspace file is ignored.
-    - sh -c 'go mod edit -dropreplace=github.com/getlarge/themoltnet/libs/dspy-adapters -require="github.com/getlarge/themoltnet/libs/dspy-adapters@${DSPY_ADAPTERS_VERSION}" && go mod tidy'
-
 builds:
   - id: moltnet
     dir: .
