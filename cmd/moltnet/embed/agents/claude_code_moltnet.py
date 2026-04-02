@@ -13,6 +13,8 @@ from pathlib import Path
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.environments.base import BaseEnvironment
 
+from .headless_prompt import build_headless_instruction
+
 logger = logging.getLogger(__name__)
 
 # Anthropic API connectivity check
@@ -24,13 +26,6 @@ _CONNECTIVITY_INITIAL_DELAY_SEC = 2
 class ClaudeCodeMoltNet(ClaudeCode):
     """Claude Code agent configured for headless MoltNet eval runs."""
 
-    _HEADLESS_PREAMBLE = (
-        "[AUTOMATED RUN -- no user is present to interact]\n"
-        "- Do NOT call AskUserQuestion. Make decisions autonomously.\n"
-        "- If ExitPlanMode does not exit after one attempt, "
-        "proceed with implementation without waiting.\n\n"
-    )
-
     @staticmethod
     def name() -> str:
         return "claude-code-moltnet"
@@ -40,7 +35,12 @@ class ClaudeCodeMoltNet(ClaudeCode):
         pass
 
     def render_instruction(self, instruction: str) -> str:
-        return self._HEADLESS_PREAMBLE + instruction
+        return build_headless_instruction(
+            instruction,
+            "- Do NOT call AskUserQuestion.",
+            "- If ExitPlanMode does not exit after one attempt, "
+            "proceed with implementation without waiting.",
+        )
 
     def _get_session_dir(self) -> Path | None:
         """Find the main session dir, ignoring subagent subdirectories.

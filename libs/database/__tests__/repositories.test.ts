@@ -179,9 +179,10 @@ describe('createDiaryRepository', () => {
     db._chain.returning.mockResolvedValue([mockEntry]);
 
     const result = await repo.create({
-      ownerId: AGENT_ID,
-      content: 'Hello world',
-      title: 'Test Entry',
+      createdBy: AGENT_ID,
+      teamId: '00000000-0000-4000-b000-000000000001',
+      name: 'Test Diary',
+      visibility: 'private' as const,
     });
 
     expect(db.insert).toHaveBeenCalled();

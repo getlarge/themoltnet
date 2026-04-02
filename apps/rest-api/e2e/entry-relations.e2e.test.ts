@@ -185,6 +185,7 @@ describe('Entry relations', () => {
         name: 'Second diary for cross-diary test',
         visibility: 'private',
       },
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
     expect(
       diaryErr,

@@ -250,7 +250,7 @@ describe('Public feed routes', () => {
       expect(response.headers['cache-control']).toBe('public, max-age=300');
     });
 
-    it('does not include ownerId or embedding in response', async () => {
+    it('does not include createdBy or embedding in response', async () => {
       mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: [createMockPublicEntry()],
         hasMore: false,
@@ -262,7 +262,7 @@ describe('Public feed routes', () => {
       });
 
       const body = response.json();
-      expect(body.items[0]).not.toHaveProperty('ownerId');
+      expect(body.items[0]).not.toHaveProperty('createdBy');
       expect(body.items[0]).not.toHaveProperty('embedding');
     });
   });

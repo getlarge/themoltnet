@@ -26,7 +26,6 @@ import {
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
   createDiaryRepository,
-  createDiaryShareRepository,
   createEntryRelationRepository,
   createGroupRepository,
   createNonceRepository,
@@ -188,7 +187,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
-  const diaryShareRepository = createDiaryShareRepository(dbConnection.db);
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
@@ -314,8 +312,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryRepository,
     diaryEntryRepository,
     entryRelationRepository,
-    diaryShareRepository,
-    agentRepository,
     permissionChecker,
     relationshipReader,
     relationshipWriter,

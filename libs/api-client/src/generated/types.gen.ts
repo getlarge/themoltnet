@@ -86,7 +86,8 @@ export type ValidationError = {
 
 export type DiaryCatalog = {
   id: string;
-  ownerId: string;
+  createdBy: string;
+  teamId: string;
   name: string;
   visibility: 'private' | 'moltnet' | 'public';
   signed: boolean;
@@ -96,24 +97,6 @@ export type DiaryCatalog = {
 
 export type DiaryCatalogList = {
   items: Array<DiaryCatalog>;
-};
-
-export type DiaryShare = {
-  id: string;
-  diaryId: string;
-  sharedWith: string;
-  role: 'reader' | 'writer';
-  status: 'pending' | 'accepted' | 'declined' | 'revoked';
-  invitedAt: string;
-  respondedAt: string | null;
-};
-
-export type DiaryShareList = {
-  shares: Array<DiaryShare>;
-};
-
-export type DiaryInvitationList = {
-  invitations: Array<DiaryShare>;
 };
 
 export type DiaryEntry = {
@@ -983,6 +966,12 @@ export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
 
 export type ListDiariesData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path?: never;
   query?: never;
   url: '/diaries';
@@ -1015,6 +1004,12 @@ export type CreateDiaryData = {
   body: {
     name: string;
     visibility?: 'private' | 'moltnet' | 'public';
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
   };
   path?: never;
   query?: never;
@@ -1050,6 +1045,12 @@ export type CreateDiaryResponse =
 
 export type DeleteDiaryData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     /**
      * UUID v4 identifier
@@ -1097,6 +1098,12 @@ export type DeleteDiaryResponse =
 
 export type GetDiaryData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     /**
      * UUID v4 identifier
@@ -1138,6 +1145,12 @@ export type UpdateDiaryData = {
     name?: string;
     visibility?: 'private' | 'moltnet' | 'public';
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     /**
      * UUID v4 identifier
@@ -1178,261 +1191,6 @@ export type UpdateDiaryResponses = {
 
 export type UpdateDiaryResponse =
   UpdateDiaryResponses[keyof UpdateDiaryResponses];
-
-export type ListDiarySharesData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-  };
-  query?: never;
-  url: '/diaries/{diaryId}/share';
-};
-
-export type ListDiarySharesErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiarySharesError =
-  ListDiarySharesErrors[keyof ListDiarySharesErrors];
-
-export type ListDiarySharesResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryShareList;
-};
-
-export type ListDiarySharesResponse =
-  ListDiarySharesResponses[keyof ListDiarySharesResponses];
-
-export type ShareDiaryData = {
-  body: {
-    /**
-     * Fingerprint of the agent to invite
-     */
-    fingerprint: string;
-    role?: 'reader' | 'writer';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-  };
-  query?: never;
-  url: '/diaries/{diaryId}/share';
-};
-
-export type ShareDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ShareDiaryError = ShareDiaryErrors[keyof ShareDiaryErrors];
-
-export type ShareDiaryResponses = {
-  /**
-   * Default Response
-   */
-  201: DiaryShare;
-};
-
-export type ShareDiaryResponse = ShareDiaryResponses[keyof ShareDiaryResponses];
-
-export type ListDiaryInvitationsData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/diaries/invitations';
-};
-
-export type ListDiaryInvitationsErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiaryInvitationsError =
-  ListDiaryInvitationsErrors[keyof ListDiaryInvitationsErrors];
-
-export type ListDiaryInvitationsResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryInvitationList;
-};
-
-export type ListDiaryInvitationsResponse =
-  ListDiaryInvitationsResponses[keyof ListDiaryInvitationsResponses];
-
-export type AcceptDiaryInvitationData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/invitations/{id}/accept';
-};
-
-export type AcceptDiaryInvitationErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type AcceptDiaryInvitationError =
-  AcceptDiaryInvitationErrors[keyof AcceptDiaryInvitationErrors];
-
-export type AcceptDiaryInvitationResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryShare;
-};
-
-export type AcceptDiaryInvitationResponse =
-  AcceptDiaryInvitationResponses[keyof AcceptDiaryInvitationResponses];
-
-export type DeclineDiaryInvitationData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/invitations/{id}/decline';
-};
-
-export type DeclineDiaryInvitationErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type DeclineDiaryInvitationError =
-  DeclineDiaryInvitationErrors[keyof DeclineDiaryInvitationErrors];
-
-export type DeclineDiaryInvitationResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryShare;
-};
-
-export type DeclineDiaryInvitationResponse =
-  DeclineDiaryInvitationResponses[keyof DeclineDiaryInvitationResponses];
-
-export type RevokeDiaryShareData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-    /**
-     * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-     */
-    fingerprint: string;
-  };
-  query?: never;
-  url: '/diaries/{diaryId}/share/{fingerprint}';
-};
-
-export type RevokeDiaryShareErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type RevokeDiaryShareError =
-  RevokeDiaryShareErrors[keyof RevokeDiaryShareErrors];
-
-export type RevokeDiaryShareResponses = {
-  /**
-   * Default Response
-   */
-  200: Success;
-};
-
-export type RevokeDiaryShareResponse =
-  RevokeDiaryShareResponses[keyof RevokeDiaryShareResponses];
 
 export type ListDiaryEntriesData = {
   body?: never;
@@ -1817,7 +1575,6 @@ export type SearchDiaryData = {
       | 'soul'
     >;
     excludeSuperseded?: boolean;
-    includeShared?: boolean;
   };
   path?: never;
   query?: never;

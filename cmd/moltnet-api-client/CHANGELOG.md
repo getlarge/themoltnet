@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.5.0...moltnet-api-client-v1.6.0) (2026-04-01)
+
+
+### Features
+
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+
+## [1.5.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.4.1...moltnet-api-client-v1.5.0) (2026-04-01)
+
+
+### Miscellaneous Chores
+
+* **moltnet-api-client:** Synchronize go-cli versions
+
 ## [1.4.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.4.0...moltnet-api-client-v1.4.1) (2026-04-01)
 
 

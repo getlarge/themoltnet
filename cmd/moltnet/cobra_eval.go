@@ -34,7 +34,13 @@ variants and reports the score delta (pack contribution).`,
   moltnet eval run --config eval.yaml --concurrency 2
 
   # With model override and force rebuild
-  moltnet eval run --scenario ./evals/codegen-chain --pack ./pack.md -m claude-sonnet-4-6 -f`,
+  moltnet eval run --scenario ./evals/codegen-chain --pack ./pack.md -m anthropic/claude-sonnet-4-6 -f
+
+  # Run with codex agent and codex judge
+  moltnet eval run --scenario ./evals/codegen-chain --agent codex --judge codex
+
+  # Run with codex agent but claude judge, explicit model
+  moltnet eval run --scenario ./evals/codegen-chain --agent codex -m openai/gpt-5-codex --judge claude`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			task, _ := cmd.Flags().GetString("scenario")
 			pack, _ := cmd.Flags().GetString("pack")
@@ -42,6 +48,9 @@ variants and reports the score delta (pack contribution).`,
 			model, _ := cmd.Flags().GetString("model")
 			concurrency, _ := cmd.Flags().GetInt("concurrency")
 			forceBuild, _ := cmd.Flags().GetBool("force-build")
+			agent, _ := cmd.Flags().GetString("agent")
+			judge, _ := cmd.Flags().GetString("judge")
+			judgeModel, _ := cmd.Flags().GetString("judge-model")
 
 			if concurrency < 1 {
 				return fmt.Errorf("--concurrency must be at least 1")
@@ -56,10 +65,27 @@ variants and reports the score delta (pack contribution).`,
 				return fmt.Errorf("--pack is only valid with --scenario, not --config")
 			}
 
+			if !cmd.Flags().Changed("model") {
+				model = defaultAgentModel(agent)
+			}
+			if judgeModel == "" {
+				judgeModel = defaultJudgeModel(judge)
+			}
+
+			if err := validateAgentModel(agent, model); err != nil {
+				return err
+			}
+			if err := validateJudgeModel(judge, judgeModel); err != nil {
+				return err
+			}
+
 			opts := evalRunOpts{
 				model:       model,
 				concurrency: concurrency,
 				forceBuild:  forceBuild,
+				agent:       agent,
+				judge:       judge,
+				judgeModel:  judgeModel,
 			}
 
 			if config != "" {
@@ -71,8 +97,11 @@ variants and reports the score delta (pack contribution).`,
 	cmd.Flags().StringP("scenario", "s", "", "Path to eval scenario directory (contains task.md + criteria.json)")
 	cmd.Flags().StringP("pack", "p", "", "Path to rendered pack markdown to inject as context")
 	cmd.Flags().StringP("config", "c", "", "Path to YAML config file for batch runs")
-	cmd.Flags().StringP("model", "m", "anthropic/claude-sonnet-4-6", "Model to use for agent and judge")
+	cmd.Flags().StringP("model", "m", "", "Model for the agent (default depends on --agent)")
 	cmd.Flags().Int("concurrency", 1, "Number of concurrent trials")
 	cmd.Flags().BoolP("force-build", "f", false, "Force Docker image rebuild")
+	cmd.Flags().String("agent", "claude", "Agent to use: claude or codex")
+	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
+	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
 	return cmd
 }

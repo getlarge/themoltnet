@@ -14,18 +14,18 @@ import { getExecutor } from '../transaction-context.js';
 export function createDiaryRepository(db: Database) {
   return {
     async create(input: {
-      ownerId: string;
+      createdBy: string;
       name: string;
       visibility: 'private' | 'moltnet' | 'public';
-      teamId?: string;
+      teamId: string;
     }): Promise<Diary> {
       const [created] = await getExecutor(db)
         .insert(diaries)
         .values({
-          ownerId: input.ownerId,
+          createdBy: input.createdBy,
           name: input.name,
           visibility: input.visibility,
-          ...(input.teamId ? { teamId: input.teamId } : {}),
+          teamId: input.teamId,
         })
         .returning();
       return created;
@@ -40,11 +40,11 @@ export function createDiaryRepository(db: Database) {
       return row ?? null;
     },
 
-    async findOwnedById(ownerId: string, id: string): Promise<Diary | null> {
+    async findByCreator(createdBy: string, id: string): Promise<Diary | null> {
       const [row] = await db
         .select()
         .from(diaries)
-        .where(and(eq(diaries.id, id), eq(diaries.ownerId, ownerId)))
+        .where(and(eq(diaries.id, id), eq(diaries.createdBy, createdBy)))
         .limit(1);
       return row ?? null;
     },
@@ -58,11 +58,20 @@ export function createDiaryRepository(db: Database) {
         .orderBy(desc(diaries.createdAt));
     },
 
-    async listByOwner(ownerId: string): Promise<Diary[]> {
+    async listByCreator(createdBy: string): Promise<Diary[]> {
       return getExecutor(db)
         .select()
         .from(diaries)
-        .where(eq(diaries.ownerId, ownerId))
+        .where(eq(diaries.createdBy, createdBy))
+        .orderBy(desc(diaries.createdAt));
+    },
+
+    async listByTeamIds(teamIds: string[]): Promise<Diary[]> {
+      if (teamIds.length === 0) return [];
+      return getExecutor(db)
+        .select()
+        .from(diaries)
+        .where(inArray(diaries.teamId, teamIds))
         .orderBy(desc(diaries.createdAt));
     },
 

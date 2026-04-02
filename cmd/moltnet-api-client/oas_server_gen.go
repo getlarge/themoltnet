@@ -8,12 +8,6 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
-	// AcceptDiaryInvitation implements acceptDiaryInvitation operation.
-	//
-	// Accept a pending diary share invitation.
-	//
-	// POST /diaries/invitations/{id}/accept
-	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
 	// AddGroupMember implements addGroupMember operation.
 	//
 	// Add a member to a group. Requires manage_members permission.
@@ -43,7 +37,7 @@ type Handler interface {
 	// Create a new diary.
 	//
 	// POST /diaries
-	CreateDiary(ctx context.Context, req *CreateDiaryReq) (CreateDiaryRes, error)
+	CreateDiary(ctx context.Context, req *CreateDiaryReq, params CreateDiaryParams) (CreateDiaryRes, error)
 	// CreateDiaryCustomPack implements createDiaryCustomPack operation.
 	//
 	// Create and persist a custom context pack from an explicit entry selection.
@@ -88,15 +82,9 @@ type Handler interface {
 	//
 	// POST /teams/{id}/invites
 	CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (CreateTeamInviteRes, error)
-	// DeclineDiaryInvitation implements declineDiaryInvitation operation.
-	//
-	// Decline a pending diary share invitation.
-	//
-	// POST /diaries/invitations/{id}/decline
-	DeclineDiaryInvitation(ctx context.Context, params DeclineDiaryInvitationParams) (DeclineDiaryInvitationRes, error)
 	// DeleteDiary implements deleteDiary operation.
 	//
-	// Delete a diary and cascade-delete its entries and shares.
+	// Delete a diary and cascade-delete its entries.
 	//
 	// DELETE /diaries/{id}
 	DeleteDiary(ctx context.Context, params DeleteDiaryParams) (DeleteDiaryRes, error)
@@ -290,31 +278,19 @@ type Handler interface {
 	// List the authenticated agent's diaries.
 	//
 	// GET /diaries
-	ListDiaries(ctx context.Context) (ListDiariesRes, error)
+	ListDiaries(ctx context.Context, params ListDiariesParams) (ListDiariesRes, error)
 	// ListDiaryEntries implements listDiaryEntries operation.
 	//
 	// List diary entries for a specific diary.
 	//
 	// GET /diaries/{diaryId}/entries
 	ListDiaryEntries(ctx context.Context, params ListDiaryEntriesParams) (ListDiaryEntriesRes, error)
-	// ListDiaryInvitations implements listDiaryInvitations operation.
-	//
-	// List pending diary share invitations for you.
-	//
-	// GET /diaries/invitations
-	ListDiaryInvitations(ctx context.Context) (ListDiaryInvitationsRes, error)
 	// ListDiaryPacks implements listDiaryPacks operation.
 	//
 	// List persisted context packs for a diary. Use `expand=entries` to include entry content.
 	//
 	// GET /diaries/{id}/packs
 	ListDiaryPacks(ctx context.Context, params ListDiaryPacksParams) (ListDiaryPacksRes, error)
-	// ListDiaryShares implements listDiaryShares operation.
-	//
-	// List all shares for a diary (owner only).
-	//
-	// GET /diaries/{diaryId}/share
-	ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (ListDiarySharesRes, error)
 	// ListDiaryTags implements listDiaryTags operation.
 	//
 	// List distinct tags used across all entries in a diary, with counts.
@@ -420,12 +396,6 @@ type Handler interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
-	// RevokeDiaryShare implements revokeDiaryShare operation.
-	//
-	// Revoke diary access for a specific agent.
-	//
-	// DELETE /diaries/{diaryId}/share/{fingerprint}
-	RevokeDiaryShare(ctx context.Context, params RevokeDiaryShareParams) (RevokeDiaryShareRes, error)
 	// RotateClientSecret implements rotateClientSecret operation.
 	//
 	// Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is
@@ -445,12 +415,6 @@ type Handler interface {
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)
-	// ShareDiary implements shareDiary operation.
-	//
-	// Invite another agent to a diary.
-	//
-	// POST /diaries/{diaryId}/share
-	ShareDiary(ctx context.Context, req *ShareDiaryReq, params ShareDiaryParams) (ShareDiaryRes, error)
 	// StartLegreffierOnboarding implements startLegreffierOnboarding operation.
 	//
 	// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No

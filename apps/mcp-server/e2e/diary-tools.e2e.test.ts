@@ -98,7 +98,7 @@ describe('Diary Tools E2E', () => {
     requireSetup();
     const createResult = await client.callTool({
       name: 'diaries_create',
-      arguments: { name: 'e2e-test-diary' },
+      arguments: { name: 'e2e-test-diary', team_id: harness.personalTeamId },
     });
 
     const createContent = createResult.content as Array<{
@@ -150,7 +150,10 @@ describe('Diary Tools E2E', () => {
     requireSetup();
     const createResult = await client.callTool({
       name: 'diaries_create',
-      arguments: { name: 'e2e-distill-diary' },
+      arguments: {
+        name: 'e2e-distill-diary',
+        team_id: harness.personalTeamId,
+      },
     });
     const createContent = createResult.content as Array<{
       type: string;

@@ -15,7 +15,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Network, Wait } from 'testcontainers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { DiaryRelation, KetoNamespace } from '../src/keto-constants.js';
+import { KetoNamespace, TeamRelation } from '../src/keto-constants.js';
 import {
   createRelationshipReader,
   type RelationshipReader,
@@ -26,8 +26,8 @@ const KETO_READ_PORT = 4466;
 const KETO_WRITE_PORT = 4467;
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
-const DIARY_ID_1 = '880e8400-e29b-41d4-a716-446655440001';
-const DIARY_ID_2 = '880e8400-e29b-41d4-a716-446655440002';
+const TEAM_ID_1 = '880e8400-e29b-41d4-a716-446655440001';
+const TEAM_ID_2 = '880e8400-e29b-41d4-a716-446655440002';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 // __dirname = libs/auth/__tests__ → ../../.. = repo root
@@ -124,18 +124,18 @@ describe('RelationshipReader (integration)', () => {
     await stopContainers?.();
   });
 
-  it('returns empty array when agent has no diary relationships', async () => {
-    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
+  it('returns empty array when agent has no team relationships', async () => {
+    const ids = await reader.listTeamIdsBySubject(AGENT_ID);
     expect(ids).toEqual([]);
   });
 
-  it('returns diary ID after owner relation is written', async () => {
+  it('returns team ID after owner relation is written', async () => {
     // Arrange
     await writeApi.createRelationship({
       createRelationshipBody: {
-        namespace: KetoNamespace.Diary,
-        object: DIARY_ID_1,
-        relation: DiaryRelation.Owner,
+        namespace: KetoNamespace.Team,
+        object: TEAM_ID_1,
+        relation: TeamRelation.Owners,
         subject_set: {
           namespace: KetoNamespace.Agent,
           object: AGENT_ID,
@@ -145,19 +145,19 @@ describe('RelationshipReader (integration)', () => {
     });
 
     // Act
-    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
+    const ids = await reader.listTeamIdsBySubject(AGENT_ID);
 
     // Assert
-    expect(ids).toContain(DIARY_ID_1);
+    expect(ids).toContain(TEAM_ID_1);
   });
 
-  it('returns diary IDs for all relation types', async () => {
-    // Arrange: add a writer relation on a second diary
+  it('returns team IDs for all relation types', async () => {
+    // Arrange: add a member relation on a second team
     await writeApi.createRelationship({
       createRelationshipBody: {
-        namespace: KetoNamespace.Diary,
-        object: DIARY_ID_2,
-        relation: DiaryRelation.Writers,
+        namespace: KetoNamespace.Team,
+        object: TEAM_ID_2,
+        relation: TeamRelation.Members,
         subject_set: {
           namespace: KetoNamespace.Agent,
           object: AGENT_ID,
@@ -167,20 +167,20 @@ describe('RelationshipReader (integration)', () => {
     });
 
     // Act
-    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
+    const ids = await reader.listTeamIdsBySubject(AGENT_ID);
 
-    // Assert: both diaries returned across owner + writers relations
-    expect(ids).toContain(DIARY_ID_1);
-    expect(ids).toContain(DIARY_ID_2);
+    // Assert: both teams returned across owners + members relations
+    expect(ids).toContain(TEAM_ID_1);
+    expect(ids).toContain(TEAM_ID_2);
   });
 
-  it('deduplicates when agent has multiple relations on the same diary', async () => {
-    // Arrange: also add a writers relation on DIARY_ID_1 (already has owner)
+  it('deduplicates when agent has multiple relations on the same team', async () => {
+    // Arrange: also add a members relation on TEAM_ID_1 (already has owners)
     await writeApi.createRelationship({
       createRelationshipBody: {
-        namespace: KetoNamespace.Diary,
-        object: DIARY_ID_1,
-        relation: DiaryRelation.Writers,
+        namespace: KetoNamespace.Team,
+        object: TEAM_ID_1,
+        relation: TeamRelation.Members,
         subject_set: {
           namespace: KetoNamespace.Agent,
           object: AGENT_ID,
@@ -190,9 +190,9 @@ describe('RelationshipReader (integration)', () => {
     });
 
     // Act
-    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
+    const ids = await reader.listTeamIdsBySubject(AGENT_ID);
 
-    // Assert: DIARY_ID_1 appears only once
-    expect(ids.filter((id) => id === DIARY_ID_1)).toHaveLength(1);
+    // Assert: TEAM_ID_1 appears only once
+    expect(ids.filter((id) => id === TEAM_ID_1)).toHaveLength(1);
   });
 });

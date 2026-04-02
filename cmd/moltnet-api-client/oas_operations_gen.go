@@ -6,7 +6,6 @@ package moltnetapi
 type OperationName = string
 
 const (
-	AcceptDiaryInvitationOperation         OperationName = "AcceptDiaryInvitation"
 	AddGroupMemberOperation                OperationName = "AddGroupMember"
 	ClaimVerificationOperation             OperationName = "ClaimVerification"
 	CompileDiaryOperation                  OperationName = "CompileDiary"
@@ -19,7 +18,6 @@ const (
 	CreateSigningRequestOperation          OperationName = "CreateSigningRequest"
 	CreateTeamOperation                    OperationName = "CreateTeam"
 	CreateTeamInviteOperation              OperationName = "CreateTeamInvite"
-	DeclineDiaryInvitationOperation        OperationName = "DeclineDiaryInvitation"
 	DeleteDiaryOperation                   OperationName = "DeleteDiary"
 	DeleteDiaryEntryByIdOperation          OperationName = "DeleteDiaryEntryById"
 	DeleteEntryRelationOperation           OperationName = "DeleteEntryRelation"
@@ -53,9 +51,7 @@ const (
 	ListActiveVouchersOperation            OperationName = "ListActiveVouchers"
 	ListDiariesOperation                   OperationName = "ListDiaries"
 	ListDiaryEntriesOperation              OperationName = "ListDiaryEntries"
-	ListDiaryInvitationsOperation          OperationName = "ListDiaryInvitations"
 	ListDiaryPacksOperation                OperationName = "ListDiaryPacks"
-	ListDiarySharesOperation               OperationName = "ListDiaryShares"
 	ListDiaryTagsOperation                 OperationName = "ListDiaryTags"
 	ListEntryRelationsOperation            OperationName = "ListEntryRelations"
 	ListGroupMembersOperation              OperationName = "ListGroupMembers"
@@ -73,11 +69,9 @@ const (
 	RemoveTeamMemberOperation              OperationName = "RemoveTeamMember"
 	RenderContextPackOperation             OperationName = "RenderContextPack"
 	RequestRecoveryChallengeOperation      OperationName = "RequestRecoveryChallenge"
-	RevokeDiaryShareOperation              OperationName = "RevokeDiaryShare"
 	RotateClientSecretOperation            OperationName = "RotateClientSecret"
 	SearchDiaryOperation                   OperationName = "SearchDiary"
 	SearchPublicFeedOperation              OperationName = "SearchPublicFeed"
-	ShareDiaryOperation                    OperationName = "ShareDiary"
 	StartLegreffierOnboardingOperation     OperationName = "StartLegreffierOnboarding"
 	SubmitSignatureOperation               OperationName = "SubmitSignature"
 	SubmitVerificationOperation            OperationName = "SubmitVerification"

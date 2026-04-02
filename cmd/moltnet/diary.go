@@ -17,7 +17,7 @@ func runDiaryListCmd(apiURL, credPath string) error {
 	if err != nil {
 		return err
 	}
-	res, err := client.ListDiaries(context.Background())
+	res, err := client.ListDiaries(context.Background(), moltnetapi.ListDiariesParams{})
 	if err != nil {
 		return fmt.Errorf("diary list: %w", err)
 	}
@@ -29,7 +29,7 @@ func runDiaryListCmd(apiURL, credPath string) error {
 }
 
 // runDiaryCreateCmd creates a new diary.
-func runDiaryCreateCmd(apiURL, credPath, name, visibility string) error {
+func runDiaryCreateCmd(apiURL, credPath, name, visibility, teamID string) error {
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
@@ -43,7 +43,9 @@ func runDiaryCreateCmd(apiURL, credPath, name, visibility string) error {
 			Set:   true,
 		}
 	}
-	res, err := client.CreateDiary(context.Background(), req)
+	res, err := client.CreateDiary(context.Background(), req, moltnetapi.CreateDiaryParams{
+		XMoltnetTeamID: uuid.MustParse(teamID),
+	})
 	if err != nil {
 		return fmt.Errorf("diary create: %w", err)
 	}

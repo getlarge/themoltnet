@@ -638,7 +638,8 @@ describe('Diary tools', () => {
             id: DIARY_ID,
             name: 'My Diary',
             visibility: 'private',
-            ownerId: 'owner-id',
+            createdBy: 'owner-id',
+            teamId: '00000000-0000-4000-b000-000000000001',
             signed: false,
             createdAt: '2025-01-01T00:00:00.000Z',
             updatedAt: '2025-01-01T00:00:00.000Z',
@@ -697,7 +698,8 @@ describe('Diary tools', () => {
         id: DIARY_ID,
         name: 'My Diary',
         visibility: 'private',
-        ownerId: 'owner-id',
+        createdBy: 'owner-id',
+        teamId: '00000000-0000-4000-b000-000000000001',
         signed: false,
         createdAt: '2025-01-01T00:00:00.000Z',
         updatedAt: '2025-01-01T00:00:00.000Z',
@@ -705,7 +707,7 @@ describe('Diary tools', () => {
       vi.mocked(createDiary).mockResolvedValue(sdkOk(diary, 201) as never);
 
       const result = await handleDiariesCreate(
-        { name: 'My Diary' },
+        { name: 'My Diary', team_id: 'team-1' },
         deps,
         context,
       );
@@ -713,6 +715,7 @@ describe('Diary tools', () => {
       expect(createDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: { name: 'My Diary', visibility: undefined },
+          headers: { 'x-moltnet-team-id': 'team-1' },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -725,7 +728,8 @@ describe('Diary tools', () => {
         id: DIARY_ID,
         name: 'Public Diary',
         visibility: 'public',
-        ownerId: 'owner-id',
+        createdBy: 'owner-id',
+        teamId: '00000000-0000-4000-b000-000000000001',
         signed: false,
         createdAt: '2025-01-01T00:00:00.000Z',
         updatedAt: '2025-01-01T00:00:00.000Z',
@@ -733,7 +737,7 @@ describe('Diary tools', () => {
       vi.mocked(createDiary).mockResolvedValue(sdkOk(diary, 201) as never);
 
       await handleDiariesCreate(
-        { name: 'Public Diary', visibility: 'public' },
+        { name: 'Public Diary', visibility: 'public', team_id: 'team-1' },
         deps,
         context,
       );
@@ -741,6 +745,7 @@ describe('Diary tools', () => {
       expect(createDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: { name: 'Public Diary', visibility: 'public' },
+          headers: { 'x-moltnet-team-id': 'team-1' },
         }),
       );
     });
@@ -749,7 +754,11 @@ describe('Diary tools', () => {
       const diary = { id: DIARY_ID, name: 'Test' };
       vi.mocked(createDiary).mockResolvedValue(sdkOk(diary, 201) as never);
 
-      const result = await handleDiariesCreate({ name: 'Test' }, deps, context);
+      const result = await handleDiariesCreate(
+        { name: 'Test', team_id: 'team-1' },
+        deps,
+        context,
+      );
 
       const parsed = parseResult<{ diary: { id: string } }>(result);
       expect(parsed.diary).toHaveProperty('id', DIARY_ID);
@@ -758,7 +767,7 @@ describe('Diary tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiariesCreate(
-        { name: 'Test' },
+        { name: 'Test', team_id: 'team-1' },
         deps,
         unauthContext,
       );
@@ -774,7 +783,8 @@ describe('Diary tools', () => {
         id: DIARY_ID,
         name: 'My Diary',
         visibility: 'private',
-        ownerId: 'owner-id',
+        createdBy: 'owner-id',
+        teamId: '00000000-0000-4000-b000-000000000001',
         signed: false,
         createdAt: '2025-01-01T00:00:00.000Z',
         updatedAt: '2025-01-01T00:00:00.000Z',

@@ -198,15 +198,6 @@ export const DiaryParamsSchema = Type.Object({
   id: UuidSchema,
 });
 
-export const DiaryShareParamsSchema = Type.Object({
-  diaryId: UuidSchema,
-  fingerprint: FingerprintSchema,
-});
-
-export const InvitationIdParamsSchema = Type.Object({
-  id: UuidSchema,
-});
-
 // ============================================================================
 // LeGreffier Onboarding Schemas
 // ============================================================================
@@ -267,8 +258,6 @@ export type NestedDiaryParams = Static<typeof NestedDiaryParamsSchema>;
 export type DiaryEntryParams = Static<typeof DiaryEntryParamsSchema>;
 export type EntryParams = Static<typeof EntryParamsSchema>;
 export type DiaryParams = Static<typeof DiaryParamsSchema>;
-export type DiaryShareParams = Static<typeof DiaryShareParamsSchema>;
-export type InvitationIdParams = Static<typeof InvitationIdParamsSchema>;
 
 // ============================================================================
 // Team Schemas
@@ -413,3 +402,25 @@ export type GroupParams = Static<typeof GroupParamsSchema>;
 export type GroupMemberParams = Static<typeof GroupMemberParamsSchema>;
 export type CreateGroup = Static<typeof CreateGroupSchema>;
 export type AddGroupMember = Static<typeof AddGroupMemberSchema>;
+
+// ============================================================================
+// Header Schemas
+// ============================================================================
+
+/** Required x-moltnet-team-id header schema for routes that need team context */
+export const TeamHeaderRequiredSchema = Type.Object({
+  'x-moltnet-team-id': Type.String({
+    format: 'uuid',
+    description: 'Team ID (UUID) that will own the resource. Required.',
+  }),
+});
+
+/** Optional x-moltnet-team-id header schema for routes that accept team context */
+export const TeamHeaderOptionalSchema = Type.Object({
+  'x-moltnet-team-id': Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description: 'Team ID (UUID) for scoping the request. Optional.',
+    }),
+  ),
+});

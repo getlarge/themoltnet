@@ -11,16 +11,6 @@
       "schema": "public",
       "values": ["full", "summary", "keywords"]
     },
-    "public.diary_share_role": {
-      "name": "diary_share_role",
-      "schema": "public",
-      "values": ["reader", "writer"]
-    },
-    "public.diary_share_status": {
-      "name": "diary_share_status",
-      "schema": "public",
-      "values": ["pending", "accepted", "declined", "revoked"]
-    },
     "public.entry_type": {
       "name": "entry_type",
       "schema": "public",
@@ -76,7 +66,7 @@
       "values": ["private", "moltnet", "public"]
     }
   },
-  "id": "2b871a89-dd85-45c3-8a5a-bebdacd2a22c",
+  "id": "b6d90b8a-eaf5-4f9b-b2fb-1c28e897a291",
   "policies": {},
   "prevId": "c367f3af-af02-42e4-9ec7-e01c89161b7d",
   "roles": {},
@@ -574,6 +564,12 @@
           "primaryKey": false,
           "type": "timestamp with time zone"
         },
+        "created_by": {
+          "name": "created_by",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "uuid"
+        },
         "id": {
           "default": "gen_random_uuid()",
           "name": "id",
@@ -587,12 +583,6 @@
           "primaryKey": false,
           "type": "varchar(255)"
         },
-        "owner_id": {
-          "name": "owner_id",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "uuid"
-        },
         "signed": {
           "default": false,
           "name": "signed",
@@ -602,7 +592,7 @@
         },
         "team_id": {
           "name": "team_id",
-          "notNull": false,
+          "notNull": true,
           "primaryKey": false,
           "type": "uuid"
         },
@@ -628,18 +618,18 @@
           "columnsFrom": ["team_id"],
           "columnsTo": ["id"],
           "name": "diaries_team_id_teams_id_fk",
-          "onDelete": "set null",
+          "onDelete": "restrict",
           "onUpdate": "no action",
           "tableFrom": "diaries",
           "tableTo": "teams"
         }
       },
       "indexes": {
-        "diaries_owner_idx": {
+        "diaries_created_by_idx": {
           "columns": [
             {
               "asc": true,
-              "expression": "owner_id",
+              "expression": "created_by",
               "isExpression": false,
               "nulls": "last"
             }
@@ -647,14 +637,14 @@
           "concurrently": false,
           "isUnique": false,
           "method": "btree",
-          "name": "diaries_owner_idx",
+          "name": "diaries_created_by_idx",
           "with": {}
         },
-        "diaries_owner_visibility_idx": {
+        "diaries_created_by_visibility_idx": {
           "columns": [
             {
               "asc": true,
-              "expression": "owner_id",
+              "expression": "created_by",
               "isExpression": false,
               "nulls": "last"
             },
@@ -668,7 +658,7 @@
           "concurrently": false,
           "isUnique": false,
           "method": "btree",
-          "name": "diaries_owner_visibility_idx",
+          "name": "diaries_created_by_visibility_idx",
           "with": {}
         },
         "diaries_team_idx": {
@@ -900,144 +890,6 @@
       },
       "isRLSEnabled": false,
       "name": "diary_entries",
-      "policies": {},
-      "schema": "",
-      "uniqueConstraints": {}
-    },
-    "public.diary_shares": {
-      "checkConstraints": {},
-      "columns": {
-        "diary_id": {
-          "name": "diary_id",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "uuid"
-        },
-        "id": {
-          "default": "gen_random_uuid()",
-          "name": "id",
-          "notNull": true,
-          "primaryKey": true,
-          "type": "uuid"
-        },
-        "invited_at": {
-          "default": "now()",
-          "name": "invited_at",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "timestamp with time zone"
-        },
-        "responded_at": {
-          "name": "responded_at",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "timestamp with time zone"
-        },
-        "role": {
-          "default": "'reader'",
-          "name": "role",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "diary_share_role",
-          "typeSchema": "public"
-        },
-        "shared_with": {
-          "name": "shared_with",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "uuid"
-        },
-        "status": {
-          "default": "'pending'",
-          "name": "status",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "diary_share_status",
-          "typeSchema": "public"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "foreignKeys": {
-        "diary_shares_diary_id_diaries_id_fk": {
-          "columnsFrom": ["diary_id"],
-          "columnsTo": ["id"],
-          "name": "diary_shares_diary_id_diaries_id_fk",
-          "onDelete": "cascade",
-          "onUpdate": "no action",
-          "tableFrom": "diary_shares",
-          "tableTo": "diaries"
-        }
-      },
-      "indexes": {
-        "diary_shares_diary_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "diary_id",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "diary_shares_diary_idx",
-          "with": {}
-        },
-        "diary_shares_shared_with_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "shared_with",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "diary_shares_shared_with_idx",
-          "with": {}
-        },
-        "diary_shares_status_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "status",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "diary_shares_status_idx",
-          "with": {}
-        },
-        "diary_shares_unique_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "diary_id",
-              "isExpression": false,
-              "nulls": "last"
-            },
-            {
-              "asc": true,
-              "expression": "shared_with",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": true,
-          "method": "btree",
-          "name": "diary_shares_unique_idx",
-          "with": {}
-        }
-      },
-      "isRLSEnabled": false,
-      "name": "diary_shares",
       "policies": {},
       "schema": "",
       "uniqueConstraints": {}
@@ -1323,140 +1175,6 @@
       },
       "isRLSEnabled": false,
       "name": "groups",
-      "policies": {},
-      "schema": "",
-      "uniqueConstraints": {}
-    },
-    "public.rendered_pack_attestations": {
-      "checkConstraints": {},
-      "columns": {
-        "composite": {
-          "name": "composite",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "real"
-        },
-        "coverage": {
-          "name": "coverage",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "real"
-        },
-        "created_at": {
-          "default": "now()",
-          "name": "created_at",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "timestamp with time zone"
-        },
-        "created_by": {
-          "name": "created_by",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "uuid"
-        },
-        "faithfulness": {
-          "name": "faithfulness",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "real"
-        },
-        "grounding": {
-          "name": "grounding",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "real"
-        },
-        "id": {
-          "default": "gen_random_uuid()",
-          "name": "id",
-          "notNull": true,
-          "primaryKey": true,
-          "type": "uuid"
-        },
-        "judge_binary_cid": {
-          "name": "judge_binary_cid",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "varchar(100)"
-        },
-        "judge_model": {
-          "name": "judge_model",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "varchar(100)"
-        },
-        "judge_provider": {
-          "name": "judge_provider",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "varchar(50)"
-        },
-        "rendered_pack_id": {
-          "name": "rendered_pack_id",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "uuid"
-        },
-        "rubric_cid": {
-          "name": "rubric_cid",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "varchar(100)"
-        },
-        "transcript": {
-          "name": "transcript",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "text"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "foreignKeys": {
-        "rendered_pack_attestations_rendered_pack_id_rendered_packs_id_fk": {
-          "columnsFrom": ["rendered_pack_id"],
-          "columnsTo": ["id"],
-          "name": "rendered_pack_attestations_rendered_pack_id_rendered_packs_id_fk",
-          "onDelete": "cascade",
-          "onUpdate": "no action",
-          "tableFrom": "rendered_pack_attestations",
-          "tableTo": "rendered_packs"
-        }
-      },
-      "indexes": {
-        "attestations_composite_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "composite",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "attestations_composite_idx",
-          "with": {}
-        },
-        "attestations_rendered_pack_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "rendered_pack_id",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "attestations_rendered_pack_idx",
-          "with": {}
-        }
-      },
-      "isRLSEnabled": false,
-      "name": "rendered_pack_attestations",
       "policies": {},
       "schema": "",
       "uniqueConstraints": {}

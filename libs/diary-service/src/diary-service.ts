@@ -1,7 +1,7 @@
 /**
  * @moltnet/diary-service — Diary Service
  *
- * Orchestrates all diary operations: container CRUD, sharing/invitations,
+ * Orchestrates all diary operations: container CRUD (team-scoped)
  * and entry CRUD with embedding generation and permission management.
  * Sits between the API layer and the database repositories.
  *
@@ -11,9 +11,9 @@
  * ┌─────────────────────────────────────────────────────────────────┐
  * │ DB Entity          │ Event        │ Keto Relationship           │
  * ├────────────────────┼──────────────┼─────────────────────────────┤
- * │ diaries            │ INSERT       │ Diary:{id}#owner@Agent:{ownerId}           │
+ * │ diaries            │ INSERT       │ Diary:{id}#team@Team:{teamId}              │
  * │ diaries            │ DELETE       │ Remove ALL Diary:{id} relations            │
- * │ diary_entries      │ INSERT       │ DiaryEntry:{id}#parent@Diary:{diaryId}             │
+ * │ diary_entries      │ INSERT       │ DiaryEntry:{id}#parent@Diary:{diaryId}     │
  * │ diary_entries      │ DELETE       │ Remove ALL DiaryEntry:{id} relations       │
  * │ agent_keys         │ INSERT       │ Agent:{identityId}#self@Agent:{identityId} │
  * └────────────────────┴──────────────┴─────────────────────────────┘
@@ -27,7 +27,7 @@
  * Keto relationship writes happen inside the transaction.
  */
 
-import { KetoNamespace } from '@moltnet/auth';
+import type { KetoNamespace } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
 
 import type {
@@ -36,13 +36,11 @@ import type {
   Diary,
   DiaryEntry,
   DiaryServiceDeps,
-  DiaryShare,
   Digest,
   ListInput,
   ListTagsInput,
   ReflectInput,
   SearchInput,
-  ShareDiaryInput,
   TagCount,
   UpdateDiaryInput,
   UpdateEntryInput,
@@ -59,7 +57,7 @@ export interface DiaryService {
     input: CreateDiaryInput,
     opts?: { withinTransaction?: boolean },
   ): Promise<Diary>;
-  listDiaries(ownerId: string): Promise<Diary[]>;
+  listDiaries(agentId: string): Promise<Diary[]>;
   findDiary(
     id: string,
     agentId: string,
@@ -77,25 +75,6 @@ export interface DiaryService {
     agentId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
-
-  // ── Sharing operations ───────────────────────────────────────
-  listShares(diaryId: string): Promise<DiaryShare[]>;
-  /**
-   * Invite another agent to a diary.
-   * Throws DiaryServiceError on business logic failures.
-   */
-  shareDiary(input: ShareDiaryInput): Promise<DiaryShare>;
-  listInvitations(agentId: string): Promise<DiaryShare[]>;
-  /** Throws DiaryServiceError if not found or wrong status. */
-  acceptInvitation(id: string, agentId: string): Promise<DiaryShare>;
-  /** Throws DiaryServiceError if not found or wrong status. */
-  declineInvitation(id: string, agentId: string): Promise<DiaryShare>;
-  /** Throws DiaryServiceError if diary/agent/share not found. */
-  revokeShare(
-    diaryId: string,
-    fingerprint: string,
-    ownerId: string,
-  ): Promise<void>;
 
   // ── Entry operations ─────────────────────────────────────────
   createEntry(
@@ -163,8 +142,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     diaryRepository,
     diaryEntryRepository,
     entryRelationRepository,
-    diaryShareRepository,
-    agentRepository,
     permissionChecker,
     relationshipReader,
     relationshipWriter,
@@ -195,28 +172,19 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     ): Promise<Diary> {
       const doCreate = async () => {
         const diary = await diaryRepository.create({
-          ownerId: input.ownerId,
+          createdBy: input.createdBy,
           name: input.name,
           visibility: input.visibility ?? 'private',
           teamId: input.teamId,
         });
         try {
-          // Option A: always write legacy owner relation
-          await relationshipWriter.grantDiaryOwner(
-            diary.id,
-            input.ownerId,
-            input.subjectNs ?? KetoNamespace.Agent,
-          );
-          // If team context is provided, also write the team relation
-          if (input.teamId) {
-            await relationshipWriter.grantDiaryTeam(diary.id, input.teamId);
-          }
+          await relationshipWriter.grantDiaryTeam(diary.id, input.teamId);
         } catch (err) {
           // Keto write failed — compensate by removing the DB row so the
           // diary is not left in a state where it exists in DB but has no
-          // Keto owner relation (which would cause 403 on all subsequent ops).
+          // Keto team relation (which would cause 403 on all subsequent ops).
           logger.error(
-            { diaryId: diary.id, agentId: input.ownerId, err },
+            { diaryId: diary.id, createdBy: input.createdBy, err },
             'diary.keto_grant_failed',
           );
           try {
@@ -232,7 +200,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           throw err;
         }
         logger.info(
-          { diaryId: diary.id, agentId: input.ownerId, teamId: input.teamId },
+          {
+            diaryId: diary.id,
+            createdBy: input.createdBy,
+            teamId: input.teamId,
+          },
           'diary.created',
         );
         return diary;
@@ -247,8 +219,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     },
 
     async listDiaries(agentId: string): Promise<Diary[]> {
-      const ids = await relationshipReader.listDiaryIdsBySubject(agentId);
-      return diaryRepository.listByIds(ids);
+      const teamIds = await relationshipReader.listTeamIdsBySubject(agentId);
+      return diaryRepository.listByTeamIds(teamIds);
     },
 
     async findDiary(
@@ -274,8 +246,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
     },
 
-    findOwnedDiary(ownerId: string, id: string): Promise<Diary | null> {
-      return diaryRepository.findOwnedById(ownerId, id);
+    findOwnedDiary(createdBy: string, id: string): Promise<Diary | null> {
+      return diaryRepository.findByCreator(createdBy, id);
     },
 
     async updateDiary(
@@ -331,195 +303,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
       logger.info({ diaryId: id }, 'diary.deleted');
       return true;
-    },
-
-    // ── Sharing operations ─────────────────────────────────────
-
-    listShares(diaryId: string): Promise<DiaryShare[]> {
-      return diaryShareRepository.listByDiary(diaryId);
-    },
-
-    async shareDiary(input: ShareDiaryInput): Promise<DiaryShare> {
-      const diary = await diaryRepository.findOwnedById(
-        input.ownerId,
-        input.diaryId,
-      );
-      if (!diary) {
-        throw new DiaryServiceError('not_found', 'Diary not found');
-      }
-
-      const normalizedFingerprint = input.fingerprint.toUpperCase();
-      const targetAgent = await agentRepository.findByFingerprint(
-        normalizedFingerprint,
-      );
-      if (!targetAgent) {
-        throw new DiaryServiceError(
-          'not_found',
-          `Agent with fingerprint "${normalizedFingerprint}" not found`,
-        );
-      }
-
-      if (targetAgent.identityId === input.ownerId) {
-        throw new DiaryServiceError(
-          'self_share',
-          'Cannot share a diary with yourself',
-        );
-      }
-
-      const existingShare = await diaryShareRepository.findByDiaryAndAgent(
-        diary.id,
-        targetAgent.identityId,
-      );
-
-      if (existingShare) {
-        if (
-          existingShare.status === 'revoked' ||
-          existingShare.status === 'declined'
-        ) {
-          const updated = await diaryShareRepository.updateStatus(
-            existingShare.id,
-            'pending',
-            { respondedAt: null, role: input.role ?? 'reader' },
-          );
-          if (!updated) {
-            throw new DiaryServiceError('not_found', 'Share not found');
-          }
-          return updated;
-        }
-        throw new DiaryServiceError(
-          'already_shared',
-          `Share already exists with status "${existingShare.status}"`,
-        );
-      }
-
-      const share = await diaryShareRepository.create({
-        diaryId: diary.id,
-        sharedWith: targetAgent.identityId,
-        role: input.role ?? 'reader',
-      });
-
-      if (!share) {
-        throw new DiaryServiceError(
-          'already_shared',
-          'Share already exists for this diary and agent',
-        );
-      }
-
-      logger.info(
-        { diaryId: diary.id, targetAgentId: targetAgent.identityId },
-        'diary.shared',
-      );
-      return share;
-    },
-
-    listInvitations(agentId: string): Promise<DiaryShare[]> {
-      return diaryShareRepository.listPendingForAgent(agentId);
-    },
-
-    acceptInvitation(id: string, agentId: string): Promise<DiaryShare> {
-      return transactionRunner.runInTransaction(
-        async () => {
-          const share = await diaryShareRepository.findById(id);
-          if (!share || share.sharedWith !== agentId) {
-            throw new DiaryServiceError('not_found', 'Invitation not found');
-          }
-
-          if (share.status !== 'pending') {
-            throw new DiaryServiceError(
-              'wrong_status',
-              `Invitation has already been ${share.status}`,
-            );
-          }
-
-          const accepted = await diaryShareRepository.updateStatus(
-            id,
-            'accepted',
-          );
-          if (!accepted) {
-            throw new DiaryServiceError('not_found', 'Invitation not found');
-          }
-
-          if (accepted.role === 'writer') {
-            await relationshipWriter.grantDiaryWriter(
-              accepted.diaryId,
-              agentId,
-              KetoNamespace.Agent,
-            );
-          } else {
-            await relationshipWriter.grantDiaryReader(
-              accepted.diaryId,
-              agentId,
-              KetoNamespace.Agent,
-            );
-          }
-
-          return accepted;
-        },
-        { name: 'diary.accept-invitation' },
-      );
-    },
-
-    async declineInvitation(id: string, agentId: string): Promise<DiaryShare> {
-      const share = await diaryShareRepository.findById(id);
-      if (!share || share.sharedWith !== agentId) {
-        throw new DiaryServiceError('not_found', 'Invitation not found');
-      }
-
-      if (share.status !== 'pending') {
-        throw new DiaryServiceError(
-          'wrong_status',
-          `Invitation has already been ${share.status}`,
-        );
-      }
-
-      const updated = await diaryShareRepository.updateStatus(id, 'declined');
-      if (!updated) {
-        throw new DiaryServiceError('not_found', 'Invitation not found');
-      }
-
-      return updated;
-    },
-
-    async revokeShare(
-      diaryId: string,
-      fingerprint: string,
-      ownerId: string,
-    ): Promise<void> {
-      const diary = await diaryRepository.findOwnedById(ownerId, diaryId);
-      if (!diary) {
-        throw new DiaryServiceError('not_found', 'Diary not found');
-      }
-
-      const normalizedFingerprint = fingerprint.toUpperCase();
-      const targetAgent = await agentRepository.findByFingerprint(
-        normalizedFingerprint,
-      );
-      if (!targetAgent) {
-        throw new DiaryServiceError(
-          'not_found',
-          `Agent with fingerprint "${normalizedFingerprint}" not found`,
-        );
-      }
-
-      const share = await diaryShareRepository.findByDiaryAndAgent(
-        diary.id,
-        targetAgent.identityId,
-      );
-      if (!share) {
-        throw new DiaryServiceError('not_found', 'Share not found');
-      }
-
-      await transactionRunner.runInTransaction(
-        async () => {
-          await diaryShareRepository.updateStatus(share.id, 'revoked');
-          await relationshipWriter.removeDiaryRelationForAgent(
-            diary.id,
-            targetAgent.identityId,
-            KetoNamespace.Agent,
-          );
-        },
-        { name: 'diary.revoke-share' },
-      );
     },
 
     // ── Entry operations ───────────────────────────────────────
@@ -666,7 +449,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       input: SearchInput,
       agentId: string,
     ): Promise<DiaryEntry[]> {
-      const ownedDiaries = await diaryRepository.listByOwner(agentId);
+      const ownedDiaries = await diaryRepository.listByCreator(agentId);
       if (!ownedDiaries.length) return [];
       return diaryEntryRepository.search({
         ...input,
@@ -679,20 +462,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       input: SearchInput,
       agentId: string,
     ): Promise<DiaryEntry[]> {
-      const [ownedDiaries, acceptedShares] = await Promise.all([
-        diaryRepository.listByOwner(agentId),
-        diaryShareRepository.listAcceptedForAgent(agentId),
-      ]);
-      const diaryIds = [
-        ...new Set([
-          ...ownedDiaries.map((d) => d.id),
-          ...acceptedShares.map((s) => s.diaryId),
-        ]),
-      ];
-      if (!diaryIds.length) return [];
+      const teamIds = await relationshipReader.listTeamIdsBySubject(agentId);
+      if (!teamIds.length) return [];
       return diaryEntryRepository.search({
         ...input,
-        diaryIds,
+        teamIds,
         embedding: await resolveEmbedding(input.query),
       });
     },

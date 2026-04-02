@@ -130,10 +130,18 @@ async function setup(): Promise<void> {
     apiUrl: API_URL,
   });
 
-  const diary = await sdk.diaries.create({
-    name: 'eval-workspace',
-    visibility: 'moltnet',
-  });
+  // Use personalTeamId from bootstrap result (available since Option B)
+  const personalTeamId = agent.personalTeamId;
+  if (!personalTeamId) {
+    throw new Error(
+      'Cannot resolve personal team ID — bootstrap did not return personalTeamId',
+    );
+  }
+
+  const diary = await sdk.diaries.create(
+    { name: 'eval-workspace', visibility: 'moltnet' },
+    { 'x-moltnet-team-id': personalTeamId },
+  );
   console.log(`[eval-setup] Diary created: ${diary.id}`);
 
   // 6. Write .eval-env.json

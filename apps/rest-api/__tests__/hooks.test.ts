@@ -45,9 +45,20 @@ describe('Hook routes', () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
+      mocks.relationshipWriter.grantTeamOwners.mockResolvedValue(undefined);
+      mocks.teamRepository.create.mockResolvedValue({
+        id: '00000000-0000-4000-b000-000000000001',
+        name: 'test',
+        status: 'active',
+        personal: true,
+        createdBy: OWNER_ID,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       mocks.diaryService.createDiary.mockResolvedValue({
         id: DIARY_ID,
-        ownerId: OWNER_ID,
+        createdBy: OWNER_ID,
+        teamId: '00000000-0000-4000-b000-000000000001',
         name: 'Private',
         visibility: 'private',
         signed: false,
@@ -337,9 +348,20 @@ describe('Hook routes', () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
+      mocks.relationshipWriter.grantTeamOwners.mockResolvedValue(undefined);
+      mocks.teamRepository.create.mockResolvedValue({
+        id: '00000000-0000-4000-b000-000000000001',
+        name: 'test',
+        status: 'active',
+        personal: true,
+        createdBy: OWNER_ID,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       mocks.diaryService.createDiary.mockResolvedValue({
         id: DIARY_ID,
-        ownerId: OWNER_ID,
+        createdBy: OWNER_ID,
+        teamId: '00000000-0000-4000-b000-000000000001',
         name: 'Private',
         visibility: 'private',
         signed: false,

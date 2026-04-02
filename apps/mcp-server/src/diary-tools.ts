@@ -175,7 +175,6 @@ export async function handleEntrySearch(
       wImportance: args.w_importance,
       entryTypes: args.entry_types,
       excludeSuperseded: args.exclude_superseded,
-      includeShared: args.include_shared,
     },
   });
 
@@ -325,6 +324,7 @@ export async function handleDiariesCreate(
     client: deps.client,
     auth: () => token,
     body: { name: args.name, visibility: args.visibility },
+    headers: { 'x-moltnet-team-id': args.team_id },
   });
 
   if (error) {

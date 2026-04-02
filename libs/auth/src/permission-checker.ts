@@ -73,6 +73,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
+  canWriteTeam(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   canManageTeam(
     teamId: string,
     subjectId: string,
@@ -327,6 +332,21 @@ export function createPermissionChecker(
         KetoNamespace.Team,
         teamId,
         TeamPermission.Access,
+        subjectNs,
+        subjectId,
+      );
+    },
+
+    canWriteTeam(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Write,
         subjectNs,
         subjectId,
       );

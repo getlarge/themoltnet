@@ -12,7 +12,7 @@ export interface AuthContext {
   scopes: string[];
   /** Subject type — determines Keto namespace for permission checks. */
   subjectType: SubjectType;
-  /** Active team context — resolved from X-Team-Id header or personal team fallback. */
+  /** Active team context — resolved from x-moltnet-team-id header or personal team fallback. */
   currentTeamId: string | null;
 }
 

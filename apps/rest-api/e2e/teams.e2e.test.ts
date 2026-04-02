@@ -101,7 +101,7 @@ describe('Teams', () => {
         (t: { name: string }) => t.name === 'list-test-team',
       );
       expect(team).toBeDefined();
-      expect(team!.role).toBe('owner');
+      expect(team!.role).toBe('owners');
     });
   });
 
@@ -218,7 +218,7 @@ describe('Teams', () => {
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
       expect(memberB).toBeDefined();
-      expect(memberB!.role).toBe('member');
+      expect(memberB!.role).toBe('members');
     });
 
     it('agent B can now view the team', async () => {
@@ -395,7 +395,7 @@ describe('Teams', () => {
         (t: { personal: boolean }) => t.personal,
       );
       expect(personal).toBeDefined();
-      expect(personal!.role).toBe('owner');
+      expect(personal!.role).toBe('owners');
       expect(personal!.status).toBe('active');
     });
   });
@@ -414,7 +414,7 @@ describe('Teams', () => {
       teamId = data!.id;
     });
 
-    it('diary created with X-Team-Id is accessible to team members', async () => {
+    it('diary created with x-moltnet-team-id is accessible to team members', async () => {
       // Agent A creates diary with team context
       const {
         data: diary,
@@ -424,7 +424,7 @@ describe('Teams', () => {
         client,
         auth: () => agentA.accessToken,
         body: { name: 'team-diary', visibility: 'moltnet' },
-        headers: { 'X-Team-Id': teamId },
+        headers: { 'x-moltnet-team-id': teamId },
       });
 
       expect(error).toBeUndefined();

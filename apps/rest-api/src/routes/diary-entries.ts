@@ -32,11 +32,9 @@ function translateServiceError(err: DiaryServiceError): never {
       throw createProblem('not-found', err.message);
     case 'forbidden':
       throw createProblem('forbidden', err.message);
-    case 'self_share':
     case 'validation_failed':
     case 'wrong_status':
       throw createProblem('validation-failed', err.message);
-    case 'already_shared':
     case 'immutable':
       throw createProblem('conflict', err.message);
     default:
@@ -697,7 +695,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             ),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
-          includeShared: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(DiarySearchResultSchema),
@@ -709,7 +706,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const {
         diaryId,
-        includeShared,
         query,
         tags,
         excludeTags,
@@ -747,13 +743,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             agentId,
             subjectNs,
           );
-        } else if (includeShared) {
-          results = await fastify.diaryService.searchAccessible(
-            searchInput,
-            agentId,
-          );
         } else {
-          results = await fastify.diaryService.searchOwned(
+          // Without diaryId, search across all accessible diaries (via team membership)
+          results = await fastify.diaryService.searchAccessible(
             searchInput,
             agentId,
           );

@@ -26,8 +26,6 @@ export interface TeamIdWithRole {
 }
 
 export interface RelationshipReader {
-  /** Returns all diary IDs where the subject has any direct relationship (owner, writers, readers). Does not traverse team relations. */
-  listDiaryIdsBySubject(subjectId: string): Promise<string[]>;
   /** Returns all team IDs where the subject has any relationship (owner, manager, member). */
   listTeamIdsBySubject(subjectId: string): Promise<string[]>;
   /** Returns all team IDs with the subject's role in each team. */
@@ -36,29 +34,6 @@ export interface RelationshipReader {
   listTeamMembers(teamId: string): Promise<TeamMemberTuple[]>;
   /** Returns all members of a group. */
   listGroupMembers(groupId: string): Promise<GroupMemberTuple[]>;
-}
-
-async function paginateRelationships(
-  relationshipApi: RelationshipApi,
-  params: Parameters<RelationshipApi['getRelationships']>[0],
-  extract: (tuple: { object?: string }) => string | undefined,
-): Promise<string[]> {
-  const ids = new Set<string>();
-  let pageToken: string | undefined;
-
-  do {
-    const result = await relationshipApi.getRelationships({
-      ...params,
-      pageToken,
-    });
-    for (const tuple of result.relation_tuples ?? []) {
-      const id = extract(tuple);
-      if (id) ids.add(id);
-    }
-    pageToken = result.next_page_token || undefined;
-  } while (pageToken);
-
-  return [...ids];
 }
 
 async function paginateTeamRoles(
@@ -93,33 +68,6 @@ export function createRelationshipReader(
   relationshipApi: RelationshipApi,
 ): RelationshipReader {
   return {
-    async listDiaryIdsBySubject(subjectId: string): Promise<string[]> {
-      // Query with subject_set for both Agent and Human namespaces
-      const [agentDiaries, humanDiaries] = await Promise.all([
-        paginateRelationships(
-          relationshipApi,
-          {
-            namespace: KetoNamespace.Diary,
-            subjectSetNamespace: KetoNamespace.Agent,
-            subjectSetObject: subjectId,
-            subjectSetRelation: '',
-          },
-          (tuple) => tuple.object,
-        ),
-        paginateRelationships(
-          relationshipApi,
-          {
-            namespace: KetoNamespace.Diary,
-            subjectSetNamespace: KetoNamespace.Human,
-            subjectSetObject: subjectId,
-            subjectSetRelation: '',
-          },
-          (tuple) => tuple.object,
-        ),
-      ]);
-      return [...new Set([...agentDiaries, ...humanDiaries])];
-    },
-
     async listTeamIdsBySubject(subjectId: string): Promise<string[]> {
       const roles = await this.listTeamIdsAndRolesBySubject(subjectId);
       return [...new Set(roles.map((r) => r.teamId))];
