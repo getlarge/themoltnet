@@ -2087,8 +2087,8 @@ func (*CreateDiaryEntryUnauthorized) createDiaryEntryRes() {}
 type CreateDiaryGrantCreated struct {
 	Role CreateDiaryGrantCreatedRole `json:"role"`
 	// UUID v4 identifier.
-	SubjectId uuid.UUID `json:"subjectId"`
-	SubjectNs string    `json:"subjectNs"`
+	SubjectId uuid.UUID                        `json:"subjectId"`
+	SubjectNs CreateDiaryGrantCreatedSubjectNs `json:"subjectNs"`
 }
 
 // GetRole returns the value of Role.
@@ -2102,7 +2102,7 @@ func (s *CreateDiaryGrantCreated) GetSubjectId() uuid.UUID {
 }
 
 // GetSubjectNs returns the value of SubjectNs.
-func (s *CreateDiaryGrantCreated) GetSubjectNs() string {
+func (s *CreateDiaryGrantCreated) GetSubjectNs() CreateDiaryGrantCreatedSubjectNs {
 	return s.SubjectNs
 }
 
@@ -2117,7 +2117,7 @@ func (s *CreateDiaryGrantCreated) SetSubjectId(val uuid.UUID) {
 }
 
 // SetSubjectNs sets the value of SubjectNs.
-func (s *CreateDiaryGrantCreated) SetSubjectNs(val string) {
+func (s *CreateDiaryGrantCreated) SetSubjectNs(val CreateDiaryGrantCreatedSubjectNs) {
 	s.SubjectNs = val
 }
 
@@ -2164,6 +2164,54 @@ func (s *CreateDiaryGrantCreatedRole) UnmarshalText(data []byte) error {
 	}
 }
 
+type CreateDiaryGrantCreatedSubjectNs string
+
+const (
+	CreateDiaryGrantCreatedSubjectNsAgent CreateDiaryGrantCreatedSubjectNs = "Agent"
+	CreateDiaryGrantCreatedSubjectNsHuman CreateDiaryGrantCreatedSubjectNs = "Human"
+	CreateDiaryGrantCreatedSubjectNsGroup CreateDiaryGrantCreatedSubjectNs = "Group"
+)
+
+// AllValues returns all CreateDiaryGrantCreatedSubjectNs values.
+func (CreateDiaryGrantCreatedSubjectNs) AllValues() []CreateDiaryGrantCreatedSubjectNs {
+	return []CreateDiaryGrantCreatedSubjectNs{
+		CreateDiaryGrantCreatedSubjectNsAgent,
+		CreateDiaryGrantCreatedSubjectNsHuman,
+		CreateDiaryGrantCreatedSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateDiaryGrantCreatedSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateDiaryGrantCreatedSubjectNsAgent:
+		return []byte(s), nil
+	case CreateDiaryGrantCreatedSubjectNsHuman:
+		return []byte(s), nil
+	case CreateDiaryGrantCreatedSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateDiaryGrantCreatedSubjectNs) UnmarshalText(data []byte) error {
+	switch CreateDiaryGrantCreatedSubjectNs(data) {
+	case CreateDiaryGrantCreatedSubjectNsAgent:
+		*s = CreateDiaryGrantCreatedSubjectNsAgent
+		return nil
+	case CreateDiaryGrantCreatedSubjectNsHuman:
+		*s = CreateDiaryGrantCreatedSubjectNsHuman
+		return nil
+	case CreateDiaryGrantCreatedSubjectNsGroup:
+		*s = CreateDiaryGrantCreatedSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type CreateDiaryGrantForbidden ProblemDetails
 
 func (*CreateDiaryGrantForbidden) createDiaryGrantRes() {}
@@ -2171,10 +2219,6 @@ func (*CreateDiaryGrantForbidden) createDiaryGrantRes() {}
 type CreateDiaryGrantInternalServerError ProblemDetails
 
 func (*CreateDiaryGrantInternalServerError) createDiaryGrantRes() {}
-
-type CreateDiaryGrantNotFound ProblemDetails
-
-func (*CreateDiaryGrantNotFound) createDiaryGrantRes() {}
 
 type CreateDiaryGrantReq struct {
 	Role CreateDiaryGrantReqRole `json:"role"`
@@ -6098,10 +6142,6 @@ type ListDiaryGrantsInternalServerError ProblemDetails
 
 func (*ListDiaryGrantsInternalServerError) listDiaryGrantsRes() {}
 
-type ListDiaryGrantsNotFound ProblemDetails
-
-func (*ListDiaryGrantsNotFound) listDiaryGrantsRes() {}
-
 type ListDiaryGrantsOK struct {
 	Grants []ListDiaryGrantsOKGrantsItem `json:"grants"`
 }
@@ -6121,8 +6161,8 @@ func (*ListDiaryGrantsOK) listDiaryGrantsRes() {}
 type ListDiaryGrantsOKGrantsItem struct {
 	Role ListDiaryGrantsOKGrantsItemRole `json:"role"`
 	// UUID v4 identifier.
-	SubjectId uuid.UUID `json:"subjectId"`
-	SubjectNs string    `json:"subjectNs"`
+	SubjectId uuid.UUID                            `json:"subjectId"`
+	SubjectNs ListDiaryGrantsOKGrantsItemSubjectNs `json:"subjectNs"`
 }
 
 // GetRole returns the value of Role.
@@ -6136,7 +6176,7 @@ func (s *ListDiaryGrantsOKGrantsItem) GetSubjectId() uuid.UUID {
 }
 
 // GetSubjectNs returns the value of SubjectNs.
-func (s *ListDiaryGrantsOKGrantsItem) GetSubjectNs() string {
+func (s *ListDiaryGrantsOKGrantsItem) GetSubjectNs() ListDiaryGrantsOKGrantsItemSubjectNs {
 	return s.SubjectNs
 }
 
@@ -6151,7 +6191,7 @@ func (s *ListDiaryGrantsOKGrantsItem) SetSubjectId(val uuid.UUID) {
 }
 
 // SetSubjectNs sets the value of SubjectNs.
-func (s *ListDiaryGrantsOKGrantsItem) SetSubjectNs(val string) {
+func (s *ListDiaryGrantsOKGrantsItem) SetSubjectNs(val ListDiaryGrantsOKGrantsItemSubjectNs) {
 	s.SubjectNs = val
 }
 
@@ -6190,6 +6230,54 @@ func (s *ListDiaryGrantsOKGrantsItemRole) UnmarshalText(data []byte) error {
 		return nil
 	case ListDiaryGrantsOKGrantsItemRoleManager:
 		*s = ListDiaryGrantsOKGrantsItemRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListDiaryGrantsOKGrantsItemSubjectNs string
+
+const (
+	ListDiaryGrantsOKGrantsItemSubjectNsAgent ListDiaryGrantsOKGrantsItemSubjectNs = "Agent"
+	ListDiaryGrantsOKGrantsItemSubjectNsHuman ListDiaryGrantsOKGrantsItemSubjectNs = "Human"
+	ListDiaryGrantsOKGrantsItemSubjectNsGroup ListDiaryGrantsOKGrantsItemSubjectNs = "Group"
+)
+
+// AllValues returns all ListDiaryGrantsOKGrantsItemSubjectNs values.
+func (ListDiaryGrantsOKGrantsItemSubjectNs) AllValues() []ListDiaryGrantsOKGrantsItemSubjectNs {
+	return []ListDiaryGrantsOKGrantsItemSubjectNs{
+		ListDiaryGrantsOKGrantsItemSubjectNsAgent,
+		ListDiaryGrantsOKGrantsItemSubjectNsHuman,
+		ListDiaryGrantsOKGrantsItemSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListDiaryGrantsOKGrantsItemSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case ListDiaryGrantsOKGrantsItemSubjectNsAgent:
+		return []byte(s), nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsHuman:
+		return []byte(s), nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListDiaryGrantsOKGrantsItemSubjectNs) UnmarshalText(data []byte) error {
+	switch ListDiaryGrantsOKGrantsItemSubjectNs(data) {
+	case ListDiaryGrantsOKGrantsItemSubjectNsAgent:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsAgent
+		return nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsHuman:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsHuman
+		return nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsGroup:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsGroup
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -12108,10 +12196,6 @@ func (*RevokeDiaryGrantForbidden) revokeDiaryGrantRes() {}
 type RevokeDiaryGrantInternalServerError ProblemDetails
 
 func (*RevokeDiaryGrantInternalServerError) revokeDiaryGrantRes() {}
-
-type RevokeDiaryGrantNotFound ProblemDetails
-
-func (*RevokeDiaryGrantNotFound) revokeDiaryGrantRes() {}
 
 type RevokeDiaryGrantOK struct {
 	Revoked bool `json:"revoked"`

@@ -296,7 +296,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           201: DiaryGrantResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -354,7 +353,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           200: DiaryGrantListResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -378,7 +376,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       return {
         grants: tuples.map((t) => ({
           subjectId: t.subjectId,
-          subjectNs: t.subjectNs,
+          subjectNs: t.subjectNs as 'Agent' | 'Human' | 'Group',
           role: t.role,
         })),
       };
@@ -400,7 +398,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           200: RevokedResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },

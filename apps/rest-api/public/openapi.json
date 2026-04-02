@@ -5674,16 +5674,6 @@
             },
             "description": "Default Response"
           },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
           "500": {
             "content": {
               "application/json": {
@@ -5744,7 +5734,20 @@
                             "type": "string"
                           },
                           "subjectNs": {
-                            "type": "string"
+                            "anyOf": [
+                              {
+                                "enum": ["Agent"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["Human"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["Group"],
+                                "type": "string"
+                              }
+                            ]
                           }
                         },
                         "required": ["subjectId", "subjectNs", "role"],
@@ -5771,16 +5774,6 @@
             "description": "Default Response"
           },
           "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -5893,7 +5886,20 @@
                       "type": "string"
                     },
                     "subjectNs": {
-                      "type": "string"
+                      "anyOf": [
+                        {
+                          "enum": ["Agent"],
+                          "type": "string"
+                        },
+                        {
+                          "enum": ["Human"],
+                          "type": "string"
+                        },
+                        {
+                          "enum": ["Group"],
+                          "type": "string"
+                        }
+                      ]
                     }
                   },
                   "required": ["subjectId", "subjectNs", "role"],
@@ -5914,16 +5920,6 @@
             "description": "Default Response"
           },
           "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "404": {
             "content": {
               "application/json": {
                 "schema": {

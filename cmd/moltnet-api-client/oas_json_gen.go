@@ -5268,7 +5268,7 @@ func (s *CreateDiaryGrantCreated) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("subjectNs")
-		e.Str(s.SubjectNs)
+		s.SubjectNs.Encode(e)
 	}
 }
 
@@ -5312,9 +5312,7 @@ func (s *CreateDiaryGrantCreated) Decode(d *jx.Decoder) error {
 		case "subjectNs":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.SubjectNs = string(v)
-				if err != nil {
+				if err := s.SubjectNs.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -5417,6 +5415,48 @@ func (s *CreateDiaryGrantCreatedRole) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateDiaryGrantCreatedSubjectNs as json.
+func (s CreateDiaryGrantCreatedSubjectNs) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDiaryGrantCreatedSubjectNs from json.
+func (s *CreateDiaryGrantCreatedSubjectNs) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDiaryGrantCreatedSubjectNs to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDiaryGrantCreatedSubjectNs(v) {
+	case CreateDiaryGrantCreatedSubjectNsAgent:
+		*s = CreateDiaryGrantCreatedSubjectNsAgent
+	case CreateDiaryGrantCreatedSubjectNsHuman:
+		*s = CreateDiaryGrantCreatedSubjectNsHuman
+	case CreateDiaryGrantCreatedSubjectNsGroup:
+		*s = CreateDiaryGrantCreatedSubjectNsGroup
+	default:
+		*s = CreateDiaryGrantCreatedSubjectNs(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDiaryGrantCreatedSubjectNs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDiaryGrantCreatedSubjectNs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateDiaryGrantForbidden as json.
 func (s *CreateDiaryGrantForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -5489,44 +5529,6 @@ func (s *CreateDiaryGrantInternalServerError) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateDiaryGrantInternalServerError) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateDiaryGrantNotFound as json.
-func (s *CreateDiaryGrantNotFound) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateDiaryGrantNotFound from json.
-func (s *CreateDiaryGrantNotFound) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateDiaryGrantNotFound to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateDiaryGrantNotFound(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateDiaryGrantNotFound) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateDiaryGrantNotFound) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -17827,44 +17829,6 @@ func (s *ListDiaryGrantsInternalServerError) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes ListDiaryGrantsNotFound as json.
-func (s *ListDiaryGrantsNotFound) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes ListDiaryGrantsNotFound from json.
-func (s *ListDiaryGrantsNotFound) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ListDiaryGrantsNotFound to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = ListDiaryGrantsNotFound(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ListDiaryGrantsNotFound) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ListDiaryGrantsNotFound) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode implements json.Marshaler.
 func (s *ListDiaryGrantsOK) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -17990,7 +17954,7 @@ func (s *ListDiaryGrantsOKGrantsItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("subjectNs")
-		e.Str(s.SubjectNs)
+		s.SubjectNs.Encode(e)
 	}
 }
 
@@ -18034,9 +17998,7 @@ func (s *ListDiaryGrantsOKGrantsItem) Decode(d *jx.Decoder) error {
 		case "subjectNs":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.SubjectNs = string(v)
-				if err != nil {
+				if err := s.SubjectNs.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -18135,6 +18097,48 @@ func (s ListDiaryGrantsOKGrantsItemRole) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListDiaryGrantsOKGrantsItemRole) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListDiaryGrantsOKGrantsItemSubjectNs as json.
+func (s ListDiaryGrantsOKGrantsItemSubjectNs) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ListDiaryGrantsOKGrantsItemSubjectNs from json.
+func (s *ListDiaryGrantsOKGrantsItemSubjectNs) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListDiaryGrantsOKGrantsItemSubjectNs to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ListDiaryGrantsOKGrantsItemSubjectNs(v) {
+	case ListDiaryGrantsOKGrantsItemSubjectNsAgent:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsAgent
+	case ListDiaryGrantsOKGrantsItemSubjectNsHuman:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsHuman
+	case ListDiaryGrantsOKGrantsItemSubjectNsGroup:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsGroup
+	default:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNs(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ListDiaryGrantsOKGrantsItemSubjectNs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListDiaryGrantsOKGrantsItemSubjectNs) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -32254,44 +32258,6 @@ func (s *RevokeDiaryGrantInternalServerError) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RevokeDiaryGrantInternalServerError) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RevokeDiaryGrantNotFound as json.
-func (s *RevokeDiaryGrantNotFound) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes RevokeDiaryGrantNotFound from json.
-func (s *RevokeDiaryGrantNotFound) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RevokeDiaryGrantNotFound to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = RevokeDiaryGrantNotFound(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *RevokeDiaryGrantNotFound) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RevokeDiaryGrantNotFound) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

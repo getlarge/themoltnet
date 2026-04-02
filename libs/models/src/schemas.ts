@@ -418,10 +418,6 @@ export const GrantSubjectNsSchema = Type.Union([
   Type.Literal('Group'),
 ]);
 
-export const DiaryGrantParamsSchema = Type.Object({
-  id: UuidSchema,
-});
-
 export const CreateDiaryGrantSchema = Type.Object({
   subjectId: UuidSchema,
   subjectNs: GrantSubjectNsSchema,
@@ -436,7 +432,7 @@ export const RevokeDiaryGrantSchema = Type.Object({
 
 export const DiaryGrantResponseSchema = Type.Object({
   subjectId: UuidSchema,
-  subjectNs: Type.String(),
+  subjectNs: GrantSubjectNsSchema,
   role: DiaryGrantRoleSchema,
 });
 

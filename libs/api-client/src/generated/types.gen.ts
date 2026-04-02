@@ -1223,10 +1223,6 @@ export type RevokeDiaryGrantErrors = {
   /**
    * Default Response
    */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
   500: ProblemDetails;
 };
 
@@ -1269,10 +1265,6 @@ export type ListDiaryGrantsErrors = {
   /**
    * Default Response
    */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
   500: ProblemDetails;
 };
 
@@ -1289,7 +1281,7 @@ export type ListDiaryGrantsResponses = {
        * UUID v4 identifier
        */
       subjectId: string;
-      subjectNs: string;
+      subjectNs: 'Agent' | 'Human' | 'Group';
       role: 'writer' | 'manager';
     }>;
   };
@@ -1329,10 +1321,6 @@ export type CreateDiaryGrantErrors = {
   /**
    * Default Response
    */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
   500: ProblemDetails;
 };
 
@@ -1348,7 +1336,7 @@ export type CreateDiaryGrantResponses = {
      * UUID v4 identifier
      */
     subjectId: string;
-    subjectNs: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
     role: 'writer' | 'manager';
   };
 };

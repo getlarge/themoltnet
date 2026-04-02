@@ -2012,6 +2012,17 @@ func (s *CreateDiaryGrantCreated) Validate() error {
 			Error: err,
 		})
 	}
+	if err := func() error {
+		if err := s.SubjectNs.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "subjectNs",
+			Error: err,
+		})
+	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
 	}
@@ -2029,6 +2040,19 @@ func (s CreateDiaryGrantCreatedRole) Validate() error {
 	}
 }
 
+func (s CreateDiaryGrantCreatedSubjectNs) Validate() error {
+	switch s {
+	case "Agent":
+		return nil
+	case "Human":
+		return nil
+	case "Group":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *CreateDiaryGrantForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -2038,14 +2062,6 @@ func (s *CreateDiaryGrantForbidden) Validate() error {
 }
 
 func (s *CreateDiaryGrantInternalServerError) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CreateDiaryGrantNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -4755,14 +4771,6 @@ func (s *ListDiaryGrantsInternalServerError) Validate() error {
 	return nil
 }
 
-func (s *ListDiaryGrantsNotFound) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *ListDiaryGrantsOK) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -4820,6 +4828,17 @@ func (s *ListDiaryGrantsOKGrantsItem) Validate() error {
 			Error: err,
 		})
 	}
+	if err := func() error {
+		if err := s.SubjectNs.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "subjectNs",
+			Error: err,
+		})
+	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
 	}
@@ -4831,6 +4850,19 @@ func (s ListDiaryGrantsOKGrantsItemRole) Validate() error {
 	case "writer":
 		return nil
 	case "manager":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s ListDiaryGrantsOKGrantsItemSubjectNs) Validate() error {
+	switch s {
+	case "Agent":
+		return nil
+	case "Human":
+		return nil
+	case "Group":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -6920,14 +6952,6 @@ func (s *RevokeDiaryGrantForbidden) Validate() error {
 }
 
 func (s *RevokeDiaryGrantInternalServerError) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *RevokeDiaryGrantNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

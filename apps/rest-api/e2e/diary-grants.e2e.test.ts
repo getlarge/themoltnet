@@ -481,7 +481,7 @@ describe('Diary Grants E2E', () => {
   });
 
   describe('Group membership changes', () => {
-    it('removing member from group removes their group-based diary access', async () => {
+    it('removing member from group does not break team-based access', async () => {
       // Create a fresh diary + group grant setup
       const { data: diary5 } = await createDiary({
         client,
