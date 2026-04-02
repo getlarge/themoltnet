@@ -35,7 +35,7 @@ async function requestContextPluginImpl(
     const auth = request.authContext;
     if (auth) {
       setRequestContextField('identityId', auth.identityId);
-      setRequestContextField('clientId', auth.clientId);
+      if (auth.clientId) setRequestContextField('clientId', auth.clientId);
     }
   });
 }

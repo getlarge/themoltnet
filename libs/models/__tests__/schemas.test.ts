@@ -193,25 +193,56 @@ describe('Crypto schemas', () => {
 });
 
 describe('AuthContextSchema', () => {
-  const validContext = {
+  const validAgentContext = {
     identityId: '550e8400-e29b-41d4-a716-446655440000',
     publicKey: 'ed25519:AAAA',
     fingerprint: 'A1B2-C3D4-E5F6-07A8',
     clientId: 'hydra-client-123',
     scopes: ['diary:read', 'diary:write'],
+    subjectType: 'agent',
   };
 
-  it('accepts valid auth context', () => {
-    expect(Value.Check(AuthContextSchema, validContext)).toBe(true);
+  const validHumanContext = {
+    identityId: '550e8400-e29b-41d4-a716-446655440000',
+    scopes: ['diary:read', 'diary:write'],
+    subjectType: 'human',
+    clientId: null,
+  };
+
+  it('accepts valid agent auth context', () => {
+    expect(Value.Check(AuthContextSchema, validAgentContext)).toBe(true);
+  });
+
+  it('accepts valid human auth context', () => {
+    expect(Value.Check(AuthContextSchema, validHumanContext)).toBe(true);
+  });
+
+  it('accepts human auth context with clientId', () => {
+    expect(
+      Value.Check(AuthContextSchema, {
+        ...validHumanContext,
+        clientId: 'some-client',
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects agent context without publicKey', () => {
+    const { publicKey, ...rest } = validAgentContext;
+    expect(Value.Check(AuthContextSchema, rest)).toBe(false);
+  });
+
+  it('rejects context without subjectType', () => {
+    const { subjectType, ...rest } = validAgentContext;
+    expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });
 
   it('rejects missing identityId', () => {
-    const { identityId, ...rest } = validContext;
+    const { identityId, ...rest } = validAgentContext;
     expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });
 
   it('rejects missing scopes', () => {
-    const { scopes, ...rest } = validContext;
+    const { scopes, ...rest } = validAgentContext;
     expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });
 });

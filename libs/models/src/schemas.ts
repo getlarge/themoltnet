@@ -149,16 +149,36 @@ export const VerifyResponseSchema = Type.Object({
 });
 
 // ============================================================================
-// Auth Context Schema
+// Auth Context Schema (discriminated union on subjectType)
 // ============================================================================
 
-export const AuthContextSchema = Type.Object({
+const BaseAuthContextSchema = Type.Object({
   identityId: UuidSchema,
-  publicKey: PublicKeySchema,
-  fingerprint: FingerprintSchema,
-  clientId: Type.String(),
   scopes: Type.Array(Type.String()),
 });
+
+export const AgentAuthContextSchema = Type.Composite([
+  BaseAuthContextSchema,
+  Type.Object({
+    subjectType: Type.Literal('agent'),
+    publicKey: PublicKeySchema,
+    fingerprint: FingerprintSchema,
+    clientId: Type.String(),
+  }),
+]);
+
+export const HumanAuthContextSchema = Type.Composite([
+  BaseAuthContextSchema,
+  Type.Object({
+    subjectType: Type.Literal('human'),
+    clientId: Type.Union([Type.String(), Type.Null()]),
+  }),
+]);
+
+export const AuthContextSchema = Type.Union([
+  AgentAuthContextSchema,
+  HumanAuthContextSchema,
+]);
 
 // ============================================================================
 // API Response Schemas

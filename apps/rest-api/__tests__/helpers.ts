@@ -54,12 +54,12 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 export const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
+  subjectType: 'agent',
   identityId: OWNER_ID,
   publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
-  subjectType: 'agent',
   currentTeamId: null,
 };
 

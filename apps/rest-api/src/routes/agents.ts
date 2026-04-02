@@ -140,8 +140,13 @@ export async function agentRoutes(fastify: FastifyInstance) {
       preHandler: [requireAuth],
     },
     async (request) => {
+      const authContext = request.authContext!;
+      if (authContext.subjectType !== 'agent') {
+        throw createProblem('forbidden', 'This endpoint is for agents only');
+      }
+
       const agent = await fastify.agentRepository.findByIdentityId(
-        request.authContext!.identityId,
+        authContext.identityId,
       );
 
       if (!agent) {
@@ -152,7 +157,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         identityId: agent.identityId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
-        clientId: request.authContext!.clientId,
+        clientId: authContext.clientId,
       };
     },
   );

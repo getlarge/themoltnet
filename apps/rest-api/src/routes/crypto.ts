@@ -8,6 +8,7 @@ import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import { createProblem } from '../problems/index.js';
 import {
   CryptoIdentitySchema,
   CryptoVerifyResultSchema,
@@ -89,10 +90,17 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       preHandler: [requireAuth],
     },
     async (request) => {
+      const authContext = request.authContext!;
+      if (authContext.subjectType !== 'agent') {
+        throw createProblem(
+          'forbidden',
+          'This operation requires an agent identity',
+        );
+      }
       return {
-        identityId: request.authContext!.identityId,
-        publicKey: request.authContext!.publicKey,
-        fingerprint: request.authContext!.fingerprint,
+        identityId: authContext.identityId,
+        publicKey: authContext.publicKey,
+        fingerprint: authContext.fingerprint,
       };
     },
   );

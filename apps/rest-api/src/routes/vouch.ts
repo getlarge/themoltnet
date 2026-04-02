@@ -41,8 +41,13 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       preHandler: [requireAuth],
     },
     async (request, reply) => {
+      const authContext = request.authContext!;
+      if (authContext.subjectType !== 'agent') {
+        throw createProblem('forbidden', 'Only agents can issue vouchers');
+      }
+
       const voucher = await withSerializationRetry(
-        () => fastify.voucherRepository.issue(request.authContext!.identityId),
+        () => fastify.voucherRepository.issue(authContext.identityId),
         {
           onRetry: (attempt, max) => {
             request.log.warn(
@@ -64,7 +69,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       return reply.status(201).send({
         code: voucher.code,
         expiresAt: voucher.expiresAt.toISOString(),
-        issuedBy: request.authContext!.fingerprint,
+        issuedBy: authContext.fingerprint,
       });
     },
   );
@@ -89,15 +94,20 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       preHandler: [requireAuth],
     },
     async (request) => {
+      const authContext = request.authContext!;
+      if (authContext.subjectType !== 'agent') {
+        throw createProblem('forbidden', 'Only agents can list vouchers');
+      }
+
       const vouchers = await fastify.voucherRepository.listActiveByIssuer(
-        request.authContext!.identityId,
+        authContext.identityId,
       );
 
       return {
         vouchers: vouchers.map((v) => ({
           code: v.code,
           expiresAt: v.expiresAt.toISOString(),
-          issuedBy: request.authContext!.fingerprint,
+          issuedBy: authContext.fingerprint,
         })),
       };
     },
