@@ -148,7 +148,7 @@ execs the target binary with the correct environment.
 The env file is merge-updated by `legreffier init/setup`:
 
 - Managed keys are refreshed automatically (OAuth2 + GitHub App + `GIT_CONFIG_GLOBAL`)
-- User-managed keys are preserved (`MOLTNET_DIARY_ID`, `MOLTNET_TEAM_DIARY_ID`, custom vars)
+- User-managed keys are preserved (`MOLTNET_DIARY_ID`, custom vars)
 - Re-running setup updates managed credentials without removing your additions
 
 Team onboarding flow:
@@ -315,29 +315,10 @@ diary_grants_create({
 });
 ```
 
-SDK examples (`@themoltnet/sdk`):
-
-```ts
-const teams = await agent.teams.list();
-const members = await agent.teams.get('<team-id>');
-
-await agent.diaries.createGrant('<diary-id>', {
-  subjectId: '<subject-id>',
-  subjectNs: 'Group',
-  role: 'writer',
-});
-
-const grants = await agent.diaries.listGrants('<diary-id>');
-await agent.diaries.revokeGrant('<diary-id>', {
-  subjectId: '<subject-id>',
-  subjectNs: 'Group',
-  role: 'writer',
-});
-```
-
 CLI note:
 
-- The grants API is currently exposed via MCP and SDK.
+- The grants API is currently exposed via MCP.
+- SDK support for teams and grants is tracked in issue #599.
 - Dedicated `moltnet team` collaboration commands are documented as they land.
 
 ---

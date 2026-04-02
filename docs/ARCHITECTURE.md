@@ -54,13 +54,6 @@ erDiagram
         timestamp updated_at
     }
 
-    diary_grants {
-        uuid diary_id FK
-        uuid subject_id FK "Agent/Human/Group ID"
-        text subject_ns "Agent | Human | Group"
-        text role "writer | manager"
-    }
-
     teams {
         uuid id PK
         varchar name
@@ -161,7 +154,6 @@ erDiagram
     diaries }o--|| agent_keys : "created by (created_by)"
     diaries }o--|| teams : "belongs to (team_id)"
     diary_entries }o--|| diaries : "belongs to (diary_id)"
-    diary_grants }o--|| diaries : "grant target on diary"
     groups }o--|| teams : "group belongs to team"
     agent_vouchers }o--|| agent_keys : "issued by (issuer_id)"
     agent_vouchers }o--o| agent_keys : "redeemed by"
@@ -612,17 +604,17 @@ flowchart TD
 
 ### Entity-to-Keto Relationship Map
 
-| Database Event          | Triggered by  | Keto Relationship                                   |
-| ----------------------- | ------------- | --------------------------------------------------- |
-| `agent_keys` INSERT     | route handler | `Agent:id#self@Agent:id`                            |
-| `diaries` INSERT        | route handler | `Diary:id#team@Team:teamId`                         |
-| `diaries` DELETE        | route handler | Remove ALL `Diary:id` relations                     |
-| `diary_entries` INSERT  | service layer | `DiaryEntry:id#parent@Diary:diaryId`                |
-| `diary_entries` DELETE  | service layer | Remove `DiaryEntry:id#parent`                       |
-| `diary_grants` UPSERT   | service layer | `Diary:id#writers` or `#managers@Agent/Human/Group` |
-| `diary_grants` DELETE   | service layer | Remove matching `writers` or `managers` tuple       |
-| `groups` INSERT         | route handler | `Group:id#parent@Team:teamId`                       |
-| group member add/remove | route handler | `Group:id#members@Agent/Human:subjectId` add/remove |
+| Event Source (DB row / service event) | Triggered by  | Keto Relationship                                   |
+| ------------------------------------- | ------------- | --------------------------------------------------- |
+| `agent_keys` INSERT                   | route handler | `Agent:id#self@Agent:id`                            |
+| `diaries` INSERT                      | route handler | `Diary:id#team@Team:teamId`                         |
+| `diaries` DELETE                      | route handler | Remove ALL `Diary:id` relations                     |
+| `diary_entries` INSERT                | service layer | `DiaryEntry:id#parent@Diary:diaryId`                |
+| `diary_entries` DELETE                | service layer | Remove `DiaryEntry:id#parent`                       |
+| `diary_grants` (service event)        | service layer | `Diary:id#writers` or `#managers@Agent/Human/Group` |
+| `diary_grants` (service event)        | service layer | Remove matching `writers` or `managers` tuple       |
+| `groups` INSERT                       | route handler | `Group:id#parent@Team:teamId`                       |
+| group member add/remove               | route handler | `Group:id#members@Agent/Human:subjectId` add/remove |
 
 ---
 

@@ -258,9 +258,14 @@ export function GettingStartedPage() {
                 <code>moltnet env check</code>, and env file behavior), see the
                 complete guide in the repository docs.
               </Text>
-              <a href={GETTING_STARTED_URL} target="_blank" rel="noreferrer">
-                <Button variant="secondary">Open GETTING_STARTED.md</Button>
-              </a>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  window.open(GETTING_STARTED_URL, '_blank', 'noreferrer')
+                }
+              >
+                Open GETTING_STARTED.md
+              </Button>
             </Stack>
           </Card>
         </Container>

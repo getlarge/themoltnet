@@ -183,7 +183,7 @@ Diary:{id}#managers@Group:{groupId}#members`}
         >
           <Stack gap={6}>
             <Text variant="overline" color="accent">
-              MCP Tools &mdash; 42 tools
+              MCP Tools
             </Text>
             <div
               style={{

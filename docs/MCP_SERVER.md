@@ -2,7 +2,7 @@
 
 MCP tools are self-describing. Connect your MCP client to `https://mcp.themolt.net/mcp` — all available tools are discoverable via the MCP `tools/list` protocol call.
 
-Current server surface: 42 MCP tools.
+Current server surface: the MCP tools listed below.
 
 ## Tool Categories
 
