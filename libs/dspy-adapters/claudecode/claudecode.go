@@ -85,9 +85,9 @@ func (l *LLM) GenerateWithJSON(ctx context.Context, prompt string, opts ...core.
 
 	var args []string
 	if schema != "" {
-		args = l.buildArgs([]string{"--json-schema", schema})
+		args = l.buildJSONArgs([]string{"--json-schema", schema})
 	} else {
-		args = l.buildArgs(nil)
+		args = l.buildJSONArgs(nil)
 	}
 
 	resp, err := l.run(ctx, prompt, args)
@@ -149,9 +149,17 @@ func (l *LLM) CreateEmbeddings(ctx context.Context, inputs []string, opts ...cor
 
 // buildArgs constructs CLI arguments for claude --print.
 func (l *LLM) buildArgs(extra []string) []string {
+	return l.buildArgsWithOutputFormat("text", extra)
+}
+
+func (l *LLM) buildJSONArgs(extra []string) []string {
+	return l.buildArgsWithOutputFormat("json", extra)
+}
+
+func (l *LLM) buildArgsWithOutputFormat(outputFormat string, extra []string) []string {
 	args := []string{
 		"--print",
-		"--output-format", "text",
+		"--output-format", outputFormat,
 		"--model", l.config.Model,
 		"--permission-mode", "bypassPermissions",
 		"--no-session-persistence",

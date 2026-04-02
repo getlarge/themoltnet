@@ -466,6 +466,72 @@ func decodeCreateDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// CreateDiaryGrantParams is parameters of createDiaryGrant operation.
+type CreateDiaryGrantParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackCreateDiaryGrantParams(packed middleware.Parameters) (params CreateDiaryGrantParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateDiaryGrantParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateDiaryGrantParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateEntryRelationParams is parameters of createEntryRelation operation.
 type CreateEntryRelationParams struct {
 	// UUID v4 identifier.
@@ -3367,6 +3433,72 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// ListDiaryGrantsParams is parameters of listDiaryGrants operation.
+type ListDiaryGrantsParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackListDiaryGrantsParams(packed middleware.Parameters) (params ListDiaryGrantsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListDiaryGrantsParams(args [1]string, argsEscaped bool, r *http.Request) (params ListDiaryGrantsParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListDiaryPacksParams is parameters of listDiaryPacks operation.
 type ListDiaryPacksParams struct {
 	Limit  OptInt                  `json:",omitempty,omitzero"`
@@ -5555,6 +5687,72 @@ func unpackRenderContextPackParams(packed middleware.Parameters) (params RenderC
 }
 
 func decodeRenderContextPackParams(args [1]string, argsEscaped bool, r *http.Request) (params RenderContextPackParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RevokeDiaryGrantParams is parameters of revokeDiaryGrant operation.
+type RevokeDiaryGrantParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackRevokeDiaryGrantParams(packed middleware.Parameters) (params RevokeDiaryGrantParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRevokeDiaryGrantParams(args [1]string, argsEscaped bool, r *http.Request) (params RevokeDiaryGrantParams, _ error) {
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]

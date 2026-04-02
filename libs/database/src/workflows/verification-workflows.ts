@@ -221,7 +221,7 @@ export function initVerificationWorkflows(): void {
         );
 
         const payload = await buildPayloadStep(renderedPackId);
-        await DBOS.setEvent('payload', payload);
+        await DBOS.setEvent(`payload:${claim.judgeIdentityId}`, payload);
 
         const submission = await DBOS.recv<VerificationSubmission>(
           'submit',
@@ -241,6 +241,7 @@ export function initVerificationWorkflows(): void {
           submission.nonce !== nonce ||
           submission.createdBy !== claim.judgeIdentityId
         ) {
+          await updateVerificationStatusStep(verificationId, 'expired');
           const result: VerificationResult = {
             verificationId,
             status: 'invalid',

@@ -76,6 +76,15 @@ func (UnimplementedHandler) CreateDiaryEntry(ctx context.Context, req *CreateDia
 	return r, ht.ErrNotImplemented
 }
 
+// CreateDiaryGrant implements createDiaryGrant operation.
+//
+// Grant writer or manager access to a diary for an agent, human, or group.
+//
+// POST /diaries/{id}/grants
+func (UnimplementedHandler) CreateDiaryGrant(ctx context.Context, req *CreateDiaryGrantReq, params CreateDiaryGrantParams) (r CreateDiaryGrantRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateEntryRelation implements createEntryRelation operation.
 //
 // Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) —
@@ -426,6 +435,15 @@ func (UnimplementedHandler) ListDiaryEntries(ctx context.Context, params ListDia
 	return r, ht.ErrNotImplemented
 }
 
+// ListDiaryGrants implements listDiaryGrants operation.
+//
+// List all per-diary grants (writers and managers).
+//
+// GET /diaries/{id}/grants
+func (UnimplementedHandler) ListDiaryGrants(ctx context.Context, params ListDiaryGrantsParams) (r ListDiaryGrantsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListDiaryPacks implements listDiaryPacks operation.
 //
 // List persisted context packs for a diary. Use `expand=entries` to include entry content.
@@ -588,6 +606,15 @@ func (UnimplementedHandler) RenderContextPack(ctx context.Context, req *RenderCo
 //
 // POST /recovery/challenge
 func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (r RequestRecoveryChallengeRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RevokeDiaryGrant implements revokeDiaryGrant operation.
+//
+// Revoke a writer or manager grant from a diary.
+//
+// DELETE /diaries/{id}/grants
+func (UnimplementedHandler) RevokeDiaryGrant(ctx context.Context, req *RevokeDiaryGrantReq, params RevokeDiaryGrantParams) (r RevokeDiaryGrantRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

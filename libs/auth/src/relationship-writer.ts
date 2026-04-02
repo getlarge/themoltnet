@@ -19,11 +19,31 @@ import {
 } from './keto-constants.js';
 
 export interface RelationshipWriter {
-  // Diary relations (team-based only)
-  // TODO(chunk-3): add grantDiaryWriters/grantDiaryManagers for per-diary grants
+  // Diary relations
   grantDiaryTeam(diaryId: string, teamId: string): Promise<void>;
   removeDiaryTeam(diaryId: string): Promise<void>;
   removeDiaryRelations(diaryId: string): Promise<void>;
+  // Per-diary grants (chunk 3)
+  grantDiaryWriters(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  grantDiaryManagers(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  revokeDiaryWriter(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  revokeDiaryManager(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
   // Entry + pack relations
   grantEntryParent(entryId: string, diaryId: string): Promise<void>;
   grantPackParent(packId: string, diaryId: string): Promise<void>;
@@ -330,6 +350,78 @@ export function createRelationshipWriter(
       await relationshipApi.deleteRelationships({
         namespace: KetoNamespace.DiaryEntry,
         object: entryId,
+      });
+    },
+
+    async grantDiaryWriters(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Diary,
+          object: diaryId,
+          relation: DiaryRelation.Writers,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation:
+              subjectNs === KetoNamespace.Group ? GroupRelation.Members : '',
+          },
+        },
+      });
+    },
+
+    async grantDiaryManagers(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Diary,
+          object: diaryId,
+          relation: DiaryRelation.Managers,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation:
+              subjectNs === KetoNamespace.Group ? GroupRelation.Members : '',
+          },
+        },
+      });
+    },
+
+    async revokeDiaryWriter(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Diary,
+        object: diaryId,
+        relation: DiaryRelation.Writers,
+        subjectSetNamespace: subjectNs,
+        subjectSetObject: subjectId,
+        subjectSetRelation:
+          subjectNs === KetoNamespace.Group ? GroupRelation.Members : '',
+      });
+    },
+
+    async revokeDiaryManager(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Diary,
+        object: diaryId,
+        relation: DiaryRelation.Managers,
+        subjectSetNamespace: subjectNs,
+        subjectSetObject: subjectId,
+        subjectSetRelation:
+          subjectNs === KetoNamespace.Group ? GroupRelation.Members : '',
       });
     },
   };

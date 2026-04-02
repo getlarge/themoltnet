@@ -33,6 +33,7 @@ describe('POST /rendered-packs/:id/verify', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.renderedPackRepository.findById.mockResolvedValue(TEST_RENDERED_PACK);
     mocks.permissionChecker.canReadPack.mockResolvedValue(true);
+    mocks.permissionChecker.canVerifyClaimPack.mockResolvedValue(true);
   });
 
   it('returns 201 with verificationId and nonce', async () => {
@@ -111,5 +112,49 @@ describe('POST /rendered-packs/:id/verify', () => {
     });
 
     expect(response.statusCode).toBe(403);
+  });
+});
+
+describe('POST /rendered-packs/:id/verify/claim', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  beforeEach(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    mocks.renderedPackRepository.findById.mockResolvedValue(TEST_RENDERED_PACK);
+    mocks.permissionChecker.canVerifyClaimPack.mockResolvedValue(true);
+    mocks.verificationService.claim.mockResolvedValue({
+      sourceEntries: [{ title: 't', content: 'c', contentHash: 'h' }],
+      renderedContent: '# rendered',
+      rubric: 'rubric',
+    });
+  });
+
+  it('returns 200 for authorized team member', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/rendered-packs/${TEST_RENDERED_PACK.id}/verify/claim`,
+      headers: { authorization: 'Bearer test-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.verificationService.claim).toHaveBeenCalledWith(
+      TEST_RENDERED_PACK.id,
+      VALID_AUTH_CONTEXT.identityId,
+    );
+  });
+
+  it('returns 403 when caller lacks verify_claim permission', async () => {
+    mocks.permissionChecker.canVerifyClaimPack.mockResolvedValue(false);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/rendered-packs/${TEST_RENDERED_PACK.id}/verify/claim`,
+      headers: { authorization: 'Bearer test-token' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mocks.verificationService.claim).not.toHaveBeenCalled();
   });
 });

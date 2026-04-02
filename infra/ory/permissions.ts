@@ -97,6 +97,9 @@ class Diary implements Namespace {
     manage: (ctx: Context) =>
       this.related.managers.includes(ctx.subject) ||
       this.related.team.traverse((t) => t.permits.manage(ctx)),
+    // Team-only read path used by verification claim.
+    verify_claim: (ctx: Context) =>
+      this.related.team.traverse((t) => t.permits.access(ctx)),
   };
 }
 
@@ -138,6 +141,9 @@ class ContextPack implements Namespace {
       this.related.parent.traverse((d) => d.permits.read(ctx)),
     manage: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.manage(ctx)),
+    // Stricter than read: judge must be part of the owning team.
+    verify_claim: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.verify_claim(ctx)),
   };
 }
 

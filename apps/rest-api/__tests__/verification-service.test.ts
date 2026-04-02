@@ -24,6 +24,7 @@ describe('createVerificationService', () => {
   const deps = {
     verificationRepository: {
       create: vi.fn(),
+      findById: vi.fn(),
       findByNonce: vi.fn(),
       findLatestClaimableByRenderedPackId: vi.fn(),
     },
@@ -87,6 +88,62 @@ describe('createVerificationService', () => {
     expect(start).toHaveBeenCalledWith(verificationId, renderedPackId, nonce);
   });
 
+  it('rethrows unexpected workflow startup failures', async () => {
+    deps.verificationRepository.findByNonce.mockResolvedValue(null);
+    deps.verificationRepository.create.mockResolvedValue({
+      id: verificationId,
+      nonce,
+    });
+    const start = vi.fn().mockRejectedValue(new Error('dbos unavailable'));
+    vi.mocked(DBOS.startWorkflow).mockReturnValue(start);
+
+    const service = createVerificationService(deps);
+
+    await expect(
+      service.createVerification(renderedPackId, nonce),
+    ).rejects.toThrow('dbos unavailable');
+  });
+
+  it('allows WorkflowAlreadyExists startup error and reuses created event', async () => {
+    deps.verificationRepository.findByNonce.mockResolvedValue(null);
+    deps.verificationRepository.create.mockResolvedValue({
+      id: verificationId,
+      nonce,
+    });
+    const alreadyExists = new Error('already exists');
+    alreadyExists.name = 'WorkflowAlreadyExistsError';
+    const start = vi.fn().mockRejectedValue(alreadyExists);
+    vi.mocked(DBOS.startWorkflow).mockReturnValue(start);
+    vi.mocked(DBOS.getEvent).mockResolvedValue({
+      verificationId,
+      nonce,
+    });
+
+    const service = createVerificationService(deps);
+    const result = await service.createVerification(renderedPackId, nonce);
+
+    expect(result).toEqual({ verificationId, nonce });
+  });
+
+  it('returns timed_out when workflow initialization event is missing', async () => {
+    deps.verificationRepository.findByNonce.mockResolvedValue(null);
+    deps.verificationRepository.create.mockResolvedValue({
+      id: verificationId,
+      nonce,
+    });
+    const start = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(DBOS.startWorkflow).mockReturnValue(start);
+    vi.mocked(DBOS.getEvent).mockResolvedValue(null);
+
+    const service = createVerificationService(deps);
+
+    await expect(
+      service.createVerification(renderedPackId, nonce),
+    ).rejects.toMatchObject({
+      code: 'timed_out',
+    } satisfies Partial<VerificationServiceError>);
+  });
+
   it('claim fails when there is no active verification', async () => {
     deps.verificationRepository.findLatestClaimableByRenderedPackId.mockResolvedValue(
       null,
@@ -98,6 +155,65 @@ describe('createVerificationService', () => {
       service.claim(renderedPackId, 'judge-1'),
     ).rejects.toMatchObject({
       code: 'not_found',
+    } satisfies Partial<VerificationServiceError>);
+  });
+
+  it('claim uses judge-scoped payload event', async () => {
+    deps.verificationRepository.findLatestClaimableByRenderedPackId.mockResolvedValue(
+      {
+        id: verificationId,
+        renderedPackId,
+        nonce,
+        status: 'created',
+        claimedBy: null,
+        expiresAt: new Date(Date.now() + 10_000),
+      },
+    );
+    vi.mocked(DBOS.getEvent).mockResolvedValue({
+      sourceEntries: [],
+      renderedContent: '# rendered',
+      rubric: 'rubric',
+    });
+
+    const service = createVerificationService(deps);
+    await service.claim(renderedPackId, 'judge-1');
+
+    expect(DBOS.getEvent).toHaveBeenCalledWith(
+      verificationId,
+      'payload:judge-1',
+      5,
+    );
+  });
+
+  it('claim returns conflict when another judge already claimed after race', async () => {
+    deps.verificationRepository.findLatestClaimableByRenderedPackId.mockResolvedValue(
+      {
+        id: verificationId,
+        renderedPackId,
+        nonce,
+        status: 'created',
+        claimedBy: null,
+        expiresAt: new Date(Date.now() + 10_000),
+      },
+    );
+    vi.mocked(DBOS.getEvent)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    deps.verificationRepository.findById.mockResolvedValue({
+      id: verificationId,
+      renderedPackId,
+      nonce,
+      status: 'claimed',
+      claimedBy: 'judge-2',
+      expiresAt: new Date(Date.now() + 10_000),
+    });
+
+    const service = createVerificationService(deps);
+
+    await expect(
+      service.claim(renderedPackId, 'judge-1'),
+    ).rejects.toMatchObject({
+      code: 'conflict',
     } satisfies Partial<VerificationServiceError>);
   });
 

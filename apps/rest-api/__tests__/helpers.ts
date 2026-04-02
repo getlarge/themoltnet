@@ -343,6 +343,7 @@ export function createMockServices(): MockServices {
       canReadPack: vi.fn(),
       canReadPacks: vi.fn().mockResolvedValue(new Map()),
       canManagePack: vi.fn(),
+      canVerifyClaimPack: vi.fn(),
       canAccessTeam: vi.fn(),
       canManageTeam: vi.fn(),
       canWriteTeam: vi.fn().mockResolvedValue(true),

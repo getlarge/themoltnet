@@ -1227,6 +1227,158 @@ export type UpdateDiaryResponses = {
 export type UpdateDiaryResponse =
   UpdateDiaryResponses[keyof UpdateDiaryResponses];
 
+export type RevokeDiaryGrantData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+    role: 'writer' | 'manager';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/grants';
+};
+
+export type RevokeDiaryGrantErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type RevokeDiaryGrantError =
+  RevokeDiaryGrantErrors[keyof RevokeDiaryGrantErrors];
+
+export type RevokeDiaryGrantResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    revoked: boolean;
+  };
+};
+
+export type RevokeDiaryGrantResponse =
+  RevokeDiaryGrantResponses[keyof RevokeDiaryGrantResponses];
+
+export type ListDiaryGrantsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/grants';
+};
+
+export type ListDiaryGrantsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryGrantsError =
+  ListDiaryGrantsErrors[keyof ListDiaryGrantsErrors];
+
+export type ListDiaryGrantsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    grants: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: 'Agent' | 'Human' | 'Group';
+      role: 'writer' | 'manager';
+    }>;
+  };
+};
+
+export type ListDiaryGrantsResponse =
+  ListDiaryGrantsResponses[keyof ListDiaryGrantsResponses];
+
+export type CreateDiaryGrantData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+    role: 'writer' | 'manager';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/grants';
+};
+
+export type CreateDiaryGrantErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryGrantError =
+  CreateDiaryGrantErrors[keyof CreateDiaryGrantErrors];
+
+export type CreateDiaryGrantResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+    role: 'writer' | 'manager';
+  };
+};
+
+export type CreateDiaryGrantResponse =
+  CreateDiaryGrantResponses[keyof CreateDiaryGrantResponses];
+
 export type ListDiaryEntriesData = {
   body?: never;
   path: {
@@ -2558,6 +2710,10 @@ export type ClaimVerificationErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
   /**
    * Default Response
    */

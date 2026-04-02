@@ -45,8 +45,24 @@ async function getResultEvent(
 interface VerificationServiceDeps {
   verificationRepository: Pick<
     VerificationRepository,
-    'create' | 'findByNonce' | 'findLatestClaimableByRenderedPackId'
+    | 'create'
+    | 'findById'
+    | 'findByNonce'
+    | 'findLatestClaimableByRenderedPackId'
   >;
+}
+
+function isWorkflowAlreadyExistsError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  if (error.name === 'WorkflowAlreadyExistsError') {
+    return true;
+  }
+
+  const withCode = error as { code?: unknown };
+  return withCode.code === 'WorkflowAlreadyExists';
 }
 
 export function createVerificationService(deps: VerificationServiceDeps) {
@@ -77,8 +93,10 @@ export function createVerificationService(deps: VerificationServiceDeps) {
         await DBOS.startWorkflow(verificationWorkflows.startVerification, {
           workflowID,
         })(verification.id, renderedPackId, nonce);
-      } catch {
-        // If the workflow already exists, read its existing events below.
+      } catch (error) {
+        if (!isWorkflowAlreadyExistsError(error)) {
+          throw error;
+        }
       }
 
       const created = await DBOS.getEvent<{
@@ -88,7 +106,7 @@ export function createVerificationService(deps: VerificationServiceDeps) {
 
       if (!created) {
         throw new VerificationServiceError(
-          'conflict',
+          'timed_out',
           'Verification workflow could not be initialized for this rendered pack',
         );
       }
@@ -126,6 +144,7 @@ export function createVerificationService(deps: VerificationServiceDeps) {
       }
 
       const workflowID = verification.id;
+      const payloadEvent = `payload:${judgeIdentityId}`;
 
       try {
         if (verification.status === 'created') {
@@ -140,7 +159,7 @@ export function createVerificationService(deps: VerificationServiceDeps) {
 
       const payload = await DBOS.getEvent<VerificationPayload>(
         workflowID,
-        'payload',
+        payloadEvent,
         EVENT_TIMEOUT_SECONDS,
       );
 
@@ -159,6 +178,17 @@ export function createVerificationService(deps: VerificationServiceDeps) {
         throw new VerificationServiceError(
           'invalid',
           'Verification workflow rejected this claim',
+        );
+      }
+      const latest = await deps.verificationRepository.findById(workflowID);
+      if (
+        latest?.status === 'claimed' &&
+        latest.claimedBy &&
+        latest.claimedBy !== judgeIdentityId
+      ) {
+        throw new VerificationServiceError(
+          'conflict',
+          'Verification is already claimed by another judge identity',
         );
       }
 

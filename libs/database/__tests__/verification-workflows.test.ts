@@ -41,6 +41,10 @@ describe('verification workflows', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.keys(registeredSteps).forEach((k) => delete registeredSteps[k]);
+    Object.keys(registeredWorkflows).forEach(
+      (k) => delete registeredWorkflows[k],
+    );
     _resetVerificationWorkflowsForTesting();
     setVerificationWorkflowDeps(deps);
     initVerificationWorkflows();
@@ -123,5 +127,45 @@ describe('verification workflows', () => {
       undefined,
     );
     expect(deps.createAttestation).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(DBOS.setEvent)).toHaveBeenCalledWith(
+      'payload:judge-1',
+      expect.any(Object),
+    );
+  });
+
+  it('marks verification expired in DB when submission is invalid', async () => {
+    vi.mocked(DBOS.recv)
+      .mockResolvedValueOnce({ judgeIdentityId: 'judge-1' })
+      .mockResolvedValueOnce({
+        nonce: '00000000-0000-0000-0000-000000000000',
+        coverage: 0.8,
+        grounding: 0.9,
+        faithfulness: 1,
+        transcript: 'invalid',
+        judgeModel: 'claude-sonnet-4-6',
+        judgeProvider: 'claude-code',
+        judgeBinaryCid: 'sha256:abc',
+        createdBy: 'judge-1',
+      });
+    deps.loadRenderedPack.mockResolvedValue({
+      id: '00000000-0000-0000-0000-000000000001',
+      sourcePackId: '00000000-0000-0000-0000-000000000222',
+      content: '# rendered',
+    });
+    deps.listSourceEntries.mockResolvedValue([]);
+
+    const workflow =
+      registeredWorkflows['verification.workflow.startVerification'];
+    await workflow(
+      '00000000-0000-0000-0000-000000000111',
+      '00000000-0000-0000-0000-000000000001',
+      '00000000-0000-0000-0000-000000000099',
+    );
+
+    expect(deps.updateVerificationStatus).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000111',
+      'expired',
+      undefined,
+    );
   });
 });

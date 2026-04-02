@@ -25,6 +25,10 @@ type CreateDiaryEntryRes interface {
 	createDiaryEntryRes()
 }
 
+type CreateDiaryGrantRes interface {
+	createDiaryGrantRes()
+}
+
 type CreateDiaryRes interface {
 	createDiaryRes()
 }
@@ -165,6 +169,10 @@ type ListDiaryEntriesRes interface {
 	listDiaryEntriesRes()
 }
 
+type ListDiaryGrantsRes interface {
+	listDiaryGrantsRes()
+}
+
 type ListDiaryPacksRes interface {
 	listDiaryPacksRes()
 }
@@ -231,6 +239,10 @@ type RenderContextPackRes interface {
 
 type RequestRecoveryChallengeRes interface {
 	requestRecoveryChallengeRes()
+}
+
+type RevokeDiaryGrantRes interface {
+	revokeDiaryGrantRes()
 }
 
 type RotateClientSecretRes interface {

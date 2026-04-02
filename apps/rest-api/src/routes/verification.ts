@@ -117,16 +117,39 @@ export async function verificationRoutes(fastify: FastifyInstance) {
           200: Type.Ref(ClaimVerificationResponseSchema),
           400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
           409: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
     async (request) => {
+      const renderedPack = await fastify.renderedPackRepository.findById(
+        request.params.id,
+      );
+      if (!renderedPack) {
+        throw createProblem('not-found', 'Rendered pack not found');
+      }
+
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const canRead = await fastify.permissionChecker.canVerifyClaimPack(
+        renderedPack.sourcePackId,
+        identityId,
+        subjectNs,
+      );
+      if (!canRead) {
+        throw createProblem(
+          'forbidden',
+          'Judge must be a member of the owning team to claim verification',
+        );
+      }
+
       try {
         return await fastify.verificationService.claim(
           request.params.id,
-          request.authContext!.identityId,
+          identityId,
         );
       } catch (error) {
         if (error instanceof VerificationServiceError) {

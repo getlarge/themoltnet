@@ -104,14 +104,17 @@ func Judge(
 
 	scores := &Scores{}
 
-	if v, ok := result["coverage"]; ok {
-		scores.Coverage, _ = parseFloat(v)
+	scores.Coverage, err = parseRequiredScore(result, "coverage")
+	if err != nil {
+		return nil, err
 	}
-	if v, ok := result["grounding"]; ok {
-		scores.Grounding, _ = parseFloat(v)
+	scores.Grounding, err = parseRequiredScore(result, "grounding")
+	if err != nil {
+		return nil, err
 	}
-	if v, ok := result["faithfulness"]; ok {
-		scores.Faithfulness, _ = parseFloat(v)
+	scores.Faithfulness, err = parseRequiredScore(result, "faithfulness")
+	if err != nil {
+		return nil, err
 	}
 	if v, ok := result["reasoning"]; ok {
 		scores.Reasoning = fmt.Sprintf("%v", v)
@@ -138,6 +141,23 @@ func parseFloat(v any) (float64, error) {
 	default:
 		return 0, fmt.Errorf("unexpected type %T for score", v)
 	}
+}
+
+func parseRequiredScore(result map[string]any, field string) (float64, error) {
+	raw, ok := result[field]
+	if !ok {
+		return 0, fmt.Errorf("fidelity judge missing %q score", field)
+	}
+
+	score, err := parseFloat(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %q score: %w", field, err)
+	}
+	if score < 0 || score > 1 {
+		return 0, fmt.Errorf("invalid %q score: out of range [0,1]", field)
+	}
+
+	return score, nil
 }
 
 func min(values ...float64) float64 {

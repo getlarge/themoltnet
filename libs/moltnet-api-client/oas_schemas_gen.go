@@ -223,6 +223,10 @@ type ClaimVerificationConflict ProblemDetails
 
 func (*ClaimVerificationConflict) claimVerificationRes() {}
 
+type ClaimVerificationForbidden ProblemDetails
+
+func (*ClaimVerificationForbidden) claimVerificationRes() {}
+
 type ClaimVerificationNotFound ProblemDetails
 
 func (*ClaimVerificationNotFound) claimVerificationRes() {}
@@ -2174,6 +2178,272 @@ func (s *CreateDiaryEntryReqEntryType) UnmarshalText(data []byte) error {
 type CreateDiaryEntryUnauthorized ProblemDetails
 
 func (*CreateDiaryEntryUnauthorized) createDiaryEntryRes() {}
+
+type CreateDiaryGrantCreated struct {
+	Role CreateDiaryGrantCreatedRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                        `json:"subjectId"`
+	SubjectNs CreateDiaryGrantCreatedSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *CreateDiaryGrantCreated) GetRole() CreateDiaryGrantCreatedRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *CreateDiaryGrantCreated) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *CreateDiaryGrantCreated) GetSubjectNs() CreateDiaryGrantCreatedSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *CreateDiaryGrantCreated) SetRole(val CreateDiaryGrantCreatedRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *CreateDiaryGrantCreated) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *CreateDiaryGrantCreated) SetSubjectNs(val CreateDiaryGrantCreatedSubjectNs) {
+	s.SubjectNs = val
+}
+
+func (*CreateDiaryGrantCreated) createDiaryGrantRes() {}
+
+type CreateDiaryGrantCreatedRole string
+
+const (
+	CreateDiaryGrantCreatedRoleWriter  CreateDiaryGrantCreatedRole = "writer"
+	CreateDiaryGrantCreatedRoleManager CreateDiaryGrantCreatedRole = "manager"
+)
+
+// AllValues returns all CreateDiaryGrantCreatedRole values.
+func (CreateDiaryGrantCreatedRole) AllValues() []CreateDiaryGrantCreatedRole {
+	return []CreateDiaryGrantCreatedRole{
+		CreateDiaryGrantCreatedRoleWriter,
+		CreateDiaryGrantCreatedRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateDiaryGrantCreatedRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateDiaryGrantCreatedRoleWriter:
+		return []byte(s), nil
+	case CreateDiaryGrantCreatedRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateDiaryGrantCreatedRole) UnmarshalText(data []byte) error {
+	switch CreateDiaryGrantCreatedRole(data) {
+	case CreateDiaryGrantCreatedRoleWriter:
+		*s = CreateDiaryGrantCreatedRoleWriter
+		return nil
+	case CreateDiaryGrantCreatedRoleManager:
+		*s = CreateDiaryGrantCreatedRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateDiaryGrantCreatedSubjectNs string
+
+const (
+	CreateDiaryGrantCreatedSubjectNsAgent CreateDiaryGrantCreatedSubjectNs = "Agent"
+	CreateDiaryGrantCreatedSubjectNsHuman CreateDiaryGrantCreatedSubjectNs = "Human"
+	CreateDiaryGrantCreatedSubjectNsGroup CreateDiaryGrantCreatedSubjectNs = "Group"
+)
+
+// AllValues returns all CreateDiaryGrantCreatedSubjectNs values.
+func (CreateDiaryGrantCreatedSubjectNs) AllValues() []CreateDiaryGrantCreatedSubjectNs {
+	return []CreateDiaryGrantCreatedSubjectNs{
+		CreateDiaryGrantCreatedSubjectNsAgent,
+		CreateDiaryGrantCreatedSubjectNsHuman,
+		CreateDiaryGrantCreatedSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateDiaryGrantCreatedSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateDiaryGrantCreatedSubjectNsAgent:
+		return []byte(s), nil
+	case CreateDiaryGrantCreatedSubjectNsHuman:
+		return []byte(s), nil
+	case CreateDiaryGrantCreatedSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateDiaryGrantCreatedSubjectNs) UnmarshalText(data []byte) error {
+	switch CreateDiaryGrantCreatedSubjectNs(data) {
+	case CreateDiaryGrantCreatedSubjectNsAgent:
+		*s = CreateDiaryGrantCreatedSubjectNsAgent
+		return nil
+	case CreateDiaryGrantCreatedSubjectNsHuman:
+		*s = CreateDiaryGrantCreatedSubjectNsHuman
+		return nil
+	case CreateDiaryGrantCreatedSubjectNsGroup:
+		*s = CreateDiaryGrantCreatedSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateDiaryGrantForbidden ProblemDetails
+
+func (*CreateDiaryGrantForbidden) createDiaryGrantRes() {}
+
+type CreateDiaryGrantInternalServerError ProblemDetails
+
+func (*CreateDiaryGrantInternalServerError) createDiaryGrantRes() {}
+
+type CreateDiaryGrantReq struct {
+	Role CreateDiaryGrantReqRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                    `json:"subjectId"`
+	SubjectNs CreateDiaryGrantReqSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *CreateDiaryGrantReq) GetRole() CreateDiaryGrantReqRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *CreateDiaryGrantReq) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *CreateDiaryGrantReq) GetSubjectNs() CreateDiaryGrantReqSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *CreateDiaryGrantReq) SetRole(val CreateDiaryGrantReqRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *CreateDiaryGrantReq) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *CreateDiaryGrantReq) SetSubjectNs(val CreateDiaryGrantReqSubjectNs) {
+	s.SubjectNs = val
+}
+
+type CreateDiaryGrantReqRole string
+
+const (
+	CreateDiaryGrantReqRoleWriter  CreateDiaryGrantReqRole = "writer"
+	CreateDiaryGrantReqRoleManager CreateDiaryGrantReqRole = "manager"
+)
+
+// AllValues returns all CreateDiaryGrantReqRole values.
+func (CreateDiaryGrantReqRole) AllValues() []CreateDiaryGrantReqRole {
+	return []CreateDiaryGrantReqRole{
+		CreateDiaryGrantReqRoleWriter,
+		CreateDiaryGrantReqRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateDiaryGrantReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateDiaryGrantReqRoleWriter:
+		return []byte(s), nil
+	case CreateDiaryGrantReqRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateDiaryGrantReqRole) UnmarshalText(data []byte) error {
+	switch CreateDiaryGrantReqRole(data) {
+	case CreateDiaryGrantReqRoleWriter:
+		*s = CreateDiaryGrantReqRoleWriter
+		return nil
+	case CreateDiaryGrantReqRoleManager:
+		*s = CreateDiaryGrantReqRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateDiaryGrantReqSubjectNs string
+
+const (
+	CreateDiaryGrantReqSubjectNsAgent CreateDiaryGrantReqSubjectNs = "Agent"
+	CreateDiaryGrantReqSubjectNsHuman CreateDiaryGrantReqSubjectNs = "Human"
+	CreateDiaryGrantReqSubjectNsGroup CreateDiaryGrantReqSubjectNs = "Group"
+)
+
+// AllValues returns all CreateDiaryGrantReqSubjectNs values.
+func (CreateDiaryGrantReqSubjectNs) AllValues() []CreateDiaryGrantReqSubjectNs {
+	return []CreateDiaryGrantReqSubjectNs{
+		CreateDiaryGrantReqSubjectNsAgent,
+		CreateDiaryGrantReqSubjectNsHuman,
+		CreateDiaryGrantReqSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateDiaryGrantReqSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateDiaryGrantReqSubjectNsAgent:
+		return []byte(s), nil
+	case CreateDiaryGrantReqSubjectNsHuman:
+		return []byte(s), nil
+	case CreateDiaryGrantReqSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateDiaryGrantReqSubjectNs) UnmarshalText(data []byte) error {
+	switch CreateDiaryGrantReqSubjectNs(data) {
+	case CreateDiaryGrantReqSubjectNsAgent:
+		*s = CreateDiaryGrantReqSubjectNsAgent
+		return nil
+	case CreateDiaryGrantReqSubjectNsHuman:
+		*s = CreateDiaryGrantReqSubjectNsHuman
+		return nil
+	case CreateDiaryGrantReqSubjectNsGroup:
+		*s = CreateDiaryGrantReqSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateDiaryGrantUnauthorized ProblemDetails
+
+func (*CreateDiaryGrantUnauthorized) createDiaryGrantRes() {}
 
 type CreateDiaryInternalServerError ProblemDetails
 
@@ -5958,6 +6228,160 @@ func (*ListDiaryEntriesNotFound) listDiaryEntriesRes() {}
 type ListDiaryEntriesUnauthorized ProblemDetails
 
 func (*ListDiaryEntriesUnauthorized) listDiaryEntriesRes() {}
+
+type ListDiaryGrantsForbidden ProblemDetails
+
+func (*ListDiaryGrantsForbidden) listDiaryGrantsRes() {}
+
+type ListDiaryGrantsInternalServerError ProblemDetails
+
+func (*ListDiaryGrantsInternalServerError) listDiaryGrantsRes() {}
+
+type ListDiaryGrantsOK struct {
+	Grants []ListDiaryGrantsOKGrantsItem `json:"grants"`
+}
+
+// GetGrants returns the value of Grants.
+func (s *ListDiaryGrantsOK) GetGrants() []ListDiaryGrantsOKGrantsItem {
+	return s.Grants
+}
+
+// SetGrants sets the value of Grants.
+func (s *ListDiaryGrantsOK) SetGrants(val []ListDiaryGrantsOKGrantsItem) {
+	s.Grants = val
+}
+
+func (*ListDiaryGrantsOK) listDiaryGrantsRes() {}
+
+type ListDiaryGrantsOKGrantsItem struct {
+	Role ListDiaryGrantsOKGrantsItemRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                            `json:"subjectId"`
+	SubjectNs ListDiaryGrantsOKGrantsItemSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *ListDiaryGrantsOKGrantsItem) GetRole() ListDiaryGrantsOKGrantsItemRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *ListDiaryGrantsOKGrantsItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *ListDiaryGrantsOKGrantsItem) GetSubjectNs() ListDiaryGrantsOKGrantsItemSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *ListDiaryGrantsOKGrantsItem) SetRole(val ListDiaryGrantsOKGrantsItemRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *ListDiaryGrantsOKGrantsItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *ListDiaryGrantsOKGrantsItem) SetSubjectNs(val ListDiaryGrantsOKGrantsItemSubjectNs) {
+	s.SubjectNs = val
+}
+
+type ListDiaryGrantsOKGrantsItemRole string
+
+const (
+	ListDiaryGrantsOKGrantsItemRoleWriter  ListDiaryGrantsOKGrantsItemRole = "writer"
+	ListDiaryGrantsOKGrantsItemRoleManager ListDiaryGrantsOKGrantsItemRole = "manager"
+)
+
+// AllValues returns all ListDiaryGrantsOKGrantsItemRole values.
+func (ListDiaryGrantsOKGrantsItemRole) AllValues() []ListDiaryGrantsOKGrantsItemRole {
+	return []ListDiaryGrantsOKGrantsItemRole{
+		ListDiaryGrantsOKGrantsItemRoleWriter,
+		ListDiaryGrantsOKGrantsItemRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListDiaryGrantsOKGrantsItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case ListDiaryGrantsOKGrantsItemRoleWriter:
+		return []byte(s), nil
+	case ListDiaryGrantsOKGrantsItemRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListDiaryGrantsOKGrantsItemRole) UnmarshalText(data []byte) error {
+	switch ListDiaryGrantsOKGrantsItemRole(data) {
+	case ListDiaryGrantsOKGrantsItemRoleWriter:
+		*s = ListDiaryGrantsOKGrantsItemRoleWriter
+		return nil
+	case ListDiaryGrantsOKGrantsItemRoleManager:
+		*s = ListDiaryGrantsOKGrantsItemRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListDiaryGrantsOKGrantsItemSubjectNs string
+
+const (
+	ListDiaryGrantsOKGrantsItemSubjectNsAgent ListDiaryGrantsOKGrantsItemSubjectNs = "Agent"
+	ListDiaryGrantsOKGrantsItemSubjectNsHuman ListDiaryGrantsOKGrantsItemSubjectNs = "Human"
+	ListDiaryGrantsOKGrantsItemSubjectNsGroup ListDiaryGrantsOKGrantsItemSubjectNs = "Group"
+)
+
+// AllValues returns all ListDiaryGrantsOKGrantsItemSubjectNs values.
+func (ListDiaryGrantsOKGrantsItemSubjectNs) AllValues() []ListDiaryGrantsOKGrantsItemSubjectNs {
+	return []ListDiaryGrantsOKGrantsItemSubjectNs{
+		ListDiaryGrantsOKGrantsItemSubjectNsAgent,
+		ListDiaryGrantsOKGrantsItemSubjectNsHuman,
+		ListDiaryGrantsOKGrantsItemSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListDiaryGrantsOKGrantsItemSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case ListDiaryGrantsOKGrantsItemSubjectNsAgent:
+		return []byte(s), nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsHuman:
+		return []byte(s), nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListDiaryGrantsOKGrantsItemSubjectNs) UnmarshalText(data []byte) error {
+	switch ListDiaryGrantsOKGrantsItemSubjectNs(data) {
+	case ListDiaryGrantsOKGrantsItemSubjectNsAgent:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsAgent
+		return nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsHuman:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsHuman
+		return nil
+	case ListDiaryGrantsOKGrantsItemSubjectNsGroup:
+		*s = ListDiaryGrantsOKGrantsItemSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListDiaryGrantsUnauthorized ProblemDetails
+
+func (*ListDiaryGrantsUnauthorized) listDiaryGrantsRes() {}
 
 type ListDiaryPacksExpand string
 
@@ -11859,6 +12283,160 @@ func (s *RequestRecoveryChallengeReq) GetPublicKey() string {
 func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
+
+type RevokeDiaryGrantForbidden ProblemDetails
+
+func (*RevokeDiaryGrantForbidden) revokeDiaryGrantRes() {}
+
+type RevokeDiaryGrantInternalServerError ProblemDetails
+
+func (*RevokeDiaryGrantInternalServerError) revokeDiaryGrantRes() {}
+
+type RevokeDiaryGrantOK struct {
+	Revoked bool `json:"revoked"`
+}
+
+// GetRevoked returns the value of Revoked.
+func (s *RevokeDiaryGrantOK) GetRevoked() bool {
+	return s.Revoked
+}
+
+// SetRevoked sets the value of Revoked.
+func (s *RevokeDiaryGrantOK) SetRevoked(val bool) {
+	s.Revoked = val
+}
+
+func (*RevokeDiaryGrantOK) revokeDiaryGrantRes() {}
+
+type RevokeDiaryGrantReq struct {
+	Role RevokeDiaryGrantReqRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                    `json:"subjectId"`
+	SubjectNs RevokeDiaryGrantReqSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *RevokeDiaryGrantReq) GetRole() RevokeDiaryGrantReqRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *RevokeDiaryGrantReq) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *RevokeDiaryGrantReq) GetSubjectNs() RevokeDiaryGrantReqSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *RevokeDiaryGrantReq) SetRole(val RevokeDiaryGrantReqRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *RevokeDiaryGrantReq) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *RevokeDiaryGrantReq) SetSubjectNs(val RevokeDiaryGrantReqSubjectNs) {
+	s.SubjectNs = val
+}
+
+type RevokeDiaryGrantReqRole string
+
+const (
+	RevokeDiaryGrantReqRoleWriter  RevokeDiaryGrantReqRole = "writer"
+	RevokeDiaryGrantReqRoleManager RevokeDiaryGrantReqRole = "manager"
+)
+
+// AllValues returns all RevokeDiaryGrantReqRole values.
+func (RevokeDiaryGrantReqRole) AllValues() []RevokeDiaryGrantReqRole {
+	return []RevokeDiaryGrantReqRole{
+		RevokeDiaryGrantReqRoleWriter,
+		RevokeDiaryGrantReqRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RevokeDiaryGrantReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case RevokeDiaryGrantReqRoleWriter:
+		return []byte(s), nil
+	case RevokeDiaryGrantReqRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RevokeDiaryGrantReqRole) UnmarshalText(data []byte) error {
+	switch RevokeDiaryGrantReqRole(data) {
+	case RevokeDiaryGrantReqRoleWriter:
+		*s = RevokeDiaryGrantReqRoleWriter
+		return nil
+	case RevokeDiaryGrantReqRoleManager:
+		*s = RevokeDiaryGrantReqRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RevokeDiaryGrantReqSubjectNs string
+
+const (
+	RevokeDiaryGrantReqSubjectNsAgent RevokeDiaryGrantReqSubjectNs = "Agent"
+	RevokeDiaryGrantReqSubjectNsHuman RevokeDiaryGrantReqSubjectNs = "Human"
+	RevokeDiaryGrantReqSubjectNsGroup RevokeDiaryGrantReqSubjectNs = "Group"
+)
+
+// AllValues returns all RevokeDiaryGrantReqSubjectNs values.
+func (RevokeDiaryGrantReqSubjectNs) AllValues() []RevokeDiaryGrantReqSubjectNs {
+	return []RevokeDiaryGrantReqSubjectNs{
+		RevokeDiaryGrantReqSubjectNsAgent,
+		RevokeDiaryGrantReqSubjectNsHuman,
+		RevokeDiaryGrantReqSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RevokeDiaryGrantReqSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case RevokeDiaryGrantReqSubjectNsAgent:
+		return []byte(s), nil
+	case RevokeDiaryGrantReqSubjectNsHuman:
+		return []byte(s), nil
+	case RevokeDiaryGrantReqSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RevokeDiaryGrantReqSubjectNs) UnmarshalText(data []byte) error {
+	switch RevokeDiaryGrantReqSubjectNs(data) {
+	case RevokeDiaryGrantReqSubjectNsAgent:
+		*s = RevokeDiaryGrantReqSubjectNsAgent
+		return nil
+	case RevokeDiaryGrantReqSubjectNsHuman:
+		*s = RevokeDiaryGrantReqSubjectNsHuman
+		return nil
+	case RevokeDiaryGrantReqSubjectNsGroup:
+		*s = RevokeDiaryGrantReqSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RevokeDiaryGrantUnauthorized ProblemDetails
+
+func (*RevokeDiaryGrantUnauthorized) revokeDiaryGrantRes() {}
 
 type RotateClientSecretBadGateway ProblemDetails
 
