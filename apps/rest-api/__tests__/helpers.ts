@@ -177,6 +177,7 @@ export interface MockServices {
   renderedPackRepository: {
     findById: ReturnType<typeof vi.fn>;
     findLatestBySourcePackId: ReturnType<typeof vi.fn>;
+    listByDiary: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     updatePinned: ReturnType<typeof vi.fn>;
     deleteBySourcePackId: ReturnType<typeof vi.fn>;
@@ -257,6 +258,7 @@ export function createMockServices(): MockServices {
     renderedPackRepository: {
       findById: vi.fn(),
       findLatestBySourcePackId: vi.fn(),
+      listByDiary: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       create: vi.fn(),
       updatePinned: vi.fn(),
       deleteBySourcePackId: vi.fn(),
