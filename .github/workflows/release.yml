@@ -12,7 +12,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, skill, design-system
+          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system
         required: false
         type: string
 
@@ -31,6 +31,9 @@ jobs:
       api-client-release-created: ${{ steps.release.outputs['libs/moltnet-api-client--release_created'] }}
       api-client-tag-name: ${{ steps.release.outputs['libs/moltnet-api-client--tag_name'] }}
       api-client-version: ${{ steps.release.outputs['libs/moltnet-api-client--version'] }}
+      dspy-adapters-release-created: ${{ steps.release.outputs['libs/dspy-adapters--release_created'] }}
+      dspy-adapters-tag-name: ${{ steps.release.outputs['libs/dspy-adapters--tag_name'] }}
+      dspy-adapters-version: ${{ steps.release.outputs['libs/dspy-adapters--version'] }}
       cli-release-created: ${{ steps.release.outputs['apps/moltnet-cli--release_created'] }}
       cli-tag-name: ${{ steps.release.outputs['apps/moltnet-cli--tag_name'] }}
       github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
@@ -67,6 +70,9 @@ jobs:
       api-client: ${{ steps.resolve.outputs.api-client }}
       api-client-tag: ${{ steps.resolve.outputs.api-client-tag }}
       api-client-version: ${{ steps.resolve.outputs.api-client-version }}
+      dspy-adapters: ${{ steps.resolve.outputs.dspy-adapters }}
+      dspy-adapters-tag: ${{ steps.resolve.outputs.dspy-adapters-tag }}
+      dspy-adapters-version: ${{ steps.resolve.outputs.dspy-adapters-version }}
       skill: ${{ steps.resolve.outputs.skill }}
       skill-tag: ${{ steps.resolve.outputs.skill-tag }}
       skill-version: ${{ steps.resolve.outputs.skill-version }}
@@ -90,6 +96,9 @@ jobs:
           RP_API_CREATED: ${{ needs.release-please.outputs.api-client-release-created }}
           RP_API_TAG: ${{ needs.release-please.outputs.api-client-tag-name }}
           RP_API_VERSION: ${{ needs.release-please.outputs.api-client-version }}
+          RP_DSPY_CREATED: ${{ needs.release-please.outputs.dspy-adapters-release-created }}
+          RP_DSPY_TAG: ${{ needs.release-please.outputs.dspy-adapters-tag-name }}
+          RP_DSPY_VERSION: ${{ needs.release-please.outputs.dspy-adapters-version }}
           RP_SKILL_CREATED: ${{ needs.release-please.outputs.skill-release-created }}
           RP_SKILL_TAG: ${{ needs.release-please.outputs.skill-tag-name }}
           RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
@@ -145,6 +154,7 @@ jobs:
           resolve "github-agent" "$RP_AGENT_CREATED"     "$RP_AGENT_TAG"     "github-agent"
           resolve "cli"          "$RP_CLI_CREATED"       "$RP_CLI_TAG"       "cli"
           resolve "api-client"   "$RP_API_CREATED"       "$RP_API_TAG"       "moltnet-api-client"
+          resolve "dspy-adapters" "$RP_DSPY_CREATED"     "$RP_DSPY_TAG"      "dspy-adapters"
           resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
@@ -155,6 +165,13 @@ jobs:
           elif wants_republish "api-client"; then
             tag=$(find_draft_tag "moltnet-api-client")
             [ -n "$tag" ] && echo "api-client-version=$(version_from_tag "$tag" "moltnet-api-client")" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$RP_DSPY_VERSION" ]; then
+            echo "dspy-adapters-version=${RP_DSPY_VERSION}" >> "$GITHUB_OUTPUT"
+          elif wants_republish "dspy-adapters"; then
+            tag=$(find_draft_tag "dspy-adapters")
+            [ -n "$tag" ] && echo "dspy-adapters-version=$(version_from_tag "$tag" "dspy-adapters")" >> "$GITHUB_OUTPUT"
           fi
 
           if [ -n "$RP_SKILL_VERSION" ]; then
@@ -276,9 +293,40 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  release-dspy-adapters:
+    name: Tag Go module for dspy-adapters
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push Go module proxy tag
+        # The Go module proxy resolves github.com/getlarge/themoltnet/libs/dspy-adapters@vX.Y.Z
+        # by looking for a git tag of the form "libs/dspy-adapters/vX.Y.Z".
+        run: |
+          TAG="libs/dspy-adapters/v${{ needs.resolve-publish.outputs.dspy-adapters-version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish dspy-adapters release
+        run: gh release edit "${{ needs.resolve-publish.outputs.dspy-adapters-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release-cli:
     name: Release CLI binaries
-    needs: [resolve-publish, release-api-client]
+    needs: [resolve-publish, release-api-client, release-dspy-adapters]
     if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -301,11 +349,8 @@ jobs:
           # Resolve the api-client version: use the resolved output when
           # the api-client is being released in the same run, otherwise fall
           # back to the version recorded in the manifest.
-          API_CLIENT_VER="${{ needs.resolve-publish.outputs.api-client-version }}"
-          if [ -z "$API_CLIENT_VER" ]; then
-            API_CLIENT_VER=$(jq -r '.["libs/moltnet-api-client"]' .release-please-manifest.json)
-          fi
-          echo "api_client_version=v${API_CLIENT_VER}" >> "$GITHUB_OUTPUT"
+          # No version resolution needed: go.mod pins both libs directly;
+          # goreleaser builds with GOWORK=off and resolves from the proxy.
 
       - name: Generate GitHub App token for Homebrew tap
         uses: actions/create-github-app-token@v1
@@ -324,7 +369,6 @@ jobs:
         env:
           GOWORK: off
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
-          API_CLIENT_VERSION: ${{ steps.tag.outputs.api_client_version }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload binaries to GitHub Release
