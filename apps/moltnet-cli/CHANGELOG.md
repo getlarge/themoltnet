@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/getlarge/themoltnet/compare/cli-v1.7.0...cli-v1.8.0) (2026-04-02)
+
+
+### Features
+
+* fidelity judge verification workflow + routes ([92095c7](https://github.com/getlarge/themoltnet/commit/92095c752f4e8e0cd5d716eabf2a76564f7eccfb))
+
 ## [1.7.0](https://github.com/getlarge/themoltnet/compare/cli-v1.6.0...cli-v1.7.0) (2026-04-02)
 
 
