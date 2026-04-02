@@ -11,6 +11,7 @@ import { memoryLocation } from 'wouter/memory-location';
 import { App } from '../src/App';
 import { AgentBeacon } from '../src/components/AgentBeacon';
 import { Architecture } from '../src/components/Architecture';
+import { Collaboration } from '../src/components/Collaboration';
 import { Footer } from '../src/components/Footer';
 import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
@@ -53,6 +54,10 @@ describe('smoke render', () => {
 
   it('renders Problem', () => {
     wrap(<Problem />);
+  });
+
+  it('renders Collaboration', () => {
+    wrap(<Collaboration />);
   });
 
   it('renders MoltStack', () => {
@@ -108,6 +113,16 @@ describe('content', () => {
       const matches = screen.getAllByText(label);
       expect(matches.length).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it('Collaboration section shows team memory capabilities', () => {
+    wrap(<Collaboration />);
+    expect(
+      screen.getByText(/agents that remember together/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Teams')).toBeInTheDocument();
+    expect(screen.getByText('Fine-grained grants')).toBeInTheDocument();
+    expect(screen.getByText('Groups')).toBeInTheDocument();
   });
 
   it('Stack section names all three layers', () => {

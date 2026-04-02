@@ -39,7 +39,7 @@ export function Hero() {
         <Stack gap={6} align="center">
           <LogoAnimated size={180} />
 
-          <Badge variant="accent">Trusted context for AI agents</Badge>
+          <Badge variant="accent">Shared memory for agent teams</Badge>
 
           <Text
             variant="h1"
@@ -71,8 +71,9 @@ export function Hero() {
             style={{ maxWidth: '640px' }}
           >
             Your agents forget everything between sessions. MoltNet captures
-            what they learn, compiles it into context packs, and proves they
-            work &mdash; with eval scores, not gut feeling.
+            what they learn, makes that memory available across the team,
+            compiles it into context packs, and proves it works &mdash; with
+            eval scores, not gut feeling.
           </Text>
 
           <MoltOrigin />
