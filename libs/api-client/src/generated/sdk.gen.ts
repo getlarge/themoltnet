@@ -143,6 +143,9 @@ import type {
   ListDiaryPacksData,
   ListDiaryPacksErrors,
   ListDiaryPacksResponses,
+  ListDiaryRenderedPacksData,
+  ListDiaryRenderedPacksErrors,
+  ListDiaryRenderedPacksResponses,
   ListDiaryTagsData,
   ListDiaryTagsErrors,
   ListDiaryTagsResponses,
@@ -804,6 +807,22 @@ export const getLatestRenderedPack = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/packs/{id}/rendered',
+    ...options,
+  });
+
+/**
+ * List rendered packs for a diary. Optionally filter by source pack ID or render method.
+ */
+export const listDiaryRenderedPacks = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryRenderedPacksData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryRenderedPacksResponses,
+    ListDiaryRenderedPacksErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/rendered-packs',
     ...options,
   });
 

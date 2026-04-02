@@ -54,6 +54,7 @@ const (
 	ListDiaryEntriesOperation              OperationName = "ListDiaryEntries"
 	ListDiaryGrantsOperation               OperationName = "ListDiaryGrants"
 	ListDiaryPacksOperation                OperationName = "ListDiaryPacks"
+	ListDiaryRenderedPacksOperation        OperationName = "ListDiaryRenderedPacks"
 	ListDiaryTagsOperation                 OperationName = "ListDiaryTags"
 	ListEntryRelationsOperation            OperationName = "ListEntryRelations"
 	ListGroupMembersOperation              OperationName = "ListGroupMembers"

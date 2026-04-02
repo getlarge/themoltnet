@@ -6433,6 +6433,22 @@ type ListDiaryPacksUnauthorized ProblemDetails
 
 func (*ListDiaryPacksUnauthorized) listDiaryPacksRes() {}
 
+type ListDiaryRenderedPacksForbidden ProblemDetails
+
+func (*ListDiaryRenderedPacksForbidden) listDiaryRenderedPacksRes() {}
+
+type ListDiaryRenderedPacksInternalServerError ProblemDetails
+
+func (*ListDiaryRenderedPacksInternalServerError) listDiaryRenderedPacksRes() {}
+
+type ListDiaryRenderedPacksNotFound ProblemDetails
+
+func (*ListDiaryRenderedPacksNotFound) listDiaryRenderedPacksRes() {}
+
+type ListDiaryRenderedPacksUnauthorized ProblemDetails
+
+func (*ListDiaryRenderedPacksUnauthorized) listDiaryRenderedPacksRes() {}
+
 type ListDiaryTagsInternalServerError ProblemDetails
 
 func (*ListDiaryTagsInternalServerError) listDiaryTagsRes() {}
@@ -11966,6 +11982,182 @@ func (s *RenderContextPackReq) SetRenderedMarkdown(val OptString) {
 type RenderContextPackUnauthorized ProblemDetails
 
 func (*RenderContextPackUnauthorized) renderContextPackRes() {}
+
+// Ref: #/components/schemas/RenderedPack
+type RenderedPack struct {
+	ContentHash  string      `json:"contentHash"`
+	CreatedAt    time.Time   `json:"createdAt"`
+	CreatedBy    uuid.UUID   `json:"createdBy"`
+	DiaryId      uuid.UUID   `json:"diaryId"`
+	ExpiresAt    NilDateTime `json:"expiresAt"`
+	ID           uuid.UUID   `json:"id"`
+	PackCid      string      `json:"packCid"`
+	Pinned       bool        `json:"pinned"`
+	RenderMethod string      `json:"renderMethod"`
+	SourcePackId uuid.UUID   `json:"sourcePackId"`
+	TotalTokens  int         `json:"totalTokens"`
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *RenderedPack) GetContentHash() string {
+	return s.ContentHash
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RenderedPack) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *RenderedPack) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *RenderedPack) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *RenderedPack) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *RenderedPack) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *RenderedPack) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPinned returns the value of Pinned.
+func (s *RenderedPack) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderedPack) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *RenderedPack) GetSourcePackId() uuid.UUID {
+	return s.SourcePackId
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *RenderedPack) GetTotalTokens() int {
+	return s.TotalTokens
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *RenderedPack) SetContentHash(val string) {
+	s.ContentHash = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RenderedPack) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *RenderedPack) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *RenderedPack) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *RenderedPack) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *RenderedPack) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *RenderedPack) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *RenderedPack) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderedPack) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetSourcePackId sets the value of SourcePackId.
+func (s *RenderedPack) SetSourcePackId(val uuid.UUID) {
+	s.SourcePackId = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *RenderedPack) SetTotalTokens(val int) {
+	s.TotalTokens = val
+}
+
+// Ref: #/components/schemas/RenderedPackList
+type RenderedPackList struct {
+	Items  []RenderedPack `json:"items"`
+	Limit  float64        `json:"limit"`
+	Offset float64        `json:"offset"`
+	// Total number of matching rendered packs.
+	Total float64 `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *RenderedPackList) GetItems() []RenderedPack {
+	return s.Items
+}
+
+// GetLimit returns the value of Limit.
+func (s *RenderedPackList) GetLimit() float64 {
+	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *RenderedPackList) GetOffset() float64 {
+	return s.Offset
+}
+
+// GetTotal returns the value of Total.
+func (s *RenderedPackList) GetTotal() float64 {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *RenderedPackList) SetItems(val []RenderedPack) {
+	s.Items = val
+}
+
+// SetLimit sets the value of Limit.
+func (s *RenderedPackList) SetLimit(val float64) {
+	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *RenderedPackList) SetOffset(val float64) {
+	s.Offset = val
+}
+
+// SetTotal sets the value of Total.
+func (s *RenderedPackList) SetTotal(val float64) {
+	s.Total = val
+}
+
+func (*RenderedPackList) listDiaryRenderedPacksRes() {}
 
 // Ref: #/components/schemas/RenderedPackPreview
 type RenderedPackPreview struct {

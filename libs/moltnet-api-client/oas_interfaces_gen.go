@@ -177,6 +177,10 @@ type ListDiaryPacksRes interface {
 	listDiaryPacksRes()
 }
 
+type ListDiaryRenderedPacksRes interface {
+	listDiaryRenderedPacksRes()
+}
+
 type ListDiaryTagsRes interface {
 	listDiaryTagsRes()
 }
