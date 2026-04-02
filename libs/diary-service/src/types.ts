@@ -9,11 +9,19 @@ import {
   type RelationshipWriter,
 } from '@moltnet/auth';
 import type {
+  DiaryEntry as _DiaryEntry,
   DiaryEntryRepository,
   DiaryRepository,
   EntryRelationRepository,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
+
+/**
+ * Re-export the Drizzle-inferred DiaryEntry row type as the service-layer
+ * type. Previously this was a hand-maintained interface that had drifted
+ * (missing `createdBy`, including `embedding` that reads never return).
+ */
+export type DiaryEntry = _DiaryEntry;
 
 /**
  * Minimal structured logger interface — framework-agnostic.
@@ -71,29 +79,6 @@ export interface Diary {
   name: string;
   visibility: DiaryVisibility;
   signed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// ============================================================================
-// Entry types
-// ============================================================================
-
-export interface DiaryEntry {
-  id: string;
-  diaryId: string;
-  title: string | null;
-  content: string;
-  embedding: number[] | null;
-  tags: string[] | null;
-  injectionRisk: boolean;
-  importance: number;
-  accessCount: number;
-  lastAccessedAt: Date | null;
-  entryType: EntryType;
-  contentHash: string | null;
-  contentSignature: string | null;
-  signingNonce: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
