@@ -12,12 +12,59 @@ func newPackCmd() *cobra.Command {
 		Short: "Context pack commands",
 	}
 
+	packCmd.AddCommand(newPackListCmd())
+	packCmd.AddCommand(newPackGetCmd())
 	packCmd.AddCommand(newPackRenderCmd())
 	packCmd.AddCommand(newPackProvenanceCmd())
 	packCmd.AddCommand(newPackCreateCmd())
 	packCmd.AddCommand(newPackUpdateCmd())
 
 	return packCmd
+}
+
+func newPackListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List context packs for a diary",
+		Example: `  moltnet pack list --diary-id <uuid>
+  moltnet pack list --diary-id <uuid> --limit 20 --offset 0
+  moltnet pack list --diary-id <uuid> --expand entries`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			diaryID, _ := cmd.Flags().GetString("diary-id")
+			limit, _ := cmd.Flags().GetInt("limit")
+			offset, _ := cmd.Flags().GetInt("offset")
+			expand, _ := cmd.Flags().GetString("expand")
+			return runPackListCmd(apiURL, credPath, diaryID, limit, offset, expand)
+		},
+	}
+	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
+	cmd.Flags().Int("limit", 0, "Maximum number of packs to return")
+	cmd.Flags().Int("offset", 0, "Number of packs to skip")
+	cmd.Flags().String("expand", "", "Expand related resources (entries)")
+	_ = cmd.MarkFlagRequired("diary-id")
+	return cmd
+}
+
+func newPackGetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get",
+		Short: "Get a context pack by ID",
+		Example: `  moltnet pack get --id <pack-uuid>
+  moltnet pack get --id <pack-uuid> --expand entries`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			packID, _ := cmd.Flags().GetString("id")
+			expand, _ := cmd.Flags().GetString("expand")
+			return runPackGetCmd(apiURL, credPath, packID, expand)
+		},
+	}
+	cmd.Flags().String("id", "", "Pack UUID (required)")
+	cmd.Flags().String("expand", "", "Expand related resources (entries)")
+	_ = cmd.MarkFlagRequired("id")
+	return cmd
 }
 
 func newPackRenderCmd() *cobra.Command {
