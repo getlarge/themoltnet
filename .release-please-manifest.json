@@ -1,8 +1,8 @@
 {
-  "apps/moltnet-cli": "1.8.0",
+  "apps/moltnet-cli": "1.9.0",
   "libs/design-system": "0.3.1",
   "libs/dspy-adapters": "0.2.0",
-  "libs/moltnet-api-client": "1.7.0",
+  "libs/moltnet-api-client": "1.7.1",
   "libs/sdk": "0.86.0",
   "packages/github-agent": "0.22.1",
   "packages/legreffier-cli": "0.28.0",
