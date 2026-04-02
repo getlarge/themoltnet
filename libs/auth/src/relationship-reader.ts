@@ -7,7 +7,11 @@
 
 import type { RelationshipApi } from '@ory/client-fetch';
 
-import { GroupRelation, KetoNamespace } from './keto-constants.js';
+import {
+  DiaryRelation,
+  GroupRelation,
+  KetoNamespace,
+} from './keto-constants.js';
 
 export interface GroupMemberTuple {
   subjectId: string;
@@ -25,6 +29,13 @@ export interface TeamIdWithRole {
   relation: string;
 }
 
+export interface DiaryGrantTuple {
+  subjectId: string;
+  subjectNs: string;
+  role: 'writer' | 'manager';
+  subjectRelation?: string;
+}
+
 export interface RelationshipReader {
   /** Returns all team IDs where the subject has any relationship (owner, manager, member). */
   listTeamIdsBySubject(subjectId: string): Promise<string[]>;
@@ -34,6 +45,8 @@ export interface RelationshipReader {
   listTeamMembers(teamId: string): Promise<TeamMemberTuple[]>;
   /** Returns all members of a group. */
   listGroupMembers(groupId: string): Promise<GroupMemberTuple[]>;
+  /** Returns all per-diary grants (writers + managers). */
+  listDiaryGrants(diaryId: string): Promise<DiaryGrantTuple[]>;
 }
 
 async function paginateTeamRoles(
@@ -152,6 +165,38 @@ export function createRelationshipReader(
       } while (pageToken);
 
       return members;
+    },
+
+    async listDiaryGrants(diaryId: string): Promise<DiaryGrantTuple[]> {
+      const grants: DiaryGrantTuple[] = [];
+
+      for (const [relation, role] of [
+        [DiaryRelation.Writers, 'writer'],
+        [DiaryRelation.Managers, 'manager'],
+      ] as const) {
+        let pageToken: string | undefined;
+        do {
+          const result = await relationshipApi.getRelationships({
+            namespace: KetoNamespace.Diary,
+            object: diaryId,
+            relation,
+            pageToken,
+          });
+          for (const tuple of result.relation_tuples ?? []) {
+            if (tuple.subject_set?.object) {
+              grants.push({
+                subjectId: tuple.subject_set.object,
+                subjectNs: tuple.subject_set.namespace ?? '',
+                role,
+                subjectRelation: tuple.subject_set.relation || undefined,
+              });
+            }
+          }
+          pageToken = result.next_page_token || undefined;
+        } while (pageToken);
+      }
+
+      return grants;
     },
   };
 }
