@@ -68,6 +68,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
+  canVerifyClaimPack(
+    packId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   canAccessTeam(
     teamId: string,
     subjectId: string,
@@ -317,6 +322,20 @@ export function createPermissionChecker(
         KetoNamespace.ContextPack,
         packId,
         ContextPackPermission.Manage,
+        subjectNs,
+        subjectId,
+      );
+    },
+    canVerifyClaimPack(
+      packId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.ContextPack,
+        packId,
+        ContextPackPermission.VerifyClaim,
         subjectNs,
         subjectId,
       );

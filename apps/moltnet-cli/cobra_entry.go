@@ -25,8 +25,8 @@ func newEntryCmd() *cobra.Command {
 
 func newEntryCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a new diary entry",
+		Use:     "create",
+		Short:   "Create a new diary entry",
 		Example: `  moltnet entry create --diary-id <uuid> --content "Entry text"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")

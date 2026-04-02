@@ -266,6 +266,20 @@
       "tag": "0037_option-b-diary-search-team-ids",
       "version": "7",
       "when": 1775032494521
+    },
+    {
+      "breakpoints": true,
+      "idx": 38,
+      "tag": "0038_little_loners",
+      "version": "7",
+      "when": 1775049844708
+    },
+    {
+      "breakpoints": true,
+      "idx": 39,
+      "tag": "0039_needy_khan",
+      "version": "7",
+      "when": 1775067809853
     }
   ],
   "version": "7"

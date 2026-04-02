@@ -36,6 +36,7 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 // operationRolesBearerAuth is a private map storing roles per operation.
 var operationRolesBearerAuth = map[string][]string{
 	AddGroupMemberOperation:                []string{},
+	ClaimVerificationOperation:             []string{},
 	CompileDiaryOperation:                  []string{},
 	ConsolidateDiaryOperation:              []string{},
 	CreateDiaryOperation:                   []string{},
@@ -90,11 +91,13 @@ var operationRolesBearerAuth = map[string][]string{
 	RotateClientSecretOperation:            []string{},
 	SearchDiaryOperation:                   []string{},
 	SubmitSignatureOperation:               []string{},
+	SubmitVerificationOperation:            []string{},
 	UpdateContextPackOperation:             []string{},
 	UpdateDiaryOperation:                   []string{},
 	UpdateDiaryEntryByIdOperation:          []string{},
 	UpdateEntryRelationStatusOperation:     []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
+	VerifyRenderedPackOperation:            []string{},
 }
 
 // GetRolesForBearerAuth returns the required roles for the given operation.

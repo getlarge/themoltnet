@@ -114,6 +114,7 @@ export enum ContextPackRelation {
 export enum ContextPackPermission {
   Read = 'read',
   Manage = 'manage',
+  VerifyClaim = 'verify_claim',
 }
 
 /**

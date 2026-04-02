@@ -26,3 +26,14 @@ export {
   type SigningResult,
   signingWorkflows,
 } from './signing-workflows.js';
+export {
+  _resetVerificationWorkflowsForTesting,
+  initVerificationWorkflows,
+  setVerificationWorkflowDeps,
+  type VerificationPayload,
+  type VerificationResult,
+  type VerificationSubmission,
+  VerificationWorkflowConfigurationError,
+  type VerificationWorkflowDeps,
+  verificationWorkflows,
+} from './verification-workflows.js';

@@ -215,6 +215,101 @@ func (s *BearerAuth) SetRoles(val []string) {
 	s.Roles = val
 }
 
+type ClaimVerificationBadRequest ProblemDetails
+
+func (*ClaimVerificationBadRequest) claimVerificationRes() {}
+
+type ClaimVerificationConflict ProblemDetails
+
+func (*ClaimVerificationConflict) claimVerificationRes() {}
+
+type ClaimVerificationForbidden ProblemDetails
+
+func (*ClaimVerificationForbidden) claimVerificationRes() {}
+
+type ClaimVerificationNotFound ProblemDetails
+
+func (*ClaimVerificationNotFound) claimVerificationRes() {}
+
+// Ref: #/components/schemas/ClaimVerificationResponse
+type ClaimVerificationResponse struct {
+	RenderedContent string                                       `json:"renderedContent"`
+	Rubric          string                                       `json:"rubric"`
+	SourceEntries   []ClaimVerificationResponseSourceEntriesItem `json:"sourceEntries"`
+}
+
+// GetRenderedContent returns the value of RenderedContent.
+func (s *ClaimVerificationResponse) GetRenderedContent() string {
+	return s.RenderedContent
+}
+
+// GetRubric returns the value of Rubric.
+func (s *ClaimVerificationResponse) GetRubric() string {
+	return s.Rubric
+}
+
+// GetSourceEntries returns the value of SourceEntries.
+func (s *ClaimVerificationResponse) GetSourceEntries() []ClaimVerificationResponseSourceEntriesItem {
+	return s.SourceEntries
+}
+
+// SetRenderedContent sets the value of RenderedContent.
+func (s *ClaimVerificationResponse) SetRenderedContent(val string) {
+	s.RenderedContent = val
+}
+
+// SetRubric sets the value of Rubric.
+func (s *ClaimVerificationResponse) SetRubric(val string) {
+	s.Rubric = val
+}
+
+// SetSourceEntries sets the value of SourceEntries.
+func (s *ClaimVerificationResponse) SetSourceEntries(val []ClaimVerificationResponseSourceEntriesItem) {
+	s.SourceEntries = val
+}
+
+func (*ClaimVerificationResponse) claimVerificationRes() {}
+
+type ClaimVerificationResponseSourceEntriesItem struct {
+	Content     string `json:"content"`
+	ContentHash string `json:"contentHash"`
+	Title       string `json:"title"`
+}
+
+// GetContent returns the value of Content.
+func (s *ClaimVerificationResponseSourceEntriesItem) GetContent() string {
+	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *ClaimVerificationResponseSourceEntriesItem) GetContentHash() string {
+	return s.ContentHash
+}
+
+// GetTitle returns the value of Title.
+func (s *ClaimVerificationResponseSourceEntriesItem) GetTitle() string {
+	return s.Title
+}
+
+// SetContent sets the value of Content.
+func (s *ClaimVerificationResponseSourceEntriesItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *ClaimVerificationResponseSourceEntriesItem) SetContentHash(val string) {
+	s.ContentHash = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ClaimVerificationResponseSourceEntriesItem) SetTitle(val string) {
+	s.Title = val
+}
+
+type ClaimVerificationUnauthorized ProblemDetails
+
+func (*ClaimVerificationUnauthorized) claimVerificationRes() {}
+
 type CompileDiaryBadRequest ProblemDetails
 
 func (*CompileDiaryBadRequest) compileDiaryRes() {}
@@ -12928,6 +13023,142 @@ type SubmitSignatureUnauthorized ProblemDetails
 
 func (*SubmitSignatureUnauthorized) submitSignatureRes() {}
 
+type SubmitVerificationBadRequest ProblemDetails
+
+func (*SubmitVerificationBadRequest) submitVerificationRes() {}
+
+type SubmitVerificationConflict ProblemDetails
+
+func (*SubmitVerificationConflict) submitVerificationRes() {}
+
+type SubmitVerificationNotFound ProblemDetails
+
+func (*SubmitVerificationNotFound) submitVerificationRes() {}
+
+// Submit fidelity judge results.
+type SubmitVerificationReq struct {
+	Coverage       float64   `json:"coverage"`
+	Faithfulness   float64   `json:"faithfulness"`
+	Grounding      float64   `json:"grounding"`
+	JudgeBinaryCid string    `json:"judgeBinaryCid"`
+	JudgeModel     string    `json:"judgeModel"`
+	JudgeProvider  string    `json:"judgeProvider"`
+	Nonce          uuid.UUID `json:"nonce"`
+	Transcript     string    `json:"transcript"`
+}
+
+// GetCoverage returns the value of Coverage.
+func (s *SubmitVerificationReq) GetCoverage() float64 {
+	return s.Coverage
+}
+
+// GetFaithfulness returns the value of Faithfulness.
+func (s *SubmitVerificationReq) GetFaithfulness() float64 {
+	return s.Faithfulness
+}
+
+// GetGrounding returns the value of Grounding.
+func (s *SubmitVerificationReq) GetGrounding() float64 {
+	return s.Grounding
+}
+
+// GetJudgeBinaryCid returns the value of JudgeBinaryCid.
+func (s *SubmitVerificationReq) GetJudgeBinaryCid() string {
+	return s.JudgeBinaryCid
+}
+
+// GetJudgeModel returns the value of JudgeModel.
+func (s *SubmitVerificationReq) GetJudgeModel() string {
+	return s.JudgeModel
+}
+
+// GetJudgeProvider returns the value of JudgeProvider.
+func (s *SubmitVerificationReq) GetJudgeProvider() string {
+	return s.JudgeProvider
+}
+
+// GetNonce returns the value of Nonce.
+func (s *SubmitVerificationReq) GetNonce() uuid.UUID {
+	return s.Nonce
+}
+
+// GetTranscript returns the value of Transcript.
+func (s *SubmitVerificationReq) GetTranscript() string {
+	return s.Transcript
+}
+
+// SetCoverage sets the value of Coverage.
+func (s *SubmitVerificationReq) SetCoverage(val float64) {
+	s.Coverage = val
+}
+
+// SetFaithfulness sets the value of Faithfulness.
+func (s *SubmitVerificationReq) SetFaithfulness(val float64) {
+	s.Faithfulness = val
+}
+
+// SetGrounding sets the value of Grounding.
+func (s *SubmitVerificationReq) SetGrounding(val float64) {
+	s.Grounding = val
+}
+
+// SetJudgeBinaryCid sets the value of JudgeBinaryCid.
+func (s *SubmitVerificationReq) SetJudgeBinaryCid(val string) {
+	s.JudgeBinaryCid = val
+}
+
+// SetJudgeModel sets the value of JudgeModel.
+func (s *SubmitVerificationReq) SetJudgeModel(val string) {
+	s.JudgeModel = val
+}
+
+// SetJudgeProvider sets the value of JudgeProvider.
+func (s *SubmitVerificationReq) SetJudgeProvider(val string) {
+	s.JudgeProvider = val
+}
+
+// SetNonce sets the value of Nonce.
+func (s *SubmitVerificationReq) SetNonce(val uuid.UUID) {
+	s.Nonce = val
+}
+
+// SetTranscript sets the value of Transcript.
+func (s *SubmitVerificationReq) SetTranscript(val string) {
+	s.Transcript = val
+}
+
+// Ref: #/components/schemas/SubmitVerificationResponse
+type SubmitVerificationResponse struct {
+	AttestationId uuid.UUID `json:"attestationId"`
+	Composite     float64   `json:"composite"`
+}
+
+// GetAttestationId returns the value of AttestationId.
+func (s *SubmitVerificationResponse) GetAttestationId() uuid.UUID {
+	return s.AttestationId
+}
+
+// GetComposite returns the value of Composite.
+func (s *SubmitVerificationResponse) GetComposite() float64 {
+	return s.Composite
+}
+
+// SetAttestationId sets the value of AttestationId.
+func (s *SubmitVerificationResponse) SetAttestationId(val uuid.UUID) {
+	s.AttestationId = val
+}
+
+// SetComposite sets the value of Composite.
+func (s *SubmitVerificationResponse) SetComposite(val float64) {
+	s.Composite = val
+}
+
+func (*SubmitVerificationResponse) submitVerificationRes() {}
+
+type SubmitVerificationUnauthorized ProblemDetails
+
+func (*SubmitVerificationUnauthorized) submitVerificationRes() {}
+
 // Ref: #/components/schemas/Success
 type Success struct {
 	Success bool `json:"success"`
@@ -13366,6 +13597,70 @@ func (s *VerifyRecoveryChallengeReq) SetPublicKey(val string) {
 func (s *VerifyRecoveryChallengeReq) SetSignature(val string) {
 	s.Signature = val
 }
+
+type VerifyRenderedPackBadRequest ProblemDetails
+
+func (*VerifyRenderedPackBadRequest) verifyRenderedPackRes() {}
+
+type VerifyRenderedPackConflict ProblemDetails
+
+func (*VerifyRenderedPackConflict) verifyRenderedPackRes() {}
+
+type VerifyRenderedPackForbidden ProblemDetails
+
+func (*VerifyRenderedPackForbidden) verifyRenderedPackRes() {}
+
+type VerifyRenderedPackNotFound ProblemDetails
+
+func (*VerifyRenderedPackNotFound) verifyRenderedPackRes() {}
+
+// Trigger fidelity verification for an agent-rendered pack.
+type VerifyRenderedPackReq struct {
+	// Caller-generated nonce for idempotency.
+	Nonce uuid.UUID `json:"nonce"`
+}
+
+// GetNonce returns the value of Nonce.
+func (s *VerifyRenderedPackReq) GetNonce() uuid.UUID {
+	return s.Nonce
+}
+
+// SetNonce sets the value of Nonce.
+func (s *VerifyRenderedPackReq) SetNonce(val uuid.UUID) {
+	s.Nonce = val
+}
+
+// Ref: #/components/schemas/VerifyRenderedPackResponse
+type VerifyRenderedPackResponse struct {
+	Nonce          uuid.UUID `json:"nonce"`
+	VerificationId uuid.UUID `json:"verificationId"`
+}
+
+// GetNonce returns the value of Nonce.
+func (s *VerifyRenderedPackResponse) GetNonce() uuid.UUID {
+	return s.Nonce
+}
+
+// GetVerificationId returns the value of VerificationId.
+func (s *VerifyRenderedPackResponse) GetVerificationId() uuid.UUID {
+	return s.VerificationId
+}
+
+// SetNonce sets the value of Nonce.
+func (s *VerifyRenderedPackResponse) SetNonce(val uuid.UUID) {
+	s.Nonce = val
+}
+
+// SetVerificationId sets the value of VerificationId.
+func (s *VerifyRenderedPackResponse) SetVerificationId(val uuid.UUID) {
+	s.VerificationId = val
+}
+
+func (*VerifyRenderedPackResponse) verifyRenderedPackRes() {}
+
+type VerifyRenderedPackUnauthorized ProblemDetails
+
+func (*VerifyRenderedPackUnauthorized) verifyRenderedPackRes() {}
 
 // Ref: #/components/schemas/VerifyResult
 type VerifyResult struct {

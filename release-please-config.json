@@ -17,14 +17,14 @@
       ],
       "release-type": "go"
     },
+    "libs/design-system": {
+      "component": "design-system",
+      "release-type": "node"
+    },
     "libs/moltnet-api-client": {
       "bump-minor-pre-major": true,
       "component": "moltnet-api-client",
       "release-type": "go"
-    },
-    "libs/design-system": {
-      "component": "design-system",
-      "release-type": "node"
     },
     "libs/sdk": {
       "component": "sdk",

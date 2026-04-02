@@ -292,12 +292,12 @@ Releases are created as drafts (`"draft": true` in `release-please-config.json`)
 
 ### Release configuration files
 
-| File                            | Purpose                                                               |
-| ------------------------------- | --------------------------------------------------------------------- |
-| `release-please-config.json`    | Defines releasable packages (`libs/sdk` as node, `apps/moltnet-cli` as go) |
-| `.release-please-manifest.json` | Tracks current versions                                               |
-| `apps/moltnet-cli/.goreleaser.yml`   | Cross-compilation targets, archive format, Homebrew formula publisher |
-| `packages/cli/`                 | npm wrapper — postinstall downloads the correct Go binary             |
+| File                               | Purpose                                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `release-please-config.json`       | Defines releasable packages (`libs/sdk` as node, `apps/moltnet-cli` as go) |
+| `.release-please-manifest.json`    | Tracks current versions                                                    |
+| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher      |
+| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                  |
 
 ### npm trusted publishing (OIDC)
 

@@ -17,6 +17,7 @@ import { vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import type {
   AgentRepository,
+  AttestationRepository,
   CryptoService,
   DataSource,
   DiaryEntryRepository,
@@ -27,6 +28,7 @@ import type {
   SigningRequestRepository,
   TeamRepository,
   TransactionRunner,
+  VerificationService,
   VoucherRepository,
 } from '../src/types.js';
 
@@ -172,6 +174,19 @@ export interface MockServices {
     deleteMany: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
   };
+  renderedPackRepository: {
+    findById: ReturnType<typeof vi.fn>;
+    findLatestBySourcePackId: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    updatePinned: ReturnType<typeof vi.fn>;
+    deleteBySourcePackId: ReturnType<typeof vi.fn>;
+  };
+  attestationRepository: {
+    [K in keyof AttestationRepository]: ReturnType<typeof vi.fn>;
+  };
+  verificationService: {
+    [K in keyof VerificationService]: ReturnType<typeof vi.fn>;
+  };
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
     createMany: ReturnType<typeof vi.fn>;
@@ -238,6 +253,23 @@ export function createMockServices(): MockServices {
       updateExpiry: vi.fn(),
       deleteMany: vi.fn(),
       listByDiary: vi.fn().mockResolvedValue([]),
+    },
+    renderedPackRepository: {
+      findById: vi.fn(),
+      findLatestBySourcePackId: vi.fn(),
+      create: vi.fn(),
+      updatePinned: vi.fn(),
+      deleteBySourcePackId: vi.fn(),
+    },
+    attestationRepository: {
+      create: vi.fn(),
+      findByRenderedPackId: vi.fn().mockResolvedValue([]),
+      findBestByRenderedPackId: vi.fn().mockResolvedValue(null),
+    },
+    verificationService: {
+      createVerification: vi.fn(),
+      claim: vi.fn(),
+      submit: vi.fn(),
     },
     entryRelationRepository: {
       create: vi.fn(),
@@ -311,6 +343,7 @@ export function createMockServices(): MockServices {
       canReadPack: vi.fn(),
       canReadPacks: vi.fn().mockResolvedValue(new Map()),
       canManagePack: vi.fn(),
+      canVerifyClaimPack: vi.fn(),
       canAccessTeam: vi.fn(),
       canManageTeam: vi.fn(),
       canWriteTeam: vi.fn().mockResolvedValue(true),
@@ -404,17 +437,15 @@ export async function createTestApp(
     diaryEntryRepository:
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
     contextPackRepository: mocks.contextPackRepository as never,
+    renderedPackRepository: mocks.renderedPackRepository as never,
+    attestationRepository:
+      mocks.attestationRepository as unknown as AttestationRepository,
     entryRelationRepository: mocks.entryRelationRepository as never,
-    renderedPackRepository: {
-      findById: vi.fn(),
-      findLatestBySourcePackId: vi.fn(),
-      create: vi.fn(),
-      updatePinned: vi.fn(),
-      deleteBySourcePackId: vi.fn(),
-    } as never,
     contextPackService: {
       createRenderedPack: vi.fn(),
     } as never,
+    verificationService:
+      mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,

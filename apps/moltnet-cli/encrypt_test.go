@@ -13,8 +13,8 @@ import (
 )
 
 type x25519DerivationVector struct {
-	Comment               string `json:"comment"`
-	Ed25519SeedBase64     string `json:"ed25519_seed_base64"`
+	Comment                string `json:"comment"`
+	Ed25519SeedBase64      string `json:"ed25519_seed_base64"`
 	Ed25519PublicKey       string `json:"ed25519_public_key"`
 	X25519PrivateKeyBase64 string `json:"x25519_private_key_base64"`
 	X25519PublicKeyBase64  string `json:"x25519_public_key_base64"`
@@ -37,7 +37,7 @@ type encryptionVector struct {
 }
 
 type x25519VectorsFile struct {
-	Description     string `json:"description"`
+	Description      string `json:"description"`
 	X25519Derivation struct {
 		Description string                   `json:"description"`
 		Vectors     []x25519DerivationVector `json:"vectors"`

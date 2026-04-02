@@ -296,4 +296,29 @@ describe('PermissionChecker', () => {
       );
     });
   });
+
+  describe('canVerifyClaimPack', () => {
+    it('checks verify_claim permission on ContextPack namespace', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canVerifyClaimPack(
+        DIARY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'ContextPack',
+        object: DIARY_ID,
+        relation: 'verify_claim',
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+      });
+    });
+  });
 });

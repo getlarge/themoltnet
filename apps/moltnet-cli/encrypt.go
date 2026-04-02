@@ -24,11 +24,11 @@ const (
 
 // SealedEnvelope is the JSON envelope for encrypted messages.
 type SealedEnvelope struct {
-	V                 int    `json:"v"`
+	V                  int    `json:"v"`
 	EphemeralPublicKey string `json:"ephemeral_public_key"`
-	Nonce             string `json:"nonce"`
-	Ciphertext        string `json:"ciphertext"`
-	Algorithm         string `json:"algorithm"`
+	Nonce              string `json:"nonce"`
+	Ciphertext         string `json:"ciphertext"`
+	Algorithm          string `json:"algorithm"`
 }
 
 // DeriveX25519PrivateKey derives an X25519 private key from an Ed25519 seed.
@@ -198,11 +198,11 @@ func encryptWithEphemeral(plaintext string, recipientX25519Pub []byte, ephPriv [
 	ciphertext := aead.Seal(nil, nonce, []byte(plaintext), aad)
 
 	envelope := SealedEnvelope{
-		V:                 envelopeVersion,
+		V:                  envelopeVersion,
 		EphemeralPublicKey: base64.StdEncoding.EncodeToString(ephPub),
-		Nonce:             base64.StdEncoding.EncodeToString(nonce),
-		Ciphertext:        base64.StdEncoding.EncodeToString(ciphertext),
-		Algorithm:         algorithm,
+		Nonce:              base64.StdEncoding.EncodeToString(nonce),
+		Ciphertext:         base64.StdEncoding.EncodeToString(ciphertext),
+		Algorithm:          algorithm,
 	}
 
 	data, err := json.Marshal(envelope)

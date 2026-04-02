@@ -23,7 +23,7 @@ func computeContentCid(entryType, title, content string, tags []string) (string,
 		return "", err
 	}
 	c := gocid.NewCidV1(0x55, mh) // 0x55 = raw codec
-	return c.StringOfBase('b')     // base32lower
+	return c.StringOfBase('b')    // base32lower
 }
 
 // buildCanonicalInput produces the JSON canonical form matching the TypeScript implementation.

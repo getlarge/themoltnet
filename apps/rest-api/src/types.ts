@@ -7,10 +7,18 @@
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
+export type { VerificationService } from './services/verification.service.js';
+export type {
+  AuthContext,
+  PermissionChecker,
+  RelationshipReader,
+  RelationshipWriter,
+} from '@moltnet/auth';
 export type { ContextPackService } from '@moltnet/context-pack-service';
 export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
+  AttestationRepository,
   ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
@@ -25,11 +33,17 @@ export type {
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
-import type { RelationshipReader } from '@moltnet/auth';
+import type {
+  AuthContext,
+  PermissionChecker,
+  RelationshipReader,
+  RelationshipWriter,
+} from '@moltnet/auth';
 import type { ContextPackService } from '@moltnet/context-pack-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
+  AttestationRepository,
   ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
@@ -41,10 +55,12 @@ import type {
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
-import type { DiaryService, EmbeddingService } from '@moltnet/diary-service';
+import type { DiaryService } from '@moltnet/diary-service';
+import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
+import type { VerificationService } from './services/verification.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -54,7 +70,9 @@ declare module 'fastify' {
     diaryEntryRepository: DiaryEntryRepository;
     contextPackRepository: ContextPackRepository;
     renderedPackRepository: RenderedPackRepository;
+    attestationRepository: AttestationRepository;
     contextPackService: ContextPackService;
+    verificationService: VerificationService;
     entryRelationRepository: EntryRelationRepository;
     embeddingService: EmbeddingService;
     agentRepository: AgentRepository;
@@ -62,11 +80,17 @@ declare module 'fastify' {
     voucherRepository: VoucherRepository;
     groupRepository: GroupRepository;
     teamRepository: TeamRepository;
+    permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
+    relationshipWriter: RelationshipWriter;
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;
     transactionRunner: TransactionRunner;
     packGcConfig: PackGcConfig;
+  }
+
+  interface FastifyRequest {
+    authContext: AuthContext | null;
   }
 }

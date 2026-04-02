@@ -25,8 +25,8 @@ func newGitHubCmd() *cobra.Command {
 
 	// credential-helper subcommand
 	credHelperCmd := &cobra.Command{
-		Use:   "credential-helper",
-		Short: "Git credential helper for GitHub App authentication",
+		Use:     "credential-helper",
+		Short:   "Git credential helper for GitHub App authentication",
 		Example: `  moltnet github credential-helper`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")

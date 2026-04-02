@@ -14,6 +14,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  real,
   smallint,
   text,
   timestamp,
@@ -701,3 +702,77 @@ export type NewGroup = typeof groups.$inferInsert;
 export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;
 export type RenderedPack = typeof renderedPacks.$inferSelect;
 export type NewRenderedPack = typeof renderedPacks.$inferInsert;
+
+// ── Rendered Pack Verifications ────────────────────────────
+
+export const renderedPackVerifications = pgTable(
+  'rendered_pack_verifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    renderedPackId: uuid('rendered_pack_id')
+      .notNull()
+      .references(() => renderedPacks.id, { onDelete: 'cascade' }),
+    nonce: uuid('nonce').notNull(),
+    status: varchar('status', { length: 20 }).notNull(),
+    claimedBy: uuid('claimed_by'),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    renderedPackIdx: index('verifications_rendered_pack_idx').on(
+      table.renderedPackId,
+    ),
+    statusIdx: index('verifications_status_idx').on(table.status),
+    expiresAtIdx: index('verifications_expires_at_idx').on(table.expiresAt),
+    nonceUniqueIdx: uniqueIndex('verifications_nonce_unique_idx').on(
+      table.nonce,
+    ),
+  }),
+);
+
+export type RenderedPackVerification =
+  typeof renderedPackVerifications.$inferSelect;
+export type NewRenderedPackVerification =
+  typeof renderedPackVerifications.$inferInsert;
+
+// ── Rendered Pack Attestations ─────────────────────────────
+
+export const renderedPackAttestations = pgTable(
+  'rendered_pack_attestations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    renderedPackId: uuid('rendered_pack_id')
+      .notNull()
+      .references(() => renderedPacks.id, { onDelete: 'cascade' }),
+    coverage: real('coverage').notNull(),
+    grounding: real('grounding').notNull(),
+    faithfulness: real('faithfulness').notNull(),
+    composite: real('composite').notNull(),
+    judgeModel: varchar('judge_model', { length: 100 }).notNull(),
+    judgeProvider: varchar('judge_provider', { length: 50 }).notNull(),
+    judgeBinaryCid: varchar('judge_binary_cid', { length: 100 }).notNull(),
+    rubricCid: varchar('rubric_cid', { length: 100 }),
+    createdBy: uuid('created_by').notNull(),
+    transcript: text('transcript').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    renderedPackIdx: index('attestations_rendered_pack_idx').on(
+      table.renderedPackId,
+    ),
+    compositeIdx: index('attestations_composite_idx').on(table.composite),
+  }),
+);
+
+export type RenderedPackAttestation =
+  typeof renderedPackAttestations.$inferSelect;
+export type NewRenderedPackAttestation =
+  typeof renderedPackAttestations.$inferInsert;

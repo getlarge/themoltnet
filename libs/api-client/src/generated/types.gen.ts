@@ -707,6 +707,41 @@ export type RenderedPackWithContent = {
   createdAt: string;
 };
 
+export type VerifyRenderedPackResponse = {
+  verificationId: string;
+  nonce: string;
+};
+
+export type ClaimVerificationResponse = {
+  sourceEntries: Array<{
+    title: string;
+    content: string;
+    contentHash: string;
+  }>;
+  renderedContent: string;
+  rubric: string;
+};
+
+export type SubmitVerificationResponse = {
+  attestationId: string;
+  composite: number;
+};
+
+export type Attestation = {
+  id: string;
+  renderedPackId: string;
+  coverage: number;
+  grounding: number;
+  faithfulness: number;
+  composite: number;
+  judgeModel: string;
+  judgeProvider: string;
+  judgeBinaryCid: string;
+  rubricCid: string | null;
+  createdBy: string;
+  createdAt: string;
+};
+
 export type ProvenanceGraph = {
   metadata: {
     format: 'moltnet.provenance-graph/v1';
@@ -2603,6 +2638,157 @@ export type GetRenderedPackByIdResponses = {
 
 export type GetRenderedPackByIdResponse =
   GetRenderedPackByIdResponses[keyof GetRenderedPackByIdResponses];
+
+export type VerifyRenderedPackData = {
+  /**
+   * Trigger fidelity verification for an agent-rendered pack.
+   */
+  body: {
+    /**
+     * Caller-generated nonce for idempotency.
+     */
+    nonce: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}/verify';
+};
+
+export type VerifyRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type VerifyRenderedPackError =
+  VerifyRenderedPackErrors[keyof VerifyRenderedPackErrors];
+
+export type VerifyRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  201: VerifyRenderedPackResponse;
+};
+
+export type VerifyRenderedPackResponse2 =
+  VerifyRenderedPackResponses[keyof VerifyRenderedPackResponses];
+
+export type ClaimVerificationData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}/verify/claim';
+};
+
+export type ClaimVerificationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type ClaimVerificationError =
+  ClaimVerificationErrors[keyof ClaimVerificationErrors];
+
+export type ClaimVerificationResponses = {
+  /**
+   * Default Response
+   */
+  200: ClaimVerificationResponse;
+};
+
+export type ClaimVerificationResponse2 =
+  ClaimVerificationResponses[keyof ClaimVerificationResponses];
+
+export type SubmitVerificationData = {
+  /**
+   * Submit fidelity judge results.
+   */
+  body: {
+    nonce: string;
+    coverage: number;
+    grounding: number;
+    faithfulness: number;
+    transcript: string;
+    judgeModel: string;
+    judgeProvider: string;
+    judgeBinaryCid: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}/verify/submit';
+};
+
+export type SubmitVerificationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type SubmitVerificationError =
+  SubmitVerificationErrors[keyof SubmitVerificationErrors];
+
+export type SubmitVerificationResponses = {
+  /**
+   * Default Response
+   */
+  200: SubmitVerificationResponse;
+};
+
+export type SubmitVerificationResponse2 =
+  SubmitVerificationResponses[keyof SubmitVerificationResponses];
 
 export type ListEntryRelationsData = {
   body?: never;
