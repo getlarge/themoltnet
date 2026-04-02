@@ -100,6 +100,20 @@ func encodeCreateDiaryEntryRequest(
 	return nil
 }
 
+func encodeCreateDiaryGrantRequest(
+	req *CreateDiaryGrantReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateEntryRelationRequest(
 	req *CreateEntryRelationReq,
 	r *http.Request,
@@ -248,6 +262,20 @@ func encodeRenderContextPackRequest(
 
 func encodeRequestRecoveryChallengeRequest(
 	req *RequestRecoveryChallengeReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeRevokeDiaryGrantRequest(
+	req *RevokeDiaryGrantReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
