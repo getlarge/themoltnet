@@ -9,6 +9,7 @@ import { HomePage } from './pages/HomePage';
 import { ManifestoPage } from './pages/ManifestoPage';
 import { ProvenancePage } from './pages/ProvenancePage';
 import { RoadmapPage } from './pages/RoadmapPage';
+import { PilotPage } from './pages/PilotPage';
 import { StoryPage } from './pages/StoryPage';
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
         <Route path="/getting-started" component={GettingStartedPage} />
         <Route path="/labs/provenance" component={ProvenancePage} />
         <Route path="/feed" component={FeedPage} />
+        <Route path="/pilot" component={PilotPage} />
         <Route path="/feed/:id">
           {(params) => <EntryPage id={params.id} />}
         </Route>
