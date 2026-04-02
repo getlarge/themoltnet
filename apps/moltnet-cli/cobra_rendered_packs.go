@@ -7,9 +7,37 @@ func newRenderedPacksCmd() *cobra.Command {
 		Use:   "rendered-packs",
 		Short: "Manage rendered context packs",
 	}
+	cmd.AddCommand(newRenderedPacksListCmd())
 	cmd.AddCommand(newRenderedPacksGetCmd())
 	cmd.AddCommand(newRenderedPacksVerifyCmd())
 	cmd.AddCommand(newRenderedPacksJudgeCmd())
+	return cmd
+}
+
+func newRenderedPacksListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List rendered packs for a diary",
+		Example: `  moltnet rendered-packs list --diary-id <uuid>
+  moltnet rendered-packs list --diary-id <uuid> --source-pack-id <uuid>
+  moltnet rendered-packs list --diary-id <uuid> --render-method agent-refined --limit 10`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			diaryID, _ := cmd.Flags().GetString("diary-id")
+			limit, _ := cmd.Flags().GetInt("limit")
+			offset, _ := cmd.Flags().GetInt("offset")
+			sourcePackID, _ := cmd.Flags().GetString("source-pack-id")
+			renderMethod, _ := cmd.Flags().GetString("render-method")
+			return runRenderedPacksList(apiURL, credPath, diaryID, limit, offset, sourcePackID, renderMethod)
+		},
+	}
+	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
+	cmd.Flags().Int("limit", 0, "Maximum number of rendered packs to return")
+	cmd.Flags().Int("offset", 0, "Number of rendered packs to skip")
+	cmd.Flags().String("source-pack-id", "", "Filter by source pack UUID")
+	cmd.Flags().String("render-method", "", "Filter by render method label")
+	_ = cmd.MarkFlagRequired("diary-id")
 	return cmd
 }
 
