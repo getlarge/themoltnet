@@ -5,7 +5,11 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
-import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
+import {
+  DiaryParamsSchema,
+  entryTypeLiterals,
+  ProblemDetailsSchema,
+} from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -210,17 +214,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           createdBefore: Type.Optional(Type.String({ format: 'date-time' })),
           createdAfter: Type.Optional(Type.String({ format: 'date-time' })),
           entryTypes: Type.Optional(
-            Type.Array(
-              Type.Union([
-                Type.Literal('episodic'),
-                Type.Literal('semantic'),
-                Type.Literal('procedural'),
-                Type.Literal('reflection'),
-                Type.Literal('identity'),
-                Type.Literal('soul'),
-              ]),
-              { maxItems: 6 },
-            ),
+            Type.Array(Type.Union(entryTypeLiterals), { maxItems: 6 }),
           ),
         }),
         response: {

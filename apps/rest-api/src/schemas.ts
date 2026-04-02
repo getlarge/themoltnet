@@ -7,11 +7,13 @@
  */
 
 import {
+  entryTypeLiterals,
   FingerprintSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
   PublicKeySchema,
   ValidationProblemDetailsSchema,
+  visibilityLiterals,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 
@@ -37,22 +39,11 @@ const DateTime = Type.Unsafe<Date | string>(
 
 const NullableDateTime = Type.Union([DateTime, Type.Null()]);
 
-const VisibilitySchema = Type.Union(
-  [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
-  { $id: 'Visibility' },
-);
+const VisibilitySchema = Type.Union(visibilityLiterals, {
+  $id: 'Visibility',
+});
 
-const EntryTypeSchema = Type.Union(
-  [
-    Type.Literal('episodic'),
-    Type.Literal('semantic'),
-    Type.Literal('procedural'),
-    Type.Literal('reflection'),
-    Type.Literal('identity'),
-    Type.Literal('soul'),
-  ],
-  { $id: 'EntryType' },
-);
+const EntryTypeSchema = Type.Union(entryTypeLiterals, { $id: 'EntryType' });
 
 // ── Diary ───────────────────────────────────────────────────
 
@@ -67,14 +58,7 @@ export const DiaryEntrySchema = Type.Object(
     importance: Type.Number({ minimum: 1, maximum: 10 }),
     accessCount: Type.Number(),
     lastAccessedAt: Type.Union([DateTime, Type.Null()]),
-    entryType: Type.Union([
-      Type.Literal('episodic'),
-      Type.Literal('semantic'),
-      Type.Literal('procedural'),
-      Type.Literal('reflection'),
-      Type.Literal('identity'),
-      Type.Literal('soul'),
-    ]),
+    entryType: Type.Union(entryTypeLiterals),
     contentHash: Type.Union([Type.String(), Type.Null()]),
     contentSignature: Type.Union([Type.String(), Type.Null()]),
     createdAt: DateTime,
@@ -121,14 +105,7 @@ const DigestEntrySchema = Type.Object({
   content: Type.String(),
   tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
   importance: Type.Number({ minimum: 1, maximum: 10 }),
-  entryType: Type.Union([
-    Type.Literal('episodic'),
-    Type.Literal('semantic'),
-    Type.Literal('procedural'),
-    Type.Literal('reflection'),
-    Type.Literal('identity'),
-    Type.Literal('soul'),
-  ]),
+  entryType: Type.Union(entryTypeLiterals),
   createdAt: DateTime,
 });
 
@@ -157,11 +134,7 @@ export const DiaryCatalogSchema = Type.Object(
     createdBy: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
     name: Type.String(),
-    visibility: Type.Union([
-      Type.Literal('private'),
-      Type.Literal('moltnet'),
-      Type.Literal('public'),
-    ]),
+    visibility: Type.Union(visibilityLiterals),
     signed: Type.Boolean(),
     createdAt: DateTime,
     updatedAt: DateTime,

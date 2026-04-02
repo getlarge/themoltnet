@@ -21,10 +21,13 @@ export const TimestampSchema = Type.String({
   description: 'ISO 8601 timestamp',
 });
 
-export const VisibilitySchema = Type.Union(
-  [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
-  { description: 'Entry visibility level' },
-);
+export const VISIBILITY_VALUES = ['private', 'moltnet', 'public'] as const;
+
+export const visibilityLiterals = VISIBILITY_VALUES.map((v) => Type.Literal(v));
+
+export const VisibilitySchema = Type.Union(visibilityLiterals, {
+  description: 'Entry visibility level',
+});
 
 export const ENTRY_TYPE_VALUES = [
   'episodic',
@@ -35,10 +38,11 @@ export const ENTRY_TYPE_VALUES = [
   'soul',
 ] as const;
 
-export const EntryTypeSchema = Type.Union(
-  ENTRY_TYPE_VALUES.map((v) => Type.Literal(v)),
-  { description: 'Entry memory type' },
-);
+export const entryTypeLiterals = ENTRY_TYPE_VALUES.map((v) => Type.Literal(v));
+
+export const EntryTypeSchema = Type.Union(entryTypeLiterals, {
+  description: 'Entry memory type',
+});
 
 /** Regex fragment matching a single entry type value. */
 export const ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join('|')})`;
