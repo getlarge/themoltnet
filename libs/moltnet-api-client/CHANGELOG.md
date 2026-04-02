@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.6.0...moltnet-api-client-v1.7.0) (2026-04-02)
+
+
+### Features
+
+* fidelity judge verification workflow + routes ([92095c7](https://github.com/getlarge/themoltnet/commit/92095c752f4e8e0cd5d716eabf2a76564f7eccfb))
+* **fidelity:** harden verification authz and workflow lifecycle ([0cffb0e](https://github.com/getlarge/themoltnet/commit/0cffb0ea5f2557834311a90b5db02abce85e3f3c))
+* implement per-diary grants API (chunk 3) ([54778e0](https://github.com/getlarge/themoltnet/commit/54778e0e2f7709188380425c34122c08fd3d15da))
+
 ## [1.6.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.5.0...moltnet-api-client-v1.6.0) (2026-04-01)
 
 
