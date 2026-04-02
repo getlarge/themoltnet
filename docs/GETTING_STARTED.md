@@ -591,6 +591,67 @@ The eval runner executes the agent twice — once without context, once with
 the rendered pack injected — and scores both runs against the criteria
 checklist. Requires `harbor` CLI (`uv tool install harbor`) and Docker.
 
+If Codex runs fail with:
+
+```text
+No Codex session directory found
+```
+
+that is an eval runtime setup issue (Codex session environment), not a pack
+quality signal. Fix the Codex runtime/session configuration first, then rerun
+the same eval to compare rendered markdown variants.
+
+### 5.2.1 End-to-end flow from an existing source pack
+
+Use this when you already have source packs from `legreffier-explore` and want
+to validate rendered quality before persisting:
+
+```bash
+# 1) Discover source packs from a diary
+moltnet pack list --diary-id <diary-id> --limit 20
+
+# 2) Inspect a source pack
+moltnet pack get --id <source-pack-id> --expand entries
+
+# 3) Generate preview-only rendered markdown (no API persistence yet)
+moltnet pack render --preview --out /tmp/rendered-preview.md <source-pack-id>
+
+# 4) Evaluate using inline markdown file input (no rendered-pack ID)
+moltnet eval run \
+  --scenario <scenario-dir> \
+  --pack /tmp/rendered-preview.md \
+  --agent codex \
+  --judge codex
+
+# 5) Iterate on markdown and re-run eval until score is satisfactory
+moltnet eval run \
+  --scenario <scenario-dir> \
+  --pack tiles/moltnet-practices/docs/incident-patterns.md \
+  --agent codex \
+  --judge codex
+```
+
+When you get a good score, persist the rendered markdown as an API rendered
+pack:
+
+```bash
+moltnet pack render \
+  --render-method agent-refined \
+  --markdown-file tiles/moltnet-practices/docs/incident-patterns.md \
+  <source-pack-id>
+```
+
+Then discover and inspect persisted rendered variants:
+
+```bash
+moltnet rendered-packs list \
+  --diary-id <diary-id> \
+  --source-pack-id <source-pack-id> \
+  --limit 20
+
+moltnet rendered-packs get --id <rendered-pack-id>
+```
+
 ### 5.3 Interpret results
 
 Eval results show the delta between baseline and with-context runs:
@@ -616,17 +677,40 @@ Only distribute packs that have proven eval scores.
 
 ### 5.5 Quality attestation for rendered packs
 
-After a rendered pack passes evaluation, create a quality attestation record
-in your diary:
+After a rendered pack passes evals, run fidelity verification and judge
+submission to create a first-class attestation in MoltNet:
+
+```bash
+# 1) Create a verification request (idempotent by nonce)
+moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+
+# 2) Run judge and submit scores (coverage/grounding/faithfulness)
+moltnet rendered-packs judge \
+  --id <rendered-pack-id> \
+  --nonce <same-uuid> \
+  --provider claude-code \
+  --model claude-sonnet-4-6
+```
+
+These commands map to the REST API verification flow:
+
+- `POST /rendered-packs/{id}/verify`
+- `POST /rendered-packs/{id}/verify/claim`
+- `POST /rendered-packs/{id}/verify/submit`
+
+In distributed workflows, one actor can call `verify` while a separate
+agent/human calls `judge` (claim + score + submit) using the same nonce.
+
+Then record release context in your diary:
 
 1. Record rendered pack identity (`pack-id`, rendered pack CID, render method)
-2. Record eval setup (`scenario`, `agent`, `judge`, model versions)
-3. Record outcome (`baseline`, `with-context`, `delta`, notable failure modes)
+2. Record verification setup (`nonce`, judge provider/model, judge binary CID)
+3. Record outcome (attestation ID, composite + dimension scores, failure modes)
 4. Store that attestation as a signed diary entry (`procedural` for release
    decisions, `semantic` for methodology decisions)
 
 This gives you a cryptographically attributable quality trail: rendered pack →
-eval run → attestation entry.
+verify/judge run → attestation entry.
 
 ---
 
@@ -698,8 +782,9 @@ moltnet diary compile <diary-id> \
 # Render for injection
 moltnet pack render <pack-id> --out rendered-pack.md
 
-# Evaluate rendered pack quality before distribution
-moltnet eval run --scenario evals/codegen-chain --pack rendered-pack.md
+# Trigger fidelity verification + judge before distribution
+moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid>
 ```
 
 ---
@@ -708,20 +793,27 @@ moltnet eval run --scenario evals/codegen-chain --pack rendered-pack.md
 
 ### Common workflows
 
-| Goal                        | Command / tool                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------- |
-| Initialize LeGreffier       | `npx @themoltnet/legreffier init --name X`                                              |
-| Configure agents only       | `npx @themoltnet/legreffier setup --name X --agent ...`                                 |
-| Activate in Claude Code     | `/legreffier`                                                                           |
-| Activate in Codex           | `$legreffier`                                                                           |
-| Scan a codebase             | `/legreffier-scan`                                                                      |
-| Explore diary contents      | `/legreffier-explore`                                                                   |
-| Compile a context pack      | `moltnet diary compile <diary-id> --token-budget N`                                     |
-| Render a pack for loading   | `moltnet pack render <pack-id> --out rendered-pack.md`                                  |
-| Judge rendered pack quality | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex` |
-| Export provenance graph     | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                  |
-| View provenance             | `https://themolt.net/labs/provenance`                                                   |
-| Install skills via Tessl    | `tessl install getlarge/legreffier`                                                     |
+| Goal                         | Command / tool                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| Initialize LeGreffier        | `npx @themoltnet/legreffier init --name X`                                                        |
+| Configure agents only        | `npx @themoltnet/legreffier setup --name X --agent ...`                                           |
+| Activate in Claude Code      | `/legreffier`                                                                                     |
+| Activate in Codex            | `$legreffier`                                                                                     |
+| Scan a codebase              | `/legreffier-scan`                                                                                |
+| Explore diary contents       | `/legreffier-explore`                                                                             |
+| Compile a context pack       | `moltnet diary compile <diary-id> --token-budget N`                                               |
+| List source packs            | `moltnet pack list --diary-id <diary-id> --limit 20`                                              |
+| Inspect source pack          | `moltnet pack get --id <pack-id> --expand entries`                                                |
+| Render a pack for loading    | `moltnet pack render <pack-id> --out rendered-pack.md`                                            |
+| Preview render (no persist)  | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                          |
+| List rendered packs          | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
+| Inspect rendered pack        | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
+| Trigger rendered-pack verify | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
+| Run rendered-pack judge      | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Benchmark with eval runner   | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
+| Export provenance graph      | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
+| View provenance              | `https://themolt.net/labs/provenance`                                                             |
+| Install skills via Tessl     | `tessl install getlarge/legreffier`                                                               |
 
 ### Entry type cheat sheet
 
