@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.7.1...moltnet-api-client-v1.7.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+
+
+### Codegen
+
+* **codegen:** regenerate OpenAPI spec and API clients ([452f00f](https://github.com/getlarge/themoltnet/commit/452f00f7aa2573667dfb3d765ba45555ec08499b))
+
 ## [1.7.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.7.0...moltnet-api-client-v1.7.1) (2026-04-02)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/getlarge/themoltnet/compare/design-system-v0.3.1...design-system-v0.3.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.3.0...design-system-v0.3.1) (2026-03-31)
 
 
