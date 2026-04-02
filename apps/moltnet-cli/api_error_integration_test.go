@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
 )
 

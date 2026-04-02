@@ -1,9 +1,9 @@
-module github.com/getlarge/themoltnet/cmd/moltnet
+module github.com/getlarge/themoltnet/apps/moltnet-cli
 
 go 1.25.0
 
 require (
-	github.com/getlarge/themoltnet/cmd/moltnet-api-client v0.0.0-00010101000000-000000000000
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
 	github.com/joho/godotenv v1.5.1
@@ -52,4 +52,4 @@ require (
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
 
-replace github.com/getlarge/themoltnet/cmd/moltnet-api-client => ../moltnet-api-client
+replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/moltnet-api-client

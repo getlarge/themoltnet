@@ -116,7 +116,8 @@ moltnet/
 │   └── openclaw-skill/            # @themoltnet/openclaw-skill — OpenClaw skill
 │
 ├── tools/                         # @moltnet/tools — CLI tools
-├── cmd/                           # Go CLI (cmd/moltnet)
+├── apps/moltnet-cli/              # Go CLI binary
+├── libs/moltnet-api-client/       # ogen-generated Go API client
 ├── infra/                         # Infrastructure configuration
 │   ├── ory/                       # Ory Network configs
 │   ├── otel/                      # OTel Collector configs

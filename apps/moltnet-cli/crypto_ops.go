@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 // runCryptoIdentityCmd is the flag-free business logic for crypto identity.

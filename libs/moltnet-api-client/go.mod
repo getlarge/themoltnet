@@ -1,4 +1,4 @@
-module github.com/getlarge/themoltnet/cmd/moltnet-api-client
+module github.com/getlarge/themoltnet/libs/moltnet-api-client
 
 go 1.25.0
 
@@ -13,7 +13,6 @@ require (
 )
 
 require (
-	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/fatih/color v1.18.0 // indirect

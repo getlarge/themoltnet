@@ -343,11 +343,11 @@ jobs:
             exit 1
           fi
       - name: Regenerate Go API client
-        run: cd cmd/moltnet-api-client && go generate ./...
+        run: go generate ./libs/moltnet-api-client/...
       - name: Check for uncommitted changes (Go)
         run: |
-          if ! git diff --exit-code -- 'cmd/moltnet-api-client/*.go'; then
-            echo "::error::Go API client is out of date. Run 'cd cmd/moltnet-api-client && go generate ./...' and commit the changes."
+          if ! git diff --exit-code -- 'libs/moltnet-api-client/*.go'; then
+            echo "::error::Go API client is out of date. Run 'go generate ./libs/moltnet-api-client/...' and commit the changes."
             exit 1
           fi
 
@@ -399,7 +399,7 @@ jobs:
       - name: Run Go CLI E2E tests
         env:
           API_URL: http://localhost:8080
-        run: cd cmd/moltnet && go test -tags e2e -v -timeout 120s ./...
+        run: go test -tags e2e -v -timeout 120s ./apps/moltnet-cli/...
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
@@ -418,8 +418,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      - run: cd cmd/moltnet && go test ./...
-      - run: cd cmd/moltnet && go build .
+      - run: go test ./apps/moltnet-cli/...
+      - run: go build ./apps/moltnet-cli
 
   skill-check:
     name: Skill Validation

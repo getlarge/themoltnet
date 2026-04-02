@@ -95,16 +95,13 @@ All API commands accept `--api-url` to override the default (`https://api.themol
 
 ## Versioning & Release Coupling
 
-The CLI depends on the generated Go API client (`cmd/moltnet-api-client`) via a `replace` directive in `go.mod`. Because release-please doesn't follow Go `replace` directives, a schema change that regenerates the API client wouldn't automatically trigger a CLI release — causing version skew (see [#462](https://github.com/getlarge/themoltnet/issues/462)).
+The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`). Both are versioned independently via release-please.
 
-**Current approach:** The `linked-versions` plugin in `release-please-config.json` groups both components so they always release together. This is bidirectional — a CLI-only change also bumps the API client version, even if its code didn't change. The tradeoff is acceptable because no one consumes `moltnet-api-client` externally yet, and the `replace` directive keeps local dev and CI simple (no tagging ceremony on every codegen cycle).
+**Local dev:** `go.work` at the repo root ties both modules together — `go.work` supersedes the `replace` directive during development. Run `go test ./apps/moltnet-cli/...` from the repo root.
 
-**When `moltnet-api-client` has external consumers**, switch to real version pins:
+**Release:** goreleaser runs with `GOWORK=off`. The `before.hooks` step in `.goreleaser.yml` drops the `replace` directive and pins the proxy version before building. **Do not remove the `replace` directive from `go.mod`** — it is the anchor that goreleaser strips at release time. Removing it will make the hook a no-op and break releases.
 
-1. Remove `replace` from `go.mod`, pin `require ... vX.Y.Z`
-2. Add `go.work` for local dev (`use ./cmd/moltnet ./cmd/moltnet-api-client`)
-3. Remove `linked-versions` — the `go.mod` bump naturally triggers release-please
-4. Add CI automation to propagate api-client tags into the CLI's `go.mod`
+**Updating the api-client pin:** after a new `libs/moltnet-api-client` tag is published, update the `require github.com/getlarge/themoltnet/libs/moltnet-api-client vX.Y.Z` line in `go.mod` and run `go mod tidy`. The `replace` directive remains; goreleaser drops it transiently at build time.
 
 ## See Also
 
