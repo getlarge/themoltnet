@@ -404,6 +404,55 @@ export type CreateGroup = Static<typeof CreateGroupSchema>;
 export type AddGroupMember = Static<typeof AddGroupMemberSchema>;
 
 // ============================================================================
+// Diary Grant Schemas
+// ============================================================================
+
+export const DiaryGrantRoleSchema = Type.Union([
+  Type.Literal('writer'),
+  Type.Literal('manager'),
+]);
+
+export const GrantSubjectNsSchema = Type.Union([
+  Type.Literal('Agent'),
+  Type.Literal('Human'),
+  Type.Literal('Group'),
+]);
+
+export const DiaryGrantParamsSchema = Type.Object({
+  id: UuidSchema,
+});
+
+export const CreateDiaryGrantSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: GrantSubjectNsSchema,
+  role: DiaryGrantRoleSchema,
+});
+
+export const RevokeDiaryGrantSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: GrantSubjectNsSchema,
+  role: DiaryGrantRoleSchema,
+});
+
+export const DiaryGrantResponseSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: Type.String(),
+  role: DiaryGrantRoleSchema,
+});
+
+export const DiaryGrantListResponseSchema = Type.Object({
+  grants: Type.Array(DiaryGrantResponseSchema),
+});
+
+export const RevokedResponseSchema = Type.Object({
+  revoked: Type.Boolean(),
+});
+
+export type CreateDiaryGrant = Static<typeof CreateDiaryGrantSchema>;
+export type RevokeDiaryGrant = Static<typeof RevokeDiaryGrantSchema>;
+export type DiaryGrantResponse = Static<typeof DiaryGrantResponseSchema>;
+
+// ============================================================================
 // Header Schemas
 // ============================================================================
 
