@@ -21,6 +21,11 @@
       "component": "design-system",
       "release-type": "node"
     },
+    "libs/dspy-adapters": {
+      "bump-minor-pre-major": true,
+      "component": "dspy-adapters",
+      "release-type": "go"
+    },
     "libs/moltnet-api-client": {
       "bump-minor-pre-major": true,
       "component": "moltnet-api-client",
