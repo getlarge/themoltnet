@@ -615,13 +615,8 @@ func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) 
 	if err != nil {
 		return nil, false, fmt.Errorf("creating temp dir: %w", err)
 	}
-	hasErrors := true // assume errors; set false on clean exit
 	defer func() {
-		if hasErrors {
-			fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", workDir)
-		} else {
-			os.RemoveAll(workDir)
-		}
+		fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", workDir)
 	}()
 
 	tasksDir := filepath.Join(workDir, "tasks")
@@ -687,7 +682,7 @@ func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) 
 	}
 
 	// Check if any trial had errors
-	hasErrors = false
+	hasErrors := false
 	for _, r := range results {
 		if (r.withoutContext != nil && r.withoutContext.err != "") ||
 			(r.withContext != nil && r.withContext.err != "") {
