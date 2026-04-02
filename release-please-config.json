@@ -17,6 +17,11 @@
       ],
       "release-type": "go"
     },
+    "libs/dspy-adapters": {
+      "bump-minor-pre-major": true,
+      "component": "dspy-adapters",
+      "release-type": "go"
+    },
     "libs/design-system": {
       "component": "design-system",
       "release-type": "node"

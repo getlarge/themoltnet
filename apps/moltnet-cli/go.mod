@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/XiaoConstantine/dspy-go v0.82.2
-	github.com/getlarge/themoltnet/libs/dspy-adapters v0.0.0-00010101000000-000000000000
-	github.com/getlarge/themoltnet/libs/moltnet-api-client v0.0.0-00010101000000-000000000000
+	github.com/getlarge/themoltnet/libs/dspy-adapters v0.1.0
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
 	github.com/joho/godotenv v1.5.1
@@ -59,6 +59,3 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
-
-replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/moltnet-api-client
-replace github.com/getlarge/themoltnet/libs/dspy-adapters => ../../libs/dspy-adapters
