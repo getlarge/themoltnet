@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	"github.com/XiaoConstantine/dspy-go/pkg/modules"
@@ -137,6 +138,9 @@ func parseFloat(v any) (float64, error) {
 	case float64:
 		return val, nil
 	case string:
+		if strings.TrimSpace(val) == "" {
+			return 0, fmt.Errorf("empty string for score")
+		}
 		return strconv.ParseFloat(val, 64)
 	default:
 		return 0, fmt.Errorf("unexpected type %T for score", v)
