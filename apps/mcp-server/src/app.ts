@@ -14,6 +14,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { type McpServerConfig, resolveHydraUrls } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
+import { registerGrantTools } from './grant-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
 import { registerInfoTools } from './info-tools.js';
 import { registerPackTools } from './pack-tools.js';
@@ -22,6 +23,7 @@ import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerRelationTools } from './relation-tools.js';
 import { requestContextPlugin } from './request-context-plugin.js';
 import { registerResources } from './resources.js';
+import { registerTeamTools } from './team-tools.js';
 import type { McpDeps } from './types.js';
 import { registerVouchTools } from './vouch-tools.js';
 
@@ -180,6 +182,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerInfoTools(app, deps);
   registerRelationTools(app, deps);
   registerPackTools(app, deps);
+  registerGrantTools(app, deps);
+  registerTeamTools(app, deps);
   registerResources(app, deps);
   registerPrompts(app, deps);
 
