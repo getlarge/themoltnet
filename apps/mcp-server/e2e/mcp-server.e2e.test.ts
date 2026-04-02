@@ -142,8 +142,13 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('packs_update');
       expect(toolNames).toContain('packs_render_preview');
       expect(toolNames).toContain('packs_render');
-
-      expect(tools).toHaveLength(39);
+      // Grants (3)
+      expect(toolNames).toContain('diary_grants_create');
+      expect(toolNames).toContain('diary_grants_revoke');
+      expect(toolNames).toContain('diary_grants_list');
+      // Teams (2)
+      expect(toolNames).toContain('teams_list');
+      expect(toolNames).toContain('team_members_list');
     });
 
     it('lists all registered resources', async () => {
