@@ -28,6 +28,20 @@
     },
     "libs/moltnet-api-client": {
       "bump-minor-pre-major": true,
+      "changelog-sections": [
+        {
+          "section": "Features",
+          "type": "feat"
+        },
+        {
+          "section": "Bug Fixes",
+          "type": "fix"
+        },
+        {
+          "section": "Codegen",
+          "type": "chore"
+        }
+      ],
       "component": "moltnet-api-client",
       "release-type": "go"
     },
