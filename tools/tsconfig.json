@@ -18,6 +18,9 @@
       "path": "../apps/rest-api"
     },
     {
+      "path": "../libs/auth"
+    },
+    {
       "path": "../libs/ax-agents"
     },
     {
@@ -31,6 +34,9 @@
     },
     {
       "path": "../libs/database"
+    },
+    {
+      "path": "../libs/embedding-service"
     },
     {
       "path": "../libs/models"
