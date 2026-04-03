@@ -81,6 +81,45 @@ Respond with a JSON object in this exact format:
 	}
 }
 
+func TestGenerateWithJSON_UnwrapsEnvelope(t *testing.T) {
+	t.Parallel()
+
+	// Simulate the envelope that claude --print --output-format json returns
+	envelope := `{
+		"type": "result",
+		"subtype": "success",
+		"result": "",
+		"structured_output": {
+			"coverage": "0.85",
+			"grounding": "0.90",
+			"faithfulness": "0.75",
+			"reasoning": "Good coverage overall."
+		}
+	}`
+
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(envelope), &parsed); err != nil {
+		t.Fatalf("failed to parse envelope: %v", err)
+	}
+
+	// Verify structured_output is extracted
+	so, ok := parsed["structured_output"]
+	if !ok {
+		t.Fatal("missing structured_output in envelope")
+	}
+	soMap, ok := so.(map[string]any)
+	if !ok {
+		t.Fatal("structured_output is not a map")
+	}
+
+	if soMap["coverage"] != "0.85" {
+		t.Errorf("expected coverage=0.85, got %v", soMap["coverage"])
+	}
+	if soMap["grounding"] != "0.90" {
+		t.Errorf("expected grounding=0.90, got %v", soMap["grounding"])
+	}
+}
+
 func TestExtractJSONSchemaFromPromptNoFence(t *testing.T) {
 	t.Parallel()
 

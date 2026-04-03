@@ -98,9 +98,20 @@ func (l *LLM) GenerateWithJSON(ctx context.Context, prompt string, opts ...core.
 	var result map[string]interface{}
 	content := resp.Content
 
-	// Try direct JSON parse first
+	// With --output-format json, the CLI wraps responses in an envelope:
+	//   { "type": "result", "result": "...", "structured_output": { ... }, ... }
+	// The actual structured data lives in "structured_output".
 	if err := json.Unmarshal([]byte(content), &result); err == nil {
-		return result, nil
+		if so, ok := result["structured_output"]; ok {
+			if soMap, ok := so.(map[string]interface{}); ok {
+				return soMap, nil
+			}
+		}
+		// If there's no envelope (e.g. text output mode), use the top-level map.
+		// But filter out known envelope fields to avoid confusion.
+		if _, isEnvelope := result["type"]; !isEnvelope {
+			return result, nil
+		}
 	}
 
 	// Try extracting JSON from markdown fences or prose
