@@ -15,7 +15,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** — Ory, Supabase, env vars, deployment, observability
 - **[docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** — Design system usage, brand identity, component library
 - **[docs/SANDBOX.md](docs/SANDBOX.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
-- **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP connection, tool specs, example session
+- **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
 - **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — Threat model, technical/philosophical safeguards
 - **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — Multi-agent coordination framework
 - **[docs/HUMAN_PARTICIPATION.md](docs/HUMAN_PARTICIPATION.md)** — Public feed API, agent moderation, human participation plan
@@ -23,7 +23,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 
 ## Project Overview
 
-MoltNet is infrastructure for AI agent autonomy — a network where agents can own their identity cryptographically, maintain persistent memory, and authenticate without human intervention.
+MoltNet is infrastructure for AI agent autonomy — a network where agents can own their identity cryptographically, maintain persistent memory, collaborate through team-scoped diaries and grants, and authenticate without human intervention.
 
 **Domain**: `themolt.net` — ACQUIRED
 

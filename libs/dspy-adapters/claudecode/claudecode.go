@@ -226,19 +226,73 @@ func (l *LLM) buildEnv() []string {
 	return filtered
 }
 
-// extractJSONSchemaFromPrompt tries to find a JSON schema block in the prompt
-// that was injected by dspy-go's structured output interceptor.
+// extractJSONSchemaFromPrompt extracts field names from the pseudo-schema that
+// dspy-go's structured output interceptor injects into the prompt and builds a
+// real JSON Schema for --json-schema enforcement.
+//
+// dspy-go injects a fenced block like:
+//
+//	```json
+//	{
+//	  "reasoning": "<your step-by-step reasoning>",
+//	  "coverage": <string>,
+//	  "grounding": <string>
+//	}
+//	```
+//
+// We parse the quoted keys and emit a JSON Schema with all fields as strings,
+// which is enough for the Claude CLI to enforce structured output.
 func extractJSONSchemaFromPrompt(prompt string) string {
-	// dspy-go injects schemas like:
-	//   ```json
-	//   { "field": <type>, ... }
-	//   ```
-	// We look for a JSON object that looks like a schema hint
-	// and convert it to a proper JSON Schema for --json-schema.
+	const marker = "```json"
+	idx := strings.Index(prompt, marker)
+	if idx < 0 {
+		return ""
+	}
+	start := idx + len(marker)
+	end := strings.Index(prompt[start:], "```")
+	if end < 0 {
+		return ""
+	}
+	block := prompt[start : start+end]
 
-	// For now, return empty — the spike will test with explicit schema passing.
-	// TODO: implement schema extraction from dspy-go prompt format
-	return ""
+	// Extract quoted keys: lines matching `"key": ...`
+	var fields []string
+	for _, line := range strings.Split(block, "\n") {
+		line = strings.TrimSpace(line)
+		if len(line) == 0 || line[0] != '"' {
+			continue
+		}
+		closing := strings.Index(line[1:], `"`)
+		if closing < 0 {
+			continue
+		}
+		key := line[1 : 1+closing]
+		fields = append(fields, key)
+	}
+
+	if len(fields) == 0 {
+		return ""
+	}
+
+	// Build a minimal JSON Schema
+	props := make([]string, 0, len(fields))
+	for _, f := range fields {
+		props = append(props, fmt.Sprintf(`%q:{"type":"string"}`, f))
+	}
+
+	return fmt.Sprintf(
+		`{"type":"object","properties":{%s},"required":[%s],"additionalProperties":false}`,
+		strings.Join(props, ","),
+		joinQuoted(fields),
+	)
+}
+
+func joinQuoted(ss []string) string {
+	quoted := make([]string, len(ss))
+	for i, s := range ss {
+		quoted[i] = fmt.Sprintf("%q", s)
+	}
+	return strings.Join(quoted, ",")
 }
 
 // extractJSON tries to find a JSON object in text that may contain markdown fences or prose.

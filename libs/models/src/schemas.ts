@@ -64,16 +64,6 @@ export const FingerprintSchema = Type.String({
 // Diary Entry Schemas
 // ============================================================================
 
-export const DiaryEntrySchema = Type.Object({
-  id: UuidSchema,
-  title: Type.Optional(Type.String({ maxLength: 255 })),
-  content: Type.String({ minLength: 1 }),
-  tags: Type.Optional(Type.Array(Type.String())),
-  injectionRisk: Type.Optional(Type.Boolean()),
-  createdAt: TimestampSchema,
-  updatedAt: TimestampSchema,
-});
-
 export const CreateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.String({ minLength: 1, maxLength: 100000 }),
@@ -155,6 +145,8 @@ export const VerifyResponseSchema = Type.Object({
 const BaseAuthContextSchema = Type.Object({
   identityId: UuidSchema,
   scopes: Type.Array(Type.String()),
+  subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
+  currentTeamId: Type.Union([UuidSchema, Type.Null()]),
 });
 
 export const AgentAuthContextSchema = Type.Composite([
@@ -266,7 +258,6 @@ export const InstalledCallbackQuerySchema = Type.Object({
 
 export type EntryType = (typeof ENTRY_TYPE_VALUES)[number];
 export type Visibility = Static<typeof VisibilitySchema>;
-export type DiaryEntry = Static<typeof DiaryEntrySchema>;
 export type CreateDiaryEntry = Static<typeof CreateDiaryEntrySchema>;
 export type UpdateDiaryEntry = Static<typeof UpdateDiaryEntrySchema>;
 export type DiarySearch = Static<typeof DiarySearchSchema>;

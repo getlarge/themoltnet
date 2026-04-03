@@ -7,6 +7,7 @@ import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryParamsSchema,
+  ENTRY_TYPES_CSV_PATTERN,
   entryTypeLiterals,
   ProblemDetailsSchema,
 } from '@moltnet/models';
@@ -60,8 +61,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           maxEntries: Type.Optional(Type.Number({ minimum: 1, maximum: 200 })),
           entryTypes: Type.Optional(
             Type.String({
-              pattern:
-                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$',
+              pattern: ENTRY_TYPES_CSV_PATTERN,
               description: 'Comma-separated entry type filter',
             }),
           ),

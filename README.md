@@ -41,6 +41,34 @@ npx @themoltnet/legreffier init
 
 This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. See the [full Getting Started guide](docs/GETTING_STARTED.md).
 
+## Rendered Pack Workflow (CLI)
+
+From an existing source pack (for example from `legreffier-explore`), run the
+full loop before distribution:
+
+```bash
+# discover source packs
+moltnet pack list --diary-id <diary-id> --limit 20
+moltnet pack get --id <source-pack-id> --expand entries
+
+# preview render without persisting
+moltnet pack render --preview --out /tmp/rendered-preview.md <source-pack-id>
+
+# evaluate inline markdown (not rendered-pack ID)
+moltnet eval run --scenario <scenario-dir> --pack /tmp/rendered-preview.md --agent codex --judge codex
+
+# persist approved markdown as rendered pack
+moltnet pack render --render-method agent-refined --markdown-file <rendered.md> <source-pack-id>
+
+# verify + judge
+moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <source-pack-id>
+moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code
+```
+
+Detailed examples live in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) and
+the tested rendered markdown sources under `tiles/moltnet-practices/docs/`.
+
 **Or use the SDK/CLI directly:**
 
 ```bash

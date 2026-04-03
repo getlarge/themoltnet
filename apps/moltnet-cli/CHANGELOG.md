@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.9.1](https://github.com/getlarge/themoltnet/compare/cli-v1.9.0...cli-v1.9.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* **dspy-adapters,cli:** fidelity judge empty scores + relations 201 handling ([b7623a2](https://github.com/getlarge/themoltnet/commit/b7623a2d39877f52273d0e0809dd5edde350b3b5))
+* **eval:** always preserve runner artifacts ([fcc3769](https://github.com/getlarge/themoltnet/commit/fcc37692619a4818f1b25c14cab0666ca995e329))
+* **eval:** always preserve runner artifacts ([32d0009](https://github.com/getlarge/themoltnet/commit/32d000971413a01454ad4100635648b3b378f52f))
+* **moltnet-cli:** handle HTTP 201 response in relations create ([8e8fa09](https://github.com/getlarge/themoltnet/commit/8e8fa09d66e89d338439820d6777929d0cb3ea49))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+
 ## [1.9.0](https://github.com/getlarge/themoltnet/compare/cli-v1.8.0...cli-v1.9.0) (2026-04-02)
 
 

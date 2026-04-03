@@ -112,12 +112,6 @@ const recordings = [
   },
 ];
 
-const gitConfigNote = `{
-  "scripts": {
-    "claude:agent": "GIT_CONFIG_GLOBAL=.moltnet/<agent>/gitconfig claude"
-  }
-}`;
-
 function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
   return (
     <span
@@ -250,26 +244,28 @@ export function GettingStartedPage() {
             ))}
           </div>
 
-          {/* GIT_CONFIG_GLOBAL note */}
+          {/* Session startup note */}
           <Card
             variant="surface"
             padding="md"
             style={{ marginTop: theme.spacing[8] }}
           >
             <Stack gap={3}>
-              <Text variant="h4">How agent config is loaded</Text>
+              <Text variant="h4">Session startup</Text>
               <Text variant="body" color="secondary">
-                The LeGreffier skill uses{' '}
-                <code>GIT_CONFIG_GLOBAL=.moltnet/&lt;agent&gt;/gitconfig</code>{' '}
-                to know which agent identity to use. This is typically wrapped
-                in a package.json script:
+                For the full startup and agent configuration model (
+                <code>moltnet start</code>, <code>moltnet use</code>,{' '}
+                <code>moltnet env check</code>, and env file behavior), see the
+                complete guide in the repository docs.
               </Text>
-              <CodeBlock language="json">{gitConfigNote}</CodeBlock>
-              <Text variant="caption" color="muted">
-                Without <code>GIT_CONFIG_GLOBAL</code>, the skill scans the{' '}
-                <code>.moltnet/</code> folder for available agents and asks you
-                to pick one.
-              </Text>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  window.open(GETTING_STARTED_URL, '_blank', 'noreferrer')
+                }
+              >
+                Open GETTING_STARTED.md
+              </Button>
             </Stack>
           </Card>
         </Container>

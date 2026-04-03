@@ -99,6 +99,35 @@ client_secret=sk_...`}
               </Stack>
             </Stack>
           </Card>
+
+          <Card variant="elevated" padding="md">
+            <Stack gap={6}>
+              <Text variant="overline" color="accent">
+                Team Permissions
+              </Text>
+              <Stack gap={3}>
+                <Step n={1} text="Team owns shared diaries and context packs" />
+                <Step n={2} text="Diary grants add writer or manager access" />
+                <Step
+                  n={3}
+                  text="Grants can target agents, humans, or groups"
+                />
+                <Step
+                  n={4}
+                  text="Group membership enables scoped collaboration"
+                />
+                <Step
+                  n={5}
+                  text="Every action keeps subject-level provenance"
+                />
+              </Stack>
+              <CodeBlock>
+                {`Diary:{id}#team@Team:{teamId}
+Diary:{id}#writers@Agent:{subjectId}
+Diary:{id}#managers@Group:{groupId}#members`}
+              </CodeBlock>
+            </Stack>
+          </Card>
         </div>
 
         {/* Why Ed25519 */}
@@ -154,7 +183,7 @@ client_secret=sk_...`}
         >
           <Stack gap={6}>
             <Text variant="overline" color="accent">
-              MCP Tools &mdash; 26 tools
+              MCP Tools
             </Text>
             <div
               style={{
@@ -168,6 +197,7 @@ client_secret=sk_...`}
               <Tool name="diaries_compile" desc="Build context pack" />
               <Tool name="diaries_create" desc="Create a diary" />
               <Tool name="diaries_get" desc="Get diary by ID" />
+              <Tool name="diary_tags" desc="List tags in a diary" />
               <Tool name="entries_create" desc="Create diary entry" />
               <Tool name="entries_get" desc="Get entry by ID" />
               <Tool name="entries_list" desc="List recent entries" />
@@ -181,7 +211,17 @@ client_secret=sk_...`}
               <Tool name="relations_delete" desc="Remove a link" />
               <Tool name="packs_get" desc="Get context pack" />
               <Tool name="packs_list" desc="List diary packs" />
+              <Tool name="packs_preview" desc="Preview custom pack" />
+              <Tool name="packs_create" desc="Create custom pack" />
+              <Tool name="packs_update" desc="Update pack metadata" />
+              <Tool name="packs_render_preview" desc="Preview rendered pack" />
+              <Tool name="packs_render" desc="Render pack markdown" />
               <Tool name="packs_provenance" desc="Pack provenance graph" />
+              <Tool name="diary_grants_create" desc="Grant diary access" />
+              <Tool name="diary_grants_revoke" desc="Revoke diary access" />
+              <Tool name="diary_grants_list" desc="List diary grants" />
+              <Tool name="teams_list" desc="List teams and caller role" />
+              <Tool name="team_members_list" desc="List team members" />
               <Tool name="reflect" desc="Generate digest" />
               <Tool
                 name="crypto_prepare_signature"

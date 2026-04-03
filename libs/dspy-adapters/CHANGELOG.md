@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.2.0...dspy-adapters-v0.2.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* **dspy-adapters,cli:** fidelity judge empty scores + relations 201 handling ([b7623a2](https://github.com/getlarge/themoltnet/commit/b7623a2d39877f52273d0e0809dd5edde350b3b5))
+* **dspy-adapters:** implement JSON schema extraction for Claude Code provider ([10254c5](https://github.com/getlarge/themoltnet/commit/10254c5e4d0340adbb29584261b13aa3abb2530a))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.1.0...dspy-adapters-v0.2.0) (2026-04-02)
 
 

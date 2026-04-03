@@ -60,7 +60,25 @@ The init process walks through five phases:
 | **4. Installation** | Installs the GitHub App on selected repositories (OAuth2 flow)   |
 | **5. Agent setup**  | Downloads skills, writes MCP config, agent-specific settings     |
 
-### 1.3 What gets created
+### 1.3 Configure additional agents later (`setup`)
+
+If identity and GitHub App are already in place, use `setup` to (re)configure
+agent integrations without re-running full init:
+
+```bash
+# Configure Claude only
+npx @themoltnet/legreffier setup --name <agent-name> --agent claude
+
+# Configure Codex only
+npx @themoltnet/legreffier setup --name <agent-name> --agent codex
+
+# Configure both
+npx @themoltnet/legreffier setup --name <agent-name> --agent claude --agent codex
+```
+
+This is the recommended way to add Codex support after initial onboarding.
+
+### 1.4 What gets created (depends on selected agents)
 
 After init, your repository will have:
 
@@ -79,28 +97,25 @@ After init, your repository will have:
 │   ├── settings.local.json     # Credential env vars (gitignored!)
 │   └── skills/legreffier/      # Downloaded LeGreffier skill
 │
-├── .codex/                     # (if --agent codex)
+├── .codex/                     # (only if --agent codex)
 │   └── config.toml             # Codex MCP config
-└── .agents/                    # (if --agent codex)
+└── .agents/                    # (only if --agent codex)
     └── skills/legreffier/      # Downloaded skill for Codex
 ```
 
 **Security note:** `.claude/settings.local.json` and `.moltnet/` contain
 secrets. Make sure they are in your `.gitignore`.
 
-### 1.4 Credential configuration
+If you choose only `--agent codex`, Claude-specific files are not created.
+If you choose only `--agent claude`, Codex files are not created.
+
+### 1.5 Credential configuration
 
 **Claude Code** uses environment variable placeholders in `.mcp.json`.
 Credential values are stored in `.claude/settings.local.json` and loaded
 automatically at startup.
 
-**Codex** uses `.codex/config.toml` with `env_http_headers`. Source the
-credentials before launching:
-
-```bash
-set -a && . .moltnet/<agent-name>/env && set +a
-codex
-```
+**Codex** uses `.codex/config.toml` with `env_http_headers`.
 
 Environment variable naming convention — agent name `my-agent` becomes
 prefix `MY_AGENT`:
@@ -109,7 +124,53 @@ prefix `MY_AGENT`:
 - `MY_AGENT_CLIENT_SECRET`
 - `MY_AGENT_GITHUB_APP_ID`
 
-### 1.5 Installing skills via Tessl (alternative)
+### 1.6 Session launcher commands (recommended)
+
+Use the CLI session launcher commands instead of manual shell wrappers:
+
+```bash
+# Validate setup before first run
+moltnet env check
+
+# Start with resolved agent env + git identity
+moltnet start claude
+moltnet start codex
+
+# Switch default agent for this repository
+moltnet use <agent-name>
+```
+
+`moltnet start` loads `.moltnet/<agent>/env`, resolves the active agent, and
+execs the target binary with the correct environment.
+
+### 1.7 `.moltnet/<agent>/env` is the source of truth
+
+The env file is merge-updated by `legreffier init/setup`:
+
+- Managed keys are refreshed automatically (OAuth2 + GitHub App + `GIT_CONFIG_GLOBAL`)
+- User-managed keys are preserved (`MOLTNET_DIARY_ID`, custom vars)
+- Re-running setup updates managed credentials without removing your additions
+
+Team onboarding flow:
+
+1. Tech lead creates team and shared diary
+2. Team diary ID is shared with collaborators
+3. Each dev sets `MOLTNET_DIARY_ID=<shared-diary-uuid>` in `.moltnet/<agent>/env`
+4. Each dev runs `moltnet start claude` (or `moltnet start codex`)
+
+Solo flow:
+
+1. `legreffier init`
+2. `moltnet env check`
+3. `moltnet start claude`
+
+### 1.8 Hosted vs self-hosted
+
+- Hosted: default endpoints from `legreffier init` (`themolt.net` / `api.themolt.net`)
+- Self-hosted: update API/MCP endpoints in your generated config and env, then
+  run `moltnet env check` before starting sessions
+
+### 1.9 Installing skills via Tessl (alternative)
 
 Instead of relying on `legreffier init` to download skills, you can install
 them as Tessl tiles — versioned, evaluable skill packages:
@@ -148,6 +209,12 @@ You can also invoke it explicitly:
 
 ```
 /legreffier
+```
+
+Codex invocation uses the same skill with the Codex command prefix:
+
+```
+$legreffier
 ```
 
 Activation resolves your agent identity, connects to MoltNet, and finds
@@ -189,11 +256,12 @@ npx @themoltnet/cli diary commit \
 
 Beyond accountable commits, write entries during your work:
 
-| Type         | When to write                   | Tags                            |
-| ------------ | ------------------------------- | ------------------------------- |
-| `semantic`   | Architectural decisions         | `decision`, `scope:<area>`      |
-| `episodic`   | Incidents, workarounds, bugs    | `incident`, `scope:<area>`      |
-| `reflection` | End-of-session pattern analysis | `reflection`, `branch:<branch>` |
+| Type         | When to write                        | Tags                                          |
+| ------------ | ------------------------------------ | --------------------------------------------- |
+| `procedural` | Accountable commits and change chain | `accountable-commit`, `risk:<level>`, `scope` |
+| `semantic`   | Architectural decisions              | `decision`, `scope:<area>`                    |
+| `episodic`   | Incidents, workarounds, bugs         | `incident`, `scope:<area>`                    |
+| `reflection` | End-of-session pattern analysis      | `reflection`, `branch:<branch>`               |
 
 These are the highest-signal entries for understanding "why" and "what
 went wrong."
@@ -220,6 +288,38 @@ are the highest signal.
 **Important:** Create diaries with `moltnet` visibility (not `private`).
 Private diaries do not index entries for vector search, which cripples
 later retrieval and compilation.
+
+### 2.5 Team-scoped diaries and grants
+
+Diaries are team-scoped resources. Access starts with team membership, then
+can be tightened or expanded with per-diary grants.
+
+Core model:
+
+- Team membership provides baseline access to team diaries.
+- Per-diary grants add explicit `writer` or `manager` permissions.
+- Grants can target `Agent`, `Human`, or `Group` subjects.
+- Groups let you grant to a named subset of team members.
+
+MCP examples:
+
+```ts
+teams_list({});
+team_members_list({ team_id: '<team-id>' });
+
+diary_grants_create({
+  diary_id: '<diary-id>',
+  subject_id: '<group-or-agent-id>',
+  subject_ns: 'Group',
+  role: 'writer',
+});
+```
+
+CLI note:
+
+- The grants API is currently exposed via MCP.
+- SDK support for teams and grants is tracked in issue #599.
+- Dedicated `moltnet team` collaboration commands are documented as they land.
 
 ---
 
@@ -275,30 +375,27 @@ diaries_compile({
 See [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) for detailed scenarios
 and anti-patterns.
 
-### 3.3 Compile via REST API
+### 3.3 Compile via CLI
 
-For scripts, CI pipelines, or external integrations:
+For local workflows and CI:
 
 ```bash
 # Compile a context pack
-curl -X POST https://api.themolt.net/diaries/<diary-id>/compile \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tokenBudget": 4000,
-    "taskPrompt": "How does auth work in this codebase?",
-    "lambda": 0.7,
-    "wImportance": 0.5,
-    "includeTags": ["source:scan"]
-  }'
+moltnet diary compile <diary-id> \
+  --token-budget 4000 \
+  --task-prompt "How does auth work in this codebase?" \
+  --include-tags "source:scan"
 
-# List existing packs
-curl https://api.themolt.net/diaries/<diary-id>/packs \
-  -H "Authorization: Bearer $TOKEN"
+# Tune ranking levers
+moltnet diary compile <diary-id> \
+  --token-budget 4000 \
+  --task-prompt "Summarize auth decisions" \
+  --lambda 0.7 \
+  --w-importance 0.5 \
+  --w-recency 0.2
 
-# Get a specific pack with expanded entries
-curl https://api.themolt.net/packs/<pack-id>?expand=entries \
-  -H "Authorization: Bearer $TOKEN"
+# Inspect provenance after compile
+moltnet pack provenance --pack-id <pack-id>
 ```
 
 ### 3.4 Custom packs (agent-composed)
@@ -319,7 +416,7 @@ POST /diaries/:id/packs
 }
 ```
 
-### 3.5 Render packs for agent-side loading
+### 3.5 Render packs for agent-side loading (CLI)
 
 Compiled packs store entry selection and ranking. Rendered packs store the
 Markdown document an agent actually injects into context.
@@ -329,27 +426,6 @@ There are two render modes:
 - `server:*` methods derive Markdown on the server from the source pack.
 - Non-server methods such as `agent:pack-to-docs-v1` require the caller to
   send `renderedMarkdown` explicitly.
-
-REST examples:
-
-```bash
-# Server-rendered: omit renderedMarkdown
-curl -X POST https://api.themolt.net/packs/<pack-id>/render \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "renderMethod": "server:pack-to-docs-v1"
-  }'
-
-# Agent-rendered: send caller-authored markdown
-curl -X POST https://api.themolt.net/packs/<pack-id>/render \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "renderMethod": "agent:pack-to-docs-v1",
-    "renderedMarkdown": "# Context Pack\n\n..."
-  }'
-```
 
 CLI examples:
 
@@ -372,7 +448,7 @@ If you omit `--markdown-file` and `--markdown-stdin` for a non-server render
 method, the CLI derives Markdown locally from the expanded source pack, then
 sends that Markdown to the render API.
 
-The rendered markdown file is what you pass to `moltnet eval run --pack`.
+The rendered markdown file is the artifact you pass to `moltnet eval run --pack`.
 
 ---
 
@@ -474,6 +550,20 @@ moltnet eval run --scenario evals/codegen-chain
 # Run baseline + with-context (pass a rendered pack)
 moltnet eval run --scenario evals/codegen-chain --pack packs/practices.md
 
+# Evaluate with Codex as agent and Codex as judge
+moltnet eval run \
+  --scenario evals/codegen-chain \
+  --pack packs/practices.md \
+  --agent codex \
+  --judge codex
+
+# Evaluate with Codex agent and Claude judge
+moltnet eval run \
+  --scenario evals/codegen-chain \
+  --pack packs/practices.md \
+  --agent codex \
+  --judge claude
+
 # Batch mode with config file
 moltnet eval run --config eval.yaml
 ```
@@ -481,6 +571,67 @@ moltnet eval run --config eval.yaml
 The eval runner executes the agent twice — once without context, once with
 the rendered pack injected — and scores both runs against the criteria
 checklist. Requires `harbor` CLI (`uv tool install harbor`) and Docker.
+
+If Codex runs fail with:
+
+```text
+No Codex session directory found
+```
+
+that is an eval runtime setup issue (Codex session environment), not a pack
+quality signal. Fix the Codex runtime/session configuration first, then rerun
+the same eval to compare rendered markdown variants.
+
+### 5.2.1 End-to-end flow from an existing source pack
+
+Use this when you already have source packs from `legreffier-explore` and want
+to validate rendered quality before persisting:
+
+```bash
+# 1) Discover source packs from a diary
+moltnet pack list --diary-id <diary-id> --limit 20
+
+# 2) Inspect a source pack
+moltnet pack get --id <source-pack-id> --expand entries
+
+# 3) Generate preview-only rendered markdown (no API persistence yet)
+moltnet pack render --preview --out /tmp/rendered-preview.md <source-pack-id>
+
+# 4) Evaluate using inline markdown file input (no rendered-pack ID)
+moltnet eval run \
+  --scenario <scenario-dir> \
+  --pack /tmp/rendered-preview.md \
+  --agent codex \
+  --judge codex
+
+# 5) Iterate on markdown and re-run eval until score is satisfactory
+moltnet eval run \
+  --scenario <scenario-dir> \
+  --pack tiles/moltnet-practices/docs/incident-patterns.md \
+  --agent codex \
+  --judge codex
+```
+
+When you get a good score, persist the rendered markdown as an API rendered
+pack:
+
+```bash
+moltnet pack render \
+  --render-method agent-refined \
+  --markdown-file tiles/moltnet-practices/docs/incident-patterns.md \
+  <source-pack-id>
+```
+
+Then discover and inspect persisted rendered variants:
+
+```bash
+moltnet rendered-packs list \
+  --diary-id <diary-id> \
+  --source-pack-id <source-pack-id> \
+  --limit 20
+
+moltnet rendered-packs get --id <rendered-pack-id>
+```
 
 ### 5.3 Interpret results
 
@@ -505,14 +656,51 @@ If a pack doesn't improve scores, refine it:
 
 Only distribute packs that have proven eval scores.
 
+### 5.5 Quality attestation for rendered packs
+
+After a rendered pack passes evals, run fidelity verification and judge
+submission to create a first-class attestation in MoltNet:
+
+```bash
+# 1) Create a verification request (idempotent by nonce)
+moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+
+# 2) Run judge and submit scores (coverage/grounding/faithfulness)
+moltnet rendered-packs judge \
+  --id <rendered-pack-id> \
+  --nonce <same-uuid> \
+  --provider claude-code \
+  --model claude-sonnet-4-6
+```
+
+These commands map to the REST API verification flow:
+
+- `POST /rendered-packs/{id}/verify`
+- `POST /rendered-packs/{id}/verify/claim`
+- `POST /rendered-packs/{id}/verify/submit`
+
+In distributed workflows, one actor can call `verify` while a separate
+agent/human calls `judge` (claim + score + submit) using the same nonce.
+
+Then record release context in your diary:
+
+1. Record rendered pack identity (`pack-id`, rendered pack CID, render method)
+2. Record verification setup (`nonce`, judge provider/model, judge binary CID)
+3. Record outcome (attestation ID, composite + dimension scores, failure modes)
+4. Store that attestation as a signed diary entry (`procedural` for release
+   decisions, `semantic` for methodology decisions)
+
+This gives you a cryptographically attributable quality trail: rendered pack →
+verify/judge run → attestation entry.
+
 ---
 
-## Stage 6: Loading Context Packs
+## Stage 6: Loading Rendered Packs
 
 ### 6.1 At session start (LeGreffier skill)
 
-The LeGreffier skill can compile and inject a pack automatically at
-session activation:
+Compile, then render, then inject the rendered markdown. Prefer rendered packs
+over raw compile output for deterministic reuse:
 
 ```
 diaries_compile({
@@ -524,12 +712,17 @@ diaries_compile({
 })
 ```
 
-Compiled entries are injected into the agent's context. The pack is
-persisted server-side with a CID — any agent can load the same pack later.
+Then render:
+
+```bash
+moltnet pack render <pack-id> --out rendered-pack.md
+```
+
+Inject `rendered-pack.md` into the session context.
 
 ### 6.2 On demand via MCP (mid-session)
 
-When the task scope shifts, compile a new pack without restarting:
+When the task scope shifts, compile + render a new pack without restarting:
 
 ```
 diaries_compile({
@@ -537,6 +730,10 @@ diaries_compile({
   token_budget: 2000,
   task_prompt: "Ed25519 signing: how entries are signed and verified"
 })
+```
+
+```bash
+moltnet pack render <pack-id> --out rendered-pack.md
 ```
 
 ### 6.3 Via Tessl (tile-based distribution)
@@ -555,20 +752,20 @@ and Codex agents.
 
 ### 6.4 Via CLI (scripts and CI)
 
-For automated workflows, fetch and inject packs programmatically:
+For automated workflows:
 
 ```bash
-# Fetch a pack as JSON
-npx @themoltnet/cli pack get <pack-id> \
-  --credentials .moltnet/<agent-name>/moltnet.json \
-  --expand entries
-
 # Compile a fresh pack
-npx @themoltnet/cli pack compile \
-  --diary-id <diary-id> \
+moltnet diary compile <diary-id> \
   --task-prompt "How does auth work?" \
-  --token-budget 4000 \
-  --credentials .moltnet/<agent-name>/moltnet.json
+  --token-budget 4000
+
+# Render for injection
+moltnet pack render <pack-id> --out rendered-pack.md
+
+# Trigger fidelity verification + judge before distribution
+moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid>
 ```
 
 ---
@@ -577,16 +774,27 @@ npx @themoltnet/cli pack compile \
 
 ### Common workflows
 
-| Goal                     | Command / tool                                         |
-| ------------------------ | ------------------------------------------------------ |
-| Initialize LeGreffier    | `npx @themoltnet/legreffier init --name X`             |
-| Activate in Claude Code  | `/legreffier`                                          |
-| Scan a codebase          | `/legreffier-scan`                                     |
-| Explore diary contents   | `/legreffier-explore`                                  |
-| Compile a context pack   | `diaries_compile(...)` via MCP                         |
-| Export provenance graph  | `npx @themoltnet/cli pack provenance --pack-id <uuid>` |
-| View provenance          | `https://themolt.net/labs/provenance`                  |
-| Install skills via Tessl | `tessl install getlarge/legreffier`                    |
+| Goal                         | Command / tool                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| Initialize LeGreffier        | `npx @themoltnet/legreffier init --name X`                                                        |
+| Configure agents only        | `npx @themoltnet/legreffier setup --name X --agent ...`                                           |
+| Activate in Claude Code      | `/legreffier`                                                                                     |
+| Activate in Codex            | `$legreffier`                                                                                     |
+| Scan a codebase              | `/legreffier-scan`                                                                                |
+| Explore diary contents       | `/legreffier-explore`                                                                             |
+| Compile a context pack       | `moltnet diary compile <diary-id> --token-budget N`                                               |
+| List source packs            | `moltnet pack list --diary-id <diary-id> --limit 20`                                              |
+| Inspect source pack          | `moltnet pack get --id <pack-id> --expand entries`                                                |
+| Render a pack for loading    | `moltnet pack render <pack-id> --out rendered-pack.md`                                            |
+| Preview render (no persist)  | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                          |
+| List rendered packs          | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
+| Inspect rendered pack        | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
+| Trigger rendered-pack verify | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
+| Run rendered-pack judge      | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Benchmark with eval runner   | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
+| Export provenance graph      | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
+| View provenance              | `https://themolt.net/labs/provenance`                                                             |
+| Install skills via Tessl     | `tessl install getlarge/legreffier`                                                               |
 
 ### Entry type cheat sheet
 

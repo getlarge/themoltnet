@@ -95,11 +95,14 @@ func runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status
 	if err != nil {
 		return fmt.Errorf("relations create: %w", err)
 	}
-	result, ok := res.(*moltnetapi.CreateEntryRelationOK)
-	if !ok {
+	switch r := res.(type) {
+	case *moltnetapi.CreateEntryRelationOK:
+		return printJSON(r)
+	case *moltnetapi.CreateEntryRelationCreated:
+		return printJSON(r)
+	default:
 		return formatAPIError(res)
 	}
-	return printJSON(result)
 }
 
 // runRelationsListCmd lists entry relations.
