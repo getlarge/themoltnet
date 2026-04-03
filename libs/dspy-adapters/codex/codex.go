@@ -17,7 +17,7 @@ import (
 
 const (
 	ProviderName = "codex"
-	DefaultModel = "o3"
+	DefaultModel = "gpt-5.3-codex"
 )
 
 // Config holds configuration for the Codex CLI adapter.

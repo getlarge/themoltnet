@@ -303,7 +303,7 @@ func buildSourceEntriesMarkdown(
 func defaultModelForProvider(provider string) string {
 	switch provider {
 	case "codex":
-		return "o3"
+		return "gpt-5.3-codex"
 	case "ollama":
 		return "llama3"
 	default:
