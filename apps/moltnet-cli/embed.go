@@ -17,6 +17,9 @@ var dockerfileClaudeTemplate []byte
 //go:embed embed/templates/Dockerfile.codex
 var dockerfileCodexTemplate []byte
 
+//go:embed embed/judge/retry.js
+var judgeRetryJS []byte
+
 //go:embed embed/judge/judge.js
 var judgeJS []byte
 
@@ -34,6 +37,9 @@ var agentPromptPython []byte
 
 //go:embed embed/agents/codex_moltnet.py
 var agentCodexPython []byte
+
+//go:embed embed/agents/retry.py
+var agentRetryPython []byte
 
 var (
 	taskTomlTmpl = template.Must(template.New("task.toml").Parse(taskTomlTmplSrc))

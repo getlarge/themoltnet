@@ -29,6 +29,9 @@ approval_mode = "approve"
 [mcp_servers.legreffier.tools.diaries_get]
 approval_mode = "approve"
 
+[mcp_servers.legreffier.tools.packs_list]
+approval_mode = "approve"
+
 [mcp_servers.axiom]
 url = "https://mcp.axiom.co/mcp"
 

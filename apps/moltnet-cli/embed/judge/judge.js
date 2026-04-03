@@ -1,7 +1,11 @@
 /* eslint-disable no-console */
+// TODO: consider migrating to https://github.com/anthropics/claude-agent-sdk-python
+//       once it reaches feature parity with the JS SDK (as of 2026-04 it is early-stage).
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
+
+import { withRetry } from './retry.js';
 
 /**
  * @typedef {{ name: string; description: string; max_score: number }} Criterion
@@ -31,6 +35,29 @@ async function writeReward(reward) {
   await writeFile(
     '/logs/verifier/reward.json',
     JSON.stringify(reward, null, 2),
+  );
+}
+
+/**
+ * Returns true for transient network/process errors worth retrying.
+ * Returns false for auth failures and bad-output errors.
+ * @param {Error} err
+ * @returns {boolean}
+ */
+function isRetryableError(err) {
+  const msg = (err.message ?? String(err)).toLowerCase();
+  // Claude Code process exited — only retry if it looks like a connection issue
+  if (msg.includes('process exited') || msg.includes('exit code')) {
+    return (
+      msg.includes('econnreset') ||
+      msg.includes('etimedout') ||
+      msg.includes('unknown')
+    );
+  }
+  return (
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('connect error')
   );
 }
 
@@ -68,48 +95,60 @@ No markdown fences. No explanation outside the JSON.`;
   const claudePath =
     process.env.CLAUDE_CODE_EXECUTABLE || '/home/agent/.local/bin/claude';
 
-  const conversation = query({
-    prompt,
-    options: {
-      cwd: '/app',
-      pathToClaudeCodeExecutable: claudePath,
-      model: process.env.JUDGE_MODEL ?? 'claude-sonnet-4-6',
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      tools: { type: 'preset', preset: 'claude_code' },
-      persistSession: false,
-      includePartialMessages: false,
-      maxTurns: 5,
-      settings: { disableAllHooks: true },
-      debug: process.env.MOLTNET_EVAL_DEBUG === '1',
-      env: {
-        ...runtimeEnv,
-        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-        ENABLE_TOOL_SEARCH: '0',
+  /** @type {ScoredCriterion[]} */
+  const scored = await withRetry(
+    async () => {
+      const conversation = query({
+        prompt,
+        options: {
+          cwd: '/app',
+          pathToClaudeCodeExecutable: claudePath,
+          model: process.env.JUDGE_MODEL ?? 'claude-sonnet-4-6',
+          permissionMode: 'bypassPermissions',
+          tools: { type: 'preset', preset: 'claude_code' },
+          persistSession: false,
+          includePartialMessages: false,
+          maxTurns: 5,
+          settings: { disableAllHooks: true },
+          debug: process.env.MOLTNET_EVAL_DEBUG === '1',
+          env: {
+            ...runtimeEnv,
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+            ENABLE_TOOL_SEARCH: '0',
+          },
+        },
+      });
+
+      let lastText = '';
+      for await (const message of conversation) {
+        if (message.type === 'assistant') {
+          const texts = message.message.content
+            .filter((b) => b.type === 'text' && typeof b.text === 'string')
+            .map((b) => b.text);
+          if (texts.length > 0) lastText = texts.join('\n');
+        }
+      }
+
+      const jsonMatch = lastText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        // Bad output is not a network error — mark non-retryable
+        const err = new Error(
+          `Judge did not produce valid JSON array. Raw output:\n${lastText}`,
+        );
+        err.nonRetryable = true;
+        throw err;
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    },
+    {
+      shouldRetry: (err) => {
+        if (err.nonRetryable) return false;
+        return isRetryableError(err);
       },
     },
-  });
+  );
 
-  let lastText = '';
-  for await (const message of conversation) {
-    if (message.type === 'assistant') {
-      const texts = message.message.content
-        .filter((b) => b.type === 'text' && typeof b.text === 'string')
-        .map((b) => b.text);
-      if (texts.length > 0) lastText = texts.join('\n');
-    }
-  }
-
-  const jsonMatch = lastText.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    console.error('Judge did not produce valid JSON array. Raw output:');
-    console.error(lastText);
-    await writeReward({ reward: 0 });
-    process.exit(1);
-  }
-
-  /** @type {ScoredCriterion[]} */
-  const scored = JSON.parse(jsonMatch[0]);
   const totalScore = scored.reduce((sum, c) => sum + c.score, 0);
   const maxTotal = scored.reduce((sum, c) => sum + c.max_score, 0);
   const normalizedReward = maxTotal > 0 ? totalScore / maxTotal : 0;
