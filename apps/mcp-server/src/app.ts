@@ -125,9 +125,65 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     await app.register(observability.fastifyOtelPlugin);
   }
 
-  // Health check (excluded from auth)
+  // Health checks (excluded from auth)
   app.get('/healthz', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
+  });
+
+  app.get('/healthz/ready', async (_request, reply) => {
+    const probe = async (
+      name: string,
+      url: string,
+    ): Promise<{
+      status: 'ok' | 'error';
+      latencyMs: number;
+      error?: string;
+    }> => {
+      const start = performance.now();
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (!res.ok) {
+          return {
+            status: 'error',
+            latencyMs: Math.round(performance.now() - start),
+            error: `${name}: HTTP ${res.status}`,
+          };
+        }
+        return {
+          status: 'ok',
+          latencyMs: Math.round(performance.now() - start),
+        };
+      } catch (err) {
+        return {
+          status: 'error',
+          latencyMs: Math.round(performance.now() - start),
+          error: `${name}: ${err instanceof Error ? err.message : 'Unknown'}`,
+        };
+      }
+    };
+
+    const [restApi, ory] = await Promise.all([
+      probe('rest-api', `${config.REST_API_URL}/health`),
+      config.ORY_PROJECT_URL
+        ? probe(
+            'ory',
+            `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
+          )
+        : {
+            status: 'error' as const,
+            latencyMs: 0,
+            error: 'ory: Not configured',
+          },
+    ]);
+
+    const allOk = restApi.status === 'ok' && ory.status === 'ok';
+    const body = {
+      status: allOk ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      components: { restApi, ory },
+    };
+
+    return reply.status(allOk ? 200 : 503).send(body);
   });
 
   // Register client_credentials proxy (before fastify-mcp so it can inject Bearer tokens)

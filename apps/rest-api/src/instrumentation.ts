@@ -14,5 +14,5 @@ initInstrumentation({
   net: true,
   pg: true,
   pino: true,
-  httpIgnoreIncomingPaths: ['/health', '/ready'],
+  httpIgnoreIncomingPaths: ['/health', '/health/ready'],
 });

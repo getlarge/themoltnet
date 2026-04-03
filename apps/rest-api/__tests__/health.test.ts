@@ -29,4 +29,20 @@ describe('Health routes', () => {
       expect(body.timestamp).toBeDefined();
     });
   });
+
+  describe('GET /health/ready', () => {
+    it('returns degraded when dependencies are not configured', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/health/ready',
+      });
+
+      expect(response.statusCode).toBe(503);
+      const body = response.json();
+      expect(body.status).toBe('degraded');
+      expect(body.timestamp).toBeDefined();
+      expect(body.components.database.status).toBe('error');
+      expect(body.components.ory.status).toBe('error');
+    });
+  });
 });

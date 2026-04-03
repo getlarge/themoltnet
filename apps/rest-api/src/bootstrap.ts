@@ -125,7 +125,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       tracing: {
         enabled: true,
-        ignorePaths: '/health',
+        ignorePaths: ({ url }) => url.startsWith('/health'),
       },
       metrics: {
         enabled: true,
@@ -423,6 +423,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
     packGcConfig: config.packGc,
+    pool: dbConnection.pool,
+    oryProjectUrl: config.ory.ORY_PROJECT_URL,
   });
 
   // ── Observability metrics plugin ───────────────────────────────

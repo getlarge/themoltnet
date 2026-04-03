@@ -46,7 +46,10 @@ async function main(): Promise<void> {
         level: config.NODE_ENV === 'production' ? 'info' : 'debug',
         pretty: config.NODE_ENV !== 'production',
       },
-      tracing: { enabled: true, ignorePaths: '/healthz' },
+      tracing: {
+        enabled: true,
+        ignorePaths: ({ url }) => url.startsWith('/healthz'),
+      },
       metrics: { enabled: true, runtimeMetrics: true },
     });
   }

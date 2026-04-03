@@ -111,11 +111,7 @@ async function rateLimitPluginImpl(
     },
     // Skip rate limiting for health checks
     allowList: (request: FastifyRequest) => {
-      return (
-        request.url === '/health' ||
-        request.url === '/ready' ||
-        request.url === '/problems'
-      );
+      return request.url.startsWith('/health') || request.url === '/problems';
     },
   });
 
