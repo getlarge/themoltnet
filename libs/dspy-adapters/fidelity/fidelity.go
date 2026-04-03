@@ -22,6 +22,7 @@ type Scores struct {
 }
 
 // DefaultRubric is the built-in fidelity rubric.
+// SYNC: keep in sync with libs/database/src/workflows/verification-workflows.ts DEFAULT_RUBRIC.
 const DefaultRubric = `Evaluate the rendered content against the source entries on three axes:
 
 COVERAGE (0.0-1.0):

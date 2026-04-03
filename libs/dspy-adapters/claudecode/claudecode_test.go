@@ -81,6 +81,59 @@ Respond with a JSON object in this exact format:
 	}
 }
 
+func TestParseJSONResponse_UnwrapsEnvelope(t *testing.T) {
+	t.Parallel()
+
+	envelope := `{
+		"type": "result",
+		"subtype": "success",
+		"result": "",
+		"structured_output": {
+			"coverage": "0.85",
+			"grounding": "0.90",
+			"faithfulness": "0.75",
+			"reasoning": "Good coverage overall."
+		}
+	}`
+
+	result, err := parseJSONResponse(envelope)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result["coverage"] != "0.85" {
+		t.Errorf("expected coverage=0.85, got %v", result["coverage"])
+	}
+	if result["grounding"] != "0.90" {
+		t.Errorf("expected grounding=0.90, got %v", result["grounding"])
+	}
+	if result["faithfulness"] != "0.75" {
+		t.Errorf("expected faithfulness=0.75, got %v", result["faithfulness"])
+	}
+}
+
+func TestParseJSONResponse_PlainJSON(t *testing.T) {
+	t.Parallel()
+
+	plain := `{"coverage": "0.85", "grounding": "0.90"}`
+	result, err := parseJSONResponse(plain)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result["coverage"] != "0.85" {
+		t.Errorf("expected coverage=0.85, got %v", result["coverage"])
+	}
+}
+
+func TestParseJSONResponse_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseJSONResponse("not json at all")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+}
+
 func TestExtractJSONSchemaFromPromptNoFence(t *testing.T) {
 	t.Parallel()
 

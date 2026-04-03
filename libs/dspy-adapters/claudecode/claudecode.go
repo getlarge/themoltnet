@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/clierrors"
 )
 
 const (
@@ -95,23 +96,7 @@ func (l *LLM) GenerateWithJSON(ctx context.Context, prompt string, opts ...core.
 		return nil, err
 	}
 
-	var result map[string]interface{}
-	content := resp.Content
-
-	// Try direct JSON parse first
-	if err := json.Unmarshal([]byte(content), &result); err == nil {
-		return result, nil
-	}
-
-	// Try extracting JSON from markdown fences or prose
-	extracted := extractJSON(content)
-	if extracted != "" {
-		if err := json.Unmarshal([]byte(extracted), &result); err == nil {
-			return result, nil
-		}
-	}
-
-	return nil, fmt.Errorf("claude CLI did not return valid JSON.\nResponse:\n%s", content)
+	return parseJSONResponse(resp.Content)
 }
 
 // GenerateWithFunctions is not supported by Claude Code CLI.
@@ -163,6 +148,11 @@ func (l *LLM) buildArgsWithOutputFormat(outputFormat string, extra []string) []s
 		"--model", l.config.Model,
 		"--permission-mode", "bypassPermissions",
 		"--no-session-persistence",
+		// Isolate from user/project config without disabling OAuth auth
+		// (--bare would disable OAuth/keychain, breaking non-API-key setups).
+		"--strict-mcp-config",      // zero MCP servers (no --mcp-config arg)
+		"--disable-slash-commands", // no skills
+		"--no-chrome",              // no browser integration
 	}
 	if l.config.MaxBudgetUSD > 0 {
 		args = append(args, "--max-budget-usd", fmt.Sprintf("%.2f", l.config.MaxBudgetUSD))
@@ -175,6 +165,8 @@ func (l *LLM) buildArgsWithOutputFormat(outputFormat string, extra []string) []s
 // run executes the Claude CLI with the given prompt and args.
 func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMResponse, error) {
 	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
+	// Run from a temp dir to avoid loading project CLAUDE.md/AGENTS.md
+	cmd.Dir = os.TempDir()
 
 	// Pass prompt via stdin
 	cmd.Stdin = strings.NewReader(prompt)
@@ -187,10 +179,13 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 	cmd.Env = l.buildEnv()
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("claude CLI failed: %w\nstderr: %s", err, stderr.String())
+		return nil, clierrors.ClassifyCLIError("claude", err, stderr.String(), stdout.String())
 	}
 
 	content := strings.TrimSpace(stdout.String())
+	if content == "" {
+		return nil, fmt.Errorf("claude CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
+	}
 
 	return &core.LLMResponse{
 		Content:  content,
@@ -202,9 +197,11 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 func (l *LLM) buildEnv() []string {
 	env := os.Environ()
 
-	// Strip vars that could leak tokens to the subprocess
+	// Strip CLAUDECODE to prevent the subprocess from detecting a nested
+	// session. Keep CLAUDE_CODE_OAUTH_TOKEN — it's needed for auth when
+	// running outside an interactive Claude Code session.
 	filtered := make([]string, 0, len(env))
-	stripPrefixes := []string{"CLAUDECODE", "CLAUDE_CODE_OAUTH_TOKEN"}
+	stripPrefixes := []string{"CLAUDECODE"}
 	for _, e := range env {
 		skip := false
 		for _, prefix := range stripPrefixes {
@@ -224,6 +221,44 @@ func (l *LLM) buildEnv() []string {
 	}
 
 	return filtered
+}
+
+// parseJSONResponse extracts structured output from claude CLI JSON responses.
+// With --output-format json, the CLI wraps responses in an envelope:
+//
+//	{ "type": "result", "structured_output": { ... }, ... }
+//
+// The actual structured data lives in "structured_output".
+func parseJSONResponse(content string) (map[string]interface{}, error) {
+	var result map[string]interface{}
+
+	if err := json.Unmarshal([]byte(content), &result); err == nil {
+		if so, ok := result["structured_output"]; ok {
+			if soMap, ok := so.(map[string]interface{}); ok {
+				return soMap, nil
+			}
+		}
+		// If there's no envelope (e.g. text output mode), use the top-level map.
+		// But filter out known envelope fields to avoid confusion.
+		if _, isEnvelope := result["type"]; !isEnvelope {
+			return result, nil
+		}
+	}
+
+	// Try extracting JSON from markdown fences or prose
+	extracted := extractJSON(content)
+	if extracted != "" {
+		if err := json.Unmarshal([]byte(extracted), &result); err == nil {
+			return result, nil
+		}
+	}
+
+	// Truncate content for error message
+	preview := content
+	if len(preview) > 200 {
+		preview = preview[:200] + "..."
+	}
+	return nil, fmt.Errorf("claude CLI did not return valid JSON.\nResponse:\n%s", preview)
 }
 
 // extractJSONSchemaFromPrompt extracts field names from the pseudo-schema that
