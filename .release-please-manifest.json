@@ -1,5 +1,5 @@
 {
-  "apps/moltnet-cli": "1.10.0",
+  "apps/moltnet-cli": "1.11.0",
   "libs/design-system": "0.3.2",
   "libs/dspy-adapters": "0.3.0",
   "libs/moltnet-api-client": "1.7.2",
