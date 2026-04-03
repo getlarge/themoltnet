@@ -3,9 +3,11 @@ package dspyadapters
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/codex"
 )
@@ -38,13 +40,19 @@ func InitProvider(provider, model string) (core.LLM, error) {
 			Model: model,
 		})
 	default:
-		return nil, fmt.Errorf(
-			"unknown provider: %q (available: claude-code, codex, ollama, anthropic, openai)",
-			provider,
+		return nil, dspyerrors.WithFields(
+			dspyerrors.New(
+				dspyerrors.ProviderNotFound,
+				fmt.Sprintf(
+					"unknown provider: %q (available: claude-code, codex, ollama, anthropic, openai)",
+					provider,
+				),
+			),
+			dspyerrors.Fields{"provider": provider, "model": model},
 		)
 	}
 	if err != nil {
-		return nil, err
+		return nil, wrapProviderInitError(provider, model, err)
 	}
 	return core.NewModelContextDecorator(llm), nil
 }
@@ -58,4 +66,16 @@ func InitDefaultProvider(provider, model string) (core.LLM, error) {
 	}
 	core.SetDefaultLLM(llm)
 	return llm, nil
+}
+
+func wrapProviderInitError(provider, model string, err error) error {
+	var coded *dspyerrors.Error
+	if stderrors.As(err, &coded) {
+		return dspyerrors.WithFields(err, dspyerrors.Fields{"provider": provider, "model": model})
+	}
+
+	return dspyerrors.WithFields(
+		dspyerrors.Wrap(err, dspyerrors.ConfigurationError, "initialize DSPy provider"),
+		dspyerrors.Fields{"provider": provider, "model": model},
+	)
 }

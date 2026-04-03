@@ -23,6 +23,15 @@ type Scores struct {
 	Rationale    string
 }
 
+// Request defines a single fidelity judge run, including provider setup.
+type Request struct {
+	Provider        string
+	Model           string
+	SourceEntries   string
+	RenderedContent string
+	Rubric          string
+}
+
 // DefaultRubric is the built-in fidelity rubric.
 // SYNC: keep in sync with libs/database/src/workflows/verification-workflows.ts DEFAULT_RUBRIC.
 const DefaultRubric = `Evaluate the rendered content against the source entries on three axes:
@@ -141,6 +150,21 @@ func Judge(
 	)
 
 	return scores, nil
+}
+
+// Run initializes the requested provider, installs it as the default LLM for
+// the DSPy module graph, and executes the fidelity judge.
+func Run(ctx context.Context, req Request) (*Scores, error) {
+	if _, err := dspyadapters.InitDefaultProvider(req.Provider, req.Model); err != nil {
+		return nil, err
+	}
+
+	rubric := req.Rubric
+	if strings.TrimSpace(rubric) == "" {
+		rubric = DefaultRubric
+	}
+
+	return Judge(ctx, req.SourceEntries, req.RenderedContent, rubric)
 }
 
 func parseFloat(v any) (float64, error) {

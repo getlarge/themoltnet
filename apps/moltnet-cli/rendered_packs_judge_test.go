@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	stderrors "errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/fidelity"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/go-faster/jx"
@@ -145,6 +147,34 @@ func TestRunRenderedPacksJudgeLocal_InvalidID(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "invalid --id") {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestFormatDSPyJudgeError_ProviderNotFound(t *testing.T) {
+	t.Parallel()
+
+	err := formatDSPyJudgeError(dspyerrors.New(dspyerrors.ProviderNotFound, "unknown provider"))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "judge provider is not supported") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFormatDSPyJudgeError_NonDSPy(t *testing.T) {
+	t.Parallel()
+
+	base := stderrors.New("boom")
+	err := formatDSPyJudgeError(base)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "judge failed") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !stderrors.Is(err, base) {
+		t.Fatal("expected wrapped base error")
 	}
 }
 
