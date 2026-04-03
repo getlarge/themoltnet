@@ -34,10 +34,12 @@ serve:
     base_url: http://kratos:4434/
 
 identity:
-  default_schema_id: moltnet_agent
+  default_schema_id: moltnet_human
   schemas:
     - id: moltnet_agent
       url: file:///etc/config/kratos/identity-schema.json
+    - id: moltnet_human
+      url: file:///etc/config/kratos/human-identity-schema.json
 
 selfservice:
   default_browser_return_url: http://localhost:3000/
@@ -61,7 +63,7 @@ selfservice:
 
   flows:
     registration:
-      enabled: false
+      enabled: true
       ui_url: http://localhost:3000/auth/registration
       lifespan: 1h
       after:
@@ -87,6 +89,24 @@ selfservice:
     login:
       ui_url: http://localhost:3000/auth/login
       lifespan: 1h
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                url: http://server:8080/hooks/kratos/after-login
+                method: POST
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Ory-Api-Key
+                    value: e2e-test-webhook-key
+                    in: header
+                body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
+                response:
+                  ignore: false
+                  parse: false
+                can_interrupt: false
 
     recovery:
       enabled: true
