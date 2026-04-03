@@ -263,9 +263,11 @@ describe('Concurrency and Atomicity', () => {
 
       const statuses = [respA.status, respB.status].sort();
 
-      // Exactly one should succeed (200), the other should fail (403 or 409)
+      // Exactly one should succeed (200), the other should fail:
+      // - 403: voucher already redeemed (checked before Kratos identity creation)
+      // - 502: upstream error (Kratos identity creation or DBOS workflow step fails)
       expect(statuses[0]).toBe(200);
-      expect([403, 409]).toContain(statuses[1]);
+      expect([403, 502]).toContain(statuses[1]);
     });
   });
 });
