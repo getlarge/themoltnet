@@ -435,9 +435,22 @@ export async function createTestApp(
     }),
   } as unknown as OryClients['oauth2'];
 
+  const mockIdentityApi = {
+    listIdentitySchemas: vi.fn().mockResolvedValue([
+      {
+        id: 'moltnet_agent',
+        schema: { $id: 'https://schemas.themolt.net/agent.json' },
+      },
+      {
+        id: 'moltnet_human',
+        schema: { $id: 'https://schemas.themolt.net/human.json' },
+      },
+    ]),
+  } as unknown as OryClients['identity'];
+
   const mockOryClients: OryClients = {
     frontend: {} as OryClients['frontend'],
-    identity: {} as OryClients['identity'],
+    identity: mockIdentityApi,
     oauth2: mockOAuth2Api,
     permission: {} as OryClients['permission'],
     relationship: {} as OryClients['relationship'],
