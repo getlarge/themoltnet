@@ -20,15 +20,21 @@ func newEvalRunCmd() *cobra.Command {
 		Use:   "run",
 		Short: "Run Harbor evals with optional context pack injection",
 		Long: `Run Harbor evals against local task definitions. Supports single-task
-mode (--scenario) or batch mode (--config) with per-task pack assignment.
+	mode (--scenario) or batch mode (--config) with per-task pack assignment.
 
 When --pack is provided, runs both with-context and without-context
-variants and reports the score delta (pack contribution).`,
+variants and reports the score delta (pack contribution).
+
+Use --engine dspy for the lightweight Claude-only MVP path
+(single-scenario only).`,
 		Example: `  # Single task, baseline only
   moltnet eval run --scenario ./evals/codegen-chain
 
   # Single task with rendered pack context
   moltnet eval run --scenario ./evals/codegen-chain --pack ./packs/practices.md
+
+  # Single task with lightweight DSPy engine
+  moltnet eval run --engine dspy --scenario ./evals/codegen-chain
 
   # Batch run from config file
   moltnet eval run --config eval.yaml --concurrency 2
@@ -48,6 +54,7 @@ variants and reports the score delta (pack contribution).`,
 			model, _ := cmd.Flags().GetString("model")
 			concurrency, _ := cmd.Flags().GetInt("concurrency")
 			forceBuild, _ := cmd.Flags().GetBool("force-build")
+			engine, _ := cmd.Flags().GetString("engine")
 			agent, _ := cmd.Flags().GetString("agent")
 			judge, _ := cmd.Flags().GetString("judge")
 			judgeModel, _ := cmd.Flags().GetString("judge-model")
@@ -78,8 +85,12 @@ variants and reports the score delta (pack contribution).`,
 			if err := validateJudgeModel(judge, judgeModel); err != nil {
 				return err
 			}
+			if err := validateEvalEngine(engine); err != nil {
+				return err
+			}
 
 			opts := evalRunOpts{
+				engine:      engine,
 				model:       model,
 				concurrency: concurrency,
 				forceBuild:  forceBuild,
@@ -100,6 +111,7 @@ variants and reports the score delta (pack contribution).`,
 	cmd.Flags().StringP("model", "m", "", "Model for the agent (default depends on --agent)")
 	cmd.Flags().Int("concurrency", 1, "Number of concurrent trials")
 	cmd.Flags().BoolP("force-build", "f", false, "Force Docker image rebuild")
+	cmd.Flags().String("engine", "harbor", "Execution engine: harbor or dspy")
 	cmd.Flags().String("agent", "claude", "Agent to use: claude or codex")
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")

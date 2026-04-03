@@ -547,6 +547,74 @@ func TestValidateAgentModel(t *testing.T) {
 	}
 }
 
+func TestValidateEvalEngine(t *testing.T) {
+	tests := []struct {
+		engine string
+		ok     bool
+	}{
+		{"harbor", true},
+		{"dspy", true},
+		{"nope", false},
+	}
+
+	for _, tt := range tests {
+		err := validateEvalEngine(tt.engine)
+		if tt.ok && err != nil {
+			t.Errorf("validateEvalEngine(%q) = %v, want nil", tt.engine, err)
+		}
+		if !tt.ok && err == nil {
+			t.Errorf("validateEvalEngine(%q) = nil, want error", tt.engine)
+		}
+	}
+}
+
+func TestValidateDSPYEvalOpts(t *testing.T) {
+	ok := evalRunOpts{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1}
+	if err := validateDSPYEvalOpts(ok); err != nil {
+		t.Fatalf("validateDSPYEvalOpts(valid) = %v", err)
+	}
+
+	bad := []evalRunOpts{
+		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
+	}
+	for _, opts := range bad {
+		if err := validateDSPYEvalOpts(opts); err == nil {
+			t.Errorf("validateDSPYEvalOpts(%+v) = nil, want error", opts)
+		}
+	}
+}
+
+func TestBuildDSPYEvalPromptIncludesContext(t *testing.T) {
+	got := buildDSPYEvalPrompt("Do the task.", true, "## Pack")
+	if !strings.Contains(got, "Context pack:") {
+		t.Fatal("expected context section")
+	}
+	if !strings.Contains(got, "## Pack") {
+		t.Fatal("expected pack content")
+	}
+}
+
+func TestBuildWorkspaceSnapshotFallsBackToFinalResponse(t *testing.T) {
+	dir := t.TempDir()
+
+	got, err := buildWorkspaceSnapshot(dir, "final output")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot: %v", err)
+	}
+	if !strings.Contains(got, "final-response.txt") {
+		t.Fatalf("expected fallback response file, got %q", got)
+	}
+}
+
+func TestParseChecklistCriteriaRejectsUnsupportedType(t *testing.T) {
+	_, err := parseChecklistCriteria([]byte(`{"type":"binary"}`))
+	if err == nil {
+		t.Fatal("expected unsupported criteria type error")
+	}
+}
+
 func TestValidateJudgeModel(t *testing.T) {
 	tests := []struct {
 		judge string

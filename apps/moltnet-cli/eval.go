@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -9,18 +12,30 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 	"gopkg.in/yaml.v2"
 )
 
 // evalRunOpts holds flags shared by single-task and config modes.
 type evalRunOpts struct {
+	engine      string
 	model       string
 	concurrency int
 	forceBuild  bool
 	agent       string // "claude" | "codex"
 	judge       string // "claude" | "codex"
 	judgeModel  string // judge model (prefix-free)
+}
+
+func validateEvalEngine(engine string) error {
+	switch engine {
+	case "harbor", "dspy":
+		return nil
+	default:
+		return fmt.Errorf("unknown engine %q (must be harbor or dspy)", engine)
+	}
 }
 
 func defaultAgentModel(agent string) string {
@@ -98,7 +113,18 @@ type evalConfig struct {
 
 // --- Prerequisites ---
 
-func checkPrerequisites() error {
+func checkPrerequisites(engine string) error {
+	switch engine {
+	case "dspy":
+		if _, err := exec.LookPath("claude"); err != nil {
+			return fmt.Errorf("claude CLI not found on PATH: %w", err)
+		}
+		return nil
+	case "harbor":
+	default:
+		return fmt.Errorf("unsupported engine %q", engine)
+	}
+
 	if _, err := exec.LookPath("harbor"); err != nil {
 		return fmt.Errorf("harbor CLI not found on PATH — install with: uv tool install harbor")
 	}
@@ -506,19 +532,25 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 }
 
 func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(); err != nil {
+	if err := checkPrerequisites(opts.engine); err != nil {
 		return err
 	}
 	input, err := resolveEvalRun(taskDir, packPath, opts.agent, opts.model)
 	if err != nil {
 		return err
 	}
+	if opts.engine == "dspy" {
+		return runDSPYEvalSingleTask(input, opts)
+	}
 	return runEval([]evalRunInput{input}, opts)
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(); err != nil {
+	if err := checkPrerequisites(opts.engine); err != nil {
 		return err
+	}
+	if opts.engine == "dspy" {
+		return fmt.Errorf("--engine dspy currently supports --scenario only; --config remains Harbor-only")
 	}
 	runs, err := loadConfig(configPath)
 	if err != nil {
@@ -544,6 +576,355 @@ func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 		inputs = append(inputs, input)
 	}
 	return runEval(inputs, opts)
+}
+
+type evalChecklistCriteria struct {
+	Type      string                `json:"type"`
+	Context   string                `json:"context"`
+	Checklist []checklist.Criterion `json:"checklist"`
+}
+
+func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
+	if err := validateDSPYEvalOpts(opts); err != nil {
+		return err
+	}
+	group := runGroup{agent: input.agent, model: input.model, inputs: []evalRunInput{input}}
+	header := groupHeaderLine(0, 1, group)
+	fmt.Fprintln(os.Stderr, header)
+	fmt.Fprintln(os.Stdout, header)
+
+	runDir, err := os.MkdirTemp("", "moltnet-eval-dspy-*")
+	if err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer func() {
+		fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", runDir)
+	}()
+
+	result := evalResult{taskName: input.name}
+	result.withoutContext, err = runDSPYEvalVariant(runDir, input, false, opts)
+	if err != nil {
+		return err
+	}
+	if input.packMD != "" {
+		result.withContext, err = runDSPYEvalVariant(runDir, input, true, opts)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := writeDSPYRunSummary(runDir, result); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not write dspy result summary: %v\n", err)
+	}
+
+	printRunPaths(runDir)
+	printSummary([]evalResult{result}, "")
+	hasErrors := (result.withoutContext != nil && result.withoutContext.err != "") ||
+		(result.withContext != nil && result.withContext.err != "")
+	return evalRunCompletionError([]evalResult{result}, hasErrors)
+}
+
+func validateDSPYEvalOpts(opts evalRunOpts) error {
+	if opts.agent != "claude" {
+		return fmt.Errorf("--engine dspy currently supports --agent claude only")
+	}
+	if opts.judge != "claude" {
+		return fmt.Errorf("--engine dspy currently supports --judge claude only")
+	}
+	if opts.concurrency != 1 {
+		return fmt.Errorf("--engine dspy currently supports --concurrency 1 only")
+	}
+	return nil
+}
+
+func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opts evalRunOpts) (*trialScores, error) {
+	variantName := input.name
+	if withContext {
+		variantName += "-with-context"
+	}
+	variantDir := filepath.Join(runDir, variantName+"__dspy")
+	if err := os.MkdirAll(variantDir, 0o755); err != nil {
+		return nil, fmt.Errorf("creating variant dir: %w", err)
+	}
+
+	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
+	agentResult, err := runClaudeEvalAgent(variantDir, opts.model, prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	filesSnapshot, err := buildWorkspaceSnapshot(variantDir, agentResult.output)
+	if err != nil {
+		return nil, fmt.Errorf("snapshot workspace: %w", err)
+	}
+
+	criteria, err := parseChecklistCriteria(input.criteriaJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	scores := &trialScores{
+		name:   filepath.Base(variantDir),
+		logDir: variantDir,
+	}
+	if !agentResult.passed {
+		if err := writeDSPYAgentArtifacts(variantDir, agentResult); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not persist failed agent output for %s: %v\n", variantName, err)
+		}
+		scores.err = agentResult.output
+		if scores.err == "" {
+			scores.err = "agent run failed"
+		}
+		return scores, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	judged, err := checklist.Run(ctx, checklist.Request{
+		Provider:         "claude-code",
+		Model:            trimAnthropicModelPrefix(opts.judgeModel),
+		WorkspaceSummary: filesSnapshot,
+		Criteria: checklist.Criteria{
+			Type:      criteria.Type,
+			Context:   criteria.Context,
+			Checklist: criteria.Checklist,
+		},
+	})
+	if err != nil {
+		scores.err = formatDSPyJudgeError(err).Error()
+		return scores, nil
+	}
+
+	scores.reward = judged.Reward
+	scores.details = judged.Details
+	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
+	}
+	return scores, nil
+}
+
+func parseChecklistCriteria(data []byte) (*evalChecklistCriteria, error) {
+	var criteria evalChecklistCriteria
+	if err := json.Unmarshal(data, &criteria); err != nil {
+		return nil, fmt.Errorf("parsing criteria.json: %w", err)
+	}
+	if criteria.Type != "" && criteria.Type != "weighted_checklist" {
+		return nil, fmt.Errorf("unsupported criteria type %q for --engine dspy", criteria.Type)
+	}
+	return &criteria, nil
+}
+
+func buildDSPYEvalPrompt(task string, withContext bool, pack string) string {
+	var b strings.Builder
+	b.WriteString("[AUTOMATED RUN -- no user is present to interact]\n")
+	b.WriteString("- Make decisions autonomously.\n")
+	b.WriteString("- Do not ask follow-up questions.\n")
+	b.WriteString("- Work in the current directory.\n")
+	b.WriteString("- Create or update files needed to complete the task.\n")
+	b.WriteString("- When finished, briefly summarize what you changed.\n\n")
+	if withContext && strings.TrimSpace(pack) != "" {
+		b.WriteString("Context pack:\n")
+		b.WriteString(pack)
+		b.WriteString("\n\n")
+	}
+	b.WriteString(task)
+	return b.String()
+}
+
+type dspyAgentRunResult struct {
+	passed bool
+	output string
+	stderr string
+}
+
+func runClaudeEvalAgent(workDir, model, prompt string) (*dspyAgentRunResult, error) {
+	args := []string{
+		"--print",
+		"--output-format", "text",
+		"--model", trimAnthropicModelPrefix(model),
+		"--permission-mode", "bypassPermissions",
+		"--no-session-persistence",
+		"--strict-mcp-config",
+		"--disable-slash-commands",
+		"--no-chrome",
+	}
+	cmd := exec.Command("claude", args...)
+	cmd.Dir = workDir
+	cmd.Stdin = strings.NewReader(prompt)
+	cmd.Env = buildClaudeEvalEnv()
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	result := &dspyAgentRunResult{}
+	if err := cmd.Run(); err != nil {
+		result.output = strings.TrimSpace(stdout.String())
+		result.stderr = strings.TrimSpace(stderr.String())
+		if result.stderr != "" {
+			result.output = strings.TrimSpace(result.stderr)
+		}
+		if result.output == "" {
+			result.output = err.Error()
+		}
+		return result, nil
+	}
+
+	result.passed = true
+	result.output = strings.TrimSpace(stdout.String())
+	result.stderr = strings.TrimSpace(stderr.String())
+	return result, nil
+}
+
+func buildClaudeEvalEnv() []string {
+	env := os.Environ()
+	filtered := make([]string, 0, len(env))
+	for _, e := range env {
+		for _, prefix := range []string{"CLAUDECODE"} {
+			if strings.HasPrefix(e, prefix+"=") || strings.HasPrefix(e, prefix) {
+				goto skip
+			}
+		}
+		filtered = append(filtered, e)
+	skip:
+	}
+	return filtered
+}
+
+func trimAnthropicModelPrefix(model string) string {
+	return strings.TrimPrefix(model, "anthropic/")
+}
+
+func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
+	var paths []string
+	err := filepath.WalkDir(workDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if path == workDir {
+			return nil
+		}
+		name := filepath.Base(path)
+		if d.IsDir() {
+			if name == ".git" || strings.HasPrefix(name, ".claude") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, err := filepath.Rel(workDir, path)
+		if err != nil {
+			return err
+		}
+		paths = append(paths, rel)
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	sort.Strings(paths)
+
+	var b strings.Builder
+	for _, rel := range paths {
+		data, err := os.ReadFile(filepath.Join(workDir, rel))
+		if err != nil {
+			return "", err
+		}
+		b.WriteString("## ")
+		b.WriteString(rel)
+		b.WriteString("\n")
+		b.WriteString(string(data))
+		b.WriteString("\n\n")
+	}
+	if b.Len() == 0 && strings.TrimSpace(fallbackOutput) != "" {
+		b.WriteString("## final-response.txt\n")
+		b.WriteString(fallbackOutput)
+		b.WriteString("\n")
+	}
+	return b.String(), nil
+}
+
+func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result) error {
+	verifierDir := filepath.Join(variantDir, "verifier")
+	if err := os.MkdirAll(verifierDir, 0o755); err != nil {
+		return err
+	}
+	if err := writeDSPYAgentArtifacts(variantDir, agent); err != nil {
+		return err
+	}
+	rewardPayload, err := json.MarshalIndent(map[string]float64{"reward": judged.Reward}, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(verifierDir, "reward.json"), rewardPayload, 0o644); err != nil {
+		return err
+	}
+	scoresPayload, err := json.MarshalIndent(judged.Details, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(verifierDir, "scores.json"), scoresPayload, 0o644); err != nil {
+		return err
+	}
+	if judged.Reasoning != "" {
+		if err := os.WriteFile(filepath.Join(verifierDir, "reasoning.txt"), []byte(judged.Reasoning), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error {
+	if err := os.WriteFile(filepath.Join(variantDir, "agent-output.txt"), []byte(agent.output), 0o644); err != nil {
+		return err
+	}
+	if agent.stderr != "" {
+		if err := os.WriteFile(filepath.Join(variantDir, "agent-stderr.txt"), []byte(agent.stderr), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeDSPYRunSummary(runDir string, result evalResult) error {
+	type serializableTrial struct {
+		Name    string             `json:"name"`
+		LogDir  string             `json:"log_dir,omitempty"`
+		Reward  float64            `json:"reward"`
+		Details map[string]float64 `json:"details,omitempty"`
+		Error   string             `json:"error,omitempty"`
+	}
+	payload, err := json.MarshalIndent(map[string]any{
+		"task_name": result.taskName,
+		"without_context": func() *serializableTrial {
+			if result.withoutContext == nil {
+				return nil
+			}
+			return &serializableTrial{
+				Name:    result.withoutContext.name,
+				LogDir:  result.withoutContext.logDir,
+				Reward:  result.withoutContext.reward,
+				Details: result.withoutContext.details,
+				Error:   result.withoutContext.err,
+			}
+		}(),
+		"with_context": func() *serializableTrial {
+			if result.withContext == nil {
+				return nil
+			}
+			return &serializableTrial{
+				Name:    result.withContext.name,
+				LogDir:  result.withContext.logDir,
+				Reward:  result.withContext.reward,
+				Details: result.withContext.details,
+				Error:   result.withContext.err,
+			}
+		}(),
+	}, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(runDir, "result.json"), payload, 0o644)
 }
 
 type runGroup struct {
