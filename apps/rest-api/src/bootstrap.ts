@@ -202,6 +202,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     logger: app.log,
   });
 
+  // Eagerly warm the ONNX pipeline so the first user request doesn't pay
+  // the ~5 s cold-start cost (model load + runtime init). The health-check
+  // grace period (30 s) absorbs this.
+  const warmupStart = performance.now();
+  await embeddingService.embedPassage('warmup');
+  app.log.info(
+    { durationMs: Math.round(performance.now() - warmupStart) },
+    'Embedding pipeline warmed',
+  );
+
   // ── DBOS Plugin (handles full lifecycle) ───────────────────────
   await app.register(dbosPlugin, {
     databaseUrl: config.database.DATABASE_URL,
