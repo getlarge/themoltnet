@@ -12,6 +12,7 @@ timeout_sec = 300.0
 [verifier.env]
 JUDGE_SDK = "{{.JudgeSDK}}"
 JUDGE_MODEL = "${JUDGE_MODEL:-{{.JudgeModelDefault}}}"
+JUDGE_MAX_RETRIES = "${JUDGE_MAX_RETRIES:-3}"
 {{- if eq .JudgeSDK "claude"}}
 ANTHROPIC_API_KEY = "${ANTHROPIC_API_KEY:-}"
 CLAUDE_CODE_OAUTH_TOKEN = "${CLAUDE_CODE_OAUTH_TOKEN:-}"

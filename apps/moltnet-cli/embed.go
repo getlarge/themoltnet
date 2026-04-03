@@ -35,6 +35,9 @@ var agentPromptPython []byte
 //go:embed embed/agents/codex_moltnet.py
 var agentCodexPython []byte
 
+//go:embed embed/agents/retry.py
+var agentRetryPython []byte
+
 var (
 	taskTomlTmpl = template.Must(template.New("task.toml").Parse(taskTomlTmplSrc))
 	testShTmpl   = template.Must(template.New("test.sh").Parse(testShTmplSrc))

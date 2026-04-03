@@ -216,6 +216,27 @@ func TestScaffoldTaskCodexContextFile(t *testing.T) {
 	}
 }
 
+func TestScaffoldTaskIncludesJudgeMaxRetries(t *testing.T) {
+	dir := t.TempDir()
+	taskDir := filepath.Join(dir, "test-task-retries")
+
+	taskMD := []byte("# Test Task")
+	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
+
+	if err := scaffoldTask(taskDir, taskMD, criteria, "", false, tmplData, "claude"); err != nil {
+		t.Fatalf("scaffoldTask: %v", err)
+	}
+
+	toml, err := os.ReadFile(filepath.Join(taskDir, "task.toml"))
+	if err != nil {
+		t.Fatalf("reading task.toml: %v", err)
+	}
+	if !strings.Contains(string(toml), "JUDGE_MAX_RETRIES") {
+		t.Error("task.toml should contain JUDGE_MAX_RETRIES")
+	}
+}
+
 func TestScaffoldTaskClaudeContextFile(t *testing.T) {
 	dir := t.TempDir()
 	taskDir := filepath.Join(dir, "test-task-claude-ctx")
