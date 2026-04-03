@@ -58,6 +58,7 @@ Use --engine dspy for the lightweight Claude-only MVP path
 			agent, _ := cmd.Flags().GetString("agent")
 			judge, _ := cmd.Flags().GetString("judge")
 			judgeModel, _ := cmd.Flags().GetString("judge-model")
+			worktreeExcludes, _ := cmd.Flags().GetStringSlice("worktree-exclude")
 
 			if concurrency < 1 {
 				return fmt.Errorf("--concurrency must be at least 1")
@@ -90,13 +91,14 @@ Use --engine dspy for the lightweight Claude-only MVP path
 			}
 
 			opts := evalRunOpts{
-				engine:      engine,
-				model:       model,
-				concurrency: concurrency,
-				forceBuild:  forceBuild,
-				agent:       agent,
-				judge:       judge,
-				judgeModel:  judgeModel,
+				engine:           engine,
+				model:            model,
+				concurrency:      concurrency,
+				forceBuild:       forceBuild,
+				agent:            agent,
+				judge:            judge,
+				judgeModel:       judgeModel,
+				worktreeExcludes: worktreeExcludes,
 			}
 
 			if config != "" {
@@ -115,5 +117,6 @@ Use --engine dspy for the lightweight Claude-only MVP path
 	cmd.Flags().String("agent", "claude", "Agent to use: claude or codex")
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
+	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove before --engine dspy task execution")
 	return cmd
 }

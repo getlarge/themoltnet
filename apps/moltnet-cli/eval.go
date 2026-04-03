@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -21,13 +22,14 @@ import (
 
 // evalRunOpts holds flags shared by single-task and config modes.
 type evalRunOpts struct {
-	engine      string
-	model       string
-	concurrency int
-	forceBuild  bool
-	agent       string // "claude" | "codex"
-	judge       string // "claude" | "codex"
-	judgeModel  string // judge model (prefix-free)
+	engine           string
+	model            string
+	concurrency      int
+	forceBuild       bool
+	agent            string // "claude" | "codex"
+	judge            string // "claude" | "codex"
+	judgeModel       string // judge model (prefix-free)
+	worktreeExcludes []string
 }
 
 func validateEvalEngine(engine string) error {
@@ -37,6 +39,39 @@ func validateEvalEngine(engine string) error {
 	default:
 		return fmt.Errorf("unknown engine %q (must be harbor or dspy)", engine)
 	}
+}
+
+type dspyWorktreeFilter struct {
+	excludeGlobs []string
+}
+
+func newDefaultDSPYWorktreeFilter() dspyWorktreeFilter {
+	return dspyWorktreeFilter{
+		excludeGlobs: []string{
+			"AGENTS.md",
+			"CLAUDE.md",
+			".claude",
+			".claude/**",
+			".agents",
+			".agents/**",
+			".codex",
+			".codex/**",
+			"tiles/**/*.md",
+		},
+	}
+}
+
+func newDSPYWorktreeFilter(opts evalRunOpts) dspyWorktreeFilter {
+	filter := newDefaultDSPYWorktreeFilter()
+	for _, glob := range opts.worktreeExcludes {
+		glob = strings.Trim(strings.TrimSpace(filepath.ToSlash(glob)), "/")
+		if glob == "" {
+			continue
+		}
+		filter.excludeGlobs = append(filter.excludeGlobs, glob)
+	}
+	sort.Strings(filter.excludeGlobs)
+	return filter
 }
 
 func defaultAgentModel(agent string) string {
@@ -650,7 +685,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		return nil, fmt.Errorf("creating variant dir: %w", err)
 	}
 
-	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName)
+	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -720,7 +755,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	return scores, nil
 }
 
-func createDSPYEvalWorktree(parentDir, label string) (string, func() error, error) {
+func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, func() error, error) {
 	repoRoot, err := currentRepoRoot()
 	if err != nil {
 		return "", nil, err
@@ -734,7 +769,7 @@ func createDSPYEvalWorktree(parentDir, label string) (string, func() error, erro
 	if err := gitRun(repoRoot, "worktree", "add", "--detach", worktreeDir, strings.TrimSpace(headRef)); err != nil {
 		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, err)
 	}
-	if err := neutralizeClaudeProjectContext(worktreeDir); err != nil {
+	if err := neutralizeDSPYEvalWorktree(worktreeDir, newDSPYWorktreeFilter(opts)); err != nil {
 		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", err)
 	}
 
@@ -774,13 +809,112 @@ func gitRun(cwd string, args ...string) error {
 	return cmd.Run()
 }
 
-func neutralizeClaudeProjectContext(worktreeDir string) error {
-	for _, rel := range []string{"AGENTS.md", "CLAUDE.md", ".claude"} {
-		if err := os.RemoveAll(filepath.Join(worktreeDir, rel)); err != nil {
+func neutralizeDSPYEvalWorktree(worktreeDir string, filter dspyWorktreeFilter) error {
+	return filepath.WalkDir(worktreeDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
 			return err
 		}
+		if path == worktreeDir {
+			return nil
+		}
+		if d.IsDir() {
+			if filepath.Base(path) == ".git" {
+				return filepath.SkipDir
+			}
+			if filter.matches(relPath(worktreeDir, path), true) {
+				return os.RemoveAll(path)
+			}
+			return nil
+		}
+		if filter.matches(relPath(worktreeDir, path), false) {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func relPath(base, path string) string {
+	rel, err := filepath.Rel(base, path)
+	if err != nil {
+		return path
 	}
-	return nil
+	return filepath.ToSlash(rel)
+}
+
+func (f dspyWorktreeFilter) matches(rel string, isDir bool) bool {
+	rel = strings.Trim(strings.TrimSpace(filepath.ToSlash(rel)), "/")
+	if rel == "" {
+		return false
+	}
+	for _, glob := range f.excludeGlobs {
+		glob = strings.Trim(strings.TrimSpace(filepath.ToSlash(glob)), "/")
+		if glob == "" {
+			continue
+		}
+		if glob == rel {
+			return true
+		}
+		if strings.HasSuffix(glob, "/**") {
+			prefix := strings.TrimSuffix(glob, "/**")
+			if rel == prefix || strings.HasPrefix(rel, prefix+"/") {
+				return true
+			}
+		}
+		matched, err := doublestarMatch(glob, rel)
+		if err == nil && matched {
+			return true
+		}
+		if isDir {
+			matched, err = doublestarMatch(filepath.ToSlash(filepath.Join(glob, "*")), rel)
+			if err == nil && matched {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func doublestarMatch(pattern, name string) (bool, error) {
+	pattern = strings.Trim(strings.TrimSpace(filepath.ToSlash(pattern)), "/")
+	name = strings.Trim(strings.TrimSpace(filepath.ToSlash(name)), "/")
+	return matchSegments(strings.Split(pattern, "/"), strings.Split(name, "/"))
+}
+
+func matchSegments(patternParts, nameParts []string) (bool, error) {
+	if len(patternParts) == 0 {
+		return len(nameParts) == 0, nil
+	}
+
+	if patternParts[0] == "**" {
+		if len(patternParts) == 1 {
+			return true, nil
+		}
+		for i := 0; i <= len(nameParts); i++ {
+			matched, err := matchSegments(patternParts[1:], nameParts[i:])
+			if err != nil {
+				return false, err
+			}
+			if matched {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
+	if len(nameParts) == 0 {
+		return false, nil
+	}
+
+	matched, err := path.Match(patternParts[0], nameParts[0])
+	if err != nil || !matched {
+		return false, err
+	}
+	return matchSegments(patternParts[1:], nameParts[1:])
 }
 
 func parseChecklistCriteria(data []byte) (*evalChecklistCriteria, error) {
@@ -824,6 +958,7 @@ func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentR
 		"--model", trimAnthropicModelPrefix(model),
 		"--permission-mode", "bypassPermissions",
 		"--no-session-persistence",
+		"--settings", "{}",
 		"--strict-mcp-config",
 		"--disable-slash-commands",
 		"--no-chrome",
@@ -906,7 +1041,18 @@ func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 
 	var b strings.Builder
 	for _, rel := range paths {
-		data, err := os.ReadFile(filepath.Join(workDir, rel))
+		fullPath := filepath.Join(workDir, rel)
+		info, err := os.Stat(fullPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return "", err
+		}
+		if info.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(fullPath)
 		if err != nil {
 			return "", err
 		}
@@ -971,6 +1117,10 @@ func parseGitStatusPaths(output string) []string {
 	paths := make([]string, 0)
 	for _, raw := range strings.Split(output, "\n") {
 		if len(raw) < 4 {
+			continue
+		}
+		status := raw[:2]
+		if strings.Contains(status, "D") {
 			continue
 		}
 		path := strings.TrimSpace(raw[3:])

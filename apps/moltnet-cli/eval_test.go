@@ -625,6 +625,91 @@ func TestParseGitStatusPathsIgnoresNeutralizedFiles(t *testing.T) {
 	}
 }
 
+func TestParseGitStatusPathsSkipsDeletedEntries(t *testing.T) {
+	got := parseGitStatusPaths(" D .agents/skills/legreffier/SKILL.md\n M docs/guide.md\n")
+	if len(got) != 1 || got[0] != "docs/guide.md" {
+		t.Fatalf("unexpected paths: %v", got)
+	}
+}
+
+func TestNeutralizeDSPYEvalWorktreeUsesGlobExcludes(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.MkdirAll(filepath.Join(dir, ".agents", "skills"), 0o755); err != nil {
+		t.Fatalf("mkdir .agents: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "docs"), 0o755); err != nil {
+		t.Fatalf("mkdir docs: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".agents", "skills", "guide.md"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write .agents file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "docs", "guide.md"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write docs guide: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "keep.go"), []byte("package main"), 0o644); err != nil {
+		t.Fatalf("write go file: %v", err)
+	}
+
+	filter := newDSPYWorktreeFilter(evalRunOpts{
+		worktreeExcludes: []string{"docs/*.md"},
+	})
+	if !filter.matches(".agents/skills/guide.md", false) {
+		t.Fatal("expected default .agents exclusion to match")
+	}
+	if !filter.matches("docs/guide.md", false) {
+		t.Fatal("expected custom docs glob to match")
+	}
+	if err := neutralizeDSPYEvalWorktree(dir, filter); err != nil {
+		t.Fatalf("neutralizeDSPYEvalWorktree: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, ".agents")); !os.IsNotExist(err) {
+		t.Fatalf("expected .agents removed, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "docs", "guide.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected docs markdown removed, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "keep.go")); err != nil {
+		t.Fatalf("expected keep.go preserved: %v", err)
+	}
+}
+
+func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
+	filter := newDSPYWorktreeFilter(evalRunOpts{
+		worktreeExcludes: []string{
+			"docs/*.md",
+			"vendor/**",
+			"agents/*.md",
+		},
+	})
+
+	tests := []struct {
+		rel   string
+		isDir bool
+		want  bool
+	}{
+		{rel: "AGENTS.md", want: true},
+		{rel: ".claude/settings.json", want: true},
+		{rel: ".agents/skills/guide.md", want: true},
+		{rel: ".codex/config.toml", want: true},
+		{rel: "tiles/skill-a/evals/scenario-1/task.md", want: true},
+		{rel: "tiles/skill-a/evals/scenario-1/config.json", want: false},
+		{rel: "docs/guide.md", want: true},
+		{rel: "docs/nested/guide.md", want: false},
+		{rel: "vendor/pkg/file.go", want: true},
+		{rel: "agents/readme.md", want: true},
+		{rel: "agents/readme.txt", want: false},
+		{rel: "src/main.go", want: false},
+	}
+
+	for _, tt := range tests {
+		if got := filter.matches(tt.rel, tt.isDir); got != tt.want {
+			t.Errorf("filter.matches(%q, %v) = %v, want %v", tt.rel, tt.isDir, got, tt.want)
+		}
+	}
+}
+
 func TestValidateJudgeModel(t *testing.T) {
 	tests := []struct {
 		judge string
