@@ -18,11 +18,15 @@
       "config": {
         "courier": {},
         "identity": {
-          "default_schema_id": "moltnet_agent",
+          "default_schema_id": "moltnet_human",
           "schemas": [
             {
               "id": "moltnet_agent",
-              "url": "base64://${IDENTITY_SCHEMA_BASE64}"
+              "url": "base64://${IDENTITY_SCHEMA_AGENT_BASE64}"
+            },
+            {
+              "id": "moltnet_human",
+              "url": "base64://${IDENTITY_SCHEMA_HUMAN_BASE64}"
             }
           ]
         },
@@ -34,6 +38,58 @@
               "ui_url": "${APP_BASE_URL}/auth/error"
             },
             "login": {
+              "after": {
+                "oidc": {
+                  "hooks": [
+                    {
+                      "config": {
+                        "auth": {
+                          "config": {
+                            "in": "header",
+                            "name": "X-Ory-Api-Key",
+                            "value": "${ORY_ACTION_API_KEY}"
+                          },
+                          "type": "api_key"
+                        },
+                        "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "can_interrupt": false,
+                        "method": "POST",
+                        "response": {
+                          "ignore": false,
+                          "parse": false
+                        },
+                        "url": "${API_BASE_URL}/hooks/kratos/after-login"
+                      },
+                      "hook": "web_hook"
+                    }
+                  ]
+                },
+                "password": {
+                  "hooks": [
+                    {
+                      "config": {
+                        "auth": {
+                          "config": {
+                            "in": "header",
+                            "name": "X-Ory-Api-Key",
+                            "value": "${ORY_ACTION_API_KEY}"
+                          },
+                          "type": "api_key"
+                        },
+                        "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "can_interrupt": false,
+                        "method": "POST",
+                        "response": {
+                          "ignore": false,
+                          "parse": false
+                        },
+                        "url": "${API_BASE_URL}/hooks/kratos/after-login"
+                      },
+                      "hook": "web_hook"
+                    }
+                  ]
+                }
+              },
               "lifespan": "1h",
               "ui_url": "${APP_BASE_URL}/auth/login"
             },
@@ -47,6 +103,34 @@
             },
             "registration": {
               "after": {
+                "oidc": {
+                  "hooks": [
+                    {
+                      "config": {
+                        "auth": {
+                          "config": {
+                            "in": "header",
+                            "name": "X-Ory-Api-Key",
+                            "value": "${ORY_ACTION_API_KEY}"
+                          },
+                          "type": "api_key"
+                        },
+                        "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "can_interrupt": true,
+                        "method": "POST",
+                        "response": {
+                          "ignore": false,
+                          "parse": true
+                        },
+                        "url": "${API_BASE_URL}/hooks/kratos/after-registration"
+                      },
+                      "hook": "web_hook"
+                    },
+                    {
+                      "hook": "session"
+                    }
+                  ]
+                },
                 "password": {
                   "hooks": [
                     {
@@ -76,7 +160,7 @@
                   ]
                 }
               },
-              "enabled": false,
+              "enabled": true,
               "lifespan": "1h",
               "ui_url": "${APP_BASE_URL}/auth/registration"
             },
@@ -118,7 +202,10 @@
           },
           "methods": {
             "code": {
-              "enabled": false
+              "config": {
+                "lifespan": "15m"
+              },
+              "enabled": true
             },
             "link": {
               "enabled": false
@@ -167,7 +254,9 @@
               "diary:read",
               "diary:write",
               "crypto:sign",
-              "agent:profile"
+              "agent:profile",
+              "human:profile",
+              "team:read"
             ],
             "enabled": true
           },
@@ -197,10 +286,7 @@
           "refresh_token": "720h"
         },
         "urls": {
-          "consent": "${API_BASE_URL}/oauth2/consent",
           "error": "${APP_BASE_URL}/auth/error",
-          "login": "${API_BASE_URL}/oauth2/login",
-          "logout": "${API_BASE_URL}/oauth2/logout",
           "post_logout_redirect": "${APP_BASE_URL}/",
           "self": {
             "issuer": "${APP_BASE_URL}/"

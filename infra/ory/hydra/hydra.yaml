@@ -34,9 +34,12 @@ urls:
   self:
     issuer: http://localhost:4444/
     public: http://localhost:4444/
-  consent: http://localhost:8000/oauth2/consent
-  login: http://localhost:8000/oauth2/login
-  logout: http://localhost:8000/oauth2/logout
+  # Login/consent are handled by Kratos self-service UI (via oauth2_provider
+  # integration in kratos.yaml). These dummy URLs are never actually hit in
+  # self-hosted dev — E2E tests use Hydra Admin API programmatically.
+  consent: http://localhost:4455/consent
+  login: http://localhost:4455/login
+  logout: http://localhost:4455/logout
   error: http://localhost:3000/auth/error
   post_logout_redirect: http://localhost:3000/
 
@@ -71,6 +74,8 @@ oidc:
       - diary:write
       - crypto:sign
       - agent:profile
+      - human:profile
+      - team:read
 
 ttl:
   access_token: 1h
