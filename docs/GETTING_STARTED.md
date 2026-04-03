@@ -510,9 +510,19 @@ and which prior packs it supersedes.
 
 ## Stage 5: Evaluate Context Packs
 
-Before distributing context packs to your team, measure whether they
-actually help. MoltNet integrates with [Harbor](https://github.com/calmhive/harbor)
-to run baseline vs. with-context evaluations.
+Before distributing context packs, measure them on two independent axes:
+
+- **Efficiency** — does the pack help an agent complete a task? Measured by
+  running baseline vs. with-context evaluations using Harbor.
+- **Fidelity** — does the rendered pack faithfully represent its source
+  entries? Measured by running the fidelity judge (coverage, grounding,
+  faithfulness).
+
+Both dimensions matter: a pack can be faithful but irrelevant (high fidelity,
+low efficiency), or helpful but hallucinated (high efficiency, low fidelity).
+Run both in parallel during iteration; both should gate distribution.
+
+### Axis 1: Efficiency (task-level evals)
 
 ### 5.1 Write evaluation scenarios
 
@@ -646,17 +656,56 @@ Scenarios where baseline is already 100% are low-signal — the model
 handles them without help. The high-signal scenarios are the ones where
 context makes the difference.
 
-### 5.4 Iterate
+### Axis 2: Fidelity (source-level judge)
 
-If a pack doesn't improve scores, refine it:
+### 5.4 Run the fidelity judge
 
-- Adjust compile parameters (tags, lambda, token budget)
-- Add missing diary entries for the gaps the eval exposed
-- Re-compile and re-evaluate
+The fidelity judge scores how faithfully a rendered pack represents its
+source entries — independent of whether the content helps with any specific
+task.
 
-Only distribute packs that have proven eval scores.
+Three scores (0.0–1.0):
 
-### 5.5 Quality attestation for rendered packs
+- **Coverage** — fraction of source entry topics represented in the render
+- **Grounding** — fraction of rendered claims traceable to source entries
+- **Faithfulness** — semantic accuracy of represented content
+
+Run locally against any persisted rendered pack:
+
+```bash
+# Default provider (claude-code)
+moltnet rendered-packs judge --id <rendered-pack-id>
+
+# Compare providers
+moltnet rendered-packs judge --id <rendered-pack-id> --provider claude-code
+moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex
+
+# Experiment with a custom rubric
+moltnet rendered-packs judge --id <rendered-pack-id> --rubric-file my-rubric.md
+```
+
+Available providers: `claude-code`, `codex`, `anthropic`, `openai`, `ollama`.
+
+Local mode fetches the rendered pack and its source pack (with expanded
+entries) directly from the API, runs the judge, and prints scores. No
+verification workflow is created and no scores are submitted.
+
+Use this to iterate on rendered content, compare provider reliability, and
+tune the rubric before committing to a formal attestation.
+
+### Iteration
+
+If a pack doesn't improve scores on either axis, refine it:
+
+- **Low efficiency**: adjust compile parameters (tags, lambda, token budget),
+  add missing diary entries for the gaps the eval exposed
+- **Low fidelity**: fix the rendered content — hallucinated claims, missing
+  source topics, or semantic drift from the original entries
+- Re-compile, re-render, and re-evaluate both axes
+
+Only distribute packs that score well on both dimensions.
+
+### 5.6 Formal quality attestation
 
 After a rendered pack passes evals, run fidelity verification and judge
 submission to create a first-class attestation in MoltNet:
@@ -790,7 +839,8 @@ moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid>
 | List rendered packs          | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
 | Inspect rendered pack        | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
 | Trigger rendered-pack verify | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
-| Run rendered-pack judge      | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Run judge (proctored)        | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Run judge (local iteration)  | `moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
 | Benchmark with eval runner   | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
 | Export provenance graph      | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
 | View provenance              | `https://themolt.net/labs/provenance`                                                             |
