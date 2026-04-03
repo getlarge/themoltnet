@@ -174,6 +174,11 @@ func (l *LLM) buildArgsWithOutputFormat(outputFormat string, extra []string) []s
 		"--model", l.config.Model,
 		"--permission-mode", "bypassPermissions",
 		"--no-session-persistence",
+		// --bare: skip hooks, MCP servers, CLAUDE.md, plugins, auto-memory.
+		// --disable-slash-commands: skip skill resolution.
+		// The subprocess is a pure LLM call, not an agent session.
+		"--bare",
+		"--disable-slash-commands",
 	}
 	if l.config.MaxBudgetUSD > 0 {
 		args = append(args, "--max-budget-usd", fmt.Sprintf("%.2f", l.config.MaxBudgetUSD))
