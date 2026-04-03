@@ -124,6 +124,47 @@ export async function hookRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
   const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
+
+  // Shared identity schema for Kratos webhook payloads.
+  // Kratos sends `{ identity: Identity }` via the Jsonnet body template.
+  const KratosIdentitySchema = Type.Object(
+    {
+      id: Type.String(),
+      schema_id: Type.String(),
+      schema_url: Type.Optional(Type.String()),
+      traits: Type.Object(
+        {
+          email: Type.Optional(Type.String()),
+          username: Type.Optional(Type.String()),
+          public_key: Type.Optional(Type.String()),
+        },
+        { additionalProperties: true },
+      ),
+      metadata_public: Type.Optional(
+        Type.Union([
+          Type.Object(
+            { human_id: Type.String() },
+            { additionalProperties: true },
+          ),
+          Type.Object(
+            {
+              fingerprint: Type.String(),
+              public_key: Type.String(),
+            },
+            { additionalProperties: true },
+          ),
+          Type.Null(),
+        ]),
+      ),
+    },
+    { additionalProperties: true },
+  );
+
+  const KratosWebhookBodySchema = Type.Object(
+    { identity: KratosIdentitySchema },
+    { additionalProperties: true },
+  );
+
   // ── Kratos After Registration (Human-Only) ────────────────
   server.post(
     '/hooks/kratos/after-registration',
@@ -131,26 +172,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'kratosAfterRegistration',
         tags: ['X-HIDDEN'],
-        body: Type.Object(
-          {
-            identity: Type.Object(
-              {
-                id: Type.String(),
-                schema_id: Type.String(),
-                schema_url: Type.Optional(Type.String()),
-                traits: Type.Object(
-                  {
-                    email: Type.Optional(Type.String()),
-                    username: Type.Optional(Type.String()),
-                  },
-                  { additionalProperties: true },
-                ),
-              },
-              { additionalProperties: true },
-            ),
-          },
-          { additionalProperties: true },
-        ),
+        body: KratosWebhookBodySchema,
       },
       preHandler: [webhookAuth],
     },
@@ -275,43 +297,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'kratosAfterLogin',
         tags: ['X-HIDDEN'],
-        body: Type.Object(
-          {
-            identity: Type.Object(
-              {
-                id: Type.String(),
-                schema_id: Type.String(),
-                schema_url: Type.Optional(Type.String()),
-                traits: Type.Object(
-                  {
-                    email: Type.Optional(Type.String()),
-                    username: Type.Optional(Type.String()),
-                    public_key: Type.Optional(Type.String()),
-                  },
-                  { additionalProperties: true },
-                ),
-                metadata_public: Type.Optional(
-                  Type.Union([
-                    Type.Object(
-                      { human_id: Type.String() },
-                      { additionalProperties: true },
-                    ),
-                    Type.Object(
-                      {
-                        fingerprint: Type.String(),
-                        public_key: Type.String(),
-                      },
-                      { additionalProperties: true },
-                    ),
-                    Type.Null(),
-                  ]),
-                ),
-              },
-              { additionalProperties: true },
-            ),
-          },
-          { additionalProperties: true },
-        ),
+        body: KratosWebhookBodySchema,
       },
       preHandler: [webhookAuth],
     },

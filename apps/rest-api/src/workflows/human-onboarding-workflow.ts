@@ -105,7 +105,13 @@ export function initHumanOnboardingWorkflow(): void {
         throw new HumanOnboardingError(`Human record ${humanId} not found`);
       }
     },
-    { name: 'onboarding.step.setIdentityId', retriesAllowed: false },
+    {
+      name: 'onboarding.step.setIdentityId',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
   );
 
   const registerInKetoStep = DBOS.registerStep(
