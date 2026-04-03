@@ -24,6 +24,7 @@ export type {
   DiaryEntryRepository,
   EntryRelationRepository,
   GroupRepository,
+  HumanRepository,
   NonceRepository,
   RenderedPackRepository,
   SigningRequestRepository,
@@ -49,6 +50,7 @@ import type {
   DiaryEntryRepository,
   EntryRelationRepository,
   GroupRepository,
+  HumanRepository,
   RenderedPackRepository,
   SigningRequestRepository,
   TeamRepository,
@@ -76,6 +78,7 @@ declare module 'fastify' {
     entryRelationRepository: EntryRelationRepository;
     embeddingService: EmbeddingService;
     agentRepository: AgentRepository;
+    humanRepository: HumanRepository;
     cryptoService: CryptoService;
     voucherRepository: VoucherRepository;
     groupRepository: GroupRepository;

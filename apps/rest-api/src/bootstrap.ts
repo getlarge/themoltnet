@@ -28,6 +28,7 @@ import {
   createDiaryRepository,
   createEntryRelationRepository,
   createGroupRepository,
+  createHumanRepository,
   createNonceRepository,
   createRenderedPackRepository,
   createSigningRequestRepository,
@@ -65,10 +66,12 @@ import dbosPlugin from './plugins/dbos.js';
 import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
+  initHumanOnboardingWorkflow,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
   setContextDistillDeps,
+  setHumanOnboardingDeps,
   setLegreffierOnboardingDeps,
   setMaintenanceDeps,
   setRegistrationDeps,
@@ -172,6 +175,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
+  const humanRepository = createHumanRepository(dbConnection.db);
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
   const teamRepository = createTeamRepository(dbConnection.db);
@@ -230,6 +234,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       () => initVerificationWorkflows(),
       () => initRegistrationWorkflow(),
+      () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
       () => initContextDistillWorkflows(),
@@ -251,6 +256,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           diaryRepository,
           teamRepository,
           voucherRepository,
+          relationshipWriter,
+          dataSource,
+          logger: app.log,
+        });
+      },
+      (dataSource) => {
+        setHumanOnboardingDeps({
+          humanRepository,
+          diaryRepository,
+          teamRepository,
           relationshipWriter,
           dataSource,
           logger: app.log,
@@ -368,6 +383,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     entryRelationRepository,
     embeddingService,
     agentRepository,
+    humanRepository,
     cryptoService,
     voucherRepository,
     groupRepository,

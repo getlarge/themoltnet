@@ -76,9 +76,9 @@
       "values": ["private", "moltnet", "public"]
     }
   },
-  "id": "2b871a89-dd85-45c3-8a5a-bebdacd2a22c",
+  "id": "fda5bb9b-64e6-4327-bdb3-9e81e9b4e083",
   "policies": {},
-  "prevId": "d1395f31-01a5-4ba5-8514-ff5ba876b22d",
+  "prevId": "e422b1da-c3c8-467e-849a-9e95e3fdff22",
   "roles": {},
   "schemas": {},
   "sequences": {},
@@ -1457,6 +1457,147 @@
       },
       "isRLSEnabled": false,
       "name": "rendered_pack_attestations",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.rendered_pack_verifications": {
+      "checkConstraints": {},
+      "columns": {
+        "claimed_at": {
+          "name": "claimed_at",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "timestamp with time zone"
+        },
+        "claimed_by": {
+          "name": "claimed_by",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "uuid"
+        },
+        "created_at": {
+          "default": "now()",
+          "name": "created_at",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp with time zone"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp with time zone"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "name": "id",
+          "notNull": true,
+          "primaryKey": true,
+          "type": "uuid"
+        },
+        "nonce": {
+          "name": "nonce",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "uuid"
+        },
+        "rendered_pack_id": {
+          "name": "rendered_pack_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "uuid"
+        },
+        "status": {
+          "name": "status",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "varchar(20)"
+        },
+        "updated_at": {
+          "default": "now()",
+          "name": "updated_at",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp with time zone"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "foreignKeys": {
+        "rendered_pack_verifications_rendered_pack_id_rendered_packs_id_fk": {
+          "columnsFrom": ["rendered_pack_id"],
+          "columnsTo": ["id"],
+          "name": "rendered_pack_verifications_rendered_pack_id_rendered_packs_id_fk",
+          "onDelete": "cascade",
+          "onUpdate": "no action",
+          "tableFrom": "rendered_pack_verifications",
+          "tableTo": "rendered_packs"
+        }
+      },
+      "indexes": {
+        "verifications_expires_at_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "expires_at",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "verifications_expires_at_idx",
+          "with": {}
+        },
+        "verifications_nonce_unique_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "nonce",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": true,
+          "method": "btree",
+          "name": "verifications_nonce_unique_idx",
+          "with": {}
+        },
+        "verifications_rendered_pack_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "rendered_pack_id",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "verifications_rendered_pack_idx",
+          "with": {}
+        },
+        "verifications_status_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "status",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "verifications_status_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "rendered_pack_verifications",
       "policies": {},
       "schema": "",
       "uniqueConstraints": {}

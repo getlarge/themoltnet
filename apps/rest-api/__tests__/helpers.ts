@@ -24,6 +24,7 @@ import type {
   DiaryService,
   EmbeddingService,
   GroupRepository,
+  HumanRepository,
   NonceRepository,
   SigningRequestRepository,
   TeamRepository,
@@ -54,12 +55,12 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 export const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
+  subjectType: 'agent',
   identityId: OWNER_ID,
   publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
-  subjectType: 'agent',
   currentTeamId: null,
 };
 
@@ -117,6 +118,7 @@ export interface MockServices {
     [K in keyof DiaryService]: ReturnType<typeof vi.fn>;
   };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
+  humanRepository: { [K in keyof HumanRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   voucherRepository: {
     [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
@@ -287,6 +289,13 @@ export function createMockServices(): MockServices {
       listByTeamId: vi.fn().mockResolvedValue([]),
       delete: vi.fn(),
     },
+    humanRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findByIdentityId: vi.fn(),
+      setIdentityId: vi.fn(),
+      clearIdentityId: vi.fn(),
+    },
     agentRepository: {
       findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),
@@ -426,9 +435,22 @@ export async function createTestApp(
     }),
   } as unknown as OryClients['oauth2'];
 
+  const mockIdentityApi = {
+    listIdentitySchemas: vi.fn().mockResolvedValue([
+      {
+        id: 'moltnet_agent',
+        schema: { $id: 'https://schemas.themolt.net/agent.json' },
+      },
+      {
+        id: 'moltnet_human',
+        schema: { $id: 'https://schemas.themolt.net/human.json' },
+      },
+    ]),
+  } as unknown as OryClients['identity'];
+
   const mockOryClients: OryClients = {
     frontend: {} as OryClients['frontend'],
-    identity: {} as OryClients['identity'],
+    identity: mockIdentityApi,
     oauth2: mockOAuth2Api,
     permission: {} as OryClients['permission'],
     relationship: {} as OryClients['relationship'],
@@ -450,6 +472,7 @@ export async function createTestApp(
       mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
+    humanRepository: mocks.humanRepository as unknown as HumanRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
     signingRequestRepository:

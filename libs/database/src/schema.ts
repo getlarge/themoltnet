@@ -260,6 +260,28 @@ export const agentKeys = pgTable(
 );
 
 /**
+ * Human Table
+ *
+ * Minimal record for human users. Created during Kratos self-service
+ * registration (identityId is NULL at that point — Kratos returns an
+ * empty UUID). The real identityId is set during the onboarding
+ * workflow triggered by the after-login webhook.
+ */
+export const humans = pgTable('human', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Ory Kratos identity ID — NULL until first login (onboarding gate)
+  identityId: uuid('identity_id').unique(),
+
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/**
  * Agent Vouchers Table
  *
  * Voucher codes for the web-of-trust registration gate.
@@ -683,6 +705,8 @@ export type Diary = typeof diaries.$inferSelect;
 export type NewDiary = typeof diaries.$inferInsert;
 export type AgentKey = typeof agentKeys.$inferSelect;
 export type NewAgentKey = typeof agentKeys.$inferInsert;
+export type Human = typeof humans.$inferSelect;
+export type NewHuman = typeof humans.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;
 export type NewAgentVoucher = typeof agentVouchers.$inferInsert;
 export type SigningRequest = typeof signingRequests.$inferSelect;

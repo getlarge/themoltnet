@@ -47,12 +47,12 @@ const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const REQUEST_ID = '990e8400-e29b-41d4-a716-446655440010';
 
 const VALID_AUTH_CONTEXT: AuthContext = {
+  subjectType: 'agent',
   identityId: OWNER_ID,
   publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
-  subjectType: 'agent',
   currentTeamId: null,
 };
 

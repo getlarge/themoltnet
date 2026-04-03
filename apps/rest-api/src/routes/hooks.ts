@@ -9,18 +9,59 @@
 import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, type OryClients } from '@moltnet/auth';
+import type { OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
+import { DBOS, type HumanRepository } from '@moltnet/database';
+import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+import { humanOnboardingWorkflow } from '../workflows/index.js';
+
+// ── Ory Webhook Payload Types ───────────────────────────────
+// Kratos webhooks send `{ identity: Identity }` via the Jsonnet body
+// template `function(ctx) { identity: ctx.identity }`.
+// We extend `metadata_public` with MoltNet-specific fields.
+
+interface HumanTraits {
+  email: string;
+  username: string;
+}
+
+/** metadata_public set by after-registration webhook for humans */
+interface HumanMetadataPublic {
+  human_id: string;
+}
+
+/**
+ * Resolve the human schema ID by listing Kratos identity schemas
+ * and matching on the JSON `$id` containing "human".
+ * Same strategy the agent registration workflow uses.
+ */
+async function resolveHumanSchemaId(
+  identityApi: IdentityApi,
+): Promise<string | null> {
+  const schemas = await identityApi.listIdentitySchemas();
+  const humanSchema = schemas.find(
+    (s) => (s.schema as { $id?: string })?.$id?.includes('human') ?? false,
+  );
+  return humanSchema?.id ?? null;
+}
+
+function isHumanMetadata(
+  meta: object | null | undefined,
+): meta is HumanMetadataPublic {
+  return meta !== null && meta !== undefined && 'human_id' in meta;
+}
 
 // Webhook dependencies are accessed via decorators
 declare module 'fastify' {
   interface FastifyInstance {
     webhookApiKey: string;
     oauth2Client: OryClients['oauth2'];
+    humanRepository: HumanRepository;
+    identityApi: IdentityApi;
   }
 }
 
@@ -82,154 +123,94 @@ export async function hookRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
   const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
-  // ── Kratos After Registration ──────────────────────────────
+
+  // Shared identity schema for Kratos webhook payloads.
+  // Kratos sends `{ identity: Identity }` via the Jsonnet body template.
+  const KratosIdentitySchema = Type.Object(
+    {
+      id: Type.String(),
+      schema_id: Type.String(),
+      schema_url: Type.Optional(Type.String()),
+      traits: Type.Object(
+        {
+          email: Type.Optional(Type.String()),
+          username: Type.Optional(Type.String()),
+          public_key: Type.Optional(Type.String()),
+        },
+        { additionalProperties: true },
+      ),
+      metadata_public: Type.Optional(
+        Type.Union([
+          Type.Object(
+            { human_id: Type.String() },
+            { additionalProperties: true },
+          ),
+          Type.Object(
+            {
+              fingerprint: Type.String(),
+              public_key: Type.String(),
+            },
+            { additionalProperties: true },
+          ),
+          Type.Null(),
+        ]),
+      ),
+    },
+    { additionalProperties: true },
+  );
+
+  const KratosWebhookBodySchema = Type.Object(
+    { identity: KratosIdentitySchema },
+    { additionalProperties: true },
+  );
+
+  // ── Kratos After Registration (Human-Only) ────────────────
   server.post(
     '/hooks/kratos/after-registration',
     {
       schema: {
         operationId: 'kratosAfterRegistration',
         tags: ['X-HIDDEN'],
-        body: Type.Object({
-          identity: Type.Object({
-            id: Type.String(),
-            traits: Type.Object({
-              public_key: Type.String(),
-              voucher_code: Type.String(),
-            }),
-          }),
-        }),
+        body: KratosWebhookBodySchema,
       },
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body;
 
-      const { public_key, voucher_code } = identity.traits;
-
-      // ── Validate public_key format and Ed25519 key bytes ──────────
-      // Pure validation — no side effects, safe outside the transaction.
-      let publicKeyBytes: Uint8Array;
-      try {
-        publicKeyBytes = cryptoService.parsePublicKey(public_key);
-      } catch {
-        return reply
-          .status(400)
-          .send(
-            oryValidationError(
-              '#/traits/public_key',
-              4000001,
-              'public_key must use format "ed25519:<base64>" where <base64> is ' +
-                'your raw 32-byte Ed25519 public key encoded in base64.',
-            ),
-          );
-      }
-
-      if (publicKeyBytes.length !== 32) {
-        return reply
-          .status(400)
-          .send(
-            oryValidationError(
-              '#/traits/public_key',
-              4000001,
-              `public_key must be exactly 32 bytes (got ${publicKeyBytes.length}). ` +
-                'Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.',
-            ),
-          );
-      }
-
-      const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
-
-      // ── Transactional registration ────────────────────────────────
-      // Wrap all side effects so that if any step fails, the voucher
-      // remains valid and the agent record is not persisted.
-      // The Keto registration is inside the transaction: if it fails,
-      // the DB changes roll back and the voucher remains redeemable.
-      // If Keto succeeds, the transaction commits atomically with the
-      // voucher redemption and agent upsert.
-      const result = await fastify.transactionRunner.runInTransaction(
-        async () => {
-          const voucher = await fastify.voucherRepository.redeem(
-            voucher_code,
-            identity.id,
-          );
-
-          if (!voucher) {
-            return { rejected: true as const };
-          }
-
-          fastify.log.info(
-            {
-              identity_id: identity.id,
-              voucher_issuer: voucher.issuerId,
-            },
-            'Registration approved via voucher',
-          );
-
-          await fastify.agentRepository.upsert({
-            identityId: identity.id,
-            publicKey: public_key,
-            fingerprint,
-          });
-
-          await fastify.relationshipWriter.registerAgent(identity.id);
-
-          // Create personal team for the agent
-          const personalTeam = await fastify.teamRepository.create({
-            name: fingerprint,
-            personal: true,
-            createdBy: identity.id,
-            status: 'active',
-          });
-          await fastify.relationshipWriter.grantTeamOwners(
-            personalTeam.id,
-            identity.id,
-            KetoNamespace.Agent,
-          );
-
-          await fastify.diaryService.createDiary(
-            {
-              createdBy: identity.id,
-              name: 'Private',
-              visibility: 'private',
-              teamId: personalTeam.id,
-              subjectNs: KetoNamespace.Agent,
-            },
-            { withinTransaction: true },
-          );
-
-          return { rejected: false as const };
-        },
-        { name: 'hooks.after-registration' },
-      );
-
-      if (result.rejected) {
+      // Resolve the human schema ID dynamically — on Ory Network
+      // schema_id may be a hash, so match via the schema JSON $id.
+      const humanSchemaId = await resolveHumanSchemaId(fastify.identityApi);
+      if (identity.schema_id !== humanSchemaId) {
         fastify.log.warn(
-          { identity_id: identity.id },
-          'Registration rejected: invalid or expired voucher code',
+          { schema_id: identity.schema_id },
+          'After-registration webhook called with non-human schema — rejecting',
         );
         return reply
-          .status(403)
+          .status(400)
           .send(
             oryValidationError(
-              '#/traits/voucher_code',
-              4000003,
-              'Voucher code is invalid, expired, or already used.\n\n' +
-                'To join MoltNet, you need a voucher from an existing member.\n' +
-                'Ask an agent on the network to run the moltnet_vouch tool.\n' +
-                'They will receive a single-use code to share with you.\n' +
-                'Include it as voucher_code in your registration traits.',
+              '#/',
+              4000010,
+              'Self-service registration is only available for humans. ' +
+                'Agents must register via POST /auth/register.',
             ),
           );
       }
 
-      // Return identity update for Kratos (requires response.parse: true).
-      // Sets metadata_public so the fingerprint is available on the identity
-      // without an extra DB lookup.
+      // Create placeholder human record (identityId unknown at this point)
+      const human = await fastify.humanRepository.create();
+
+      fastify.log.info(
+        { human_id: human.id, schema_id: identity.schema_id },
+        'Human placeholder created via after-registration webhook',
+      );
+
+      // Return metadata_public so after-login hook can find this record
       return reply.status(200).send({
         identity: {
           metadata_public: {
-            fingerprint,
-            public_key: public_key,
+            human_id: human.id,
           },
         },
       });
@@ -243,14 +224,23 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'kratosAfterSettings',
         tags: ['X-HIDDEN'],
-        body: Type.Object({
-          identity: Type.Object({
-            id: Type.String(),
-            traits: Type.Object({
-              public_key: Type.String(),
-            }),
-          }),
-        }),
+        body: Type.Object(
+          {
+            identity: Type.Object(
+              {
+                id: Type.String(),
+                traits: Type.Object(
+                  {
+                    public_key: Type.String(),
+                  },
+                  { additionalProperties: true },
+                ),
+              },
+              { additionalProperties: true },
+            ),
+          },
+          { additionalProperties: true },
+        ),
       },
       preHandler: [webhookAuth],
     },
@@ -300,6 +290,85 @@ export async function hookRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // ── Kratos After Login ────────────────────────────────────
+  server.post(
+    '/hooks/kratos/after-login',
+    {
+      schema: {
+        operationId: 'kratosAfterLogin',
+        tags: ['X-HIDDEN'],
+        body: KratosWebhookBodySchema,
+      },
+      preHandler: [webhookAuth],
+    },
+    async (request, reply) => {
+      const { identity } = request.body;
+
+      const humanSchemaId = await resolveHumanSchemaId(fastify.identityApi);
+
+      // Only process human logins — agents don't use self-service login
+      if (identity.schema_id !== humanSchemaId) {
+        return reply.status(200).send({ success: true });
+      }
+
+      if (!isHumanMetadata(identity.metadata_public)) {
+        fastify.log.warn(
+          {
+            identity_id: identity.id,
+            schema_id: identity.schema_id,
+            metadata_public: identity.metadata_public,
+          },
+          'After-login: human identity missing human_id in metadata_public',
+        );
+        return reply.status(200).send({ success: true });
+      }
+
+      const humanId = identity.metadata_public.human_id;
+      const identityId = identity.id;
+
+      // Check if already onboarded
+      const human = await fastify.humanRepository.findById(humanId);
+      if (!human) {
+        fastify.log.warn(
+          { human_id: humanId, identity_id: identityId },
+          'After-login: human record not found',
+        );
+        return reply.status(200).send({ success: true });
+      }
+
+      if (human.identityId !== null) {
+        // Already onboarded — nothing to do
+        return reply.status(200).send({ success: true });
+      }
+
+      // Run DBOS durable workflow synchronously. The Kratos after-login
+      // hook has can_interrupt: false, so Kratos won't wait for our response
+      // regardless — but running synchronously ensures the workflow completes
+      // before any subsequent requests that depend on onboarding state.
+      const username =
+        (identity.traits as HumanTraits).username ?? identityId.slice(0, 8);
+
+      try {
+        const handle = await DBOS.startWorkflow(
+          humanOnboardingWorkflow.onboardHuman,
+        )(humanId, identityId, username);
+        await handle.getResult();
+
+        fastify.log.info(
+          { human_id: humanId, identity_id: identityId },
+          'Human onboarding completed',
+        );
+      } catch (error: unknown) {
+        fastify.log.error(
+          { err: error, human_id: humanId, identity_id: identityId },
+          'Human onboarding failed — will retry on next login',
+        );
+      }
+
+      return reply.status(200).send({ success: true });
+    },
+  );
+
   // ── Hydra Token Exchange ───────────────────────────────────
   server.post(
     '/hooks/hydra/token-exchange',
@@ -307,18 +376,42 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'hydraTokenExchange',
         tags: ['X-HIDDEN'],
-        body: Type.Object({
-          session: Type.Any(),
-          request: Type.Object({
-            client_id: Type.String(),
-            grant_types: Type.Array(Type.String()),
-          }),
-        }),
+        body: Type.Object(
+          {
+            session: Type.Object(
+              {
+                id_token: Type.Optional(
+                  Type.Object(
+                    {
+                      subject: Type.String(),
+                    },
+                    { additionalProperties: true },
+                  ),
+                ),
+                extra: Type.Optional(
+                  Type.Record(Type.String(), Type.Unknown()),
+                ),
+                client_id: Type.Optional(Type.String()),
+              },
+              { additionalProperties: true },
+            ),
+            request: Type.Object(
+              {
+                client_id: Type.String(),
+                grant_types: Type.Array(Type.String()),
+                granted_scopes: Type.Optional(Type.Array(Type.String())),
+                granted_audience: Type.Optional(Type.Array(Type.String())),
+              },
+              { additionalProperties: true },
+            ),
+          },
+          { additionalProperties: true },
+        ),
       },
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      const { request: tokenRequest } = request.body;
+      const { request: tokenRequest, session } = request.body;
 
       try {
         // Fetch OAuth2 client metadata from Hydra to get identity_id
@@ -326,63 +419,75 @@ export async function hookRoutes(fastify: FastifyInstance) {
           id: tokenRequest.client_id,
         });
 
-        if (!isMoltNetMetadata(clientData.metadata)) {
-          fastify.log.warn(
-            { client_id: tokenRequest.client_id },
-            'Token exchange rejected: OAuth2 client has no MoltNet metadata',
-          );
-          return await reply.status(403).send({
-            error: 'invalid_client_metadata',
-            error_description: 'OAuth2 client is not a MoltNet agent',
+        // ── Agent path ───────────────────────────────────────────
+        if (isMoltNetMetadata(clientData.metadata)) {
+          const identityId = clientData.metadata.identity_id;
+
+          const agent =
+            await fastify.agentRepository.findByIdentityId(identityId);
+
+          if (!agent) {
+            fastify.log.warn(
+              {
+                identity_id: identityId,
+                client_id: tokenRequest.client_id,
+              },
+              'Token exchange: no agent record for identity',
+            );
+            return await reply.status(403).send({
+              error: 'agent_not_found',
+              error_description: 'No agent record found for identity',
+            });
+          }
+
+          return await reply.status(200).send({
+            session: {
+              access_token: {
+                'moltnet:identity_id': agent.identityId,
+                'moltnet:public_key': agent.publicKey,
+                'moltnet:fingerprint': agent.fingerprint,
+                'moltnet:subject_type': 'agent',
+              },
+            },
           });
         }
 
-        const identityId = clientData.metadata.identity_id;
+        // ── Human path ───────────────────────────────────────────
+        // For authorization_code grants, the session id_token contains
+        // the subject set during login acceptance (Kratos identity ID)
+        const subject = session.id_token?.subject;
+        if (subject) {
+          const human = await fastify.humanRepository.findByIdentityId(subject);
 
-        // Look up agent from database
-        const agent =
-          await fastify.agentRepository.findByIdentityId(identityId);
-
-        if (!agent) {
-          fastify.log.warn(
-            {
-              identity_id: identityId,
-              client_id: tokenRequest.client_id,
-              missing_claims: ['public_key', 'fingerprint'],
-            },
-            'Token exchange rejected: no agent record for identity_id',
-          );
-          return await reply.status(403).send({
-            error: 'agent_not_found',
-            error_description: 'No agent record found for identity',
-          });
+          if (human) {
+            return await reply.status(200).send({
+              session: {
+                access_token: {
+                  'moltnet:identity_id': subject,
+                  'moltnet:subject_type': 'human',
+                },
+              },
+            });
+          }
         }
 
-        // Return enriched claims
-        const subjectType =
-          (clientData.metadata as unknown as Record<string, string>).type ===
-          'moltnet_human'
-            ? 'human'
-            : 'agent';
-
-        return await reply.status(200).send({
-          session: {
-            access_token: {
-              'moltnet:identity_id': agent.identityId,
-              'moltnet:public_key': agent.publicKey,
-              'moltnet:fingerprint': agent.fingerprint,
-              'moltnet:subject_type': subjectType,
-            },
-          },
+        // ── Neither agent nor human ──────────────────────────────
+        fastify.log.warn(
+          { client_id: tokenRequest.client_id },
+          'Token exchange: no MoltNet identity found',
+        );
+        return await reply.status(403).send({
+          error: 'identity_not_found',
+          error_description: 'No agent or human record found for this client',
         });
       } catch (error) {
         fastify.log.error(
           { error, client_id: tokenRequest.client_id },
-          'Token exchange failed: error enriching token',
+          'Token exchange failed',
         );
         return reply.status(500).send({
           error: 'enrichment_failed',
-          error_description: 'Failed to enrich token with agent claims',
+          error_description: 'Failed to enrich token',
         });
       }
     },

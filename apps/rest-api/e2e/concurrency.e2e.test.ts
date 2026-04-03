@@ -231,76 +231,43 @@ describe('Concurrency and Atomicity', () => {
         issuerId: harness.bootstrapIdentityId,
       });
 
-      // Create two identities that will race to redeem the same voucher
+      // Two agents race to register with the same voucher via DBOS workflow
       const keyPairA = await cryptoService.generateKeyPair();
       const keyPairB = await cryptoService.generateKeyPair();
 
-      const identityA = await harness.identityApi.createIdentity({
-        createIdentityBody: {
-          schema_id: 'moltnet_agent',
-          traits: {
+      // Race: both call POST /auth/register with the same voucher
+      const [respA, respB] = await Promise.all([
+        fetch(`${harness.baseUrl}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
             public_key: keyPairA.publicKey,
             voucher_code: sharedVoucher,
-          },
-          credentials: {
-            password: { config: { password: 'e2e-race-agent-a' } },
-          },
-        },
-      });
-
-      const identityB = await harness.identityApi.createIdentity({
-        createIdentityBody: {
-          schema_id: 'moltnet_agent',
-          traits: {
-            public_key: keyPairB.publicKey,
-            voucher_code: sharedVoucher,
-          },
-          credentials: {
-            password: { config: { password: 'e2e-race-agent-b' } },
-          },
-        },
-      });
-
-      // Race: both call the after-registration webhook with the same voucher
-      const [respA, respB] = await Promise.all([
-        fetch(`${harness.baseUrl}/hooks/kratos/after-registration`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-ory-api-key': harness.webhookApiKey,
-          },
-          body: JSON.stringify({
-            identity: {
-              id: identityA.id,
-              traits: {
-                public_key: keyPairA.publicKey,
-                voucher_code: sharedVoucher,
-              },
-            },
           }),
         }),
-        fetch(`${harness.baseUrl}/hooks/kratos/after-registration`, {
+        fetch(`${harness.baseUrl}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-ory-api-key': harness.webhookApiKey,
+            Accept: 'application/json',
           },
           body: JSON.stringify({
-            identity: {
-              id: identityB.id,
-              traits: {
-                public_key: keyPairB.publicKey,
-                voucher_code: sharedVoucher,
-              },
-            },
+            public_key: keyPairB.publicKey,
+            voucher_code: sharedVoucher,
           }),
         }),
       ]);
 
       const statuses = [respA.status, respB.status].sort();
 
-      // Exactly one should succeed (200), the other should fail (403)
-      expect(statuses).toEqual([200, 403]);
+      // Exactly one should succeed (200), the other should fail:
+      // - 403: voucher already redeemed (checked before Kratos identity creation)
+      // - 502: upstream error (Kratos identity creation or DBOS workflow step fails)
+      expect(statuses[0]).toBe(200);
+      expect([403, 502]).toContain(statuses[1]);
     });
   });
 });

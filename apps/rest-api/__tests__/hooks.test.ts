@@ -1,4 +1,3 @@
-import { cryptoService } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
 import type { vi } from 'vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -6,13 +5,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createMockAgent,
   createMockServices,
-  createMockVoucher,
   createTestApp,
-  DIARY_ID,
   type MockServices,
   OWNER_ID,
   TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
+
+const HUMAN_ID = '110e8400-e29b-41d4-a716-446655440099';
+const HUMAN_IDENTITY_ID = '220e8400-e29b-41d4-a716-446655440088';
 
 describe('Hook routes', () => {
   let app: FastifyInstance;
@@ -25,43 +25,21 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/kratos/after-registration', () => {
-    const testPublicKey =
-      'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
-    const expectedFingerprint = cryptoService.generateFingerprint(
-      cryptoService.parsePublicKey(testPublicKey),
-    );
-
-    const validPayload = {
+    const validHumanPayload = {
       identity: {
-        id: OWNER_ID,
+        id: '00000000-0000-0000-0000-000000000000', // empty UUID from Kratos
+        schema_id: 'moltnet_human',
         traits: {
-          public_key: testPublicKey,
-          voucher_code: 'a'.repeat(64),
+          email: 'human@test.local',
+          username: 'testuser',
         },
       },
     };
 
-    it('creates agent entry when voucher is valid', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
-      mocks.relationshipWriter.grantTeamOwners.mockResolvedValue(undefined);
-      mocks.teamRepository.create.mockResolvedValue({
-        id: '00000000-0000-4000-b000-000000000001',
-        name: 'test',
-        status: 'active',
-        personal: true,
-        createdBy: OWNER_ID,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mocks.diaryService.createDiary.mockResolvedValue({
-        id: DIARY_ID,
-        createdBy: OWNER_ID,
-        teamId: '00000000-0000-4000-b000-000000000001',
-        name: 'Private',
-        visibility: 'private',
-        signed: false,
+    it('creates human placeholder when schema is human', async () => {
+      mocks.humanRepository.create.mockResolvedValue({
+        id: HUMAN_ID,
+        identityId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -70,73 +48,18 @@ describe('Hook routes', () => {
         method: 'POST',
         url: '/hooks/kratos/after-registration',
         headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: validPayload,
+        payload: validHumanPayload,
       });
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.identity.metadata_public).toEqual({
-        fingerprint: expectedFingerprint,
-        public_key: testPublicKey,
+        human_id: HUMAN_ID,
       });
-      expect(mocks.transactionRunner.runInTransaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        { name: 'hooks.after-registration' },
-      );
-      expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
-        'a'.repeat(64),
-        OWNER_ID,
-      );
-      expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
-        identityId: OWNER_ID,
-        publicKey: testPublicKey,
-        fingerprint: expectedFingerprint,
-      });
-      expect(mocks.relationshipWriter.registerAgent).toHaveBeenCalledWith(
-        OWNER_ID,
-      );
+      expect(mocks.humanRepository.create).toHaveBeenCalled();
     });
 
-    it('rejects registration with invalid voucher (Ory error format)', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(null);
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-registration',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: validPayload,
-      });
-
-      expect(response.statusCode).toBe(403);
-      const body = response.json();
-      expect(body.messages).toHaveLength(1);
-      expect(body.messages[0].instance_ptr).toBe('#/traits/voucher_code');
-      expect(body.messages[0].messages[0].id).toBe(4000003);
-      expect(body.messages[0].messages[0].type).toBe('error');
-      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
-      expect(mocks.relationshipWriter.registerAgent).not.toHaveBeenCalled();
-    });
-
-    it('rolls back transaction when Keto registration fails', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.relationshipWriter.registerAgent.mockRejectedValue(
-        new Error('Keto unavailable'),
-      );
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-registration',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: validPayload,
-      });
-
-      expect(response.statusCode).toBe(500);
-      expect(mocks.voucherRepository.redeem).toHaveBeenCalled();
-      expect(mocks.agentRepository.upsert).toHaveBeenCalled();
-    });
-
-    it('rejects registration with invalid public_key format', async () => {
+    it('rejects non-human schema registration', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-registration',
@@ -144,10 +67,8 @@ describe('Hook routes', () => {
         payload: {
           identity: {
             id: OWNER_ID,
-            traits: {
-              public_key: 'rsa:not-an-ed25519-key',
-              voucher_code: 'a'.repeat(64),
-            },
+            schema_id: 'moltnet_agent',
+            traits: { email: 'a@b.c', username: 'x' },
           },
         },
       });
@@ -155,10 +76,8 @@ describe('Hook routes', () => {
       expect(response.statusCode).toBe(400);
       const body = response.json();
       expect(body.messages).toHaveLength(1);
-      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
-      expect(body.messages[0].messages[0].id).toBe(4000001);
-      expect(body.messages[0].messages[0].text).toContain('32 bytes');
-      expect(mocks.voucherRepository.redeem).not.toHaveBeenCalled();
+      expect(body.messages[0].messages[0].id).toBe(4000010);
+      expect(mocks.humanRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -220,6 +139,47 @@ describe('Hook routes', () => {
       });
     });
 
+    it('enriches token with human claims from session', async () => {
+      // Client has no MoltNet agent metadata (DCR client)
+      (
+        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
+      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+        client_id: 'dcr-client',
+        metadata: {},
+      });
+
+      mocks.humanRepository.findByIdentityId.mockResolvedValue({
+        id: HUMAN_ID,
+        identityId: HUMAN_IDENTITY_ID,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {
+            id_token: {
+              subject: HUMAN_IDENTITY_ID,
+            },
+          },
+          request: {
+            client_id: 'dcr-client',
+            grant_types: ['authorization_code'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.session.access_token).toEqual({
+        'moltnet:identity_id': HUMAN_IDENTITY_ID,
+        'moltnet:subject_type': 'human',
+      });
+    });
+
     it('rejects with 403 when agent not found', async () => {
       mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
 
@@ -241,15 +201,13 @@ describe('Hook routes', () => {
       expect(body.error).toBe('agent_not_found');
     });
 
-    it('rejects with 403 when client has no MoltNet metadata', async () => {
-      // Override the default mock to return client without identity_id
+    it('rejects with 403 when no identity found', async () => {
+      // Client has no MoltNet metadata, no session claims
       (
         app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
       ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
-        data: {
-          client_id: 'hydra-client-uuid',
-          metadata: { type: 'not_moltnet' },
-        },
+        client_id: 'unknown-client',
+        metadata: {},
       });
 
       const response = await app.inject({
@@ -259,7 +217,7 @@ describe('Hook routes', () => {
         payload: {
           session: {},
           request: {
-            client_id: 'hydra-client-uuid',
+            client_id: 'unknown-client',
             grant_types: ['client_credentials'],
           },
         },
@@ -267,7 +225,7 @@ describe('Hook routes', () => {
 
       expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.error).toBe('invalid_client_metadata');
+      expect(body.error).toBe('identity_not_found');
     });
 
     it('returns 500 when OAuth2 client fetch fails', async () => {
@@ -297,20 +255,19 @@ describe('Hook routes', () => {
   });
 
   describe('webhook API key validation', () => {
+    const validHumanPayload = {
+      identity: {
+        id: '00000000-0000-0000-0000-000000000000',
+        schema_id: 'moltnet_human',
+        traits: { email: 'a@b.c', username: 'test' },
+      },
+    };
+
     it('rejects request without API key header', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-registration',
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              public_key:
-                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
-              voucher_code: 'a'.repeat(64),
-            },
-          },
-        },
+        payload: validHumanPayload,
       });
 
       expect(response.statusCode).toBe(401);
@@ -325,16 +282,7 @@ describe('Hook routes', () => {
         method: 'POST',
         url: '/hooks/kratos/after-registration',
         headers: { 'x-ory-api-key': 'wrong-key' },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              public_key:
-                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
-              voucher_code: 'a'.repeat(64),
-            },
-          },
-        },
+        payload: validHumanPayload,
       });
 
       expect(response.statusCode).toBe(401);
@@ -345,26 +293,9 @@ describe('Hook routes', () => {
     });
 
     it('accepts request with valid API key', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
-      mocks.relationshipWriter.grantTeamOwners.mockResolvedValue(undefined);
-      mocks.teamRepository.create.mockResolvedValue({
-        id: '00000000-0000-4000-b000-000000000001',
-        name: 'test',
-        status: 'active',
-        personal: true,
-        createdBy: OWNER_ID,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mocks.diaryService.createDiary.mockResolvedValue({
-        id: DIARY_ID,
-        createdBy: OWNER_ID,
-        teamId: '00000000-0000-4000-b000-000000000001',
-        name: 'Private',
-        visibility: 'private',
-        signed: false,
+      mocks.humanRepository.create.mockResolvedValue({
+        id: HUMAN_ID,
+        identityId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -373,16 +304,7 @@ describe('Hook routes', () => {
         method: 'POST',
         url: '/hooks/kratos/after-registration',
         headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              public_key:
-                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
-              voucher_code: 'a'.repeat(64),
-            },
-          },
-        },
+        payload: validHumanPayload,
       });
 
       expect(response.statusCode).toBe(200);
