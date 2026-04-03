@@ -71,6 +71,10 @@ export {
   type GroupRepository,
 } from './repositories/group.repository.js';
 export {
+  createHumanRepository,
+  type HumanRepository,
+} from './repositories/human.repository.js';
+export {
   createNonceRepository,
   type NonceRepository,
 } from './repositories/nonce.repository.js';

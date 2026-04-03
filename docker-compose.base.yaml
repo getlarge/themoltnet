@@ -54,6 +54,7 @@ services:
     volumes:
       - ./infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
       - ./infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
+      - ./infra/ory/human-identity-schema.json:/etc/config/kratos/human-identity-schema.json:ro
     healthcheck:
       test:
         ['CMD', 'wget', '--spider', '-q', 'http://localhost:4433/health/alive']

@@ -58,7 +58,9 @@ export {
   type TokenValidatorConfig,
 } from './token-validator.js';
 export type {
+  AgentAuthContext,
   AuthContext,
+  HumanAuthContext,
   IntrospectionResult,
   IntrospectionResultActive,
   IntrospectionResultInactive,

@@ -13,7 +13,13 @@ import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
 import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
 
-import type { AuthContext, IntrospectionResult, SubjectType } from './types.js';
+import type {
+  AgentAuthContext,
+  AuthContext,
+  HumanAuthContext,
+  IntrospectionResult,
+  SubjectType,
+} from './types.js';
 
 export interface TokenValidatorConfig {
   /** Ory Hydra JWKS URI (e.g. https://<project>.projects.oryapis.com/.well-known/jwks.json) */
@@ -52,24 +58,39 @@ function extractAuthContextFromClaims(
   scopes: string[],
 ): AuthContext | null {
   const identityId = claims['moltnet:identity_id'] as string | undefined;
-  const publicKey = claims['moltnet:public_key'] as string | undefined;
-  const fingerprint = claims['moltnet:fingerprint'] as string | undefined;
   const subjectType =
     (claims['moltnet:subject_type'] as SubjectType) ?? 'agent';
 
-  if (!identityId || !publicKey || !fingerprint) {
+  if (!identityId) {
+    return null;
+  }
+
+  if (subjectType === 'human') {
+    return {
+      subjectType: 'human',
+      identityId,
+      clientId: clientId || null,
+      scopes,
+      currentTeamId: null,
+    } satisfies HumanAuthContext;
+  }
+
+  const publicKey = claims['moltnet:public_key'] as string | undefined;
+  const fingerprint = claims['moltnet:fingerprint'] as string | undefined;
+
+  if (!publicKey || !fingerprint) {
     return null;
   }
 
   return {
+    subjectType: 'agent',
     identityId,
     publicKey,
     fingerprint,
     clientId,
     scopes,
-    subjectType,
-    currentTeamId: null, // resolved later by auth plugin
-  };
+    currentTeamId: null,
+  } satisfies AgentAuthContext;
 }
 
 async function fetchClientMetadata(
@@ -88,26 +109,38 @@ async function fetchClientMetadata(
     }
 
     const metaIdentityId = metadata.identity_id;
-    const metaPublicKey = metadata.public_key;
-    const metaFingerprint = metadata.fingerprint;
-
-    if (!metaIdentityId || !metaPublicKey || !metaFingerprint) {
+    if (!metaIdentityId) {
       return null;
     }
 
     const metaType = metadata.type;
-    const subjectType: SubjectType =
-      metaType === 'moltnet_human' ? 'human' : 'agent';
+
+    if (metaType === 'moltnet_human') {
+      return {
+        subjectType: 'human',
+        identityId: metaIdentityId,
+        clientId: clientId || null,
+        scopes,
+        currentTeamId: null,
+      } satisfies HumanAuthContext;
+    }
+
+    const metaPublicKey = metadata.public_key;
+    const metaFingerprint = metadata.fingerprint;
+
+    if (!metaPublicKey || !metaFingerprint) {
+      return null;
+    }
 
     return {
+      subjectType: 'agent',
       identityId: metaIdentityId,
       publicKey: metaPublicKey,
       fingerprint: metaFingerprint,
       clientId,
       scopes,
-      subjectType,
-      currentTeamId: null, // resolved later by auth plugin
-    };
+      currentTeamId: null,
+    } satisfies AgentAuthContext;
   } catch {
     return null;
   }

@@ -136,7 +136,14 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       preHandler: [requireAuth],
     },
     async (request) => {
-      const { clientId } = request.authContext!;
+      const authContext = request.authContext!;
+      if (authContext.subjectType !== 'agent') {
+        throw createProblem(
+          'forbidden',
+          'Only agents can rotate client secrets',
+        );
+      }
+      const { clientId } = authContext;
 
       // Fetch current client config
       let existingClient;
