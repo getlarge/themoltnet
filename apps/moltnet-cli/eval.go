@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -639,21 +640,34 @@ func validateDSPYEvalOpts(opts evalRunOpts) error {
 
 func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opts evalRunOpts) (*trialScores, error) {
 	variantName := input.name
+	variantLabel := "without context"
 	if withContext {
 		variantName += "-with-context"
+		variantLabel = "with context"
 	}
 	variantDir := filepath.Join(runDir, variantName+"__dspy")
 	if err := os.MkdirAll(variantDir, 0o755); err != nil {
 		return nil, fmt.Errorf("creating variant dir: %w", err)
 	}
 
+	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := cleanupWorktree(); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not remove dspy worktree %s: %v\n", worktreeDir, err)
+		}
+	}()
+
+	fmt.Fprintf(os.Stderr, "[dspy] %s: running Claude task step...\n", variantLabel)
 	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
-	agentResult, err := runClaudeEvalAgent(variantDir, opts.model, prompt)
+	agentResult, err := runClaudeEvalAgent(worktreeDir, opts.model, prompt, variantLabel)
 	if err != nil {
 		return nil, err
 	}
 
-	filesSnapshot, err := buildWorkspaceSnapshot(variantDir, agentResult.output)
+	filesSnapshot, err := buildWorkspaceSnapshot(worktreeDir, agentResult.output)
 	if err != nil {
 		return nil, fmt.Errorf("snapshot workspace: %w", err)
 	}
@@ -681,6 +695,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	fmt.Fprintf(os.Stderr, "[dspy] %s: judging checklist...\n", variantLabel)
 	judged, err := checklist.Run(ctx, checklist.Request{
 		Provider:         "claude-code",
 		Model:            trimAnthropicModelPrefix(opts.judgeModel),
@@ -701,7 +716,71 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
 	}
+	fmt.Fprintf(os.Stderr, "[dspy] %s: completed (reward %.1f%%)\n", variantLabel, scores.reward*100)
 	return scores, nil
+}
+
+func createDSPYEvalWorktree(parentDir, label string) (string, func() error, error) {
+	repoRoot, err := currentRepoRoot()
+	if err != nil {
+		return "", nil, err
+	}
+	headRef, err := gitOutput(repoRoot, "rev-parse", "HEAD")
+	if err != nil {
+		return "", nil, err
+	}
+
+	worktreeDir := filepath.Join(parentDir, "workspace")
+	if err := gitRun(repoRoot, "worktree", "add", "--detach", worktreeDir, strings.TrimSpace(headRef)); err != nil {
+		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, err)
+	}
+	if err := neutralizeClaudeProjectContext(worktreeDir); err != nil {
+		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", err)
+	}
+
+	cleanup := func() error {
+		return gitRun(repoRoot, "worktree", "remove", "--force", worktreeDir)
+	}
+	return worktreeDir, cleanup, nil
+}
+
+func currentRepoRoot() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
+	root, err := gitOutput(wd, "rev-parse", "--show-toplevel")
+	if err != nil {
+		return "", fmt.Errorf("resolve repo root: %w", err)
+	}
+	return strings.TrimSpace(root), nil
+}
+
+func gitOutput(cwd string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+func gitRun(cwd string, args ...string) error {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = cwd
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func neutralizeClaudeProjectContext(worktreeDir string) error {
+	for _, rel := range []string{"AGENTS.md", "CLAUDE.md", ".claude"} {
+		if err := os.RemoveAll(filepath.Join(worktreeDir, rel)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func parseChecklistCriteria(data []byte) (*evalChecklistCriteria, error) {
@@ -738,7 +817,7 @@ type dspyAgentRunResult struct {
 	stderr string
 }
 
-func runClaudeEvalAgent(workDir, model, prompt string) (*dspyAgentRunResult, error) {
+func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
 	args := []string{
 		"--print",
 		"--output-format", "text",
@@ -756,10 +835,13 @@ func runClaudeEvalAgent(workDir, model, prompt string) (*dspyAgentRunResult, err
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
 
 	result := &dspyAgentRunResult{}
+	done := make(chan struct{})
+	go emitDSPYTaskHeartbeat(statusLabel, done)
 	if err := cmd.Run(); err != nil {
+		close(done)
 		result.output = strings.TrimSpace(stdout.String())
 		result.stderr = strings.TrimSpace(stderr.String())
 		if result.stderr != "" {
@@ -770,11 +852,31 @@ func runClaudeEvalAgent(workDir, model, prompt string) (*dspyAgentRunResult, err
 		}
 		return result, nil
 	}
+	close(done)
 
 	result.passed = true
 	result.output = strings.TrimSpace(stdout.String())
 	result.stderr = strings.TrimSpace(stderr.String())
 	return result, nil
+}
+
+func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	start := time.Now()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			fmt.Fprintf(
+				os.Stderr,
+				"[dspy] %s: Claude task still running (%s elapsed)\n",
+				statusLabel,
+				time.Since(start).Round(time.Second),
+			)
+		}
+	}
 }
 
 func buildClaudeEvalEnv() []string {
@@ -797,8 +899,43 @@ func trimAnthropicModelPrefix(model string) string {
 }
 
 func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
+	paths, err := listChangedSnapshotPaths(workDir)
+	if err != nil {
+		return "", err
+	}
+
+	var b strings.Builder
+	for _, rel := range paths {
+		data, err := os.ReadFile(filepath.Join(workDir, rel))
+		if err != nil {
+			return "", err
+		}
+		b.WriteString("## ")
+		b.WriteString(rel)
+		b.WriteString("\n")
+		b.WriteString(string(data))
+		b.WriteString("\n\n")
+	}
+	if b.Len() == 0 && strings.TrimSpace(fallbackOutput) != "" {
+		b.WriteString("## final-response.txt\n")
+		b.WriteString(fallbackOutput)
+		b.WriteString("\n")
+	}
+	return b.String(), nil
+}
+
+func listChangedSnapshotPaths(workDir string) ([]string, error) {
+	statusOut, err := gitOutput(workDir, "status", "--short")
+	if err == nil {
+		paths := parseGitStatusPaths(statusOut)
+		if len(paths) > 0 {
+			sort.Strings(paths)
+			return paths, nil
+		}
+	}
+
 	var paths []string
-	err := filepath.WalkDir(workDir, func(path string, d os.DirEntry, err error) error {
+	err = filepath.WalkDir(workDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -820,28 +957,32 @@ func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	sort.Strings(paths)
+	return paths, nil
+}
 
-	var b strings.Builder
-	for _, rel := range paths {
-		data, err := os.ReadFile(filepath.Join(workDir, rel))
-		if err != nil {
-			return "", err
+func parseGitStatusPaths(output string) []string {
+	ignore := map[string]bool{
+		"AGENTS.md": true,
+		"CLAUDE.md": true,
+	}
+	paths := make([]string, 0)
+	for _, raw := range strings.Split(output, "\n") {
+		if len(raw) < 4 {
+			continue
 		}
-		b.WriteString("## ")
-		b.WriteString(rel)
-		b.WriteString("\n")
-		b.WriteString(string(data))
-		b.WriteString("\n\n")
+		path := strings.TrimSpace(raw[3:])
+		if idx := strings.Index(path, " -> "); idx >= 0 {
+			path = strings.TrimSpace(path[idx+4:])
+		}
+		if path == "" || ignore[path] || strings.HasPrefix(path, ".claude/") {
+			continue
+		}
+		paths = append(paths, path)
 	}
-	if b.Len() == 0 && strings.TrimSpace(fallbackOutput) != "" {
-		b.WriteString("## final-response.txt\n")
-		b.WriteString(fallbackOutput)
-		b.WriteString("\n")
-	}
-	return b.String(), nil
+	return paths
 }
 
 func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result) error {

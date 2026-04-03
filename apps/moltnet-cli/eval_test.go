@@ -615,6 +615,16 @@ func TestParseChecklistCriteriaRejectsUnsupportedType(t *testing.T) {
 	}
 }
 
+func TestParseGitStatusPathsIgnoresNeutralizedFiles(t *testing.T) {
+	got := parseGitStatusPaths(" M apps/moltnet-cli/eval.go\n D AGENTS.md\n D .claude/CLAUDE.md\n?? new-file.md\n")
+	if len(got) != 2 {
+		t.Fatalf("expected 2 paths, got %v", got)
+	}
+	if got[0] != "apps/moltnet-cli/eval.go" || got[1] != "new-file.md" {
+		t.Fatalf("unexpected paths: %v", got)
+	}
+}
+
 func TestValidateJudgeModel(t *testing.T) {
 	tests := []struct {
 		judge string
