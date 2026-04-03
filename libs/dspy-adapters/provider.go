@@ -48,3 +48,14 @@ func InitProvider(provider, model string) (core.LLM, error) {
 	}
 	return core.NewModelContextDecorator(llm), nil
 }
+
+// InitDefaultProvider initializes a provider and installs it as the default LLM
+// for downstream DSPy modules that rely on core.GetDefaultLLM().
+func InitDefaultProvider(provider, model string) (core.LLM, error) {
+	llm, err := InitProvider(provider, model)
+	if err != nil {
+		return nil, err
+	}
+	core.SetDefaultLLM(llm)
+	return llm, nil
+}

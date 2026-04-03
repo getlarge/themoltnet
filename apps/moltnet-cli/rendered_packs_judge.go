@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/fidelity"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -151,11 +150,9 @@ func runRenderedPacksJudgeLocal(
 		return err
 	}
 
-	llm, err := dspyadapters.InitProvider(providerName, modelID)
-	if err != nil {
+	if _, err := dspyadapters.InitDefaultProvider(providerName, modelID); err != nil {
 		return fmt.Errorf("provider init failed: %w", err)
 	}
-	core.SetDefaultLLM(llm)
 
 	fmt.Fprintf(
 		os.Stderr,
@@ -222,11 +219,9 @@ func runRenderedPacksJudge(
 		return formatAPIError(claimRes)
 	}
 
-	llm, err := dspyadapters.InitProvider(providerName, modelID)
-	if err != nil {
+	if _, err := dspyadapters.InitDefaultProvider(providerName, modelID); err != nil {
 		return fmt.Errorf("provider init failed: %w", err)
 	}
-	core.SetDefaultLLM(llm)
 
 	sourceEntriesMD := buildSourceEntriesMarkdown(claim.SourceEntries)
 	rubric := claim.Rubric
