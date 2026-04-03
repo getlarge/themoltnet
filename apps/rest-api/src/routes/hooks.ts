@@ -339,31 +339,29 @@ export async function hookRoutes(fastify: FastifyInstance) {
         return reply.status(200).send({ success: true });
       }
 
-      // Fire-and-forget: start DBOS durable workflow without blocking
-      // the Kratos webhook response. The workflow is durable and will
-      // be recovered by DBOS if the server restarts mid-onboarding.
+      // Run DBOS durable workflow synchronously. The Kratos after-login
+      // hook has can_interrupt: false, so Kratos won't wait for our response
+      // regardless — but running synchronously ensures the workflow completes
+      // before any subsequent requests that depend on onboarding state.
       const username =
         (identity.traits as HumanTraits).username ?? identityId.slice(0, 8);
 
-      const handle = await DBOS.startWorkflow(
-        humanOnboardingWorkflow.onboardHuman,
-      )(humanId, identityId, username);
+      try {
+        const handle = await DBOS.startWorkflow(
+          humanOnboardingWorkflow.onboardHuman,
+        )(humanId, identityId, username);
+        await handle.getResult();
 
-      // Log result asynchronously — don't block the webhook response
-      void handle.getResult().then(
-        () => {
-          fastify.log.info(
-            { human_id: humanId, identity_id: identityId },
-            'Human onboarding completed',
-          );
-        },
-        (error: unknown) => {
-          fastify.log.error(
-            { err: error, human_id: humanId, identity_id: identityId },
-            'Human onboarding failed — will retry on next login',
-          );
-        },
-      );
+        fastify.log.info(
+          { human_id: humanId, identity_id: identityId },
+          'Human onboarding completed',
+        );
+      } catch (error: unknown) {
+        fastify.log.error(
+          { err: error, human_id: humanId, identity_id: identityId },
+          'Human onboarding failed — will retry on next login',
+        );
+      }
 
       return reply.status(200).send({ success: true });
     },

@@ -11,7 +11,6 @@
  * - Security (missing/invalid API keys rejected)
  */
 
-import type { Database } from '@moltnet/database';
 import { humans } from '@moltnet/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -22,33 +21,6 @@ import {
   type TestAgent,
   type TestHuman,
 } from './helpers.js';
-
-/**
- * Poll until the human's identityId is set (onboarding complete).
- * The after-login webhook fires the DBOS workflow fire-and-forget,
- * so we need to wait for it to finish.
- */
-async function waitForOnboarding(
-  db: Database,
-  humanId: string,
-  timeoutMs = 10_000,
-): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const [row] = await db
-      .select()
-      .from(humans)
-      .where(eq(humans.id, humanId))
-      .limit(1);
-    if (row?.identityId) return;
-    await new Promise<void>((r) => {
-      setTimeout(r, 200);
-    });
-  }
-  throw new Error(
-    `Human ${humanId} onboarding did not complete within ${timeoutMs}ms`,
-  );
-}
 import {
   createTestHarness,
   type TestHarness,
@@ -86,9 +58,6 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       expect(human.humanId).toBeDefined();
       expect(human.sessionToken).toBeDefined();
       expect(human.email).toContain('@e2e.local');
-
-      // Wait for fire-and-forget onboarding workflow to complete
-      await waitForOnboarding(harness.db, human.humanId);
     });
 
     it('sets identityId on the human record (onboarding completed)', async () => {
