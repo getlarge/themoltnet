@@ -39,7 +39,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugins: 'code-review@claude-plugins-official'
           plugin_marketplaces: 'https://github.com/anthropics/claude-plugins-official.git'
-          prompt: '/code-review https://github.com/${{ github.repository }}/pull/${{ github.event.issue.number || github.event.pull_request.number }}'
+          prompt: '/code-review:code-review https://github.com/${{ github.repository }}/pull/${{ github.event.issue.number || github.event.pull_request.number }}'
           additional_permissions: |
             actions: read
           show_full_output: true
