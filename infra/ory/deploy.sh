@@ -22,14 +22,23 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECT_TEMPLATE="${SCRIPT_DIR}/project.json"
 OUTPUT_FILE="${SCRIPT_DIR}/project.resolved.json"
 
-# --- Compute IDENTITY_SCHEMA_BASE64 from the schema file ---
-SCHEMA_FILE="${SCRIPT_DIR}/identity-schema.json"
-if [[ ! -f "$SCHEMA_FILE" ]]; then
-  echo "ERROR: Identity schema not found at $SCHEMA_FILE" >&2
+# --- Compute IDENTITY_SCHEMA_*_BASE64 from schema files ---
+AGENT_SCHEMA_FILE="${SCRIPT_DIR}/identity-schema.json"
+HUMAN_SCHEMA_FILE="${SCRIPT_DIR}/human-identity-schema.json"
+
+if [[ ! -f "$AGENT_SCHEMA_FILE" ]]; then
+  echo "ERROR: Agent identity schema not found at $AGENT_SCHEMA_FILE" >&2
   exit 1
 fi
-export IDENTITY_SCHEMA_BASE64
-IDENTITY_SCHEMA_BASE64="$(base64 -w0 "$SCHEMA_FILE" 2>/dev/null || base64 -i "$SCHEMA_FILE")"
+if [[ ! -f "$HUMAN_SCHEMA_FILE" ]]; then
+  echo "ERROR: Human identity schema not found at $HUMAN_SCHEMA_FILE" >&2
+  exit 1
+fi
+
+export IDENTITY_SCHEMA_AGENT_BASE64
+IDENTITY_SCHEMA_AGENT_BASE64="$(base64 -w0 "$AGENT_SCHEMA_FILE" 2>/dev/null || base64 -i "$AGENT_SCHEMA_FILE")"
+export IDENTITY_SCHEMA_HUMAN_BASE64
+IDENTITY_SCHEMA_HUMAN_BASE64="$(base64 -w0 "$HUMAN_SCHEMA_FILE" 2>/dev/null || base64 -i "$HUMAN_SCHEMA_FILE")"
 
 # --- Validate required vars (injected by dotenvx from env.public + .env) ---
 missing=()
@@ -52,7 +61,7 @@ fi
 node -e '
   const fs = require("fs");
   let content = fs.readFileSync(process.argv[1], "utf8");
-  const vars = ["BASE_DOMAIN","APP_BASE_URL","API_BASE_URL","OIDC_PAIRWISE_SALT","ORY_ACTION_API_KEY","IDENTITY_SCHEMA_BASE64"];
+  const vars = ["BASE_DOMAIN","APP_BASE_URL","API_BASE_URL","OIDC_PAIRWISE_SALT","ORY_ACTION_API_KEY","IDENTITY_SCHEMA_AGENT_BASE64","IDENTITY_SCHEMA_HUMAN_BASE64"];
   for (const v of vars) {
     content = content.split("${" + v + "}").join(process.env[v]);
   }
@@ -65,7 +74,8 @@ echo "  BASE_DOMAIN:    $BASE_DOMAIN"
 echo "  APP_BASE_URL:   $APP_BASE_URL"
 echo "  API_BASE_URL:   $API_BASE_URL"
 echo "  OIDC_SALT:      ${OIDC_PAIRWISE_SALT:0:8}..."
-echo "  SCHEMA:         $(echo -n "$IDENTITY_SCHEMA_BASE64" | wc -c | tr -d ' ') bytes (base64)"
+echo "  AGENT_SCHEMA:   $(echo -n "$IDENTITY_SCHEMA_AGENT_BASE64" | wc -c | tr -d ' ') bytes (base64)"
+echo "  HUMAN_SCHEMA:   $(echo -n "$IDENTITY_SCHEMA_HUMAN_BASE64" | wc -c | tr -d ' ') bytes (base64)"
 echo ""
 
 # --- Optionally apply to Ory Network ---
