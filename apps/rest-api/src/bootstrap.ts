@@ -66,10 +66,12 @@ import dbosPlugin from './plugins/dbos.js';
 import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
+  initHumanOnboardingWorkflow,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
   setContextDistillDeps,
+  setHumanOnboardingDeps,
   setLegreffierOnboardingDeps,
   setMaintenanceDeps,
   setRegistrationDeps,
@@ -222,6 +224,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       () => initVerificationWorkflows(),
       () => initRegistrationWorkflow(),
+      () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
       () => initContextDistillWorkflows(),
@@ -243,6 +246,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           diaryRepository,
           teamRepository,
           voucherRepository,
+          relationshipWriter,
+          dataSource,
+          logger: app.log,
+        });
+      },
+      (dataSource) => {
+        setHumanOnboardingDeps({
+          humanRepository,
+          diaryRepository,
+          teamRepository,
           relationshipWriter,
           dataSource,
           logger: app.log,

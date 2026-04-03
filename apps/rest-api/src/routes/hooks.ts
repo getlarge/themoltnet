@@ -9,13 +9,14 @@
 import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, type OryClients } from '@moltnet/auth';
+import type { OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
-import type { HumanRepository } from '@moltnet/database';
+import { DBOS, type HumanRepository } from '@moltnet/database';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+import { humanOnboardingWorkflow } from '../workflows/index.js';
 
 // ── Ory Webhook Payload Types ───────────────────────────────
 // Kratos webhooks send `{ identity: Identity }` via the Jsonnet body
@@ -331,41 +332,15 @@ export async function hookRoutes(fastify: FastifyInstance) {
         return reply.status(200).send({ success: true });
       }
 
-      // Onboard: set identityId, create Keto relation, personal team, diary
+      // Onboard via DBOS durable workflow
       const username =
         (identity.traits as HumanTraits).username ?? identityId.slice(0, 8);
 
       try {
-        // Step 1: Link identity to human record
-        await fastify.humanRepository.setIdentityId(humanId, identityId);
-
-        // Step 2: Register in Keto
-        await fastify.relationshipWriter.registerHuman(identityId);
-
-        // Step 3: Create personal team
-        const personalTeam = await fastify.teamRepository.create({
-          name: username,
-          personal: true,
-          createdBy: identityId,
-          status: 'active',
-        });
-        await fastify.relationshipWriter.grantTeamOwners(
-          personalTeam.id,
-          identityId,
-          KetoNamespace.Human,
-        );
-
-        // Step 4: Create private diary
-        await fastify.diaryService.createDiary(
-          {
-            createdBy: identityId,
-            name: 'Private',
-            visibility: 'private',
-            teamId: personalTeam.id,
-            subjectNs: KetoNamespace.Human,
-          },
-          { withinTransaction: false },
-        );
+        const handle = await DBOS.startWorkflow(
+          humanOnboardingWorkflow.onboardHuman,
+        )(humanId, identityId, username);
+        await handle.getResult();
 
         fastify.log.info(
           { human_id: humanId, identity_id: identityId },
@@ -374,18 +349,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
       } catch (error: unknown) {
         fastify.log.error(
           { err: error, human_id: humanId, identity_id: identityId },
-          'Human onboarding failed — clearing identityId for retry on next login',
+          'Human onboarding failed — will retry on next login',
         );
-
-        // Compensation: clear identityId so onboarding retries on next login
-        try {
-          await fastify.humanRepository.clearIdentityId(humanId);
-        } catch (compensationError: unknown) {
-          fastify.log.error(
-            { err: compensationError, human_id: humanId },
-            'Human onboarding compensation failed',
-          );
-        }
       }
 
       return reply.status(200).send({ success: true });

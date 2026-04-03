@@ -9,6 +9,14 @@ export {
   setContextDistillDeps,
 } from './context-distill-workflows.js';
 export {
+  type HumanOnboardingDeps,
+  HumanOnboardingError,
+  type HumanOnboardingResult,
+  humanOnboardingWorkflow,
+  initHumanOnboardingWorkflow,
+  setHumanOnboardingDeps,
+} from './human-onboarding-workflow.js';
+export {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,
