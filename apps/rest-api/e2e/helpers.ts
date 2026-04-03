@@ -14,6 +14,7 @@ import { randomBytes } from 'node:crypto';
 import { createClient, createDiary, listDiaries } from '@moltnet/api-client';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
+import type { FrontendApi } from '@ory/client-fetch';
 
 export interface TestAgent {
   identityId: string;
@@ -166,4 +167,83 @@ export async function createAgent(opts: {
     moltnetDiaryId: moltnetDiary.id,
     personalTeamId,
   };
+}
+
+// ── Human Registration / Login via Kratos Native Flows ──────
+
+export interface TestHuman {
+  identityId: string;
+  humanId: string;
+  sessionToken: string;
+  email: string;
+  username: string;
+  password: string;
+}
+
+/**
+ * Register and log in a human via Kratos native self-service flows.
+ *
+ * 1. Create native registration flow
+ * 2. Submit registration (email + username + password)
+ *    → after-registration webhook creates human placeholder
+ * 3. Create native login flow
+ * 4. Submit login (email + password)
+ *    → after-login webhook triggers DBOS onboarding workflow
+ * 5. Return session token + identity details
+ */
+export async function createHuman(opts: {
+  kratosPublicFrontend: FrontendApi;
+}): Promise<TestHuman> {
+  const suffix = randomBytes(4).toString('hex');
+  const email = `human-${suffix}@e2e.local`;
+  const username = `human-${suffix}`;
+  const password = `e2e-test-human-password-${randomBytes(8).toString('hex')}`;
+
+  // Step 1: Create native registration flow
+  const regFlow =
+    await opts.kratosPublicFrontend.createNativeRegistrationFlow();
+
+  // Step 2: Submit registration
+  const regResult = await opts.kratosPublicFrontend.updateRegistrationFlow({
+    flow: regFlow.id,
+    updateRegistrationFlowBody: {
+      method: 'password',
+      traits: { email, username },
+      password,
+    },
+  });
+
+  const regIdentity = regResult.identity;
+  const humanId = (regIdentity.metadata_public as { human_id?: string } | null)
+    ?.human_id;
+  if (!humanId) {
+    throw new Error(
+      `Human registration did not produce human_id in metadata_public: ${JSON.stringify(regIdentity.metadata_public)}`,
+    );
+  }
+
+  // Step 3: Create native login flow
+  const loginFlow = await opts.kratosPublicFrontend.createNativeLoginFlow();
+
+  // Step 4: Submit login (triggers after-login webhook → onboarding)
+  const loginResult = await opts.kratosPublicFrontend.updateLoginFlow({
+    flow: loginFlow.id,
+    updateLoginFlowBody: {
+      method: 'password',
+      identifier: email,
+      password,
+    },
+  });
+
+  const sessionToken = loginResult.session_token;
+  if (!sessionToken) {
+    throw new Error('Login did not return a session_token (native flow)');
+  }
+
+  const identityId = loginResult.session.identity?.id;
+  if (!identityId) {
+    throw new Error('Login session has no identity');
+  }
+
+  return { identityId, humanId, sessionToken, email, username, password };
 }

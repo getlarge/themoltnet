@@ -71,7 +71,7 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                url: http://server:8080/hooks/kratos/after-registration
+                url: http://rest-api:8080/hooks/kratos/after-registration
                 method: POST
                 auth:
                   type: api_key
@@ -89,7 +89,7 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                url: http://server:8080/hooks/kratos/after-registration
+                url: http://rest-api:8080/hooks/kratos/after-registration
                 method: POST
                 auth:
                   type: api_key
@@ -112,7 +112,7 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                url: http://server:8080/hooks/kratos/after-login
+                url: http://rest-api:8080/hooks/kratos/after-login
                 method: POST
                 auth:
                   type: api_key
@@ -129,7 +129,7 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                url: http://server:8080/hooks/kratos/after-login
+                url: http://rest-api:8080/hooks/kratos/after-login
                 method: POST
                 auth:
                   type: api_key
