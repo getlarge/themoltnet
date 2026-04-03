@@ -39,6 +39,24 @@ function isHumanMetadata(
   return meta !== null && meta !== undefined && 'human_id' in meta;
 }
 
+/**
+ * Detect human schema by checking the identity's schema_url `$id`.
+ * On Ory Network the `schema_id` may be a generated hash, so we
+ * check the schema URL path (contains `human`) — same strategy the
+ * agent registration workflow uses to find `agent` schemas.
+ */
+function isHumanSchema(identity: {
+  schema_id: string;
+  schema_url?: string;
+}): boolean {
+  if (identity.schema_url) {
+    return identity.schema_url.includes('human');
+  }
+  // Fallback: check schema_id directly (works for self-hosted Kratos
+  // where schema_id is the configured id from kratos.yaml)
+  return identity.schema_id.includes('human');
+}
+
 // Webhook dependencies are accessed via decorators
 declare module 'fastify' {
   interface FastifyInstance {
@@ -119,6 +137,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
               {
                 id: Type.String(),
                 schema_id: Type.String(),
+                schema_url: Type.Optional(Type.String()),
                 traits: Type.Object(
                   {
                     email: Type.Optional(Type.String()),
@@ -138,8 +157,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identity } = request.body;
 
-      // Only accept human schema registrations
-      if (!identity.schema_id.includes('human')) {
+      // Only accept human schema registrations.
+      // On Ory Network schema_id may be a hash — check schema_url first.
+      if (!isHumanSchema(identity)) {
         fastify.log.warn(
           { schema_id: identity.schema_id },
           'After-registration webhook called with non-human schema — rejecting',
@@ -261,6 +281,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
               {
                 id: Type.String(),
                 schema_id: Type.String(),
+                schema_url: Type.Optional(Type.String()),
                 traits: Type.Object(
                   {
                     email: Type.Optional(Type.String()),
@@ -298,7 +319,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       const { identity } = request.body;
 
       // Only process human logins — agents don't use self-service login
-      if (!identity.schema_id.includes('human')) {
+      if (!isHumanSchema(identity)) {
         return reply.status(200).send({ success: true });
       }
 
@@ -332,26 +353,31 @@ export async function hookRoutes(fastify: FastifyInstance) {
         return reply.status(200).send({ success: true });
       }
 
-      // Onboard via DBOS durable workflow
+      // Fire-and-forget: start DBOS durable workflow without blocking
+      // the Kratos webhook response. The workflow is durable and will
+      // be recovered by DBOS if the server restarts mid-onboarding.
       const username =
         (identity.traits as HumanTraits).username ?? identityId.slice(0, 8);
 
-      try {
-        const handle = await DBOS.startWorkflow(
-          humanOnboardingWorkflow.onboardHuman,
-        )(humanId, identityId, username);
-        await handle.getResult();
+      const handle = await DBOS.startWorkflow(
+        humanOnboardingWorkflow.onboardHuman,
+      )(humanId, identityId, username);
 
-        fastify.log.info(
-          { human_id: humanId, identity_id: identityId },
-          'Human onboarding completed',
-        );
-      } catch (error: unknown) {
-        fastify.log.error(
-          { err: error, human_id: humanId, identity_id: identityId },
-          'Human onboarding failed — will retry on next login',
-        );
-      }
+      // Log result asynchronously — don't block the webhook response
+      void handle.getResult().then(
+        () => {
+          fastify.log.info(
+            { human_id: humanId, identity_id: identityId },
+            'Human onboarding completed',
+          );
+        },
+        (error: unknown) => {
+          fastify.log.error(
+            { err: error, human_id: humanId, identity_id: identityId },
+            'Human onboarding failed — will retry on next login',
+          );
+        },
+      );
 
       return reply.status(200).send({ success: true });
     },
@@ -451,7 +477,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
             return await reply.status(200).send({
               session: {
                 access_token: {
-                  'moltnet:identity_id': human.identityId,
+                  'moltnet:identity_id': subject,
                   'moltnet:subject_type': 'human',
                 },
               },
