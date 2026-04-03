@@ -12,6 +12,7 @@ import {
 } from './helpers.js';
 
 const HUMAN_ID = '110e8400-e29b-41d4-a716-446655440099';
+const HUMAN_IDENTITY_ID = '220e8400-e29b-41d4-a716-446655440088';
 
 describe('Hook routes', () => {
   let app: FastifyInstance;
@@ -149,7 +150,7 @@ describe('Hook routes', () => {
 
       mocks.humanRepository.findByIdentityId.mockResolvedValue({
         id: HUMAN_ID,
-        identityId: OWNER_ID,
+        identityId: HUMAN_IDENTITY_ID,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -160,9 +161,8 @@ describe('Hook routes', () => {
         headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
         payload: {
           session: {
-            access_token: {
-              'moltnet:identity_id': OWNER_ID,
-              'moltnet:subject_type': 'human',
+            id_token: {
+              subject: HUMAN_IDENTITY_ID,
             },
           },
           request: {
@@ -175,7 +175,7 @@ describe('Hook routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.session.access_token).toEqual({
-        'moltnet:identity_id': OWNER_ID,
+        'moltnet:identity_id': HUMAN_IDENTITY_ID,
         'moltnet:subject_type': 'human',
       });
     });

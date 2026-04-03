@@ -9,13 +9,34 @@
 import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import type { OryClients } from '@moltnet/auth';
+import { KetoNamespace, type OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import type { HumanRepository } from '@moltnet/database';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+
+// ── Ory Webhook Payload Types ───────────────────────────────
+// Kratos webhooks send `{ identity: Identity }` via the Jsonnet body
+// template `function(ctx) { identity: ctx.identity }`.
+// We extend `metadata_public` with MoltNet-specific fields.
+
+interface HumanTraits {
+  email: string;
+  username: string;
+}
+
+/** metadata_public set by after-registration webhook for humans */
+interface HumanMetadataPublic {
+  human_id: string;
+}
+
+function isHumanMetadata(
+  meta: object | null | undefined,
+): meta is HumanMetadataPublic {
+  return meta !== null && meta !== undefined && 'human_id' in meta;
+}
 
 // Webhook dependencies are accessed via decorators
 declare module 'fastify' {
@@ -91,19 +112,25 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'kratosAfterRegistration',
         tags: ['X-HIDDEN'],
-        body: Type.Object({
-          identity: Type.Object({
-            id: Type.String(),
-            schema_id: Type.String(),
-            traits: Type.Object(
+        body: Type.Object(
+          {
+            identity: Type.Object(
               {
-                email: Type.Optional(Type.String()),
-                username: Type.Optional(Type.String()),
+                id: Type.String(),
+                schema_id: Type.String(),
+                traits: Type.Object(
+                  {
+                    email: Type.Optional(Type.String()),
+                    username: Type.Optional(Type.String()),
+                  },
+                  { additionalProperties: true },
+                ),
               },
               { additionalProperties: true },
             ),
-          }),
-        }),
+          },
+          { additionalProperties: true },
+        ),
       },
       preHandler: [webhookAuth],
     },
@@ -154,14 +181,23 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'kratosAfterSettings',
         tags: ['X-HIDDEN'],
-        body: Type.Object({
-          identity: Type.Object({
-            id: Type.String(),
-            traits: Type.Object({
-              public_key: Type.String(),
-            }),
-          }),
-        }),
+        body: Type.Object(
+          {
+            identity: Type.Object(
+              {
+                id: Type.String(),
+                traits: Type.Object(
+                  {
+                    public_key: Type.String(),
+                  },
+                  { additionalProperties: true },
+                ),
+              },
+              { additionalProperties: true },
+            ),
+          },
+          { additionalProperties: true },
+        ),
       },
       preHandler: [webhookAuth],
     },
@@ -211,6 +247,151 @@ export async function hookRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // ── Kratos After Login ────────────────────────────────────
+  server.post(
+    '/hooks/kratos/after-login',
+    {
+      schema: {
+        operationId: 'kratosAfterLogin',
+        tags: ['X-HIDDEN'],
+        body: Type.Object(
+          {
+            identity: Type.Object(
+              {
+                id: Type.String(),
+                schema_id: Type.String(),
+                traits: Type.Object(
+                  {
+                    email: Type.Optional(Type.String()),
+                    username: Type.Optional(Type.String()),
+                    public_key: Type.Optional(Type.String()),
+                  },
+                  { additionalProperties: true },
+                ),
+                metadata_public: Type.Optional(
+                  Type.Union([
+                    Type.Object(
+                      { human_id: Type.String() },
+                      { additionalProperties: true },
+                    ),
+                    Type.Object(
+                      {
+                        fingerprint: Type.String(),
+                        public_key: Type.String(),
+                      },
+                      { additionalProperties: true },
+                    ),
+                    Type.Null(),
+                  ]),
+                ),
+              },
+              { additionalProperties: true },
+            ),
+          },
+          { additionalProperties: true },
+        ),
+      },
+      preHandler: [webhookAuth],
+    },
+    async (request, reply) => {
+      const { identity } = request.body;
+
+      // Only process human logins — agents don't use self-service login
+      if (!identity.schema_id.includes('human')) {
+        return reply.status(200).send({ success: true });
+      }
+
+      if (!isHumanMetadata(identity.metadata_public)) {
+        fastify.log.warn(
+          {
+            identity_id: identity.id,
+            schema_id: identity.schema_id,
+            metadata_public: identity.metadata_public,
+          },
+          'After-login: human identity missing human_id in metadata_public',
+        );
+        return reply.status(200).send({ success: true });
+      }
+
+      const humanId = identity.metadata_public.human_id;
+      const identityId = identity.id;
+
+      // Check if already onboarded
+      const human = await fastify.humanRepository.findById(humanId);
+      if (!human) {
+        fastify.log.warn(
+          { human_id: humanId, identity_id: identityId },
+          'After-login: human record not found',
+        );
+        return reply.status(200).send({ success: true });
+      }
+
+      if (human.identityId !== null) {
+        // Already onboarded — nothing to do
+        return reply.status(200).send({ success: true });
+      }
+
+      // Onboard: set identityId, create Keto relation, personal team, diary
+      const username =
+        (identity.traits as HumanTraits).username ?? identityId.slice(0, 8);
+
+      try {
+        // Step 1: Link identity to human record
+        await fastify.humanRepository.setIdentityId(humanId, identityId);
+
+        // Step 2: Register in Keto
+        await fastify.relationshipWriter.registerHuman(identityId);
+
+        // Step 3: Create personal team
+        const personalTeam = await fastify.teamRepository.create({
+          name: username,
+          personal: true,
+          createdBy: identityId,
+          status: 'active',
+        });
+        await fastify.relationshipWriter.grantTeamOwners(
+          personalTeam.id,
+          identityId,
+          KetoNamespace.Human,
+        );
+
+        // Step 4: Create private diary
+        await fastify.diaryService.createDiary(
+          {
+            createdBy: identityId,
+            name: 'Private',
+            visibility: 'private',
+            teamId: personalTeam.id,
+            subjectNs: KetoNamespace.Human,
+          },
+          { withinTransaction: false },
+        );
+
+        fastify.log.info(
+          { human_id: humanId, identity_id: identityId },
+          'Human onboarding completed',
+        );
+      } catch (error: unknown) {
+        fastify.log.error(
+          { err: error, human_id: humanId, identity_id: identityId },
+          'Human onboarding failed — clearing identityId for retry on next login',
+        );
+
+        // Compensation: clear identityId so onboarding retries on next login
+        try {
+          await fastify.humanRepository.clearIdentityId(humanId);
+        } catch (compensationError: unknown) {
+          fastify.log.error(
+            { err: compensationError, human_id: humanId },
+            'Human onboarding compensation failed',
+          );
+        }
+      }
+
+      return reply.status(200).send({ success: true });
+    },
+  );
+
   // ── Hydra Token Exchange ───────────────────────────────────
   server.post(
     '/hooks/hydra/token-exchange',
@@ -218,21 +399,42 @@ export async function hookRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'hydraTokenExchange',
         tags: ['X-HIDDEN'],
-        body: Type.Object({
-          session: Type.Any(),
-          request: Type.Object({
-            client_id: Type.String(),
-            grant_types: Type.Array(Type.String()),
-          }),
-        }),
+        body: Type.Object(
+          {
+            session: Type.Object(
+              {
+                id_token: Type.Optional(
+                  Type.Object(
+                    {
+                      subject: Type.String(),
+                    },
+                    { additionalProperties: true },
+                  ),
+                ),
+                extra: Type.Optional(
+                  Type.Record(Type.String(), Type.Unknown()),
+                ),
+                client_id: Type.Optional(Type.String()),
+              },
+              { additionalProperties: true },
+            ),
+            request: Type.Object(
+              {
+                client_id: Type.String(),
+                grant_types: Type.Array(Type.String()),
+                granted_scopes: Type.Optional(Type.Array(Type.String())),
+                granted_audience: Type.Optional(Type.Array(Type.String())),
+              },
+              { additionalProperties: true },
+            ),
+          },
+          { additionalProperties: true },
+        ),
       },
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      const tokenRequest = request.body.request;
-      const session = request.body.session as
-        | { access_token?: Record<string, unknown> }
-        | undefined;
+      const { request: tokenRequest, session } = request.body;
 
       try {
         // Fetch OAuth2 client metadata from Hydra to get identity_id
@@ -274,11 +476,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
         }
 
         // ── Human path ───────────────────────────────────────────
-        // For authorization_code grants, the session contains claims
-        // set during login/consent acceptance
-        const subject = session?.access_token?.['moltnet:identity_id'] as
-          | string
-          | undefined;
+        // For authorization_code grants, the session id_token contains
+        // the subject set during login acceptance (Kratos identity ID)
+        const subject = session.id_token?.subject;
         if (subject) {
           const human = await fastify.humanRepository.findByIdentityId(subject);
 
