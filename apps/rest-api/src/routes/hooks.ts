@@ -12,6 +12,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { DBOS, type HumanRepository } from '@moltnet/database';
+import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -33,28 +34,25 @@ interface HumanMetadataPublic {
   human_id: string;
 }
 
+/**
+ * Resolve the human schema ID by listing Kratos identity schemas
+ * and matching on the JSON `$id` containing "human".
+ * Same strategy the agent registration workflow uses.
+ */
+async function resolveHumanSchemaId(
+  identityApi: IdentityApi,
+): Promise<string | null> {
+  const schemas = await identityApi.listIdentitySchemas();
+  const humanSchema = schemas.find(
+    (s) => (s.schema as { $id?: string })?.$id?.includes('human') ?? false,
+  );
+  return humanSchema?.id ?? null;
+}
+
 function isHumanMetadata(
   meta: object | null | undefined,
 ): meta is HumanMetadataPublic {
   return meta !== null && meta !== undefined && 'human_id' in meta;
-}
-
-/**
- * Detect human schema by checking the identity's schema_url `$id`.
- * On Ory Network the `schema_id` may be a generated hash, so we
- * check the schema URL path (contains `human`) — same strategy the
- * agent registration workflow uses to find `agent` schemas.
- */
-function isHumanSchema(identity: {
-  schema_id: string;
-  schema_url?: string;
-}): boolean {
-  if (identity.schema_url) {
-    return identity.schema_url.includes('human');
-  }
-  // Fallback: check schema_id directly (works for self-hosted Kratos
-  // where schema_id is the configured id from kratos.yaml)
-  return identity.schema_id.includes('human');
 }
 
 // Webhook dependencies are accessed via decorators
@@ -63,6 +61,7 @@ declare module 'fastify' {
     webhookApiKey: string;
     oauth2Client: OryClients['oauth2'];
     humanRepository: HumanRepository;
+    identityApi: IdentityApi;
   }
 }
 
@@ -179,9 +178,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identity } = request.body;
 
-      // Only accept human schema registrations.
-      // On Ory Network schema_id may be a hash — check schema_url first.
-      if (!isHumanSchema(identity)) {
+      // Resolve the human schema ID dynamically — on Ory Network
+      // schema_id may be a hash, so match via the schema JSON $id.
+      const humanSchemaId = await resolveHumanSchemaId(fastify.identityApi);
+      if (identity.schema_id !== humanSchemaId) {
         fastify.log.warn(
           { schema_id: identity.schema_id },
           'After-registration webhook called with non-human schema — rejecting',
@@ -304,8 +304,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identity } = request.body;
 
+      const humanSchemaId = await resolveHumanSchemaId(fastify.identityApi);
+
       // Only process human logins — agents don't use self-service login
-      if (!isHumanSchema(identity)) {
+      if (identity.schema_id !== humanSchemaId) {
         return reply.status(200).send({ success: true });
       }
 

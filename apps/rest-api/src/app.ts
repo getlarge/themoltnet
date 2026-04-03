@@ -264,6 +264,7 @@ export async function registerApiRoutes(
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
   app.decorate('oauth2Client', options.oryClients.oauth2);
+  app.decorate('identityApi', options.oryClients.identity);
 
   // Register routes
   await app.register(oauth2Routes, {
