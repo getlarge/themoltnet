@@ -12,8 +12,10 @@ from pathlib import Path
 
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.environments.base import BaseEnvironment
+from harbor.models.agent.context import AgentContext
 
 from .headless_prompt import build_headless_instruction
+from .retry import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,28 @@ logger = logging.getLogger(__name__)
 _API_HOST = "api.anthropic.com"
 _CONNECTIVITY_MAX_ATTEMPTS = 5
 _CONNECTIVITY_INITIAL_DELAY_SEC = 2
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Return True for transient connection errors worth retrying.
+
+    Auth failures and permission errors surface immediately — they need
+    a credentials fix, not a retry.
+    """
+    msg = str(exc).lower()
+    if any(
+        k in msg
+        for k in (
+            "permission denied",
+            "unauthorized",
+            "not logged in",
+            "incorrect api key",
+        )
+    ):
+        return False
+    return any(
+        k in msg for k in ("econnreset", "etimedout", "connect error", "unknown")
+    )
 
 
 class ClaudeCodeMoltNet(ClaudeCode):
@@ -134,3 +158,14 @@ class ClaudeCodeMoltNet(ClaudeCode):
                 await environment.upload_file(item, target)
 
         await self._wait_for_api_connectivity(environment)
+
+    async def run(
+        self, instruction: str, environment: BaseEnvironment, context: AgentContext
+    ) -> None:
+        """Run the Claude Code agent, retrying on transient connection errors."""
+        await with_retry(
+            lambda: super(ClaudeCodeMoltNet, self).run(
+                instruction, environment, context
+            ),
+            should_retry=_is_retryable,
+        )
