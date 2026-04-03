@@ -57,6 +57,7 @@ import type {
   EmbeddingService,
   EntryRelationRepository,
   GroupRepository,
+  HumanRepository,
   NonceRepository,
   RenderedPackRepository,
   SigningRequestRepository,
@@ -109,6 +110,7 @@ export interface AppOptions {
   entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   agentRepository: AgentRepository;
+  humanRepository: HumanRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
   groupRepository: GroupRepository;
@@ -244,6 +246,7 @@ export async function registerApiRoutes(
   decorateSafe('entryRelationRepository', options.entryRelationRepository);
   decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('agentRepository', options.agentRepository);
+  decorateSafe('humanRepository', options.humanRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);
   decorateSafe('groupRepository', options.groupRepository);

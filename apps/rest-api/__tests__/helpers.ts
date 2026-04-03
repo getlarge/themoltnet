@@ -24,6 +24,7 @@ import type {
   DiaryService,
   EmbeddingService,
   GroupRepository,
+  HumanRepository,
   NonceRepository,
   SigningRequestRepository,
   TeamRepository,
@@ -117,6 +118,7 @@ export interface MockServices {
     [K in keyof DiaryService]: ReturnType<typeof vi.fn>;
   };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
+  humanRepository: { [K in keyof HumanRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   voucherRepository: {
     [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
@@ -287,6 +289,13 @@ export function createMockServices(): MockServices {
       listByTeamId: vi.fn().mockResolvedValue([]),
       delete: vi.fn(),
     },
+    humanRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findByIdentityId: vi.fn(),
+      setIdentityId: vi.fn(),
+      clearIdentityId: vi.fn(),
+    },
     agentRepository: {
       findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),
@@ -450,6 +459,7 @@ export async function createTestApp(
       mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
+    humanRepository: mocks.humanRepository as unknown as HumanRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
     signingRequestRepository:
