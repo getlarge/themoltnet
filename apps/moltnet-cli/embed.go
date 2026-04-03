@@ -17,6 +17,9 @@ var dockerfileClaudeTemplate []byte
 //go:embed embed/templates/Dockerfile.codex
 var dockerfileCodexTemplate []byte
 
+//go:embed embed/judge/retry.js
+var judgeRetryJS []byte
+
 //go:embed embed/judge/judge.js
 var judgeJS []byte
 

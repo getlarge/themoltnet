@@ -195,6 +195,7 @@ func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withCo
 		filepath.Join(dir, "task.toml"):                              []byte(taskToml),
 		filepath.Join(dir, "instruction.md"):                         taskMD,
 		filepath.Join(dir, "environment", "Dockerfile"):              dockerfileTemplate,
+		filepath.Join(dir, "environment", "judge", "retry.js"):       judgeRetryJS,
 		filepath.Join(dir, "environment", "judge", "judge.js"):       judgeJS,
 		filepath.Join(dir, "environment", "judge", "judge-codex.js"): judgeCodexJS,
 		filepath.Join(dir, "environment", "judge", "package.json"):   judgePackageJSON,

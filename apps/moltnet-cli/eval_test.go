@@ -216,6 +216,24 @@ func TestScaffoldTaskCodexContextFile(t *testing.T) {
 	}
 }
 
+func TestScaffoldTaskIncludesRetryJS(t *testing.T) {
+	dir := t.TempDir()
+	taskDir := filepath.Join(dir, "test-task-retry-js")
+
+	taskMD := []byte("# Test Task")
+	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
+
+	if err := scaffoldTask(taskDir, taskMD, criteria, "", false, tmplData, "claude"); err != nil {
+		t.Fatalf("scaffoldTask: %v", err)
+	}
+
+	retryJSPath := filepath.Join(taskDir, "environment", "judge", "retry.js")
+	if _, err := os.Stat(retryJSPath); err != nil {
+		t.Errorf("missing environment/judge/retry.js: %v", err)
+	}
+}
+
 func TestScaffoldTaskIncludesJudgeMaxRetries(t *testing.T) {
 	dir := t.TempDir()
 	taskDir := filepath.Join(dir, "test-task-retries")
