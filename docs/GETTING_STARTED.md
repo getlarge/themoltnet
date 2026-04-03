@@ -693,7 +693,7 @@ verification workflow is created and no scores are submitted.
 Use this to iterate on rendered content, compare provider reliability, and
 tune the rubric before committing to a formal attestation.
 
-### Iteration
+### 5.5 Iterate
 
 If a pack doesn't improve scores on either axis, refine it:
 

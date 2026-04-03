@@ -202,18 +202,24 @@ func (l *LLM) buildEnv() []string {
 
 // writeSchemaToTempFile writes a JSON schema string to a temp file for --output-schema.
 func writeSchemaToTempFile(schema string) (string, error) {
-	if schema == "" {
-		// If no schema extracted, create a permissive one
+	hasExtractedSchema := strings.TrimSpace(schema) != ""
+	if !hasExtractedSchema {
+		// No schema extracted from prompt — use a permissive fallback that
+		// allows any fields. We keep additionalProperties: true here so
+		// Codex doesn't reject valid output.
 		schema = `{"type":"object","additionalProperties":true}`
 	}
 
-	// Codex requires additionalProperties: false at the top level.
-	// Ensure it's set.
-	var schemaMap map[string]interface{}
-	if err := json.Unmarshal([]byte(schema), &schemaMap); err == nil {
-		schemaMap["additionalProperties"] = false
-		if patched, err := json.Marshal(schemaMap); err == nil {
-			schema = string(patched)
+	// Codex requires additionalProperties: false at the top level for
+	// extracted schemas. Preserve the permissive fallback when no schema
+	// could be extracted.
+	if hasExtractedSchema {
+		var schemaMap map[string]interface{}
+		if err := json.Unmarshal([]byte(schema), &schemaMap); err == nil {
+			schemaMap["additionalProperties"] = false
+			if patched, err := json.Marshal(schemaMap); err == nil {
+				schema = string(patched)
+			}
 		}
 	}
 

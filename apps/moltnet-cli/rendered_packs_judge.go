@@ -54,6 +54,9 @@ func newRenderedPacksJudgeCmd() *cobra.Command {
 				model = defaultModelForProvider(provider)
 			}
 			if nonce != "" {
+				if rubricFile != "" {
+					return fmt.Errorf("--rubric-file is only supported in local mode (without --nonce)")
+				}
 				return runRenderedPacksJudge(
 					apiURL,
 					credPath,

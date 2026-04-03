@@ -81,10 +81,9 @@ Respond with a JSON object in this exact format:
 	}
 }
 
-func TestGenerateWithJSON_UnwrapsEnvelope(t *testing.T) {
+func TestParseJSONResponse_UnwrapsEnvelope(t *testing.T) {
 	t.Parallel()
 
-	// Simulate the envelope that claude --print --output-format json returns
 	envelope := `{
 		"type": "result",
 		"subtype": "success",
@@ -97,26 +96,41 @@ func TestGenerateWithJSON_UnwrapsEnvelope(t *testing.T) {
 		}
 	}`
 
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(envelope), &parsed); err != nil {
-		t.Fatalf("failed to parse envelope: %v", err)
+	result, err := parseJSONResponse(envelope)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify structured_output is extracted
-	so, ok := parsed["structured_output"]
-	if !ok {
-		t.Fatal("missing structured_output in envelope")
+	if result["coverage"] != "0.85" {
+		t.Errorf("expected coverage=0.85, got %v", result["coverage"])
 	}
-	soMap, ok := so.(map[string]any)
-	if !ok {
-		t.Fatal("structured_output is not a map")
+	if result["grounding"] != "0.90" {
+		t.Errorf("expected grounding=0.90, got %v", result["grounding"])
 	}
+	if result["faithfulness"] != "0.75" {
+		t.Errorf("expected faithfulness=0.75, got %v", result["faithfulness"])
+	}
+}
 
-	if soMap["coverage"] != "0.85" {
-		t.Errorf("expected coverage=0.85, got %v", soMap["coverage"])
+func TestParseJSONResponse_PlainJSON(t *testing.T) {
+	t.Parallel()
+
+	plain := `{"coverage": "0.85", "grounding": "0.90"}`
+	result, err := parseJSONResponse(plain)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if soMap["grounding"] != "0.90" {
-		t.Errorf("expected grounding=0.90, got %v", soMap["grounding"])
+	if result["coverage"] != "0.85" {
+		t.Errorf("expected coverage=0.85, got %v", result["coverage"])
+	}
+}
+
+func TestParseJSONResponse_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseJSONResponse("not json at all")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
 	}
 }
 
