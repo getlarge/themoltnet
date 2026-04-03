@@ -45,6 +45,8 @@ jobs:
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
+      prs-created: ${{ steps.release.outputs.prs_created }}
+      pr: ${{ steps.release.outputs.pr }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -60,7 +62,7 @@ jobs:
   sync-go-mod:
     name: Sync CLI go.mod to manifest versions
     needs: release-please
-    if: ${{ needs.release-please.outputs.prs_created == 'true' || needs.release-please.outputs.pr != '' }}
+    if: ${{ needs.release-please.outputs.prs-created == 'true' || needs.release-please.outputs.pr != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -430,24 +432,6 @@ jobs:
           private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
           owner: getlarge
           repositories: homebrew-moltnet
-
-      - name: Sync CLI Go dependencies to released module versions
-        working-directory: apps/moltnet-cli
-        env:
-          API_CLIENT_VERSION: ${{ needs.resolve-publish.outputs.api-client-version }}
-          DSPY_ADAPTERS_VERSION: ${{ needs.resolve-publish.outputs.dspy-adapters-version }}
-        run: |
-          set -euo pipefail
-
-          if [ -n "${API_CLIENT_VERSION}" ]; then
-            go mod edit -require=github.com/getlarge/themoltnet/libs/moltnet-api-client@v${API_CLIENT_VERSION}
-          fi
-
-          if [ -n "${DSPY_ADAPTERS_VERSION}" ]; then
-            go mod edit -require=github.com/getlarge/themoltnet/libs/dspy-adapters@v${DSPY_ADAPTERS_VERSION}
-          fi
-
-          go mod tidy
 
       - uses: goreleaser/goreleaser-action@v6
         with:
