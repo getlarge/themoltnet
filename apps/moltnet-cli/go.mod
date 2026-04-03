@@ -4,8 +4,9 @@ go 1.25.0
 
 require (
 	github.com/XiaoConstantine/dspy-go v0.82.2
-	github.com/getlarge/themoltnet/libs/dspy-adapters v0.1.0
-	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.7.0
+	github.com/getlarge/themoltnet/libs/dspy-adapters v0.3.0
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.7.2
+	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
 	github.com/joho/godotenv v1.5.1
@@ -23,7 +24,6 @@ require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
-	github.com/go-faster/jx v1.2.0 // indirect
 	github.com/go-faster/yaml v0.4.6 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
