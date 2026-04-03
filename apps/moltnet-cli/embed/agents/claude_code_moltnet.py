@@ -30,6 +30,10 @@ def _is_retryable(exc: Exception) -> bool:
 
     Auth failures and permission errors surface immediately — they need
     a credentials fix, not a retry.
+
+    NonZeroAgentExitCodeError wraps the full CLI command in its message, so
+    the underlying ECONNRESET/ETIMEDOUT text is not present. We treat any
+    non-zero exit as retryable unless it clearly indicates an auth failure.
     """
     msg = str(exc).lower()
     if any(
@@ -43,7 +47,8 @@ def _is_retryable(exc: Exception) -> bool:
     ):
         return False
     return any(
-        k in msg for k in ("econnreset", "etimedout", "connect error", "unknown")
+        k in msg
+        for k in ("econnreset", "etimedout", "connect error", "unknown", "exit 1", "command failed")
     )
 
 
