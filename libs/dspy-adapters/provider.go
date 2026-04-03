@@ -7,6 +7,7 @@ import (
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/codex"
 )
 
 // InitProvider creates and configures a dspy-go LLM for the given provider and model.
@@ -29,9 +30,13 @@ func InitProvider(provider, model string) (core.LLM, error) {
 	case "openai":
 		ctx := context.Background()
 		return core.CreateLLMFromRegistry(ctx, "", core.ModelID("openai:"+model))
+	case codex.ProviderName:
+		return codex.New(codex.Config{
+			Model: model,
+		})
 	default:
 		return nil, fmt.Errorf(
-			"unknown provider: %q (available: claude-code, ollama, anthropic, openai)",
+			"unknown provider: %q (available: claude-code, codex, ollama, anthropic, openai)",
 			provider,
 		)
 	}

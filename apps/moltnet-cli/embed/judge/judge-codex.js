@@ -3,6 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import { Codex } from '@openai/codex-sdk';
 
+import { withRetry } from './retry.js';
+
 /**
  * @typedef {{ name: string; description: string; max_score: number }} Criterion
  * @typedef {{ type: string; context: string; checklist: Criterion[] }} Criteria
@@ -17,6 +19,30 @@ async function writeReward(reward) {
   await writeFile(
     '/logs/verifier/reward.json',
     JSON.stringify(reward, null, 2),
+  );
+}
+
+/**
+ * Returns true for transient network errors worth retrying.
+ * Returns false for 401 auth errors and bad-output errors.
+ * @param {Error} err
+ * @returns {boolean}
+ */
+function isRetryableError(err) {
+  const msg = (err.message ?? String(err)).toLowerCase();
+  // Never retry auth failures — they need a credentials fix, not a retry
+  if (
+    msg.includes('401') ||
+    msg.includes('unauthorized') ||
+    msg.includes('incorrect api key')
+  ) {
+    return false;
+  }
+  return (
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('connect error') ||
+    msg.includes('network')
   );
 }
 
@@ -49,58 +75,70 @@ Return your scores as a JSON array — one object per criterion:
 ]`;
 
   const model = process.env.JUDGE_MODEL ?? 'gpt-5-codex';
-  const codex = new Codex({
-    ...(process.env.OPENAI_API_KEY
-      ? { apiKey: process.env.OPENAI_API_KEY }
-      : {}),
-  });
-  const thread = codex.startThread({
-    model,
-    sandboxMode: 'read-only',
-    skipGitRepoCheck: true,
-    approvalPolicy: 'never',
-    cwd: '/app',
-  });
-
-  const turn = await thread.run(prompt, {
-    outputSchema: {
-      type: 'object',
-      properties: {
-        scores: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              name: { type: 'string' },
-              score: { type: 'number' },
-              max_score: { type: 'number' },
-              evidence: { type: 'string' },
-            },
-            required: ['name', 'score', 'max_score', 'evidence'],
-          },
-        },
-      },
-      required: ['scores'],
-    },
-  });
 
   /** @type {ScoredCriterion[]} */
-  let scored;
-  const responseText = turn.finalResponse || '';
+  const scored = await withRetry(
+    async () => {
+      const codex = new Codex({
+        ...(process.env.OPENAI_API_KEY
+          ? { apiKey: process.env.OPENAI_API_KEY }
+          : {}),
+      });
+      const thread = codex.startThread({
+        model,
+        sandboxMode: 'read-only',
+        skipGitRepoCheck: true,
+        approvalPolicy: 'never',
+        cwd: '/app',
+      });
 
-  try {
-    const parsed = JSON.parse(responseText);
-    scored = Array.isArray(parsed) ? parsed : parsed.scores;
-  } catch {
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.error('Judge did not produce valid JSON. Raw output:');
-      console.error(responseText);
-      await writeReward({ reward: 0 });
-      process.exit(1);
-    }
-    scored = JSON.parse(jsonMatch[0]);
-  }
+      const turn = await thread.run(prompt, {
+        outputSchema: {
+          type: 'object',
+          properties: {
+            scores: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  score: { type: 'number' },
+                  max_score: { type: 'number' },
+                  evidence: { type: 'string' },
+                },
+                required: ['name', 'score', 'max_score', 'evidence'],
+              },
+            },
+          },
+          required: ['scores'],
+        },
+      });
+
+      const responseText = turn.finalResponse || '';
+      let result;
+      try {
+        const parsed = JSON.parse(responseText);
+        result = Array.isArray(parsed) ? parsed : parsed.scores;
+      } catch {
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+          const err = new Error(
+            `Judge did not produce valid JSON. Raw output:\n${responseText}`,
+          );
+          err.nonRetryable = true;
+          throw err;
+        }
+        result = JSON.parse(jsonMatch[0]);
+      }
+      return result;
+    },
+    {
+      shouldRetry: (err) => {
+        if (err.nonRetryable) return false;
+        return isRetryableError(err);
+      },
+    },
+  );
 
   const totalScore = scored.reduce((sum, c) => sum + c.score, 0);
   const maxTotal = scored.reduce((sum, c) => sum + c.max_score, 0);

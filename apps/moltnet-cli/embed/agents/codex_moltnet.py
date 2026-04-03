@@ -19,8 +19,23 @@ from harbor.models.agent.context import AgentContext
 from harbor.models.trial.paths import EnvironmentPaths
 
 from .headless_prompt import build_headless_instruction
+from .retry import with_retry
 
 logger = logging.getLogger(__name__)
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Return True for transient connection errors worth retrying.
+
+    401 Unauthorized is NOT retried — that indicates a credentials problem
+    that needs fixing (see issue #615), not a transient network blip.
+    """
+    msg = str(exc).lower()
+    if any(k in msg for k in ("401", "unauthorized", "incorrect api key")):
+        return False
+    return any(
+        k in msg for k in ("econnreset", "etimedout", "connect error", "network")
+    )
 
 
 class CodexMoltNet(Codex):
@@ -66,8 +81,11 @@ class CodexMoltNet(Codex):
                     ),
                 )
             else:
-                logger.info(
-                    "Codex auth cache bridging enabled but no auth.json found at %s",
+                logger.warning(
+                    "Codex auth cache bridging enabled but no auth.json found at %s — "
+                    "container will have no credentials and Codex will fail with 401. "
+                    "Set MOLTNET_CODEX_AUTH_CACHE_PATH or ensure %s exists.",
+                    auth_cache,
                     auth_cache,
                 )
 
@@ -153,23 +171,27 @@ fi
             ),
             env=env,
         )
+
+        codex_command = (
+            "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; "
+            "codex exec "
+            "--dangerously-bypass-approvals-and-sandbox "
+            "--skip-git-repo-check "
+            f"--model {model} "
+            "--json "
+            "--enable unified_exec "
+            f"{reasoning_flag}"
+            "-- "
+            f"{escaped_instruction} "
+            f"2>&1 </dev/null | tee {EnvironmentPaths.agent_dir / self._OUTPUT_FILENAME}"
+        )
+
         try:
-            await self.exec_as_agent(
-                environment,
-                command=(
-                    "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; "
-                    "codex exec "
-                    "--dangerously-bypass-approvals-and-sandbox "
-                    "--skip-git-repo-check "
-                    f"--model {model} "
-                    "--json "
-                    "--enable unified_exec "
-                    f"{reasoning_flag}"
-                    "-- "
-                    f"{escaped_instruction} "
-                    f"2>&1 </dev/null | tee {EnvironmentPaths.agent_dir / self._OUTPUT_FILENAME}"
+            await with_retry(
+                lambda: self.exec_as_agent(
+                    environment, command=codex_command, env=env
                 ),
-                env=env,
+                should_retry=_is_retryable,
             )
         finally:
             try:
