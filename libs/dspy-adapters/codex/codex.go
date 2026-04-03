@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/clierrors"
 )
 
 const (
@@ -168,10 +169,19 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 	cmd.Env = l.buildEnv()
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("codex CLI failed: %w\nstderr: %s", err, stderr.String())
+		// Codex outputs errors as JSONL on stdout even on failure.
+		// Try to extract a meaningful error from the JSONL before falling
+		// back to the generic classifier.
+		if jsonlErr := extractErrorFromJSONL(stdout.String()); jsonlErr != "" {
+			return nil, clierrors.ClassifyCLIError("codex", err, jsonlErr, "")
+		}
+		return nil, clierrors.ClassifyCLIError("codex", err, stderr.String(), stdout.String())
 	}
 
 	content := strings.TrimSpace(stdout.String())
+	if content == "" {
+		return nil, fmt.Errorf("codex CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
+	}
 
 	return &core.LLMResponse{
 		Content:  content,
@@ -231,6 +241,42 @@ type jsonlEvent struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+// extractErrorFromJSONL scans JSONL output for error/turn.failed events and
+// returns a human-readable error string, or "" if no errors found.
+func extractErrorFromJSONL(output string) string {
+	var errors []string
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var event jsonlEvent
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			continue
+		}
+		switch event.Type {
+		case "error":
+			if event.Message != "" {
+				errors = append(errors, event.Message)
+			}
+		case "turn.failed":
+			if event.Error != nil && event.Error.Message != "" {
+				errors = append(errors, event.Error.Message)
+			}
+		}
+	}
+	if len(errors) == 0 {
+		return ""
+	}
+	// Return the last error (most specific), skip "Reconnecting..." noise
+	for i := len(errors) - 1; i >= 0; i-- {
+		if !strings.HasPrefix(errors[i], "Reconnecting...") {
+			return errors[i]
+		}
+	}
+	return errors[len(errors)-1]
 }
 
 // extractStructuredOutputFromJSONL parses the JSONL output from codex exec --json

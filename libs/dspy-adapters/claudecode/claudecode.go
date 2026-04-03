@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/clierrors"
 )
 
 const (
@@ -174,11 +175,12 @@ func (l *LLM) buildArgsWithOutputFormat(outputFormat string, extra []string) []s
 		"--model", l.config.Model,
 		"--permission-mode", "bypassPermissions",
 		"--no-session-persistence",
-		// --bare: skip hooks, MCP servers, CLAUDE.md, plugins, auto-memory.
-		// --disable-slash-commands: skip skill resolution.
-		// The subprocess is a pure LLM call, not an agent session.
-		"--bare",
-		"--disable-slash-commands",
+		// Isolate from user/project config without disabling OAuth auth
+		// (--bare would disable OAuth/keychain, breaking non-API-key setups).
+		"--strict-mcp-config",      // zero MCP servers (no --mcp-config arg)
+		"--disable-slash-commands", // no skills
+		"--no-chrome",              // no browser integration
+		"-C", os.TempDir(),         // no project CLAUDE.md/AGENTS.md
 	}
 	if l.config.MaxBudgetUSD > 0 {
 		args = append(args, "--max-budget-usd", fmt.Sprintf("%.2f", l.config.MaxBudgetUSD))
@@ -203,10 +205,13 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 	cmd.Env = l.buildEnv()
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("claude CLI failed: %w\nstderr: %s", err, stderr.String())
+		return nil, clierrors.ClassifyCLIError("claude", err, stderr.String(), stdout.String())
 	}
 
 	content := strings.TrimSpace(stdout.String())
+	if content == "" {
+		return nil, fmt.Errorf("claude CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
+	}
 
 	return &core.LLMResponse{
 		Content:  content,

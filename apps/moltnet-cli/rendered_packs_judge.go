@@ -50,6 +50,9 @@ func newRenderedPacksJudgeCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			if !cmd.Flags().Changed("model") {
+				model = defaultModelForProvider(provider)
+			}
 			if nonce != "" {
 				return runRenderedPacksJudge(
 					apiURL,
@@ -77,7 +80,7 @@ func newRenderedPacksJudgeCmd() *cobra.Command {
 		&provider,
 		"provider",
 		"claude-code",
-		"LLM provider (claude-code, ollama, anthropic, openai)",
+		"LLM provider (claude-code, codex, ollama, anthropic, openai)",
 	)
 	cmd.Flags().StringVar(&model, "model", "claude-sonnet-4-6", "Model ID")
 	_ = cmd.MarkFlagRequired("id")
@@ -292,6 +295,17 @@ func buildSourceEntriesMarkdown(
 		b.WriteString("\n\n")
 	}
 	return b.String()
+}
+
+func defaultModelForProvider(provider string) string {
+	switch provider {
+	case "codex":
+		return "o3"
+	case "ollama":
+		return "llama3"
+	default:
+		return "claude-sonnet-4-6"
+	}
 }
 
 func buildSourceEntriesFromPack(entries []moltnetapi.ExpandedPackEntry) string {
