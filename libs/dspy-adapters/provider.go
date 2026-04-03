@@ -1,4 +1,4 @@
-// Package dspyadapters provides LLM provider initialization for dspy-go.
+// Package dspyadapters provides LLM provider initialization and common DSPy runtime helpers.
 package dspyadapters
 
 import (
@@ -12,26 +12,29 @@ import (
 
 // InitProvider creates and configures a dspy-go LLM for the given provider and model.
 func InitProvider(provider, model string) (core.LLM, error) {
+	var llm core.LLM
+	var err error
+
 	switch provider {
 	case claudecode.ProviderName:
-		return claudecode.New(claudecode.Config{
+		llm, err = claudecode.New(claudecode.Config{
 			Model: model,
 		})
 	case "ollama":
 		ctx := context.Background()
-		return core.CreateLLMFromRegistry(ctx, "", core.ModelID("ollama:"+model))
+		llm, err = core.CreateLLMFromRegistry(ctx, "", core.ModelID("ollama:"+model))
 	case "anthropic":
 		ctx := context.Background()
-		return core.CreateLLMFromRegistry(
+		llm, err = core.CreateLLMFromRegistry(
 			ctx,
 			"",
 			core.ModelID("anthropic:"+model),
 		)
 	case "openai":
 		ctx := context.Background()
-		return core.CreateLLMFromRegistry(ctx, "", core.ModelID("openai:"+model))
+		llm, err = core.CreateLLMFromRegistry(ctx, "", core.ModelID("openai:"+model))
 	case codex.ProviderName:
-		return codex.New(codex.Config{
+		llm, err = codex.New(codex.Config{
 			Model: model,
 		})
 	default:
@@ -40,4 +43,8 @@ func InitProvider(provider, model string) (core.LLM, error) {
 			provider,
 		)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return core.NewModelContextDecorator(llm), nil
 }

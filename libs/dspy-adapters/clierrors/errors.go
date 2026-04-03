@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 )
 
 // CLIAuthError indicates the CLI subprocess failed due to authentication.
@@ -54,6 +56,22 @@ func (e *CLIExecError) Error() string {
 	return msg
 }
 
+// wrapDSPyError preserves the adapter-specific error while attaching a DSPy
+// error code and structured fields for higher-level handlers.
+func wrapDSPyError(code dspyerrors.ErrorCode, provider string, err error, stderr, stdout string) error {
+	fields := dspyerrors.Fields{"provider": provider}
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		fields["exit_code"] = exitErr.ExitCode()
+	}
+	if strings.TrimSpace(stderr) != "" {
+		fields["stderr"] = strings.TrimSpace(stderr)
+	}
+	if strings.TrimSpace(stdout) != "" {
+		fields["stdout"] = strings.TrimSpace(stdout)
+	}
+	return dspyerrors.WithFields(dspyerrors.Wrap(err, code, provider+" CLI call failed"), fields)
+}
+
 // ClassifyCLIError inspects stderr/stdout from a failed CLI subprocess and
 // returns a typed error for common failure modes.
 func ClassifyCLIError(provider string, err error, stderr, stdout string) error {
@@ -78,7 +96,8 @@ func ClassifyCLIError(provider string, err error, stderr, stdout string) error {
 			if len(detail) > 200 {
 				detail = detail[:200] + "..."
 			}
-			return &CLIAuthError{Provider: provider, Detail: detail}
+			authErr := &CLIAuthError{Provider: provider, Detail: detail}
+			return wrapDSPyError(dspyerrors.ConfigurationError, provider, authErr, stderr, stdout)
 		}
 	}
 
@@ -98,11 +117,26 @@ func ClassifyCLIError(provider string, err error, stderr, stdout string) error {
 			if len(detail) > 200 {
 				detail = detail[:200] + "..."
 			}
-			return &CLIModelError{Provider: provider, Detail: detail}
+			modelErr := &CLIModelError{Provider: provider, Detail: detail}
+			return wrapDSPyError(dspyerrors.ModelNotSupported, provider, modelErr, stderr, stdout)
 		}
 	}
 
-	// Generic failure with exit code
+	// Retry- and timeout-adjacent failures should preserve structured error codes.
+	if strings.Contains(combined, "timed out") || strings.Contains(combined, "deadline exceeded") {
+		execErr := buildExecError(provider, err, stderr, stdout)
+		return wrapDSPyError(dspyerrors.Timeout, provider, execErr, stderr, stdout)
+	}
+	if strings.Contains(combined, "rate limit") || strings.Contains(combined, "too many requests") || strings.Contains(combined, "429") {
+		execErr := buildExecError(provider, err, stderr, stdout)
+		return wrapDSPyError(dspyerrors.RateLimitExceeded, provider, execErr, stderr, stdout)
+	}
+
+	execErr := buildExecError(provider, err, stderr, stdout)
+	return wrapDSPyError(dspyerrors.LLMGenerationFailed, provider, execErr, stderr, stdout)
+}
+
+func buildExecError(provider string, err error, stderr, stdout string) *CLIExecError {
 	exitCode := -1
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode = exitErr.ExitCode()

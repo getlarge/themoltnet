@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 	"github.com/XiaoConstantine/dspy-go/pkg/modules"
+	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 )
 
 // Scores holds the three-axis fidelity scores.
@@ -92,8 +94,12 @@ func Judge(
 	renderedContent,
 	rubric string,
 ) (*Scores, error) {
+	ctx = dspyadapters.WithExecutionState(ctx)
 	sig := NewSignature()
 	cot := modules.NewChainOfThought(sig).WithStructuredOutput()
+	if err := dspyadapters.ApplyDefaultJudgeModuleInterceptors(cot); err != nil {
+		return nil, dspyerrors.Wrap(err, dspyerrors.ConfigurationError, "configure fidelity judge interceptors")
+	}
 
 	result, err := cot.Process(ctx, map[string]any{
 		"source_entries":   sourceEntries,
@@ -101,7 +107,10 @@ func Judge(
 		"rubric":           rubric,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("fidelity judge failed: %w", err)
+		return nil, dspyerrors.WithFields(
+			dspyerrors.Wrap(err, dspyerrors.WorkflowExecutionFailed, "fidelity judge failed"),
+			dspyerrors.Fields{"module": "fidelity"},
+		)
 	}
 
 	scores := &Scores{}
@@ -151,15 +160,24 @@ func parseFloat(v any) (float64, error) {
 func parseRequiredScore(result map[string]any, field string) (float64, error) {
 	raw, ok := result[field]
 	if !ok {
-		return 0, fmt.Errorf("fidelity judge missing %q score", field)
+		return 0, dspyerrors.WithFields(
+			dspyerrors.New(dspyerrors.InvalidResponse, fmt.Sprintf("fidelity judge missing %q score", field)),
+			dspyerrors.Fields{"field": field},
+		)
 	}
 
 	score, err := parseFloat(raw)
 	if err != nil {
-		return 0, fmt.Errorf("invalid %q score: %w", field, err)
+		return 0, dspyerrors.WithFields(
+			dspyerrors.Wrap(err, dspyerrors.InvalidResponse, fmt.Sprintf("invalid %q score", field)),
+			dspyerrors.Fields{"field": field},
+		)
 	}
 	if score < 0 || score > 1 {
-		return 0, fmt.Errorf("invalid %q score: out of range [0,1]", field)
+		return 0, dspyerrors.WithFields(
+			dspyerrors.New(dspyerrors.InvalidResponse, fmt.Sprintf("invalid %q score: out of range [0,1]", field)),
+			dspyerrors.Fields{"field": field, "score": score},
+		)
 	}
 
 	return score, nil
