@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.2.1...dspy-adapters-v0.3.0) (2026-04-03)
+
+
+### Features
+
+* **dspy-adapters:** add Codex CLI adapter and isolate both CLI adapters ([73fa3b0](https://github.com/getlarge/themoltnet/commit/73fa3b028a919b3fb5193acf6012a1189706b879))
+* local judge mode, Codex adapter, CLI isolation ([22bb1c7](https://github.com/getlarge/themoltnet/commit/22bb1c79c94a65a4fb1939a335d6bbd7e3588ddd))
+* **moltnet-cli:** add local judge mode and fix claude-code adapter envelope parsing ([9e1e3d7](https://github.com/getlarge/themoltnet/commit/9e1e3d7c9719393c86b8c1d72d03852cffad6fa6))
+
+
+### Bug Fixes
+
+* **dspy-adapters:** address copilot review feedback ([84c7b52](https://github.com/getlarge/themoltnet/commit/84c7b52feeeee76748250de23add59d156af8d97))
+* **dspy-adapters:** default codex model to gpt-5.3-codex ([c424543](https://github.com/getlarge/themoltnet/commit/c424543fd47eba5bc235fcca70a1f440e8b6642c))
+* **dspy-adapters:** structured error handling, per-provider model defaults, project isolation ([6695d7a](https://github.com/getlarge/themoltnet/commit/6695d7a6d64c4152ac950905bb715f330878eb7a))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.2.0...dspy-adapters-v0.2.1) (2026-04-02)
 
 
