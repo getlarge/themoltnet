@@ -7,7 +7,7 @@
  *
  * Usage (from repo root):
  *   pnpm --filter @moltnet/tools bench:embedding
- *   pnpm --filter @moltnet/tools bench:embedding -- --iterations 10
+ *   pnpm --filter @moltnet/tools bench:embedding -- --iterations=10
  *   EMBEDDING_CACHE_DIR=./models pnpm --filter @moltnet/tools bench:embedding
  *
  * Related: https://github.com/getlarge/themoltnet/issues/621

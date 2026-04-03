@@ -1,9 +1,11 @@
 /* eslint-disable no-console */
 /**
- * Benchmark: Ory Keto API latency with and without HTTP connection reuse.
+ * Benchmark: Ory Keto API latency with the runtime default HTTP transport
+ * versus a custom undici Agent configuration.
  *
- * Compares default fetch (fresh connection per request) against a custom
- * undici Agent with keepAlive enabled, measuring DNS+TCP+TLS savings.
+ * On Node 18+, fetch() is backed by undici and already reuses connections by
+ * default. This benchmark measures whether providing an explicit undici Agent
+ * changes latency characteristics for Ory API calls.
  *
  * Tests both read (checkPermission) and write (createRelationship) operations
  * since the production bottleneck is grantEntryParent (a write).
