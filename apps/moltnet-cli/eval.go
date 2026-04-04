@@ -157,6 +157,9 @@ func checkPrerequisites(engine string) error {
 		if _, err := exec.LookPath("claude"); err != nil {
 			return fmt.Errorf("claude CLI not found on PATH: %w", err)
 		}
+		if _, err := exec.LookPath("git"); err != nil {
+			return fmt.Errorf("git CLI not found on PATH: %w", err)
+		}
 		return nil
 	case "harbor":
 	default:
@@ -774,6 +777,9 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, 
 		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, err)
 	}
 	if err := neutralizeDSPYEvalWorktree(worktreeDir, newDSPYWorktreeFilter(opts)); err != nil {
+		if cleanupErr := gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir); cleanupErr != nil {
+			return "", nil, fmt.Errorf("neutralize dspy worktree: %w; cleanup worktree: %v", err, cleanupErr)
+		}
 		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", err)
 	}
 
@@ -841,7 +847,10 @@ func neutralizeDSPYEvalWorktree(worktreeDir string, filter dspyWorktreeFilter) e
 				return filepath.SkipDir
 			}
 			if filter.matches(relPath(worktreeDir, path), true) {
-				return os.RemoveAll(path)
+				if err := os.RemoveAll(path); err != nil && !os.IsNotExist(err) {
+					return err
+				}
+				return filepath.SkipDir
 			}
 			return nil
 		}

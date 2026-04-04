@@ -69,6 +69,8 @@ Each score must be between 0 and max_score inclusive.`)
 }
 
 func Run(ctx context.Context, req Request) (*Result, error) {
+	// This currently relies on process-global default-LLM mutation and must
+	// remain serialized until that dependency is removed from the judge path.
 	if _, err := dspyadapters.InitDefaultProvider(req.Provider, req.Model); err != nil {
 		return nil, err
 	}

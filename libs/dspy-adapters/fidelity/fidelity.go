@@ -154,6 +154,9 @@ func Judge(
 
 // Run initializes the requested provider, installs it as the default LLM for
 // the DSPy module graph, and executes the fidelity judge.
+//
+// This currently relies on process-global default-LLM mutation and must remain
+// serialized until that dependency is removed from the judge path.
 func Run(ctx context.Context, req Request) (*Scores, error) {
 	if _, err := dspyadapters.InitDefaultProvider(req.Provider, req.Model); err != nil {
 		return nil, err

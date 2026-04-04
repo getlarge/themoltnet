@@ -39,3 +39,34 @@ func TestClassifyCLIErrorWrapsModelAsModelNotSupported(t *testing.T) {
 		t.Fatalf("expected model not supported, got %v", coded.Code())
 	}
 }
+
+func TestClassifyCLIErrorPreservesOriginalErrorChain(t *testing.T) {
+	t.Parallel()
+
+	original := stderrors.New("exit status 1")
+	err := ClassifyCLIError("claude", original, "Not logged in", "")
+
+	if !stderrors.Is(err, original) {
+		t.Fatal("expected original subprocess error to be preserved in chain")
+	}
+}
+
+func TestWrapDSPyErrorUsesCLIExecExitCodeField(t *testing.T) {
+	t.Parallel()
+
+	err := wrapDSPyError(
+		dspyerrors.LLMGenerationFailed,
+		"claude",
+		&CLIExecError{Provider: "claude", ExitCode: 42},
+		"stderr output",
+		"",
+	)
+
+	var coded *dspyerrors.Error
+	if !stderrors.As(err, &coded) {
+		t.Fatal("expected dspy structured error")
+	}
+	if got := coded.Fields()["exit_code"]; got != 42 {
+		t.Fatalf("expected exit_code=42, got %#v", got)
+	}
+}

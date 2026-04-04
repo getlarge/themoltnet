@@ -2,6 +2,7 @@
 package clierrors
 
 import (
+	stderrors "errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -13,21 +14,27 @@ import (
 type CLIAuthError struct {
 	Provider string
 	Detail   string
+	Err      error
 }
 
 func (e *CLIAuthError) Error() string {
 	return fmt.Sprintf("%s: authentication failed — %s", e.Provider, e.Detail)
 }
 
+func (e *CLIAuthError) Unwrap() error { return e.Err }
+
 // CLIModelError indicates an unsupported or invalid model was requested.
 type CLIModelError struct {
 	Provider string
 	Detail   string
+	Err      error
 }
 
 func (e *CLIModelError) Error() string {
 	return fmt.Sprintf("%s: model error — %s", e.Provider, e.Detail)
 }
+
+func (e *CLIModelError) Unwrap() error { return e.Err }
 
 // CLIExecError indicates a generic CLI execution failure with context.
 type CLIExecError struct {
@@ -35,6 +42,7 @@ type CLIExecError struct {
 	ExitCode int
 	Stderr   string
 	Stdout   string
+	Err      error
 }
 
 func (e *CLIExecError) Error() string {
@@ -56,12 +64,20 @@ func (e *CLIExecError) Error() string {
 	return msg
 }
 
+func (e *CLIExecError) Unwrap() error { return e.Err }
+
 // wrapDSPyError preserves the adapter-specific error while attaching a DSPy
 // error code and structured fields for higher-level handlers.
 func wrapDSPyError(code dspyerrors.ErrorCode, provider string, err error, stderr, stdout string) error {
 	fields := dspyerrors.Fields{"provider": provider}
-	if exitErr, ok := err.(*exec.ExitError); ok {
+	var execErr *CLIExecError
+	if stderrors.As(err, &execErr) && execErr.ExitCode >= 0 {
+		fields["exit_code"] = execErr.ExitCode
+	} else {
+		var exitErr *exec.ExitError
+		if stderrors.As(err, &exitErr) {
 		fields["exit_code"] = exitErr.ExitCode()
+		}
 	}
 	if strings.TrimSpace(stderr) != "" {
 		fields["stderr"] = strings.TrimSpace(stderr)
@@ -96,7 +112,7 @@ func ClassifyCLIError(provider string, err error, stderr, stdout string) error {
 			if len(detail) > 200 {
 				detail = detail[:200] + "..."
 			}
-			authErr := &CLIAuthError{Provider: provider, Detail: detail}
+			authErr := &CLIAuthError{Provider: provider, Detail: detail, Err: err}
 			return wrapDSPyError(dspyerrors.ConfigurationError, provider, authErr, stderr, stdout)
 		}
 	}
@@ -117,7 +133,7 @@ func ClassifyCLIError(provider string, err error, stderr, stdout string) error {
 			if len(detail) > 200 {
 				detail = detail[:200] + "..."
 			}
-			modelErr := &CLIModelError{Provider: provider, Detail: detail}
+			modelErr := &CLIModelError{Provider: provider, Detail: detail, Err: err}
 			return wrapDSPyError(dspyerrors.ModelNotSupported, provider, modelErr, stderr, stdout)
 		}
 	}
@@ -147,5 +163,6 @@ func buildExecError(provider string, err error, stderr, stdout string) *CLIExecE
 		ExitCode: exitCode,
 		Stderr:   stderr,
 		Stdout:   stdout,
+		Err:      err,
 	}
 }

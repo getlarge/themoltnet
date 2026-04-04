@@ -59,6 +59,10 @@ func InitProvider(provider, model string) (core.LLM, error) {
 
 // InitDefaultProvider initializes a provider and installs it as the default LLM
 // for downstream DSPy modules that rely on core.GetDefaultLLM().
+//
+// This mutates process-global DSPy state. Current eval usage is intentionally
+// single-threaded; do not use this helper from concurrent judge executions
+// until the default-LLM dependency is removed or isolated per run.
 func InitDefaultProvider(provider, model string) (core.LLM, error) {
 	llm, err := InitProvider(provider, model)
 	if err != nil {
