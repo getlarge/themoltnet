@@ -74,7 +74,7 @@ function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     enabled: true,
     authorizationServers: [hydra.publicUrl],
     resourceUri,
-    excludedPaths: ['/healthz'],
+    excludedPaths: ['/healthz', '/healthz/ready'],
     tokenValidation: {
       jwksUri: `${hydra.publicUrl}/.well-known/jwks.json`,
       introspectionEndpoint: hydra.apiKey
@@ -130,7 +130,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
-  app.get('/healthz/ready', async (_request, reply) => {
+  app.get('/healthz/ready', async (request, reply) => {
     const probe = async (
       name: string,
       url: string,
@@ -146,7 +146,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
           return {
             status: 'error',
             latencyMs: Math.round(performance.now() - start),
-            error: `${name}: HTTP ${res.status}`,
+            error: `http_${res.status}`,
           };
         }
         return {
@@ -154,25 +154,41 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
           latencyMs: Math.round(performance.now() - start),
         };
       } catch (err) {
+        request.log.warn({ err, probe: name }, 'Readiness probe failed');
+        const isTimeout =
+          err instanceof Error &&
+          (err.name === 'AbortError' || err.message.includes('timeout'));
+        const isConnErr =
+          err instanceof Error &&
+          (err.message.includes('ECONNREFUSED') ||
+            err.message.includes('ENOTFOUND') ||
+            err.message.includes('fetch failed'));
         return {
           status: 'error',
           latencyMs: Math.round(performance.now() - start),
-          error: `${name}: ${err instanceof Error ? err.message : 'Unknown'}`,
+          error: isTimeout
+            ? 'timeout'
+            : isConnErr
+              ? 'connection_failed'
+              : 'unavailable',
         };
       }
     };
 
     const [restApi, ory] = await Promise.all([
-      probe('rest-api', `${config.REST_API_URL}/health`),
+      probe('rest-api', new URL('/health', config.REST_API_URL).toString()),
       config.ORY_PROJECT_URL
         ? probe(
             'ory',
-            `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
+            new URL(
+              '/.well-known/openid-configuration',
+              config.ORY_PROJECT_URL,
+            ).toString(),
           )
         : {
             status: 'error' as const,
             latencyMs: 0,
-            error: 'ory: Not configured',
+            error: 'not_configured',
           },
     ]);
 

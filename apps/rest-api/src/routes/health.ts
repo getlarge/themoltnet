@@ -26,40 +26,69 @@ interface ComponentResult {
   error?: string;
 }
 
-async function probeDatabase(pool: HealthPool): Promise<ComponentResult> {
+/**
+ * Classify a probe error into a safe category string.
+ * Raw error details are not exposed to avoid leaking internals.
+ */
+function classifyError(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.name === 'AbortError' || err.message.includes('timeout')) {
+      return 'timeout';
+    }
+    if (
+      err.message.includes('ECONNREFUSED') ||
+      err.message.includes('ENOTFOUND') ||
+      err.message.includes('fetch failed')
+    ) {
+      return 'connection_failed';
+    }
+  }
+  return 'unavailable';
+}
+
+async function probeDatabase(
+  pool: HealthPool,
+  log: { warn: (obj: object, msg: string) => void },
+): Promise<ComponentResult> {
   const start = performance.now();
   try {
     await pool.query('SELECT 1');
     return { status: 'ok', latencyMs: Math.round(performance.now() - start) };
   } catch (err) {
+    log.warn({ err, probe: 'database' }, 'Readiness probe failed');
     return {
       status: 'error',
       latencyMs: Math.round(performance.now() - start),
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: classifyError(err),
     };
   }
 }
 
-async function probeOry(oryProjectUrl: string): Promise<ComponentResult> {
+async function probeOry(
+  oryProjectUrl: string,
+  log: { warn: (obj: object, msg: string) => void },
+): Promise<ComponentResult> {
   const start = performance.now();
   try {
-    const response = await fetch(
-      `${oryProjectUrl}/.well-known/openid-configuration`,
-      { signal: AbortSignal.timeout(5000) },
-    );
+    const url = new URL(
+      '/.well-known/openid-configuration',
+      oryProjectUrl,
+    ).toString();
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) {
       return {
         status: 'error',
         latencyMs: Math.round(performance.now() - start),
-        error: `HTTP ${response.status}`,
+        error: `http_${response.status}`,
       };
     }
     return { status: 'ok', latencyMs: Math.round(performance.now() - start) };
   } catch (err) {
+    log.warn({ err, probe: 'ory' }, 'Readiness probe failed');
     return {
       status: 'error',
       latencyMs: Math.round(performance.now() - start),
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: classifyError(err),
     };
   }
 }
@@ -101,21 +130,21 @@ export async function healthRoutes(
         },
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       const [database, ory] = await Promise.all([
         opts.pool
-          ? probeDatabase(opts.pool)
+          ? probeDatabase(opts.pool, request.log)
           : {
               status: 'error' as const,
               latencyMs: 0,
-              error: 'Not configured',
+              error: 'not_configured',
             },
         opts.oryProjectUrl
-          ? probeOry(opts.oryProjectUrl)
+          ? probeOry(opts.oryProjectUrl, request.log)
           : {
               status: 'error' as const,
               latencyMs: 0,
-              error: 'Not configured',
+              error: 'not_configured',
             },
       ]);
 

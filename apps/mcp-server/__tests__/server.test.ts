@@ -359,7 +359,7 @@ describe('buildApp', () => {
       expect(body.status).toBe('degraded');
       expect(body.components.restApi.status).toBe('ok');
       expect(body.components.ory.status).toBe('error');
-      expect(body.components.ory.error).toBe('ory: Not configured');
+      expect(body.components.ory.error).toBe('not_configured');
 
       fetchSpy.mockRestore();
       await app.close();
@@ -429,7 +429,7 @@ describe('buildApp', () => {
       const body = JSON.parse(response.body);
       expect(body.status).toBe('degraded');
       expect(body.components.restApi.status).toBe('error');
-      expect(body.components.restApi.error).toContain('HTTP 503');
+      expect(body.components.restApi.error).toBe('http_503');
       expect(body.components.ory.status).toBe('ok');
 
       fetchSpy.mockRestore();

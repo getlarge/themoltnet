@@ -44,12 +44,12 @@ describe('Health routes', () => {
       expect(body.components.database).toEqual({
         status: 'error',
         latencyMs: 0,
-        error: 'Not configured',
+        error: 'not_configured',
       });
       expect(body.components.ory).toEqual({
         status: 'error',
         latencyMs: 0,
-        error: 'Not configured',
+        error: 'not_configured',
       });
     });
   });
@@ -57,14 +57,16 @@ describe('Health routes', () => {
 
 describe('Health readiness probes', () => {
   let mocks: MockServices;
+  let app: FastifyInstance;
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     mocks = createMockServices();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fetchSpy?.mockRestore();
+    await app?.close();
   });
 
   it('returns ok when all probes succeed', async () => {
@@ -75,7 +77,7 @@ describe('Health readiness probes', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 200 }));
 
-    const app = await createTestApp(mocks, null, undefined, {
+    app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
       oryProjectUrl: 'https://mock-ory.example.com',
     });
@@ -107,7 +109,7 @@ describe('Health readiness probes', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 200 }));
 
-    const app = await createTestApp(mocks, null, undefined, {
+    app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
       oryProjectUrl: 'https://mock-ory.example.com',
     });
@@ -121,7 +123,7 @@ describe('Health readiness probes', () => {
     const body = response.json();
     expect(body.status).toBe('degraded');
     expect(body.components.database.status).toBe('error');
-    expect(body.components.database.error).toBe('connection refused');
+    expect(body.components.database.error).toBe('unavailable');
     expect(body.components.ory.status).toBe('ok');
   });
 
@@ -133,7 +135,7 @@ describe('Health readiness probes', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('', { status: 503 }));
 
-    const app = await createTestApp(mocks, null, undefined, {
+    app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
       oryProjectUrl: 'https://mock-ory.example.com',
     });
@@ -148,7 +150,7 @@ describe('Health readiness probes', () => {
     expect(body.status).toBe('degraded');
     expect(body.components.database.status).toBe('ok');
     expect(body.components.ory.status).toBe('error');
-    expect(body.components.ory.error).toBe('HTTP 503');
+    expect(body.components.ory.error).toBe('http_503');
   });
 
   it('returns degraded when Ory probe throws network error', async () => {
@@ -159,7 +161,7 @@ describe('Health readiness probes', () => {
       .spyOn(globalThis, 'fetch')
       .mockRejectedValue(new TypeError('fetch failed'));
 
-    const app = await createTestApp(mocks, null, undefined, {
+    app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
       oryProjectUrl: 'https://mock-ory.example.com',
     });
@@ -174,6 +176,6 @@ describe('Health readiness probes', () => {
     expect(body.status).toBe('degraded');
     expect(body.components.database.status).toBe('ok');
     expect(body.components.ory.status).toBe('error');
-    expect(body.components.ory.error).toBe('fetch failed');
+    expect(body.components.ory.error).toBe('connection_failed');
   });
 });

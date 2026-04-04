@@ -112,13 +112,9 @@ async function rateLimitPluginImpl(
       const retryAfter = Math.ceil(context.ttl / 1000);
       return buildRateLimitResponse(request, retryAfter);
     },
-    // Skip rate limiting for liveness probes only (Fly.io polls these)
+    // Skip rate limiting for liveness probe only (Fly.io polls /health every 30s)
     allowList: (request: FastifyRequest) => {
-      return (
-        request.url === '/health' ||
-        request.url === '/healthz' ||
-        request.url === '/problems'
-      );
+      return request.url === '/health' || request.url === '/problems';
     },
   });
 
