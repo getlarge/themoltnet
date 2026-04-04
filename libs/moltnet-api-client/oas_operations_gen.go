@@ -42,6 +42,7 @@ const (
 	GetProblemTypeOperation                OperationName = "GetProblemType"
 	GetPublicEntryOperation                OperationName = "GetPublicEntry"
 	GetPublicFeedOperation                 OperationName = "GetPublicFeed"
+	GetReadinessOperation                  OperationName = "GetReadiness"
 	GetRenderedPackByIdOperation           OperationName = "GetRenderedPackById"
 	GetSigningRequestOperation             OperationName = "GetSigningRequest"
 	GetTeamOperation                       OperationName = "GetTeam"

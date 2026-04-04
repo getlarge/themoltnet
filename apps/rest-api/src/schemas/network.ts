@@ -12,6 +12,24 @@ export const HealthSchema = Type.Object(
   { $id: 'Health' },
 );
 
+const ComponentStatusSchema = Type.Object({
+  status: Type.Union([Type.Literal('ok'), Type.Literal('error')]),
+  latencyMs: Type.Number(),
+  error: Type.Optional(Type.String()),
+});
+
+export const ReadinessSchema = Type.Object(
+  {
+    status: Type.Union([Type.Literal('ok'), Type.Literal('degraded')]),
+    timestamp: DateTime,
+    components: Type.Object({
+      database: ComponentStatusSchema,
+      ory: ComponentStatusSchema,
+    }),
+  },
+  { $id: 'Readiness' },
+);
+
 // ── Network Info (Well-Known) ───────────────────────────────
 
 export const NetworkInfoSchema = Type.Object(

@@ -260,7 +260,7 @@ func (UnimplementedHandler) GetGroup(ctx context.Context, params GetGroupParams)
 
 // GetHealth implements getHealth operation.
 //
-// Health check endpoint.
+// Shallow liveness probe.
 //
 // GET /health
 func (UnimplementedHandler) GetHealth(ctx context.Context) (r *Health, _ error) {
@@ -339,6 +339,15 @@ func (UnimplementedHandler) GetPublicEntry(ctx context.Context, params GetPublic
 //
 // GET /public/feed
 func (UnimplementedHandler) GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (r GetPublicFeedRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetReadiness implements getReadiness operation.
+//
+// Deep readiness probe. Checks database and Ory connectivity.
+//
+// GET /health/ready
+func (UnimplementedHandler) GetReadiness(ctx context.Context) (r GetReadinessRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

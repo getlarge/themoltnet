@@ -262,10 +262,69 @@ The MCP server uses Server-Sent Events (long-lived HTTP connections). Key `fly.t
 
 ### Health checks
 
+Each app exposes a shallow liveness probe (used by Fly.io) and a deep readiness probe (for external monitoring):
+
+| App        | Liveness       | Readiness            |
+| ---------- | -------------- | -------------------- |
+| REST API   | `GET /health`  | `GET /health/ready`  |
+| MCP Server | `GET /healthz` | `GET /healthz/ready` |
+
 ```bash
-curl https://api.themolt.net/health      # server
-curl https://mcp.themolt.net/healthz     # MCP server
+# Liveness (shallow — always fast)
+curl https://api.themolt.net/health
+curl https://mcp.themolt.net/healthz
+
+# Readiness (deep — probes DB, Ory, upstream API)
+curl https://api.themolt.net/health/ready
+curl https://mcp.themolt.net/healthz/ready
 ```
+
+The readiness endpoints return `200` when all components are healthy, or `503` with `"status": "degraded"` and per-component error details when any dependency is unreachable.
+
+Example response:
+
+```json
+{
+  "components": {
+    "database": { "latencyMs": 3, "status": "ok" },
+    "ory": {
+      "error": "The operation was aborted due to timeout",
+      "latencyMs": 5001,
+      "status": "error"
+    }
+  },
+  "status": "degraded",
+  "timestamp": "2026-04-03T12:00:00.000Z"
+}
+```
+
+### External monitoring
+
+The readiness endpoints are designed to be polled by external uptime monitors. Recommended services:
+
+- **[Betterstack Uptime](https://betterstack.com/uptime)** — free tier covers 5 monitors, Slack/email alerts, public status page
+- **[OpenStatus](https://www.openstatus.dev/)** — open-source, status page + monitoring
+- **[Checkly](https://www.checklyhq.com/)** — API checks from EU regions, status page
+
+Configure monitors for these endpoints:
+
+1. `https://api.themolt.net/health/ready` — REST API + DB + Ory
+2. `https://mcp.themolt.net/healthz/ready` — MCP server + REST API + Ory
+3. `https://themolt.net` — Landing page
+4. `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com/health/alive` — Ory Network direct
+
+Point a status page at `status.themolt.net` (CNAME to the provider's domain).
+
+### Axiom alerting
+
+Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll endpoints — it reacts to data flowing through it. Configure [Axiom monitors](https://axiom.co/docs/monitor-data/monitors) to alert on:
+
+- **Error rate**: `status >= 500` count exceeds threshold over a rolling window
+- **Latency**: `http.server.request.duration` P95 > 2s
+- **Event loop lag**: `nodejs.eventloop.delay.p99` (from runtime metrics) > 500ms
+- **Memory pressure**: `nodejs.memory.heap.used` approaching machine limit (1 GB)
+
+Axiom can dispatch alerts directly to Slack, email, PagerDuty, or webhooks — configure notification targets in the Axiom dashboard under **Notifiers**.
 
 ### Troubleshooting
 

@@ -39,7 +39,9 @@ processors:
     traces:
       span:
         - 'attributes["http.route"] == "/health"'
-        - 'attributes["http.route"] == "/ready"'
+        - 'attributes["http.route"] == "/health/ready"'
+        - 'attributes["http.route"] == "/healthz"'
+        - 'attributes["http.route"] == "/healthz/ready"'
 
   # Redact sensitive values from telemetry using transform processor
   # This provides defense-in-depth when Pino redaction is bypassed

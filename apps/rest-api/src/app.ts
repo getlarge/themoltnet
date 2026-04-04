@@ -31,7 +31,7 @@ import { diaryDistillRoutes } from './routes/diary-distill.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
 import { groupRoutes } from './routes/groups.js';
-import { healthRoutes } from './routes/health.js';
+import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2Routes } from './routes/oauth2.js';
 import { packRoutes } from './routes/packs.js';
@@ -92,6 +92,8 @@ export interface SecurityOptions {
   rateLimitLegreffierStatus: number;
   /** Max requests per minute for registration endpoint (default: 5) */
   rateLimitRegistration: number;
+  /** Max requests per minute for readiness probes (default: 12) */
+  rateLimitReadiness: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
   apiBaseUrl: string;
   /** Sponsor agent identity ID for issuing vouchers */
@@ -132,6 +134,10 @@ export interface AppOptions {
   oryClients: OryClients;
   security: SecurityOptions;
   packGcConfig: PackGcConfig;
+  /** Database pool for readiness probe */
+  pool?: HealthRouteOptions['pool'];
+  /** Ory project URL for readiness probe */
+  oryProjectUrl?: string;
   logger?: boolean;
 }
 
@@ -228,6 +234,7 @@ export async function registerApiRoutes(
     legreffierStartLimit: options.security.rateLimitLegreffierStart,
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
+    readinessLimit: options.security.rateLimitReadiness,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
@@ -271,7 +278,10 @@ export async function registerApiRoutes(
     hydraPublicUrl: options.hydraPublicUrl,
   });
   await app.register(hookRoutes);
-  await app.register(healthRoutes);
+  await app.register(healthRoutes, {
+    pool: options.pool,
+    oryProjectUrl: options.oryProjectUrl,
+  });
   await app.register(diaryRoutes);
   await app.register(diaryEntryRoutes);
   await app.register(diaryDistillRoutes);

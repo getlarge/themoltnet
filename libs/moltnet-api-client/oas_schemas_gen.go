@@ -5851,6 +5851,14 @@ type GetPublicFeedInternalServerError ProblemDetails
 
 func (*GetPublicFeedInternalServerError) getPublicFeedRes() {}
 
+type GetReadinessOK Readiness
+
+func (*GetReadinessOK) getReadinessRes() {}
+
+type GetReadinessServiceUnavailable Readiness
+
+func (*GetReadinessServiceUnavailable) getReadinessRes() {}
+
 type GetRenderedPackByIdForbidden ProblemDetails
 
 func (*GetRenderedPackByIdForbidden) getRenderedPackByIdRes() {}
@@ -11565,6 +11573,263 @@ func (s *PublicSearchResponse) SetQuery(val string) {
 }
 
 func (*PublicSearchResponse) searchPublicFeedRes() {}
+
+// Ref: #/components/schemas/Readiness
+type Readiness struct {
+	Components ReadinessComponents `json:"components"`
+	Status     ReadinessStatus     `json:"status"`
+	Timestamp  time.Time           `json:"timestamp"`
+}
+
+// GetComponents returns the value of Components.
+func (s *Readiness) GetComponents() ReadinessComponents {
+	return s.Components
+}
+
+// GetStatus returns the value of Status.
+func (s *Readiness) GetStatus() ReadinessStatus {
+	return s.Status
+}
+
+// GetTimestamp returns the value of Timestamp.
+func (s *Readiness) GetTimestamp() time.Time {
+	return s.Timestamp
+}
+
+// SetComponents sets the value of Components.
+func (s *Readiness) SetComponents(val ReadinessComponents) {
+	s.Components = val
+}
+
+// SetStatus sets the value of Status.
+func (s *Readiness) SetStatus(val ReadinessStatus) {
+	s.Status = val
+}
+
+// SetTimestamp sets the value of Timestamp.
+func (s *Readiness) SetTimestamp(val time.Time) {
+	s.Timestamp = val
+}
+
+type ReadinessComponents struct {
+	Database ReadinessComponentsDatabase `json:"database"`
+	Ory      ReadinessComponentsOry      `json:"ory"`
+}
+
+// GetDatabase returns the value of Database.
+func (s *ReadinessComponents) GetDatabase() ReadinessComponentsDatabase {
+	return s.Database
+}
+
+// GetOry returns the value of Ory.
+func (s *ReadinessComponents) GetOry() ReadinessComponentsOry {
+	return s.Ory
+}
+
+// SetDatabase sets the value of Database.
+func (s *ReadinessComponents) SetDatabase(val ReadinessComponentsDatabase) {
+	s.Database = val
+}
+
+// SetOry sets the value of Ory.
+func (s *ReadinessComponents) SetOry(val ReadinessComponentsOry) {
+	s.Ory = val
+}
+
+type ReadinessComponentsDatabase struct {
+	Error     OptString                         `json:"error"`
+	LatencyMs float64                           `json:"latencyMs"`
+	Status    ReadinessComponentsDatabaseStatus `json:"status"`
+}
+
+// GetError returns the value of Error.
+func (s *ReadinessComponentsDatabase) GetError() OptString {
+	return s.Error
+}
+
+// GetLatencyMs returns the value of LatencyMs.
+func (s *ReadinessComponentsDatabase) GetLatencyMs() float64 {
+	return s.LatencyMs
+}
+
+// GetStatus returns the value of Status.
+func (s *ReadinessComponentsDatabase) GetStatus() ReadinessComponentsDatabaseStatus {
+	return s.Status
+}
+
+// SetError sets the value of Error.
+func (s *ReadinessComponentsDatabase) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetLatencyMs sets the value of LatencyMs.
+func (s *ReadinessComponentsDatabase) SetLatencyMs(val float64) {
+	s.LatencyMs = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ReadinessComponentsDatabase) SetStatus(val ReadinessComponentsDatabaseStatus) {
+	s.Status = val
+}
+
+type ReadinessComponentsDatabaseStatus string
+
+const (
+	ReadinessComponentsDatabaseStatusOk    ReadinessComponentsDatabaseStatus = "ok"
+	ReadinessComponentsDatabaseStatusError ReadinessComponentsDatabaseStatus = "error"
+)
+
+// AllValues returns all ReadinessComponentsDatabaseStatus values.
+func (ReadinessComponentsDatabaseStatus) AllValues() []ReadinessComponentsDatabaseStatus {
+	return []ReadinessComponentsDatabaseStatus{
+		ReadinessComponentsDatabaseStatusOk,
+		ReadinessComponentsDatabaseStatusError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ReadinessComponentsDatabaseStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ReadinessComponentsDatabaseStatusOk:
+		return []byte(s), nil
+	case ReadinessComponentsDatabaseStatusError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ReadinessComponentsDatabaseStatus) UnmarshalText(data []byte) error {
+	switch ReadinessComponentsDatabaseStatus(data) {
+	case ReadinessComponentsDatabaseStatusOk:
+		*s = ReadinessComponentsDatabaseStatusOk
+		return nil
+	case ReadinessComponentsDatabaseStatusError:
+		*s = ReadinessComponentsDatabaseStatusError
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ReadinessComponentsOry struct {
+	Error     OptString                    `json:"error"`
+	LatencyMs float64                      `json:"latencyMs"`
+	Status    ReadinessComponentsOryStatus `json:"status"`
+}
+
+// GetError returns the value of Error.
+func (s *ReadinessComponentsOry) GetError() OptString {
+	return s.Error
+}
+
+// GetLatencyMs returns the value of LatencyMs.
+func (s *ReadinessComponentsOry) GetLatencyMs() float64 {
+	return s.LatencyMs
+}
+
+// GetStatus returns the value of Status.
+func (s *ReadinessComponentsOry) GetStatus() ReadinessComponentsOryStatus {
+	return s.Status
+}
+
+// SetError sets the value of Error.
+func (s *ReadinessComponentsOry) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetLatencyMs sets the value of LatencyMs.
+func (s *ReadinessComponentsOry) SetLatencyMs(val float64) {
+	s.LatencyMs = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ReadinessComponentsOry) SetStatus(val ReadinessComponentsOryStatus) {
+	s.Status = val
+}
+
+type ReadinessComponentsOryStatus string
+
+const (
+	ReadinessComponentsOryStatusOk    ReadinessComponentsOryStatus = "ok"
+	ReadinessComponentsOryStatusError ReadinessComponentsOryStatus = "error"
+)
+
+// AllValues returns all ReadinessComponentsOryStatus values.
+func (ReadinessComponentsOryStatus) AllValues() []ReadinessComponentsOryStatus {
+	return []ReadinessComponentsOryStatus{
+		ReadinessComponentsOryStatusOk,
+		ReadinessComponentsOryStatusError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ReadinessComponentsOryStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ReadinessComponentsOryStatusOk:
+		return []byte(s), nil
+	case ReadinessComponentsOryStatusError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ReadinessComponentsOryStatus) UnmarshalText(data []byte) error {
+	switch ReadinessComponentsOryStatus(data) {
+	case ReadinessComponentsOryStatusOk:
+		*s = ReadinessComponentsOryStatusOk
+		return nil
+	case ReadinessComponentsOryStatusError:
+		*s = ReadinessComponentsOryStatusError
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ReadinessStatus string
+
+const (
+	ReadinessStatusOk       ReadinessStatus = "ok"
+	ReadinessStatusDegraded ReadinessStatus = "degraded"
+)
+
+// AllValues returns all ReadinessStatus values.
+func (ReadinessStatus) AllValues() []ReadinessStatus {
+	return []ReadinessStatus{
+		ReadinessStatusOk,
+		ReadinessStatusDegraded,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ReadinessStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ReadinessStatusOk:
+		return []byte(s), nil
+	case ReadinessStatusDegraded:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ReadinessStatus) UnmarshalText(data []byte) error {
+	switch ReadinessStatus(data) {
+	case ReadinessStatusOk:
+		*s = ReadinessStatusOk
+		return nil
+	case ReadinessStatusDegraded:
+		*s = ReadinessStatusDegraded
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/RecoveryChallengeResponse
 type RecoveryChallengeResponse struct {

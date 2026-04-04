@@ -125,7 +125,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       tracing: {
         enabled: true,
-        ignorePaths: '/health',
+        ignorePaths: ({ url }) => url.startsWith('/health'),
       },
       metrics: {
         enabled: true,
@@ -419,10 +419,13 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitLegreffierStart: config.security.RATE_LIMIT_LEGREFFIER_START,
       rateLimitLegreffierStatus: config.security.RATE_LIMIT_LEGREFFIER_STATUS,
       rateLimitRegistration: config.security.RATE_LIMIT_REGISTRATION,
+      rateLimitReadiness: config.security.RATE_LIMIT_READINESS,
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
     packGcConfig: config.packGc,
+    pool: dbConnection.pool,
+    oryProjectUrl: config.ory.ORY_PROJECT_URL,
   });
 
   // ── Observability metrics plugin ───────────────────────────────

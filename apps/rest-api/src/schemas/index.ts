@@ -59,7 +59,7 @@ import {
   SubmitVerificationResponseSchema,
   VerifyRenderedPackResponseSchema,
 } from './fidelity.js';
-import { HealthSchema, NetworkInfoSchema } from './network.js';
+import { HealthSchema, NetworkInfoSchema, ReadinessSchema } from './network.js';
 import {
   CompileResultSchema,
   CompileStatsSchema,
@@ -124,6 +124,7 @@ export const sharedSchemas = [
   RecoveryVerifyResponseSchema,
   VoucherSchema,
   HealthSchema,
+  ReadinessSchema,
   SigningRequestSchema,
   SigningRequestListSchema,
   RegisterResponseSchema,

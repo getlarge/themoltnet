@@ -194,7 +194,7 @@ type Invoker interface {
 	GetGroup(ctx context.Context, params GetGroupParams) (GetGroupRes, error)
 	// GetHealth invokes getHealth operation.
 	//
-	// Health check endpoint.
+	// Shallow liveness probe.
 	//
 	// GET /health
 	GetHealth(ctx context.Context) (*Health, error)
@@ -249,6 +249,12 @@ type Invoker interface {
 	//
 	// GET /public/feed
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
+	// GetReadiness invokes getReadiness operation.
+	//
+	// Deep readiness probe. Checks database and Ory connectivity.
+	//
+	// GET /health/ready
+	GetReadiness(ctx context.Context) (GetReadinessRes, error)
 	// GetRenderedPackById invokes getRenderedPackById operation.
 	//
 	// Get a rendered pack by its ID.
@@ -4029,7 +4035,7 @@ func (c *Client) sendGetGroup(ctx context.Context, params GetGroupParams) (res G
 
 // GetHealth invokes getHealth operation.
 //
-// Health check endpoint.
+// Shallow liveness probe.
 //
 // GET /health
 func (c *Client) GetHealth(ctx context.Context) (*Health, error) {
@@ -4867,6 +4873,80 @@ func (c *Client) sendGetPublicFeed(ctx context.Context, params GetPublicFeedPara
 
 	stage = "DecodeResponse"
 	result, err := decodeGetPublicFeedResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetReadiness invokes getReadiness operation.
+//
+// Deep readiness probe. Checks database and Ory connectivity.
+//
+// GET /health/ready
+func (c *Client) GetReadiness(ctx context.Context) (GetReadinessRes, error) {
+	res, err := c.sendGetReadiness(ctx)
+	return res, err
+}
+
+func (c *Client) sendGetReadiness(ctx context.Context) (res GetReadinessRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getReadiness"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/health/ready"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetReadinessOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/health/ready"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetReadinessResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

@@ -2940,6 +2940,82 @@
         "required": ["items", "query"],
         "type": "object"
       },
+      "Readiness": {
+        "properties": {
+          "components": {
+            "properties": {
+              "database": {
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  },
+                  "latencyMs": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "enum": ["ok"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["error"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": ["status", "latencyMs"],
+                "type": "object"
+              },
+              "ory": {
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  },
+                  "latencyMs": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "enum": ["ok"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["error"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": ["status", "latencyMs"],
+                "type": "object"
+              }
+            },
+            "required": ["database", "ory"],
+            "type": "object"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": ["ok"],
+                "type": "string"
+              },
+              {
+                "enum": ["degraded"],
+                "type": "string"
+              }
+            ]
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": ["status", "timestamp", "components"],
+        "type": "object"
+      },
       "RecoveryChallengeResponse": {
         "properties": {
           "challenge": {
@@ -7654,7 +7730,7 @@
     },
     "/health": {
       "get": {
-        "description": "Health check endpoint.",
+        "description": "Shallow liveness probe.",
         "operationId": "getHealth",
         "responses": {
           "200": {
@@ -7662,6 +7738,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": ["health"]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "Deep readiness probe. Checks database and Ory connectivity.",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
                 }
               }
             },

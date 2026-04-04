@@ -332,6 +332,111 @@ describe('buildApp', () => {
     await app.close();
   });
 
+  describe('GET /healthz/ready', () => {
+    it('returns degraded when Ory is not configured', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      const deps = createMockDeps();
+      const app = await buildApp({
+        config: {
+          PORT: 8001,
+          NODE_ENV: 'test',
+          REST_API_URL: 'http://localhost:3000',
+        },
+        deps,
+        logger: false,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/healthz/ready',
+      });
+
+      expect(response.statusCode).toBe(503);
+      const body = JSON.parse(response.body);
+      expect(body.status).toBe('degraded');
+      expect(body.components.restApi.status).toBe('ok');
+      expect(body.components.ory.status).toBe('error');
+      expect(body.components.ory.error).toBe('not_configured');
+
+      fetchSpy.mockRestore();
+      await app.close();
+    });
+
+    it('returns ok when all probes succeed', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      const deps = createMockDeps();
+      const app = await buildApp({
+        config: {
+          PORT: 8001,
+          NODE_ENV: 'test',
+          REST_API_URL: 'http://localhost:3000',
+          ORY_PROJECT_URL: 'https://mock-ory.example.com',
+        },
+        deps,
+        logger: false,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/healthz/ready',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.status).toBe('ok');
+      expect(body.components.restApi.status).toBe('ok');
+      expect(body.components.ory.status).toBe('ok');
+
+      fetchSpy.mockRestore();
+      await app.close();
+    });
+
+    it('returns degraded when REST API probe fails', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async (input: RequestInfo | URL) => {
+          const url = typeof input === 'string' ? input : input.toString();
+          if (url.includes('/health')) {
+            return new Response('', { status: 503 });
+          }
+          return new Response('{}', { status: 200 });
+        });
+
+      const deps = createMockDeps();
+      const app = await buildApp({
+        config: {
+          PORT: 8001,
+          NODE_ENV: 'test',
+          REST_API_URL: 'http://localhost:3000',
+          ORY_PROJECT_URL: 'https://mock-ory.example.com',
+        },
+        deps,
+        logger: false,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/healthz/ready',
+      });
+
+      expect(response.statusCode).toBe(503);
+      const body = JSON.parse(response.body);
+      expect(body.status).toBe('degraded');
+      expect(body.components.restApi.status).toBe('error');
+      expect(body.components.restApi.error).toBe('http_503');
+      expect(body.components.ory.status).toBe('ok');
+
+      fetchSpy.mockRestore();
+      await app.close();
+    });
+  });
+
   it('DELETE /mcp returns 400 without Mcp-Session-Id header', async () => {
     const deps = createMockDeps();
     const app = await buildApp({

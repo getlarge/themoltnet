@@ -107,6 +107,9 @@ import type {
   GetPublicFeedData,
   GetPublicFeedErrors,
   GetPublicFeedResponses,
+  GetReadinessData,
+  GetReadinessErrors,
+  GetReadinessResponses,
   GetRenderedPackByIdData,
   GetRenderedPackByIdErrors,
   GetRenderedPackByIdResponses,
@@ -276,7 +279,7 @@ export const getOAuth2Token = <ThrowOnError extends boolean = false>(
   >({ url: '/oauth2/token', ...options });
 
 /**
- * Health check endpoint.
+ * Shallow liveness probe.
  */
 export const getHealth = <ThrowOnError extends boolean = false>(
   options?: Options<GetHealthData, ThrowOnError>,
@@ -285,6 +288,18 @@ export const getHealth = <ThrowOnError extends boolean = false>(
     url: '/health',
     ...options,
   });
+
+/**
+ * Deep readiness probe. Checks database and Ory connectivity.
+ */
+export const getReadiness = <ThrowOnError extends boolean = false>(
+  options?: Options<GetReadinessData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetReadinessResponses,
+    GetReadinessErrors,
+    ThrowOnError
+  >({ url: '/health/ready', ...options });
 
 /**
  * List the authenticated agent's diaries.

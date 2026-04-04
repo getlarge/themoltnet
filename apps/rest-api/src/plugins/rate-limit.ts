@@ -34,6 +34,8 @@ export interface RateLimitPluginOptions {
   legreffierStatusLimit: number;
   /** Max requests per minute for registration endpoint (default: 5) */
   registrationLimit: number;
+  /** Max requests per minute for readiness probes (default: 12) */
+  readinessLimit: number;
 }
 
 /**
@@ -68,6 +70,7 @@ async function rateLimitPluginImpl(
     legreffierStartLimit,
     legreffierStatusLimit,
     registrationLimit,
+    readinessLimit,
   } = options;
 
   // Register global rate limiter
@@ -109,13 +112,9 @@ async function rateLimitPluginImpl(
       const retryAfter = Math.ceil(context.ttl / 1000);
       return buildRateLimitResponse(request, retryAfter);
     },
-    // Skip rate limiting for health checks
+    // Skip rate limiting for liveness probe only (Fly.io polls /health every 30s)
     allowList: (request: FastifyRequest) => {
-      return (
-        request.url === '/health' ||
-        request.url === '/ready' ||
-        request.url === '/problems'
-      );
+      return request.url === '/health' || request.url === '/problems';
     },
   });
 
@@ -157,6 +156,10 @@ async function rateLimitPluginImpl(
       max: registrationLimit,
       timeWindow: '1 minute',
     },
+    readiness: {
+      max: readinessLimit,
+      timeWindow: '1 minute',
+    },
   });
 }
 
@@ -177,6 +180,7 @@ declare module 'fastify' {
       legreffierStart: { max: number; timeWindow: string };
       legreffierStatus: { max: number; timeWindow: string };
       registration: { max: number; timeWindow: string };
+      readiness: { max: number; timeWindow: string };
     };
   }
 }
