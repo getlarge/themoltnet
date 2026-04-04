@@ -40,6 +40,9 @@ type Result struct {
 }
 
 type Request struct {
+	// LLM is an explicit LLM instance for concurrent-safe execution.
+	// When set, Provider and Model are ignored and no global state is mutated.
+	LLM              core.LLM
 	Provider         string
 	Model            string
 	WorkspaceSummary string
@@ -69,15 +72,19 @@ Each score must be between 0 and max_score inclusive.`)
 }
 
 func Run(ctx context.Context, req Request) (*Result, error) {
-	// This currently relies on process-global default-LLM mutation and must
-	// remain serialized until that dependency is removed from the judge path.
-	if _, err := dspyadapters.InitDefaultProvider(req.Provider, req.Model); err != nil {
-		return nil, err
+	llm := req.LLM
+	if llm == nil {
+		var err error
+		llm, err = dspyadapters.InitProvider(req.Provider, req.Model)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ctx = dspyadapters.WithExecutionState(ctx)
 	sig := NewSignature()
 	cot := modules.NewChainOfThought(sig).WithStructuredOutput()
+	cot.SetLLM(llm)
 	if err := dspyadapters.ApplyDefaultJudgeModuleInterceptors(cot); err != nil {
 		return nil, dspyerrors.Wrap(err, dspyerrors.ConfigurationError, "configure checklist judge interceptors")
 	}

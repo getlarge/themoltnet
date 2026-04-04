@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 	"gopkg.in/yaml.v2"
 )
@@ -30,8 +32,9 @@ type evalRunOpts struct {
 	judge            string // "claude" | "codex"
 	judgeModel       string // judge model (prefix-free)
 	worktreeExcludes []string
-	dspyRepoRoot      string
-	dspySourceRef     string
+	dspyRepoRoot     string
+	dspySourceRef    string
+	dspyJudgeLLM     core.LLM
 }
 
 func validateEvalEngine(engine string) error {
@@ -636,6 +639,12 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
 
+	judgeLLM, err := dspyadapters.InitProvider("claude-code", trimAnthropicModelPrefix(opts.judgeModel))
+	if err != nil {
+		return fmt.Errorf("initialize judge LLM: %w", err)
+	}
+	opts.dspyJudgeLLM = judgeLLM
+
 	group := runGroup{agent: input.agent, model: input.model, inputs: []evalRunInput{input}}
 	header := groupHeaderLine(0, 1, group)
 	fmt.Fprintln(os.Stderr, header)
@@ -744,8 +753,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 
 	fmt.Fprintf(os.Stderr, "[dspy] %s: judging checklist...\n", variantLabel)
 	judged, err := checklist.Run(ctx, checklist.Request{
-		Provider:         "claude-code",
-		Model:            trimAnthropicModelPrefix(opts.judgeModel),
+		LLM:              opts.dspyJudgeLLM,
 		WorkspaceSummary: filesSnapshot,
 		Criteria: checklist.Criteria{
 			Type:      criteria.Type,
