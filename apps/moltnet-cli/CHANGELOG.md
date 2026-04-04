@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.13.0](https://github.com/getlarge/themoltnet/compare/cli-v1.12.0...cli-v1.13.0) (2026-04-04)
+
+
+### Features
+
+* **cli:** add lightweight dspy eval engine ([7a3bada](https://github.com/getlarge/themoltnet/commit/7a3badab82c407f1d9c3cf7172724d64ed4593ac))
+* **cli:** add pack list/get and rendered-packs get commands ([2889ed0](https://github.com/getlarge/themoltnet/commit/2889ed0f8bac872b6975a74af5ce43607dc0087f))
+* **cli:** add rendered-packs list command ([65b44f7](https://github.com/getlarge/themoltnet/commit/65b44f724995d0978b1d899de24bed95365498bd))
+* **dspy-adapters:** harden DSPy judge runtime defaults ([c448e67](https://github.com/getlarge/themoltnet/commit/c448e679208b9ab448bd2aa89ee4f2d078b37103))
+* **eval:** add retry.js and wire withRetry into both judge scripts ([3cbac43](https://github.com/getlarge/themoltnet/commit/3cbac434159db8506e38602cc4fcafb3bc1bbe7b))
+* **eval:** add retry.py and wire with_retry into Python agent adapters ([d096207](https://github.com/getlarge/themoltnet/commit/d09620775d6e24af50f7ed3a7e4760f3e7b2cdbb))
+* **eval:** embed retry.py, add JUDGE_MAX_RETRIES to task.toml, add test ([2744fe3](https://github.com/getlarge/themoltnet/commit/2744fe3e398dafb26445c7c2f6aaac113e3f49bf))
+* fidelity judge verification workflow + routes ([92095c7](https://github.com/getlarge/themoltnet/commit/92095c752f4e8e0cd5d716eabf2a76564f7eccfb))
+* local judge mode, Codex adapter, CLI isolation ([22bb1c7](https://github.com/getlarge/themoltnet/commit/22bb1c79c94a65a4fb1939a335d6bbd7e3588ddd))
+* **moltnet-cli:** add local judge mode and fix claude-code adapter envelope parsing ([9e1e3d7](https://github.com/getlarge/themoltnet/commit/9e1e3d7c9719393c86b8c1d72d03852cffad6fa6))
+
+
+### Bug Fixes
+
+* **ci:** sync CLI go.mod to manifest versions on release PR branch ([e2695dc](https://github.com/getlarge/themoltnet/commit/e2695dcabccdcb93517ce638ddba6bcbe15a1a97))
+* **ci:** sync CLI go.mod to release PR branch on manifest bump ([c6ec152](https://github.com/getlarge/themoltnet/commit/c6ec152fd05fccd81cdffb4b865ff6c5c5727740))
+* **cli:** freeze dspy source ref and disable auto memory ([65575cd](https://github.com/getlarge/themoltnet/commit/65575cdd68d6f8cd844bc9cd2b183937b9e1c4fd))
+* **dspy-adapters,cli:** fidelity judge empty scores + relations 201 handling ([b7623a2](https://github.com/getlarge/themoltnet/commit/b7623a2d39877f52273d0e0809dd5edde350b3b5))
+* **dspy-adapters:** address copilot review feedback ([84c7b52](https://github.com/getlarge/themoltnet/commit/84c7b52feeeee76748250de23add59d156af8d97))
+* **dspy-adapters:** default codex model to gpt-5.3-codex ([c424543](https://github.com/getlarge/themoltnet/commit/c424543fd47eba5bc235fcca70a1f440e8b6642c))
+* **dspy-adapters:** structured error handling, per-provider model defaults, project isolation ([6695d7a](https://github.com/getlarge/themoltnet/commit/6695d7a6d64c4152ac950905bb715f330878eb7a))
+* **eval:** add retry/backoff to Harbor agent and judge adapters ([101c8ae](https://github.com/getlarge/themoltnet/commit/101c8aee992a09f114c860856d2a5e2811cd4ed7))
+* **eval:** address copilot review findings ([51ccea2](https://github.com/getlarge/themoltnet/commit/51ccea2b223c0195ed0c12263e18a731c62397bc))
+* **eval:** always preserve runner artifacts ([fcc3769](https://github.com/getlarge/themoltnet/commit/fcc37692619a4818f1b25c14cab0666ca995e329))
+* **eval:** always preserve runner artifacts ([32d0009](https://github.com/getlarge/themoltnet/commit/32d000971413a01454ad4100635648b3b378f52f))
+* **eval:** broaden _is_retryable to match NonZeroAgentExitCodeError ([609d2aa](https://github.com/getlarge/themoltnet/commit/609d2aa9caef4b034d6521e0e428a2ce671463ed))
+* **eval:** embed and scaffold retry.js into judge environment dir ([460ba6e](https://github.com/getlarge/themoltnet/commit/460ba6ee4566e7b54f3a6f768f7462d230c25843))
+* **moltnet-cli:** handle HTTP 201 response in relations create ([8e8fa09](https://github.com/getlarge/themoltnet/commit/8e8fa09d66e89d338439820d6777929d0cb3ea49))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+
 ## [1.12.0](https://github.com/getlarge/themoltnet/compare/cli-v1.11.0...cli-v1.12.0) (2026-04-04)
 
 
