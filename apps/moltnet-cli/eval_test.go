@@ -591,6 +591,42 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 	}
 }
 
+func TestParseStreamJSONExtractsTrajectoryAndResult(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"system","subtype":"init","session_id":"abc"}
+{"type":"system","subtype":"hook_started","hook_id":"h1"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}
+{"type":"result","subtype":"success","result":"Hello!","duration_ms":1234,"total_cost_usd":0.05,"num_turns":1}
+`)
+	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
+	if len(trajectory) != 2 {
+		t.Fatalf("expected 2 trajectory events (assistant+result), got %d", len(trajectory))
+	}
+	if finalText != "Hello!" {
+		t.Fatalf("expected final text 'Hello!', got %q", finalText)
+	}
+	if durationMs != 1234 {
+		t.Fatalf("expected duration 1234, got %d", durationMs)
+	}
+	if costUSD != 0.05 {
+		t.Fatalf("expected cost 0.05, got %f", costUSD)
+	}
+	if numTurns != 1 {
+		t.Fatalf("expected 1 turn, got %d", numTurns)
+	}
+}
+
+func TestParseStreamJSONHandlesEmptyInput(t *testing.T) {
+	t.Parallel()
+	trajectory, finalText, _, _, _ := parseStreamJSON([]byte{})
+	if len(trajectory) != 0 {
+		t.Fatal("expected empty trajectory for empty input")
+	}
+	if finalText != "" {
+		t.Fatal("expected empty final text")
+	}
+}
+
 func TestBuildDSPYEvalPromptIncludesContext(t *testing.T) {
 	got := buildDSPYEvalPrompt("Do the task.", true, "## Pack")
 	if !strings.Contains(got, "Context pack:") {

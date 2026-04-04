@@ -1004,15 +1004,32 @@ func buildDSPYEvalPrompt(task string, withContext bool, pack string) string {
 }
 
 type dspyAgentRunResult struct {
-	passed bool
-	output string
-	stderr string
+	passed     bool
+	output     string // final text result
+	stderr     string
+	durationMs int64
+	costUSD    float64
+	numTurns   int
+	trajectory []json.RawMessage // raw stream-json events (assistant + result only)
+}
+
+// streamEvent is the minimal envelope for stream-json events.
+type streamEvent struct {
+	Type    string `json:"type"`
+	Subtype string `json:"subtype,omitempty"`
+	// result-specific fields
+	Result     string  `json:"result,omitempty"`
+	DurationMs int64   `json:"duration_ms,omitempty"`
+	CostUSD    float64 `json:"total_cost_usd,omitempty"`
+	NumTurns   int     `json:"num_turns,omitempty"`
+	IsError    bool    `json:"is_error,omitempty"`
 }
 
 func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
 	args := []string{
 		"--print",
-		"--output-format", "text",
+		"--verbose",
+		"--output-format", "stream-json",
 		"--model", trimAnthropicModelPrefix(model),
 		"--permission-mode", "bypassPermissions",
 		"--no-session-persistence",
@@ -1033,24 +1050,52 @@ func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentR
 	result := &dspyAgentRunResult{}
 	done := make(chan struct{})
 	go emitDSPYTaskHeartbeat(statusLabel, done)
-	if err := cmd.Run(); err != nil {
-		close(done)
-		result.output = strings.TrimSpace(stdout.String())
-		result.stderr = strings.TrimSpace(stderr.String())
-		if result.stderr != "" {
-			result.output = strings.TrimSpace(result.stderr)
+	runErr := cmd.Run()
+	close(done)
+
+	result.stderr = strings.TrimSpace(stderr.String())
+	result.trajectory, result.output, result.durationMs, result.costUSD, result.numTurns =
+		parseStreamJSON(stdout.Bytes())
+
+	if runErr != nil {
+		if result.output == "" {
+			result.output = result.stderr
 		}
 		if result.output == "" {
-			result.output = err.Error()
+			result.output = runErr.Error()
 		}
 		return result, nil
 	}
-	close(done)
 
 	result.passed = true
-	result.output = strings.TrimSpace(stdout.String())
-	result.stderr = strings.TrimSpace(stderr.String())
 	return result, nil
+}
+
+// parseStreamJSON extracts trajectory events (assistant + result), final text,
+// and metadata from Claude stream-json NDJSON output.
+func parseStreamJSON(raw []byte) (trajectory []json.RawMessage, finalText string, durationMs int64, costUSD float64, numTurns int) {
+	for _, line := range bytes.Split(raw, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var evt streamEvent
+		if err := json.Unmarshal(line, &evt); err != nil {
+			continue
+		}
+		switch evt.Type {
+		case "assistant":
+			trajectory = append(trajectory, json.RawMessage(line))
+		case "result":
+			trajectory = append(trajectory, json.RawMessage(line))
+			finalText = evt.Result
+			durationMs = evt.DurationMs
+			costUSD = evt.CostUSD
+			numTurns = evt.NumTurns
+		}
+		// Skip system/hook/rate_limit events from trajectory
+	}
+	return
 }
 
 func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
@@ -1208,6 +1253,8 @@ func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, jud
 	if err := writeDSPYAgentArtifacts(variantDir, agent); err != nil {
 		return err
 	}
+
+	// Backward-compat: verifier/reward.json + verifier/scores.json
 	rewardPayload, err := json.MarshalIndent(map[string]float64{"reward": judged.Reward}, "", "  ")
 	if err != nil {
 		return err
@@ -1227,6 +1274,25 @@ func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, jud
 			return err
 		}
 	}
+
+	// Normalized trial_result.json
+	trialResult := map[string]any{
+		"variant":     filepath.Base(variantDir),
+		"reward":      judged.Reward,
+		"scores":      judged.Scores,
+		"reasoning":   judged.Reasoning,
+		"duration_ms": agent.durationMs,
+		"cost_usd":    agent.costUSD,
+		"num_turns":   agent.numTurns,
+	}
+	trialPayload, err := json.MarshalIndent(trialResult, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(variantDir, "trial_result.json"), trialPayload, 0o644); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1239,48 +1305,62 @@ func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error
 			return err
 		}
 	}
+	// Write trajectory.json from stream-json events
+	if len(agent.trajectory) > 0 {
+		trajectoryPayload, err := json.MarshalIndent(agent.trajectory, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(variantDir, "trajectory.json"), trajectoryPayload, 0o644); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func writeDSPYRunSummary(runDir string, result evalResult) error {
-	type serializableTrial struct {
+	type trialSummary struct {
 		Name    string             `json:"name"`
 		LogDir  string             `json:"log_dir,omitempty"`
 		Reward  float64            `json:"reward"`
 		Details map[string]float64 `json:"details,omitempty"`
 		Error   string             `json:"error,omitempty"`
 	}
-	payload, err := json.MarshalIndent(map[string]any{
-		"task_name": result.taskName,
-		"without_context": func() *serializableTrial {
-			if result.withoutContext == nil {
-				return nil
-			}
-			return &serializableTrial{
-				Name:    result.withoutContext.name,
-				LogDir:  result.withoutContext.logDir,
-				Reward:  result.withoutContext.reward,
-				Details: result.withoutContext.details,
-				Error:   result.withoutContext.err,
-			}
-		}(),
-		"with_context": func() *serializableTrial {
-			if result.withContext == nil {
-				return nil
-			}
-			return &serializableTrial{
-				Name:    result.withContext.name,
-				LogDir:  result.withContext.logDir,
-				Reward:  result.withContext.reward,
-				Details: result.withContext.details,
-				Error:   result.withContext.err,
-			}
-		}(),
-	}, "", "  ")
+
+	toSummary := func(s *trialScores) *trialSummary {
+		if s == nil {
+			return nil
+		}
+		return &trialSummary{
+			Name:    s.name,
+			LogDir:  s.logDir,
+			Reward:  s.reward,
+			Details: s.details,
+			Error:   s.err,
+		}
+	}
+
+	jobResult := map[string]any{
+		"engine":          "dspy",
+		"created_at":      time.Now().UTC().Format(time.RFC3339),
+		"task_name":       result.taskName,
+		"without_context": toSummary(result.withoutContext),
+		"with_context":    toSummary(result.withContext),
+	}
+	if result.withoutContext != nil && result.withContext != nil &&
+		result.withoutContext.err == "" && result.withContext.err == "" {
+		jobResult["delta"] = result.withContext.reward - result.withoutContext.reward
+	}
+
+	payload, err := json.MarshalIndent(jobResult, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(runDir, "result.json"), payload, 0o644)
+	// Write both for backward compat (result.json) and Phase 0 contract (job_result.json)
+	if err := os.WriteFile(filepath.Join(runDir, "result.json"), payload, 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(runDir, "job_result.json"), payload, 0o644)
 }
 
 type runGroup struct {
