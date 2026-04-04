@@ -45,8 +45,6 @@ jobs:
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
-      prs-created: ${{ steps.release.outputs.prs_created }}
-      pr: ${{ steps.release.outputs.pr }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -55,57 +53,59 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # When release-please updates its PR branch, sync go.mod in apps/moltnet-cli
-  # to the versions recorded in .release-please-manifest.json on that branch.
-  # This ensures go.mod is always correct before the release PR is merged,
-  # so goreleaser never builds against stale dependency versions.
+  # After proxy tags are pushed for internal Go libs, sync apps/moltnet-cli/go.mod
+  # to those released versions and commit back to main so goreleaser builds against
+  # the correct, published module versions. Retries go get to allow proxy propagation.
   sync-go-mod:
-    name: Sync CLI go.mod to manifest versions
-    needs: release-please
-    if: ${{ needs.release-please.outputs.prs-created == 'true' || needs.release-please.outputs.pr != '' }}
+    name: Sync CLI go.mod to released versions
+    needs: [resolve-publish, release-api-client, release-dspy-adapters]
+    if: |
+      always() && !cancelled() && !failure() &&
+      (needs.resolve-publish.outputs.api-client == 'true' || needs.resolve-publish.outputs.dspy-adapters == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Extract release PR branch
-        id: pr
-        env:
-          PR_JSON: ${{ needs.release-please.outputs.pr }}
-        run: |
-          branch=$(echo "$PR_JSON" | jq -r '.headBranchName')
-          echo "branch=$branch" >> "$GITHUB_OUTPUT"
-
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.branch }}
+          ref: main
           fetch-depth: 1
 
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
 
-      - name: Sync go.mod to manifest versions
+      - name: Sync go.mod to released versions
+        id: sync
         working-directory: apps/moltnet-cli
+        env:
+          API_CLIENT_VERSION: ${{ needs.resolve-publish.outputs.api-client-version }}
+          DSPY_ADAPTERS_VERSION: ${{ needs.resolve-publish.outputs.dspy-adapters-version }}
         run: |
           set -euo pipefail
-
-          API_CLIENT_VERSION=$(jq -r '.["libs/moltnet-api-client"]' ../../.release-please-manifest.json)
-          DSPY_ADAPTERS_VERSION=$(jq -r '.["libs/dspy-adapters"]' ../../.release-please-manifest.json)
 
           CURRENT_API=$(grep 'moltnet-api-client' go.mod | awk '{print $2}' | sed 's/^v//')
           CURRENT_DSPY=$(grep 'dspy-adapters' go.mod | awk '{print $2}' | sed 's/^v//')
 
           CHANGED=false
 
-          if [ "$API_CLIENT_VERSION" != "$CURRENT_API" ]; then
-            echo "Bumping moltnet-api-client: $CURRENT_API -> $API_CLIENT_VERSION"
-            GOWORK=off go get github.com/getlarge/themoltnet/libs/moltnet-api-client@v${API_CLIENT_VERSION}
+          if [ -n "${API_CLIENT_VERSION}" ] && [ "${API_CLIENT_VERSION}" != "${CURRENT_API}" ]; then
+            echo "Bumping moltnet-api-client: ${CURRENT_API} -> ${API_CLIENT_VERSION}"
+            for i in 1 2 3 4 5; do
+              GOWORK=off go get github.com/getlarge/themoltnet/libs/moltnet-api-client@v${API_CLIENT_VERSION} && break
+              echo "Attempt $i failed, retrying in 30s..."
+              sleep 30
+            done
             CHANGED=true
           fi
 
-          if [ "$DSPY_ADAPTERS_VERSION" != "$CURRENT_DSPY" ]; then
-            echo "Bumping dspy-adapters: $CURRENT_DSPY -> $DSPY_ADAPTERS_VERSION"
-            GOWORK=off go get github.com/getlarge/themoltnet/libs/dspy-adapters@v${DSPY_ADAPTERS_VERSION}
+          if [ -n "${DSPY_ADAPTERS_VERSION}" ] && [ "${DSPY_ADAPTERS_VERSION}" != "${CURRENT_DSPY}" ]; then
+            echo "Bumping dspy-adapters: ${CURRENT_DSPY} -> ${DSPY_ADAPTERS_VERSION}"
+            for i in 1 2 3 4 5; do
+              GOWORK=off go get github.com/getlarge/themoltnet/libs/dspy-adapters@v${DSPY_ADAPTERS_VERSION} && break
+              echo "Attempt $i failed, retrying in 30s..."
+              sleep 30
+            done
             CHANGED=true
           fi
 
@@ -114,16 +114,15 @@ jobs:
           fi
 
           echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
-        id: sync
 
-      - name: Commit go.mod and go.sum
+      - name: Commit go.mod and go.sum to main
         if: ${{ steps.sync.outputs.changed == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add apps/moltnet-cli/go.mod apps/moltnet-cli/go.sum go.work.sum
-          git commit -m "chore(go): sync CLI go.mod to manifest versions"
-          git push origin ${{ steps.pr.outputs.branch }}
+          git commit -m "chore(go): sync CLI go.mod to released module versions [skip ci]"
+          git push origin main
 
   # Unified resolution: merges release-please outputs with manual republish
   # inputs so downstream jobs use a single set of outputs regardless of trigger.
@@ -394,7 +393,7 @@ jobs:
 
   release-cli:
     name: Release CLI binaries
-    needs: [resolve-publish, release-api-client, release-dspy-adapters]
+    needs: [resolve-publish, release-api-client, release-dspy-adapters, sync-go-mod]
     if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
