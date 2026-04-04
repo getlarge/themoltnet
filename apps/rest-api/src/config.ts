@@ -99,6 +99,7 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_LEGREFFIER_START: Type.Number({ default: 3 }),
   RATE_LIMIT_LEGREFFIER_STATUS: Type.Number({ default: 120 }),
   RATE_LIMIT_REGISTRATION: Type.Number({ default: 5 }),
+  RATE_LIMIT_READINESS: Type.Number({ default: 12 }),
   // Base URL for callback URLs baked into GitHub App manifests.
   // Defaults to production; override in local dev / staging.
   API_BASE_URL: Type.String({ default: 'https://api.themolt.net' }),

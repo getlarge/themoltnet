@@ -317,11 +317,14 @@ Point a status page at `status.themolt.net` (CNAME to the provider's domain).
 
 ### Axiom alerting
 
-Telemetry is already exported to Axiom. Configure monitors in the Axiom dashboard for:
+Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll endpoints — it reacts to data flowing through it. Configure [Axiom monitors](https://axiom.co/docs/monitor-data/monitors) to alert on:
 
-- **Error rate**: `status >= 500` count exceeds threshold
+- **Error rate**: `status >= 500` count exceeds threshold over a rolling window
 - **Latency**: `http.server.request.duration` P95 > 2s
-- **Readiness failures**: poll `/health/ready` and alert on `503`
+- **Event loop lag**: `nodejs.eventloop.delay.p99` (from runtime metrics) > 500ms
+- **Memory pressure**: `nodejs.memory.heap.used` approaching machine limit (1 GB)
+
+Axiom can dispatch alerts directly to Slack, email, PagerDuty, or webhooks — configure notification targets in the Axiom dashboard under **Notifiers**.
 
 ### Troubleshooting
 

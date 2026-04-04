@@ -89,6 +89,7 @@ export async function healthRoutes(
   fastify.get(
     '/health/ready',
     {
+      config: { rateLimit: fastify.rateLimitConfig?.readiness },
       schema: {
         operationId: 'getReadiness',
         tags: ['health'],

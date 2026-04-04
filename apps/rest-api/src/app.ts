@@ -92,6 +92,8 @@ export interface SecurityOptions {
   rateLimitLegreffierStatus: number;
   /** Max requests per minute for registration endpoint (default: 5) */
   rateLimitRegistration: number;
+  /** Max requests per minute for readiness probes (default: 12) */
+  rateLimitReadiness: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
   apiBaseUrl: string;
   /** Sponsor agent identity ID for issuing vouchers */
@@ -232,6 +234,7 @@ export async function registerApiRoutes(
     legreffierStartLimit: options.security.rateLimitLegreffierStart,
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
+    readinessLimit: options.security.rateLimitReadiness,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)

@@ -47,6 +47,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitPublicVerify: 1000,
   rateLimitPublicSearch: 1000,
   rateLimitLegreffierStart: 1000,
+  rateLimitReadiness: 1000,
   apiBaseUrl: 'http://localhost:8000',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -420,6 +421,10 @@ export async function createTestApp(
   mocks: MockServices,
   authContext: AuthContext | null = null,
   securityOverrides?: Partial<typeof TEST_SECURITY_OPTIONS>,
+  healthOptions?: {
+    pool?: { query(sql: string): Promise<unknown> };
+    oryProjectUrl?: string;
+  },
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -500,6 +505,8 @@ export async function createTestApp(
       PACK_GC_CRON: '0 * * * *',
       PACK_GC_BATCH_SIZE: 100,
     },
+    pool: healthOptions?.pool,
+    oryProjectUrl: healthOptions?.oryProjectUrl,
   });
 
   return app;

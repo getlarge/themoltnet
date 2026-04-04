@@ -419,6 +419,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitLegreffierStart: config.security.RATE_LIMIT_LEGREFFIER_START,
       rateLimitLegreffierStatus: config.security.RATE_LIMIT_LEGREFFIER_STATUS,
       rateLimitRegistration: config.security.RATE_LIMIT_REGISTRATION,
+      rateLimitReadiness: config.security.RATE_LIMIT_READINESS,
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
