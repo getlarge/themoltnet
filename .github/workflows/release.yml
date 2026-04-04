@@ -287,8 +287,6 @@ jobs:
       - name: Check SDK type isolation
         run: pnpm --filter @themoltnet/sdk check:types-isolation
 
-      - run: npm install -g npm@latest
-
       - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
 
       - name: Publish SDK release
@@ -322,8 +320,6 @@ jobs:
       - run: pnpm --filter @themoltnet/github-agent test
 
       - run: pnpm --filter @themoltnet/github-agent run check:pack
-
-      - run: npm install -g npm@latest
 
       - run: pnpm --filter @themoltnet/github-agent publish --no-git-checks --access public --provenance
 
@@ -473,8 +469,6 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - run: npm install -g npm@latest
-
       - name: Publish @themoltnet/cli
         working-directory: packages/cli
         run: npm publish --access public --provenance
@@ -565,8 +559,6 @@ jobs:
 
       - run: pnpm --filter @themoltnet/legreffier run check:pack
 
-      - run: npm install -g npm@latest
-
       - run: pnpm --filter @themoltnet/legreffier publish --no-git-checks --access public --provenance
 
       - name: Publish LeGreffier release
@@ -598,8 +590,6 @@ jobs:
       - run: pnpm --filter @themoltnet/design-system build
 
       - run: pnpm --filter @themoltnet/design-system run check:pack
-
-      - run: npm install -g npm@latest
 
       - run: pnpm --filter @themoltnet/design-system publish --no-git-checks --access public --provenance
 
