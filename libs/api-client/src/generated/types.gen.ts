@@ -403,6 +403,23 @@ export type Health = {
   timestamp: string;
 };
 
+export type Readiness = {
+  status: 'ok' | 'degraded';
+  timestamp: string;
+  components: {
+    database: {
+      status: 'ok' | 'error';
+      latencyMs: number;
+      error?: string;
+    };
+    ory: {
+      status: 'ok' | 'error';
+      latencyMs: number;
+      error?: string;
+    };
+  };
+};
+
 export type SigningRequest = {
   id: string;
   agentId: string;
@@ -1008,6 +1025,32 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type GetReadinessData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/health/ready';
+};
+
+export type GetReadinessErrors = {
+  /**
+   * Default Response
+   */
+  503: Readiness;
+};
+
+export type GetReadinessError = GetReadinessErrors[keyof GetReadinessErrors];
+
+export type GetReadinessResponses = {
+  /**
+   * Default Response
+   */
+  200: Readiness;
+};
+
+export type GetReadinessResponse =
+  GetReadinessResponses[keyof GetReadinessResponses];
 
 export type ListDiariesData = {
   body?: never;
