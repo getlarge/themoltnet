@@ -174,7 +174,7 @@ type Handler interface {
 	GetGroup(ctx context.Context, params GetGroupParams) (GetGroupRes, error)
 	// GetHealth implements getHealth operation.
 	//
-	// Health check endpoint.
+	// Shallow liveness probe.
 	//
 	// GET /health
 	GetHealth(ctx context.Context) (*Health, error)
@@ -229,6 +229,12 @@ type Handler interface {
 	//
 	// GET /public/feed
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
+	// GetReadiness implements getReadiness operation.
+	//
+	// Deep readiness probe. Checks database and Ory connectivity.
+	//
+	// GET /health/ready
+	GetReadiness(ctx context.Context) (GetReadinessRes, error)
 	// GetRenderedPackById implements getRenderedPackById operation.
 	//
 	// Get a rendered pack by its ID.

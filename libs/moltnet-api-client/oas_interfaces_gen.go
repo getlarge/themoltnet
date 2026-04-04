@@ -129,6 +129,10 @@ type GetPublicFeedRes interface {
 	getPublicFeedRes()
 }
 
+type GetReadinessRes interface {
+	getReadinessRes()
+}
+
 type GetRenderedPackByIdRes interface {
 	getRenderedPackByIdRes()
 }
