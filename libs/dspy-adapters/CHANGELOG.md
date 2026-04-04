@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.3.0...dspy-adapters-v0.4.0) (2026-04-04)
+
+
+### Features
+
+* **cli:** add lightweight dspy eval engine ([7a3bada](https://github.com/getlarge/themoltnet/commit/7a3badab82c407f1d9c3cf7172724d64ed4593ac))
+* **dspy-adapters:** add default judge runtime policy ([4d2e3a2](https://github.com/getlarge/themoltnet/commit/4d2e3a2334f5856806547625edc1ea35e60474d1))
+* **dspy-adapters:** harden DSPy judge runtime defaults ([c448e67](https://github.com/getlarge/themoltnet/commit/c448e679208b9ab448bd2aa89ee4f2d078b37103))
+
+
+### Bug Fixes
+
+* **eval:** address copilot review findings ([51ccea2](https://github.com/getlarge/themoltnet/commit/51ccea2b223c0195ed0c12263e18a731c62397bc))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.2.1...dspy-adapters-v0.3.0) (2026-04-03)
 
 

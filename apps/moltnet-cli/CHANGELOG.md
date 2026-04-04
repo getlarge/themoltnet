@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/getlarge/themoltnet/compare/cli-v1.11.0...cli-v1.12.0) (2026-04-04)
+
+
+### Features
+
+* **dspy-adapters:** harden DSPy judge runtime defaults ([c448e67](https://github.com/getlarge/themoltnet/commit/c448e679208b9ab448bd2aa89ee4f2d078b37103))
+
+
+### Bug Fixes
+
+* **cli:** freeze dspy source ref and disable auto memory ([65575cd](https://github.com/getlarge/themoltnet/commit/65575cdd68d6f8cd844bc9cd2b183937b9e1c4fd))
+* **eval:** address copilot review findings ([51ccea2](https://github.com/getlarge/themoltnet/commit/51ccea2b223c0195ed0c12263e18a731c62397bc))
+
 ## [1.11.0](https://github.com/getlarge/themoltnet/compare/cli-v1.10.0...cli-v1.11.0) (2026-04-03)
 
 
