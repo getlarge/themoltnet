@@ -547,6 +547,200 @@ func TestValidateAgentModel(t *testing.T) {
 	}
 }
 
+func TestValidateEvalEngine(t *testing.T) {
+	tests := []struct {
+		engine string
+		ok     bool
+	}{
+		{"harbor", true},
+		{"dspy", true},
+		{"nope", false},
+	}
+
+	for _, tt := range tests {
+		err := validateEvalEngine(tt.engine)
+		if tt.ok && err != nil {
+			t.Errorf("validateEvalEngine(%q) = %v, want nil", tt.engine, err)
+		}
+		if !tt.ok && err == nil {
+			t.Errorf("validateEvalEngine(%q) = nil, want error", tt.engine)
+		}
+	}
+}
+
+func TestValidateDSPYEvalOpts(t *testing.T) {
+	ok := evalRunOpts{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1}
+	if err := validateDSPYEvalOpts(ok); err != nil {
+		t.Fatalf("validateDSPYEvalOpts(valid) = %v", err)
+	}
+
+	bad := []evalRunOpts{
+		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
+	}
+	for _, opts := range bad {
+		if err := validateDSPYEvalOpts(opts); err == nil {
+			t.Errorf("validateDSPYEvalOpts(%+v) = nil, want error", opts)
+		}
+	}
+}
+
+func TestBuildDSPYEvalPromptIncludesContext(t *testing.T) {
+	got := buildDSPYEvalPrompt("Do the task.", true, "## Pack")
+	if !strings.Contains(got, "Context pack:") {
+		t.Fatal("expected context section")
+	}
+	if !strings.Contains(got, "## Pack") {
+		t.Fatal("expected pack content")
+	}
+}
+
+func TestBuildWorkspaceSnapshotFallsBackToFinalResponse(t *testing.T) {
+	dir := t.TempDir()
+
+	got, err := buildWorkspaceSnapshot(dir, "final output")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot: %v", err)
+	}
+	if !strings.Contains(got, "final-response.txt") {
+		t.Fatalf("expected fallback response file, got %q", got)
+	}
+}
+
+func TestParseChecklistCriteriaRejectsUnsupportedType(t *testing.T) {
+	_, err := parseChecklistCriteria([]byte(`{"type":"binary"}`))
+	if err == nil {
+		t.Fatal("expected unsupported criteria type error")
+	}
+}
+
+func TestParseGitStatusPathsIgnoresNeutralizedFiles(t *testing.T) {
+	got := parseGitStatusPaths(" M apps/moltnet-cli/eval.go\n D AGENTS.md\n D .claude/CLAUDE.md\n?? new-file.md\n")
+	if len(got) != 2 {
+		t.Fatalf("expected 2 paths, got %v", got)
+	}
+	if got[0] != "apps/moltnet-cli/eval.go" || got[1] != "new-file.md" {
+		t.Fatalf("unexpected paths: %v", got)
+	}
+}
+
+func TestParseGitStatusPathsSkipsDeletedEntries(t *testing.T) {
+	got := parseGitStatusPaths(" D .agents/skills/legreffier/SKILL.md\n M docs/guide.md\n")
+	if len(got) != 1 || got[0] != "docs/guide.md" {
+		t.Fatalf("unexpected paths: %v", got)
+	}
+}
+
+func TestNeutralizeDSPYEvalWorktreeUsesGlobExcludes(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.MkdirAll(filepath.Join(dir, ".agents", "skills"), 0o755); err != nil {
+		t.Fatalf("mkdir .agents: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "docs"), 0o755); err != nil {
+		t.Fatalf("mkdir docs: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".agents", "skills", "guide.md"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write .agents file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "docs", "guide.md"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write docs guide: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "keep.go"), []byte("package main"), 0o644); err != nil {
+		t.Fatalf("write go file: %v", err)
+	}
+
+	filter := newDSPYWorktreeFilter(evalRunOpts{
+		worktreeExcludes: []string{"docs/*.md"},
+	})
+	if !filter.matches(".agents/skills/guide.md", false) {
+		t.Fatal("expected default .agents exclusion to match")
+	}
+	if !filter.matches("docs/guide.md", false) {
+		t.Fatal("expected custom docs glob to match")
+	}
+	if err := neutralizeDSPYEvalWorktree(dir, filter); err != nil {
+		t.Fatalf("neutralizeDSPYEvalWorktree: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, ".agents")); !os.IsNotExist(err) {
+		t.Fatalf("expected .agents removed, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "docs", "guide.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected docs markdown removed, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "keep.go")); err != nil {
+		t.Fatalf("expected keep.go preserved: %v", err)
+	}
+}
+
+func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
+	filter := newDSPYWorktreeFilter(evalRunOpts{
+		worktreeExcludes: []string{
+			"docs/*.md",
+			"vendor/**",
+			"agents/*.md",
+		},
+	})
+
+	tests := []struct {
+		rel   string
+		isDir bool
+		want  bool
+	}{
+		{rel: "AGENTS.md", want: true},
+		{rel: ".claude/settings.json", want: true},
+		{rel: ".agents/skills/guide.md", want: true},
+		{rel: ".codex/config.toml", want: true},
+		{rel: "tiles/skill-a/evals/scenario-1/task.md", want: true},
+		{rel: "tiles/skill-a/evals/scenario-1/config.json", want: false},
+		{rel: "docs/guide.md", want: true},
+		{rel: "docs/nested/guide.md", want: false},
+		{rel: "vendor/pkg/file.go", want: true},
+		{rel: "agents/readme.md", want: true},
+		{rel: "agents/readme.txt", want: false},
+		{rel: "src/main.go", want: false},
+	}
+
+	for _, tt := range tests {
+		if got := filter.matches(tt.rel, tt.isDir); got != tt.want {
+			t.Errorf("filter.matches(%q, %v) = %v, want %v", tt.rel, tt.isDir, got, tt.want)
+		}
+	}
+}
+
+func TestBuildClaudeEvalEnvDisablesAutoMemoryOnly(t *testing.T) {
+	env := buildClaudeEvalEnvFrom([]string{
+		"PATH=/usr/bin:/bin",
+		"HOME=/tmp/home",
+		"CLAUDECODE=1",
+		"CLAUDE_CODE_DISABLE_AUTO_MEMORY=0",
+		"CLAUDE_CODE_OAUTH_TOKEN=secret",
+	})
+
+	joined := strings.Join(env, "\n")
+	if strings.Contains(joined, "CLAUDECODE=1") {
+		t.Fatal("expected CLAUDECODE to be stripped")
+	}
+	if !strings.Contains(joined, "CLAUDE_CODE_OAUTH_TOKEN=secret") {
+		t.Fatal("expected unrelated CLAUDE_CODE env vars to be preserved")
+	}
+	if !strings.Contains(joined, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1") {
+		t.Fatal("expected auto memory disable env var to be enforced")
+	}
+	if strings.Contains(joined, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=0") {
+		t.Fatal("expected prior auto memory setting to be replaced")
+	}
+}
+
+func TestCreateDSPYEvalWorktreeRequiresFrozenSourceRef(t *testing.T) {
+	_, _, err := createDSPYEvalWorktree(t.TempDir(), "test", evalRunOpts{})
+	if err == nil || !strings.Contains(err.Error(), "missing frozen dspy source ref") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestValidateJudgeModel(t *testing.T) {
 	tests := []struct {
 		judge string

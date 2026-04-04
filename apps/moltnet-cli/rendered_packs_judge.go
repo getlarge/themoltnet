@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	stderrors "errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/XiaoConstantine/dspy-go/pkg/core"
-	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
+	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/fidelity"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -151,21 +151,21 @@ func runRenderedPacksJudgeLocal(
 		return err
 	}
 
-	llm, err := dspyadapters.InitProvider(providerName, modelID)
-	if err != nil {
-		return fmt.Errorf("provider init failed: %w", err)
-	}
-	core.SetDefaultLLM(llm)
-
 	fmt.Fprintf(
 		os.Stderr,
 		"Running fidelity judge (local) with %s:%s...\n",
 		providerName,
 		modelID,
 	)
-	scores, err := fidelity.Judge(ctx, sourceEntriesMD, rp.Content, rubric)
+	scores, err := fidelity.Run(ctx, fidelity.Request{
+		Provider:        providerName,
+		Model:           modelID,
+		SourceEntries:   sourceEntriesMD,
+		RenderedContent: rp.Content,
+		Rubric:          rubric,
+	})
 	if err != nil {
-		return fmt.Errorf("judge failed: %w", err)
+		return formatDSPyJudgeError(err)
 	}
 
 	fmt.Printf("\nFidelity scores (local, no submission):\n")
@@ -222,12 +222,6 @@ func runRenderedPacksJudge(
 		return formatAPIError(claimRes)
 	}
 
-	llm, err := dspyadapters.InitProvider(providerName, modelID)
-	if err != nil {
-		return fmt.Errorf("provider init failed: %w", err)
-	}
-	core.SetDefaultLLM(llm)
-
 	sourceEntriesMD := buildSourceEntriesMarkdown(claim.SourceEntries)
 	rubric := claim.Rubric
 	if strings.TrimSpace(rubric) == "" {
@@ -240,14 +234,15 @@ func runRenderedPacksJudge(
 		providerName,
 		modelID,
 	)
-	scores, err := fidelity.Judge(
-		ctx,
-		sourceEntriesMD,
-		claim.RenderedContent,
-		rubric,
-	)
+	scores, err := fidelity.Run(ctx, fidelity.Request{
+		Provider:        providerName,
+		Model:           modelID,
+		SourceEntries:   sourceEntriesMD,
+		RenderedContent: claim.RenderedContent,
+		Rubric:          rubric,
+	})
 	if err != nil {
-		return fmt.Errorf("judge failed: %w", err)
+		return formatDSPyJudgeError(err)
 	}
 
 	fmt.Fprintln(os.Stderr, "Submitting scores...")
@@ -340,6 +335,30 @@ func resolveRubric(rubricFile string) (string, error) {
 		return "", fmt.Errorf("rubric file %q is empty", rubricFile)
 	}
 	return content, nil
+}
+
+func formatDSPyJudgeError(err error) error {
+	var coded *dspyerrors.Error
+	if !stderrors.As(err, &coded) {
+		return fmt.Errorf("judge failed: %w", err)
+	}
+
+	switch coded.Code() {
+	case dspyerrors.Timeout:
+		return fmt.Errorf("judge timed out: %w", err)
+	case dspyerrors.RateLimitExceeded:
+		return fmt.Errorf("judge hit provider rate limits: %w", err)
+	case dspyerrors.ProviderNotFound:
+		return fmt.Errorf("judge provider is not supported: %w", err)
+	case dspyerrors.ModelNotSupported:
+		return fmt.Errorf("judge model is not supported: %w", err)
+	case dspyerrors.ConfigurationError:
+		return fmt.Errorf("judge provider is not configured correctly: %w", err)
+	case dspyerrors.InvalidResponse:
+		return fmt.Errorf("judge returned an invalid structured response: %w", err)
+	default:
+		return fmt.Errorf("judge failed: %w", err)
+	}
 }
 
 func selfBinaryCID() (string, error) {
