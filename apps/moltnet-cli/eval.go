@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
@@ -659,14 +660,41 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	}()
 
 	result := evalResult{taskName: input.name}
-	result.withoutContext, err = runDSPYEvalVariant(runDir, input, false, opts)
-	if err != nil {
-		return err
-	}
-	if input.packMD != "" {
-		result.withContext, err = runDSPYEvalVariant(runDir, input, true, opts)
+	if input.packMD != "" && opts.concurrency >= 2 {
+		// Run without-context and with-context variants in parallel.
+		var wg sync.WaitGroup
+		var withoutScores, withScores *trialScores
+		var withoutErr, withErr error
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			withoutScores, withoutErr = runDSPYEvalVariant(runDir, input, false, opts)
+		}()
+		go func() {
+			defer wg.Done()
+			withScores, withErr = runDSPYEvalVariant(runDir, input, true, opts)
+		}()
+		wg.Wait()
+
+		if withoutErr != nil {
+			return withoutErr
+		}
+		if withErr != nil {
+			return withErr
+		}
+		result.withoutContext = withoutScores
+		result.withContext = withScores
+	} else {
+		result.withoutContext, err = runDSPYEvalVariant(runDir, input, false, opts)
 		if err != nil {
 			return err
+		}
+		if input.packMD != "" {
+			result.withContext, err = runDSPYEvalVariant(runDir, input, true, opts)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -687,9 +715,6 @@ func validateDSPYEvalOpts(opts evalRunOpts) error {
 	}
 	if opts.judge != "claude" {
 		return fmt.Errorf("--engine dspy currently supports --judge claude only")
-	}
-	if opts.concurrency != 1 {
-		return fmt.Errorf("--engine dspy currently supports --concurrency 1 only")
 	}
 	return nil
 }

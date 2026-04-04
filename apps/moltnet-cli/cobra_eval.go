@@ -26,8 +26,9 @@ When --pack is provided, runs both with-context and without-context
 variants and reports the score delta (pack contribution).
 
 Use --engine harbor for the current containerized path.
-Use --engine dspy for the lightweight Claude-only MVP path
-(single-scenario only, currently serialized).`,
+Use --engine dspy for the lightweight Claude-only path.
+When --pack is provided with --concurrency >= 2, without-context
+and with-context variants run in parallel.`,
 		Example: `  # Single task, baseline only
   moltnet eval run --scenario ./evals/codegen-chain
 

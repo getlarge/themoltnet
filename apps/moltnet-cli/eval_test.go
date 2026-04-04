@@ -569,15 +569,20 @@ func TestValidateEvalEngine(t *testing.T) {
 }
 
 func TestValidateDSPYEvalOpts(t *testing.T) {
-	ok := evalRunOpts{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1}
-	if err := validateDSPYEvalOpts(ok); err != nil {
-		t.Fatalf("validateDSPYEvalOpts(valid) = %v", err)
+	ok := []evalRunOpts{
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 4},
+	}
+	for _, opts := range ok {
+		if err := validateDSPYEvalOpts(opts); err != nil {
+			t.Errorf("validateDSPYEvalOpts(%+v) = %v, want nil", opts, err)
+		}
 	}
 
 	bad := []evalRunOpts{
 		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
 		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
-		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
 	}
 	for _, opts := range bad {
 		if err := validateDSPYEvalOpts(opts); err == nil {
