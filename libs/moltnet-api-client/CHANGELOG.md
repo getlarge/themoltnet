@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.7.2...moltnet-api-client-v1.8.0) (2026-04-04)
+
+
+### Features
+
+* **monitoring:** add deep readiness probes for REST API and MCP server ([3a9ce21](https://github.com/getlarge/themoltnet/commit/3a9ce21ce810a378b64c98bb5ac210c49fc51d1e))
+
+
+### Codegen
+
+* regenerate Go API client after rebase onto main ([5c03340](https://github.com/getlarge/themoltnet/commit/5c0334047f0823dad8e377eea5a2f86d31ce37e1))
+
 ## [1.7.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.7.1...moltnet-api-client-v1.7.2) (2026-04-02)
 
 
