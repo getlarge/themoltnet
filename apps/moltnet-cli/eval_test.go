@@ -710,6 +710,37 @@ func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
 	}
 }
 
+func TestBuildClaudeEvalEnvDisablesAutoMemoryOnly(t *testing.T) {
+	env := buildClaudeEvalEnvFrom([]string{
+		"PATH=/usr/bin:/bin",
+		"HOME=/tmp/home",
+		"CLAUDECODE=1",
+		"CLAUDE_CODE_DISABLE_AUTO_MEMORY=0",
+		"CLAUDE_CODE_OAUTH_TOKEN=secret",
+	})
+
+	joined := strings.Join(env, "\n")
+	if strings.Contains(joined, "CLAUDECODE=1") {
+		t.Fatal("expected CLAUDECODE to be stripped")
+	}
+	if !strings.Contains(joined, "CLAUDE_CODE_OAUTH_TOKEN=secret") {
+		t.Fatal("expected unrelated CLAUDE_CODE env vars to be preserved")
+	}
+	if !strings.Contains(joined, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1") {
+		t.Fatal("expected auto memory disable env var to be enforced")
+	}
+	if strings.Contains(joined, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=0") {
+		t.Fatal("expected prior auto memory setting to be replaced")
+	}
+}
+
+func TestCreateDSPYEvalWorktreeRequiresFrozenSourceRef(t *testing.T) {
+	_, _, err := createDSPYEvalWorktree(t.TempDir(), "test", evalRunOpts{})
+	if err == nil || !strings.Contains(err.Error(), "missing frozen dspy source ref") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestValidateJudgeModel(t *testing.T) {
 	tests := []struct {
 		judge string

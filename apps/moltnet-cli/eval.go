@@ -30,6 +30,8 @@ type evalRunOpts struct {
 	judge            string // "claude" | "codex"
 	judgeModel       string // judge model (prefix-free)
 	worktreeExcludes []string
+	dspyRepoRoot      string
+	dspySourceRef     string
 }
 
 func validateEvalEngine(engine string) error {
@@ -624,6 +626,13 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	if err := validateDSPYEvalOpts(opts); err != nil {
 		return err
 	}
+	repoRoot, sourceRef, err := resolveDSPYEvalSource()
+	if err != nil {
+		return err
+	}
+	opts.dspyRepoRoot = repoRoot
+	opts.dspySourceRef = sourceRef
+
 	group := runGroup{agent: input.agent, model: input.model, inputs: []evalRunInput{input}}
 	header := groupHeaderLine(0, 1, group)
 	fmt.Fprintln(os.Stderr, header)
@@ -756,17 +765,12 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 }
 
 func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, func() error, error) {
-	repoRoot, err := currentRepoRoot()
-	if err != nil {
-		return "", nil, err
-	}
-	headRef, err := gitOutput(repoRoot, "rev-parse", "HEAD")
-	if err != nil {
-		return "", nil, err
+	if opts.dspyRepoRoot == "" || opts.dspySourceRef == "" {
+		return "", nil, fmt.Errorf("missing frozen dspy source ref")
 	}
 
 	worktreeDir := filepath.Join(parentDir, "workspace")
-	if err := gitRun(repoRoot, "worktree", "add", "--detach", worktreeDir, strings.TrimSpace(headRef)); err != nil {
+	if err := gitRun(opts.dspyRepoRoot, "worktree", "add", "--detach", worktreeDir, opts.dspySourceRef); err != nil {
 		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, err)
 	}
 	if err := neutralizeDSPYEvalWorktree(worktreeDir, newDSPYWorktreeFilter(opts)); err != nil {
@@ -774,9 +778,21 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, 
 	}
 
 	cleanup := func() error {
-		return gitRun(repoRoot, "worktree", "remove", "--force", worktreeDir)
+		return gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir)
 	}
 	return worktreeDir, cleanup, nil
+}
+
+func resolveDSPYEvalSource() (string, string, error) {
+	repoRoot, err := currentRepoRoot()
+	if err != nil {
+		return "", "", err
+	}
+	headRef, err := gitOutput(repoRoot, "rev-parse", "HEAD")
+	if err != nil {
+		return "", "", fmt.Errorf("resolve dspy source ref: %w", err)
+	}
+	return repoRoot, strings.TrimSpace(headRef), nil
 }
 
 func currentRepoRoot() (string, error) {
@@ -1015,17 +1031,24 @@ func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
 }
 
 func buildClaudeEvalEnv() []string {
-	env := os.Environ()
-	filtered := make([]string, 0, len(env))
+	return buildClaudeEvalEnvFrom(os.Environ())
+}
+
+func buildClaudeEvalEnvFrom(env []string) []string {
+	filtered := make([]string, 0, len(env)+1)
 	for _, e := range env {
 		for _, prefix := range []string{"CLAUDECODE"} {
 			if strings.HasPrefix(e, prefix+"=") || strings.HasPrefix(e, prefix) {
 				goto skip
 			}
 		}
+		if strings.HasPrefix(e, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=") {
+			goto skip
+		}
 		filtered = append(filtered, e)
 	skip:
 	}
+	filtered = append(filtered, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
 	return filtered
 }
 
