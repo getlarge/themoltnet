@@ -33,16 +33,10 @@
       "path": "libs/auth"
     },
     {
-      "path": "libs/ax-agents"
-    },
-    {
       "path": "libs/bootstrap"
     },
     {
       "path": "libs/context-distill"
-    },
-    {
-      "path": "libs/context-evals"
     },
     {
       "path": "libs/context-pack-service"

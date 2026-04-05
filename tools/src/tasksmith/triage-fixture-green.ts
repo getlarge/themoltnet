@@ -5,8 +5,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { resolveRepoRoot } from '@moltnet/context-evals/pipeline-shared';
-
+import { resolveRepoRoot } from '../repo.js';
 import { gitDiff, gitFileExistsAtRef, isTestFile } from './gh-client.js';
 import { extractTouchedTestNames } from './task-extractor.js';
 import { outputIndicatesNoTestsRun } from './verify.js';
@@ -160,7 +159,7 @@ function buildMarkdown(entries: TriageEntry[]): string {
       .join('<br>');
 
     lines.push(
-      `| ${entry.pr} | ${entry.diagnosis} | \`${entry.failingCommand.replaceAll('|', '\\|')}\` | ${files} |`,
+      `| ${entry.pr} | ${entry.diagnosis} | \`${entry.failingCommand.split('|').join('\\|')}\` | ${files} |`,
     );
   }
 

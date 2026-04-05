@@ -4,7 +4,7 @@
 import { cp, mkdir, readdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { resolveRepoRoot } from '@moltnet/context-evals/pipeline-shared';
+import { resolveRepoRoot } from '../repo.js';
 
 const repoRoot = await resolveRepoRoot();
 const tasksmithDir = resolve(repoRoot, 'tasksmith');

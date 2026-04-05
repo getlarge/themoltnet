@@ -1,9 +1,5 @@
-import type { AxAIService } from '@ax-llm/ax';
-import { ax, f } from '@ax-llm/ax';
-import type { TasksmithTask } from '@moltnet/context-evals';
-
-import { gitDiff, gitFileExistsAtRef, gitShowFileAtRef } from './gh-client.js';
-import type { CriteriaItem, ExtractionResult, PrCandidate } from './types.js';
+import { gitDiff, gitFileExistsAtRef } from './gh-client.js';
+import type { ExtractionResult, PrCandidate, TasksmithTask } from './types.js';
 
 // ── Token budgeting ──
 
@@ -15,64 +11,19 @@ export function truncateToTokenBudget(text: string, maxTokens: number): string {
   return text.slice(0, maxChars);
 }
 
-// ── ax() program (structured output via fluent API) ──
-
-const extractorSig = f()
-  .input('pr_diff', f.string('unified diff of the PR'))
-  .input('pr_body', f.string('PR title, body, and linked issue text'))
-  .input(
-    'test_file_contents',
-    f.string(
-      'test files labeled [NEW] (added by PR) or [MODIFIED] (existed before PR)',
-    ),
-  )
-  .input('changed_files', f.string('list of all changed file paths'))
-  .output(
-    'extraction',
-    f.object({
-      results: f
-        .object({
-          viable: f.boolean(
-            'true if this sub-task can produce a verifiable task',
-          ),
-          fail_to_pass: f
-            .string('test command that should fail on fixture and pass on fix')
-            .array(),
-          pass_to_pass: f
-            .string('test command that should pass on both fixture and fix')
-            .array(),
-          problem_statement: f.string(
-            'SWE-bench-style problem description without leaking the solution',
-          ),
-          family: f.class([
-            'bugfix',
-            'feature',
-            'refactor',
-            'test',
-            'infra',
-          ] as const),
-          subsystems: f.string('affected workspace package name').array(),
-          criteria: f
-            .object({
-              description: f.string('behavioral success criterion'),
-              check_type: f.class([
-                'test_passes',
-                'file_exists',
-                'export_exists',
-                'pattern_present',
-                'type_checks',
-                'behavioral',
-              ] as const),
-              weight: f.number('importance weight 0-1').min(0).max(1),
-            })
-            .array(),
-          skip_reason: f.string('reason if not viable, empty string otherwise'),
-        })
-        .array(),
-    }),
-  );
-
-const extractorProgram = ax(extractorSig.build());
+// ── Seed instruction (preserved for go-dspy migration) ──
+//
+// The extraction program previously used ax-llm's ax()/f() structured output
+// API (removed — see issue #664). To re-implement extraction with go-dspy:
+//
+//   1. Define a dspy.Signature with these fields:
+//      Input:  pr_diff, pr_body, test_file_contents, changed_files
+//      Output: extraction { results: [{viable, fail_to_pass, pass_to_pass,
+//              problem_statement, family, subsystems, criteria, skip_reason}] }
+//   2. Use dspy.ChainOfThought or dspy.Predict module.
+//   3. Use SEED_INSTRUCTION (below) as the signature docstring/instruction.
+//   4. Use MIPROv2 or BootstrapFewShot optimizer with verified tasksmith tasks
+//      as training set (see optimize-extractor.ts for the scoring metric).
 
 // ── Seed instruction ──
 
@@ -582,181 +533,6 @@ export function assembleTasksmithTask(
     pass_to_pass: extraction.passToPass.map(normalizeTestCommand),
     confidence: 'high',
   };
-}
-
-// ── Context building ──
-
-/**
- * Build test file context with NEW/MODIFIED classification.
- * - [NEW] files: show full content from gold ref (the whole file is new)
- * - [MODIFIED] files: show only the diff (added lines = new test cases)
- */
-async function readTestFileContents(
-  fixtureRef: string,
-  goldRef: string,
-  testFiles: string[],
-  maxTokens: number,
-): Promise<string> {
-  const parts: string[] = [];
-  let totalChars = 0;
-  const maxChars = maxTokens * CHARS_PER_TOKEN;
-
-  for (const file of testFiles) {
-    if (totalChars >= maxChars) break;
-
-    const existsOnFixture = await gitFileExistsAtRef(fixtureRef, file);
-
-    let content: string;
-    if (existsOnFixture) {
-      // MODIFIED: show the diff so the LLM sees which test cases are new
-      const fileDiff = await gitDiff(fixtureRef, goldRef, file);
-      if (!fileDiff) continue;
-      content = `--- ${file} [MODIFIED — diff shows added/changed tests] ---\n${fileDiff}`;
-    } else {
-      // NEW: show full file content from gold ref
-      const fullContent = await gitShowFileAtRef(goldRef, file);
-      if (!fullContent) continue;
-      content = `--- ${file} [NEW — entire file added by this PR] ---\n${fullContent}`;
-    }
-
-    const truncated = content.slice(0, maxChars - totalChars);
-    parts.push(truncated);
-    totalChars += truncated.length;
-  }
-  const result = parts.join('\n\n');
-  return result || '(no test file context available)';
-}
-
-function buildPrBody(candidate: PrCandidate): string {
-  const parts = [`# ${candidate.title}`, candidate.body];
-  if (candidate.linkedIssueBody) {
-    parts.push(`\n## Linked Issue\n${candidate.linkedIssueBody}`);
-  }
-  return truncateToTokenBudget(parts.join('\n\n'), 2000);
-}
-
-// ── Raw LLM task shape ──
-
-interface RawLlmTask {
-  task_id?: string;
-  viable: boolean;
-  evalScore?: number;
-  family?: string;
-  problem_statement?: string;
-  fail_to_pass?: string[];
-  pass_to_pass?: string[];
-  criteria?: CriteriaItem[];
-  skip_reason?: string;
-  subsystems?: string[];
-}
-
-function isRawLlmTask(v: unknown): v is RawLlmTask {
-  return (
-    typeof v === 'object' &&
-    v !== null &&
-    'viable' in v &&
-    typeof (v as Record<string, unknown>).viable === 'boolean'
-  );
-}
-
-function parseRawTasks(tasks: unknown): RawLlmTask[] {
-  if (Array.isArray(tasks)) return tasks.filter(isRawLlmTask);
-  // LLM might still return a single object despite array instruction
-  if (isRawLlmTask(tasks)) return [tasks];
-  return [];
-}
-
-// ── Extraction ──
-
-export type ExtractedTask = {
-  task: TasksmithTask;
-  criteria: CriteriaItem[];
-};
-
-export async function extractTasks(
-  candidate: PrCandidate,
-  ai: AxAIService,
-  _repoRoot: string,
-  instruction?: string,
-): Promise<{ tasks: ExtractedTask[] } | { skipReason: string }> {
-  const diff = truncateToTokenBudget(
-    await gitDiff(candidate.fixtureRef, candidate.goldFixRef),
-    8000,
-  );
-  const prBody = buildPrBody(candidate);
-  const testContents = await readTestFileContents(
-    candidate.fixtureRef,
-    candidate.goldFixRef,
-    candidate.changedTestFiles,
-    4000,
-  );
-
-  extractorProgram.setInstruction(instruction ?? SEED_INSTRUCTION);
-
-  const result = await extractorProgram.forward(ai, {
-    pr_diff: diff,
-    pr_body: prBody,
-    test_file_contents: testContents,
-    changed_files: candidate.changedFiles.join('\n'),
-  });
-
-  const rawTasks = parseRawTasks(
-    (result.extraction as { results?: unknown })?.results,
-  );
-
-  if (rawTasks.length === 0) {
-    return { skipReason: 'LLM returned no tasks' };
-  }
-
-  const viableTasks = rawTasks.filter((t) => t.viable);
-
-  if (viableTasks.length === 0) {
-    const reason = rawTasks[0]?.skip_reason || 'not viable';
-    return { skipReason: reason };
-  }
-
-  const extracted: ExtractedTask[] = [];
-
-  for (let i = 0; i < viableTasks.length; i++) {
-    const raw = viableTasks[i];
-    const extraction: ExtractionResult = {
-      isViable: true,
-      failToPass: raw.fail_to_pass ?? [],
-      passToPass: raw.pass_to_pass ?? [],
-      problemStatement: raw.problem_statement ?? '',
-      family: (raw.family as ExtractionResult['family']) ?? 'feature',
-      subsystems: raw.subsystems ?? [],
-      criteria: raw.criteria ?? [],
-    };
-
-    const task = assembleTasksmithTask(candidate, extraction, i);
-    task.fail_to_pass = await repairCommandsForCandidate(
-      task.fail_to_pass,
-      candidate,
-    );
-    task.pass_to_pass = await repairCommandsForCandidate(
-      task.pass_to_pass,
-      candidate,
-    );
-
-    extracted.push({ task, criteria: extraction.criteria });
-  }
-
-  return { tasks: extracted };
-}
-
-/** @deprecated Use extractTasks instead — kept for GEPA optimizer compatibility */
-export async function extractTask(
-  candidate: PrCandidate,
-  ai: AxAIService,
-  repoRoot: string,
-  instruction?: string,
-): Promise<
-  { task: TasksmithTask; criteria: CriteriaItem[] } | { skipReason: string }
-> {
-  const result = await extractTasks(candidate, ai, repoRoot, instruction);
-  if ('skipReason' in result) return result;
-  return result.tasks[0];
 }
 
 export { SEED_INSTRUCTION };

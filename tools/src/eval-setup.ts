@@ -7,10 +7,11 @@ import {
   type BootstrapConfig,
   bootstrapGenesisAgents,
 } from '@moltnet/bootstrap';
-import { resolveRepoRoot } from '@moltnet/context-evals/pipeline-shared';
 import { createDatabase } from '@moltnet/database';
 import { setupGitIdentity } from '@themoltnet/github-agent';
 import { connect, exportSSHKey, writeConfig } from '@themoltnet/sdk';
+
+import { resolveRepoRoot } from './repo.js';
 
 const { values } = parseArgs({
   options: {

@@ -9,7 +9,9 @@ export interface CommandResult {
   output: string;
 }
 
-function isExecException(error: unknown): error is ExecException & {
+function isExecException(
+  error: unknown,
+): error is ExecException & {
   stdout?: string | Buffer;
   stderr?: string | Buffer;
 } {
@@ -25,10 +27,7 @@ function toText(value: string | Buffer | undefined): string {
 export async function execFileText(
   file: string,
   args: string[],
-  options: {
-    cwd?: string;
-    timeout?: number;
-  } = {},
+  options: { cwd?: string; timeout?: number } = {},
 ): Promise<string> {
   const { stdout } = await execFileAsync(file, args, {
     cwd: options.cwd,
