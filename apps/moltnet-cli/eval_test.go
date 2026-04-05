@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 )
 
 func TestRenderTaskToml(t *testing.T) {
@@ -954,6 +956,253 @@ func TestGroupHeaderLine(t *testing.T) {
 	want := "Group 2/3: agent=codex model=openai/gpt-5-codex (2 task(s))"
 	if got != want {
 		t.Fatalf("groupHeaderLine() = %q, want %q", got, want)
+	}
+}
+
+func TestParseStreamJSONMultiTurn(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"system","subtype":"init","session_id":"s1"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Let me check."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Done."}]}}
+{"type":"result","subtype":"success","result":"Done.","duration_ms":5000,"total_cost_usd":0.12,"num_turns":3}
+`)
+	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
+	if len(trajectory) != 4 { // 3 assistant + 1 result
+		t.Fatalf("expected 4 trajectory events, got %d", len(trajectory))
+	}
+	if finalText != "Done." {
+		t.Fatalf("expected final text 'Done.', got %q", finalText)
+	}
+	if durationMs != 5000 {
+		t.Fatalf("expected duration 5000, got %d", durationMs)
+	}
+	if costUSD != 0.12 {
+		t.Fatalf("expected cost 0.12, got %f", costUSD)
+	}
+	if numTurns != 3 {
+		t.Fatalf("expected 3 turns, got %d", numTurns)
+	}
+}
+
+func TestParseStreamJSONErrorResult(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"assistant","message":{"content":[{"type":"text","text":"oops"}]}}
+{"type":"result","subtype":"error","is_error":true,"result":"something went wrong","duration_ms":100,"total_cost_usd":0.01,"num_turns":1}
+`)
+	trajectory, finalText, durationMs, _, _ := parseStreamJSON(input)
+	if len(trajectory) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(trajectory))
+	}
+	if finalText != "something went wrong" {
+		t.Fatalf("expected error result text, got %q", finalText)
+	}
+	if durationMs != 100 {
+		t.Fatalf("expected duration 100, got %d", durationMs)
+	}
+}
+
+func TestParseStreamJSONSkipsMalformedLines(t *testing.T) {
+	t.Parallel()
+	input := []byte(`not json at all
+{"type":"assistant","message":{"content":[]}}
+{truncated
+{"type":"result","result":"ok","duration_ms":50,"num_turns":1}
+`)
+	trajectory, finalText, _, _, _ := parseStreamJSON(input)
+	if len(trajectory) != 2 { // assistant + result, malformed lines skipped
+		t.Fatalf("expected 2 events (skipping malformed), got %d", len(trajectory))
+	}
+	if finalText != "ok" {
+		t.Fatalf("expected 'ok', got %q", finalText)
+	}
+}
+
+func TestWriteDSPYAgentArtifactsWritesTrajectory(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agent := &dspyAgentRunResult{
+		passed: true,
+		output: "agent said hello",
+		trajectory: []json.RawMessage{
+			json.RawMessage(`{"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}`),
+			json.RawMessage(`{"type":"result","result":"hello"}`),
+		},
+	}
+	if err := writeDSPYAgentArtifacts(dir, agent); err != nil {
+		t.Fatalf("writeDSPYAgentArtifacts: %v", err)
+	}
+
+	// Check agent-output.txt
+	out, err := os.ReadFile(filepath.Join(dir, "agent-output.txt"))
+	if err != nil {
+		t.Fatalf("read agent-output.txt: %v", err)
+	}
+	if string(out) != "agent said hello" {
+		t.Fatalf("unexpected agent output: %q", string(out))
+	}
+
+	// Check trajectory.json
+	trajData, err := os.ReadFile(filepath.Join(dir, "trajectory.json"))
+	if err != nil {
+		t.Fatalf("read trajectory.json: %v", err)
+	}
+	var traj []json.RawMessage
+	if err := json.Unmarshal(trajData, &traj); err != nil {
+		t.Fatalf("parse trajectory.json: %v", err)
+	}
+	if len(traj) != 2 {
+		t.Fatalf("expected 2 trajectory events, got %d", len(traj))
+	}
+}
+
+func TestWriteDSPYAgentArtifactsNoTrajectory(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agent := &dspyAgentRunResult{
+		passed: true,
+		output: "hello",
+	}
+	if err := writeDSPYAgentArtifacts(dir, agent); err != nil {
+		t.Fatalf("writeDSPYAgentArtifacts: %v", err)
+	}
+	// trajectory.json should not exist when trajectory is empty
+	if _, err := os.Stat(filepath.Join(dir, "trajectory.json")); !os.IsNotExist(err) {
+		t.Fatal("expected no trajectory.json when trajectory is empty")
+	}
+}
+
+func TestWriteDSPYVariantArtifactsStructure(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agent := &dspyAgentRunResult{
+		passed:     true,
+		output:     "done",
+		durationMs: 2000,
+		costUSD:    0.08,
+		numTurns:   2,
+	}
+	judged := &checklist.Result{
+		Reward:  0.75,
+		Details: map[string]float64{"criterion_a": 0.5, "criterion_b": 1.0},
+		Scores: []checklist.ScoredCriterion{
+			{Name: "A", Score: 5, MaxScore: 10, Evidence: "partial"},
+			{Name: "B", Score: 10, MaxScore: 10, Evidence: "full"},
+		},
+		Reasoning: "good work",
+	}
+	if err := writeDSPYVariantArtifacts(dir, agent, judged); err != nil {
+		t.Fatalf("writeDSPYVariantArtifacts: %v", err)
+	}
+
+	// Check trial_result.json
+	trData, err := os.ReadFile(filepath.Join(dir, "trial_result.json"))
+	if err != nil {
+		t.Fatalf("read trial_result.json: %v", err)
+	}
+	var trial map[string]any
+	if err := json.Unmarshal(trData, &trial); err != nil {
+		t.Fatalf("parse trial_result.json: %v", err)
+	}
+	if trial["reward"] != 0.75 {
+		t.Fatalf("expected reward 0.75, got %v", trial["reward"])
+	}
+	if trial["duration_ms"] != float64(2000) {
+		t.Fatalf("expected duration_ms 2000, got %v", trial["duration_ms"])
+	}
+	if trial["cost_usd"] != 0.08 {
+		t.Fatalf("expected cost_usd 0.08, got %v", trial["cost_usd"])
+	}
+	if trial["num_turns"] != float64(2) {
+		t.Fatalf("expected num_turns 2, got %v", trial["num_turns"])
+	}
+
+	// Check backward-compat files
+	if _, err := os.Stat(filepath.Join(dir, "verifier", "reward.json")); err != nil {
+		t.Fatal("missing verifier/reward.json")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "verifier", "scores.json")); err != nil {
+		t.Fatal("missing verifier/scores.json")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "verifier", "reasoning.txt")); err != nil {
+		t.Fatal("missing verifier/reasoning.txt")
+	}
+}
+
+func TestWriteDSPYRunSummaryJobResult(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	result := evalResult{
+		taskName: "test-task",
+		withoutContext: &trialScores{
+			name:   "test-task__dspy",
+			reward: 0.4,
+		},
+		withContext: &trialScores{
+			name:   "test-task-with-context__dspy",
+			reward: 0.9,
+		},
+	}
+	if err := writeDSPYRunSummary(dir, result); err != nil {
+		t.Fatalf("writeDSPYRunSummary: %v", err)
+	}
+
+	// Check job_result.json
+	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
+	if err != nil {
+		t.Fatalf("read job_result.json: %v", err)
+	}
+	var job map[string]any
+	if err := json.Unmarshal(data, &job); err != nil {
+		t.Fatalf("parse job_result.json: %v", err)
+	}
+	if job["engine"] != "dspy" {
+		t.Fatalf("expected engine 'dspy', got %v", job["engine"])
+	}
+	if job["task_name"] != "test-task" {
+		t.Fatalf("expected task_name 'test-task', got %v", job["task_name"])
+	}
+	delta, ok := job["delta"].(float64)
+	if !ok {
+		t.Fatal("expected delta field")
+	}
+	if delta < 0.49 || delta > 0.51 {
+		t.Fatalf("expected delta ~0.5, got %f", delta)
+	}
+
+	// Check backward-compat result.json also exists
+	if _, err := os.Stat(filepath.Join(dir, "result.json")); err != nil {
+		t.Fatal("missing backward-compat result.json")
+	}
+}
+
+func TestWriteDSPYRunSummaryNoDeltaOnError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	result := evalResult{
+		taskName: "fail-task",
+		withoutContext: &trialScores{
+			name:   "fail-task__dspy",
+			reward: 0.5,
+		},
+		withContext: &trialScores{
+			name: "fail-task-with-context__dspy",
+			err:  "judge failed",
+		},
+	}
+	if err := writeDSPYRunSummary(dir, result); err != nil {
+		t.Fatalf("writeDSPYRunSummary: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
+	if err != nil {
+		t.Fatalf("read job_result.json: %v", err)
+	}
+	var job map[string]any
+	if err := json.Unmarshal(data, &job); err != nil {
+		t.Fatalf("parse job_result.json: %v", err)
+	}
+	if _, hasDelta := job["delta"]; hasDelta {
+		t.Fatal("expected no delta when a trial has errors")
 	}
 }
 
