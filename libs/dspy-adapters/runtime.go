@@ -113,14 +113,34 @@ func RunJudgeStructured(ctx context.Context, llm core.LLM, sig core.Signature, i
 	ctx = WithExecutionState(ctx)
 	prompt := buildCoTPrompt(sig, inputs)
 
-	result, err := llm.GenerateWithJSON(ctx, prompt)
-	if err != nil {
-		return nil, dspyerrors.WithFields(
-			dspyerrors.Wrap(err, dspyerrors.LLMGenerationFailed, "structured judge call failed"),
-			dspyerrors.Fields{"model": llm.ModelID()},
-		)
+	cfg := DefaultJudgeInterceptorsConfig()
+	timeout := cfg.Module.Timeout.Timeout
+	maxRetries := cfg.Module.Retry.MaxRetries
+	backoff := cfg.Module.Retry.InitialBackoff
+	backoffFactor := cfg.Module.Retry.BackoffFactor
+	maxBackoff := cfg.Module.Retry.MaxBackoff
+
+	var result map[string]any
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		callCtx, cancel := context.WithTimeout(ctx, timeout)
+		result, lastErr = llm.GenerateWithJSON(callCtx, prompt)
+		cancel()
+		if lastErr == nil {
+			return result, nil
+		}
+		if attempt < maxRetries {
+			time.Sleep(backoff)
+			backoff = time.Duration(float64(backoff) * float64(backoffFactor))
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
 	}
-	return result, nil
+	return nil, dspyerrors.WithFields(
+		dspyerrors.Wrap(lastErr, dspyerrors.LLMGenerationFailed, "structured judge call failed"),
+		dspyerrors.Fields{"model": llm.ModelID(), "attempts": maxRetries + 1},
+	)
 }
 
 // buildCoTPrompt builds a chain-of-thought structured prompt from a signature

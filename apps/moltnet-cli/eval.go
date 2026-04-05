@@ -38,6 +38,10 @@ type evalRunOpts struct {
 	dspyJudgeLLM     core.LLM
 }
 
+// worktreeMu serializes git worktree add/remove operations to avoid
+// index.lock races when running variants concurrently.
+var worktreeMu sync.Mutex
+
 func validateEvalEngine(engine string) error {
 	switch engine {
 	case "harbor", "dspy":
@@ -736,6 +740,12 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	if err := validateDSPYEvalOpts(opts); err != nil {
 		return err
 	}
+	// Validate per-input agent overrides (config mode can specify per-run agents).
+	for _, in := range inputs {
+		if in.agent != "" && in.agent != "claude" {
+			return fmt.Errorf("scenario %q: --engine dspy currently supports --agent claude only (got %q)", in.name, in.agent)
+		}
+	}
 	repoRoot, sourceRef, err := resolveDSPYEvalSource()
 	if err != nil {
 		return err
@@ -761,6 +771,15 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 		idx    int
 		result evalResult
 		err    error
+	}
+
+	// Dedup scenario names to avoid artifact directory collisions.
+	nameCounts := make(map[string]int, len(inputs))
+	for i := range inputs {
+		nameCounts[inputs[i].name]++
+		if nameCounts[inputs[i].name] > 1 {
+			inputs[i].name = fmt.Sprintf("%s-%d", inputs[i].name, nameCounts[inputs[i].name])
+		}
 	}
 
 	sem := make(chan struct{}, max(opts.concurrency, 1))
@@ -922,17 +941,25 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, 
 	}
 
 	worktreeDir := filepath.Join(parentDir, "workspace")
-	if err := gitRun(opts.dspyRepoRoot, "worktree", "add", "--detach", worktreeDir, opts.dspySourceRef); err != nil {
-		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, err)
+	worktreeMu.Lock()
+	addErr := gitRun(opts.dspyRepoRoot, "worktree", "add", "--detach", worktreeDir, opts.dspySourceRef)
+	worktreeMu.Unlock()
+	if addErr != nil {
+		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, addErr)
 	}
 	if err := neutralizeDSPYEvalWorktree(worktreeDir, newDSPYWorktreeFilter(opts)); err != nil {
-		if cleanupErr := gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir); cleanupErr != nil {
+		worktreeMu.Lock()
+		cleanupErr := gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir)
+		worktreeMu.Unlock()
+		if cleanupErr != nil {
 			return "", nil, fmt.Errorf("neutralize dspy worktree: %w; cleanup worktree: %v", err, cleanupErr)
 		}
 		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", err)
 	}
 
 	cleanup := func() error {
+		worktreeMu.Lock()
+		defer worktreeMu.Unlock()
 		return gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir)
 	}
 	return worktreeDir, cleanup, nil
@@ -1201,9 +1228,14 @@ func parseStreamJSON(raw []byte) (trajectory []json.RawMessage, finalText string
 		}
 		switch evt.Type {
 		case "assistant":
-			trajectory = append(trajectory, json.RawMessage(line))
+			// Copy line to avoid retaining the full stdout buffer.
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			trajectory = append(trajectory, json.RawMessage(copied))
 		case "result":
-			trajectory = append(trajectory, json.RawMessage(line))
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			trajectory = append(trajectory, json.RawMessage(copied))
 			finalText = evt.Result
 			durationMs = evt.DurationMs
 			costUSD = evt.CostUSD
