@@ -26,8 +26,9 @@ When --pack is provided, runs both with-context and without-context
 variants and reports the score delta (pack contribution).
 
 Use --engine harbor for the current containerized path.
-Use --engine dspy for the lightweight Claude-only MVP path
-(single-scenario only, currently serialized).`,
+Use --engine dspy for the lightweight Claude-only path.
+When --pack is provided with --concurrency >= 2, without-context
+and with-context variants run in parallel.`,
 		Example: `  # Single task, baseline only
   moltnet eval run --scenario ./evals/codegen-chain
 
@@ -37,8 +38,11 @@ Use --engine dspy for the lightweight Claude-only MVP path
   # Single task with lightweight DSPy engine
   moltnet eval run --engine dspy --scenario ./evals/codegen-chain
 
-  # Batch run from config file
+  # Batch run from config file (works with both engines)
   moltnet eval run --config eval.yaml --concurrency 2
+
+  # DSPy batch run with concurrency
+  moltnet eval run --engine dspy --config eval.yaml --concurrency 3
 
   # With model override and force rebuild
   moltnet eval run --scenario ./evals/codegen-chain --pack ./pack.md -m anthropic/claude-sonnet-4-6 -f

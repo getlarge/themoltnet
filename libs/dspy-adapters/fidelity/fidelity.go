@@ -9,7 +9,6 @@ import (
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
-	"github.com/XiaoConstantine/dspy-go/pkg/modules"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 )
 
@@ -25,6 +24,9 @@ type Scores struct {
 
 // Request defines a single fidelity judge run, including provider setup.
 type Request struct {
+	// LLM is an explicit LLM instance for concurrent-safe execution.
+	// When set, Provider and Model are ignored and no global state is mutated.
+	LLM             core.LLM
 	Provider        string
 	Model           string
 	SourceEntries   string
@@ -97,20 +99,16 @@ catch content drift, hallucination, and cherry-picking.`)
 }
 
 // Judge runs the fidelity check and returns structured scores.
+// Uses RunJudgeStructured with an explicit LLM — no process-global mutation.
 func Judge(
 	ctx context.Context,
+	llm core.LLM,
 	sourceEntries,
 	renderedContent,
 	rubric string,
 ) (*Scores, error) {
-	ctx = dspyadapters.WithExecutionState(ctx)
 	sig := NewSignature()
-	cot := modules.NewChainOfThought(sig).WithStructuredOutput()
-	if err := dspyadapters.ApplyDefaultJudgeModuleInterceptors(cot); err != nil {
-		return nil, dspyerrors.Wrap(err, dspyerrors.ConfigurationError, "configure fidelity judge interceptors")
-	}
-
-	result, err := cot.Process(ctx, map[string]any{
+	result, err := dspyadapters.RunJudgeStructured(ctx, llm, sig, map[string]any{
 		"source_entries":   sourceEntries,
 		"rendered_content": renderedContent,
 		"rubric":           rubric,
@@ -152,14 +150,17 @@ func Judge(
 	return scores, nil
 }
 
-// Run initializes the requested provider, installs it as the default LLM for
-// the DSPy module graph, and executes the fidelity judge.
-//
-// This currently relies on process-global default-LLM mutation and must remain
-// serialized until that dependency is removed from the judge path.
+// Run initializes the requested provider and executes the fidelity judge.
+// When req.LLM is set, it is used directly; otherwise a new LLM is created
+// from Provider and Model. No process-global state is mutated.
 func Run(ctx context.Context, req Request) (*Scores, error) {
-	if _, err := dspyadapters.InitDefaultProvider(req.Provider, req.Model); err != nil {
-		return nil, err
+	llm := req.LLM
+	if llm == nil {
+		var err error
+		llm, err = dspyadapters.InitProvider(req.Provider, req.Model)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	rubric := req.Rubric
@@ -167,7 +168,7 @@ func Run(ctx context.Context, req Request) (*Scores, error) {
 		rubric = DefaultRubric
 	}
 
-	return Judge(ctx, req.SourceEntries, req.RenderedContent, rubric)
+	return Judge(ctx, llm, req.SourceEntries, req.RenderedContent, rubric)
 }
 
 func parseFloat(v any) (float64, error) {

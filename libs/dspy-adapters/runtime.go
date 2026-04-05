@@ -4,11 +4,13 @@ package dspyadapters
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/config"
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 )
 
 // InterceptableModule is the subset of dspy-go module behavior needed to install interceptors.
@@ -98,4 +100,98 @@ func ApplyDefaultJudgeModuleInterceptors(module InterceptableModule) error {
 	combined = append(combined, existing...)
 	module.SetInterceptors(combined)
 	return nil
+}
+
+// RunJudgeStructured executes a structured judge call using an explicit LLM
+// instance, bypassing dspy-go's global default LLM.
+//
+// dspy-go's WithStructuredOutput() interceptor hardcodes
+// core.GlobalConfig.DefaultLLM, making it unsuitable for concurrent execution.
+// This function replicates the same behavior (build CoT prompt → call
+// GenerateWithJSON → parse result) with a caller-supplied LLM.
+func RunJudgeStructured(ctx context.Context, llm core.LLM, sig core.Signature, inputs map[string]any) (map[string]any, error) {
+	ctx = WithExecutionState(ctx)
+	prompt := buildCoTPrompt(sig, inputs)
+
+	cfg := DefaultJudgeInterceptorsConfig()
+	timeout := cfg.Module.Timeout.Timeout
+	maxRetries := cfg.Module.Retry.MaxRetries
+	backoff := cfg.Module.Retry.InitialBackoff
+	backoffFactor := cfg.Module.Retry.BackoffFactor
+	maxBackoff := cfg.Module.Retry.MaxBackoff
+
+	var result map[string]any
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		callCtx, cancel := context.WithTimeout(ctx, timeout)
+		result, lastErr = llm.GenerateWithJSON(callCtx, prompt)
+		cancel()
+		if lastErr == nil {
+			return result, nil
+		}
+		if attempt < maxRetries {
+			time.Sleep(backoff)
+			backoff = time.Duration(float64(backoff) * float64(backoffFactor))
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+	return nil, dspyerrors.WithFields(
+		dspyerrors.Wrap(lastErr, dspyerrors.LLMGenerationFailed, "structured judge call failed"),
+		dspyerrors.Fields{"model": llm.ModelID(), "attempts": maxRetries + 1},
+	)
+}
+
+// buildCoTPrompt builds a chain-of-thought structured prompt from a signature
+// and inputs, matching the format that dspy-go's interceptor produces.
+func buildCoTPrompt(sig core.Signature, inputs map[string]any) string {
+	var sb strings.Builder
+
+	if sig.Instruction != "" {
+		sb.WriteString(sig.Instruction)
+		sb.WriteString("\n\n")
+	}
+
+	sb.WriteString("## Inputs\n")
+	for _, f := range sig.Inputs {
+		if v, ok := inputs[f.Name]; ok {
+			sb.WriteString(fmt.Sprintf("**%s**: %v\n", f.Name, v))
+		}
+	}
+	sb.WriteString("\n")
+
+	sb.WriteString("## Instructions\n")
+	sb.WriteString("Think through this step-by-step. First explain your reasoning, then provide the answer.\n\n")
+
+	sb.WriteString("## Required Output Format\n")
+	sb.WriteString("Respond with a JSON object in this exact format:\n\n")
+	sb.WriteString("```json\n{\n")
+	sb.WriteString("  \"reasoning\": \"<your step-by-step reasoning>\",\n")
+
+	nonReasoning := make([]core.OutputField, 0, len(sig.Outputs))
+	for _, f := range sig.Outputs {
+		if f.Name != "reasoning" {
+			nonReasoning = append(nonReasoning, f)
+		}
+	}
+	for i, f := range nonReasoning {
+		sb.WriteString(fmt.Sprintf("  \"%s\": <string>", f.Name))
+		if i < len(nonReasoning)-1 {
+			sb.WriteString(",")
+		}
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}\n```\n\n")
+
+	sb.WriteString("### Field Descriptions\n")
+	sb.WriteString("- **reasoning**: Your detailed step-by-step reasoning process\n")
+	for _, f := range sig.Outputs {
+		if f.Name != "reasoning" && f.Description != "" {
+			sb.WriteString(fmt.Sprintf("- **%s**: %s\n", f.Name, f.Description))
+		}
+	}
+	sb.WriteString("\nRespond ONLY with the JSON object, no additional text.")
+
+	return sb.String()
 }
