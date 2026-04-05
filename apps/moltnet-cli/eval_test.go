@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 )
 
 func TestRenderTaskToml(t *testing.T) {
@@ -569,20 +572,61 @@ func TestValidateEvalEngine(t *testing.T) {
 }
 
 func TestValidateDSPYEvalOpts(t *testing.T) {
-	ok := evalRunOpts{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1}
-	if err := validateDSPYEvalOpts(ok); err != nil {
-		t.Fatalf("validateDSPYEvalOpts(valid) = %v", err)
+	ok := []evalRunOpts{
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
+		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 4},
+	}
+	for _, opts := range ok {
+		if err := validateDSPYEvalOpts(opts); err != nil {
+			t.Errorf("validateDSPYEvalOpts(%+v) = %v, want nil", opts, err)
+		}
 	}
 
 	bad := []evalRunOpts{
 		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
 		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
-		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
 	}
 	for _, opts := range bad {
 		if err := validateDSPYEvalOpts(opts); err == nil {
 			t.Errorf("validateDSPYEvalOpts(%+v) = nil, want error", opts)
 		}
+	}
+}
+
+func TestParseStreamJSONExtractsTrajectoryAndResult(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"system","subtype":"init","session_id":"abc"}
+{"type":"system","subtype":"hook_started","hook_id":"h1"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}
+{"type":"result","subtype":"success","result":"Hello!","duration_ms":1234,"total_cost_usd":0.05,"num_turns":1}
+`)
+	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
+	if len(trajectory) != 2 {
+		t.Fatalf("expected 2 trajectory events (assistant+result), got %d", len(trajectory))
+	}
+	if finalText != "Hello!" {
+		t.Fatalf("expected final text 'Hello!', got %q", finalText)
+	}
+	if durationMs != 1234 {
+		t.Fatalf("expected duration 1234, got %d", durationMs)
+	}
+	if costUSD != 0.05 {
+		t.Fatalf("expected cost 0.05, got %f", costUSD)
+	}
+	if numTurns != 1 {
+		t.Fatalf("expected 1 turn, got %d", numTurns)
+	}
+}
+
+func TestParseStreamJSONHandlesEmptyInput(t *testing.T) {
+	t.Parallel()
+	trajectory, finalText, _, _, _ := parseStreamJSON([]byte{})
+	if len(trajectory) != 0 {
+		t.Fatal("expected empty trajectory for empty input")
+	}
+	if finalText != "" {
+		t.Fatal("expected empty final text")
 	}
 }
 
@@ -913,6 +957,285 @@ func TestGroupHeaderLine(t *testing.T) {
 	want := "Group 2/3: agent=codex model=openai/gpt-5-codex (2 task(s))"
 	if got != want {
 		t.Fatalf("groupHeaderLine() = %q, want %q", got, want)
+	}
+}
+
+func TestParseStreamJSONMultiTurn(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"system","subtype":"init","session_id":"s1"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Let me check."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Done."}]}}
+{"type":"result","subtype":"success","result":"Done.","duration_ms":5000,"total_cost_usd":0.12,"num_turns":3}
+`)
+	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
+	if len(trajectory) != 4 { // 3 assistant + 1 result
+		t.Fatalf("expected 4 trajectory events, got %d", len(trajectory))
+	}
+	if finalText != "Done." {
+		t.Fatalf("expected final text 'Done.', got %q", finalText)
+	}
+	if durationMs != 5000 {
+		t.Fatalf("expected duration 5000, got %d", durationMs)
+	}
+	if costUSD != 0.12 {
+		t.Fatalf("expected cost 0.12, got %f", costUSD)
+	}
+	if numTurns != 3 {
+		t.Fatalf("expected 3 turns, got %d", numTurns)
+	}
+}
+
+func TestParseStreamJSONErrorResult(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"assistant","message":{"content":[{"type":"text","text":"oops"}]}}
+{"type":"result","subtype":"error","is_error":true,"result":"something went wrong","duration_ms":100,"total_cost_usd":0.01,"num_turns":1}
+`)
+	trajectory, finalText, durationMs, _, _ := parseStreamJSON(input)
+	if len(trajectory) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(trajectory))
+	}
+	if finalText != "something went wrong" {
+		t.Fatalf("expected error result text, got %q", finalText)
+	}
+	if durationMs != 100 {
+		t.Fatalf("expected duration 100, got %d", durationMs)
+	}
+}
+
+func TestParseStreamJSONSkipsMalformedLines(t *testing.T) {
+	t.Parallel()
+	input := []byte(`not json at all
+{"type":"assistant","message":{"content":[]}}
+{truncated
+{"type":"result","result":"ok","duration_ms":50,"num_turns":1}
+`)
+	trajectory, finalText, _, _, _ := parseStreamJSON(input)
+	if len(trajectory) != 2 { // assistant + result, malformed lines skipped
+		t.Fatalf("expected 2 events (skipping malformed), got %d", len(trajectory))
+	}
+	if finalText != "ok" {
+		t.Fatalf("expected 'ok', got %q", finalText)
+	}
+}
+
+func TestWriteDSPYAgentArtifactsWritesTrajectory(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agent := &dspyAgentRunResult{
+		passed: true,
+		output: "agent said hello",
+		trajectory: []json.RawMessage{
+			json.RawMessage(`{"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}`),
+			json.RawMessage(`{"type":"result","result":"hello"}`),
+		},
+	}
+	if err := writeDSPYAgentArtifacts(dir, agent); err != nil {
+		t.Fatalf("writeDSPYAgentArtifacts: %v", err)
+	}
+
+	// Check agent-output.txt
+	out, err := os.ReadFile(filepath.Join(dir, "agent-output.txt"))
+	if err != nil {
+		t.Fatalf("read agent-output.txt: %v", err)
+	}
+	if string(out) != "agent said hello" {
+		t.Fatalf("unexpected agent output: %q", string(out))
+	}
+
+	// Check trajectory.json (normalized Phase 0 contract)
+	trajData, err := os.ReadFile(filepath.Join(dir, "trajectory.json"))
+	if err != nil {
+		t.Fatalf("read trajectory.json: %v", err)
+	}
+	var traj normalizedTrajectory
+	if err := json.Unmarshal(trajData, &traj); err != nil {
+		t.Fatalf("parse trajectory.json: %v", err)
+	}
+	if traj.SchemaVersion != artifactSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %q", artifactSchemaVersion, traj.SchemaVersion)
+	}
+	if traj.Engine != "dspy" {
+		t.Fatalf("expected engine 'dspy', got %q", traj.Engine)
+	}
+	if traj.FinalResult != "agent said hello" {
+		t.Fatalf("expected final result, got %q", traj.FinalResult)
+	}
+}
+
+func TestWriteDSPYAgentArtifactsNoTrajectory(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agent := &dspyAgentRunResult{
+		passed: true,
+		output: "hello",
+	}
+	if err := writeDSPYAgentArtifacts(dir, agent); err != nil {
+		t.Fatalf("writeDSPYAgentArtifacts: %v", err)
+	}
+	// trajectory.json should not exist when trajectory is empty
+	if _, err := os.Stat(filepath.Join(dir, "trajectory.json")); !os.IsNotExist(err) {
+		t.Fatal("expected no trajectory.json when trajectory is empty")
+	}
+}
+
+func TestWriteDSPYVariantArtifactsStructure(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agent := &dspyAgentRunResult{
+		passed:     true,
+		output:     "done",
+		durationMs: 2000,
+		costUSD:    0.08,
+		numTurns:   2,
+	}
+	judged := &checklist.Result{
+		Reward:  0.75,
+		Details: map[string]float64{"criterion_a": 0.5, "criterion_b": 1.0},
+		Scores: []checklist.ScoredCriterion{
+			{Name: "A", Score: 5, MaxScore: 10, Evidence: "partial"},
+			{Name: "B", Score: 10, MaxScore: 10, Evidence: "full"},
+		},
+		Reasoning: "good work",
+	}
+	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
+	if err := writeDSPYVariantArtifacts(dir, agent, judged, 500, "test-scenario", "without-context", opts); err != nil {
+		t.Fatalf("writeDSPYVariantArtifacts: %v", err)
+	}
+
+	// Check trial_result.json (Phase 0 contract)
+	trData, err := os.ReadFile(filepath.Join(dir, "trial_result.json"))
+	if err != nil {
+		t.Fatalf("read trial_result.json: %v", err)
+	}
+	var trial map[string]any
+	if err := json.Unmarshal(trData, &trial); err != nil {
+		t.Fatalf("parse trial_result.json: %v", err)
+	}
+	if trial["schema_version"] != artifactSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %v", artifactSchemaVersion, trial["schema_version"])
+	}
+	if trial["engine"] != "dspy" {
+		t.Fatalf("expected engine 'dspy', got %v", trial["engine"])
+	}
+	if trial["status"] != "success" {
+		t.Fatalf("expected status 'success', got %v", trial["status"])
+	}
+	scores, _ := trial["scores"].(map[string]any)
+	if scores["normalized_reward"] != 0.75 {
+		t.Fatalf("expected reward 0.75, got %v", scores["normalized_reward"])
+	}
+	timings, _ := trial["timings_ms"].(map[string]any)
+	if timings["agent"] != float64(2000) {
+		t.Fatalf("expected agent timing 2000, got %v", timings["agent"])
+	}
+	if timings["judge"] != float64(500) {
+		t.Fatalf("expected judge timing 500, got %v", timings["judge"])
+	}
+
+	// Check trace.jsonl exists
+	if _, err := os.Stat(filepath.Join(dir, "trace.jsonl")); err != nil {
+		t.Fatal("missing trace.jsonl")
+	}
+
+	// Check backward-compat files
+	if _, err := os.Stat(filepath.Join(dir, "verifier", "reward.json")); err != nil {
+		t.Fatal("missing verifier/reward.json")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "verifier", "scores.json")); err != nil {
+		t.Fatal("missing verifier/scores.json")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "verifier", "reasoning.txt")); err != nil {
+		t.Fatal("missing verifier/reasoning.txt")
+	}
+}
+
+func TestWriteDSPYRunSummaryJobResult(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	result := evalResult{
+		taskName: "test-task",
+		withoutContext: &trialScores{
+			name:   "test-task__dspy",
+			reward: 0.4,
+		},
+		withContext: &trialScores{
+			name:   "test-task-with-context__dspy",
+			reward: 0.9,
+		},
+	}
+	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
+	if err := writeDSPYRunSummary(dir, time.Now().Add(-time.Minute), []evalResult{result}, opts); err != nil {
+		t.Fatalf("writeDSPYRunSummary: %v", err)
+	}
+
+	// Check job_result.json (Phase 0 contract)
+	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
+	if err != nil {
+		t.Fatalf("read job_result.json: %v", err)
+	}
+	var job map[string]any
+	if err := json.Unmarshal(data, &job); err != nil {
+		t.Fatalf("parse job_result.json: %v", err)
+	}
+	if job["schema_version"] != artifactSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %v", artifactSchemaVersion, job["schema_version"])
+	}
+	if job["engine"] != "dspy" {
+		t.Fatalf("expected engine 'dspy', got %v", job["engine"])
+	}
+	summary, _ := job["summary"].(map[string]any)
+	if summary["completion_rate"] != 1.0 {
+		t.Fatalf("expected completion_rate 1.0, got %v", summary["completion_rate"])
+	}
+	if summary["average_delta"] == nil {
+		t.Fatal("expected average_delta")
+	}
+	avgDelta, _ := summary["average_delta"].(float64)
+	if avgDelta < 0.49 || avgDelta > 0.51 {
+		t.Fatalf("expected average_delta ~0.5, got %f", avgDelta)
+	}
+
+	// Check backward-compat result.json also exists
+	if _, err := os.Stat(filepath.Join(dir, "result.json")); err != nil {
+		t.Fatal("missing backward-compat result.json")
+	}
+}
+
+func TestWriteDSPYRunSummaryNoDeltaOnError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	result := evalResult{
+		taskName: "fail-task",
+		withoutContext: &trialScores{
+			name:   "fail-task__dspy",
+			reward: 0.5,
+		},
+		withContext: &trialScores{
+			name: "fail-task-with-context__dspy",
+			err:  "judge failed",
+		},
+	}
+	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
+	if err := writeDSPYRunSummary(dir, time.Now(), []evalResult{result}, opts); err != nil {
+		t.Fatalf("writeDSPYRunSummary: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
+	if err != nil {
+		t.Fatalf("read job_result.json: %v", err)
+	}
+	var job map[string]any
+	if err := json.Unmarshal(data, &job); err != nil {
+		t.Fatalf("parse job_result.json: %v", err)
+	}
+	// With errors, results[0].delta should be null
+	results, _ := job["results"].([]any)
+	if len(results) == 0 {
+		t.Fatal("expected results array")
+	}
+	entry, _ := results[0].(map[string]any)
+	if entry["delta"] != nil {
+		t.Fatal("expected null delta when a trial has errors")
 	}
 }
 

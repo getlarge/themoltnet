@@ -7,15 +7,18 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 )
 
 // trialScores holds parsed scores for a single trial.
 type trialScores struct {
-	name    string
-	logDir  string
-	reward  float64
-	details map[string]float64
-	err     string // non-empty if the trial failed
+	name           string
+	logDir         string
+	reward         float64
+	details        map[string]float64
+	scoredCriteria []checklist.ScoredCriterion // per-criterion evidence (dspy only)
+	err            string                      // non-empty if the trial failed
 }
 
 // evalResult holds the outcome for one eval task.

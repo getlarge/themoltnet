@@ -19,6 +19,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   release-please:
@@ -277,7 +278,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -318,7 +319,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -403,7 +404,8 @@ jobs:
 
   release-cli:
     name: Release CLI binaries
-    needs: [resolve-publish, release-api-client, release-dspy-adapters, sync-go-mod]
+    needs:
+      [resolve-publish, release-api-client, release-dspy-adapters, sync-go-mod]
     if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -475,7 +477,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           registry-url: https://registry.npmjs.org
 
       - run: npm install -g npm@10.9.8
@@ -521,7 +523,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
 
       - name: Authenticate with ClawHub
         env:
@@ -550,7 +552,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -592,7 +594,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
