@@ -4,7 +4,7 @@
 #   docker build -f apps/rest-api/Dockerfile .
 
 # ---------- base ----------
-FROM node:22-slim AS base
+FROM node:22.19.0-slim AS base
 RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
@@ -65,7 +65,7 @@ RUN pnpm rebuild onnxruntime-node --dir /app/deploy
 COPY --from=model /app/models /app/models
 
 # ---------- production ----------
-FROM node:22-slim AS production
+FROM node:22.19.0-slim AS production
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet REST API"

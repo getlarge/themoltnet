@@ -4,7 +4,7 @@
 #   docker build -f apps/mcp-server/Dockerfile .
 
 # ---------- base ----------
-FROM node:22-slim AS base
+FROM node:22.19.0-slim AS base
 RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
@@ -47,7 +47,7 @@ RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy
 
 # ---------- production ----------
 # No pnpm needed at runtime — just node
-FROM node:22-slim AS production
+FROM node:22.19.0-slim AS production
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet MCP server"

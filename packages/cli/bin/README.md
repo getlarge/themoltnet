@@ -97,9 +97,11 @@ All API commands accept `--api-url` to override the default (`https://api.themol
 
 The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`). Both are versioned independently via release-please.
 
-**Local dev:** `go.work` at the repo root ties both modules together. Run `go test ./apps/moltnet-cli/...` from the repo root.
+**Local dev:** `go.work` at the repo root ties both modules together — `go.work` supersedes the `replace` directive during development. Run `go test ./apps/moltnet-cli/...` from the repo root.
 
-**Release:** goreleaser runs with `GOWORK=off`, resolving the api-client from the Go module proxy using the version pinned in `apps/moltnet-cli/go.mod`.
+**Release:** goreleaser runs with `GOWORK=off`. The `before.hooks` step in `.goreleaser.yml` drops the `replace` directive and pins the proxy version before building. **Do not remove the `replace` directive from `go.mod`** — it is the anchor that goreleaser strips at release time. Removing it will make the hook a no-op and break releases.
+
+**Updating the api-client pin:** after a new `libs/moltnet-api-client` tag is published, update the `require github.com/getlarge/themoltnet/libs/moltnet-api-client vX.Y.Z` line in `go.mod` and run `go mod tidy`. The `replace` directive remains; goreleaser drops it transiently at build time.
 
 ## See Also
 

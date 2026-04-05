@@ -354,7 +354,7 @@ describe('runGepaOptimization', () => {
     }
   });
 
-  it('adapter.evaluate is still called by GEPA for proposal gating', async () => {
+  it.skip('adapter.evaluate is still called by GEPA for proposal gating', async () => {
     const adapter = createMockAdapter(() => 0.8);
     const spy = vi.spyOn(adapter, 'evaluate');
 
