@@ -4,7 +4,7 @@ const { execFileTextMock } = vi.hoisted(() => ({
   execFileTextMock: vi.fn(),
 }));
 
-vi.mock('@moltnet/context-evals/process', () => ({
+vi.mock('../process.js', () => ({
   execFileText: execFileTextMock,
 }));
 
