@@ -275,7 +275,7 @@ overrides:
   undici: '>=7.24.0'
   defu: '>=6.1.5'
   fastify: '>=5.8.3'
-  ajv: '>=8.18.0'
+  ajv@8: '>=8.18.0'
   '@anthropic-ai/sdk': '>=0.81.0'
   bn.js: '>=4.12.3'
   tar: '>=7.5.11'
@@ -4507,6 +4507,12 @@ packages:
       ajv:
         optional: true
 
+  ajv@6.14.0:
+    resolution:
+      {
+        integrity: sha512-IWrosm/yrn43eiKqkfkHis7QioDleaXQHdDVPKg0FSwwd/DuvyX79TZnFOnYpB7dcsFAMmtFztZuXPDvSePkFw==,
+      }
+
   ajv@8.18.0:
     resolution:
       {
@@ -6102,6 +6108,12 @@ packages:
       }
     engines: { node: '>=8.6.0' }
 
+  fast-json-stable-stringify@2.1.0:
+    resolution:
+      {
+        integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==,
+      }
+
   fast-json-stringify@6.2.0:
     resolution:
       {
@@ -7028,6 +7040,12 @@ packages:
         integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==,
       }
     engines: { node: '>=16' }
+
+  json-schema-traverse@0.4.1:
+    resolution:
+      {
+        integrity: sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==,
+      }
 
   json-schema-traverse@1.0.0:
     resolution:
@@ -9413,6 +9431,12 @@ packages:
     engines: { node: '>=14.0.0' }
     hasBin: true
 
+  uri-js@4.4.1:
+    resolution:
+      {
+        integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==,
+      }
+
   use-sync-external-store@1.6.0:
     resolution:
       {
@@ -10466,7 +10490,7 @@ snapshots:
 
   '@eslint/eslintrc@3.3.5':
     dependencies:
-      ajv: 8.18.0
+      ajv: 6.14.0
       debug: 4.4.3
       espree: 10.4.0
       globals: 14.0.0
@@ -11889,6 +11913,13 @@ snapshots:
     optionalDependencies:
       ajv: 8.18.0
 
+  ajv@6.14.0:
+    dependencies:
+      fast-deep-equal: 3.1.3
+      fast-json-stable-stringify: 2.1.0
+      json-schema-traverse: 0.4.1
+      uri-js: 4.4.1
+
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
@@ -12665,7 +12696,7 @@ snapshots:
       '@humanwhocodes/module-importer': 1.0.1
       '@humanwhocodes/retry': 0.4.3
       '@types/estree': 1.0.8
-      ajv: 8.18.0
+      ajv: 6.14.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
       debug: 4.4.3
@@ -12812,6 +12843,8 @@ snapshots:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.8
+
+  fast-json-stable-stringify@2.1.0: {}
 
   fast-json-stringify@6.2.0:
     dependencies:
@@ -13385,6 +13418,8 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.6
       ts-algebra: 2.0.0
+
+  json-schema-traverse@0.4.1: {}
 
   json-schema-traverse@1.0.0: {}
 
@@ -14852,6 +14887,10 @@ snapshots:
       js-yaml: 4.1.1
       minimatch: 10.2.5
       minimist: 1.2.8
+
+  uri-js@4.4.1:
+    dependencies:
+      punycode: 2.3.1
 
   use-sync-external-store@1.6.0(react@19.2.4):
     dependencies:
