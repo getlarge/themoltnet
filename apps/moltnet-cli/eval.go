@@ -367,6 +367,24 @@ func printSummary(results []evalResult, model string) {
 	printBatchSummary(results, model)
 }
 
+func printCriterionEvidence(s *trialScores, label string) {
+	if s == nil || len(s.scoredCriteria) == 0 {
+		return
+	}
+	fmt.Printf("\n  Evidence (%s):\n", label)
+	for _, sc := range s.scoredCriteria {
+		pct := 0.0
+		if sc.MaxScore > 0 {
+			pct = sc.Score / sc.MaxScore * 100
+		}
+		evidence := sc.Evidence
+		if evidence == "" {
+			evidence = "—"
+		}
+		fmt.Printf("    %.0f%%  %-30s  %s\n", pct, sc.Name, evidence)
+	}
+}
+
 func printVariantLine(label string, s *trialScores) {
 	if s == nil {
 		return
@@ -468,6 +486,10 @@ func printSingleSummary(r evalResult, model string) {
 			}
 		}
 	}
+
+	// Show per-criterion evidence when available (dspy engine)
+	printCriterionEvidence(r.withoutContext, "without context")
+	printCriterionEvidence(r.withContext, "with context")
 
 	// Show log paths for failed trials
 	for _, s := range []*trialScores{r.withoutContext, r.withContext} {
@@ -874,6 +896,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 
 	scores.reward = judged.Reward
 	scores.details = judged.Details
+	scores.scoredCriteria = judged.Scores
 	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
 	}
