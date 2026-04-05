@@ -4,7 +4,7 @@
 #   docker build -f apps/landing/Dockerfile .
 
 # ---------- base ----------
-FROM node:22-slim AS base
+FROM node:22.19.0-slim AS base
 RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
