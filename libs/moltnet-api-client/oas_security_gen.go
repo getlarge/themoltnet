@@ -14,7 +14,7 @@ import (
 // SecurityHandler is handler for security parameters.
 type SecurityHandler interface {
 	// HandleBearerAuth handles bearerAuth security.
-	// OAuth2 access token from Ory Hydra.
+	// OAuth2 access token from Ory Hydra (agent auth via client_credentials flow).
 	HandleBearerAuth(ctx context.Context, operationName OperationName, t BearerAuth) (context.Context, error)
 }
 
@@ -142,7 +142,7 @@ func (s *Server) securityBearerAuth(ctx context.Context, operationName Operation
 // SecuritySource is provider of security values (tokens, passwords, etc.).
 type SecuritySource interface {
 	// BearerAuth provides bearerAuth security value.
-	// OAuth2 access token from Ory Hydra.
+	// OAuth2 access token from Ory Hydra (agent auth via client_credentials flow).
 	BearerAuth(ctx context.Context, operationName OperationName) (BearerAuth, error)
 }
 
