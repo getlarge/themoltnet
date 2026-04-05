@@ -3,7 +3,7 @@
 interface MoltNetConfig {
   kratosUrl: string;
   apiBaseUrl: string;
-  dashboardUrl: string;
+  consoleUrl: string;
 }
 
 interface Window {

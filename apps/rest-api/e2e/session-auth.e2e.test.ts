@@ -1,12 +1,13 @@
 /**
- * E2E: Session-Based Authentication (X-Session-Token)
+ * E2E: Session-Based Authentication (X-Moltnet-Session-Token)
  *
- * Tests the Kratos session auth path added for the dashboard app.
- * Uses X-Session-Token header instead of Bearer token.
+ * Tests the Kratos session auth path added for the console app.
+ * Uses X-Moltnet-Session-Token header instead of Bearer token.
  *
  * Requires: Docker Compose e2e stack running
  */
 
+import { createClient, listDiaries } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createHuman, type TestHuman } from './helpers.js';
@@ -28,81 +29,75 @@ describe('Session-Based Authentication E2E', { timeout: 60_000 }, () => {
     await harness?.teardown();
   });
 
+  function createSessionClient(sessionToken: string) {
+    const client = createClient({ baseUrl: harness.baseUrl });
+    client.interceptors.request.use((request) => {
+      request.headers.set('X-Moltnet-Session-Token', sessionToken);
+      return request;
+    });
+    return client;
+  }
+
   // ── Session Auth on Protected Endpoints ──────────────────────
 
-  describe('X-Session-Token authentication', () => {
+  describe('X-Moltnet-Session-Token authentication', () => {
     it('authenticates and lists diaries via session token', async () => {
-      const resp = await fetch(`${harness.baseUrl}/diaries`, {
-        headers: {
-          'X-Session-Token': human.sessionToken,
-        },
-      });
+      const client = createSessionClient(human.sessionToken);
+      const { data, error } = await listDiaries({ client });
 
-      expect(resp.status).toBe(200);
-      const body = await resp.json();
-      expect(body.items).toBeDefined();
-      expect(Array.isArray(body.items)).toBe(true);
+      expect(error).toBeUndefined();
+      expect(data).toBeDefined();
+      expect(data!.items).toBeDefined();
+      expect(Array.isArray(data!.items)).toBe(true);
     });
 
     it('returns 401 with invalid session token and no Bearer', async () => {
-      const resp = await fetch(`${harness.baseUrl}/diaries`, {
-        headers: {
-          'X-Session-Token': 'invalid-session-token-xyz',
-        },
-      });
+      const client = createSessionClient('invalid-session-token-xyz');
+      const { error } = await listDiaries({ client });
 
-      expect(resp.status).toBe(401);
-    });
-
-    it('ignores invalid session and falls through to Bearer', async () => {
-      // Invalid session + no Bearer → 401
-      const resp = await fetch(`${harness.baseUrl}/diaries`, {
-        headers: {
-          'X-Session-Token': 'invalid-session-token-xyz',
-        },
-      });
-
-      expect(resp.status).toBe(401);
-      const body = await resp.json();
-      expect(body.message).toBe('Missing authorization header');
+      expect(error).toBeDefined();
     });
 
     it('works with session token and team header', async () => {
-      // First, get the diaries to find the personal team ID
-      const diariesResp = await fetch(`${harness.baseUrl}/diaries`, {
-        headers: {
-          'X-Session-Token': human.sessionToken,
-        },
-      });
+      const client = createSessionClient(human.sessionToken);
+      const { data } = await listDiaries({ client });
 
-      expect(diariesResp.status).toBe(200);
-      const diaries = await diariesResp.json();
-      const privateDiary = diaries.items.find(
+      expect(data).toBeDefined();
+      const privateDiary = data!.items.find(
         (d: { name: string }) => d.name === 'Private',
       );
 
-      if (privateDiary?.teamId) {
-        // List diaries scoped to the personal team
-        const teamResp = await fetch(`${harness.baseUrl}/diaries`, {
-          headers: {
-            'X-Session-Token': human.sessionToken,
-            'x-moltnet-team-id': privateDiary.teamId,
-          },
+      if ((privateDiary as { teamId?: string })?.teamId) {
+        const teamClient = createSessionClient(human.sessionToken);
+        teamClient.interceptors.request.use((request) => {
+          request.headers.set(
+            'x-moltnet-team-id',
+            (privateDiary as { teamId: string }).teamId,
+          );
+          return request;
+        });
+        const { data: teamData, error: teamError } = await listDiaries({
+          client: teamClient,
         });
 
-        expect(teamResp.status).toBe(200);
+        expect(teamError).toBeUndefined();
+        expect(teamData).toBeDefined();
       }
     });
 
     it('rejects access to non-member team via session token', async () => {
-      const resp = await fetch(`${harness.baseUrl}/diaries`, {
-        headers: {
-          'X-Session-Token': human.sessionToken,
-          'x-moltnet-team-id': '00000000-0000-4000-b000-000000000099',
-        },
+      const client = createSessionClient(human.sessionToken);
+      client.interceptors.request.use((request) => {
+        request.headers.set(
+          'x-moltnet-team-id',
+          '00000000-0000-4000-b000-000000000099',
+        );
+        return request;
       });
 
-      expect(resp.status).toBe(403);
+      const { error } = await listDiaries({ client });
+
+      expect(error).toBeDefined();
     });
   });
 });

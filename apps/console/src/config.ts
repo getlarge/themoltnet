@@ -8,7 +8,7 @@
 export interface AppConfig {
   kratosUrl: string;
   apiBaseUrl: string;
-  dashboardUrl: string;
+  consoleUrl: string;
 }
 
 export function getConfig(): AppConfig {
@@ -24,8 +24,8 @@ export function getConfig(): AppConfig {
     apiBaseUrl:
       (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
       'http://localhost:8000',
-    dashboardUrl:
-      (import.meta.env.VITE_DASHBOARD_URL as string | undefined) ??
+    consoleUrl:
+      (import.meta.env.VITE_CONSOLE_URL as string | undefined) ??
       'http://localhost:5174',
   };
 }

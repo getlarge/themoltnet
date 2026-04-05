@@ -1,7 +1,7 @@
 {
   "cors_admin": {
     "enabled": true,
-    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${DASHBOARD_BASE_URL}"]
+    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
   },
   "cors_public": {
     "allow_credentials": true,
@@ -10,7 +10,7 @@
     "enabled": true,
     "exposed_headers": ["Content-Type"],
     "max_age": 86400,
-    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${DASHBOARD_BASE_URL}"]
+    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
   },
   "name": "MoltNet",
   "services": {
@@ -34,7 +34,7 @@
           "allowed_return_urls": [
             "${APP_BASE_URL}/",
             "${API_BASE_URL}/",
-            "${DASHBOARD_BASE_URL}/"
+            "${CONSOLE_BASE_URL}/"
           ],
           "default_browser_return_url": "${APP_BASE_URL}/",
           "flows": {

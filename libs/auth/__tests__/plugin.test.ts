@@ -475,7 +475,7 @@ describe('requireAuth with sessionResolver', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/protected',
-      headers: { 'x-session-token': 'valid-session-token' },
+      headers: { 'x-moltnet-session-token': 'valid-session-token' },
     });
 
     expect(response.statusCode).toBe(200);
@@ -498,7 +498,7 @@ describe('requireAuth with sessionResolver', () => {
       method: 'GET',
       url: '/protected',
       headers: {
-        'x-session-token': 'invalid-session',
+        'x-moltnet-session-token': 'invalid-session',
         authorization: `Bearer ${VALID_TOKEN}`,
       },
     });
@@ -517,7 +517,7 @@ describe('requireAuth with sessionResolver', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/protected',
-      headers: { 'x-session-token': 'valid-session-token' },
+      headers: { 'x-moltnet-session-token': 'valid-session-token' },
     });
 
     expect(response.statusCode).toBe(200);
@@ -534,7 +534,7 @@ describe('requireAuth with sessionResolver', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/protected',
-      headers: { 'x-session-token': 'invalid-session' },
+      headers: { 'x-moltnet-session-token': 'invalid-session' },
     });
 
     expect(response.statusCode).toBe(401);
@@ -572,7 +572,7 @@ describe('requireAuth without sessionResolver', () => {
       method: 'GET',
       url: '/protected',
       headers: {
-        'x-session-token': 'some-session-token',
+        'x-moltnet-session-token': 'some-session-token',
         authorization: `Bearer ${VALID_TOKEN}`,
       },
     });
@@ -615,7 +615,7 @@ describe('optionalAuth with sessionResolver', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/optional',
-      headers: { 'x-session-token': 'valid-session-token' },
+      headers: { 'x-moltnet-session-token': 'valid-session-token' },
     });
 
     expect(response.statusCode).toBe(200);
@@ -635,7 +635,7 @@ describe('optionalAuth with sessionResolver', () => {
       method: 'GET',
       url: '/optional',
       headers: {
-        'x-session-token': 'invalid-session',
+        'x-moltnet-session-token': 'invalid-session',
         authorization: `Bearer ${VALID_TOKEN}`,
       },
     });
@@ -654,7 +654,7 @@ describe('optionalAuth with sessionResolver', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/optional',
-      headers: { 'x-session-token': 'invalid-session' },
+      headers: { 'x-moltnet-session-token': 'invalid-session' },
     });
 
     expect(response.statusCode).toBe(200);

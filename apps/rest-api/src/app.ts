@@ -182,7 +182,15 @@ export async function registerApiRoutes(
             type: 'http',
             scheme: 'bearer',
             bearerFormat: 'JWT',
-            description: 'OAuth2 access token from Ory Hydra',
+            description:
+              'OAuth2 access token from Ory Hydra (agent auth via client_credentials flow)',
+          },
+          sessionAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'X-Moltnet-Session-Token',
+            description:
+              'Kratos session token for human users (console/dashboard auth). Resolved via FrontendApi.toSession().',
           },
         },
       },

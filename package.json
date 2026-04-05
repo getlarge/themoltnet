@@ -25,7 +25,7 @@
     "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/mcp-server dev",
     "dev:api": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/rest-api dev",
     "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/landing dev",
-    "dev:dashboard": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/dashboard dev",
+    "dev:console": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/console dev",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,json,md}\"",

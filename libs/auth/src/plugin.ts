@@ -13,7 +13,7 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { TEAM_HEADER } from './constants.js';
+import { SESSION_TOKEN_HEADER, TEAM_HEADER } from './constants.js';
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
@@ -47,8 +47,6 @@ declare module 'fastify' {
     authContext: AuthContext | null;
   }
 }
-
-const SESSION_TOKEN_HEADER = 'x-session-token' as const;
 
 function extractSessionToken(request: FastifyRequest): string | null {
   const header = request.headers[SESSION_TOKEN_HEADER];
