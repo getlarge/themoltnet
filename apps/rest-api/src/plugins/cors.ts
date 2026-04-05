@@ -45,6 +45,7 @@ async function corsPlugin(
     allowedHeaders: [
       'Content-Type',
       'Authorization',
+      'X-Session-Token',
       'X-Request-ID',
       'X-Correlation-ID',
     ],

@@ -17,6 +17,7 @@ import { TEAM_HEADER } from './constants.js';
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
+import type { SessionResolver } from './session-resolver.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
 
@@ -30,6 +31,8 @@ export interface AuthPluginOptions {
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
   teamResolver: TeamResolver;
+  /** Optional Kratos session resolver for direct session-based auth (dashboard). */
+  sessionResolver?: SessionResolver;
 }
 
 declare module 'fastify' {
@@ -38,10 +41,19 @@ declare module 'fastify' {
     permissionChecker: PermissionChecker;
     relationshipWriter: RelationshipWriter;
     teamResolver: TeamResolver;
+    sessionResolver: SessionResolver | null;
   }
   interface FastifyRequest {
     authContext: AuthContext | null;
   }
+}
+
+const SESSION_TOKEN_HEADER = 'x-session-token' as const;
+
+function extractSessionToken(request: FastifyRequest): string | null {
+  const header = request.headers[SESSION_TOKEN_HEADER];
+  const token = Array.isArray(header) ? header[0] : header;
+  return token?.trim() || null;
 }
 
 function extractBearerToken(request: FastifyRequest): string | null {
@@ -71,6 +83,7 @@ export const authPlugin = fp(
     decorateSafe('permissionChecker', opts.permissionChecker);
     decorateSafe('relationshipWriter', opts.relationshipWriter);
     decorateSafe('teamResolver', opts.teamResolver);
+    decorateSafe('sessionResolver', opts.sessionResolver ?? null);
   },
   {
     name: '@moltnet/auth',
@@ -94,8 +107,55 @@ function createAuthError(message: string): Error & {
   return error;
 }
 
+/**
+ * Resolve team context from x-moltnet-team-id header.
+ * Shared by requireAuth and optionalAuth.
+ */
+async function resolveTeamContext(
+  request: FastifyRequest,
+  authContext: AuthContext,
+): Promise<void> {
+  const teamIdHeader = request.headers[TEAM_HEADER];
+  const requestedTeamId = Array.isArray(teamIdHeader)
+    ? teamIdHeader[0]
+    : teamIdHeader;
+
+  if (requestedTeamId) {
+    const subjectNs =
+      authContext.subjectType === 'human'
+        ? KetoNamespace.Human
+        : KetoNamespace.Agent;
+    const canAccess = await request.server.permissionChecker.canAccessTeam(
+      requestedTeamId,
+      authContext.identityId,
+      subjectNs,
+    );
+    if (!canAccess) {
+      const error = createAuthError('Not a member of the requested team');
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN';
+      throw error;
+    }
+    authContext.currentTeamId = requestedTeamId;
+  }
+}
+
 export const requireAuth: preHandlerAsyncHookHandler =
   async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
+    // Try session token first (Kratos session for dashboard)
+    const sessionToken = extractSessionToken(request);
+    if (sessionToken && request.server.sessionResolver) {
+      const sessionContext =
+        await request.server.sessionResolver.resolveSession(sessionToken);
+      if (sessionContext) {
+        await resolveTeamContext(request, sessionContext);
+        request.authContext = sessionContext;
+        return;
+      }
+      // Invalid session — fall through to Bearer token
+    }
+
+    // Bearer token path (OAuth2)
     const authHeader = request.headers.authorization;
     if (!authHeader) {
       request.log.warn(
@@ -132,38 +192,24 @@ export const requireAuth: preHandlerAsyncHookHandler =
       throw createAuthError('Invalid or expired token');
     }
 
-    // Resolve team context: only validate x-moltnet-team-id when explicitly provided.
-    // When absent, currentTeamId stays null — routes that need it resolve
-    // the personal team lazily via teamResolver to avoid a DB hit on every request.
-    const teamIdHeader = request.headers[TEAM_HEADER];
-    const requestedTeamId = Array.isArray(teamIdHeader)
-      ? teamIdHeader[0]
-      : teamIdHeader;
-
-    if (requestedTeamId) {
-      const subjectNs =
-        authContext.subjectType === 'human'
-          ? KetoNamespace.Human
-          : KetoNamespace.Agent;
-      const canAccess = await request.server.permissionChecker.canAccessTeam(
-        requestedTeamId,
-        authContext.identityId,
-        subjectNs,
-      );
-      if (!canAccess) {
-        const error = createAuthError('Not a member of the requested team');
-        error.statusCode = 403;
-        error.code = 'FORBIDDEN';
-        throw error;
-      }
-      authContext.currentTeamId = requestedTeamId;
-    }
-
+    await resolveTeamContext(request, authContext);
     request.authContext = authContext;
   };
 
 export const optionalAuth: preHandlerAsyncHookHandler =
   async function optionalAuth(request: FastifyRequest) {
+    // Try session token first
+    const sessionToken = extractSessionToken(request);
+    if (sessionToken && request.server.sessionResolver) {
+      const sessionContext =
+        await request.server.sessionResolver.resolveSession(sessionToken);
+      if (sessionContext) {
+        request.authContext = sessionContext;
+        return;
+      }
+    }
+
+    // Fall through to Bearer token
     const token = extractBearerToken(request);
     if (!token) return;
 

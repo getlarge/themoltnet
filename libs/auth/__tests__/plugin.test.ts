@@ -7,7 +7,7 @@ import {
   requireAuth,
   requireScopes,
 } from '../src/plugin.js';
-import type { AuthContext } from '../src/types.js';
+import type { AuthContext, HumanAuthContext } from '../src/types.js';
 
 const VALID_TOKEN = 'ory_at_valid_token_123';
 const VALID_AUTH_CONTEXT: AuthContext = {
@@ -19,6 +19,20 @@ const VALID_AUTH_CONTEXT: AuthContext = {
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
   currentTeamId: null,
 };
+
+const VALID_SESSION_CONTEXT: HumanAuthContext = {
+  subjectType: 'human',
+  identityId: '660e8400-e29b-41d4-a716-446655440001',
+  clientId: null,
+  scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
+  currentTeamId: null,
+};
+
+function createMockSessionResolver() {
+  return {
+    resolveSession: vi.fn(),
+  };
+}
 
 function createMockTokenValidator() {
   return {
@@ -425,5 +439,225 @@ describe('requireScopes preHandler', () => {
       message: 'Authentication required',
       statusCode: 401,
     });
+  });
+});
+
+describe('requireAuth with sessionResolver', () => {
+  let app: FastifyInstance;
+  let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
+  let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
+  let mockSessionResolver: ReturnType<typeof createMockSessionResolver>;
+
+  beforeEach(async () => {
+    mockTokenValidator = createMockTokenValidator();
+    mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
+    mockSessionResolver = createMockSessionResolver();
+
+    app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      sessionResolver: mockSessionResolver,
+    } as never);
+  });
+
+  it('sets authContext from session token when valid', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { 'x-session-token': 'valid-session-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_SESSION_CONTEXT);
+    expect(mockSessionResolver.resolveSession).toHaveBeenCalledWith(
+      'valid-session-token',
+    );
+    expect(mockTokenValidator.resolveAuthContext).not.toHaveBeenCalled();
+  });
+
+  it('falls through to Bearer when session token is invalid', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(null);
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        'x-session-token': 'invalid-session',
+        authorization: `Bearer ${VALID_TOKEN}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_AUTH_CONTEXT);
+  });
+
+  it('authenticates via session when no Bearer present', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { 'x-session-token': 'valid-session-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext.subjectType).toBe('human');
+  });
+
+  it('returns 401 when session is invalid and no Bearer present', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(null);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async () => {
+      return { ok: true };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { 'x-session-token': 'invalid-session' },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+});
+
+describe('requireAuth without sessionResolver', () => {
+  let app: FastifyInstance;
+  let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
+  let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
+
+  beforeEach(async () => {
+    mockTokenValidator = createMockTokenValidator();
+    mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
+
+    app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
+  });
+
+  it('ignores X-Session-Token header when no sessionResolver configured', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        'x-session-token': 'some-session-token',
+        authorization: `Bearer ${VALID_TOKEN}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_AUTH_CONTEXT);
+  });
+});
+
+describe('optionalAuth with sessionResolver', () => {
+  let app: FastifyInstance;
+  let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
+  let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
+  let mockSessionResolver: ReturnType<typeof createMockSessionResolver>;
+
+  beforeEach(async () => {
+    mockTokenValidator = createMockTokenValidator();
+    mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
+    mockSessionResolver = createMockSessionResolver();
+
+    app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      sessionResolver: mockSessionResolver,
+    } as never);
+  });
+
+  it('sets authContext from session token', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/optional', { preHandler: [optionalAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: { 'x-session-token': 'valid-session-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_SESSION_CONTEXT);
+    expect(mockTokenValidator.resolveAuthContext).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Bearer when session is invalid', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(null);
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+
+    app.get('/optional', { preHandler: [optionalAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: {
+        'x-session-token': 'invalid-session',
+        authorization: `Bearer ${VALID_TOKEN}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_AUTH_CONTEXT);
+  });
+
+  it('returns null authContext when session is invalid and no Bearer', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(null);
+
+    app.get('/optional', { preHandler: [optionalAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: { 'x-session-token': 'invalid-session' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toBeNull();
   });
 });

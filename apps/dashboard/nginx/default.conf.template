@@ -1,0 +1,22 @@
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Runtime config injection — replaces VITE_* env vars at container start
+    location = /config.js {
+        default_type application/javascript;
+        return 200 'window.__MOLTNET_CONFIG__={kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",dashboardUrl:"${DASHBOARD_BASE_URL}"};';
+    }
+
+    # Cache hashed assets immutably
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

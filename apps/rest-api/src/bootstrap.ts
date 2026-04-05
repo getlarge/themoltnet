@@ -14,6 +14,7 @@ import {
   createPermissionChecker,
   createRelationshipReader,
   createRelationshipWriter,
+  createSessionResolver,
   createTokenValidator,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
@@ -371,6 +372,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
   });
 
+  const sessionResolver = createSessionResolver(oryClients.frontend);
+
   // ── REST API routes ────────────────────────────────────────────
   await registerApiRoutes(app, {
     diaryService,
@@ -396,6 +399,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     relationshipReader,
     relationshipWriter,
     tokenValidator,
+    sessionResolver,
     teamResolver: {
       findPersonalTeamId: async (subjectId: string) => {
         const team = await teamRepository.findPersonalByCreator(subjectId);

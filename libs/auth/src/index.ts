@@ -53,6 +53,11 @@ export {
   type RelationshipWriter,
 } from './relationship-writer.js';
 export {
+  createSessionResolver,
+  type SessionResolver,
+  type SessionResolverConfig,
+} from './session-resolver.js';
+export {
   createTokenValidator,
   type TokenValidator,
   type TokenValidatorConfig,

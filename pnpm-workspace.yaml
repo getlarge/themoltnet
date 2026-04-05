@@ -47,6 +47,7 @@ catalog:
   '@opentelemetry/sdk-trace-node': ^2.5.1
   '@opentelemetry/semantic-conventions': ^1.39.0
   '@ory/client-fetch': ^1.22.0
+  '@ory/elements-react': ^1.1.0
   '@scalar/fastify-api-reference': ^1.0.0
   '@sinclair/typebox': ^0.34.0
   '@testcontainers/postgresql': ^11.0.0

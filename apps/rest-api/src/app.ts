@@ -12,6 +12,7 @@ import {
   type PermissionChecker,
   type RelationshipReader,
   type RelationshipWriter,
+  type SessionResolver,
   type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
@@ -128,6 +129,7 @@ export interface AppOptions {
   relationshipWriter: RelationshipWriter;
   tokenValidator: TokenValidator;
   teamResolver: TeamResolver;
+  sessionResolver?: SessionResolver;
   hydraPublicUrl: string;
   webhookApiKey: string;
   recoverySecret: string;
@@ -216,6 +218,7 @@ export async function registerApiRoutes(
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
+    sessionResolver: options.sessionResolver,
   });
 
   // Register request context plugin (AFTER auth so identityId/clientId are available)
