@@ -9,7 +9,6 @@ import (
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
-	"github.com/XiaoConstantine/dspy-go/pkg/modules"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 )
 
@@ -100,7 +99,7 @@ catch content drift, hallucination, and cherry-picking.`)
 }
 
 // Judge runs the fidelity check and returns structured scores.
-// The llm parameter sets the module-level LLM, avoiding process-global mutation.
+// Uses RunJudgeStructured with an explicit LLM — no process-global mutation.
 func Judge(
 	ctx context.Context,
 	llm core.LLM,
@@ -108,15 +107,8 @@ func Judge(
 	renderedContent,
 	rubric string,
 ) (*Scores, error) {
-	ctx = dspyadapters.WithExecutionState(ctx)
 	sig := NewSignature()
-	cot := modules.NewChainOfThought(sig).WithStructuredOutput()
-	cot.SetLLM(llm)
-	if err := dspyadapters.ApplyDefaultJudgeModuleInterceptors(cot); err != nil {
-		return nil, dspyerrors.Wrap(err, dspyerrors.ConfigurationError, "configure fidelity judge interceptors")
-	}
-
-	result, err := cot.Process(ctx, map[string]any{
+	result, err := dspyadapters.RunJudgeStructured(ctx, llm, sig, map[string]any{
 		"source_entries":   sourceEntries,
 		"rendered_content": renderedContent,
 		"rubric":           rubric,

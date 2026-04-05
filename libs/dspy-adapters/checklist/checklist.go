@@ -9,7 +9,6 @@ import (
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
-	"github.com/XiaoConstantine/dspy-go/pkg/modules"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 )
 
@@ -81,20 +80,13 @@ func Run(ctx context.Context, req Request) (*Result, error) {
 		}
 	}
 
-	ctx = dspyadapters.WithExecutionState(ctx)
-	sig := NewSignature()
-	cot := modules.NewChainOfThought(sig).WithStructuredOutput()
-	cot.SetLLM(llm)
-	if err := dspyadapters.ApplyDefaultJudgeModuleInterceptors(cot); err != nil {
-		return nil, dspyerrors.Wrap(err, dspyerrors.ConfigurationError, "configure checklist judge interceptors")
-	}
-
 	criteriaJSON, err := json.Marshal(req.Criteria)
 	if err != nil {
 		return nil, dspyerrors.Wrap(err, dspyerrors.InvalidInput, "marshal criteria json")
 	}
 
-	result, err := cot.Process(ctx, map[string]any{
+	sig := NewSignature()
+	result, err := dspyadapters.RunJudgeStructured(ctx, llm, sig, map[string]any{
 		"workspace_summary": req.WorkspaceSummary,
 		"criteria_json":     string(criteriaJSON),
 	})
