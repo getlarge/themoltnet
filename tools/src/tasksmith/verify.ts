@@ -8,14 +8,13 @@ import {
 } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import type { TasksmithTask } from '@moltnet/context-evals';
+import { runShellCommand } from '../process.js';
 import {
   cleanupAllWorktrees,
   createWorktree,
   removeWorktree,
-} from '@moltnet/context-evals';
-import { runShellCommand } from '@moltnet/context-evals/process';
-
+} from '../worktree.js';
+import type { TasksmithTask } from './types.js';
 import type {
   CommandCheck,
   CriteriaItem,

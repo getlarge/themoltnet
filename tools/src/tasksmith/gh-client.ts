@@ -1,4 +1,4 @@
-import { execFileText } from '@moltnet/context-evals/process';
+import { execFileText } from '../process.js';
 
 // ── Constants ──
 

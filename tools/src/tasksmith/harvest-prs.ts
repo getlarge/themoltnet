@@ -5,29 +5,21 @@ import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { TasksmithTask } from '@moltnet/context-evals';
-import type { AIProvider } from '@moltnet/context-evals/pipeline-shared';
-import {
-  buildAI,
-  resolveRepoRoot,
-  str,
-} from '@moltnet/context-evals/pipeline-shared';
-
+import { resolveRepoRoot } from '../repo.js';
 import { discoverCandidates, saveHarvestState } from './pr-discovery.js';
 import {
-  extractTasks,
   normalizeTestCommand,
   repairCommandsForCandidate,
 } from './task-extractor.js';
 import type {
   CriteriaItem,
   HarvestOptions,
+  TasksmithTask,
   VerificationResult,
 } from './types.js';
 import type { TaskGroupItem } from './verify.js';
 import {
   cleanupAllWorktrees,
-  cleanupPrArtifacts,
   startE2eStack,
   stopE2eStack,
   verifyDockerCommands,
@@ -43,8 +35,6 @@ const { values } = parseArgs({
     force: { type: 'boolean', default: false },
     'skip-verify': { type: 'boolean', default: false },
     'verify-only': { type: 'boolean', default: false },
-    'student-provider': { type: 'string', default: 'claude-agent-sdk' },
-    'student-model': { type: 'string' },
     concurrency: { type: 'string', default: '3' },
     debug: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
@@ -59,12 +49,15 @@ Usage: pnpm --filter @moltnet/tools tasksmith:harvest [options]
 Options:
   --prs, -p <numbers>       Comma-separated PR numbers to process
   --force                    Re-process PRs already in state.json
-  --skip-verify              Run extraction only, skip verification
+  --skip-verify              Skip verification (store extracted tasks unverified)
   --verify-only              Verify already-extracted tasks (reads tasksmith/candidates/tasks/)
-  --student-provider <name>  AI provider for extraction (default: claude-agent-sdk)
-  --student-model <model>    Model for extraction
   --debug                    Preserve worktrees on failure
   -h, --help                 Show this help
+
+Note: Phase 2 (LLM extraction) has been removed — ax-llm was dropped due to
+runtime instability and type errors. To re-add extraction, implement a
+go-dspy adapter (see tools/src/tasksmith/optimize-extractor.ts for the
+original GEPA approach and the SEED_INSTRUCTION in task-extractor.ts).
 `);
   process.exit(0);
 }
@@ -79,11 +72,7 @@ const options: HarvestOptions = {
   force: values.force ?? false,
   skipVerify: values['skip-verify'] ?? false,
   verifyOnly: values['verify-only'] ?? false,
-  studentProvider: str(values['student-provider']) || 'claude-agent-sdk',
-  studentModel: values['student-model']
-    ? str(values['student-model'])
-    : undefined,
-  concurrency: parseInt(str(values.concurrency) || '3', 10),
+  concurrency: parseInt(String(values.concurrency ?? '3'), 10),
   debug: values.debug ?? false,
 };
 
@@ -249,7 +238,7 @@ if (options.verifyOnly) {
   }> = [];
 
   const groups = groupByPr(extracted);
-  const concurrency = parseInt(str(values.concurrency) || '3', 10);
+  const concurrency = parseInt(String(values.concurrency ?? '3'), 10);
   console.log(
     `\n[harvest] Phase 3a: Unit test verification for ${extracted.length} tasks ` +
       `(${groups.size} PRs, concurrency=${concurrency})...`,
@@ -345,11 +334,10 @@ if (options.verifyOnly) {
 }
 
 // ── Normal harvest mode ──
-
-const ai = buildAI({
-  provider: options.studentProvider as AIProvider,
-  model: options.studentModel,
-});
+// Note: Phase 2 (LLM extraction) was removed when ax-llm was dropped.
+// Discovery (Phase 1) still works. To add extraction back, implement
+// it using go-dspy adapters — see optimize-extractor.ts for the GEPA
+// approach and SEED_INSTRUCTION in task-extractor.ts for the prompt.
 
 // Phase 1: Discovery
 const { candidates, state } = await discoverCandidates(repoRoot, options);
@@ -359,51 +347,17 @@ if (candidates.length === 0) {
   process.exit(0);
 }
 
-// Phase 2: Extraction
-console.log(`\n[harvest] Extracting tasks from ${candidates.length} PRs...`);
+console.log(
+  `\n[harvest] Discovered ${candidates.length} PR candidate(s). ` +
+    `Phase 2 (extraction) is not available — run with --verify-only to verify ` +
+    `previously extracted tasks, or implement extraction via go-dspy.`,
+);
 
 const extracted: Array<{
   pr: number;
   task: TasksmithTask;
   criteria: CriteriaItem[];
 }> = [];
-const skipped: Array<{ pr: number; reason: string }> = [];
-
-for (const candidate of candidates) {
-  console.log(`[extract] PR #${candidate.number}: ${candidate.title}`);
-  try {
-    const result = await extractTasks(candidate, ai, repoRoot);
-    if ('skipReason' in result) {
-      console.log(
-        `[extract] PR #${candidate.number}: skipped — ${result.skipReason}`,
-      );
-      skipped.push({ pr: candidate.number, reason: result.skipReason });
-    } else {
-      const count = result.tasks.length;
-      const ftpTotal = result.tasks.reduce(
-        (sum, t) => sum + t.task.fail_to_pass.length,
-        0,
-      );
-      console.log(
-        `[extract] PR #${candidate.number}: viable (${count} task${count > 1 ? 's' : ''}, ${ftpTotal} fail_to_pass)`,
-      );
-      // Clean up stale artifacts from previous extractions (e.g., PR went
-      // from 5 sub-tasks to 3 — remove old 279-3.json, 279-4.json).
-      await cleanupPrArtifacts(repoRoot, candidate.number);
-      for (const item of result.tasks) {
-        extracted.push({ pr: candidate.number, ...item });
-      }
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[extract] PR #${candidate.number}: error — ${msg}`);
-    skipped.push({ pr: candidate.number, reason: msg });
-  }
-  if (!state.processed_prs.includes(candidate.number)) {
-    state.processed_prs.push(candidate.number);
-  }
-}
-
 // Phase 3: Verification (grouped by PR, concurrent across PRs)
 let verified = 0;
 let failed = 0;
@@ -522,8 +476,6 @@ console.log('\n═════════════════════�
 console.log('  HARVEST SUMMARY');
 console.log('═══════════════════════════════════════════════');
 console.log(`  Candidates:  ${candidates.length}`);
-console.log(`  Extracted:   ${extracted.length}`);
-console.log(`  Skipped:     ${skipped.length}`);
 console.log(`  Verified:    ${verified}`);
 console.log(`  Failed:      ${failed}`);
 console.log(`  Time:        ${elapsed}s`);

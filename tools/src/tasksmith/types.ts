@@ -1,5 +1,29 @@
 import { type Static, Type } from '@sinclair/typebox';
 
+// ── Task output type (formerly from @moltnet/context-evals) ──
+
+const NonEmptyString = Type.String({ minLength: 1 });
+const NonEmptyStringArray = Type.Array(NonEmptyString);
+
+export const TasksmithTaskSchema = Type.Object({
+  task_id: NonEmptyString,
+  fixture_ref: NonEmptyString,
+  gold_fix_ref: NonEmptyString,
+  source_commit_ref: NonEmptyString,
+  source_commit_refs: Type.Optional(NonEmptyStringArray),
+  problem_statement: NonEmptyString,
+  family: NonEmptyString,
+  secondary_families: Type.Optional(NonEmptyStringArray),
+  subsystems: Type.Optional(NonEmptyStringArray),
+  changed_files: Type.Optional(NonEmptyStringArray),
+  fail_to_pass: Type.Array(NonEmptyString, { minItems: 1 }),
+  pass_to_pass: Type.Array(NonEmptyString),
+  diary_entry_ids: Type.Optional(NonEmptyStringArray),
+  confidence: Type.Optional(NonEmptyString),
+});
+
+export type TasksmithTask = Static<typeof TasksmithTaskSchema>;
+
 // ── PR candidate (Phase 1 output) ──
 
 export const PrCandidateSchema = Type.Object({
