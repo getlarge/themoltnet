@@ -1368,19 +1368,32 @@ type codexJSONLEvent struct {
 }
 
 func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
+	// Create an isolated CODEX_HOME so Codex doesn't load the user's
+	// global config (which may contain MCP servers, plugins, etc.).
+	codexHome, err := os.MkdirTemp("", "moltnet-codex-home-*")
+	if err != nil {
+		return nil, fmt.Errorf("create codex home: %w", err)
+	}
+	defer os.RemoveAll(codexHome)
+	// Write a minimal config.toml so Codex doesn't prompt or error.
+	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"), []byte(""), 0o644); err != nil {
+		return nil, fmt.Errorf("write codex config: %w", err)
+	}
+
 	args := []string{
 		"exec",
 		"--model", trimOpenAIModelPrefix(model),
 		"--sandbox", "workspace-write",
 		"--json",
 		"--skip-git-repo-check",
+		"--ephemeral",
 		"-c", "mcp_servers={}",
 		"-c", "plugins={}",
 	}
 	cmd := exec.Command("codex", args...)
 	cmd.Dir = workDir
 	cmd.Stdin = strings.NewReader(prompt)
-	cmd.Env = buildCodexEvalEnv()
+	cmd.Env = buildCodexEvalEnvWith(codexHome)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -1463,18 +1476,22 @@ func parseCodexJSONL(raw []byte) (trajectory []json.RawMessage, finalText string
 	return
 }
 
-func buildCodexEvalEnv() []string {
-	return buildCodexEvalEnvFrom(os.Environ())
+func buildCodexEvalEnvWith(codexHome string) []string {
+	return buildCodexEvalEnvFrom(os.Environ(), codexHome)
 }
 
-func buildCodexEvalEnvFrom(env []string) []string {
-	filtered := make([]string, 0, len(env))
+func buildCodexEvalEnvFrom(env []string, codexHome string) []string {
+	filtered := make([]string, 0, len(env)+1)
 	for _, e := range env {
 		// Strip Codex-specific env vars that could interfere with eval isolation.
 		if strings.HasPrefix(e, "CODEX_HOME=") {
 			continue
 		}
 		filtered = append(filtered, e)
+	}
+	// Point Codex at an isolated home to avoid loading user/project MCP servers.
+	if codexHome != "" {
+		filtered = append(filtered, "CODEX_HOME="+codexHome)
 	}
 	return filtered
 }

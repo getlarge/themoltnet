@@ -1327,23 +1327,38 @@ func TestParseCodexJSONLSkipsMalformedLines(t *testing.T) {
 	}
 }
 
-func TestBuildCodexEvalEnvStripsCodexHome(t *testing.T) {
+func TestBuildCodexEvalEnvSetsIsolatedHome(t *testing.T) {
 	env := buildCodexEvalEnvFrom([]string{
 		"PATH=/usr/bin:/bin",
 		"HOME=/tmp/home",
 		"CODEX_HOME=/tmp/codex",
 		"OPENAI_API_KEY=sk-test",
-	})
+	}, "/tmp/isolated-codex")
 
 	joined := strings.Join(env, "\n")
-	if strings.Contains(joined, "CODEX_HOME=") {
-		t.Fatal("expected CODEX_HOME to be stripped")
+	if strings.Contains(joined, "CODEX_HOME=/tmp/codex") {
+		t.Fatal("expected original CODEX_HOME to be stripped")
+	}
+	if !strings.Contains(joined, "CODEX_HOME=/tmp/isolated-codex") {
+		t.Fatal("expected isolated CODEX_HOME to be set")
 	}
 	if !strings.Contains(joined, "OPENAI_API_KEY=sk-test") {
 		t.Fatal("expected OPENAI_API_KEY to be preserved")
 	}
 	if !strings.Contains(joined, "PATH=/usr/bin:/bin") {
 		t.Fatal("expected PATH to be preserved")
+	}
+}
+
+func TestBuildCodexEvalEnvNoHomeWhenEmpty(t *testing.T) {
+	env := buildCodexEvalEnvFrom([]string{
+		"PATH=/usr/bin",
+		"CODEX_HOME=/old",
+	}, "")
+
+	joined := strings.Join(env, "\n")
+	if strings.Contains(joined, "CODEX_HOME") {
+		t.Fatal("expected no CODEX_HOME when codexHome is empty")
 	}
 }
 
