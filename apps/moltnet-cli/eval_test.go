@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 )
@@ -1042,17 +1043,23 @@ func TestWriteDSPYAgentArtifactsWritesTrajectory(t *testing.T) {
 		t.Fatalf("unexpected agent output: %q", string(out))
 	}
 
-	// Check trajectory.json
+	// Check trajectory.json (normalized Phase 0 contract)
 	trajData, err := os.ReadFile(filepath.Join(dir, "trajectory.json"))
 	if err != nil {
 		t.Fatalf("read trajectory.json: %v", err)
 	}
-	var traj []json.RawMessage
+	var traj normalizedTrajectory
 	if err := json.Unmarshal(trajData, &traj); err != nil {
 		t.Fatalf("parse trajectory.json: %v", err)
 	}
-	if len(traj) != 2 {
-		t.Fatalf("expected 2 trajectory events, got %d", len(traj))
+	if traj.SchemaVersion != artifactSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %q", artifactSchemaVersion, traj.SchemaVersion)
+	}
+	if traj.Engine != "dspy" {
+		t.Fatalf("expected engine 'dspy', got %q", traj.Engine)
+	}
+	if traj.FinalResult != "agent said hello" {
+		t.Fatalf("expected final result, got %q", traj.FinalResult)
 	}
 }
 
@@ -1091,11 +1098,12 @@ func TestWriteDSPYVariantArtifactsStructure(t *testing.T) {
 		},
 		Reasoning: "good work",
 	}
-	if err := writeDSPYVariantArtifacts(dir, agent, judged); err != nil {
+	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
+	if err := writeDSPYVariantArtifacts(dir, agent, judged, 500, "test-scenario", "without-context", opts); err != nil {
 		t.Fatalf("writeDSPYVariantArtifacts: %v", err)
 	}
 
-	// Check trial_result.json
+	// Check trial_result.json (Phase 0 contract)
 	trData, err := os.ReadFile(filepath.Join(dir, "trial_result.json"))
 	if err != nil {
 		t.Fatalf("read trial_result.json: %v", err)
@@ -1104,17 +1112,30 @@ func TestWriteDSPYVariantArtifactsStructure(t *testing.T) {
 	if err := json.Unmarshal(trData, &trial); err != nil {
 		t.Fatalf("parse trial_result.json: %v", err)
 	}
-	if trial["reward"] != 0.75 {
-		t.Fatalf("expected reward 0.75, got %v", trial["reward"])
+	if trial["schema_version"] != artifactSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %v", artifactSchemaVersion, trial["schema_version"])
 	}
-	if trial["duration_ms"] != float64(2000) {
-		t.Fatalf("expected duration_ms 2000, got %v", trial["duration_ms"])
+	if trial["engine"] != "dspy" {
+		t.Fatalf("expected engine 'dspy', got %v", trial["engine"])
 	}
-	if trial["cost_usd"] != 0.08 {
-		t.Fatalf("expected cost_usd 0.08, got %v", trial["cost_usd"])
+	if trial["status"] != "success" {
+		t.Fatalf("expected status 'success', got %v", trial["status"])
 	}
-	if trial["num_turns"] != float64(2) {
-		t.Fatalf("expected num_turns 2, got %v", trial["num_turns"])
+	scores, _ := trial["scores"].(map[string]any)
+	if scores["normalized_reward"] != 0.75 {
+		t.Fatalf("expected reward 0.75, got %v", scores["normalized_reward"])
+	}
+	timings, _ := trial["timings_ms"].(map[string]any)
+	if timings["agent"] != float64(2000) {
+		t.Fatalf("expected agent timing 2000, got %v", timings["agent"])
+	}
+	if timings["judge"] != float64(500) {
+		t.Fatalf("expected judge timing 500, got %v", timings["judge"])
+	}
+
+	// Check trace.jsonl exists
+	if _, err := os.Stat(filepath.Join(dir, "trace.jsonl")); err != nil {
+		t.Fatal("missing trace.jsonl")
 	}
 
 	// Check backward-compat files
@@ -1143,11 +1164,12 @@ func TestWriteDSPYRunSummaryJobResult(t *testing.T) {
 			reward: 0.9,
 		},
 	}
-	if err := writeDSPYRunSummary(dir, result); err != nil {
+	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
+	if err := writeDSPYRunSummary(dir, time.Now().Add(-time.Minute), []evalResult{result}, opts); err != nil {
 		t.Fatalf("writeDSPYRunSummary: %v", err)
 	}
 
-	// Check job_result.json
+	// Check job_result.json (Phase 0 contract)
 	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
 	if err != nil {
 		t.Fatalf("read job_result.json: %v", err)
@@ -1156,18 +1178,22 @@ func TestWriteDSPYRunSummaryJobResult(t *testing.T) {
 	if err := json.Unmarshal(data, &job); err != nil {
 		t.Fatalf("parse job_result.json: %v", err)
 	}
+	if job["schema_version"] != artifactSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %v", artifactSchemaVersion, job["schema_version"])
+	}
 	if job["engine"] != "dspy" {
 		t.Fatalf("expected engine 'dspy', got %v", job["engine"])
 	}
-	if job["task_name"] != "test-task" {
-		t.Fatalf("expected task_name 'test-task', got %v", job["task_name"])
+	summary, _ := job["summary"].(map[string]any)
+	if summary["completion_rate"] != 1.0 {
+		t.Fatalf("expected completion_rate 1.0, got %v", summary["completion_rate"])
 	}
-	delta, ok := job["delta"].(float64)
-	if !ok {
-		t.Fatal("expected delta field")
+	if summary["average_delta"] == nil {
+		t.Fatal("expected average_delta")
 	}
-	if delta < 0.49 || delta > 0.51 {
-		t.Fatalf("expected delta ~0.5, got %f", delta)
+	avgDelta, _ := summary["average_delta"].(float64)
+	if avgDelta < 0.49 || avgDelta > 0.51 {
+		t.Fatalf("expected average_delta ~0.5, got %f", avgDelta)
 	}
 
 	// Check backward-compat result.json also exists
@@ -1190,7 +1216,8 @@ func TestWriteDSPYRunSummaryNoDeltaOnError(t *testing.T) {
 			err:  "judge failed",
 		},
 	}
-	if err := writeDSPYRunSummary(dir, result); err != nil {
+	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
+	if err := writeDSPYRunSummary(dir, time.Now(), []evalResult{result}, opts); err != nil {
 		t.Fatalf("writeDSPYRunSummary: %v", err)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
@@ -1201,8 +1228,14 @@ func TestWriteDSPYRunSummaryNoDeltaOnError(t *testing.T) {
 	if err := json.Unmarshal(data, &job); err != nil {
 		t.Fatalf("parse job_result.json: %v", err)
 	}
-	if _, hasDelta := job["delta"]; hasDelta {
-		t.Fatal("expected no delta when a trial has errors")
+	// With errors, results[0].delta should be null
+	results, _ := job["results"].([]any)
+	if len(results) == 0 {
+		t.Fatal("expected results array")
+	}
+	entry, _ := results[0].(map[string]any)
+	if entry["delta"] != nil {
+		t.Fatal("expected null delta when a trial has errors")
 	}
 }
 

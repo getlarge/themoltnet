@@ -673,6 +673,7 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	fmt.Fprintln(os.Stderr, header)
 	fmt.Fprintln(os.Stdout, header)
 
+	startedAt := time.Now()
 	runDir, err := os.MkdirTemp("", "moltnet-eval-dspy-*")
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
@@ -720,7 +721,7 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 		}
 	}
 
-	if err := writeDSPYRunSummary(runDir, result); err != nil {
+	if err := writeDSPYRunSummary(runDir, startedAt, []evalResult{result}, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not write dspy result summary: %v\n", err)
 	}
 
@@ -880,6 +881,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	defer cancel()
 
 	fmt.Fprintf(os.Stderr, "[dspy] %s: judging checklist...\n", variantLabel)
+	judgeStart := time.Now()
 	judged, err := checklist.Run(ctx, checklist.Request{
 		LLM:              opts.dspyJudgeLLM,
 		WorkspaceSummary: filesSnapshot,
@@ -889,15 +891,25 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 			Checklist: criteria.Checklist,
 		},
 	})
+	judgeMs := time.Since(judgeStart).Milliseconds()
 	if err != nil {
 		scores.err = formatDSPyJudgeError(err).Error()
+		// Still write agent artifacts on judge failure
+		if writeErr := writeDSPYAgentArtifacts(variantDir, agentResult); writeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not persist agent output for %s: %v\n", variantName, writeErr)
+		}
 		return scores, nil
 	}
 
 	scores.reward = judged.Reward
 	scores.details = judged.Details
 	scores.scoredCriteria = judged.Scores
-	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged); err != nil {
+
+	variant := "without-context"
+	if withContext {
+		variant = "with-context"
+	}
+	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged, judgeMs, input.name, variant, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
 	}
 	fmt.Fprintf(os.Stderr, "[dspy] %s: completed (reward %.1f%%)\n", variantLabel, scores.reward*100)
@@ -1349,7 +1361,7 @@ func parseGitStatusPaths(output string) []string {
 	return paths
 }
 
-func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result) error {
+func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result, judgeMs int64, scenarioName, variant string, opts evalRunOpts) error {
 	verifierDir := filepath.Join(variantDir, "verifier")
 	if err := os.MkdirAll(verifierDir, 0o755); err != nil {
 		return err
@@ -1379,17 +1391,10 @@ func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, jud
 		}
 	}
 
-	// Normalized trial_result.json
-	trialResult := map[string]any{
-		"variant":     filepath.Base(variantDir),
-		"reward":      judged.Reward,
-		"scores":      judged.Scores,
-		"reasoning":   judged.Reasoning,
-		"duration_ms": agent.durationMs,
-		"cost_usd":    agent.costUSD,
-		"num_turns":   agent.numTurns,
-	}
-	trialPayload, err := json.MarshalIndent(trialResult, "", "  ")
+	// Phase 0 contract: trial_result.json
+	jobID := filepath.Base(filepath.Dir(variantDir))
+	tr := buildTrialResult(jobID, scenarioName, variant, agent, judged, judgeMs, opts)
+	trialPayload, err := json.MarshalIndent(tr, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -1397,7 +1402,8 @@ func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, jud
 		return err
 	}
 
-	return nil
+	// Phase 0 contract: trace.jsonl (judge execution trace)
+	return writeJudgeTrace(variantDir, jobID, judgeMs, judged)
 }
 
 func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error {
@@ -1409,9 +1415,10 @@ func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error
 			return err
 		}
 	}
-	// Write trajectory.json from stream-json events
+	// Phase 0 contract: normalized trajectory.json
 	if len(agent.trajectory) > 0 {
-		trajectoryPayload, err := json.MarshalIndent(agent.trajectory, "", "  ")
+		traj := normalizeTrajectory(agent.trajectory, agent.output, agent.durationMs, agent.costUSD, agent.numTurns)
+		trajectoryPayload, err := json.MarshalIndent(traj, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -1422,41 +1429,41 @@ func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error
 	return nil
 }
 
-func writeDSPYRunSummary(runDir string, result evalResult) error {
-	type trialSummary struct {
-		Name    string             `json:"name"`
-		LogDir  string             `json:"log_dir,omitempty"`
-		Reward  float64            `json:"reward"`
-		Details map[string]float64 `json:"details,omitempty"`
-		Error   string             `json:"error,omitempty"`
+func writeJudgeTrace(variantDir, traceID string, judgeMs int64, judged *checklist.Result) error {
+	f, err := os.Create(filepath.Join(variantDir, "trace.jsonl"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+
+	// Session start
+	if err := enc.Encode(newTraceEvent("judge", "session", traceID, map[string]any{
+		"start_time": time.Now().Add(-time.Duration(judgeMs) * time.Millisecond).UTC().Format(time.RFC3339),
+	})); err != nil {
+		return err
 	}
 
-	toSummary := func(s *trialScores) *trialSummary {
-		if s == nil {
-			return nil
-		}
-		return &trialSummary{
-			Name:    s.name,
-			LogDir:  s.logDir,
-			Reward:  s.reward,
-			Details: s.details,
-			Error:   s.err,
-		}
+	// Judge span
+	if err := enc.Encode(newTraceEvent("judge", "span", traceID, map[string]any{
+		"operation":   "module.process (checklist_judge)",
+		"duration_ms": judgeMs,
+		"success":     true,
+		"reward":      judged.Reward,
+		"criteria":    len(judged.Scores),
+	})); err != nil {
+		return err
 	}
 
-	jobResult := map[string]any{
-		"engine":          "dspy",
-		"created_at":      time.Now().UTC().Format(time.RFC3339),
-		"task_name":       result.taskName,
-		"without_context": toSummary(result.withoutContext),
-		"with_context":    toSummary(result.withContext),
-	}
-	if result.withoutContext != nil && result.withContext != nil &&
-		result.withoutContext.err == "" && result.withContext.err == "" {
-		jobResult["delta"] = result.withContext.reward - result.withoutContext.reward
-	}
+	return nil
+}
 
-	payload, err := json.MarshalIndent(jobResult, "", "  ")
+func writeDSPYRunSummary(runDir string, startedAt time.Time, results []evalResult, opts evalRunOpts) error {
+	jobID := filepath.Base(runDir)
+	jr := buildJobResult(jobID, startedAt, results, opts)
+
+	payload, err := json.MarshalIndent(jr, "", "  ")
 	if err != nil {
 		return err
 	}
