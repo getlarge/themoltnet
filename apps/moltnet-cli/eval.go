@@ -594,9 +594,6 @@ func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 	if err := checkPrerequisites(opts.engine); err != nil {
 		return err
 	}
-	if opts.engine == "dspy" {
-		return fmt.Errorf("--engine dspy currently supports --scenario only; --config remains Harbor-only")
-	}
 	runs, err := loadConfig(configPath)
 	if err != nil {
 		return err
@@ -619,6 +616,9 @@ func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 			return err
 		}
 		inputs = append(inputs, input)
+	}
+	if opts.engine == "dspy" {
+		return runDSPYEvalBatch(inputs, opts)
 	}
 	return runEval(inputs, opts)
 }
@@ -707,6 +707,87 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	hasErrors := (result.withoutContext != nil && result.withoutContext.err != "") ||
 		(result.withContext != nil && result.withContext.err != "")
 	return evalRunCompletionError([]evalResult{result}, hasErrors)
+}
+
+func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
+	if err := validateDSPYEvalOpts(opts); err != nil {
+		return err
+	}
+	repoRoot, sourceRef, err := resolveDSPYEvalSource()
+	if err != nil {
+		return err
+	}
+	opts.dspyRepoRoot = repoRoot
+	opts.dspySourceRef = sourceRef
+
+	judgeLLM, err := dspyadapters.InitProvider("claude-code", trimAnthropicModelPrefix(opts.judgeModel))
+	if err != nil {
+		return fmt.Errorf("initialize judge LLM: %w", err)
+	}
+	opts.dspyJudgeLLM = judgeLLM
+
+	runDir, err := os.MkdirTemp("", "moltnet-eval-dspy-batch-*")
+	if err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer func() {
+		fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", runDir)
+	}()
+
+	type indexedResult struct {
+		idx    int
+		result evalResult
+		err    error
+	}
+
+	sem := make(chan struct{}, max(opts.concurrency, 1))
+	results := make([]evalResult, len(inputs))
+	ch := make(chan indexedResult, len(inputs))
+
+	for i, input := range inputs {
+		sem <- struct{}{}
+		go func(idx int, in evalRunInput) {
+			defer func() { <-sem }()
+			r := evalResult{taskName: in.name}
+			var runErr error
+
+			r.withoutContext, runErr = runDSPYEvalVariant(runDir, in, false, opts)
+			if runErr != nil {
+				ch <- indexedResult{idx: idx, err: runErr}
+				return
+			}
+			if in.packMD != "" {
+				r.withContext, runErr = runDSPYEvalVariant(runDir, in, true, opts)
+				if runErr != nil {
+					ch <- indexedResult{idx: idx, err: runErr}
+					return
+				}
+			}
+			ch <- indexedResult{idx: idx, result: r}
+		}(i, input)
+	}
+
+	var firstErr error
+	hasErrors := false
+	for range inputs {
+		ir := <-ch
+		if ir.err != nil && firstErr == nil {
+			firstErr = ir.err
+			continue
+		}
+		results[ir.idx] = ir.result
+		if (ir.result.withoutContext != nil && ir.result.withoutContext.err != "") ||
+			(ir.result.withContext != nil && ir.result.withContext.err != "") {
+			hasErrors = true
+		}
+	}
+	if firstErr != nil {
+		return firstErr
+	}
+
+	printRunPaths(runDir)
+	printSummary(results, "")
+	return evalRunCompletionError(results, hasErrors)
 }
 
 func validateDSPYEvalOpts(opts evalRunOpts) error {

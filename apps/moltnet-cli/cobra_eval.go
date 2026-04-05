@@ -38,8 +38,11 @@ and with-context variants run in parallel.`,
   # Single task with lightweight DSPy engine
   moltnet eval run --engine dspy --scenario ./evals/codegen-chain
 
-  # Batch run from config file
+  # Batch run from config file (works with both engines)
   moltnet eval run --config eval.yaml --concurrency 2
+
+  # DSPy batch run with concurrency
+  moltnet eval run --engine dspy --config eval.yaml --concurrency 3
 
   # With model override and force rebuild
   moltnet eval run --scenario ./evals/codegen-chain --pack ./pack.md -m anthropic/claude-sonnet-4-6 -f
