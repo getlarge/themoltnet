@@ -1371,7 +1371,7 @@ func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRu
 	args := []string{
 		"exec",
 		"--model", trimOpenAIModelPrefix(model),
-		"--sandbox", "full",
+		"--sandbox", "workspace-write",
 		"--json",
 		"--skip-git-repo-check",
 		"-c", "mcp_servers={}",
