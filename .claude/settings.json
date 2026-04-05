@@ -27,6 +27,16 @@
         ],
         "matcher": "Bash"
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh",
+            "type": "command"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
