@@ -159,14 +159,37 @@ type evalConfig struct {
 
 // --- Prerequisites ---
 
-func checkPrerequisites(engine string) error {
+func checkPrerequisites(engine string, opts ...evalRunOpts) error {
 	switch engine {
 	case "dspy":
-		if _, err := exec.LookPath("claude"); err != nil {
-			return fmt.Errorf("claude CLI not found on PATH: %w", err)
-		}
 		if _, err := exec.LookPath("git"); err != nil {
 			return fmt.Errorf("git CLI not found on PATH: %w", err)
+		}
+		agent := "claude"
+		judge := "claude"
+		if len(opts) > 0 {
+			agent = opts[0].agent
+			judge = opts[0].judge
+		}
+		switch agent {
+		case "codex":
+			if _, err := exec.LookPath("codex"); err != nil {
+				return fmt.Errorf("codex CLI not found on PATH: %w", err)
+			}
+		default:
+			if _, err := exec.LookPath("claude"); err != nil {
+				return fmt.Errorf("claude CLI not found on PATH: %w", err)
+			}
+		}
+		if judge == "codex" && agent != "codex" {
+			if _, err := exec.LookPath("codex"); err != nil {
+				return fmt.Errorf("codex CLI not found on PATH (required for --judge codex): %w", err)
+			}
+		}
+		if judge == "claude" && agent != "claude" {
+			if _, err := exec.LookPath("claude"); err != nil {
+				return fmt.Errorf("claude CLI not found on PATH (required for --judge claude): %w", err)
+			}
 		}
 		return nil
 	case "harbor":
@@ -603,7 +626,7 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 }
 
 func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(opts.engine); err != nil {
+	if err := checkPrerequisites(opts.engine, opts); err != nil {
 		return err
 	}
 	input, err := resolveEvalRun(taskDir, packPath, opts.agent, opts.model)
@@ -617,7 +640,7 @@ func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(opts.engine); err != nil {
+	if err := checkPrerequisites(opts.engine, opts); err != nil {
 		return err
 	}
 	runs, err := loadConfig(configPath)
@@ -666,7 +689,8 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
 
-	judgeLLM, err := dspyadapters.InitProvider("claude-code", trimAnthropicModelPrefix(opts.judgeModel))
+	judgeProvider, judgeModelBare := dspyJudgeProvider(opts.judge, opts.judgeModel)
+	judgeLLM, err := dspyadapters.InitProvider(judgeProvider, judgeModelBare)
 	if err != nil {
 		return fmt.Errorf("initialize judge LLM: %w", err)
 	}
@@ -742,8 +766,12 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	}
 	// Validate per-input agent overrides (config mode can specify per-run agents).
 	for _, in := range inputs {
-		if in.agent != "" && in.agent != "claude" {
-			return fmt.Errorf("scenario %q: --engine dspy currently supports --agent claude only (got %q)", in.name, in.agent)
+		if in.agent != "" {
+			switch in.agent {
+			case "claude", "codex":
+			default:
+				return fmt.Errorf("scenario %q: --engine dspy supports --agent claude or codex (got %q)", in.name, in.agent)
+			}
 		}
 	}
 	repoRoot, sourceRef, err := resolveDSPYEvalSource()
@@ -753,7 +781,8 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
 
-	judgeLLM, err := dspyadapters.InitProvider("claude-code", trimAnthropicModelPrefix(opts.judgeModel))
+	judgeProvider, judgeModelBare := dspyJudgeProvider(opts.judge, opts.judgeModel)
+	judgeLLM, err := dspyadapters.InitProvider(judgeProvider, judgeModelBare)
 	if err != nil {
 		return fmt.Errorf("initialize judge LLM: %w", err)
 	}
@@ -833,11 +862,15 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 }
 
 func validateDSPYEvalOpts(opts evalRunOpts) error {
-	if opts.agent != "claude" {
-		return fmt.Errorf("--engine dspy currently supports --agent claude only")
+	switch opts.agent {
+	case "claude", "codex":
+	default:
+		return fmt.Errorf("--engine dspy supports --agent claude or codex, got %q", opts.agent)
 	}
-	if opts.judge != "claude" {
-		return fmt.Errorf("--engine dspy currently supports --judge claude only")
+	switch opts.judge {
+	case "claude", "codex":
+	default:
+		return fmt.Errorf("--engine dspy supports --judge claude or codex, got %q", opts.judge)
 	}
 	return nil
 }
@@ -864,9 +897,24 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		}
 	}()
 
-	fmt.Fprintf(os.Stderr, "[dspy] %s: running Claude task step...\n", variantLabel)
+	agentName := input.agent
+	if agentName == "" {
+		agentName = opts.agent
+	}
+	fmt.Fprintf(os.Stderr, "[dspy] %s: running %s task step...\n", variantLabel, agentName)
 	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
-	agentResult, err := runClaudeEvalAgent(worktreeDir, opts.model, prompt, variantLabel)
+	model := input.model
+	if model == "" {
+		model = opts.model
+	}
+
+	var agentResult *dspyAgentRunResult
+	switch agentName {
+	case "codex":
+		agentResult, err = runCodexEvalAgent(worktreeDir, model, prompt, variantLabel)
+	default:
+		agentResult, err = runClaudeEvalAgent(worktreeDir, model, prompt, variantLabel)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1257,7 +1305,7 @@ func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
 		case <-ticker.C:
 			fmt.Fprintf(
 				os.Stderr,
-				"[dspy] %s: Claude task still running (%s elapsed)\n",
+				"[dspy] %s: agent task still running (%s elapsed)\n",
 				statusLabel,
 				time.Since(start).Round(time.Second),
 			)
@@ -1289,6 +1337,146 @@ func buildClaudeEvalEnvFrom(env []string) []string {
 
 func trimAnthropicModelPrefix(model string) string {
 	return strings.TrimPrefix(model, "anthropic/")
+}
+
+func trimOpenAIModelPrefix(model string) string {
+	return strings.TrimPrefix(model, "openai/")
+}
+
+// dspyJudgeProvider returns the dspy-adapters provider name and bare model
+// for the given --judge value.
+func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
+	switch judge {
+	case "codex":
+		return "codex", judgeModel
+	default:
+		return "claude-code", trimAnthropicModelPrefix(judgeModel)
+	}
+}
+
+// codexJSONLEvent is the minimal envelope for Codex --json JSONL output.
+type codexJSONLEvent struct {
+	Type string `json:"type"`
+	Item *struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"item,omitempty"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
+	args := []string{
+		"exec",
+		"--model", trimOpenAIModelPrefix(model),
+		"--sandbox", "full",
+		"--json",
+		"--skip-git-repo-check",
+		"-c", "mcp_servers={}",
+		"-c", "plugins={}",
+	}
+	cmd := exec.Command("codex", args...)
+	cmd.Dir = workDir
+	cmd.Stdin = strings.NewReader(prompt)
+	cmd.Env = buildCodexEvalEnv()
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
+
+	result := &dspyAgentRunResult{}
+	start := time.Now()
+	done := make(chan struct{})
+	go emitDSPYTaskHeartbeat(statusLabel, done)
+	runErr := cmd.Run()
+	close(done)
+	result.durationMs = time.Since(start).Milliseconds()
+
+	result.stderr = strings.TrimSpace(stderr.String())
+	result.trajectory, result.output, result.numTurns =
+		parseCodexJSONL(stdout.Bytes())
+
+	if runErr != nil {
+		if result.output == "" {
+			result.output = result.stderr
+		}
+		if result.output == "" {
+			result.output = runErr.Error()
+		}
+		return result, nil
+	}
+
+	result.passed = true
+	return result, nil
+}
+
+// parseCodexJSONL extracts trajectory events, final text, and turn count
+// from Codex --json JSONL output.
+func parseCodexJSONL(raw []byte) (trajectory []json.RawMessage, finalText string, numTurns int) {
+	var lastAgentText string
+	var lastError string
+
+	for _, line := range bytes.Split(raw, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var evt codexJSONLEvent
+		if err := json.Unmarshal(line, &evt); err != nil {
+			continue
+		}
+		switch evt.Type {
+		case "item.completed":
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			trajectory = append(trajectory, json.RawMessage(copied))
+			if evt.Item != nil && evt.Item.Type == "agent_message" {
+				numTurns++
+				if evt.Item.Text != "" {
+					lastAgentText = evt.Item.Text
+				}
+			}
+		case "turn.completed":
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			trajectory = append(trajectory, json.RawMessage(copied))
+		case "error":
+			if evt.Message != "" {
+				lastError = evt.Message
+			} else if evt.Error != nil {
+				lastError = evt.Error.Message
+			}
+		case "turn.failed":
+			if evt.Error != nil && evt.Error.Message != "" {
+				lastError = evt.Error.Message
+			}
+		}
+	}
+
+	if lastAgentText != "" {
+		finalText = lastAgentText
+	} else if lastError != "" {
+		finalText = lastError
+	}
+	return
+}
+
+func buildCodexEvalEnv() []string {
+	return buildCodexEvalEnvFrom(os.Environ())
+}
+
+func buildCodexEvalEnvFrom(env []string) []string {
+	filtered := make([]string, 0, len(env))
+	for _, e := range env {
+		// Strip Codex-specific env vars that could interfere with eval isolation.
+		if strings.HasPrefix(e, "CODEX_HOME=") {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	return filtered
 }
 
 func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {

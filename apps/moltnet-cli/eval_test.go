@@ -576,6 +576,9 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1},
 		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
 		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 4},
+		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
+		{engine: "dspy", agent: "codex", judge: "codex", concurrency: 1},
 	}
 	for _, opts := range ok {
 		if err := validateDSPYEvalOpts(opts); err != nil {
@@ -584,8 +587,8 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 	}
 
 	bad := []evalRunOpts{
-		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
-		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
+		{engine: "dspy", agent: "harbor", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "harbor", concurrency: 1},
 	}
 	for _, opts := range bad {
 		if err := validateDSPYEvalOpts(opts); err == nil {
@@ -1252,5 +1255,123 @@ func TestEvalRunCompletionError(t *testing.T) {
 
 	if err := evalRunCompletionError(results, false); err != nil {
 		t.Fatalf("expected nil error on clean completion, got %v", err)
+	}
+}
+
+func TestParseCodexJSONLExtractsTrajectoryAndFinalText(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"item.completed","item":{"type":"agent_message","text":"I created the file."}}
+{"type":"turn.completed"}
+{"type":"item.completed","item":{"type":"agent_message","text":"Done."}}
+`)
+
+	trajectory, finalText, numTurns := parseCodexJSONL(input)
+	if len(trajectory) != 3 {
+		t.Fatalf("expected 3 trajectory events, got %d", len(trajectory))
+	}
+	if finalText != "Done." {
+		t.Fatalf("expected final text 'Done.', got %q", finalText)
+	}
+	if numTurns != 2 {
+		t.Fatalf("expected 2 turns, got %d", numTurns)
+	}
+}
+
+func TestParseCodexJSONLHandlesEmptyInput(t *testing.T) {
+	t.Parallel()
+	trajectory, finalText, numTurns := parseCodexJSONL([]byte{})
+	if len(trajectory) != 0 {
+		t.Fatal("expected empty trajectory for empty input")
+	}
+	if finalText != "" {
+		t.Fatal("expected empty final text")
+	}
+	if numTurns != 0 {
+		t.Fatal("expected 0 turns")
+	}
+}
+
+func TestParseCodexJSONLExtractsErrorAsFallback(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"error","message":"rate limit exceeded"}
+{"type":"turn.failed","error":{"message":"API error"}}
+`)
+
+	trajectory, finalText, numTurns := parseCodexJSONL(input)
+	if len(trajectory) != 0 {
+		t.Fatalf("expected 0 trajectory events for error-only output, got %d", len(trajectory))
+	}
+	if finalText != "API error" {
+		t.Fatalf("expected last error as final text, got %q", finalText)
+	}
+	if numTurns != 0 {
+		t.Fatalf("expected 0 turns, got %d", numTurns)
+	}
+}
+
+func TestParseCodexJSONLSkipsMalformedLines(t *testing.T) {
+	t.Parallel()
+	input := []byte(`not json
+{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}
+{broken
+`)
+	trajectory, finalText, numTurns := parseCodexJSONL(input)
+	if len(trajectory) != 1 {
+		t.Fatalf("expected 1 trajectory event, got %d", len(trajectory))
+	}
+	if finalText != "ok" {
+		t.Fatalf("expected 'ok', got %q", finalText)
+	}
+	if numTurns != 1 {
+		t.Fatalf("expected 1 turn, got %d", numTurns)
+	}
+}
+
+func TestBuildCodexEvalEnvStripsCodexHome(t *testing.T) {
+	env := buildCodexEvalEnvFrom([]string{
+		"PATH=/usr/bin:/bin",
+		"HOME=/tmp/home",
+		"CODEX_HOME=/tmp/codex",
+		"OPENAI_API_KEY=sk-test",
+	})
+
+	joined := strings.Join(env, "\n")
+	if strings.Contains(joined, "CODEX_HOME=") {
+		t.Fatal("expected CODEX_HOME to be stripped")
+	}
+	if !strings.Contains(joined, "OPENAI_API_KEY=sk-test") {
+		t.Fatal("expected OPENAI_API_KEY to be preserved")
+	}
+	if !strings.Contains(joined, "PATH=/usr/bin:/bin") {
+		t.Fatal("expected PATH to be preserved")
+	}
+}
+
+func TestTrimOpenAIModelPrefix(t *testing.T) {
+	if got := trimOpenAIModelPrefix("openai/gpt-5-codex"); got != "gpt-5-codex" {
+		t.Fatalf("expected 'gpt-5-codex', got %q", got)
+	}
+	if got := trimOpenAIModelPrefix("gpt-5-codex"); got != "gpt-5-codex" {
+		t.Fatalf("expected no-op for unprefixed, got %q", got)
+	}
+}
+
+func TestDspyJudgeProvider(t *testing.T) {
+	tests := []struct {
+		judge      string
+		judgeModel string
+		wantProv   string
+		wantModel  string
+	}{
+		{"claude", "claude-sonnet-4-6", "claude-code", "claude-sonnet-4-6"},
+		{"claude", "anthropic/claude-sonnet-4-6", "claude-code", "claude-sonnet-4-6"},
+		{"codex", "gpt-5-codex", "codex", "gpt-5-codex"},
+	}
+	for _, tt := range tests {
+		prov, model := dspyJudgeProvider(tt.judge, tt.judgeModel)
+		if prov != tt.wantProv || model != tt.wantModel {
+			t.Errorf("dspyJudgeProvider(%q, %q) = (%q, %q), want (%q, %q)",
+				tt.judge, tt.judgeModel, prov, model, tt.wantProv, tt.wantModel)
+		}
 	}
 }
