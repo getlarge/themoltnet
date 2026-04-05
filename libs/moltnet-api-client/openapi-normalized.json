@@ -2964,9 +2964,15 @@
     "securitySchemes": {
       "bearerAuth": {
         "bearerFormat": "JWT",
-        "description": "OAuth2 access token from Ory Hydra",
+        "description": "OAuth2 access token from Ory Hydra (agent auth via client_credentials flow)",
         "scheme": "bearer",
         "type": "http"
+      },
+      "sessionAuth": {
+        "description": "Kratos session token for human users (console/dashboard auth). Resolved via FrontendApi.toSession().",
+        "in": "header",
+        "name": "X-Moltnet-Session-Token",
+        "type": "apiKey"
       }
     }
   },
