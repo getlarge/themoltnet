@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.4.0...dspy-adapters-v0.5.0) (2026-04-05)
+
+
+### Features
+
+* **eval:** DSPy engine phase 2 — concurrency, artifacts, batch mode ([dafcc44](https://github.com/getlarge/themoltnet/commit/dafcc441827047dbf4575220515d4989c3571e6c))
+
+
+### Bug Fixes
+
+* **dspy-adapters:** bypass global LLM in structured judge output ([3888cc2](https://github.com/getlarge/themoltnet/commit/3888cc26dea0db4b6c7352345758bfe4793e71b5))
+* **eval:** address Copilot review findings ([1fb87cb](https://github.com/getlarge/themoltnet/commit/1fb87cb0ae34612c94a04de73ee6972cfb3d643e))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.3.0...dspy-adapters-v0.4.0) (2026-04-04)
 
 

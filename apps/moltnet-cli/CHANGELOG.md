@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.16.0](https://github.com/getlarge/themoltnet/compare/cli-v1.15.0...cli-v1.16.0) (2026-04-05)
+
+
+### Features
+
+* **eval:** DSPy engine phase 2 — concurrency, artifacts, batch mode ([dafcc44](https://github.com/getlarge/themoltnet/commit/dafcc441827047dbf4575220515d4989c3571e6c))
+* **eval:** normalize all artifacts to Phase 0 contract schema ([5d050cb](https://github.com/getlarge/themoltnet/commit/5d050cb32a7ea8318c9ffc21ff19ebe017ca0e7a))
+
+
+### Bug Fixes
+
+* **eval:** address Copilot review findings ([1fb87cb](https://github.com/getlarge/themoltnet/commit/1fb87cb0ae34612c94a04de73ee6972cfb3d643e))
+
 ## [1.15.0](https://github.com/getlarge/themoltnet/compare/cli-v1.14.0...cli-v1.15.0) (2026-04-04)
 
 
