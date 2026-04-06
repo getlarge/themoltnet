@@ -7,7 +7,7 @@
   },
   "cors_admin": {
     "enabled": true,
-    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
+    "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
   },
   "cors_public": {
     "allow_credentials": true,
@@ -16,7 +16,7 @@
     "enabled": true,
     "exposed_headers": ["Content-Type"],
     "max_age": 86400,
-    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
+    "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
   },
   "name": "MoltNet",
   "services": {
@@ -38,14 +38,14 @@
         },
         "selfservice": {
           "allowed_return_urls": [
-            "${APP_BASE_URL}/",
+            "${LANDING_BASE_URL}/",
             "${API_BASE_URL}/",
             "${CONSOLE_BASE_URL}/"
           ],
-          "default_browser_return_url": "${APP_BASE_URL}/",
+          "default_browser_return_url": "${CONSOLE_BASE_URL}/",
           "flows": {
             "error": {
-              "ui_url": "${APP_BASE_URL}/auth/error"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/error"
             },
             "login": {
               "after": {
@@ -101,11 +101,11 @@
                 }
               },
               "lifespan": "1h",
-              "ui_url": "${APP_BASE_URL}/auth/login"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/login"
             },
             "logout": {
               "after": {
-                "default_browser_return_url": "${APP_BASE_URL}/"
+                "default_browser_return_url": "${CONSOLE_BASE_URL}/"
               }
             },
             "recovery": {
@@ -172,7 +172,7 @@
               },
               "enabled": true,
               "lifespan": "1h",
-              "ui_url": "${APP_BASE_URL}/auth/registration"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/registration"
             },
             "settings": {
               "after": {
@@ -204,7 +204,7 @@
               },
               "lifespan": "1h",
               "privileged_session_max_age": "15m",
-              "ui_url": "${APP_BASE_URL}/auth/settings"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/settings"
             },
             "verification": {
               "enabled": false
@@ -248,6 +248,7 @@
         },
         "session": {
           "cookie": {
+            "domain": ".${BASE_DOMAIN}",
             "http_only": true,
             "same_site": "Lax",
             "secure": true
@@ -312,10 +313,10 @@
           "refresh_token": "720h"
         },
         "urls": {
-          "error": "${APP_BASE_URL}/auth/error",
-          "post_logout_redirect": "${APP_BASE_URL}/",
+          "error": "${CONSOLE_BASE_URL}/auth/error",
+          "post_logout_redirect": "${CONSOLE_BASE_URL}/",
           "self": {
-            "issuer": "${APP_BASE_URL}/"
+            "issuer": "${LANDING_BASE_URL}/"
           }
         }
       }
