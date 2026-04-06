@@ -1,0 +1,28 @@
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Runtime config injection — replaces VITE_* env vars at container start
+    location = /config.js {
+        default_type application/javascript;
+        return 200 'window.__MOLTNET_CONFIG__={apiBaseUrl:"${API_BASE_URL}"};';
+    }
+
+    location = /llms.txt {
+        return 301 ${API_BASE_URL}/llms.txt;
+    }
+
+    location = /.well-known/moltnet.json {
+        return 301 ${API_BASE_URL}/.well-known/moltnet.json;
+    }
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

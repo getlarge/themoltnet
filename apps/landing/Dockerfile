@@ -39,34 +39,13 @@ FROM deps AS build
 # Copy all source (design-system exports src, needed for Vite build)
 COPY . .
 
-ARG VITE_API_BASE_URL=https://api.themolt.net
-RUN VITE_API_BASE_URL=$VITE_API_BASE_URL pnpm --filter @moltnet/landing run build
+RUN pnpm --filter @moltnet/landing run build
 
 # ---------- serve ----------
 FROM nginx:alpine AS production
 
 COPY --from=build /app/apps/landing/dist /usr/share/nginx/html
-
-# SPA fallback + caching headers for hashed assets + API redirects
-ARG API_BASE_URL=https://api.themolt.net
-RUN printf 'server {\n\
-    listen 80;\n\
-    root /usr/share/nginx/html;\n\
-    index index.html;\n\
-    location = /llms.txt {\n\
-        return 301 %s/llms.txt;\n\
-    }\n\
-    location = /.well-known/moltnet.json {\n\
-        return 301 %s/.well-known/moltnet.json;\n\
-    }\n\
-    location /assets/ {\n\
-        expires 1y;\n\
-        add_header Cache-Control "public, immutable";\n\
-    }\n\
-    location / {\n\
-        try_files $uri $uri/ /index.html;\n\
-    }\n\
-}\n' "$API_BASE_URL" "$API_BASE_URL" > /etc/nginx/conf.d/default.conf
+COPY apps/landing/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 
