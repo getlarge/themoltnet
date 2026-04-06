@@ -40,6 +40,8 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: kratos
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
