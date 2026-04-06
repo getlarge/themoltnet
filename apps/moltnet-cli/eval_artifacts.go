@@ -422,13 +422,14 @@ type normalizedJobResult struct {
 
 func buildJobResult(
 	jobID string,
+	engine string,
 	startedAt time.Time,
 	results []evalResult,
 	opts evalRunOpts,
 ) *normalizedJobResult {
 	jr := &normalizedJobResult{
 		SchemaVersion: artifactSchemaVersion,
-		Engine:        "dspy",
+		Engine:        engine,
 		JobID:         jobID,
 		StartedAt:     startedAt.UTC().Format(time.RFC3339),
 		FinishedAt:    time.Now().UTC().Format(time.RFC3339),

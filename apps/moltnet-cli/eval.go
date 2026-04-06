@@ -748,7 +748,7 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 		}
 	}
 
-	if err := writeDSPYRunSummary(runDir, startedAt, []evalResult{result}, opts); err != nil {
+	if err := writeJobResultSummary(runDir, "dspy", startedAt, []evalResult{result}, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not write dspy result summary: %v\n", err)
 	}
 
@@ -780,6 +780,7 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
 
+	startedAt := time.Now()
 	runDir, err := os.MkdirTemp("", "moltnet-eval-dspy-batch-*")
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
@@ -851,6 +852,10 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	}
 	if firstErr != nil {
 		return firstErr
+	}
+
+	if err := writeJobResultSummary(runDir, "dspy", startedAt, results, opts); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not write dspy batch result summary: %v\n", err)
 	}
 
 	printRunPaths(runDir)
@@ -1501,9 +1506,9 @@ func writeJudgeTrace(variantDir, traceID string, judgeMs int64, judged *checklis
 	return nil
 }
 
-func writeDSPYRunSummary(runDir string, startedAt time.Time, results []evalResult, opts evalRunOpts) error {
+func writeJobResultSummary(runDir, engine string, startedAt time.Time, results []evalResult, opts evalRunOpts) error {
 	jobID := filepath.Base(runDir)
-	jr := buildJobResult(jobID, startedAt, results, opts)
+	jr := buildJobResult(jobID, engine, startedAt, results, opts)
 
 	payload, err := json.MarshalIndent(jr, "", "  ")
 	if err != nil {
@@ -1584,6 +1589,7 @@ func runEval(inputs []evalRunInput, opts evalRunOpts) error {
 }
 
 func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) {
+	startedAt := time.Now()
 	// Create temp working directory for Harbor
 	workDir, err := os.MkdirTemp("", "moltnet-eval-*")
 	if err != nil {
@@ -1647,6 +1653,11 @@ func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) 
 	results, err := extractResults(jobDir)
 	if err != nil {
 		return nil, false, fmt.Errorf("extracting results: %w", err)
+	}
+
+	// Write job_result.json for canary comparison parity with DSPy engine.
+	if err := writeJobResultSummary(jobDir, "harbor", startedAt, results, opts); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not write harbor job_result.json: %v\n", err)
 	}
 
 	printRunPaths(jobDir)

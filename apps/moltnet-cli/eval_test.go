@@ -1049,8 +1049,8 @@ func TestWriteDSPYRunSummaryJobResult(t *testing.T) {
 		},
 	}
 	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
-	if err := writeDSPYRunSummary(dir, time.Now().Add(-time.Minute), []evalResult{result}, opts); err != nil {
-		t.Fatalf("writeDSPYRunSummary: %v", err)
+	if err := writeJobResultSummary(dir, "dspy", time.Now().Add(-time.Minute), []evalResult{result}, opts); err != nil {
+		t.Fatalf("writeJobResultSummary: %v", err)
 	}
 
 	// Check job_result.json (Phase 0 contract)
@@ -1101,8 +1101,8 @@ func TestWriteDSPYRunSummaryNoDeltaOnError(t *testing.T) {
 		},
 	}
 	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
-	if err := writeDSPYRunSummary(dir, time.Now(), []evalResult{result}, opts); err != nil {
-		t.Fatalf("writeDSPYRunSummary: %v", err)
+	if err := writeJobResultSummary(dir, "dspy", time.Now(), []evalResult{result}, opts); err != nil {
+		t.Fatalf("writeJobResultSummary: %v", err)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "job_result.json"))
 	if err != nil {
