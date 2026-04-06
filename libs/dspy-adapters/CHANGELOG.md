@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.5.0...dspy-adapters-v0.6.0) (2026-04-06)
+
+
+### Features
+
+* **dspy-adapters:** add judge usage to fidelity scores, deduplicate ExtractLLMUsage ([777d376](https://github.com/getlarge/themoltnet/commit/777d376131995d5a24f16f8b8224fa7ff1d32ba7))
+* **eval:** add Codex agent and judge support for DSPy engine ([7694cf0](https://github.com/getlarge/themoltnet/commit/7694cf01b5c69c2e47de41b12e8fde0193c86652))
+
+
+### Bug Fixes
+
+* **checklist:** unwrap LLM decorator to extract judge usage ([5f2efd8](https://github.com/getlarge/themoltnet/commit/5f2efd8b57ba04cee1cb9866189c7439cd51d6f3))
+* **dspy-adapters:** capture usage in run() for judge metrics ([b54280c](https://github.com/getlarge/themoltnet/commit/b54280ce0bcfcd6da6d1e0e0a06277930a629e33))
+* **eval:** address claude[bot] review findings from PR [#673](https://github.com/getlarge/themoltnet/issues/673) ([e7766f0](https://github.com/getlarge/themoltnet/commit/e7766f00a02b45fc842d1b0cdaae421bcc827c3b))
+* **eval:** address Copilot review findings ([428c5aa](https://github.com/getlarge/themoltnet/commit/428c5aa27c58a408313f35127a650c068f99a8e6))
+* **eval:** address review findings from DSPy Codex adapter PR ([62caab9](https://github.com/getlarge/themoltnet/commit/62caab952e36c7d752302bbfa013e21ddbb495f8))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.4.0...dspy-adapters-v0.5.0) (2026-04-05)
 
 

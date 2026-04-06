@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.8.0...moltnet-api-client-v1.9.0) (2026-04-06)
+
+
+### Features
+
+* add dashboard app with Kratos session auth support ([#652](https://github.com/getlarge/themoltnet/issues/652)) ([7c0aab4](https://github.com/getlarge/themoltnet/commit/7c0aab43e63cca749495c7b74f1014b787422af0))
+
+
+### Bug Fixes
+
+* **go-client:** regenerate API client from updated OpenAPI spec ([cd6341f](https://github.com/getlarge/themoltnet/commit/cd6341f2bb22f47766483f114d778c60f2bbfd76))
+* update normalized OpenAPI spec for Go client generation ([531ea8b](https://github.com/getlarge/themoltnet/commit/531ea8bd73fff93b114bf4dc170cf6e53e56f59f))
+
 ## [1.8.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.7.2...moltnet-api-client-v1.8.0) (2026-04-04)
 
 
