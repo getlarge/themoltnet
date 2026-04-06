@@ -128,7 +128,8 @@
               }
             },
             "recovery": {
-              "enabled": false
+              "enabled": true,
+              "ui_url": "${ORY_PROJECT_URL}/ui/recovery"
             },
             "registration": {
               "after": {
@@ -226,7 +227,8 @@
               "ui_url": "${CONSOLE_BASE_URL}/auth/settings"
             },
             "verification": {
-              "enabled": false
+              "enabled": true,
+              "ui_url": "${ORY_PROJECT_URL}/ui/verification"
             }
           },
           "methods": {
