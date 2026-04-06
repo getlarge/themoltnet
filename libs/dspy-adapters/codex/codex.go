@@ -540,7 +540,7 @@ func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspyt
 	start := time.Now()
 	done := make(chan struct{})
 	if l.config.OnHeartbeat != nil {
-		go runHeartbeat(l.config.OnHeartbeat, done)
+		go dspytypes.RunHeartbeat(l.config.OnHeartbeat, done)
 	}
 	runErr := cmd.Run()
 	close(done)
@@ -591,12 +591,12 @@ func parseCodexTrajectory(raw []byte) *dspytypes.GenerateResponse {
 		case "item.completed":
 			appendEvent(&resp.Trajectory, line)
 			if evt.Item != nil && evt.Item.Type == "agent_message" {
-				resp.NumTurns++
 				if evt.Item.Text != "" {
 					lastAgentText = evt.Item.Text
 				}
 			}
 		case "turn.completed":
+			resp.NumTurns++
 			appendEvent(&resp.Trajectory, line)
 			if evt.Usage != nil {
 				totalInput += evt.Usage.InputTokens
@@ -697,6 +697,8 @@ func BridgeCodexAuth(isolatedHome string) error {
 		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), []byte(payload), 0o600)
 	}
 
+	fmt.Fprintf(os.Stderr, "warning: no Codex auth credentials found — Codex will likely fail with 401. "+
+		"Set OPENAI_API_KEY, run 'codex auth login', or set MOLTNET_CODEX_AUTH_CACHE_PATH.\n")
 	return nil
 }
 
@@ -709,18 +711,4 @@ func replaceOrAppendEnv(env []string, key, value string) []string {
 		}
 	}
 	return append(result, prefix+value)
-}
-
-func runHeartbeat(fn dspytypes.HeartbeatFunc, done <-chan struct{}) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	start := time.Now()
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			fn(time.Since(start))
-		}
-	}
 }

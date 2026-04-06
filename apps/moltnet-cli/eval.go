@@ -1273,7 +1273,7 @@ func trimOpenAIModelPrefix(model string) string {
 func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
 	switch judge {
 	case "codex":
-		return "codex", judgeModel
+		return "codex", trimOpenAIModelPrefix(judgeModel)
 	default:
 		return "claude-code", trimAnthropicModelPrefix(judgeModel)
 	}

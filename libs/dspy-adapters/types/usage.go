@@ -42,6 +42,21 @@ type TrajectoryGenerator interface {
 // CLI subprocess execution.
 type HeartbeatFunc func(elapsed time.Duration)
 
+// RunHeartbeat calls fn every 10 seconds until done is closed.
+func RunHeartbeat(fn HeartbeatFunc, done <-chan struct{}) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	start := time.Now()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			fn(time.Since(start))
+		}
+	}
+}
+
 // ExtractLLMUsage reads LastUsage from an LLM, unwrapping decorators
 // (e.g. ModelContextDecorator) as needed. Returns nil if the LLM
 // does not implement UsageTracker.

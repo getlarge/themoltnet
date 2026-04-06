@@ -461,7 +461,7 @@ func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspyt
 	start := time.Now()
 	done := make(chan struct{})
 	if l.config.OnHeartbeat != nil {
-		go runHeartbeat(l.config.OnHeartbeat, done)
+		go dspytypes.RunHeartbeat(l.config.OnHeartbeat, done)
 	}
 	runErr := cmd.Run()
 	close(done)
@@ -523,20 +523,6 @@ func parseStreamJSON(raw []byte) *dspytypes.GenerateResponse {
 		}
 	}
 	return resp
-}
-
-func runHeartbeat(fn dspytypes.HeartbeatFunc, done <-chan struct{}) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	start := time.Now()
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			fn(time.Since(start))
-		}
-	}
 }
 
 // Register adds the claude-code provider to the dspy-go registry.
