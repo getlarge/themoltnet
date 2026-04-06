@@ -45,6 +45,17 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
 	}
 
+	// Resolve agent config directory early so we can skip before validating env vars.
+	moltnetDir := filepath.Join(dir, ".moltnet")
+	agentDir := filepath.Join(moltnetDir, agentName)
+	configPath := filepath.Join(agentDir, "moltnet.json")
+
+	// Skip if already initialized (no env vars needed).
+	if _, err := os.Stat(configPath); err == nil {
+		fmt.Fprintf(os.Stderr, "Agent %q already initialized at %s, skipping\n", agentName, configPath)
+		return nil
+	}
+
 	// Required env vars
 	identityID := getenv("MOLTNET_IDENTITY_ID", fileVars, override)
 	clientID := getenv("MOLTNET_CLIENT_ID", fileVars, override)
@@ -86,17 +97,6 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	registeredAt := getenv("MOLTNET_REGISTERED_AT", fileVars, override)
 	if registeredAt == "" {
 		registeredAt = time.Now().UTC().Format(time.RFC3339Nano)
-	}
-
-	// Resolve agent config directory
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, agentName)
-	configPath := filepath.Join(agentDir, "moltnet.json")
-
-	// Skip if already initialized
-	if _, err := os.Stat(configPath); err == nil {
-		fmt.Fprintf(os.Stderr, "Agent %q already initialized at %s, skipping\n", agentName, configPath)
-		return nil
 	}
 
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
@@ -177,6 +177,12 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	return nil
 }
 
+// shellQuote escapes a value for single-quoted shell strings by replacing
+// each ' with '\''.
+func shellQuote(v string) string {
+	return strings.ReplaceAll(v, "'", `'\''`)
+}
+
 // writeAgentEnvFile writes a shell-sourceable env file for the agent.
 func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) error {
 	prefix := toEnvPrefix(agentName)
@@ -184,17 +190,18 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 
 	var lines []string
 	lines = append(lines, "# Managed by moltnet config init-from-env — do not edit above the user section")
-	lines = append(lines, fmt.Sprintf("%s_CLIENT_ID='%s'", prefix, config.OAuth2.ClientID))
-	lines = append(lines, fmt.Sprintf("%s_CLIENT_SECRET='%s'", prefix, config.OAuth2.ClientSecret))
+	lines = append(lines, fmt.Sprintf("%s_CLIENT_ID='%s'", prefix, shellQuote(config.OAuth2.ClientID)))
+	lines = append(lines, fmt.Sprintf("%s_CLIENT_SECRET='%s'", prefix, shellQuote(config.OAuth2.ClientSecret)))
 
 	if config.GitHub != nil {
-		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, config.GitHub.AppSlug))
-		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_PRIVATE_KEY_PATH='%s'", prefix, config.GitHub.PrivateKeyPath))
-		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_INSTALLATION_ID='%s'", prefix, config.GitHub.InstallationID))
+		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, shellQuote(config.GitHub.AppID)))
+		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_PRIVATE_KEY_PATH='%s'", prefix, shellQuote(config.GitHub.PrivateKeyPath)))
+		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_INSTALLATION_ID='%s'", prefix, shellQuote(config.GitHub.InstallationID)))
 	}
 
-	if config.Git != nil {
-		lines = append(lines, fmt.Sprintf("GIT_CONFIG_GLOBAL='%s'", moltnetRelDir+"/gitconfig"))
+	gitconfigPath := filepath.Join(agentDir, "gitconfig")
+	if _, err := os.Stat(gitconfigPath); err == nil {
+		lines = append(lines, fmt.Sprintf("GIT_CONFIG_GLOBAL='%s'", shellQuote(moltnetRelDir+"/gitconfig")))
 	}
 
 	lines = append(lines, "")

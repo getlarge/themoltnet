@@ -37,7 +37,7 @@ if [ -n "${MOLTNET_AGENT_NAME:-}" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
 
   # Export GIT_CONFIG_GLOBAL for commit signing
   GITCONFIG="$CLAUDE_PROJECT_DIR/.moltnet/$MOLTNET_AGENT_NAME/gitconfig"
-  if [ -f "$GITCONFIG" ]; then
+  if [ -f "$GITCONFIG" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "export GIT_CONFIG_GLOBAL='$GITCONFIG'" >> "$CLAUDE_ENV_FILE"
   fi
 fi

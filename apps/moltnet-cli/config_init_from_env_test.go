@@ -60,7 +60,6 @@ func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 }
 
 func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	t.Setenv("MOLTNET_IDENTITY_ID", "test-identity-123")
@@ -198,7 +197,6 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Set a process env var that should win over the file
@@ -255,7 +253,6 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileOverride(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Set process env vars
@@ -331,7 +328,6 @@ func TestConfigInitFromEnvFileMissing(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// File provides some vars
@@ -379,5 +375,54 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	// Process vars
 	if config.Keys.Fingerprint != "SHA256:processfingerprint" {
 		t.Errorf("expected 'SHA256:processfingerprint', got %q", config.Keys.Fingerprint)
+	}
+}
+
+func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Setenv("MOLTNET_IDENTITY_ID", "gh-app-identity")
+	t.Setenv("MOLTNET_CLIENT_ID", "gh-app-client-id")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "gh-app-client-secret")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:ghappfingerprint")
+	t.Setenv("MOLTNET_GITHUB_APP_ID", "123456")
+	t.Setenv("MOLTNET_GITHUB_APP_INSTALLATION_ID", "78901234")
+	t.Setenv("MOLTNET_GITHUB_APP_PRIVATE_KEY", "fake-pem-content")
+	t.Setenv("MOLTNET_GITHUB_APP_SLUG", "my-gh-app")
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "gh-app-agent",
+		"--dir", tmpDir,
+		"--skip-git",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Check env file contains numeric AppID, not slug
+	envPath := filepath.Join(tmpDir, ".moltnet", "gh-app-agent", "env")
+	envData, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatalf("failed to read env file: %v", err)
+	}
+	envContent := string(envData)
+
+	if !strings.Contains(envContent, "GH_APP_AGENT_GITHUB_APP_ID='123456'") {
+		t.Errorf("env file should contain numeric AppID '123456', got:\n%s", envContent)
+	}
+	// Verify the AppID line contains the numeric ID, not the slug
+	for _, line := range strings.Split(envContent, "\n") {
+		if strings.Contains(line, "GITHUB_APP_ID=") && !strings.Contains(line, "INSTALLATION") {
+			if strings.Contains(line, "my-gh-app") {
+				t.Errorf("GITHUB_APP_ID line contains slug instead of numeric ID: %s", line)
+			}
+			break
+		}
+	}
+	if !strings.Contains(envContent, "GH_APP_AGENT_GITHUB_APP_INSTALLATION_ID='78901234'") {
+		t.Errorf("env file missing installation ID, got:\n%s", envContent)
 	}
 }
