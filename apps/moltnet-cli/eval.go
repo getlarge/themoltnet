@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -17,9 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/codex"
+	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 	"gopkg.in/yaml.v2"
 )
 
@@ -35,7 +35,6 @@ type evalRunOpts struct {
 	worktreeExcludes []string
 	dspyRepoRoot     string
 	dspySourceRef    string
-	dspyJudgeLLM     core.LLM
 }
 
 // worktreeMu serializes git worktree add/remove operations to avoid
@@ -159,14 +158,37 @@ type evalConfig struct {
 
 // --- Prerequisites ---
 
-func checkPrerequisites(engine string) error {
+func checkPrerequisites(engine string, opts ...evalRunOpts) error {
 	switch engine {
 	case "dspy":
-		if _, err := exec.LookPath("claude"); err != nil {
-			return fmt.Errorf("claude CLI not found on PATH: %w", err)
-		}
 		if _, err := exec.LookPath("git"); err != nil {
 			return fmt.Errorf("git CLI not found on PATH: %w", err)
+		}
+		agent := "claude"
+		judge := "claude"
+		if len(opts) > 0 {
+			agent = opts[0].agent
+			judge = opts[0].judge
+		}
+		switch agent {
+		case "codex":
+			if _, err := exec.LookPath("codex"); err != nil {
+				return fmt.Errorf("codex CLI not found on PATH: %w", err)
+			}
+		default:
+			if _, err := exec.LookPath("claude"); err != nil {
+				return fmt.Errorf("claude CLI not found on PATH: %w", err)
+			}
+		}
+		if judge == "codex" && agent != "codex" {
+			if _, err := exec.LookPath("codex"); err != nil {
+				return fmt.Errorf("codex CLI not found on PATH (required for --judge codex): %w", err)
+			}
+		}
+		if judge == "claude" && agent != "claude" {
+			if _, err := exec.LookPath("claude"); err != nil {
+				return fmt.Errorf("claude CLI not found on PATH (required for --judge claude): %w", err)
+			}
 		}
 		return nil
 	case "harbor":
@@ -603,7 +625,7 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 }
 
 func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(opts.engine); err != nil {
+	if err := checkPrerequisites(opts.engine, opts); err != nil {
 		return err
 	}
 	input, err := resolveEvalRun(taskDir, packPath, opts.agent, opts.model)
@@ -617,7 +639,7 @@ func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(opts.engine); err != nil {
+	if err := checkPrerequisites(opts.engine, opts); err != nil {
 		return err
 	}
 	runs, err := loadConfig(configPath)
@@ -665,12 +687,6 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	}
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
-
-	judgeLLM, err := dspyadapters.InitProvider("claude-code", trimAnthropicModelPrefix(opts.judgeModel))
-	if err != nil {
-		return fmt.Errorf("initialize judge LLM: %w", err)
-	}
-	opts.dspyJudgeLLM = judgeLLM
 
 	group := runGroup{agent: input.agent, model: input.model, inputs: []evalRunInput{input}}
 	header := groupHeaderLine(0, 1, group)
@@ -742,8 +758,12 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	}
 	// Validate per-input agent overrides (config mode can specify per-run agents).
 	for _, in := range inputs {
-		if in.agent != "" && in.agent != "claude" {
-			return fmt.Errorf("scenario %q: --engine dspy currently supports --agent claude only (got %q)", in.name, in.agent)
+		if in.agent != "" {
+			switch in.agent {
+			case "claude", "codex":
+			default:
+				return fmt.Errorf("scenario %q: --engine dspy supports --agent claude or codex (got %q)", in.name, in.agent)
+			}
 		}
 	}
 	repoRoot, sourceRef, err := resolveDSPYEvalSource()
@@ -752,12 +772,6 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	}
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
-
-	judgeLLM, err := dspyadapters.InitProvider("claude-code", trimAnthropicModelPrefix(opts.judgeModel))
-	if err != nil {
-		return fmt.Errorf("initialize judge LLM: %w", err)
-	}
-	opts.dspyJudgeLLM = judgeLLM
 
 	runDir, err := os.MkdirTemp("", "moltnet-eval-dspy-batch-*")
 	if err != nil {
@@ -833,11 +847,15 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 }
 
 func validateDSPYEvalOpts(opts evalRunOpts) error {
-	if opts.agent != "claude" {
-		return fmt.Errorf("--engine dspy currently supports --agent claude only")
+	switch opts.agent {
+	case "claude", "codex":
+	default:
+		return fmt.Errorf("--engine dspy supports --agent claude or codex, got %q", opts.agent)
 	}
-	if opts.judge != "claude" {
-		return fmt.Errorf("--engine dspy currently supports --judge claude only")
+	switch opts.judge {
+	case "claude", "codex":
+	default:
+		return fmt.Errorf("--engine dspy supports --judge claude or codex, got %q", opts.judge)
 	}
 	return nil
 }
@@ -864,9 +882,18 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		}
 	}()
 
-	fmt.Fprintf(os.Stderr, "[dspy] %s: running Claude task step...\n", variantLabel)
+	agentName := input.agent
+	if agentName == "" {
+		agentName = opts.agent
+	}
+	fmt.Fprintf(os.Stderr, "[dspy] %s: running %s task step...\n", variantLabel, agentName)
 	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
-	agentResult, err := runClaudeEvalAgent(worktreeDir, opts.model, prompt, variantLabel)
+	model := input.model
+	if model == "" {
+		model = opts.model
+	}
+
+	agentResult, err := runEvalAgent(worktreeDir, agentName, model, prompt, variantLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -899,10 +926,18 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Create a fresh judge LLM per variant to avoid sharing lastUsage
+	// state across concurrent goroutines in batch mode.
+	judgeProvider, judgeModelBare := dspyJudgeProvider(opts.judge, opts.judgeModel)
+	judgeLLM, err := dspyadapters.InitProvider(judgeProvider, judgeModelBare)
+	if err != nil {
+		return nil, fmt.Errorf("initialize judge LLM: %w", err)
+	}
+
 	fmt.Fprintf(os.Stderr, "[dspy] %s: judging checklist...\n", variantLabel)
 	judgeStart := time.Now()
 	judged, err := checklist.Run(ctx, checklist.Request{
-		LLM:              opts.dspyJudgeLLM,
+		LLM:              judgeLLM,
 		WorkspaceSummary: filesSnapshot,
 		Criteria: checklist.Criteria{
 			Type:      criteria.Type,
@@ -928,7 +963,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if withContext {
 		variant = "with-context"
 	}
-	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged, judgeMs, input.name, variant, opts); err != nil {
+	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged, judgeMs, input.name, variant, agentName, model, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
 	}
 	fmt.Fprintf(os.Stderr, "[dspy] %s: completed (reward %.1f%%)\n", variantLabel, scores.reward*100)
@@ -1153,59 +1188,70 @@ type dspyAgentRunResult struct {
 	durationMs int64
 	costUSD    float64
 	numTurns   int
-	trajectory []json.RawMessage // raw stream-json events (assistant + result only)
+	sessionID  string
+	// Token usage (aggregated across all turns).
+	inputTokens       int
+	cachedInputTokens int
+	outputTokens      int
+	trajectory        []json.RawMessage // raw stream-json events (assistant + result only)
 }
 
-// streamEvent is the minimal envelope for stream-json events.
-type streamEvent struct {
-	Type    string `json:"type"`
-	Subtype string `json:"subtype,omitempty"`
-	// result-specific fields
-	Result     string  `json:"result,omitempty"`
-	DurationMs int64   `json:"duration_ms,omitempty"`
-	CostUSD    float64 `json:"total_cost_usd,omitempty"`
-	NumTurns   int     `json:"num_turns,omitempty"`
-	IsError    bool    `json:"is_error,omitempty"`
-}
+// runEvalAgent spawns the appropriate CLI agent via the dspy-go adapter,
+// capturing trajectory, usage, and session metadata.
+func runEvalAgent(workDir, agent, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
+	heartbeat := dspytypes.HeartbeatFunc(func(d time.Duration) {
+		fmt.Fprintf(os.Stderr, "[dspy] %s: agent task still running (%s elapsed)\n",
+			statusLabel, d.Round(time.Second))
+	})
 
-func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
-	args := []string{
-		"--print",
-		"--verbose",
-		"--output-format", "stream-json",
-		"--model", trimAnthropicModelPrefix(model),
-		"--permission-mode", "bypassPermissions",
-		"--no-session-persistence",
-		"--settings", "{}",
-		"--strict-mcp-config",
-		"--disable-slash-commands",
-		"--no-chrome",
+	var gen dspytypes.TrajectoryGenerator
+	switch agent {
+	case "codex":
+		llm, err := codex.New(codex.Config{
+			Model:       trimOpenAIModelPrefix(model),
+			WorkDir:     workDir,
+			SandboxMode: "workspace-write",
+			IsolateHome: true,
+			OnHeartbeat: heartbeat,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init codex adapter: %w", err)
+		}
+		gen = llm
+	default:
+		llm, err := claudecode.New(claudecode.Config{
+			Model:              trimAnthropicModelPrefix(model),
+			WorkDir:            workDir,
+			IsolateFromSession: true,
+			OnHeartbeat:        heartbeat,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init claude adapter: %w", err)
+		}
+		gen = llm
 	}
-	cmd := exec.Command("claude", args...)
-	cmd.Dir = workDir
-	cmd.Stdin = strings.NewReader(prompt)
-	cmd.Env = buildClaudeEvalEnv()
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
+	ctx := context.Background()
+	resp, err := gen.GenerateWithTrajectory(ctx, prompt)
 
 	result := &dspyAgentRunResult{}
-	done := make(chan struct{})
-	go emitDSPYTaskHeartbeat(statusLabel, done)
-	runErr := cmd.Run()
-	close(done)
-
-	result.stderr = strings.TrimSpace(stderr.String())
-	result.trajectory, result.output, result.durationMs, result.costUSD, result.numTurns =
-		parseStreamJSON(stdout.Bytes())
-
-	if runErr != nil {
-		if result.output == "" {
-			result.output = result.stderr
+	if resp != nil {
+		result.trajectory = resp.Trajectory
+		result.output = resp.Content
+		result.sessionID = resp.SessionID
+		result.durationMs = resp.DurationMs
+		result.costUSD = resp.CostUSD
+		result.numTurns = resp.NumTurns
+		if resp.Usage != nil {
+			result.inputTokens = resp.Usage.PromptTokens
+			result.outputTokens = resp.Usage.CompletionTokens
 		}
+		result.cachedInputTokens = resp.CacheReadTokens
+	}
+
+	if err != nil {
 		if result.output == "" {
-			result.output = runErr.Error()
+			result.output = err.Error()
 		}
 		return result, nil
 	}
@@ -1214,81 +1260,23 @@ func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentR
 	return result, nil
 }
 
-// parseStreamJSON extracts trajectory events (assistant + result), final text,
-// and metadata from Claude stream-json NDJSON output.
-func parseStreamJSON(raw []byte) (trajectory []json.RawMessage, finalText string, durationMs int64, costUSD float64, numTurns int) {
-	for _, line := range bytes.Split(raw, []byte("\n")) {
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		var evt streamEvent
-		if err := json.Unmarshal(line, &evt); err != nil {
-			continue
-		}
-		switch evt.Type {
-		case "assistant":
-			// Copy line to avoid retaining the full stdout buffer.
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			trajectory = append(trajectory, json.RawMessage(copied))
-		case "result":
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			trajectory = append(trajectory, json.RawMessage(copied))
-			finalText = evt.Result
-			durationMs = evt.DurationMs
-			costUSD = evt.CostUSD
-			numTurns = evt.NumTurns
-		}
-		// Skip system/hook/rate_limit events from trajectory
-	}
-	return
-}
-
-func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	start := time.Now()
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			fmt.Fprintf(
-				os.Stderr,
-				"[dspy] %s: Claude task still running (%s elapsed)\n",
-				statusLabel,
-				time.Since(start).Round(time.Second),
-			)
-		}
-	}
-}
-
-func buildClaudeEvalEnv() []string {
-	return buildClaudeEvalEnvFrom(os.Environ())
-}
-
-func buildClaudeEvalEnvFrom(env []string) []string {
-	filtered := make([]string, 0, len(env)+1)
-	for _, e := range env {
-		for _, prefix := range []string{"CLAUDECODE"} {
-			if strings.HasPrefix(e, prefix+"=") || strings.HasPrefix(e, prefix) {
-				goto skip
-			}
-		}
-		if strings.HasPrefix(e, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=") {
-			goto skip
-		}
-		filtered = append(filtered, e)
-	skip:
-	}
-	filtered = append(filtered, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
-	return filtered
-}
-
 func trimAnthropicModelPrefix(model string) string {
 	return strings.TrimPrefix(model, "anthropic/")
+}
+
+func trimOpenAIModelPrefix(model string) string {
+	return strings.TrimPrefix(model, "openai/")
+}
+
+// dspyJudgeProvider returns the dspy-adapters provider name and bare model
+// for the given --judge value.
+func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
+	switch judge {
+	case "codex":
+		return "codex", judgeModel
+	default:
+		return "claude-code", trimAnthropicModelPrefix(judgeModel)
+	}
 }
 
 func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
@@ -1393,7 +1381,7 @@ func parseGitStatusPaths(output string) []string {
 	return paths
 }
 
-func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result, judgeMs int64, scenarioName, variant string, opts evalRunOpts) error {
+func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result, judgeMs int64, scenarioName, variant, resolvedAgent, resolvedModel string, opts evalRunOpts) error {
 	verifierDir := filepath.Join(variantDir, "verifier")
 	if err := os.MkdirAll(verifierDir, 0o755); err != nil {
 		return err
@@ -1425,7 +1413,7 @@ func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, jud
 
 	// Phase 0 contract: trial_result.json
 	jobID := filepath.Base(filepath.Dir(variantDir))
-	tr := buildTrialResult(jobID, scenarioName, variant, agent, judged, judgeMs, opts)
+	tr := buildTrialResult(jobID, scenarioName, variant, agent, judged, judgeMs, resolvedAgent, resolvedModel, opts)
 	trialPayload, err := json.MarshalIndent(tr, "", "  ")
 	if err != nil {
 		return err
@@ -1449,7 +1437,7 @@ func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error
 	}
 	// Phase 0 contract: normalized trajectory.json
 	if len(agent.trajectory) > 0 {
-		traj := normalizeTrajectory(agent.trajectory, agent.output, agent.durationMs, agent.costUSD, agent.numTurns)
+		traj := normalizeTrajectory(agent)
 		trajectoryPayload, err := json.MarshalIndent(traj, "", "  ")
 		if err != nil {
 			return err

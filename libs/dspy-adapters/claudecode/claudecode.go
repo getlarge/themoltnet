@@ -11,8 +11,11 @@ import (
 	"os/exec"
 	"strings"
 
+	"time"
+
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/clierrors"
+	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 )
 
 const (
@@ -36,12 +39,24 @@ type Config struct {
 
 	// Env overrides for the subprocess. Merged with os.Environ().
 	Env map[string]string
+
+	// WorkDir sets the working directory for the subprocess.
+	// Defaults to os.TempDir() to avoid loading project config.
+	WorkDir string
+
+	// IsolateFromSession disables auto-memory and strips session env vars.
+	// Use for eval runs where the agent should not carry state across trials.
+	IsolateFromSession bool
+
+	// OnHeartbeat is called periodically during long-running subprocess execution.
+	OnHeartbeat dspytypes.HeartbeatFunc
 }
 
 // LLM implements core.LLM by spawning the Claude Code CLI.
 type LLM struct {
 	*core.BaseLLM
-	config Config
+	config    Config
+	lastUsage *core.TokenInfo
 }
 
 // New creates a new Claude Code CLI adapter.
@@ -162,11 +177,18 @@ func (l *LLM) buildArgsWithOutputFormat(outputFormat string, extra []string) []s
 	return args
 }
 
+// LastUsage returns the token usage from the most recent LLM call.
+func (l *LLM) LastUsage() *core.TokenInfo {
+	return l.lastUsage
+}
+
 // run executes the Claude CLI with the given prompt and args.
 func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMResponse, error) {
 	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
-	// Run from a temp dir to avoid loading project CLAUDE.md/AGENTS.md
-	cmd.Dir = os.TempDir()
+	cmd.Dir = l.config.WorkDir
+	if cmd.Dir == "" {
+		cmd.Dir = os.TempDir()
+	}
 
 	// Pass prompt via stdin
 	cmd.Stdin = strings.NewReader(prompt)
@@ -187,10 +209,37 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 		return nil, fmt.Errorf("claude CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
 	}
 
-	return &core.LLMResponse{
+	resp := &core.LLMResponse{
 		Content:  content,
 		Metadata: map[string]interface{}{"provider": ProviderName},
-	}, nil
+	}
+
+	// Try to extract usage from the JSON envelope (--output-format json).
+	resp.Usage = extractUsageFromEnvelope(content)
+	l.lastUsage = resp.Usage
+
+	return resp, nil
+}
+
+// extractUsageFromEnvelope tries to parse token usage from a Claude CLI
+// JSON envelope. Returns nil if the content isn't a JSON envelope.
+func extractUsageFromEnvelope(content string) *core.TokenInfo {
+	var envelope struct {
+		Usage *struct {
+			InputTokens              int `json:"input_tokens"`
+			OutputTokens             int `json:"output_tokens"`
+			CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+			CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.Unmarshal([]byte(content), &envelope); err != nil || envelope.Usage == nil {
+		return nil
+	}
+	return &core.TokenInfo{
+		PromptTokens:     envelope.Usage.InputTokens,
+		CompletionTokens: envelope.Usage.OutputTokens,
+		TotalTokens:      envelope.Usage.InputTokens + envelope.Usage.OutputTokens,
+	}
 }
 
 // buildEnv merges os.Environ with config overrides, stripping sensitive vars.
@@ -210,9 +259,16 @@ func (l *LLM) buildEnv() []string {
 				break
 			}
 		}
+		if l.config.IsolateFromSession && strings.HasPrefix(e, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=") {
+			skip = true
+		}
 		if !skip {
 			filtered = append(filtered, e)
 		}
+	}
+
+	if l.config.IsolateFromSession {
+		filtered = append(filtered, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
 	}
 
 	// Apply config overrides
@@ -366,6 +422,121 @@ func extractJSON(text string) string {
 	}
 
 	return ""
+}
+
+// streamEvent is the minimal envelope for Claude stream-json events.
+type streamEvent struct {
+	Type       string  `json:"type"`
+	Subtype    string  `json:"subtype,omitempty"`
+	Result     string  `json:"result,omitempty"`
+	SessionID  string  `json:"session_id,omitempty"`
+	DurationMs int64   `json:"duration_ms,omitempty"`
+	CostUSD    float64 `json:"total_cost_usd,omitempty"`
+	NumTurns   int     `json:"num_turns,omitempty"`
+	IsError    bool    `json:"is_error,omitempty"`
+	Usage      *struct {
+		InputTokens              int `json:"input_tokens"`
+		OutputTokens             int `json:"output_tokens"`
+		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+	} `json:"usage,omitempty"`
+}
+
+// GenerateWithTrajectory runs a prompt with --output-format stream-json
+// and returns the full event trajectory alongside usage metadata.
+func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
+	args := l.buildArgsWithOutputFormat("stream-json", []string{"--verbose"})
+	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
+	cmd.Dir = l.config.WorkDir
+	if cmd.Dir == "" {
+		cmd.Dir = os.TempDir()
+	}
+	cmd.Stdin = strings.NewReader(prompt)
+	cmd.Env = l.buildEnv()
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	start := time.Now()
+	done := make(chan struct{})
+	if l.config.OnHeartbeat != nil {
+		go runHeartbeat(l.config.OnHeartbeat, done)
+	}
+	runErr := cmd.Run()
+	close(done)
+
+	resp := parseStreamJSON(stdout.Bytes())
+	resp.DurationMs = time.Since(start).Milliseconds()
+
+	l.lastUsage = resp.Usage
+
+	if runErr != nil {
+		if resp.Content == "" {
+			resp.Content = strings.TrimSpace(stderr.String())
+		}
+		if resp.Content == "" {
+			resp.Content = runErr.Error()
+		}
+		return resp, clierrors.ClassifyCLIError("claude", runErr, stderr.String(), stdout.String())
+	}
+
+	return resp, nil
+}
+
+// parseStreamJSON extracts trajectory events, final text, and metadata
+// from Claude stream-json NDJSON output.
+func parseStreamJSON(raw []byte) *dspytypes.GenerateResponse {
+	resp := &dspytypes.GenerateResponse{}
+	for _, line := range bytes.Split(raw, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var evt streamEvent
+		if err := json.Unmarshal(line, &evt); err != nil {
+			continue
+		}
+		switch evt.Type {
+		case "assistant":
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			resp.Trajectory = append(resp.Trajectory, json.RawMessage(copied))
+		case "result":
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			resp.Trajectory = append(resp.Trajectory, json.RawMessage(copied))
+			resp.Content = evt.Result
+			resp.SessionID = evt.SessionID
+			resp.DurationMs = evt.DurationMs
+			resp.CostUSD = evt.CostUSD
+			resp.NumTurns = evt.NumTurns
+			if evt.Usage != nil {
+				resp.Usage = &core.TokenInfo{
+					PromptTokens:     evt.Usage.InputTokens,
+					CompletionTokens: evt.Usage.OutputTokens,
+					TotalTokens:      evt.Usage.InputTokens + evt.Usage.OutputTokens,
+				}
+				resp.CacheCreationTokens = evt.Usage.CacheCreationInputTokens
+				resp.CacheReadTokens = evt.Usage.CacheReadInputTokens
+			}
+		}
+	}
+	return resp
+}
+
+func runHeartbeat(fn dspytypes.HeartbeatFunc, done <-chan struct{}) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	start := time.Now()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			fn(time.Since(start))
+		}
+	}
 }
 
 // Register adds the claude-code provider to the dspy-go registry.

@@ -576,6 +576,9 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 1},
 		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 2},
 		{engine: "dspy", agent: "claude", judge: "claude", concurrency: 4},
+		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
+		{engine: "dspy", agent: "codex", judge: "codex", concurrency: 1},
 	}
 	for _, opts := range ok {
 		if err := validateDSPYEvalOpts(opts); err != nil {
@@ -584,49 +587,13 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 	}
 
 	bad := []evalRunOpts{
-		{engine: "dspy", agent: "codex", judge: "claude", concurrency: 1},
-		{engine: "dspy", agent: "claude", judge: "codex", concurrency: 1},
+		{engine: "dspy", agent: "harbor", judge: "claude", concurrency: 1},
+		{engine: "dspy", agent: "claude", judge: "harbor", concurrency: 1},
 	}
 	for _, opts := range bad {
 		if err := validateDSPYEvalOpts(opts); err == nil {
 			t.Errorf("validateDSPYEvalOpts(%+v) = nil, want error", opts)
 		}
-	}
-}
-
-func TestParseStreamJSONExtractsTrajectoryAndResult(t *testing.T) {
-	t.Parallel()
-	input := []byte(`{"type":"system","subtype":"init","session_id":"abc"}
-{"type":"system","subtype":"hook_started","hook_id":"h1"}
-{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}
-{"type":"result","subtype":"success","result":"Hello!","duration_ms":1234,"total_cost_usd":0.05,"num_turns":1}
-`)
-	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
-	if len(trajectory) != 2 {
-		t.Fatalf("expected 2 trajectory events (assistant+result), got %d", len(trajectory))
-	}
-	if finalText != "Hello!" {
-		t.Fatalf("expected final text 'Hello!', got %q", finalText)
-	}
-	if durationMs != 1234 {
-		t.Fatalf("expected duration 1234, got %d", durationMs)
-	}
-	if costUSD != 0.05 {
-		t.Fatalf("expected cost 0.05, got %f", costUSD)
-	}
-	if numTurns != 1 {
-		t.Fatalf("expected 1 turn, got %d", numTurns)
-	}
-}
-
-func TestParseStreamJSONHandlesEmptyInput(t *testing.T) {
-	t.Parallel()
-	trajectory, finalText, _, _, _ := parseStreamJSON([]byte{})
-	if len(trajectory) != 0 {
-		t.Fatal("expected empty trajectory for empty input")
-	}
-	if finalText != "" {
-		t.Fatal("expected empty final text")
 	}
 }
 
@@ -751,30 +718,6 @@ func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
 		if got := filter.matches(tt.rel, tt.isDir); got != tt.want {
 			t.Errorf("filter.matches(%q, %v) = %v, want %v", tt.rel, tt.isDir, got, tt.want)
 		}
-	}
-}
-
-func TestBuildClaudeEvalEnvDisablesAutoMemoryOnly(t *testing.T) {
-	env := buildClaudeEvalEnvFrom([]string{
-		"PATH=/usr/bin:/bin",
-		"HOME=/tmp/home",
-		"CLAUDECODE=1",
-		"CLAUDE_CODE_DISABLE_AUTO_MEMORY=0",
-		"CLAUDE_CODE_OAUTH_TOKEN=secret",
-	})
-
-	joined := strings.Join(env, "\n")
-	if strings.Contains(joined, "CLAUDECODE=1") {
-		t.Fatal("expected CLAUDECODE to be stripped")
-	}
-	if !strings.Contains(joined, "CLAUDE_CODE_OAUTH_TOKEN=secret") {
-		t.Fatal("expected unrelated CLAUDE_CODE env vars to be preserved")
-	}
-	if !strings.Contains(joined, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1") {
-		t.Fatal("expected auto memory disable env var to be enforced")
-	}
-	if strings.Contains(joined, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=0") {
-		t.Fatal("expected prior auto memory setting to be replaced")
 	}
 }
 
@@ -960,65 +903,6 @@ func TestGroupHeaderLine(t *testing.T) {
 	}
 }
 
-func TestParseStreamJSONMultiTurn(t *testing.T) {
-	t.Parallel()
-	input := []byte(`{"type":"system","subtype":"init","session_id":"s1"}
-{"type":"assistant","message":{"content":[{"type":"text","text":"Let me check."}]}}
-{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}
-{"type":"assistant","message":{"content":[{"type":"text","text":"Done."}]}}
-{"type":"result","subtype":"success","result":"Done.","duration_ms":5000,"total_cost_usd":0.12,"num_turns":3}
-`)
-	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
-	if len(trajectory) != 4 { // 3 assistant + 1 result
-		t.Fatalf("expected 4 trajectory events, got %d", len(trajectory))
-	}
-	if finalText != "Done." {
-		t.Fatalf("expected final text 'Done.', got %q", finalText)
-	}
-	if durationMs != 5000 {
-		t.Fatalf("expected duration 5000, got %d", durationMs)
-	}
-	if costUSD != 0.12 {
-		t.Fatalf("expected cost 0.12, got %f", costUSD)
-	}
-	if numTurns != 3 {
-		t.Fatalf("expected 3 turns, got %d", numTurns)
-	}
-}
-
-func TestParseStreamJSONErrorResult(t *testing.T) {
-	t.Parallel()
-	input := []byte(`{"type":"assistant","message":{"content":[{"type":"text","text":"oops"}]}}
-{"type":"result","subtype":"error","is_error":true,"result":"something went wrong","duration_ms":100,"total_cost_usd":0.01,"num_turns":1}
-`)
-	trajectory, finalText, durationMs, _, _ := parseStreamJSON(input)
-	if len(trajectory) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(trajectory))
-	}
-	if finalText != "something went wrong" {
-		t.Fatalf("expected error result text, got %q", finalText)
-	}
-	if durationMs != 100 {
-		t.Fatalf("expected duration 100, got %d", durationMs)
-	}
-}
-
-func TestParseStreamJSONSkipsMalformedLines(t *testing.T) {
-	t.Parallel()
-	input := []byte(`not json at all
-{"type":"assistant","message":{"content":[]}}
-{truncated
-{"type":"result","result":"ok","duration_ms":50,"num_turns":1}
-`)
-	trajectory, finalText, _, _, _ := parseStreamJSON(input)
-	if len(trajectory) != 2 { // assistant + result, malformed lines skipped
-		t.Fatalf("expected 2 events (skipping malformed), got %d", len(trajectory))
-	}
-	if finalText != "ok" {
-		t.Fatalf("expected 'ok', got %q", finalText)
-	}
-}
-
 func TestWriteDSPYAgentArtifactsWritesTrajectory(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -1099,7 +983,7 @@ func TestWriteDSPYVariantArtifactsStructure(t *testing.T) {
 		Reasoning: "good work",
 	}
 	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
-	if err := writeDSPYVariantArtifacts(dir, agent, judged, 500, "test-scenario", "without-context", opts); err != nil {
+	if err := writeDSPYVariantArtifacts(dir, agent, judged, 500, "test-scenario", "without-context", "claude", "anthropic/claude-sonnet-4-6", opts); err != nil {
 		t.Fatalf("writeDSPYVariantArtifacts: %v", err)
 	}
 
@@ -1252,5 +1136,34 @@ func TestEvalRunCompletionError(t *testing.T) {
 
 	if err := evalRunCompletionError(results, false); err != nil {
 		t.Fatalf("expected nil error on clean completion, got %v", err)
+	}
+}
+
+func TestTrimOpenAIModelPrefix(t *testing.T) {
+	if got := trimOpenAIModelPrefix("openai/gpt-5-codex"); got != "gpt-5-codex" {
+		t.Fatalf("expected 'gpt-5-codex', got %q", got)
+	}
+	if got := trimOpenAIModelPrefix("gpt-5-codex"); got != "gpt-5-codex" {
+		t.Fatalf("expected no-op for unprefixed, got %q", got)
+	}
+}
+
+func TestDspyJudgeProvider(t *testing.T) {
+	tests := []struct {
+		judge      string
+		judgeModel string
+		wantProv   string
+		wantModel  string
+	}{
+		{"claude", "claude-sonnet-4-6", "claude-code", "claude-sonnet-4-6"},
+		{"claude", "anthropic/claude-sonnet-4-6", "claude-code", "claude-sonnet-4-6"},
+		{"codex", "gpt-5-codex", "codex", "gpt-5-codex"},
+	}
+	for _, tt := range tests {
+		prov, model := dspyJudgeProvider(tt.judge, tt.judgeModel)
+		if prov != tt.wantProv || model != tt.wantModel {
+			t.Errorf("dspyJudgeProvider(%q, %q) = (%q, %q), want (%q, %q)",
+				tt.judge, tt.judgeModel, prov, model, tt.wantProv, tt.wantModel)
+		}
 	}
 }

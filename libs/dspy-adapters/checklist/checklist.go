@@ -10,6 +10,7 @@ import (
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
+	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 )
 
 type Criterion struct {
@@ -36,6 +37,7 @@ type Result struct {
 	Details   map[string]float64
 	Scores    []ScoredCriterion
 	Reasoning string
+	Usage     *core.TokenInfo // Token usage from the judge LLM call, if available.
 }
 
 type Request struct {
@@ -109,6 +111,8 @@ func Run(ctx context.Context, req Request) (*Result, error) {
 	if v, ok := result["reasoning"]; ok {
 		out.Reasoning = fmt.Sprintf("%v", v)
 	}
+	// Extract usage from the LLM if it implements UsageTracker.
+	out.Usage = dspytypes.ExtractLLMUsage(llm)
 
 	var total float64
 	var maxTotal float64

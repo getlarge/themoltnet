@@ -10,6 +10,7 @@ import (
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyerrors "github.com/XiaoConstantine/dspy-go/pkg/errors"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
+	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 )
 
 // Scores holds the three-axis fidelity scores.
@@ -20,6 +21,7 @@ type Scores struct {
 	Composite    float64
 	Reasoning    string
 	Rationale    string
+	Usage        *core.TokenInfo // Token usage from the judge LLM call, if available.
 }
 
 // Request defines a single fidelity judge run, including provider setup.
@@ -120,7 +122,9 @@ func Judge(
 		)
 	}
 
-	scores := &Scores{}
+	scores := &Scores{
+		Usage: dspytypes.ExtractLLMUsage(llm),
+	}
 
 	scores.Coverage, err = parseRequiredScore(result, "coverage")
 	if err != nil {

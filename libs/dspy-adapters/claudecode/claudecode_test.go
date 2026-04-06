@@ -142,3 +142,62 @@ func TestExtractJSONSchemaFromPromptNoFence(t *testing.T) {
 		t.Fatalf("expected empty schema, got: %s", schema)
 	}
 }
+
+func TestParseStreamJSONExtractsTrajectoryAndUsage(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"system","subtype":"init","session_id":"abc"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}
+{"type":"result","subtype":"success","session_id":"sess-1","result":"Hello!","duration_ms":1234,"total_cost_usd":0.05,"num_turns":1,"usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":10}}
+`)
+	r := parseStreamJSON(input)
+	if len(r.Trajectory) != 2 {
+		t.Fatalf("expected 2 trajectory events (assistant+result), got %d", len(r.Trajectory))
+	}
+	if r.Content != "Hello!" {
+		t.Fatalf("expected 'Hello!', got %q", r.Content)
+	}
+	if r.SessionID != "sess-1" {
+		t.Fatalf("expected session ID 'sess-1', got %q", r.SessionID)
+	}
+	if r.DurationMs != 1234 {
+		t.Fatalf("expected duration 1234, got %d", r.DurationMs)
+	}
+	if r.CostUSD != 0.05 {
+		t.Fatalf("expected cost 0.05, got %f", r.CostUSD)
+	}
+	if r.NumTurns != 1 {
+		t.Fatalf("expected 1 turn, got %d", r.NumTurns)
+	}
+	if r.Usage == nil {
+		t.Fatal("expected non-nil usage")
+	}
+	if r.Usage.PromptTokens != 100 {
+		t.Fatalf("expected 100 prompt tokens, got %d", r.Usage.PromptTokens)
+	}
+	if r.Usage.CompletionTokens != 50 {
+		t.Fatalf("expected 50 completion tokens, got %d", r.Usage.CompletionTokens)
+	}
+}
+
+func TestParseStreamJSONHandlesEmptyInput(t *testing.T) {
+	t.Parallel()
+	r := parseStreamJSON([]byte{})
+	if len(r.Trajectory) != 0 {
+		t.Fatal("expected empty trajectory")
+	}
+	if r.Content != "" {
+		t.Fatal("expected empty content")
+	}
+}
+
+func TestLastUsageReturnsNilByDefault(t *testing.T) {
+	t.Parallel()
+	cfg := Config{Model: "test"}
+	llm := &LLM{
+		BaseLLM: core.NewBaseLLM(ProviderName, "test", nil, nil),
+		config:  cfg,
+	}
+	if llm.LastUsage() != nil {
+		t.Fatal("expected nil LastUsage by default")
+	}
+}

@@ -11,8 +11,12 @@ import (
 	"os/exec"
 	"strings"
 
+	"path/filepath"
+	"time"
+
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/clierrors"
+	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 )
 
 const (
@@ -36,12 +40,24 @@ type Config struct {
 
 	// Env overrides for the subprocess. Merged with os.Environ().
 	Env map[string]string
+
+	// WorkDir sets the working directory for the subprocess.
+	// Defaults to os.TempDir() to avoid loading project config.
+	WorkDir string
+
+	// IsolateHome creates a temp CODEX_HOME with auth bridged from the
+	// user's real home. Prevents loading user/project MCP servers and plugins.
+	IsolateHome bool
+
+	// OnHeartbeat is called periodically during long-running subprocess execution.
+	OnHeartbeat dspytypes.HeartbeatFunc
 }
 
 // LLM implements core.LLM by spawning the Codex CLI.
 type LLM struct {
 	*core.BaseLLM
-	config Config
+	config    Config
+	lastUsage *core.TokenInfo
 }
 
 // New creates a new Codex CLI adapter.
@@ -137,6 +153,11 @@ func (l *LLM) CreateEmbeddings(ctx context.Context, inputs []string, opts ...cor
 	return nil, fmt.Errorf("embeddings not supported by %s", ProviderName)
 }
 
+// LastUsage returns the token usage from the most recent LLM call.
+func (l *LLM) LastUsage() *core.TokenInfo {
+	return l.lastUsage
+}
+
 // buildArgs constructs CLI arguments for codex exec.
 func (l *LLM) buildArgs(extra []string) []string {
 	args := []string{
@@ -145,11 +166,13 @@ func (l *LLM) buildArgs(extra []string) []string {
 		"--sandbox", l.config.SandboxMode,
 		"--ephemeral",
 		"--skip-git-repo-check",
-		// Isolate from user/project config: disable MCP servers, plugins,
-		// and set cwd to /tmp so project-level AGENTS.md and rules are not loaded.
 		"-c", "mcp_servers={}",
 		"-c", "plugins={}",
-		"--cd", os.TempDir(),
+	}
+	// When WorkDir is set the caller controls cwd via cmd.Dir;
+	// otherwise fall back to /tmp to avoid loading project config.
+	if l.config.WorkDir == "" {
+		args = append(args, "--cd", os.TempDir())
 	}
 	args = append(args, l.config.ExtraArgs...)
 	args = append(args, extra...)
@@ -159,6 +182,9 @@ func (l *LLM) buildArgs(extra []string) []string {
 // run executes the Codex CLI with the given prompt and args.
 func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMResponse, error) {
 	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
+	if l.config.WorkDir != "" {
+		cmd.Dir = l.config.WorkDir
+	}
 
 	cmd.Stdin = strings.NewReader(prompt)
 
@@ -183,10 +209,52 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 		return nil, fmt.Errorf("codex CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
 	}
 
-	return &core.LLMResponse{
+	resp := &core.LLMResponse{
 		Content:  content,
 		Metadata: map[string]interface{}{"provider": ProviderName},
-	}, nil
+	}
+
+	// Extract usage from JSONL turn.completed events (when --json is used).
+	resp.Usage = extractUsageFromJSONL(content)
+	l.lastUsage = resp.Usage
+
+	return resp, nil
+}
+
+// extractUsageFromJSONL aggregates token usage from turn.completed events.
+func extractUsageFromJSONL(output string) *core.TokenInfo {
+	var totalInput, totalOutput int
+	found := false
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var evt struct {
+			Type  string `json:"type"`
+			Usage *struct {
+				InputTokens       int `json:"input_tokens"`
+				CachedInputTokens int `json:"cached_input_tokens"`
+				OutputTokens      int `json:"output_tokens"`
+			} `json:"usage"`
+		}
+		if err := json.Unmarshal([]byte(line), &evt); err != nil {
+			continue
+		}
+		if evt.Type == "turn.completed" && evt.Usage != nil {
+			totalInput += evt.Usage.InputTokens
+			totalOutput += evt.Usage.OutputTokens
+			found = true
+		}
+	}
+	if !found {
+		return nil
+	}
+	return &core.TokenInfo{
+		PromptTokens:     totalInput,
+		CompletionTokens: totalOutput,
+		TotalTokens:      totalInput + totalOutput,
+	}
 }
 
 // buildEnv merges os.Environ with config overrides.
@@ -403,4 +471,256 @@ func Register() {
 			Model: string(modelID),
 		})
 	})
+}
+
+// --- Eval-aware methods ---
+
+// codexTrajectoryEvent is the full envelope for Codex --json JSONL output.
+type codexTrajectoryEvent struct {
+	Type     string `json:"type"`
+	ThreadID string `json:"thread_id,omitempty"`
+	Item     *struct {
+		Type             string `json:"type"`
+		Text             string `json:"text"`
+		Command          string `json:"command,omitempty"`
+		AggregatedOutput string `json:"aggregated_output,omitempty"`
+		ExitCode         *int   `json:"exit_code,omitempty"`
+	} `json:"item,omitempty"`
+	Usage *struct {
+		InputTokens       int `json:"input_tokens"`
+		CachedInputTokens int `json:"cached_input_tokens"`
+		OutputTokens      int `json:"output_tokens"`
+	} `json:"usage,omitempty"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// GenerateWithTrajectory runs a prompt with --json and returns the full
+// event trajectory alongside usage metadata.
+func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
+	codexHome, cleanup, err := l.setupIsolation()
+	if err != nil {
+		return nil, err
+	}
+	if cleanup != nil {
+		defer cleanup()
+	}
+
+	args := []string{
+		"exec",
+		"--model", l.config.Model,
+		"--full-auto",
+		"--json",
+		"--skip-git-repo-check",
+		"--ephemeral",
+		"-c", "mcp_servers={}",
+		"-c", "plugins={}",
+	}
+	args = append(args, l.config.ExtraArgs...)
+
+	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
+	cmd.Dir = l.config.WorkDir
+	if cmd.Dir == "" {
+		cmd.Dir = os.TempDir()
+	}
+	cmd.Stdin = strings.NewReader(prompt)
+	env := l.buildEnv()
+	if codexHome != "" {
+		// Inject isolated CODEX_HOME without mutating config.
+		env = replaceOrAppendEnv(env, "CODEX_HOME", codexHome)
+	}
+	cmd.Env = env
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	start := time.Now()
+	done := make(chan struct{})
+	if l.config.OnHeartbeat != nil {
+		go runHeartbeat(l.config.OnHeartbeat, done)
+	}
+	runErr := cmd.Run()
+	close(done)
+
+	resp := parseCodexTrajectory(stdout.Bytes())
+	resp.DurationMs = time.Since(start).Milliseconds()
+
+	l.lastUsage = resp.Usage
+
+	if runErr != nil {
+		if resp.Content == "" {
+			resp.Content = strings.TrimSpace(stderr.String())
+		}
+		if resp.Content == "" {
+			resp.Content = runErr.Error()
+		}
+		return resp, clierrors.ClassifyCLIError("codex", runErr, stderr.String(), stdout.String())
+	}
+
+	return resp, nil
+}
+
+// parseCodexTrajectory extracts trajectory events, final text, session ID,
+// turn count, and usage from Codex --json JSONL output.
+func parseCodexTrajectory(raw []byte) *dspytypes.GenerateResponse {
+	resp := &dspytypes.GenerateResponse{}
+	var lastAgentText string
+	var lastError string
+	var totalInput, totalCached, totalOutput int
+
+	for _, line := range bytes.Split(raw, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var evt codexTrajectoryEvent
+		if err := json.Unmarshal(line, &evt); err != nil {
+			continue
+		}
+		switch evt.Type {
+		case "thread.started":
+			if evt.ThreadID != "" {
+				resp.SessionID = evt.ThreadID
+			}
+			appendEvent(&resp.Trajectory, line)
+		case "item.started":
+			appendEvent(&resp.Trajectory, line)
+		case "item.completed":
+			appendEvent(&resp.Trajectory, line)
+			if evt.Item != nil && evt.Item.Type == "agent_message" {
+				resp.NumTurns++
+				if evt.Item.Text != "" {
+					lastAgentText = evt.Item.Text
+				}
+			}
+		case "turn.completed":
+			appendEvent(&resp.Trajectory, line)
+			if evt.Usage != nil {
+				totalInput += evt.Usage.InputTokens
+				totalCached += evt.Usage.CachedInputTokens
+				totalOutput += evt.Usage.OutputTokens
+			}
+		case "error":
+			if evt.Message != "" {
+				lastError = evt.Message
+			} else if evt.Error != nil {
+				lastError = evt.Error.Message
+			}
+		case "turn.failed":
+			if evt.Error != nil && evt.Error.Message != "" {
+				lastError = evt.Error.Message
+			}
+		}
+	}
+
+	if lastAgentText != "" {
+		resp.Content = lastAgentText
+	} else if lastError != "" {
+		resp.Content = lastError
+	}
+
+	if totalInput > 0 || totalOutput > 0 {
+		resp.CacheReadTokens = totalCached
+		resp.Usage = &core.TokenInfo{
+			PromptTokens:     totalInput,
+			CompletionTokens: totalOutput,
+			TotalTokens:      totalInput + totalOutput,
+		}
+	}
+
+	return resp
+}
+
+func appendEvent(trajectory *[]json.RawMessage, line []byte) {
+	copied := make([]byte, len(line))
+	copy(copied, line)
+	*trajectory = append(*trajectory, json.RawMessage(copied))
+}
+
+// setupIsolation creates a temp CODEX_HOME when IsolateHome is set.
+// Returns the isolated home path (empty if not isolated) and a cleanup function.
+func (l *LLM) setupIsolation() (string, func(), error) {
+	if !l.config.IsolateHome {
+		return "", nil, nil
+	}
+
+	codexHome, err := os.MkdirTemp("", "dspy-codex-home-*")
+	if err != nil {
+		return "", nil, fmt.Errorf("create codex home: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"),
+		[]byte("cli_auth_credentials_store = \"file\"\n"), 0o644); err != nil {
+		os.RemoveAll(codexHome)
+		return "", nil, fmt.Errorf("write codex config: %w", err)
+	}
+	if err := BridgeCodexAuth(codexHome); err != nil {
+		os.RemoveAll(codexHome)
+		return "", nil, fmt.Errorf("bridge codex auth: %w", err)
+	}
+
+	return codexHome, func() { os.RemoveAll(codexHome) }, nil
+}
+
+// BridgeCodexAuth copies auth credentials into an isolated CODEX_HOME.
+// It tries these sources in order:
+//  1. MOLTNET_CODEX_AUTH_CACHE_PATH (explicit override)
+//  2. Original CODEX_HOME/auth.json (from user's real home)
+//  3. ~/.codex/auth.json (default location)
+//  4. OPENAI_API_KEY env var → synthetic auth.json
+//
+// If none are available, it returns nil (Codex will fail with 401 at runtime).
+func BridgeCodexAuth(isolatedHome string) error {
+	candidates := []string{}
+	if p := os.Getenv("MOLTNET_CODEX_AUTH_CACHE_PATH"); p != "" {
+		candidates = append(candidates, p)
+	}
+	if p := os.Getenv("CODEX_HOME"); p != "" {
+		candidates = append(candidates, filepath.Join(p, "auth.json"))
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		candidates = append(candidates, filepath.Join(home, ".codex", "auth.json"))
+	}
+
+	for _, src := range candidates {
+		data, err := os.ReadFile(src)
+		if err != nil {
+			continue
+		}
+		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), data, 0o600)
+	}
+
+	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+		payload := fmt.Sprintf(`{"OPENAI_API_KEY":%q}`, key)
+		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), []byte(payload), 0o600)
+	}
+
+	return nil
+}
+
+func replaceOrAppendEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	result := make([]string, 0, len(env)+1)
+	for _, e := range env {
+		if !strings.HasPrefix(e, prefix) {
+			result = append(result, e)
+		}
+	}
+	return append(result, prefix+value)
+}
+
+func runHeartbeat(fn dspytypes.HeartbeatFunc, done <-chan struct{}) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	start := time.Now()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			fn(time.Since(start))
+		}
+	}
 }

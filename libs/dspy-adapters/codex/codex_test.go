@@ -191,3 +191,145 @@ func readFile(path string) ([]byte, error) {
 func removeFile(path string) error {
 	return os.Remove(path)
 }
+
+func TestParseCodexTrajectoryExtractsUsageAndSessionID(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"thread.started","thread_id":"tid-123"}
+{"type":"item.completed","item":{"type":"agent_message","text":"I created the file."}}
+{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":50}}
+{"type":"item.completed","item":{"type":"agent_message","text":"Done."}}
+{"type":"turn.completed","usage":{"input_tokens":80,"cached_input_tokens":10,"output_tokens":30}}
+`)
+	r := parseCodexTrajectory(input)
+	if r.SessionID != "tid-123" {
+		t.Fatalf("expected session ID 'tid-123', got %q", r.SessionID)
+	}
+	if r.Content != "Done." {
+		t.Fatalf("expected 'Done.', got %q", r.Content)
+	}
+	if r.NumTurns != 2 {
+		t.Fatalf("expected 2 turns, got %d", r.NumTurns)
+	}
+	if r.Usage == nil {
+		t.Fatal("expected non-nil usage")
+	}
+	if r.Usage.PromptTokens != 180 {
+		t.Fatalf("expected 180 prompt tokens, got %d", r.Usage.PromptTokens)
+	}
+	if r.Usage.CompletionTokens != 80 {
+		t.Fatalf("expected 80 completion tokens, got %d", r.Usage.CompletionTokens)
+	}
+	// 5 trajectory events: thread.started + 2x item.completed + 2x turn.completed
+	if len(r.Trajectory) != 5 {
+		t.Fatalf("expected 5 trajectory events, got %d", len(r.Trajectory))
+	}
+}
+
+func TestParseCodexTrajectoryHandlesErrors(t *testing.T) {
+	t.Parallel()
+	input := []byte(`{"type":"error","message":"rate limit exceeded"}
+{"type":"turn.failed","error":{"message":"API error"}}
+`)
+	r := parseCodexTrajectory(input)
+	if r.Content != "API error" {
+		t.Fatalf("expected 'API error', got %q", r.Content)
+	}
+	if r.NumTurns != 0 {
+		t.Fatalf("expected 0 turns, got %d", r.NumTurns)
+	}
+}
+
+func TestParseCodexTrajectoryHandlesEmptyInput(t *testing.T) {
+	t.Parallel()
+	r := parseCodexTrajectory([]byte{})
+	if len(r.Trajectory) != 0 {
+		t.Fatal("expected empty trajectory")
+	}
+	if r.Content != "" {
+		t.Fatal("expected empty content")
+	}
+}
+
+func TestBridgeCodexAuthCopiesExistingFile(t *testing.T) {
+	srcDir := t.TempDir()
+	authContent := `{"OPENAI_API_KEY":"sk-from-file"}`
+	if err := os.WriteFile(srcDir+"/auth.json", []byte(authContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CODEX_HOME", srcDir)
+	t.Setenv("MOLTNET_CODEX_AUTH_CACHE_PATH", "")
+	t.Setenv("OPENAI_API_KEY", "")
+
+	isolatedHome := t.TempDir()
+	if err := BridgeCodexAuth(isolatedHome); err != nil {
+		t.Fatalf("BridgeCodexAuth: %v", err)
+	}
+
+	got, err := os.ReadFile(isolatedHome + "/auth.json")
+	if err != nil {
+		t.Fatalf("auth.json not written: %v", err)
+	}
+	if string(got) != authContent {
+		t.Fatalf("expected %q, got %q", authContent, string(got))
+	}
+}
+
+func TestBridgeCodexAuthFallsBackToAPIKey(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("CODEX_HOME", t.TempDir())
+	t.Setenv("MOLTNET_CODEX_AUTH_CACHE_PATH", "")
+	t.Setenv("OPENAI_API_KEY", "sk-test-key")
+
+	isolatedHome := t.TempDir()
+	if err := BridgeCodexAuth(isolatedHome); err != nil {
+		t.Fatalf("BridgeCodexAuth: %v", err)
+	}
+
+	got, err := os.ReadFile(isolatedHome + "/auth.json")
+	if err != nil {
+		t.Fatalf("auth.json not written: %v", err)
+	}
+	if !strings.Contains(string(got), "sk-test-key") {
+		t.Fatalf("expected API key in auth.json, got %q", string(got))
+	}
+}
+
+func TestBridgeCodexAuthNoCredsIsNotError(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("CODEX_HOME", t.TempDir())
+	t.Setenv("MOLTNET_CODEX_AUTH_CACHE_PATH", "")
+	t.Setenv("OPENAI_API_KEY", "")
+
+	isolatedHome := t.TempDir()
+	if err := BridgeCodexAuth(isolatedHome); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if _, err := os.Stat(isolatedHome + "/auth.json"); !os.IsNotExist(err) {
+		t.Fatal("expected no auth.json when no credentials available")
+	}
+}
+
+func TestBuildArgsRespectsWorkDir(t *testing.T) {
+	t.Parallel()
+	llm := &LLM{config: Config{Model: "test", SandboxMode: "read-only"}}
+	args := llm.buildArgs(nil)
+	// Default: should have --cd
+	hasCD := false
+	for _, a := range args {
+		if a == "--cd" {
+			hasCD = true
+		}
+	}
+	if !hasCD {
+		t.Fatal("expected --cd flag when WorkDir is empty")
+	}
+
+	// With WorkDir: should NOT have --cd
+	llm2 := &LLM{config: Config{Model: "test", SandboxMode: "read-only", WorkDir: "/tmp/work"}}
+	args2 := llm2.buildArgs(nil)
+	for _, a := range args2 {
+		if a == "--cd" {
+			t.Fatal("should not have --cd flag when WorkDir is set")
+		}
+	}
+}
