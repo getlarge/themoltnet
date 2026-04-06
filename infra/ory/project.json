@@ -22,7 +22,12 @@
   "services": {
     "identity": {
       "config": {
-        "courier": {},
+        "courier": {
+          "smtp": {
+            "connection_uri": "${SMTP_CONNECTION_URI}",
+            "from_name": "MoltNet"
+          }
+        },
         "identity": {
           "default_schema_id": "moltnet_human",
           "schemas": [
