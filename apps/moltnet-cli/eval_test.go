@@ -1371,6 +1371,69 @@ func TestTrimOpenAIModelPrefix(t *testing.T) {
 	}
 }
 
+func TestBridgeCodexAuthCopiesExistingFile(t *testing.T) {
+	// Arrange: create a fake source auth.json
+	srcDir := t.TempDir()
+	authContent := `{"OPENAI_API_KEY":"sk-from-file"}`
+	if err := os.WriteFile(filepath.Join(srcDir, "auth.json"), []byte(authContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CODEX_HOME", srcDir)
+	t.Setenv("MOLTNET_CODEX_AUTH_CACHE_PATH", "")
+	t.Setenv("OPENAI_API_KEY", "")
+
+	// Act
+	isolatedHome := t.TempDir()
+	if err := bridgeCodexAuth(isolatedHome); err != nil {
+		t.Fatalf("bridgeCodexAuth: %v", err)
+	}
+
+	// Assert
+	got, err := os.ReadFile(filepath.Join(isolatedHome, "auth.json"))
+	if err != nil {
+		t.Fatalf("auth.json not written: %v", err)
+	}
+	if string(got) != authContent {
+		t.Fatalf("expected %q, got %q", authContent, string(got))
+	}
+}
+
+func TestBridgeCodexAuthFallsBackToAPIKey(t *testing.T) {
+	// Isolate HOME so ~/.codex/auth.json is not found.
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("CODEX_HOME", t.TempDir()) // no auth.json inside
+	t.Setenv("MOLTNET_CODEX_AUTH_CACHE_PATH", "")
+	t.Setenv("OPENAI_API_KEY", "sk-test-key")
+
+	isolatedHome := t.TempDir()
+	if err := bridgeCodexAuth(isolatedHome); err != nil {
+		t.Fatalf("bridgeCodexAuth: %v", err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(isolatedHome, "auth.json"))
+	if err != nil {
+		t.Fatalf("auth.json not written: %v", err)
+	}
+	if !strings.Contains(string(got), "sk-test-key") {
+		t.Fatalf("expected API key in auth.json, got %q", string(got))
+	}
+}
+
+func TestBridgeCodexAuthNoCredsIsNotError(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("CODEX_HOME", t.TempDir())
+	t.Setenv("MOLTNET_CODEX_AUTH_CACHE_PATH", "")
+	t.Setenv("OPENAI_API_KEY", "")
+
+	isolatedHome := t.TempDir()
+	if err := bridgeCodexAuth(isolatedHome); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(isolatedHome, "auth.json")); !os.IsNotExist(err) {
+		t.Fatal("expected no auth.json when no credentials available")
+	}
+}
+
 func TestDspyJudgeProvider(t *testing.T) {
 	tests := []struct {
 		judge      string

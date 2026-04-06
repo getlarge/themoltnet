@@ -1375,9 +1375,14 @@ func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRu
 		return nil, fmt.Errorf("create codex home: %w", err)
 	}
 	defer os.RemoveAll(codexHome)
-	// Write a minimal config.toml so Codex doesn't prompt or error.
-	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"), []byte(""), 0o644); err != nil {
+	// Write a minimal config.toml that uses file-based credential store.
+	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"),
+		[]byte("cli_auth_credentials_store = \"file\"\n"), 0o644); err != nil {
 		return nil, fmt.Errorf("write codex config: %w", err)
+	}
+	// Bridge auth credentials into the isolated home.
+	if err := bridgeCodexAuth(codexHome); err != nil {
+		return nil, fmt.Errorf("bridge codex auth: %w", err)
 	}
 
 	args := []string{
@@ -1494,6 +1499,44 @@ func buildCodexEvalEnvFrom(env []string, codexHome string) []string {
 		filtered = append(filtered, "CODEX_HOME="+codexHome)
 	}
 	return filtered
+}
+
+// bridgeCodexAuth copies auth credentials into an isolated CODEX_HOME.
+// It tries these sources in order:
+//  1. MOLTNET_CODEX_AUTH_CACHE_PATH (explicit override)
+//  2. Original CODEX_HOME/auth.json (from user's real home)
+//  3. ~/.codex/auth.json (default location)
+//  4. OPENAI_API_KEY env var → synthetic auth.json
+//
+// If none are available, it returns nil (Codex will fail with 401 at runtime).
+func bridgeCodexAuth(isolatedHome string) error {
+	// Try file-based auth sources.
+	candidates := []string{}
+	if p := os.Getenv("MOLTNET_CODEX_AUTH_CACHE_PATH"); p != "" {
+		candidates = append(candidates, p)
+	}
+	if p := os.Getenv("CODEX_HOME"); p != "" {
+		candidates = append(candidates, filepath.Join(p, "auth.json"))
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		candidates = append(candidates, filepath.Join(home, ".codex", "auth.json"))
+	}
+
+	for _, src := range candidates {
+		data, err := os.ReadFile(src)
+		if err != nil {
+			continue
+		}
+		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), data, 0o600)
+	}
+
+	// Fallback: synthesize auth.json from OPENAI_API_KEY.
+	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+		payload := fmt.Sprintf(`{"OPENAI_API_KEY":%q}`, key)
+		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), []byte(payload), 0o600)
+	}
+
+	return nil
 }
 
 func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
