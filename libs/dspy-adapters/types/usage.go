@@ -41,3 +41,17 @@ type TrajectoryGenerator interface {
 // HeartbeatFunc is a callback invoked periodically during long-running
 // CLI subprocess execution.
 type HeartbeatFunc func(elapsed time.Duration)
+
+// ExtractLLMUsage reads LastUsage from an LLM, unwrapping decorators
+// (e.g. ModelContextDecorator) as needed. Returns nil if the LLM
+// does not implement UsageTracker.
+func ExtractLLMUsage(llm core.LLM) *core.TokenInfo {
+	if tracker, ok := llm.(UsageTracker); ok {
+		return tracker.LastUsage()
+	}
+	type unwrapper interface{ Unwrap() core.LLM }
+	if w, ok := llm.(unwrapper); ok {
+		return ExtractLLMUsage(w.Unwrap())
+	}
+	return nil
+}

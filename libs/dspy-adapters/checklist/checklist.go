@@ -112,9 +112,7 @@ func Run(ctx context.Context, req Request) (*Result, error) {
 		out.Reasoning = fmt.Sprintf("%v", v)
 	}
 	// Extract usage from the LLM if it implements UsageTracker.
-	// The LLM may be wrapped in a decorator (e.g. ModelContextDecorator),
-	// so try unwrapping first.
-	out.Usage = extractLLMUsage(llm)
+	out.Usage = dspytypes.ExtractLLMUsage(llm)
 
 	var total float64
 	var maxTotal float64
@@ -187,21 +185,4 @@ func normalizeScoreKey(name string) string {
 		}
 	}
 	return strings.Trim(b.String(), "_")
-}
-
-// llmUnwrapper is implemented by decorator LLMs that wrap an inner LLM.
-type llmUnwrapper interface {
-	Unwrap() core.LLM
-}
-
-// extractLLMUsage tries to read LastUsage from the LLM, unwrapping
-// decorators (e.g. ModelContextDecorator) as needed.
-func extractLLMUsage(llm core.LLM) *core.TokenInfo {
-	if tracker, ok := llm.(dspytypes.UsageTracker); ok {
-		return tracker.LastUsage()
-	}
-	if wrapper, ok := llm.(llmUnwrapper); ok {
-		return extractLLMUsage(wrapper.Unwrap())
-	}
-	return nil
 }
