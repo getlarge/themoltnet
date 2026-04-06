@@ -13,7 +13,7 @@ serve:
     cors:
       enabled: true
       allowed_origins:
-        - http://localhost:3000
+        - http://localhost:5173
         - http://localhost:8000
       allowed_methods:
         - POST
@@ -42,9 +42,9 @@ identity:
       url: file:///etc/config/kratos/human-identity-schema.json
 
 selfservice:
-  default_browser_return_url: http://localhost:3000/
+  default_browser_return_url: http://localhost:5173/
   allowed_return_urls:
-    - http://localhost:3000/
+    - http://localhost:5173/
     - http://localhost:8000/
 
   methods:
@@ -52,7 +52,7 @@ selfservice:
       enabled: true
       config:
         haveibeenpwned_enabled: false
-        min_password_length: 16
+        min_password_length: 8
         identifier_similarity_check_enabled: false
     link:
       enabled: false
@@ -64,61 +64,61 @@ selfservice:
   flows:
     registration:
       enabled: true
-      ui_url: http://localhost:3000/auth/registration
+      ui_url: http://localhost:5173/auth/registration
       lifespan: 1h
       after:
         oidc:
           hooks:
             - hook: web_hook
               config:
-                url: http://rest-api:8080/hooks/kratos/after-registration
+                url: http://host.docker.internal:8000/hooks/kratos/after-registration
                 method: POST
                 auth:
                   type: api_key
                   config:
                     name: X-Ory-Api-Key
-                    value: e2e-test-webhook-key
+                    value: local-dev-webhook-key
                     in: header
                 body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
                 response:
                   ignore: false
-                  parse: true
+                  parse: false
                 can_interrupt: true
             - hook: session
         password:
           hooks:
             - hook: web_hook
               config:
-                url: http://rest-api:8080/hooks/kratos/after-registration
+                url: http://host.docker.internal:8000/hooks/kratos/after-registration
                 method: POST
                 auth:
                   type: api_key
                   config:
                     name: X-Ory-Api-Key
-                    value: e2e-test-webhook-key
+                    value: local-dev-webhook-key
                     in: header
                 body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
                 response:
                   ignore: false
-                  parse: true
+                  parse: false
                 can_interrupt: true
             - hook: session
 
     login:
-      ui_url: http://localhost:3000/auth/login
+      ui_url: http://localhost:5173/auth/login
       lifespan: 1h
       after:
         oidc:
           hooks:
             - hook: web_hook
               config:
-                url: http://rest-api:8080/hooks/kratos/after-login
+                url: http://host.docker.internal:8000/hooks/kratos/after-login
                 method: POST
                 auth:
                   type: api_key
                   config:
                     name: X-Ory-Api-Key
-                    value: e2e-test-webhook-key
+                    value: local-dev-webhook-key
                     in: header
                 body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
                 response:
@@ -129,13 +129,13 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                url: http://rest-api:8080/hooks/kratos/after-login
+                url: http://host.docker.internal:8000/hooks/kratos/after-login
                 method: POST
                 auth:
                   type: api_key
                   config:
                     name: X-Ory-Api-Key
-                    value: e2e-test-webhook-key
+                    value: local-dev-webhook-key
                     in: header
                 body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
                 response:
@@ -146,23 +146,23 @@ selfservice:
     recovery:
       enabled: true
       use: code
-      ui_url: http://localhost:3000/auth/recovery
+      ui_url: http://localhost:5173/auth/recovery
       lifespan: 15m
 
     verification:
       enabled: false
 
     settings:
-      ui_url: http://localhost:3000/auth/settings
+      ui_url: http://localhost:5173/auth/settings
       lifespan: 1h
       privileged_session_max_age: 15m
 
     error:
-      ui_url: http://localhost:3000/auth/error
+      ui_url: http://localhost:5173/auth/error
 
     logout:
       after:
-        default_browser_return_url: http://localhost:3000/
+        default_browser_return_url: http://localhost:5173/
 
 session:
   lifespan: 720h
