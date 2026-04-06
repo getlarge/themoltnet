@@ -39,18 +39,28 @@ Optional env vars:
   MOLTNET_GITHUB_APP_INSTALLATION_ID, MOLTNET_GITHUB_APP_PRIVATE_KEY`,
 		Example: `  # Set env vars, then run:
   moltnet config init-from-env --agent legreffier
-  moltnet config init-from-env --agent legreffier --skip-git`,
+  moltnet config init-from-env --agent legreffier --skip-git
+
+  # Load vars from a file (process env wins by default):
+  moltnet config init-from-env --agent legreffier --env-file .env.moltnet
+
+  # Load vars from a file and override process env:
+  moltnet config init-from-env --agent legreffier --env-file .env.moltnet --override`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, _ := cmd.Flags().GetString("dir")
 			agent, _ := cmd.Flags().GetString("agent")
 			skipGit, _ := cmd.Flags().GetBool("skip-git")
-			return runConfigInitFromEnvCmd(dir, agent, skipGit)
+			envFile, _ := cmd.Flags().GetString("env-file")
+			override, _ := cmd.Flags().GetBool("override")
+			return runConfigInitFromEnvCmd(dir, agent, skipGit, envFile, override)
 		},
 	}
 	initFromEnvCmd.Flags().String("agent", "", "Agent name (required)")
 	_ = initFromEnvCmd.MarkFlagRequired("agent")
 	initFromEnvCmd.Flags().String("dir", ".", "Repository root directory")
 	initFromEnvCmd.Flags().Bool("skip-git", false, "Skip git signing setup")
+	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
+	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")
 
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)

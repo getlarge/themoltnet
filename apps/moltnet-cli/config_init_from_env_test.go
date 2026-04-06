@@ -21,6 +21,12 @@ func TestConfigInitFromEnvHelp(t *testing.T) {
 	if !strings.Contains(stdout, "MOLTNET_IDENTITY_ID") {
 		t.Errorf("expected help to mention env vars, got: %s", stdout)
 	}
+	if !strings.Contains(stdout, "--env-file") {
+		t.Errorf("expected help to contain '--env-file', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--override") {
+		t.Errorf("expected help to contain '--override', got: %s", stdout)
+	}
 }
 
 func TestConfigInitFromEnvRequiresAgent(t *testing.T) {
@@ -128,5 +134,243 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 	// Should succeed (skip) without requiring env vars
 	if err != nil {
 		t.Fatalf("expected no error for existing agent, got: %v", err)
+	}
+}
+
+func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+
+	// Write a dotenv file with all required vars
+	envContent := strings.Join([]string{
+		`MOLTNET_IDENTITY_ID=file-identity-456`,
+		`MOLTNET_CLIENT_ID=file-client-id`,
+		`MOLTNET_CLIENT_SECRET=file-client-secret`,
+		`MOLTNET_PUBLIC_KEY=ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh`,
+		`MOLTNET_PRIVATE_KEY=dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5`,
+		`MOLTNET_FINGERPRINT=SHA256:filefingerprint`,
+		`MOLTNET_API_URL=https://api.file.example.com`,
+	}, "\n")
+	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
+	if err := os.WriteFile(envFilePath, []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "file-agent",
+		"--dir", tmpDir,
+		"--skip-git",
+		"--env-file", envFilePath,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify config was created from file values
+	configPath := filepath.Join(tmpDir, ".moltnet", "file-agent", "moltnet.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	var config CredentialsFile
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("failed to parse config: %v", err)
+	}
+
+	if config.IdentityID != "file-identity-456" {
+		t.Errorf("expected identity_id 'file-identity-456', got %q", config.IdentityID)
+	}
+	if config.OAuth2.ClientID != "file-client-id" {
+		t.Errorf("expected client_id 'file-client-id', got %q", config.OAuth2.ClientID)
+	}
+	if config.Endpoints.API != "https://api.file.example.com" {
+		t.Errorf("expected API URL 'https://api.file.example.com', got %q", config.Endpoints.API)
+	}
+}
+
+func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+
+	// Set a process env var that should win over the file
+	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
+	t.Setenv("MOLTNET_CLIENT_ID", "process-client-id")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "process-client-secret")
+	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
+	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
+
+	// File has different values
+	envContent := strings.Join([]string{
+		`MOLTNET_IDENTITY_ID=file-identity`,
+		`MOLTNET_CLIENT_ID=file-client-id`,
+		`MOLTNET_CLIENT_SECRET=file-client-secret`,
+		`MOLTNET_PUBLIC_KEY=ed25519:ZmlsZXB1YmxpY2tleXRoYXRpczMyYnl0ZXMh`,
+		`MOLTNET_PRIVATE_KEY=ZmlsZXByaXZhdGVrZXl0aGF0aXMzMmJ5dGVz`,
+		`MOLTNET_FINGERPRINT=SHA256:filefingerprint`,
+	}, "\n")
+	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
+	if err := os.WriteFile(envFilePath, []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "no-override-agent",
+		"--dir", tmpDir,
+		"--skip-git",
+		"--env-file", envFilePath,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	configPath := filepath.Join(tmpDir, ".moltnet", "no-override-agent", "moltnet.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	var config CredentialsFile
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("failed to parse config: %v", err)
+	}
+
+	// Process env should win (godotenv.Load does not override)
+	if config.IdentityID != "process-identity" {
+		t.Errorf("expected process env to win, got identity_id %q", config.IdentityID)
+	}
+	if config.OAuth2.ClientID != "process-client-id" {
+		t.Errorf("expected process env to win, got client_id %q", config.OAuth2.ClientID)
+	}
+}
+
+func TestConfigInitFromEnvFileOverride(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+
+	// Set process env vars
+	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
+	t.Setenv("MOLTNET_CLIENT_ID", "process-client-id")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "process-client-secret")
+	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
+	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
+
+	// File has different values that should win with --override
+	envContent := strings.Join([]string{
+		`MOLTNET_IDENTITY_ID=file-identity-wins`,
+		`MOLTNET_CLIENT_ID=file-client-id-wins`,
+		`MOLTNET_CLIENT_SECRET=file-client-secret`,
+		`MOLTNET_PUBLIC_KEY=ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh`,
+		`MOLTNET_PRIVATE_KEY=dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5`,
+		`MOLTNET_FINGERPRINT=SHA256:filefingerprint`,
+	}, "\n")
+	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
+	if err := os.WriteFile(envFilePath, []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "override-agent",
+		"--dir", tmpDir,
+		"--skip-git",
+		"--env-file", envFilePath,
+		"--override",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	configPath := filepath.Join(tmpDir, ".moltnet", "override-agent", "moltnet.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	var config CredentialsFile
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("failed to parse config: %v", err)
+	}
+
+	// File values should win with --override
+	if config.IdentityID != "file-identity-wins" {
+		t.Errorf("expected file env to win with --override, got identity_id %q", config.IdentityID)
+	}
+	if config.OAuth2.ClientID != "file-client-id-wins" {
+		t.Errorf("expected file env to win with --override, got client_id %q", config.OAuth2.ClientID)
+	}
+}
+
+func TestConfigInitFromEnvFileMissing(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "test-agent",
+		"--dir", tmpDir,
+		"--env-file", filepath.Join(tmpDir, "nonexistent.env"),
+	)
+	if err == nil {
+		t.Fatal("expected error for missing env file")
+	}
+	if !strings.Contains(err.Error(), "nonexistent.env") {
+		t.Errorf("expected error to mention file path, got: %v", err)
+	}
+}
+
+func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+
+	// File provides some vars
+	envContent := strings.Join([]string{
+		`MOLTNET_IDENTITY_ID=file-identity`,
+		`MOLTNET_CLIENT_ID=file-client-id`,
+		`MOLTNET_CLIENT_SECRET=file-client-secret`,
+	}, "\n")
+	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
+	if err := os.WriteFile(envFilePath, []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Process provides the rest
+	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
+	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "partial-agent",
+		"--dir", tmpDir,
+		"--skip-git",
+		"--env-file", envFilePath,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	configPath := filepath.Join(tmpDir, ".moltnet", "partial-agent", "moltnet.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	var config CredentialsFile
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("failed to parse config: %v", err)
+	}
+
+	// File vars
+	if config.IdentityID != "file-identity" {
+		t.Errorf("expected 'file-identity', got %q", config.IdentityID)
+	}
+	// Process vars
+	if config.Keys.Fingerprint != "SHA256:processfingerprint" {
+		t.Errorf("expected 'SHA256:processfingerprint', got %q", config.Keys.Fingerprint)
 	}
 }

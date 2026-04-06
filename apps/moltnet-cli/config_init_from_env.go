@@ -6,14 +6,30 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // runConfigInitFromEnvCmd reconstructs an agent's .moltnet/<agent>/ directory
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where legreffier init cannot run interactively.
-func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool) error {
+func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
 	if agentName == "" {
 		return fmt.Errorf("--agent is required")
+	}
+
+	// Load env file if specified
+	if envFile != "" {
+		if override {
+			if err := godotenv.Overload(envFile); err != nil {
+				return fmt.Errorf("load env file %q (override): %w", envFile, err)
+			}
+		} else {
+			if err := godotenv.Load(envFile); err != nil {
+				return fmt.Errorf("load env file %q: %w", envFile, err)
+			}
+		}
+		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
 	}
 
 	// Required env vars
