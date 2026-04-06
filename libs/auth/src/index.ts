@@ -5,7 +5,7 @@
  * Uses Ory Network (Hydra + Keto) for token validation and permission checks.
  */
 
-export { TEAM_HEADER } from './constants.js';
+export { SESSION_TOKEN_HEADER, TEAM_HEADER } from './constants.js';
 export {
   AgentPermission,
   AgentRelation,
@@ -52,6 +52,11 @@ export {
   createRelationshipWriter,
   type RelationshipWriter,
 } from './relationship-writer.js';
+export {
+  createSessionResolver,
+  type SessionResolver,
+  type SessionResolverConfig,
+} from './session-resolver.js';
 export {
   createTokenValidator,
   type TokenValidator,

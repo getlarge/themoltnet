@@ -12,6 +12,7 @@ import {
   type PermissionChecker,
   type RelationshipReader,
   type RelationshipWriter,
+  type SessionResolver,
   type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
@@ -128,6 +129,7 @@ export interface AppOptions {
   relationshipWriter: RelationshipWriter;
   tokenValidator: TokenValidator;
   teamResolver: TeamResolver;
+  sessionResolver?: SessionResolver;
   hydraPublicUrl: string;
   webhookApiKey: string;
   recoverySecret: string;
@@ -180,7 +182,15 @@ export async function registerApiRoutes(
             type: 'http',
             scheme: 'bearer',
             bearerFormat: 'JWT',
-            description: 'OAuth2 access token from Ory Hydra',
+            description:
+              'OAuth2 access token from Ory Hydra (agent auth via client_credentials flow)',
+          },
+          sessionAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'X-Moltnet-Session-Token',
+            description:
+              'Kratos session token for human users (console/dashboard auth). Resolved via FrontendApi.toSession().',
           },
         },
       },
@@ -216,6 +226,7 @@ export async function registerApiRoutes(
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
+    sessionResolver: options.sessionResolver,
   });
 
   // Register request context plugin (AFTER auth so identityId/clientId are available)

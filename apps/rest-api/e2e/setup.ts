@@ -46,7 +46,7 @@ const KRATOS_PUBLIC_URL =
   process.env.ORY_KRATOS_PUBLIC_URL ?? 'http://localhost:4433';
 
 const WEBHOOK_API_KEY =
-  process.env.ORY_ACTION_API_KEY ?? 'e2e-test-webhook-key';
+  process.env.ORY_ACTION_API_KEY ?? 'local-dev-webhook-key';
 
 export {
   DATABASE_URL,

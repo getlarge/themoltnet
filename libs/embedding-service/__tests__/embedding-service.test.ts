@@ -4,7 +4,12 @@ import type { EmbeddingLogger } from '../src/types.js';
 
 const { mockExtractor, mockEnv } = vi.hoisted(() => ({
   mockExtractor: vi.fn(),
-  mockEnv: { allowLocalModels: false, allowRemoteModels: true, cacheDir: '' },
+  mockEnv: {
+    allowLocalModels: false,
+    allowRemoteModels: true,
+    cacheDir: '',
+    localModelPath: '',
+  },
 }));
 
 vi.mock('@huggingface/transformers', () => ({
@@ -36,6 +41,7 @@ describe('createEmbeddingService', () => {
     mockEnv.allowLocalModels = false;
     mockEnv.allowRemoteModels = true;
     mockEnv.cacheDir = '';
+    mockEnv.localModelPath = '';
   });
 
   it('returns an object with embedPassage and embedQuery methods', () => {
@@ -256,24 +262,24 @@ describe('createEmbeddingService', () => {
       );
     });
 
-    it('passes cacheDir to pipeline when provided', async () => {
+    it('sets env.localModelPath during pipeline load when cacheDir is provided', async () => {
       // Arrange
       const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
-      mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService({
-        cacheDir: '/tmp/models',
+      let localModelPathDuringLoad = '';
+      (pipeline as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+        localModelPathDuringLoad = mockEnv.localModelPath;
+        return mockExtractor;
       });
+      mockExtractor.mockResolvedValue({ tolist: () => [raw] });
+      const service = createEmbeddingService({ cacheDir: '/tmp/models' });
 
       // Act
       await service.embedPassage('text');
 
-      // Assert
-      expect(pipeline).toHaveBeenCalledWith(
-        'feature-extraction',
-        expect.any(String),
-        expect.objectContaining({ cache_dir: '/tmp/models' }),
-      );
+      // Assert: localModelPath was set during load (ends with /) and restored after
+      expect(localModelPathDuringLoad).toBe('/tmp/models/');
+      expect(mockEnv.localModelPath).toBe(''); // restored to initial value
     });
 
     it('disables remote models when allowRemoteModels is false', async () => {

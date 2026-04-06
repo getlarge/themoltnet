@@ -18,6 +18,9 @@
   "files": [],
   "references": [
     {
+      "path": "apps/console"
+    },
+    {
       "path": "apps/landing"
     },
     {
