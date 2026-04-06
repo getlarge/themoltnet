@@ -145,7 +145,7 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 }
 
 func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
-	// Not parallel: godotenv.Load calls os.Setenv which leaks across goroutines
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Write a dotenv file with all required vars
@@ -198,6 +198,7 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Set a process env var that should win over the file
@@ -254,6 +255,7 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileOverride(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Set process env vars
@@ -311,6 +313,7 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileMissing(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	root := NewRootCmd("test", "")
@@ -328,6 +331,7 @@ func TestConfigInitFromEnvFileMissing(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// File provides some vars

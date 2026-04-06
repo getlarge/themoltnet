@@ -10,6 +10,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// getenv returns the value for key, consulting fileVars according to override.
+// When override is true, fileVars take precedence over the process environment.
+// When override is false, process environment wins (file fills gaps).
+func getenv(key string, fileVars map[string]string, override bool) string {
+	if override {
+		if v, ok := fileVars[key]; ok {
+			return v
+		}
+		return os.Getenv(key)
+	}
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fileVars[key]
+}
+
 // runConfigInitFromEnvCmd reconstructs an agent's .moltnet/<agent>/ directory
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where legreffier init cannot run interactively.
@@ -18,27 +34,24 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 		return fmt.Errorf("--agent is required")
 	}
 
-	// Load env file if specified
+	// Read env file without mutating the process environment.
+	var fileVars map[string]string
 	if envFile != "" {
-		if override {
-			if err := godotenv.Overload(envFile); err != nil {
-				return fmt.Errorf("load env file %q (override): %w", envFile, err)
-			}
-		} else {
-			if err := godotenv.Load(envFile); err != nil {
-				return fmt.Errorf("load env file %q: %w", envFile, err)
-			}
+		var err error
+		fileVars, err = godotenv.Read(envFile)
+		if err != nil {
+			return fmt.Errorf("read env file %q: %w", envFile, err)
 		}
 		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
 	}
 
 	// Required env vars
-	identityID := os.Getenv("MOLTNET_IDENTITY_ID")
-	clientID := os.Getenv("MOLTNET_CLIENT_ID")
-	clientSecret := os.Getenv("MOLTNET_CLIENT_SECRET")
-	publicKey := os.Getenv("MOLTNET_PUBLIC_KEY")
-	privateKey := os.Getenv("MOLTNET_PRIVATE_KEY")
-	fingerprint := os.Getenv("MOLTNET_FINGERPRINT")
+	identityID := getenv("MOLTNET_IDENTITY_ID", fileVars, override)
+	clientID := getenv("MOLTNET_CLIENT_ID", fileVars, override)
+	clientSecret := getenv("MOLTNET_CLIENT_SECRET", fileVars, override)
+	publicKey := getenv("MOLTNET_PUBLIC_KEY", fileVars, override)
+	privateKey := getenv("MOLTNET_PRIVATE_KEY", fileVars, override)
+	fingerprint := getenv("MOLTNET_FINGERPRINT", fileVars, override)
 
 	var missing []string
 	if identityID == "" {
@@ -64,13 +77,13 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	}
 
 	// Optional env vars with defaults
-	apiURL := os.Getenv("MOLTNET_API_URL")
+	apiURL := getenv("MOLTNET_API_URL", fileVars, override)
 	if apiURL == "" {
 		apiURL = defaultAPIURL
 	}
 	apiURL = strings.TrimRight(apiURL, "/")
 
-	registeredAt := os.Getenv("MOLTNET_REGISTERED_AT")
+	registeredAt := getenv("MOLTNET_REGISTERED_AT", fileVars, override)
 	if registeredAt == "" {
 		registeredAt = time.Now().UTC().Format(time.RFC3339Nano)
 	}
@@ -110,10 +123,10 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	}
 
 	// Optional GitHub App section
-	ghAppID := os.Getenv("MOLTNET_GITHUB_APP_ID")
-	ghInstallID := os.Getenv("MOLTNET_GITHUB_APP_INSTALLATION_ID")
-	ghAppPEM := os.Getenv("MOLTNET_GITHUB_APP_PRIVATE_KEY")
-	ghAppSlug := os.Getenv("MOLTNET_GITHUB_APP_SLUG")
+	ghAppID := getenv("MOLTNET_GITHUB_APP_ID", fileVars, override)
+	ghInstallID := getenv("MOLTNET_GITHUB_APP_INSTALLATION_ID", fileVars, override)
+	ghAppPEM := getenv("MOLTNET_GITHUB_APP_PRIVATE_KEY", fileVars, override)
+	ghAppSlug := getenv("MOLTNET_GITHUB_APP_SLUG", fileVars, override)
 	if ghAppID != "" && ghInstallID != "" && ghAppPEM != "" {
 		pemPath := filepath.Join(agentDir, ghAppSlug+".pem")
 		if ghAppSlug == "" {
