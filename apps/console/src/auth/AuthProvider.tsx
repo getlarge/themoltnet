@@ -22,7 +22,6 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: Error | null;
-  sessionToken: string | null;
   logout: () => Promise<void>;
   /** Re-check session (e.g. after login completes) */
   refreshSession: () => Promise<void>;
@@ -72,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!session?.active,
     isLoading,
     error,
-    sessionToken: null, // Browser flow uses cookies, not tokens
     logout,
     refreshSession: checkSession,
   };

@@ -141,6 +141,9 @@ catalogs:
     '@testcontainers/postgresql':
       specifier: ^11.0.0
       version: 11.12.0
+    '@testing-library/jest-dom':
+      specifier: ^6.0.0
+      version: 6.9.1
     '@types/node':
       specifier: ^20.11.0
       version: 20.19.30
@@ -189,6 +192,9 @@ catalogs:
     husky:
       specifier: ^9.1.0
       version: 9.1.7
+    jsdom:
+      specifier: ^25.0.0
+      version: 25.0.1
     knip:
       specifier: ^5.82.1
       version: 5.82.1
@@ -371,7 +377,7 @@ importers:
         version: 3.9.0(react@19.2.4)
     devDependencies:
       '@testing-library/jest-dom':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.9.1
       '@testing-library/react':
         specifier: ^16.0.0
@@ -386,7 +392,7 @@ importers:
         specifier: 'catalog:'
         version: 5.2.0(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       jsdom:
-        specifier: ^25.0.0
+        specifier: 'catalog:'
         version: 25.0.1
       typescript:
         specifier: 'catalog:'
@@ -425,7 +431,7 @@ importers:
         version: 3.9.0(react@19.2.4)
     devDependencies:
       '@testing-library/jest-dom':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.9.1
       '@testing-library/react':
         specifier: ^16.0.0
@@ -440,7 +446,7 @@ importers:
         specifier: 'catalog:'
         version: 5.2.0(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       jsdom:
-        specifier: ^25.0.0
+        specifier: 'catalog:'
         version: 25.0.1
       typescript:
         specifier: 'catalog:'
