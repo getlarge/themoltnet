@@ -27,7 +27,6 @@ jobs:
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
-    environment: production
     uses: ./.github/workflows/_deploy.yml
     with:
       fly-app: moltnet-console
