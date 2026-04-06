@@ -178,6 +178,124 @@ jobs:
           path: knip-report.json
           retention-days: 30
 
+  cli-go-mod-sync:
+    name: CLI go.mod Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check moltnet-cli Go module pins
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED_API=$(jq -r '."libs/moltnet-api-client"' .release-please-manifest.json)
+          EXPECTED_DSPY=$(jq -r '."libs/dspy-adapters"' .release-please-manifest.json)
+
+          CURRENT_API=$(grep 'github.com/getlarge/themoltnet/libs/moltnet-api-client' apps/moltnet-cli/go.mod | awk '{print $2}' | sed 's/^v//')
+          CURRENT_DSPY=$(grep 'github.com/getlarge/themoltnet/libs/dspy-adapters' apps/moltnet-cli/go.mod | awk '{print $2}' | sed 's/^v//')
+
+          STALE=false
+          MESSAGES=()
+          COMMANDS=()
+
+          if [ "$CURRENT_API" != "$EXPECTED_API" ]; then
+            STALE=true
+            MESSAGES+=("- \`moltnet-api-client\`: go.mod has \`v$CURRENT_API\`, expected \`v$EXPECTED_API\`")
+            COMMANDS+=("GOWORK=off go get github.com/getlarge/themoltnet/libs/moltnet-api-client@v$EXPECTED_API")
+          fi
+
+          if [ "$CURRENT_DSPY" != "$EXPECTED_DSPY" ]; then
+            STALE=true
+            MESSAGES+=("- \`dspy-adapters\`: go.mod has \`v$CURRENT_DSPY\`, expected \`v$EXPECTED_DSPY\`")
+            COMMANDS+=("GOWORK=off go get github.com/getlarge/themoltnet/libs/dspy-adapters@v$EXPECTED_DSPY")
+          fi
+
+          if [ "$STALE" = true ]; then
+            COMMANDS+=("GOWORK=off go mod tidy")
+            {
+              echo "stale=true"
+              echo "message<<MSG_EOF"
+              printf '%s\n' "${MESSAGES[@]}"
+              echo "MSG_EOF"
+              echo "commands<<CMD_EOF"
+              printf '%s\n' "${COMMANDS[@]}"
+              echo "CMD_EOF"
+            } >> "$GITHUB_OUTPUT"
+
+            echo "::error::apps/moltnet-cli/go.mod is behind the release manifest."
+            printf '%s\n' "${MESSAGES[@]}"
+            exit 1
+          fi
+
+          echo "stale=false" >> "$GITHUB_OUTPUT"
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          CLI_GO_MOD_STALE: ${{ steps.sync.outputs.stale }}
+          CLI_GO_MOD_MESSAGE: ${{ steps.sync.outputs.message }}
+          CLI_GO_MOD_COMMANDS: ${{ steps.sync.outputs.commands }}
+        with:
+          script: |
+            const marker = '<!-- cli-go-mod-sync -->';
+            const stale = process.env.CLI_GO_MOD_STALE;
+            const message = process.env.CLI_GO_MOD_MESSAGE || '';
+            const commands = process.env.CLI_GO_MOD_COMMANDS || '';
+
+            let body;
+            if (stale === 'true') {
+              body = [
+                marker,
+                '## :warning: CLI go.mod is behind internal Go module releases',
+                '',
+                'The CLI release is intentionally decoupled from same-run Go lib releases, so `apps/moltnet-cli/go.mod` must already be bumped in a normal PR.',
+                '',
+                'Detected drift:',
+                message,
+                '',
+                'Run these commands from `apps/moltnet-cli`:',
+                '',
+                '```bash',
+                commands,
+                '```',
+              ].join('\n');
+            } else {
+              body = [
+                marker,
+                '## :white_check_mark: CLI go.mod matches internal Go module releases',
+                '',
+                '`apps/moltnet-cli/go.mod` is aligned with the versions tracked in `.release-please-manifest.json`.',
+              ].join('\n');
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
