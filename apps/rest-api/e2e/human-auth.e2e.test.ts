@@ -121,7 +121,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
         },
       );
 
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
 
     it('rejects invalid webhook API key', async () => {
@@ -143,7 +143,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
         },
       );
 
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
 
     it('rejects non-human schema registration', async () => {
@@ -253,7 +253,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
         }),
       });
 
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
 
     it('skips non-human schema logins (returns 200)', async () => {

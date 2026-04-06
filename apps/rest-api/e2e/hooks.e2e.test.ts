@@ -102,7 +102,7 @@ describe('Webhook Handlers (Agent)', () => {
         },
       );
 
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
   });
 
@@ -179,7 +179,7 @@ describe('Webhook Handlers (Agent)', () => {
         },
       );
 
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
   });
 });
