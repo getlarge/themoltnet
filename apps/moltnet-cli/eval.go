@@ -702,6 +702,9 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 		fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", runDir)
 	}()
 
+	pt := newProgressTracker(os.Stderr)
+	defer pt.wait()
+
 	result := evalResult{taskName: input.name}
 	if input.packMD != "" && opts.concurrency >= 2 {
 		// Run without-context and with-context variants in parallel.
@@ -712,11 +715,13 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			withoutScores, withoutErr = runDSPYEvalVariant(runDir, input, false, opts)
+			tb := pt.addTrial(input.name + " (without context)")
+			withoutScores, withoutErr = runDSPYEvalVariant(runDir, input, false, opts, tb)
 		}()
 		go func() {
 			defer wg.Done()
-			withScores, withErr = runDSPYEvalVariant(runDir, input, true, opts)
+			tb := pt.addTrial(input.name + " (with context)")
+			withScores, withErr = runDSPYEvalVariant(runDir, input, true, opts, tb)
 		}()
 		wg.Wait()
 
@@ -729,12 +734,14 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 		result.withoutContext = withoutScores
 		result.withContext = withScores
 	} else {
-		result.withoutContext, err = runDSPYEvalVariant(runDir, input, false, opts)
+		tb := pt.addTrial(input.name + " (without context)")
+		result.withoutContext, err = runDSPYEvalVariant(runDir, input, false, opts, tb)
 		if err != nil {
 			return err
 		}
 		if input.packMD != "" {
-			result.withContext, err = runDSPYEvalVariant(runDir, input, true, opts)
+			tb2 := pt.addTrial(input.name + " (with context)")
+			result.withContext, err = runDSPYEvalVariant(runDir, input, true, opts, tb2)
 			if err != nil {
 				return err
 			}
@@ -796,6 +803,9 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 		}
 	}
 
+	pt := newProgressTracker(os.Stderr)
+	defer pt.wait()
+
 	sem := make(chan struct{}, max(opts.concurrency, 1))
 	results := make([]evalResult, len(inputs))
 	ch := make(chan indexedResult, len(inputs))
@@ -807,13 +817,15 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 			r := evalResult{taskName: in.name}
 			var runErr error
 
-			r.withoutContext, runErr = runDSPYEvalVariant(runDir, in, false, opts)
+			tb := pt.addTrial(in.name + " (without context)")
+			r.withoutContext, runErr = runDSPYEvalVariant(runDir, in, false, opts, tb)
 			if runErr != nil {
 				ch <- indexedResult{idx: idx, err: runErr}
 				return
 			}
 			if in.packMD != "" {
-				r.withContext, runErr = runDSPYEvalVariant(runDir, in, true, opts)
+				tb2 := pt.addTrial(in.name + " (with context)")
+				r.withContext, runErr = runDSPYEvalVariant(runDir, in, true, opts, tb2)
 				if runErr != nil {
 					ch <- indexedResult{idx: idx, err: runErr}
 					return
@@ -860,12 +872,10 @@ func validateDSPYEvalOpts(opts evalRunOpts) error {
 	return nil
 }
 
-func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opts evalRunOpts) (*trialScores, error) {
+func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opts evalRunOpts, tb *trialBar) (*trialScores, error) {
 	variantName := input.name
-	variantLabel := "without context"
 	if withContext {
 		variantName += "-with-context"
-		variantLabel = "with context"
 	}
 	variantDir := filepath.Join(runDir, variantName+"__dspy")
 	if err := os.MkdirAll(variantDir, 0o755); err != nil {
@@ -886,14 +896,16 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if agentName == "" {
 		agentName = opts.agent
 	}
-	fmt.Fprintf(os.Stderr, "[dspy] %s: running %s task step...\n", variantLabel, agentName)
+	if tb != nil {
+		tb.setPhase(phaseAgentRunning)
+	}
 	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
 	model := input.model
 	if model == "" {
 		model = opts.model
 	}
 
-	agentResult, err := runEvalAgent(worktreeDir, agentName, model, prompt, variantLabel)
+	agentResult, err := runEvalAgent(worktreeDir, agentName, model, prompt, tb)
 	if err != nil {
 		return nil, err
 	}
@@ -920,6 +932,9 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		if scores.err == "" {
 			scores.err = "agent run failed"
 		}
+		if tb != nil {
+			tb.fail(scores.err)
+		}
 		return scores, nil
 	}
 
@@ -934,7 +949,9 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		return nil, fmt.Errorf("initialize judge LLM: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "[dspy] %s: judging checklist...\n", variantLabel)
+	if tb != nil {
+		tb.setPhase(phaseJudging)
+	}
 	judgeStart := time.Now()
 	judged, err := checklist.Run(ctx, checklist.Request{
 		LLM:              judgeLLM,
@@ -952,6 +969,9 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		if writeErr := writeDSPYAgentArtifacts(variantDir, agentResult); writeErr != nil {
 			fmt.Fprintf(os.Stderr, "warning: could not persist agent output for %s: %v\n", variantName, writeErr)
 		}
+		if tb != nil {
+			tb.fail(scores.err)
+		}
 		return scores, nil
 	}
 
@@ -966,7 +986,9 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged, judgeMs, input.name, variant, agentName, model, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
 	}
-	fmt.Fprintf(os.Stderr, "[dspy] %s: completed (reward %.1f%%)\n", variantLabel, scores.reward*100)
+	if tb != nil {
+		tb.complete(scores.reward)
+	}
 	return scores, nil
 }
 
@@ -1198,11 +1220,11 @@ type dspyAgentRunResult struct {
 
 // runEvalAgent spawns the appropriate CLI agent via the dspy-go adapter,
 // capturing trajectory, usage, and session metadata.
-func runEvalAgent(workDir, agent, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
-	heartbeat := dspytypes.HeartbeatFunc(func(d time.Duration) {
-		fmt.Fprintf(os.Stderr, "[dspy] %s: agent task still running (%s elapsed)\n",
-			statusLabel, d.Round(time.Second))
-	})
+func runEvalAgent(workDir, agent, model, prompt string, tb *trialBar) (*dspyAgentRunResult, error) {
+	var heartbeat dspytypes.HeartbeatFunc
+	if tb != nil {
+		heartbeat = dspytypes.HeartbeatFunc(tb.heartbeatFor())
+	}
 
 	var gen dspytypes.TrajectoryGenerator
 	switch agent {
