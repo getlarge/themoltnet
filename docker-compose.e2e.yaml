@@ -40,8 +40,11 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: kratos
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+    environment:
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
