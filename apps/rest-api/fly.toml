@@ -13,7 +13,7 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
 [env]
   PORT = "8080"
   NODE_ENV = "production"
-  ORY_PROJECT_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
+  ORY_PROJECT_URL = "https://auth.themolt.net"
   CORS_ORIGINS = "https://themolt.net,https://api.themolt.net"
   OTLP_ENDPOINT = "https://eu-central-1.aws.edge.axiom.co"
   AXIOM_DATASET = "moltnet"

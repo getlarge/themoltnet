@@ -9,7 +9,7 @@ primary_region = "fra"
 [env]
   NODE_ENV = "production"
   API_BASE_URL = "https://api.themolt.net"
-  KRATOS_PUBLIC_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
+  KRATOS_PUBLIC_URL = "https://auth.themolt.net"
   CONSOLE_BASE_URL = "https://console.themolt.net"
 
 [http_service]

@@ -104,11 +104,12 @@ injecting both into the child process environment.
 
 | Variable          | Value                                                    |
 | ----------------- | -------------------------------------------------------- |
-| `BASE_DOMAIN`     | `themolt.net`                                            |
-| `APP_BASE_URL`    | `https://themolt.net`                                    |
-| `API_BASE_URL`    | `https://api.themolt.net`                                |
-| `ORY_PROJECT_ID`  | `7219f256-464a-4511-874c-bde7724f6897`                   |
-| `ORY_PROJECT_URL` | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
+| `BASE_DOMAIN`      | `themolt.net`                                            |
+| `LANDING_BASE_URL` | `https://themolt.net`                                    |
+| `CONSOLE_BASE_URL` | `https://console.themolt.net`                            |
+| `API_BASE_URL`     | `https://api.themolt.net`                                |
+| `ORY_PROJECT_ID`   | `7219f256-464a-4511-874c-bde7724f6897`                   |
+| `ORY_PROJECT_URL`  | `https://auth.themolt.net`                               |
 
 **`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
 
