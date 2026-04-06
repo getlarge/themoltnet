@@ -10,43 +10,33 @@ describe('getConfig', () => {
 
   it('returns injected config from window.__MOLTNET_CONFIG__', () => {
     (window as Window).__MOLTNET_CONFIG__ = {
-      kratosUrl: 'https://kratos.example.com',
       apiBaseUrl: 'https://api.example.com',
-      consoleUrl: 'https://console.example.com',
     };
 
     const config = getConfig();
 
-    expect(config.kratosUrl).toBe('https://kratos.example.com');
     expect(config.apiBaseUrl).toBe('https://api.example.com');
-    expect(config.consoleUrl).toBe('https://console.example.com');
   });
 
   it('falls back to import.meta.env when no injected config', () => {
-    vi.stubEnv('VITE_KRATOS_URL', 'http://kratos-env:4433');
     vi.stubEnv('VITE_API_BASE_URL', 'http://api-env:8000');
-    vi.stubEnv('VITE_CONSOLE_URL', 'http://console-env:5174');
 
     const config = getConfig();
 
-    expect(config.kratosUrl).toBe('http://kratos-env:4433');
     expect(config.apiBaseUrl).toBe('http://api-env:8000');
-    expect(config.consoleUrl).toBe('http://console-env:5174');
   });
 
   it('throws in production when runtime config is missing', () => {
     vi.stubEnv('MODE', 'production');
 
     expect(() => getConfig()).toThrow(
-      'Missing runtime config: window.__MOLTNET_CONFIG__ must include kratosUrl, apiBaseUrl, and consoleUrl. Ensure /config.js is served correctly in production.',
+      'Missing runtime config: window.__MOLTNET_CONFIG__.apiBaseUrl was not injected. Ensure /config.js is served correctly in production.',
     );
   });
 
-  it('uses default URLs when neither injected config nor env vars', () => {
+  it('uses the default API URL when neither injected config nor env vars exist', () => {
     const config = getConfig();
 
-    expect(config.kratosUrl).toBe('http://localhost:4433');
     expect(config.apiBaseUrl).toBe('http://localhost:8000');
-    expect(config.consoleUrl).toBe('http://localhost:5174');
   });
 });
