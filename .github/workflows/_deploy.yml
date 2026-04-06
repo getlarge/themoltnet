@@ -29,10 +29,11 @@ on:
         required: false
         default: true
         type: boolean
-    secrets:
-      FLY_API_TOKEN:
-        description: 'Fly.io API token for the target app'
-        required: true
+      fly-token-secret:
+        description: 'Name of the secret in the production environment holding the Fly.io API token'
+        required: false
+        default: 'FLY_API_TOKEN'
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -41,6 +42,7 @@ jobs:
   promote:
     name: Promote CI image
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
       packages: write
@@ -54,12 +56,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve Fly.io token
+        uses: actions/github-script@v7
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
+          SECRET_NAME: ${{ inputs.fly-token-secret }}
+        with:
+          script: |
+            const secrets = JSON.parse(process.env.ALL_SECRETS);
+            const name = process.env.SECRET_NAME;
+            if (!/^FLY_[A-Z0-9_]+_TOKEN$/.test(name)) core.setFailed(`Invalid secret name '${name}': must match FLY_*_TOKEN`);
+            const value = secrets[name];
+            if (!value) core.setFailed(`Secret '${name}' not found in production environment`);
+            core.exportVariable('FLY_API_TOKEN', value);
+
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # v1.5
 
       - name: Log in to Fly.io registry
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl auth docker
 
       - name: Promote image
@@ -112,12 +126,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve Fly.io token
+        uses: actions/github-script@v7
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
+          SECRET_NAME: ${{ inputs.fly-token-secret }}
+        with:
+          script: |
+            const secrets = JSON.parse(process.env.ALL_SECRETS);
+            const name = process.env.SECRET_NAME;
+            if (!/^FLY_[A-Z0-9_]+_TOKEN$/.test(name)) core.setFailed(`Invalid secret name '${name}': must match FLY_*_TOKEN`);
+            const value = secrets[name];
+            if (!value) core.setFailed(`Secret '${name}' not found in production environment`);
+            core.exportVariable('FLY_API_TOKEN', value);
+
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # v1.5
 
       - name: Deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         working-directory: ${{ inputs.working-directory }}
         run: |
           IMAGE_REF="${{ needs.promote.outputs.image_ref }}"
