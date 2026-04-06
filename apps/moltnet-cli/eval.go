@@ -877,7 +877,13 @@ func validateDSPYEvalOpts(opts evalRunOpts) error {
 	return nil
 }
 
-func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opts evalRunOpts, tb *trialBar) (*trialScores, error) {
+func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opts evalRunOpts, tb *trialBar) (_ *trialScores, retErr error) {
+	defer func() {
+		if retErr != nil && tb != nil {
+			tb.fail(retErr.Error())
+		}
+	}()
+
 	variantName := input.name
 	if withContext {
 		variantName += "-with-context"

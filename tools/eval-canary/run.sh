@@ -29,6 +29,8 @@ done
 
 command -v moltnet >/dev/null || { echo "Error: moltnet CLI not found on PATH"; exit 1; }
 command -v jq >/dev/null || { echo "Error: jq not found on PATH"; exit 1; }
+command -v docker >/dev/null || { echo "Error: docker not found on PATH (required for Harbor engine)"; exit 1; }
+command -v claude >/dev/null || { echo "Error: claude CLI not found on PATH (required for DSPy engine)"; exit 1; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

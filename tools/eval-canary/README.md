@@ -5,7 +5,7 @@ Run both Harbor and DSPy eval engines on the same scenario set and compare resul
 ## Prerequisites
 
 - `moltnet` CLI on PATH (`go install` or `go run .` from `apps/moltnet-cli`)
-- `jq` installed
+- `jq` and `bc` installed
 - Docker running (for Harbor engine)
 - `claude` CLI on PATH (for DSPy engine)
 

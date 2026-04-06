@@ -141,8 +141,9 @@ func (tb *trialBar) heartbeatFor() func(time.Duration) {
 }
 
 func truncateProgress(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
 		return s
 	}
-	return s[:maxLen] + "..."
+	return string(runes[:maxLen]) + "..."
 }

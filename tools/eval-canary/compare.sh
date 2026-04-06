@@ -29,6 +29,7 @@ DSPY="$2"
 [[ ! -f "$DSPY" ]] && { echo "Error: file not found: $DSPY"; exit 1; }
 
 command -v jq >/dev/null || { echo "Error: jq not found on PATH"; exit 1; }
+command -v bc >/dev/null || { echo "Error: bc not found on PATH"; exit 1; }
 
 # Extract summary metrics
 h_completion=$(jq -r '.summary.completion_rate' "$HARBOR")
