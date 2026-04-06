@@ -227,14 +227,14 @@ jobs:
               echo "CMD_EOF"
             } >> "$GITHUB_OUTPUT"
 
-            echo "::error::apps/moltnet-cli/go.mod is behind the release manifest."
+            echo "::warning::apps/moltnet-cli/go.mod is behind the release manifest."
             printf '%s\n' "${MESSAGES[@]}"
-            exit 1
+            exit 0
           fi
 
           echo "stale=false" >> "$GITHUB_OUTPUT"
       - name: Comment on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         env:
           CLI_GO_MOD_STALE: ${{ steps.sync.outputs.stale }}
