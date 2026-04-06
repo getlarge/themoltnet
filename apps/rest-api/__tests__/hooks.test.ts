@@ -270,11 +270,14 @@ describe('Hook routes', () => {
         payload: validHumanPayload,
       });
 
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(403);
       expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
-      expect(body.code).toBe('UNAUTHORIZED');
-      expect(body.detail).toBe('Missing webhook API key');
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].messages[0].id).toBe(4030001);
+      expect(body.messages[0].messages[0].text).toBe(
+        'Webhook authentication failed.',
+      );
     });
 
     it('rejects request with wrong API key', async () => {
@@ -285,11 +288,14 @@ describe('Hook routes', () => {
         payload: validHumanPayload,
       });
 
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(403);
       expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
-      expect(body.code).toBe('UNAUTHORIZED');
-      expect(body.detail).toBe('Invalid webhook API key');
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].messages[0].id).toBe(4030001);
+      expect(body.messages[0].messages[0].text).toBe(
+        'Webhook authentication failed.',
+      );
     });
 
     it('accepts request with valid API key', async () => {

@@ -202,6 +202,7 @@ export const optionalAuth: preHandlerAsyncHookHandler =
       const sessionContext =
         await request.server.sessionResolver.resolveSession(sessionToken);
       if (sessionContext) {
+        await resolveTeamContext(request, sessionContext);
         request.authContext = sessionContext;
         return;
       }
@@ -214,6 +215,7 @@ export const optionalAuth: preHandlerAsyncHookHandler =
     const authContext =
       await request.server.tokenValidator.resolveAuthContext(token);
     if (authContext) {
+      await resolveTeamContext(request, authContext);
       request.authContext = authContext;
     }
   };

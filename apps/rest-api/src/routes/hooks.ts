@@ -96,8 +96,8 @@ function oryValidationError(instancePtr: string, id: number, text: string) {
 }
 
 // Webhook API key validation middleware.
-// Returns Ory-format 400 on auth failure so Kratos can display a user-facing
-// error instead of swallowing a 401/500 as an opaque internal error.
+// Returns Ory-format 403 on auth failure so Kratos can surface the error
+// while observability still classifies it as an auth failure.
 const validateWebhookApiKey = (webhookApiKey: string) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
@@ -118,13 +118,9 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
         'Invalid webhook API key',
       );
       return reply
-        .status(500)
+        .status(403)
         .send(
-          oryValidationError(
-            '#/',
-            5000001,
-            'Registration failed due to an internal error. Please try again.',
-          ),
+          oryValidationError('#/', 4030001, 'Webhook authentication failed.'),
         );
     }
   };

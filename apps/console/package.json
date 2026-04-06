@@ -15,7 +15,7 @@
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/models": "workspace:*",
-    "@ory/client-fetch": "1.21.5",
+    "@ory/client-fetch": "catalog:",
     "@ory/elements-react": "catalog:",
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:",

@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { KetoNamespace } from '../src/keto-constants.js';
 import {
   authPlugin,
   optionalAuth,
@@ -49,6 +50,7 @@ function createMockPermissionChecker() {
     canReadDiary: vi.fn(),
     canWriteDiary: vi.fn(),
     canManageDiary: vi.fn(),
+    canAccessTeam: vi.fn().mockResolvedValue(true),
   };
 }
 
@@ -294,6 +296,46 @@ describe('optionalAuth preHandler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().authContext).toEqual(VALID_AUTH_CONTEXT);
+  });
+
+  it('resolves team context for session-authenticated requests', async () => {
+    const sessionResolver = createMockSessionResolver();
+    sessionResolver.resolveSession.mockResolvedValue({
+      ...VALID_SESSION_CONTEXT,
+    });
+
+    app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      sessionResolver,
+    } as never);
+
+    app.get('/optional', { preHandler: [optionalAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: {
+        'x-moltnet-session-token': 'ory_st_valid_session_token_123',
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual({
+      ...VALID_SESSION_CONTEXT,
+      currentTeamId: 'team-123',
+    });
+    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
+      'team-123',
+      VALID_SESSION_CONTEXT.identityId,
+      KetoNamespace.Human,
+    );
   });
 
   it('continues with null authContext when no token', async () => {
