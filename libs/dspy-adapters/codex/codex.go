@@ -209,10 +209,52 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 		return nil, fmt.Errorf("codex CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
 	}
 
-	return &core.LLMResponse{
+	resp := &core.LLMResponse{
 		Content:  content,
 		Metadata: map[string]interface{}{"provider": ProviderName},
-	}, nil
+	}
+
+	// Extract usage from JSONL turn.completed events (when --json is used).
+	resp.Usage = extractUsageFromJSONL(content)
+	l.lastUsage = resp.Usage
+
+	return resp, nil
+}
+
+// extractUsageFromJSONL aggregates token usage from turn.completed events.
+func extractUsageFromJSONL(output string) *core.TokenInfo {
+	var totalInput, totalOutput int
+	found := false
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var evt struct {
+			Type  string `json:"type"`
+			Usage *struct {
+				InputTokens       int `json:"input_tokens"`
+				CachedInputTokens int `json:"cached_input_tokens"`
+				OutputTokens      int `json:"output_tokens"`
+			} `json:"usage"`
+		}
+		if err := json.Unmarshal([]byte(line), &evt); err != nil {
+			continue
+		}
+		if evt.Type == "turn.completed" && evt.Usage != nil {
+			totalInput += evt.Usage.InputTokens
+			totalOutput += evt.Usage.OutputTokens
+			found = true
+		}
+	}
+	if !found {
+		return nil
+	}
+	return &core.TokenInfo{
+		PromptTokens:     totalInput,
+		CompletionTokens: totalOutput,
+		TotalTokens:      totalInput + totalOutput,
+	}
 }
 
 // buildEnv merges os.Environ with config overrides.

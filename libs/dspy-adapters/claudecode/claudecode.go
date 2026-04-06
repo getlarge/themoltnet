@@ -209,10 +209,37 @@ func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMR
 		return nil, fmt.Errorf("claude CLI returned empty response (stderr: %s)", strings.TrimSpace(stderr.String()))
 	}
 
-	return &core.LLMResponse{
+	resp := &core.LLMResponse{
 		Content:  content,
 		Metadata: map[string]interface{}{"provider": ProviderName},
-	}, nil
+	}
+
+	// Try to extract usage from the JSON envelope (--output-format json).
+	resp.Usage = extractUsageFromEnvelope(content)
+	l.lastUsage = resp.Usage
+
+	return resp, nil
+}
+
+// extractUsageFromEnvelope tries to parse token usage from a Claude CLI
+// JSON envelope. Returns nil if the content isn't a JSON envelope.
+func extractUsageFromEnvelope(content string) *core.TokenInfo {
+	var envelope struct {
+		Usage *struct {
+			InputTokens              int `json:"input_tokens"`
+			OutputTokens             int `json:"output_tokens"`
+			CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+			CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.Unmarshal([]byte(content), &envelope); err != nil || envelope.Usage == nil {
+		return nil
+	}
+	return &core.TokenInfo{
+		PromptTokens:     envelope.Usage.InputTokens,
+		CompletionTokens: envelope.Usage.OutputTokens,
+		TotalTokens:      envelope.Usage.InputTokens + envelope.Usage.OutputTokens,
+	}
 }
 
 // buildEnv merges os.Environ with config overrides, stripping sensitive vars.
