@@ -210,3 +210,8 @@ __pycache__/
 jobs/
 /apps/moltnet-cli/moltnet-cli
 /moltnet-cli
+
+# Local ONNX model cache (downloaded by embedding service, not checked in)
+# Copy exists at apps/rest-api/models/ due to pnpm cwd being apps/rest-api when running dev:api
+models/Xenova/e5-small-v2
+apps/**/models/Xenova/e5-small-v2
