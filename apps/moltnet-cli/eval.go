@@ -1201,19 +1201,31 @@ type dspyAgentRunResult struct {
 	durationMs int64
 	costUSD    float64
 	numTurns   int
-	trajectory []json.RawMessage // raw stream-json events (assistant + result only)
+	sessionID  string
+	// Token usage (aggregated across all turns).
+	inputTokens       int
+	cachedInputTokens int
+	outputTokens      int
+	trajectory        []json.RawMessage // raw stream-json events (assistant + result only)
 }
 
-// streamEvent is the minimal envelope for stream-json events.
+// streamEvent is the minimal envelope for Claude stream-json events.
 type streamEvent struct {
 	Type    string `json:"type"`
 	Subtype string `json:"subtype,omitempty"`
 	// result-specific fields
 	Result     string  `json:"result,omitempty"`
+	SessionID  string  `json:"session_id,omitempty"`
 	DurationMs int64   `json:"duration_ms,omitempty"`
 	CostUSD    float64 `json:"total_cost_usd,omitempty"`
 	NumTurns   int     `json:"num_turns,omitempty"`
 	IsError    bool    `json:"is_error,omitempty"`
+	Usage      *struct {
+		InputTokens              int `json:"input_tokens"`
+		OutputTokens             int `json:"output_tokens"`
+		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+	} `json:"usage,omitempty"`
 }
 
 func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
@@ -1245,8 +1257,16 @@ func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentR
 	close(done)
 
 	result.stderr = strings.TrimSpace(stderr.String())
-	result.trajectory, result.output, result.durationMs, result.costUSD, result.numTurns =
-		parseStreamJSON(stdout.Bytes())
+	parsed := parseStreamJSON(stdout.Bytes())
+	result.trajectory = parsed.trajectory
+	result.output = parsed.finalText
+	result.sessionID = parsed.sessionID
+	result.durationMs = parsed.durationMs
+	result.costUSD = parsed.costUSD
+	result.numTurns = parsed.numTurns
+	result.inputTokens = parsed.inputTokens
+	result.outputTokens = parsed.outputTokens
+	result.cachedInputTokens = parsed.cachedInputTokens
 
 	if runErr != nil {
 		if result.output == "" {
@@ -1262,9 +1282,23 @@ func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentR
 	return result, nil
 }
 
+// claudeStreamResult holds parsed data from Claude stream-json output.
+type claudeStreamResult struct {
+	trajectory        []json.RawMessage
+	finalText         string
+	sessionID         string
+	durationMs        int64
+	costUSD           float64
+	numTurns          int
+	inputTokens       int
+	outputTokens      int
+	cachedInputTokens int
+}
+
 // parseStreamJSON extracts trajectory events (assistant + result), final text,
 // and metadata from Claude stream-json NDJSON output.
-func parseStreamJSON(raw []byte) (trajectory []json.RawMessage, finalText string, durationMs int64, costUSD float64, numTurns int) {
+func parseStreamJSON(raw []byte) claudeStreamResult {
+	var r claudeStreamResult
 	for _, line := range bytes.Split(raw, []byte("\n")) {
 		line = bytes.TrimSpace(line)
 		if len(line) == 0 {
@@ -1279,19 +1313,25 @@ func parseStreamJSON(raw []byte) (trajectory []json.RawMessage, finalText string
 			// Copy line to avoid retaining the full stdout buffer.
 			copied := make([]byte, len(line))
 			copy(copied, line)
-			trajectory = append(trajectory, json.RawMessage(copied))
+			r.trajectory = append(r.trajectory, json.RawMessage(copied))
 		case "result":
 			copied := make([]byte, len(line))
 			copy(copied, line)
-			trajectory = append(trajectory, json.RawMessage(copied))
-			finalText = evt.Result
-			durationMs = evt.DurationMs
-			costUSD = evt.CostUSD
-			numTurns = evt.NumTurns
+			r.trajectory = append(r.trajectory, json.RawMessage(copied))
+			r.finalText = evt.Result
+			r.sessionID = evt.SessionID
+			r.durationMs = evt.DurationMs
+			r.costUSD = evt.CostUSD
+			r.numTurns = evt.NumTurns
+			if evt.Usage != nil {
+				r.inputTokens = evt.Usage.InputTokens
+				r.outputTokens = evt.Usage.OutputTokens
+				r.cachedInputTokens = evt.Usage.CacheReadInputTokens
+			}
 		}
 		// Skip system/hook/rate_limit events from trajectory
 	}
-	return
+	return r
 }
 
 func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
@@ -1354,17 +1394,31 @@ func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
 	}
 }
 
-// codexJSONLEvent is the minimal envelope for Codex --json JSONL output.
+// codexJSONLEvent is the envelope for Codex --json JSONL output.
 type codexJSONLEvent struct {
-	Type string `json:"type"`
-	Item *struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+	Type     string `json:"type"`
+	ThreadID string `json:"thread_id,omitempty"`
+	Item     *struct {
+		Type    string `json:"type"`
+		Text    string `json:"text"`
+		Command string `json:"command,omitempty"`
 	} `json:"item,omitempty"`
+	Usage *struct {
+		InputTokens       int `json:"input_tokens"`
+		CachedInputTokens int `json:"cached_input_tokens"`
+		OutputTokens      int `json:"output_tokens"`
+	} `json:"usage,omitempty"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+// codexUsage accumulates token usage across turns.
+type codexUsage struct {
+	inputTokens       int
+	cachedInputTokens int
+	outputTokens      int
 }
 
 func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
@@ -1413,8 +1467,14 @@ func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRu
 	result.durationMs = time.Since(start).Milliseconds()
 
 	result.stderr = strings.TrimSpace(stderr.String())
-	result.trajectory, result.output, result.numTurns =
-		parseCodexJSONL(stdout.Bytes())
+	parsed := parseCodexJSONL(stdout.Bytes())
+	result.trajectory = parsed.trajectory
+	result.output = parsed.finalText
+	result.numTurns = parsed.numTurns
+	result.sessionID = parsed.sessionID
+	result.inputTokens = parsed.usage.inputTokens
+	result.cachedInputTokens = parsed.usage.cachedInputTokens
+	result.outputTokens = parsed.usage.outputTokens
 
 	if runErr != nil {
 		if result.output == "" {
@@ -1432,7 +1492,16 @@ func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRu
 
 // parseCodexJSONL extracts trajectory events, final text, and turn count
 // from Codex --json JSONL output.
-func parseCodexJSONL(raw []byte) (trajectory []json.RawMessage, finalText string, numTurns int) {
+type codexJSONLResult struct {
+	trajectory []json.RawMessage
+	finalText  string
+	sessionID  string
+	numTurns   int
+	usage      codexUsage
+}
+
+func parseCodexJSONL(raw []byte) codexJSONLResult {
+	var r codexJSONLResult
 	var lastAgentText string
 	var lastError string
 
@@ -1446,12 +1515,23 @@ func parseCodexJSONL(raw []byte) (trajectory []json.RawMessage, finalText string
 			continue
 		}
 		switch evt.Type {
+		case "thread.started":
+			if evt.ThreadID != "" {
+				r.sessionID = evt.ThreadID
+			}
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			r.trajectory = append(r.trajectory, json.RawMessage(copied))
+		case "item.started":
+			copied := make([]byte, len(line))
+			copy(copied, line)
+			r.trajectory = append(r.trajectory, json.RawMessage(copied))
 		case "item.completed":
 			copied := make([]byte, len(line))
 			copy(copied, line)
-			trajectory = append(trajectory, json.RawMessage(copied))
+			r.trajectory = append(r.trajectory, json.RawMessage(copied))
 			if evt.Item != nil && evt.Item.Type == "agent_message" {
-				numTurns++
+				r.numTurns++
 				if evt.Item.Text != "" {
 					lastAgentText = evt.Item.Text
 				}
@@ -1459,7 +1539,12 @@ func parseCodexJSONL(raw []byte) (trajectory []json.RawMessage, finalText string
 		case "turn.completed":
 			copied := make([]byte, len(line))
 			copy(copied, line)
-			trajectory = append(trajectory, json.RawMessage(copied))
+			r.trajectory = append(r.trajectory, json.RawMessage(copied))
+			if evt.Usage != nil {
+				r.usage.inputTokens += evt.Usage.InputTokens
+				r.usage.cachedInputTokens += evt.Usage.CachedInputTokens
+				r.usage.outputTokens += evt.Usage.OutputTokens
+			}
 		case "error":
 			if evt.Message != "" {
 				lastError = evt.Message
@@ -1474,11 +1559,11 @@ func parseCodexJSONL(raw []byte) (trajectory []json.RawMessage, finalText string
 	}
 
 	if lastAgentText != "" {
-		finalText = lastAgentText
+		r.finalText = lastAgentText
 	} else if lastError != "" {
-		finalText = lastError
+		r.finalText = lastError
 	}
-	return
+	return r
 }
 
 func buildCodexEvalEnvWith(codexHome string) []string {
@@ -1697,7 +1782,7 @@ func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error
 	}
 	// Phase 0 contract: normalized trajectory.json
 	if len(agent.trajectory) > 0 {
-		traj := normalizeTrajectory(agent.trajectory, agent.output, agent.durationMs, agent.costUSD, agent.numTurns)
+		traj := normalizeTrajectory(agent)
 		trajectoryPayload, err := json.MarshalIndent(traj, "", "  ")
 		if err != nil {
 			return err

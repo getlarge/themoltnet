@@ -52,19 +52,23 @@ type normalizedTrajectory struct {
 // contract trajectory schema. This is adapter-agnostic: it works with any
 // stream-json producer (Claude CLI, Codex, etc.) as long as events follow
 // the standard {type, message, result} envelope.
-func normalizeTrajectory(raw []json.RawMessage, finalText string, durationMs int64, costUSD float64, numTurns int) *normalizedTrajectory {
+func normalizeTrajectory(agent *dspyAgentRunResult) *normalizedTrajectory {
 	traj := &normalizedTrajectory{
 		SchemaVersion: artifactSchemaVersion,
 		Engine:        "dspy",
-		FinalResult:   finalText,
+		SessionID:     agent.sessionID,
+		FinalResult:   agent.output,
 		Summary: trajectorySummary{
-			NumTurns: numTurns,
-			CostUSD:  costUSD,
+			NumTurns:        agent.numTurns,
+			CostUSD:         agent.costUSD,
+			InputTokens:     agent.inputTokens,
+			OutputTokens:    agent.outputTokens,
+			CacheReadTokens: agent.cachedInputTokens,
 		},
 	}
 
 	stepIdx := 0
-	for _, line := range raw {
+	for _, line := range agent.trajectory {
 		var evt map[string]any
 		if err := json.Unmarshal(line, &evt); err != nil {
 			continue
@@ -72,17 +76,21 @@ func normalizeTrajectory(raw []json.RawMessage, finalText string, durationMs int
 
 		evtType, _ := evt["type"].(string)
 		switch evtType {
+		// Claude stream-json events
 		case "assistant":
 			steps := extractStepsFromAssistant(evt, &stepIdx)
 			traj.Steps = append(traj.Steps, steps...)
 
 		case "result":
 			sessionID, _ := evt["session_id"].(string)
-			traj.SessionID = sessionID
+			if sessionID != "" {
+				traj.SessionID = sessionID
+			}
 			if isErr, ok := evt["is_error"].(bool); ok {
 				traj.IsError = isErr
 			}
-			// Extract usage from result
+			// Claude result events carry usage — override if present
+			// (the agent struct may already have these from parseStreamJSON).
 			if usage, ok := evt["usage"].(map[string]any); ok {
 				if v, ok := usage["input_tokens"].(float64); ok {
 					traj.Summary.InputTokens = int(v)
@@ -97,15 +105,63 @@ func normalizeTrajectory(raw []json.RawMessage, finalText string, durationMs int
 					traj.Summary.CacheReadTokens = int(v)
 				}
 			}
-			// Extract permission denials
 			if denials, ok := evt["permission_denials"].([]any); ok {
 				traj.Summary.PermissionDenials = len(denials)
 			}
+
+		// Codex JSONL events
+		case "item.completed":
+			steps := extractStepsFromCodexItem(evt, &stepIdx)
+			traj.Steps = append(traj.Steps, steps...)
+
+		case "turn.completed":
+			// Usage already accumulated in agent struct; nothing extra to do.
 		}
 	}
 
 	traj.Summary.NumSteps = len(traj.Steps)
 	return traj
+}
+
+// extractStepsFromCodexItem parses a Codex item.completed event into trajectory steps.
+func extractStepsFromCodexItem(evt map[string]any, stepIdx *int) []trajectoryStep {
+	item, ok := evt["item"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	itemType, _ := item["type"].(string)
+	*stepIdx++
+
+	switch itemType {
+	case "agent_message":
+		text, _ := item["text"].(string)
+		if text == "" {
+			return nil
+		}
+		return []trajectoryStep{{
+			Index:  *stepIdx,
+			Source: "agent",
+			Kind:   "message",
+			Output: truncate(text, 500),
+		}}
+	case "command_execution":
+		cmd, _ := item["command"].(string)
+		output, _ := item["aggregated_output"].(string)
+		exitCode := -1
+		if v, ok := item["exit_code"].(float64); ok {
+			exitCode = int(v)
+		}
+		return []trajectoryStep{{
+			Index:    *stepIdx,
+			Source:   "agent",
+			Kind:     "tool_call",
+			ToolName: "command_execution",
+			Input:    truncate(cmd, 500),
+			Output:   truncate(output, 500),
+			IsError:  exitCode != 0,
+		}}
+	}
+	return nil
 }
 
 // extractStepsFromAssistant parses content blocks from an assistant message
@@ -269,7 +325,10 @@ func buildTrialResult(
 		},
 		Usage: trialResultUsage{
 			Agent: trialResultUsageDetail{
-				CostUSD: agent.costUSD,
+				InputTokens:     agent.inputTokens,
+				OutputTokens:    agent.outputTokens,
+				CacheReadTokens: agent.cachedInputTokens,
+				CostUSD:         agent.costUSD,
 			},
 			TotalCostUSD: agent.costUSD,
 		},

@@ -602,33 +602,45 @@ func TestParseStreamJSONExtractsTrajectoryAndResult(t *testing.T) {
 	input := []byte(`{"type":"system","subtype":"init","session_id":"abc"}
 {"type":"system","subtype":"hook_started","hook_id":"h1"}
 {"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}
-{"type":"result","subtype":"success","result":"Hello!","duration_ms":1234,"total_cost_usd":0.05,"num_turns":1}
+{"type":"result","subtype":"success","session_id":"sess-1","result":"Hello!","duration_ms":1234,"total_cost_usd":0.05,"num_turns":1,"usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":10}}
 `)
-	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
-	if len(trajectory) != 2 {
-		t.Fatalf("expected 2 trajectory events (assistant+result), got %d", len(trajectory))
+	r := parseStreamJSON(input)
+	if len(r.trajectory) != 2 {
+		t.Fatalf("expected 2 trajectory events (assistant+result), got %d", len(r.trajectory))
 	}
-	if finalText != "Hello!" {
-		t.Fatalf("expected final text 'Hello!', got %q", finalText)
+	if r.finalText != "Hello!" {
+		t.Fatalf("expected final text 'Hello!', got %q", r.finalText)
 	}
-	if durationMs != 1234 {
-		t.Fatalf("expected duration 1234, got %d", durationMs)
+	if r.durationMs != 1234 {
+		t.Fatalf("expected duration 1234, got %d", r.durationMs)
 	}
-	if costUSD != 0.05 {
-		t.Fatalf("expected cost 0.05, got %f", costUSD)
+	if r.costUSD != 0.05 {
+		t.Fatalf("expected cost 0.05, got %f", r.costUSD)
 	}
-	if numTurns != 1 {
-		t.Fatalf("expected 1 turn, got %d", numTurns)
+	if r.numTurns != 1 {
+		t.Fatalf("expected 1 turn, got %d", r.numTurns)
+	}
+	if r.sessionID != "sess-1" {
+		t.Fatalf("expected session ID 'sess-1', got %q", r.sessionID)
+	}
+	if r.inputTokens != 100 {
+		t.Fatalf("expected 100 input tokens, got %d", r.inputTokens)
+	}
+	if r.outputTokens != 50 {
+		t.Fatalf("expected 50 output tokens, got %d", r.outputTokens)
+	}
+	if r.cachedInputTokens != 10 {
+		t.Fatalf("expected 10 cached input tokens, got %d", r.cachedInputTokens)
 	}
 }
 
 func TestParseStreamJSONHandlesEmptyInput(t *testing.T) {
 	t.Parallel()
-	trajectory, finalText, _, _, _ := parseStreamJSON([]byte{})
-	if len(trajectory) != 0 {
+	r := parseStreamJSON([]byte{})
+	if len(r.trajectory) != 0 {
 		t.Fatal("expected empty trajectory for empty input")
 	}
-	if finalText != "" {
+	if r.finalText != "" {
 		t.Fatal("expected empty final text")
 	}
 }
@@ -971,21 +983,21 @@ func TestParseStreamJSONMultiTurn(t *testing.T) {
 {"type":"assistant","message":{"content":[{"type":"text","text":"Done."}]}}
 {"type":"result","subtype":"success","result":"Done.","duration_ms":5000,"total_cost_usd":0.12,"num_turns":3}
 `)
-	trajectory, finalText, durationMs, costUSD, numTurns := parseStreamJSON(input)
-	if len(trajectory) != 4 { // 3 assistant + 1 result
-		t.Fatalf("expected 4 trajectory events, got %d", len(trajectory))
+	r := parseStreamJSON(input)
+	if len(r.trajectory) != 4 { // 3 assistant + 1 result
+		t.Fatalf("expected 4 trajectory events, got %d", len(r.trajectory))
 	}
-	if finalText != "Done." {
-		t.Fatalf("expected final text 'Done.', got %q", finalText)
+	if r.finalText != "Done." {
+		t.Fatalf("expected final text 'Done.', got %q", r.finalText)
 	}
-	if durationMs != 5000 {
-		t.Fatalf("expected duration 5000, got %d", durationMs)
+	if r.durationMs != 5000 {
+		t.Fatalf("expected duration 5000, got %d", r.durationMs)
 	}
-	if costUSD != 0.12 {
-		t.Fatalf("expected cost 0.12, got %f", costUSD)
+	if r.costUSD != 0.12 {
+		t.Fatalf("expected cost 0.12, got %f", r.costUSD)
 	}
-	if numTurns != 3 {
-		t.Fatalf("expected 3 turns, got %d", numTurns)
+	if r.numTurns != 3 {
+		t.Fatalf("expected 3 turns, got %d", r.numTurns)
 	}
 }
 
@@ -994,15 +1006,15 @@ func TestParseStreamJSONErrorResult(t *testing.T) {
 	input := []byte(`{"type":"assistant","message":{"content":[{"type":"text","text":"oops"}]}}
 {"type":"result","subtype":"error","is_error":true,"result":"something went wrong","duration_ms":100,"total_cost_usd":0.01,"num_turns":1}
 `)
-	trajectory, finalText, durationMs, _, _ := parseStreamJSON(input)
-	if len(trajectory) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(trajectory))
+	r := parseStreamJSON(input)
+	if len(r.trajectory) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(r.trajectory))
 	}
-	if finalText != "something went wrong" {
-		t.Fatalf("expected error result text, got %q", finalText)
+	if r.finalText != "something went wrong" {
+		t.Fatalf("expected error result text, got %q", r.finalText)
 	}
-	if durationMs != 100 {
-		t.Fatalf("expected duration 100, got %d", durationMs)
+	if r.durationMs != 100 {
+		t.Fatalf("expected duration 100, got %d", r.durationMs)
 	}
 }
 
@@ -1013,12 +1025,12 @@ func TestParseStreamJSONSkipsMalformedLines(t *testing.T) {
 {truncated
 {"type":"result","result":"ok","duration_ms":50,"num_turns":1}
 `)
-	trajectory, finalText, _, _, _ := parseStreamJSON(input)
-	if len(trajectory) != 2 { // assistant + result, malformed lines skipped
-		t.Fatalf("expected 2 events (skipping malformed), got %d", len(trajectory))
+	r := parseStreamJSON(input)
+	if len(r.trajectory) != 2 { // assistant + result, malformed lines skipped
+		t.Fatalf("expected 2 events (skipping malformed), got %d", len(r.trajectory))
 	}
-	if finalText != "ok" {
-		t.Fatalf("expected 'ok', got %q", finalText)
+	if r.finalText != "ok" {
+		t.Fatalf("expected 'ok', got %q", r.finalText)
 	}
 }
 
@@ -1260,33 +1272,47 @@ func TestEvalRunCompletionError(t *testing.T) {
 
 func TestParseCodexJSONLExtractsTrajectoryAndFinalText(t *testing.T) {
 	t.Parallel()
-	input := []byte(`{"type":"item.completed","item":{"type":"agent_message","text":"I created the file."}}
-{"type":"turn.completed"}
+	input := []byte(`{"type":"thread.started","thread_id":"tid-123"}
+{"type":"item.completed","item":{"type":"agent_message","text":"I created the file."}}
+{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":50}}
 {"type":"item.completed","item":{"type":"agent_message","text":"Done."}}
+{"type":"turn.completed","usage":{"input_tokens":80,"cached_input_tokens":10,"output_tokens":30}}
 `)
 
-	trajectory, finalText, numTurns := parseCodexJSONL(input)
-	if len(trajectory) != 3 {
-		t.Fatalf("expected 3 trajectory events, got %d", len(trajectory))
+	r := parseCodexJSONL(input)
+	if len(r.trajectory) != 5 {
+		t.Fatalf("expected 5 trajectory events, got %d", len(r.trajectory))
 	}
-	if finalText != "Done." {
-		t.Fatalf("expected final text 'Done.', got %q", finalText)
+	if r.finalText != "Done." {
+		t.Fatalf("expected final text 'Done.', got %q", r.finalText)
 	}
-	if numTurns != 2 {
-		t.Fatalf("expected 2 turns, got %d", numTurns)
+	if r.numTurns != 2 {
+		t.Fatalf("expected 2 turns, got %d", r.numTurns)
+	}
+	if r.sessionID != "tid-123" {
+		t.Fatalf("expected session ID 'tid-123', got %q", r.sessionID)
+	}
+	if r.usage.inputTokens != 180 {
+		t.Fatalf("expected 180 input tokens, got %d", r.usage.inputTokens)
+	}
+	if r.usage.cachedInputTokens != 30 {
+		t.Fatalf("expected 30 cached input tokens, got %d", r.usage.cachedInputTokens)
+	}
+	if r.usage.outputTokens != 80 {
+		t.Fatalf("expected 80 output tokens, got %d", r.usage.outputTokens)
 	}
 }
 
 func TestParseCodexJSONLHandlesEmptyInput(t *testing.T) {
 	t.Parallel()
-	trajectory, finalText, numTurns := parseCodexJSONL([]byte{})
-	if len(trajectory) != 0 {
+	r := parseCodexJSONL([]byte{})
+	if len(r.trajectory) != 0 {
 		t.Fatal("expected empty trajectory for empty input")
 	}
-	if finalText != "" {
+	if r.finalText != "" {
 		t.Fatal("expected empty final text")
 	}
-	if numTurns != 0 {
+	if r.numTurns != 0 {
 		t.Fatal("expected 0 turns")
 	}
 }
@@ -1297,15 +1323,15 @@ func TestParseCodexJSONLExtractsErrorAsFallback(t *testing.T) {
 {"type":"turn.failed","error":{"message":"API error"}}
 `)
 
-	trajectory, finalText, numTurns := parseCodexJSONL(input)
-	if len(trajectory) != 0 {
-		t.Fatalf("expected 0 trajectory events for error-only output, got %d", len(trajectory))
+	r := parseCodexJSONL(input)
+	if len(r.trajectory) != 0 {
+		t.Fatalf("expected 0 trajectory events for error-only output, got %d", len(r.trajectory))
 	}
-	if finalText != "API error" {
-		t.Fatalf("expected last error as final text, got %q", finalText)
+	if r.finalText != "API error" {
+		t.Fatalf("expected last error as final text, got %q", r.finalText)
 	}
-	if numTurns != 0 {
-		t.Fatalf("expected 0 turns, got %d", numTurns)
+	if r.numTurns != 0 {
+		t.Fatalf("expected 0 turns, got %d", r.numTurns)
 	}
 }
 
@@ -1315,15 +1341,15 @@ func TestParseCodexJSONLSkipsMalformedLines(t *testing.T) {
 {"type":"item.completed","item":{"type":"agent_message","text":"ok"}}
 {broken
 `)
-	trajectory, finalText, numTurns := parseCodexJSONL(input)
-	if len(trajectory) != 1 {
-		t.Fatalf("expected 1 trajectory event, got %d", len(trajectory))
+	r := parseCodexJSONL(input)
+	if len(r.trajectory) != 1 {
+		t.Fatalf("expected 1 trajectory event, got %d", len(r.trajectory))
 	}
-	if finalText != "ok" {
-		t.Fatalf("expected 'ok', got %q", finalText)
+	if r.finalText != "ok" {
+		t.Fatalf("expected 'ok', got %q", r.finalText)
 	}
-	if numTurns != 1 {
-		t.Fatalf("expected 1 turn, got %d", numTurns)
+	if r.numTurns != 1 {
+		t.Fatalf("expected 1 turn, got %d", r.numTurns)
 	}
 }
 
