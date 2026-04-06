@@ -16,7 +16,6 @@ import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { createProblem } from '../problems/index.js';
 import { humanOnboardingWorkflow } from '../workflows/index.js';
 
 // ── Ory Webhook Payload Types ───────────────────────────────
@@ -96,24 +95,38 @@ function oryValidationError(instancePtr: string, id: number, text: string) {
   };
 }
 
-// Webhook API key validation middleware
+// Webhook API key validation middleware.
+// Returns Ory-format 400 on auth failure so Kratos can display a user-facing
+// error instead of swallowing a 401/500 as an opaque internal error.
 const validateWebhookApiKey = (webhookApiKey: string) => {
-  return async (request: FastifyRequest, _reply: FastifyReply) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
-    if (typeof provided !== 'string') {
-      throw createProblem('unauthorized', 'Missing webhook API key');
-    }
+    const isValid =
+      typeof provided === 'string' &&
+      (() => {
+        const expected = Buffer.from(webhookApiKey);
+        const actual = Buffer.from(provided);
+        return (
+          expected.length === actual.length &&
+          crypto.timingSafeEqual(expected, actual)
+        );
+      })();
 
-    const expected = Buffer.from(webhookApiKey);
-    const actual = Buffer.from(provided);
-    if (
-      expected.length !== actual.length ||
-      !crypto.timingSafeEqual(expected, actual)
-    ) {
-      throw createProblem('unauthorized', 'Invalid webhook API key');
+    if (!isValid) {
+      request.log.warn(
+        { err: new Error('Invalid webhook API key') },
+        'Invalid webhook API key',
+      );
+      return reply
+        .status(500)
+        .send(
+          oryValidationError(
+            '#/',
+            5000001,
+            'Registration failed due to an internal error. Please try again.',
+          ),
+        );
     }
-    // Validation passed - continue to route handler
-    return;
   };
 };
 
@@ -176,44 +189,60 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      const { identity } = request.body;
+      try {
+        const { identity } = request.body;
 
-      // Resolve the human schema ID dynamically — on Ory Network
-      // schema_id may be a hash, so match via the schema JSON $id.
-      const humanSchemaId = await resolveHumanSchemaId(fastify.identityApi);
-      if (identity.schema_id !== humanSchemaId) {
-        fastify.log.warn(
-          { schema_id: identity.schema_id },
-          'After-registration webhook called with non-human schema — rejecting',
+        // Resolve the human schema ID dynamically — on Ory Network
+        // schema_id may be a hash, so match via the schema JSON $id.
+        const humanSchemaId = await resolveHumanSchemaId(fastify.identityApi);
+        if (identity.schema_id !== humanSchemaId) {
+          fastify.log.warn(
+            { schema_id: identity.schema_id },
+            'After-registration webhook called with non-human schema — rejecting',
+          );
+          return await reply
+            .status(400)
+            .send(
+              oryValidationError(
+                '#/',
+                4000010,
+                'Self-service registration is only available for humans. ' +
+                  'Agents must register via POST /auth/register.',
+              ),
+            );
+        }
+
+        // Create placeholder human record (identityId unknown at this point)
+        const human = await fastify.humanRepository.create();
+
+        fastify.log.info(
+          { human_id: human.id, schema_id: identity.schema_id },
+          'Human placeholder created via after-registration webhook',
+        );
+
+        // Return metadata_public so after-login hook can find this record
+        return await reply.status(200).send({
+          identity: {
+            metadata_public: {
+              human_id: human.id,
+            },
+          },
+        });
+      } catch (err) {
+        fastify.log.error(
+          { err },
+          'After-registration webhook failed unexpectedly',
         );
         return reply
-          .status(400)
+          .status(500)
           .send(
             oryValidationError(
               '#/',
-              4000010,
-              'Self-service registration is only available for humans. ' +
-                'Agents must register via POST /auth/register.',
+              5000001,
+              'Registration failed due to an internal error. Please try again.',
             ),
           );
       }
-
-      // Create placeholder human record (identityId unknown at this point)
-      const human = await fastify.humanRepository.create();
-
-      fastify.log.info(
-        { human_id: human.id, schema_id: identity.schema_id },
-        'Human placeholder created via after-registration webhook',
-      );
-
-      // Return metadata_public so after-login hook can find this record
-      return reply.status(200).send({
-        identity: {
-          metadata_public: {
-            human_id: human.id,
-          },
-        },
-      });
     },
   );
 
