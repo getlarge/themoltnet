@@ -21,6 +21,48 @@ func newConfigCmd() *cobra.Command {
 	}
 	repairCmd.Flags().BoolVar(&dryRun, "dry-run", false, "report issues without fixing")
 
+	initFromEnvCmd := &cobra.Command{
+		Use:   "init-from-env",
+		Short: "Reconstruct agent config from environment variables",
+		Long: `Reconstruct .moltnet/<agent>/ directory from environment variables.
+Designed for ephemeral environments (CI, Claude Code web) where
+legreffier init cannot run interactively.
+
+Required env vars:
+  MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
+  MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
+
+Optional env vars:
+  MOLTNET_API_URL (default: https://api.themolt.net)
+  MOLTNET_REGISTERED_AT (default: now)
+  MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_SLUG,
+  MOLTNET_GITHUB_APP_INSTALLATION_ID, MOLTNET_GITHUB_APP_PRIVATE_KEY`,
+		Example: `  # Set env vars, then run:
+  moltnet config init-from-env --agent legreffier
+  moltnet config init-from-env --agent legreffier --skip-git
+
+  # Load vars from a file (process env wins by default):
+  moltnet config init-from-env --agent legreffier --env-file .env.moltnet
+
+  # Load vars from a file and override process env:
+  moltnet config init-from-env --agent legreffier --env-file .env.moltnet --override`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dir, _ := cmd.Flags().GetString("dir")
+			agent, _ := cmd.Flags().GetString("agent")
+			skipGit, _ := cmd.Flags().GetBool("skip-git")
+			envFile, _ := cmd.Flags().GetString("env-file")
+			override, _ := cmd.Flags().GetBool("override")
+			return runConfigInitFromEnvCmd(dir, agent, skipGit, envFile, override)
+		},
+	}
+	initFromEnvCmd.Flags().String("agent", "", "Agent name (required)")
+	_ = initFromEnvCmd.MarkFlagRequired("agent")
+	initFromEnvCmd.Flags().String("dir", ".", "Repository root directory")
+	initFromEnvCmd.Flags().Bool("skip-git", false, "Skip git signing setup")
+	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
+	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")
+
 	configCmd.AddCommand(repairCmd)
+	configCmd.AddCommand(initFromEnvCmd)
 	return configCmd
 }
