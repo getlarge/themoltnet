@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -20,6 +18,9 @@ import (
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/codex"
+	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 	"gopkg.in/yaml.v2"
 )
 
@@ -908,13 +909,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		model = opts.model
 	}
 
-	var agentResult *dspyAgentRunResult
-	switch agentName {
-	case "codex":
-		agentResult, err = runCodexEvalAgent(worktreeDir, model, prompt, variantLabel)
-	default:
-		agentResult, err = runClaudeEvalAgent(worktreeDir, model, prompt, variantLabel)
-	}
+	agentResult, err := runEvalAgent(worktreeDir, agentName, model, prompt, variantLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -1209,170 +1204,68 @@ type dspyAgentRunResult struct {
 	trajectory        []json.RawMessage // raw stream-json events (assistant + result only)
 }
 
-// streamEvent is the minimal envelope for Claude stream-json events.
-type streamEvent struct {
-	Type    string `json:"type"`
-	Subtype string `json:"subtype,omitempty"`
-	// result-specific fields
-	Result     string  `json:"result,omitempty"`
-	SessionID  string  `json:"session_id,omitempty"`
-	DurationMs int64   `json:"duration_ms,omitempty"`
-	CostUSD    float64 `json:"total_cost_usd,omitempty"`
-	NumTurns   int     `json:"num_turns,omitempty"`
-	IsError    bool    `json:"is_error,omitempty"`
-	Usage      *struct {
-		InputTokens              int `json:"input_tokens"`
-		OutputTokens             int `json:"output_tokens"`
-		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-	} `json:"usage,omitempty"`
-}
+// runEvalAgent spawns the appropriate CLI agent via the dspy-go adapter,
+// capturing trajectory, usage, and session metadata.
+func runEvalAgent(workDir, agent, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
+	heartbeat := dspytypes.HeartbeatFunc(func(d time.Duration) {
+		fmt.Fprintf(os.Stderr, "[dspy] %s: agent task still running (%s elapsed)\n",
+			statusLabel, d.Round(time.Second))
+	})
 
-func runClaudeEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
-	args := []string{
-		"--print",
-		"--verbose",
-		"--output-format", "stream-json",
-		"--model", trimAnthropicModelPrefix(model),
-		"--permission-mode", "bypassPermissions",
-		"--no-session-persistence",
-		"--settings", "{}",
-		"--strict-mcp-config",
-		"--disable-slash-commands",
-		"--no-chrome",
+	var gen dspytypes.TrajectoryGenerator
+	switch agent {
+	case "codex":
+		llm, err := codex.New(codex.Config{
+			Model:       trimOpenAIModelPrefix(model),
+			WorkDir:     workDir,
+			SandboxMode: "workspace-write",
+			IsolateHome: true,
+			OnHeartbeat: heartbeat,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init codex adapter: %w", err)
+		}
+		gen = llm
+	default:
+		llm, err := claudecode.New(claudecode.Config{
+			Model:              trimAnthropicModelPrefix(model),
+			WorkDir:            workDir,
+			IsolateFromSession: true,
+			OnHeartbeat:        heartbeat,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init claude adapter: %w", err)
+		}
+		gen = llm
 	}
-	cmd := exec.Command("claude", args...)
-	cmd.Dir = workDir
-	cmd.Stdin = strings.NewReader(prompt)
-	cmd.Env = buildClaudeEvalEnv()
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
+	ctx := context.Background()
+	resp, err := gen.GenerateWithTrajectory(ctx, prompt)
 
 	result := &dspyAgentRunResult{}
-	done := make(chan struct{})
-	go emitDSPYTaskHeartbeat(statusLabel, done)
-	runErr := cmd.Run()
-	close(done)
-
-	result.stderr = strings.TrimSpace(stderr.String())
-	parsed := parseStreamJSON(stdout.Bytes())
-	result.trajectory = parsed.trajectory
-	result.output = parsed.finalText
-	result.sessionID = parsed.sessionID
-	result.durationMs = parsed.durationMs
-	result.costUSD = parsed.costUSD
-	result.numTurns = parsed.numTurns
-	result.inputTokens = parsed.inputTokens
-	result.outputTokens = parsed.outputTokens
-	result.cachedInputTokens = parsed.cachedInputTokens
-
-	if runErr != nil {
-		if result.output == "" {
-			result.output = result.stderr
+	if resp != nil {
+		result.trajectory = resp.Trajectory
+		result.output = resp.Content
+		result.sessionID = resp.SessionID
+		result.durationMs = resp.DurationMs
+		result.costUSD = resp.CostUSD
+		result.numTurns = resp.NumTurns
+		if resp.Usage != nil {
+			result.inputTokens = resp.Usage.PromptTokens
+			result.outputTokens = resp.Usage.CompletionTokens
+			result.cachedInputTokens = resp.Usage.TotalTokens - resp.Usage.PromptTokens - resp.Usage.CompletionTokens
 		}
+	}
+
+	if err != nil {
 		if result.output == "" {
-			result.output = runErr.Error()
+			result.output = err.Error()
 		}
 		return result, nil
 	}
 
 	result.passed = true
 	return result, nil
-}
-
-// claudeStreamResult holds parsed data from Claude stream-json output.
-type claudeStreamResult struct {
-	trajectory        []json.RawMessage
-	finalText         string
-	sessionID         string
-	durationMs        int64
-	costUSD           float64
-	numTurns          int
-	inputTokens       int
-	outputTokens      int
-	cachedInputTokens int
-}
-
-// parseStreamJSON extracts trajectory events (assistant + result), final text,
-// and metadata from Claude stream-json NDJSON output.
-func parseStreamJSON(raw []byte) claudeStreamResult {
-	var r claudeStreamResult
-	for _, line := range bytes.Split(raw, []byte("\n")) {
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		var evt streamEvent
-		if err := json.Unmarshal(line, &evt); err != nil {
-			continue
-		}
-		switch evt.Type {
-		case "assistant":
-			// Copy line to avoid retaining the full stdout buffer.
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			r.trajectory = append(r.trajectory, json.RawMessage(copied))
-		case "result":
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			r.trajectory = append(r.trajectory, json.RawMessage(copied))
-			r.finalText = evt.Result
-			r.sessionID = evt.SessionID
-			r.durationMs = evt.DurationMs
-			r.costUSD = evt.CostUSD
-			r.numTurns = evt.NumTurns
-			if evt.Usage != nil {
-				r.inputTokens = evt.Usage.InputTokens
-				r.outputTokens = evt.Usage.OutputTokens
-				r.cachedInputTokens = evt.Usage.CacheReadInputTokens
-			}
-		}
-		// Skip system/hook/rate_limit events from trajectory
-	}
-	return r
-}
-
-func emitDSPYTaskHeartbeat(statusLabel string, done <-chan struct{}) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	start := time.Now()
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			fmt.Fprintf(
-				os.Stderr,
-				"[dspy] %s: agent task still running (%s elapsed)\n",
-				statusLabel,
-				time.Since(start).Round(time.Second),
-			)
-		}
-	}
-}
-
-func buildClaudeEvalEnv() []string {
-	return buildClaudeEvalEnvFrom(os.Environ())
-}
-
-func buildClaudeEvalEnvFrom(env []string) []string {
-	filtered := make([]string, 0, len(env)+1)
-	for _, e := range env {
-		for _, prefix := range []string{"CLAUDECODE"} {
-			if strings.HasPrefix(e, prefix+"=") || strings.HasPrefix(e, prefix) {
-				goto skip
-			}
-		}
-		if strings.HasPrefix(e, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=") {
-			goto skip
-		}
-		filtered = append(filtered, e)
-	skip:
-	}
-	filtered = append(filtered, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
-	return filtered
 }
 
 func trimAnthropicModelPrefix(model string) string {
@@ -1392,236 +1285,6 @@ func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
 	default:
 		return "claude-code", trimAnthropicModelPrefix(judgeModel)
 	}
-}
-
-// codexJSONLEvent is the envelope for Codex --json JSONL output.
-type codexJSONLEvent struct {
-	Type     string `json:"type"`
-	ThreadID string `json:"thread_id,omitempty"`
-	Item     *struct {
-		Type    string `json:"type"`
-		Text    string `json:"text"`
-		Command string `json:"command,omitempty"`
-	} `json:"item,omitempty"`
-	Usage *struct {
-		InputTokens       int `json:"input_tokens"`
-		CachedInputTokens int `json:"cached_input_tokens"`
-		OutputTokens      int `json:"output_tokens"`
-	} `json:"usage,omitempty"`
-	Error *struct {
-		Message string `json:"message"`
-	} `json:"error,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
-// codexUsage accumulates token usage across turns.
-type codexUsage struct {
-	inputTokens       int
-	cachedInputTokens int
-	outputTokens      int
-}
-
-func runCodexEvalAgent(workDir, model, prompt, statusLabel string) (*dspyAgentRunResult, error) {
-	// Create an isolated CODEX_HOME so Codex doesn't load the user's
-	// global config (which may contain MCP servers, plugins, etc.).
-	codexHome, err := os.MkdirTemp("", "moltnet-codex-home-*")
-	if err != nil {
-		return nil, fmt.Errorf("create codex home: %w", err)
-	}
-	defer os.RemoveAll(codexHome)
-	// Write a minimal config.toml that uses file-based credential store.
-	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"),
-		[]byte("cli_auth_credentials_store = \"file\"\n"), 0o644); err != nil {
-		return nil, fmt.Errorf("write codex config: %w", err)
-	}
-	// Bridge auth credentials into the isolated home.
-	if err := bridgeCodexAuth(codexHome); err != nil {
-		return nil, fmt.Errorf("bridge codex auth: %w", err)
-	}
-
-	args := []string{
-		"exec",
-		"--model", trimOpenAIModelPrefix(model),
-		"--full-auto",
-		"--json",
-		"--skip-git-repo-check",
-		"--ephemeral",
-		"-c", "mcp_servers={}",
-		"-c", "plugins={}",
-	}
-	cmd := exec.Command("codex", args...)
-	cmd.Dir = workDir
-	cmd.Stdin = strings.NewReader(prompt)
-	cmd.Env = buildCodexEvalEnvWith(codexHome)
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
-
-	result := &dspyAgentRunResult{}
-	start := time.Now()
-	done := make(chan struct{})
-	go emitDSPYTaskHeartbeat(statusLabel, done)
-	runErr := cmd.Run()
-	close(done)
-	result.durationMs = time.Since(start).Milliseconds()
-
-	result.stderr = strings.TrimSpace(stderr.String())
-	parsed := parseCodexJSONL(stdout.Bytes())
-	result.trajectory = parsed.trajectory
-	result.output = parsed.finalText
-	result.numTurns = parsed.numTurns
-	result.sessionID = parsed.sessionID
-	result.inputTokens = parsed.usage.inputTokens
-	result.cachedInputTokens = parsed.usage.cachedInputTokens
-	result.outputTokens = parsed.usage.outputTokens
-
-	if runErr != nil {
-		if result.output == "" {
-			result.output = result.stderr
-		}
-		if result.output == "" {
-			result.output = runErr.Error()
-		}
-		return result, nil
-	}
-
-	result.passed = true
-	return result, nil
-}
-
-// parseCodexJSONL extracts trajectory events, final text, and turn count
-// from Codex --json JSONL output.
-type codexJSONLResult struct {
-	trajectory []json.RawMessage
-	finalText  string
-	sessionID  string
-	numTurns   int
-	usage      codexUsage
-}
-
-func parseCodexJSONL(raw []byte) codexJSONLResult {
-	var r codexJSONLResult
-	var lastAgentText string
-	var lastError string
-
-	for _, line := range bytes.Split(raw, []byte("\n")) {
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		var evt codexJSONLEvent
-		if err := json.Unmarshal(line, &evt); err != nil {
-			continue
-		}
-		switch evt.Type {
-		case "thread.started":
-			if evt.ThreadID != "" {
-				r.sessionID = evt.ThreadID
-			}
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			r.trajectory = append(r.trajectory, json.RawMessage(copied))
-		case "item.started":
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			r.trajectory = append(r.trajectory, json.RawMessage(copied))
-		case "item.completed":
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			r.trajectory = append(r.trajectory, json.RawMessage(copied))
-			if evt.Item != nil && evt.Item.Type == "agent_message" {
-				r.numTurns++
-				if evt.Item.Text != "" {
-					lastAgentText = evt.Item.Text
-				}
-			}
-		case "turn.completed":
-			copied := make([]byte, len(line))
-			copy(copied, line)
-			r.trajectory = append(r.trajectory, json.RawMessage(copied))
-			if evt.Usage != nil {
-				r.usage.inputTokens += evt.Usage.InputTokens
-				r.usage.cachedInputTokens += evt.Usage.CachedInputTokens
-				r.usage.outputTokens += evt.Usage.OutputTokens
-			}
-		case "error":
-			if evt.Message != "" {
-				lastError = evt.Message
-			} else if evt.Error != nil {
-				lastError = evt.Error.Message
-			}
-		case "turn.failed":
-			if evt.Error != nil && evt.Error.Message != "" {
-				lastError = evt.Error.Message
-			}
-		}
-	}
-
-	if lastAgentText != "" {
-		r.finalText = lastAgentText
-	} else if lastError != "" {
-		r.finalText = lastError
-	}
-	return r
-}
-
-func buildCodexEvalEnvWith(codexHome string) []string {
-	return buildCodexEvalEnvFrom(os.Environ(), codexHome)
-}
-
-func buildCodexEvalEnvFrom(env []string, codexHome string) []string {
-	filtered := make([]string, 0, len(env)+1)
-	for _, e := range env {
-		// Strip Codex-specific env vars that could interfere with eval isolation.
-		if strings.HasPrefix(e, "CODEX_HOME=") {
-			continue
-		}
-		filtered = append(filtered, e)
-	}
-	// Point Codex at an isolated home to avoid loading user/project MCP servers.
-	if codexHome != "" {
-		filtered = append(filtered, "CODEX_HOME="+codexHome)
-	}
-	return filtered
-}
-
-// bridgeCodexAuth copies auth credentials into an isolated CODEX_HOME.
-// It tries these sources in order:
-//  1. MOLTNET_CODEX_AUTH_CACHE_PATH (explicit override)
-//  2. Original CODEX_HOME/auth.json (from user's real home)
-//  3. ~/.codex/auth.json (default location)
-//  4. OPENAI_API_KEY env var → synthetic auth.json
-//
-// If none are available, it returns nil (Codex will fail with 401 at runtime).
-func bridgeCodexAuth(isolatedHome string) error {
-	// Try file-based auth sources.
-	candidates := []string{}
-	if p := os.Getenv("MOLTNET_CODEX_AUTH_CACHE_PATH"); p != "" {
-		candidates = append(candidates, p)
-	}
-	if p := os.Getenv("CODEX_HOME"); p != "" {
-		candidates = append(candidates, filepath.Join(p, "auth.json"))
-	}
-	if home, err := os.UserHomeDir(); err == nil {
-		candidates = append(candidates, filepath.Join(home, ".codex", "auth.json"))
-	}
-
-	for _, src := range candidates {
-		data, err := os.ReadFile(src)
-		if err != nil {
-			continue
-		}
-		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), data, 0o600)
-	}
-
-	// Fallback: synthesize auth.json from OPENAI_API_KEY.
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		payload := fmt.Sprintf(`{"OPENAI_API_KEY":%q}`, key)
-		return os.WriteFile(filepath.Join(isolatedHome, "auth.json"), []byte(payload), 0o600)
-	}
-
-	return nil
 }
 
 func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {

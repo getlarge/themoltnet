@@ -323,15 +323,7 @@ func buildTrialResult(
 			JudgeMs: judgeMs,
 			TotalMs: agent.durationMs + judgeMs,
 		},
-		Usage: trialResultUsage{
-			Agent: trialResultUsageDetail{
-				InputTokens:     agent.inputTokens,
-				OutputTokens:    agent.outputTokens,
-				CacheReadTokens: agent.cachedInputTokens,
-				CostUSD:         agent.costUSD,
-			},
-			TotalCostUSD: agent.costUSD,
-		},
+		Usage: buildTrialUsage(agent, judged),
 		Artifacts: trialResultArtifacts{
 			Trajectory: "trajectory.json",
 			Trace:      "trace.jsonl",
@@ -349,6 +341,25 @@ func buildTrialResult(
 	}
 
 	return tr
+}
+
+func buildTrialUsage(agent *dspyAgentRunResult, judged *checklist.Result) trialResultUsage {
+	u := trialResultUsage{
+		Agent: trialResultUsageDetail{
+			InputTokens:     agent.inputTokens,
+			OutputTokens:    agent.outputTokens,
+			CacheReadTokens: agent.cachedInputTokens,
+			CostUSD:         agent.costUSD,
+		},
+		TotalCostUSD: agent.costUSD,
+	}
+	if judged != nil && judged.Usage != nil {
+		u.Judge = trialResultUsageDetail{
+			InputTokens:  judged.Usage.PromptTokens,
+			OutputTokens: judged.Usage.CompletionTokens,
+		}
+	}
+	return u
 }
 
 func buildTrialResultError(
