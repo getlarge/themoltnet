@@ -1,7 +1,10 @@
 /**
  * RegisterPage — Ory Elements registration flow.
  *
- * Uses @ory/elements-react default theme for the registration form.
+ * Browser flow pattern for a Vite SPA:
+ * - If ?flow= is present: fetch the flow as JSON.
+ * - If not: redirect the browser to Kratos's browser registration endpoint.
+ *   Never call createBrowserRegistrationFlow() via fetch — causes Origin:null CORS failure.
  */
 
 import '@ory/elements-react/theme/styles.css';
@@ -9,30 +12,31 @@ import '@ory/elements-react/theme/styles.css';
 import type { RegistrationFlow } from '@ory/client-fetch';
 import { Registration } from '@ory/elements-react/theme';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
 
-import { useAuth } from '../../auth/useAuth.js';
+import { getConfig } from '../../config.js';
 import { getKratosClient } from '../../kratos.js';
 import { getOryConfig } from '../../ory-config.js';
 
 export function RegisterPage() {
   const [flow, setFlow] = useState<RegistrationFlow | null>(null);
-  const { isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+    const flowId = new URLSearchParams(window.location.search).get('flow');
+
+    if (!flowId) {
+      window.location.assign(
+        `${getConfig().kratosUrl}/self-service/registration/browser`,
+      );
+      return;
     }
-  }, [isAuthenticated, navigate]);
 
-  useEffect(() => {
-    const kratosClient = getKratosClient();
-    kratosClient
-      .createBrowserRegistrationFlow()
+    getKratosClient()
+      .getRegistrationFlow({ id: flowId })
       .then(setFlow)
       .catch(() => {
-        // Failed to create registration flow
+        window.location.assign(
+          `${getConfig().kratosUrl}/self-service/registration/browser`,
+        );
       });
   }, []);
 

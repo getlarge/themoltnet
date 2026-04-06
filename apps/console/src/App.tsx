@@ -37,6 +37,7 @@ export function App() {
       {/* Public auth routes */}
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
+      <Route path="/auth/registration" component={RegisterPage} />
       <Route path="/auth/error" component={ErrorPage} />
 
       {/* Protected dashboard routes */}

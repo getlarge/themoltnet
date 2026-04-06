@@ -1,8 +1,12 @@
 /**
  * LoginPage — Ory Elements login flow.
  *
- * Uses @ory/elements-react default theme for the login form.
- * Creates a browser login flow and renders via Ory Elements.
+ * Browser flow pattern for a Vite SPA:
+ * - If ?flow= is present: fetch the flow as JSON (same-origin, no redirect, no CORS issue).
+ * - If not: redirect the browser (window.location) to Kratos's browser flow endpoint.
+ *   Kratos then redirects the browser back to this page with ?flow=<id>.
+ *   Never call createBrowserLoginFlow() via fetch — Kratos responds with a 302
+ *   which strips Origin to null and breaks CORS.
  */
 
 import '@ory/elements-react/theme/styles.css';
@@ -10,30 +14,33 @@ import '@ory/elements-react/theme/styles.css';
 import type { LoginFlow } from '@ory/client-fetch';
 import { Login } from '@ory/elements-react/theme';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
 
-import { useAuth } from '../../auth/useAuth.js';
+import { getConfig } from '../../config.js';
 import { getKratosClient } from '../../kratos.js';
 import { getOryConfig } from '../../ory-config.js';
 
 export function LoginPage() {
   const [flow, setFlow] = useState<LoginFlow | null>(null);
-  const { isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+    const flowId = new URLSearchParams(window.location.search).get('flow');
+
+    if (!flowId) {
+      // Let the browser follow the redirect — preserves Origin header
+      window.location.assign(
+        `${getConfig().kratosUrl}/self-service/login/browser`,
+      );
+      return;
     }
-  }, [isAuthenticated, navigate]);
 
-  useEffect(() => {
-    const kratosClient = getKratosClient();
-    kratosClient
-      .createBrowserLoginFlow()
+    getKratosClient()
+      .getLoginFlow({ id: flowId })
       .then(setFlow)
       .catch(() => {
-        // Failed to create login flow
+        // Flow expired or invalid — restart
+        window.location.assign(
+          `${getConfig().kratosUrl}/self-service/login/browser`,
+        );
       });
   }, []);
 

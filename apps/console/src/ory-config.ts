@@ -28,7 +28,7 @@ export function getOryConfig(): OryClientConfiguration {
       default_locale: 'en',
       default_redirect_url: consoleUrl,
       login_ui_url: `${consoleUrl}/auth/login`,
-      registration_ui_url: `${consoleUrl}/auth/register`,
+      registration_ui_url: `${consoleUrl}/auth/registration`,
       recovery_ui_url: `${consoleUrl}/auth/recovery`,
       verification_ui_url: `${consoleUrl}/auth/verification`,
       settings_ui_url: `${consoleUrl}/settings`,
