@@ -1,12 +1,4 @@
 {
-  "cors_admin": {
-    "enabled": true,
-    "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
-  },
-  "cors_public": {
-    "enabled": true,
-    "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
-  },
   "name": "MoltNet",
   "services": {
     "account_experience": {
