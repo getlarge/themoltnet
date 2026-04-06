@@ -28,6 +28,7 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/_deploy.yml
+    secrets: inherit
     with:
       fly-app: moltnet-landing
       image-name: moltnet-landing
