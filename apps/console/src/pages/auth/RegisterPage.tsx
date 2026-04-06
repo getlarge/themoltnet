@@ -9,16 +9,16 @@
 
 import '@ory/elements-react/theme/styles.css';
 
-import type { RegistrationFlow } from '@ory/client-fetch';
 import { Registration } from '@ory/elements-react/theme';
-import { useEffect, useState } from 'react';
+import { type ComponentProps, useEffect, useState } from 'react';
 
 import { getConfig } from '../../config.js';
 import { getKratosClient } from '../../kratos.js';
 import { getOryConfig } from '../../ory-config.js';
 
 export function RegisterPage() {
-  const [flow, setFlow] = useState<RegistrationFlow | null>(null);
+  const [flow, setFlow] =
+    useState<ComponentProps<typeof Registration>['flow']>();
 
   useEffect(() => {
     const flowId = new URLSearchParams(window.location.search).get('flow');
@@ -32,7 +32,9 @@ export function RegisterPage() {
 
     getKratosClient()
       .getRegistrationFlow({ id: flowId })
-      .then(setFlow)
+      .then((nextFlow) => {
+        setFlow(nextFlow as ComponentProps<typeof Registration>['flow']);
+      })
       .catch(() => {
         window.location.assign(
           `${getConfig().kratosUrl}/self-service/registration/browser`,

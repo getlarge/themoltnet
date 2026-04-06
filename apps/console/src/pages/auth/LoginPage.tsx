@@ -11,16 +11,15 @@
 
 import '@ory/elements-react/theme/styles.css';
 
-import type { LoginFlow } from '@ory/client-fetch';
 import { Login } from '@ory/elements-react/theme';
-import { useEffect, useState } from 'react';
+import { type ComponentProps, useEffect, useState } from 'react';
 
 import { getConfig } from '../../config.js';
 import { getKratosClient } from '../../kratos.js';
 import { getOryConfig } from '../../ory-config.js';
 
 export function LoginPage() {
-  const [flow, setFlow] = useState<LoginFlow | null>(null);
+  const [flow, setFlow] = useState<ComponentProps<typeof Login>['flow']>();
 
   useEffect(() => {
     const flowId = new URLSearchParams(window.location.search).get('flow');
@@ -35,7 +34,9 @@ export function LoginPage() {
 
     getKratosClient()
       .getLoginFlow({ id: flowId })
-      .then(setFlow)
+      .then((nextFlow) => {
+        setFlow(nextFlow as ComponentProps<typeof Login>['flow']);
+      })
       .catch(() => {
         // Flow expired or invalid — restart
         window.location.assign(

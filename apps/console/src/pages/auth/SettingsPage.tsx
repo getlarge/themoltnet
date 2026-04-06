@@ -9,16 +9,15 @@
 
 import '@ory/elements-react/theme/styles.css';
 
-import type { SettingsFlow } from '@ory/client-fetch';
 import { Settings } from '@ory/elements-react/theme';
-import { useEffect, useState } from 'react';
+import { type ComponentProps, useEffect, useState } from 'react';
 
 import { getConfig } from '../../config.js';
 import { getKratosClient } from '../../kratos.js';
 import { getOryConfig } from '../../ory-config.js';
 
 export function SettingsPage() {
-  const [flow, setFlow] = useState<SettingsFlow | null>(null);
+  const [flow, setFlow] = useState<ComponentProps<typeof Settings>['flow']>();
 
   useEffect(() => {
     const flowId = new URLSearchParams(window.location.search).get('flow');
@@ -32,7 +31,9 @@ export function SettingsPage() {
 
     getKratosClient()
       .getSettingsFlow({ id: flowId })
-      .then(setFlow)
+      .then((nextFlow) => {
+        setFlow(nextFlow as ComponentProps<typeof Settings>['flow']);
+      })
       .catch(() => {
         window.location.assign(
           `${getConfig().kratosUrl}/self-service/settings/browser`,
