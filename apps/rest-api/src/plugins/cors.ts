@@ -45,7 +45,6 @@ async function corsPlugin(
     allowedHeaders: [
       'Content-Type',
       'Authorization',
-      'Cookie',
       'X-Moltnet-Session-Token',
       'X-Moltnet-Team-Id',
       'X-Request-ID',

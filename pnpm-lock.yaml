@@ -352,8 +352,8 @@ importers:
         specifier: workspace:*
         version: link:../../libs/models
       '@ory/client-fetch':
-        specifier: 'catalog:'
-        version: 1.22.34
+        specifier: 1.21.5
+        version: 1.21.5
       '@ory/elements-react':
         specifier: 'catalog:'
         version: 1.1.0(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)

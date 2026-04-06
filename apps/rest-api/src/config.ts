@@ -77,7 +77,7 @@ export const PackGcConfigSchema = Type.Object({
 
 export const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from (default: ./models) */
-  EMBEDDING_CACHE_DIR: Type.String({ minLength: 1, default: './models' }),
+  EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
   /** Allow downloading models from huggingface.co at runtime (default: true) */
   EMBEDDING_ALLOW_REMOTE_MODELS: Type.Boolean({ default: true }),
 });
