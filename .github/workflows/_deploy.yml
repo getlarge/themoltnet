@@ -65,6 +65,7 @@ jobs:
           script: |
             const secrets = JSON.parse(process.env.ALL_SECRETS);
             const name = process.env.SECRET_NAME;
+            if (!/^FLY_[A-Z0-9_]+_TOKEN$/.test(name)) core.setFailed(`Invalid secret name '${name}': must match FLY_*_TOKEN`);
             const value = secrets[name];
             if (!value) core.setFailed(`Secret '${name}' not found in production environment`);
             core.exportVariable('FLY_API_TOKEN', value);
@@ -134,6 +135,7 @@ jobs:
           script: |
             const secrets = JSON.parse(process.env.ALL_SECRETS);
             const name = process.env.SECRET_NAME;
+            if (!/^FLY_[A-Z0-9_]+_TOKEN$/.test(name)) core.setFailed(`Invalid secret name '${name}': must match FLY_*_TOKEN`);
             const value = secrets[name];
             if (!value) core.setFailed(`Secret '${name}' not found in production environment`);
             core.exportVariable('FLY_API_TOKEN', value);
