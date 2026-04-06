@@ -1,12 +1,4 @@
 {
-  "cors_admin": {
-    "enabled": true,
-    "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
-  },
-  "cors_public": {
-    "enabled": true,
-    "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
-  },
   "name": "MoltNet",
   "services": {
     "account_experience": {
@@ -25,11 +17,11 @@
           "ru",
           "zh"
         ],
-        "favicon_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
-        "favicon_light_url": "${CONSOLE_BASE_URL}/favicon.svg",
+        "favicon_dark_url": "",
+        "favicon_light_url": "https://storage.googleapis.com/bac-gcs-production/f52fd20549615bb3ab067924479b5dd9b699588922e417d34ed10b373aee1a4f2bab09c245b5ec03fea02fa73ced98a03c69a0a94d9ce97afd709328b550d3aa.svg",
         "locale_behavior": "respect_accept_language",
-        "logo_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
-        "logo_light_url": "${CONSOLE_BASE_URL}/favicon.svg",
+        "logo_dark_url": "",
+        "logo_light_url": "https://storage.googleapis.com/bac-gcs-production/f52fd20549615bb3ab067924479b5dd9b699588922e417d34ed10b373aee1a4f2bab09c245b5ec03fea02fa73ced98a03c69a0a94d9ce97afd709328b550d3aa.svg",
         "theme_variables_dark": {},
         "theme_variables_light": {},
         "translations": {}
@@ -364,7 +356,7 @@
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
           "registration": "${CONSOLE_BASE_URL}/auth/registration",
           "self": {
-            "issuer": "${LANDING_BASE_URL}/"
+            "issuer": "${ORY_PROJECT_URL}/"
           }
         }
       }
