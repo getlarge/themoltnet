@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
@@ -36,7 +35,6 @@ type evalRunOpts struct {
 	worktreeExcludes []string
 	dspyRepoRoot     string
 	dspySourceRef    string
-	dspyJudgeLLM     core.LLM
 }
 
 // worktreeMu serializes git worktree add/remove operations to avoid
@@ -690,13 +688,6 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
 
-	judgeProvider, judgeModelBare := dspyJudgeProvider(opts.judge, opts.judgeModel)
-	judgeLLM, err := dspyadapters.InitProvider(judgeProvider, judgeModelBare)
-	if err != nil {
-		return fmt.Errorf("initialize judge LLM: %w", err)
-	}
-	opts.dspyJudgeLLM = judgeLLM
-
 	group := runGroup{agent: input.agent, model: input.model, inputs: []evalRunInput{input}}
 	header := groupHeaderLine(0, 1, group)
 	fmt.Fprintln(os.Stderr, header)
@@ -781,13 +772,6 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 	}
 	opts.dspyRepoRoot = repoRoot
 	opts.dspySourceRef = sourceRef
-
-	judgeProvider, judgeModelBare := dspyJudgeProvider(opts.judge, opts.judgeModel)
-	judgeLLM, err := dspyadapters.InitProvider(judgeProvider, judgeModelBare)
-	if err != nil {
-		return fmt.Errorf("initialize judge LLM: %w", err)
-	}
-	opts.dspyJudgeLLM = judgeLLM
 
 	runDir, err := os.MkdirTemp("", "moltnet-eval-dspy-batch-*")
 	if err != nil {
@@ -942,10 +926,18 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Create a fresh judge LLM per variant to avoid sharing lastUsage
+	// state across concurrent goroutines in batch mode.
+	judgeProvider, judgeModelBare := dspyJudgeProvider(opts.judge, opts.judgeModel)
+	judgeLLM, err := dspyadapters.InitProvider(judgeProvider, judgeModelBare)
+	if err != nil {
+		return nil, fmt.Errorf("initialize judge LLM: %w", err)
+	}
+
 	fmt.Fprintf(os.Stderr, "[dspy] %s: judging checklist...\n", variantLabel)
 	judgeStart := time.Now()
 	judged, err := checklist.Run(ctx, checklist.Request{
-		LLM:              opts.dspyJudgeLLM,
+		LLM:              judgeLLM,
 		WorkspaceSummary: filesSnapshot,
 		Criteria: checklist.Criteria{
 			Type:      criteria.Type,
@@ -971,7 +963,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if withContext {
 		variant = "with-context"
 	}
-	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged, judgeMs, input.name, variant, opts); err != nil {
+	if err := writeDSPYVariantArtifacts(variantDir, agentResult, judged, judgeMs, input.name, variant, agentName, model, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not persist dspy artifacts for %s: %v\n", variantName, err)
 	}
 	fmt.Fprintf(os.Stderr, "[dspy] %s: completed (reward %.1f%%)\n", variantLabel, scores.reward*100)
@@ -1389,7 +1381,7 @@ func parseGitStatusPaths(output string) []string {
 	return paths
 }
 
-func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result, judgeMs int64, scenarioName, variant string, opts evalRunOpts) error {
+func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, judged *checklist.Result, judgeMs int64, scenarioName, variant, resolvedAgent, resolvedModel string, opts evalRunOpts) error {
 	verifierDir := filepath.Join(variantDir, "verifier")
 	if err := os.MkdirAll(verifierDir, 0o755); err != nil {
 		return err
@@ -1421,7 +1413,7 @@ func writeDSPYVariantArtifacts(variantDir string, agent *dspyAgentRunResult, jud
 
 	// Phase 0 contract: trial_result.json
 	jobID := filepath.Base(filepath.Dir(variantDir))
-	tr := buildTrialResult(jobID, scenarioName, variant, agent, judged, judgeMs, opts)
+	tr := buildTrialResult(jobID, scenarioName, variant, agent, judged, judgeMs, resolvedAgent, resolvedModel, opts)
 	trialPayload, err := json.MarshalIndent(tr, "", "  ")
 	if err != nil {
 		return err

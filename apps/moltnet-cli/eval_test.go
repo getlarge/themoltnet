@@ -983,7 +983,7 @@ func TestWriteDSPYVariantArtifactsStructure(t *testing.T) {
 		Reasoning: "good work",
 	}
 	opts := evalRunOpts{agent: "claude", judge: "claude", model: "anthropic/claude-sonnet-4-6", judgeModel: "claude-sonnet-4-6"}
-	if err := writeDSPYVariantArtifacts(dir, agent, judged, 500, "test-scenario", "without-context", opts); err != nil {
+	if err := writeDSPYVariantArtifacts(dir, agent, judged, 500, "test-scenario", "without-context", "claude", "anthropic/claude-sonnet-4-6", opts); err != nil {
 		t.Fatalf("writeDSPYVariantArtifacts: %v", err)
 	}
 

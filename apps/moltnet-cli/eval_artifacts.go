@@ -299,6 +299,7 @@ func buildTrialResult(
 	agent *dspyAgentRunResult,
 	judged *checklist.Result,
 	judgeMs int64,
+	resolvedAgent, resolvedModel string,
 	opts evalRunOpts,
 ) *normalizedTrialResult {
 	tr := &normalizedTrialResult{
@@ -311,8 +312,8 @@ func buildTrialResult(
 			Variant: variant,
 		},
 		Agent: trialResultAgent{
-			Name:  opts.agent,
-			Model: opts.model,
+			Name:  resolvedAgent,
+			Model: resolvedModel,
 		},
 		Judge: trialResultAgent{
 			Name:  opts.judge,
@@ -368,9 +369,10 @@ func buildTrialResultError(
 	variant string,
 	agent *dspyAgentRunResult,
 	errMsg string,
+	resolvedAgent, resolvedModel string,
 	opts evalRunOpts,
 ) *normalizedTrialResult {
-	tr := buildTrialResult(jobID, scenarioName, variant, agent, nil, 0, opts)
+	tr := buildTrialResult(jobID, scenarioName, variant, agent, nil, 0, resolvedAgent, resolvedModel, opts)
 	tr.Status = classifyErrorStatus(errMsg)
 	tr.Error = &trialResultError{
 		Category: classifyErrorCategory(errMsg),
