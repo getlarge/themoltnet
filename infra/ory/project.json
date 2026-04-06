@@ -1,27 +1,47 @@
 {
-  "account_experience": {
-    "favicon_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
-    "favicon_light_url": "${CONSOLE_BASE_URL}/favicon.svg",
-    "logo_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
-    "logo_light_url": "${CONSOLE_BASE_URL}/favicon.svg"
-  },
   "cors_admin": {
     "enabled": true,
     "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
   },
   "cors_public": {
-    "allow_credentials": true,
-    "allowed_headers": ["Authorization", "Content-Type", "X-Requested-With"],
-    "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
     "enabled": true,
-    "exposed_headers": ["Content-Type"],
-    "max_age": 86400,
     "origins": ["${LANDING_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
   },
   "name": "MoltNet",
   "services": {
+    "account_experience": {
+      "config": {
+        "default_locale": "en",
+        "enabled": true,
+        "enabled_locales": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "nl",
+          "pt",
+          "ru",
+          "zh"
+        ],
+        "favicon_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
+        "favicon_light_url": "${CONSOLE_BASE_URL}/favicon.svg",
+        "locale_behavior": "respect_accept_language",
+        "logo_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
+        "logo_light_url": "${CONSOLE_BASE_URL}/favicon.svg",
+        "theme_variables_dark": {},
+        "theme_variables_light": {},
+        "translations": {}
+      }
+    },
     "identity": {
       "config": {
+        "cookies": {
+          "domain": "${BASE_DOMAIN}",
+          "path": "/",
+          "same_site": "Lax"
+        },
         "courier": {
           "smtp": {
             "connection_uri": "${SMTP_CONNECTION_URI}",
@@ -45,7 +65,9 @@
           "allowed_return_urls": [
             "${LANDING_BASE_URL}/",
             "${API_BASE_URL}/",
-            "${CONSOLE_BASE_URL}/"
+            "${CONSOLE_BASE_URL}/",
+            "${ORY_PROJECT_URL}/ui/recovery",
+            "${ORY_PROJECT_URL}/ui/verification"
           ],
           "default_browser_return_url": "${CONSOLE_BASE_URL}/",
           "flows": {
@@ -241,6 +263,16 @@
               },
               "enabled": true
             },
+            "passkey": {
+              "config": {
+                "rp": {
+                  "display_name": "MoltNet",
+                  "id": "auth.${BASE_DOMAIN}",
+                  "origins": ["${LANDING_BASE_URL}", "${CONSOLE_BASE_URL}"]
+                }
+              },
+              "enabled": true
+            },
             "password": {
               "config": {
                 "haveibeenpwned_enabled": true,
@@ -248,12 +280,14 @@
                 "min_password_length": 16
               },
               "enabled": true
-            }
+            },
+            "profile": { "enabled": true },
+            "saml": { "config": { "providers": [] }, "enabled": false },
+            "totp": { "config": { "issuer": "MoltNet" }, "enabled": true }
           }
         },
         "session": {
           "cookie": {
-            "domain": ".${BASE_DOMAIN}",
             "http_only": true,
             "same_site": "Lax",
             "secure": true
@@ -299,6 +333,11 @@
             "supported_types": ["public"]
           }
         },
+        "strategies": {
+          "access_token": "opaque",
+          "jwt": {},
+          "scope": "wildcard"
+        },
         "token_hook": {
           "auth": {
             "config": {
@@ -318,8 +357,12 @@
           "refresh_token": "720h"
         },
         "urls": {
+          "consent": "${ORY_PROJECT_URL}/ui/consent",
           "error": "${CONSOLE_BASE_URL}/auth/error",
+          "login": "${CONSOLE_BASE_URL}/auth/login",
+          "logout": "${ORY_PROJECT_URL}/ui/logout",
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
+          "registration": "${CONSOLE_BASE_URL}/auth/registration",
           "self": {
             "issuer": "${LANDING_BASE_URL}/"
           }
