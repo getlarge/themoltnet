@@ -41,4 +41,5 @@ jobs:
           ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
           SELFSERVICE_OIDC_GITHUB_CLIENT_ID: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_ID }}
           SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET }}
+          SMTP_CONNECTION_URI: ${{ secrets.SMTP_CONNECTION_URI }}
         run: npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
