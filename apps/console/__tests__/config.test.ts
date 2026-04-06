@@ -34,6 +34,14 @@ describe('getConfig', () => {
     expect(config.consoleUrl).toBe('http://console-env:5174');
   });
 
+  it('throws in production when runtime config is missing', () => {
+    vi.stubEnv('MODE', 'production');
+
+    expect(() => getConfig()).toThrow(
+      'Missing runtime config: window.__MOLTNET_CONFIG__ must include kratosUrl, apiBaseUrl, and consoleUrl. Ensure /config.js is served correctly in production.',
+    );
+  });
+
   it('uses default URLs when neither injected config nor env vars', () => {
     const config = getConfig();
 

@@ -26,6 +26,14 @@ describe('getConfig', () => {
     expect(config.apiBaseUrl).toBe('http://api-env:8000');
   });
 
+  it('throws in production when runtime config is missing', () => {
+    vi.stubEnv('MODE', 'production');
+
+    expect(() => getConfig()).toThrow(
+      'Missing runtime config: window.__MOLTNET_CONFIG__.apiBaseUrl was not injected. Ensure /config.js is served correctly in production.',
+    );
+  });
+
   it('uses the default API URL when neither injected config nor env vars exist', () => {
     const config = getConfig();
 
