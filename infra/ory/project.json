@@ -1,4 +1,10 @@
 {
+  "account_experience": {
+    "favicon_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
+    "favicon_light_url": "${CONSOLE_BASE_URL}/favicon.svg",
+    "logo_dark_url": "${CONSOLE_BASE_URL}/favicon.svg",
+    "logo_light_url": "${CONSOLE_BASE_URL}/favicon.svg"
+  },
   "cors_admin": {
     "enabled": true,
     "origins": ["${APP_BASE_URL}", "${API_BASE_URL}", "${CONSOLE_BASE_URL}"]
@@ -213,6 +219,22 @@
             },
             "link": {
               "enabled": false
+            },
+            "oidc": {
+              "config": {
+                "providers": [
+                  {
+                    "client_id": "${SELFSERVICE_OIDC_GITHUB_CLIENT_ID}",
+                    "client_secret": "${SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET}",
+                    "id": "github",
+                    "label": "GitHub",
+                    "mapper_url": "base64://bG9jYWwgY2xhaW1zID0gewogIGVtYWlsX3ZlcmlmaWVkOiBmYWxzZSwKfSArIHN0ZC5leHRWYXIoJ2NsYWltcycpOwp7CiAgaWRlbnRpdHk6IHsKICAgIHRyYWl0czogewogICAgICBbaWYgJ2VtYWlsJyBpbiBjbGFpbXMgJiYgY2xhaW1zLmVtYWlsX3ZlcmlmaWVkIHRoZW4gJ2VtYWlsJyBlbHNlIG51bGxdOiBjbGFpbXMuZW1haWwsCiAgICAgIHVzZXJuYW1lOiBjbGFpbXMubmlja25hbWUsCiAgICB9LAogIH0sCn0K",
+                    "provider": "github",
+                    "scope": ["user:email"]
+                  }
+                ]
+              },
+              "enabled": true
             },
             "password": {
               "config": {
