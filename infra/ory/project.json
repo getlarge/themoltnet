@@ -356,7 +356,7 @@
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
           "registration": "${CONSOLE_BASE_URL}/auth/registration",
           "self": {
-            "issuer": "${LANDING_BASE_URL}/"
+            "issuer": "${ORY_PROJECT_URL}/"
           }
         }
       }
