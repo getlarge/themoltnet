@@ -1253,8 +1253,8 @@ func runEvalAgent(workDir, agent, model, prompt, statusLabel string) (*dspyAgent
 		if resp.Usage != nil {
 			result.inputTokens = resp.Usage.PromptTokens
 			result.outputTokens = resp.Usage.CompletionTokens
-			result.cachedInputTokens = resp.Usage.TotalTokens - resp.Usage.PromptTokens - resp.Usage.CompletionTokens
 		}
+		result.cachedInputTokens = resp.CacheReadTokens
 	}
 
 	if err != nil {

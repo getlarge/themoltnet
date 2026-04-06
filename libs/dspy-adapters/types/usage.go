@@ -27,6 +27,9 @@ type GenerateResponse struct {
 	CostUSD    float64
 	NumTurns   int
 	Usage      *core.TokenInfo
+	// Cache token fields not in core.TokenInfo.
+	CacheCreationTokens int
+	CacheReadTokens     int
 }
 
 // TrajectoryGenerator is implemented by adapters that can capture

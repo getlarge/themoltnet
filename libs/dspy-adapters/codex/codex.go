@@ -500,7 +500,7 @@ type codexTrajectoryEvent struct {
 // GenerateWithTrajectory runs a prompt with --json and returns the full
 // event trajectory alongside usage metadata.
 func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
-	cleanup, err := l.setupIsolation()
+	codexHome, cleanup, err := l.setupIsolation()
 	if err != nil {
 		return nil, err
 	}
@@ -526,7 +526,12 @@ func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspyt
 		cmd.Dir = os.TempDir()
 	}
 	cmd.Stdin = strings.NewReader(prompt)
-	cmd.Env = l.buildEnv()
+	env := l.buildEnv()
+	if codexHome != "" {
+		// Inject isolated CODEX_HOME without mutating config.
+		env = replaceOrAppendEnv(env, "CODEX_HOME", codexHome)
+	}
+	cmd.Env = env
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -618,6 +623,7 @@ func parseCodexTrajectory(raw []byte) *dspytypes.GenerateResponse {
 	}
 
 	if totalInput > 0 || totalOutput > 0 {
+		resp.CacheReadTokens = totalCached
 		resp.Usage = &core.TokenInfo{
 			PromptTokens:     totalInput,
 			CompletionTokens: totalOutput,
@@ -635,33 +641,27 @@ func appendEvent(trajectory *[]json.RawMessage, line []byte) {
 }
 
 // setupIsolation creates a temp CODEX_HOME when IsolateHome is set.
-// Returns a cleanup function and any error.
-func (l *LLM) setupIsolation() (func(), error) {
+// Returns the isolated home path (empty if not isolated) and a cleanup function.
+func (l *LLM) setupIsolation() (string, func(), error) {
 	if !l.config.IsolateHome {
-		return nil, nil
+		return "", nil, nil
 	}
 
 	codexHome, err := os.MkdirTemp("", "dspy-codex-home-*")
 	if err != nil {
-		return nil, fmt.Errorf("create codex home: %w", err)
+		return "", nil, fmt.Errorf("create codex home: %w", err)
 	}
 	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"),
 		[]byte("cli_auth_credentials_store = \"file\"\n"), 0o644); err != nil {
 		os.RemoveAll(codexHome)
-		return nil, fmt.Errorf("write codex config: %w", err)
+		return "", nil, fmt.Errorf("write codex config: %w", err)
 	}
 	if err := BridgeCodexAuth(codexHome); err != nil {
 		os.RemoveAll(codexHome)
-		return nil, fmt.Errorf("bridge codex auth: %w", err)
+		return "", nil, fmt.Errorf("bridge codex auth: %w", err)
 	}
 
-	// Inject CODEX_HOME into env config, stripping any existing value.
-	if l.config.Env == nil {
-		l.config.Env = make(map[string]string)
-	}
-	l.config.Env["CODEX_HOME"] = codexHome
-
-	return func() { os.RemoveAll(codexHome) }, nil
+	return codexHome, func() { os.RemoveAll(codexHome) }, nil
 }
 
 // BridgeCodexAuth copies auth credentials into an isolated CODEX_HOME.
@@ -698,6 +698,17 @@ func BridgeCodexAuth(isolatedHome string) error {
 	}
 
 	return nil
+}
+
+func replaceOrAppendEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	result := make([]string, 0, len(env)+1)
+	for _, e := range env {
+		if !strings.HasPrefix(e, prefix) {
+			result = append(result, e)
+		}
+	}
+	return append(result, prefix+value)
 }
 
 func runHeartbeat(fn dspytypes.HeartbeatFunc, done <-chan struct{}) {

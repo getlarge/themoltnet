@@ -517,6 +517,8 @@ func parseStreamJSON(raw []byte) *dspytypes.GenerateResponse {
 					CompletionTokens: evt.Usage.OutputTokens,
 					TotalTokens:      evt.Usage.InputTokens + evt.Usage.OutputTokens,
 				}
+				resp.CacheCreationTokens = evt.Usage.CacheCreationInputTokens
+				resp.CacheReadTokens = evt.Usage.CacheReadInputTokens
 			}
 		}
 	}
