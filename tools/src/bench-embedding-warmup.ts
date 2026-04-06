@@ -23,6 +23,7 @@ const iterations = parseInt(
   10,
 );
 const cacheDir = process.env.EMBEDDING_CACHE_DIR;
+const allowRemoteModels = process.env.EMBEDDING_ALLOW_REMOTE_MODELS !== 'false';
 
 const logger = {
   info: (obj: unknown, msg?: string) =>
@@ -43,7 +44,7 @@ console.log(`  Iterations: ${iterations} (first = cold)\n`);
 
 const embeddingService = createEmbeddingService({
   cacheDir,
-  allowRemoteModels: !cacheDir,
+  allowRemoteModels,
   logger,
 });
 

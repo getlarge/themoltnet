@@ -9,6 +9,8 @@
  * via `registerWorkflows` (pre-launch) and `afterLaunch` (post-launch).
  */
 
+import { resolve } from 'node:path';
+
 import {
   createOryClients,
   createPermissionChecker,
@@ -201,8 +203,15 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const relationshipWriter = createRelationshipWriter(oryClients.relationship);
 
+  // EMBEDDING_CACHE_DIR is resolved to an absolute path here because pnpm sets
+  // the process cwd to apps/rest-api/ when running the dev script, so a relative
+  // path like "./models" would resolve to apps/rest-api/models — not the repo root.
+  // For local dev: download the model once with the bench tool (see README.md),
+  // then set EMBEDDING_ALLOW_REMOTE_MODELS=false in .env.local.
   const embeddingService = createEmbeddingService({
-    cacheDir: config.embedding.EMBEDDING_CACHE_DIR,
+    cacheDir: config.embedding.EMBEDDING_CACHE_DIR
+      ? resolve(config.embedding.EMBEDDING_CACHE_DIR)
+      : undefined,
     allowRemoteModels: config.embedding.EMBEDDING_ALLOW_REMOTE_MODELS,
     logger: app.log,
   });

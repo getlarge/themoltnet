@@ -5,6 +5,8 @@
  * via @huggingface/transformers (ONNX runtime).
  */
 
+import { resolve } from 'node:path';
+
 import { env, pipeline } from '@huggingface/transformers';
 
 import type {
@@ -40,13 +42,19 @@ async function loadPipeline(
   // interference if multiple services initialize concurrently.
   const prevAllowLocal = env.allowLocalModels;
   const prevAllowRemote = env.allowRemoteModels;
+  const prevLocalModelPath = env.localModelPath;
   env.allowLocalModels = true;
   env.allowRemoteModels = allowRemoteModels;
+  // cache_dir only controls the HTTP response cache, not the local model lookup
+  // path. Set localModelPath so the library finds pre-downloaded models.
+  if (cacheDir) {
+    const absPath = resolve(process.cwd(), cacheDir);
+    env.localModelPath = absPath.endsWith('/') ? absPath : `${absPath}/`;
+  }
 
   try {
     const extractor = await pipeline('feature-extraction', modelId, {
       dtype: quantization as 'q8' | 'q4' | 'fp32' | 'fp16',
-      ...(cacheDir ? { cache_dir: cacheDir } : {}),
       ...(!allowRemoteModels ? { local_files_only: true } : {}),
     });
 
@@ -55,6 +63,7 @@ async function loadPipeline(
   } finally {
     env.allowLocalModels = prevAllowLocal;
     env.allowRemoteModels = prevAllowRemote;
+    env.localModelPath = prevLocalModelPath;
   }
 }
 
