@@ -8,6 +8,14 @@ import (
 	"testing"
 )
 
+// Valid 32-byte base64-encoded Ed25519 test keys.
+const (
+	testPublicKey  = "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
+	testPrivateKey = "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
+	altPublicKey   = "ed25519:ZmlsZS1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
+	altPrivateKey  = "ZmlsZS1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
+)
+
 func TestConfigInitFromEnvHelp(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
@@ -58,9 +66,8 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	t.Setenv("MOLTNET_IDENTITY_ID", "test-identity-123")
 	t.Setenv("MOLTNET_CLIENT_ID", "test-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "test-client-secret")
-	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
-	// 32 bytes base64-encoded seed
-	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
 	t.Setenv("MOLTNET_API_URL", "https://api.test.example.com")
 
@@ -138,7 +145,7 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 }
 
 func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
-	t.Parallel()
+	// Not parallel: godotenv.Load calls os.Setenv which leaks across goroutines
 	tmpDir := t.TempDir()
 
 	// Write a dotenv file with all required vars
@@ -146,8 +153,8 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 		`MOLTNET_IDENTITY_ID=file-identity-456`,
 		`MOLTNET_CLIENT_ID=file-client-id`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
-		`MOLTNET_PUBLIC_KEY=ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh`,
-		`MOLTNET_PRIVATE_KEY=dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5`,
+		`MOLTNET_PUBLIC_KEY=` + testPublicKey,
+		`MOLTNET_PRIVATE_KEY=` + testPrivateKey,
 		`MOLTNET_FINGERPRINT=SHA256:filefingerprint`,
 		`MOLTNET_API_URL=https://api.file.example.com`,
 	}, "\n")
@@ -191,15 +198,14 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Set a process env var that should win over the file
 	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
 	t.Setenv("MOLTNET_CLIENT_ID", "process-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "process-client-secret")
-	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
-	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
 
 	// File has different values
@@ -207,8 +213,8 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 		`MOLTNET_IDENTITY_ID=file-identity`,
 		`MOLTNET_CLIENT_ID=file-client-id`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
-		`MOLTNET_PUBLIC_KEY=ed25519:ZmlsZXB1YmxpY2tleXRoYXRpczMyYnl0ZXMh`,
-		`MOLTNET_PRIVATE_KEY=ZmlsZXByaXZhdGVrZXl0aGF0aXMzMmJ5dGVz`,
+		`MOLTNET_PUBLIC_KEY=` + altPublicKey,
+		`MOLTNET_PRIVATE_KEY=` + altPrivateKey,
 		`MOLTNET_FINGERPRINT=SHA256:filefingerprint`,
 	}, "\n")
 	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
@@ -248,15 +254,14 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileOverride(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Set process env vars
 	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
 	t.Setenv("MOLTNET_CLIENT_ID", "process-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "process-client-secret")
-	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
-	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
 
 	// File has different values that should win with --override
@@ -264,8 +269,8 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 		`MOLTNET_IDENTITY_ID=file-identity-wins`,
 		`MOLTNET_CLIENT_ID=file-client-id-wins`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
-		`MOLTNET_PUBLIC_KEY=ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh`,
-		`MOLTNET_PRIVATE_KEY=dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5`,
+		`MOLTNET_PUBLIC_KEY=` + testPublicKey,
+		`MOLTNET_PRIVATE_KEY=` + testPrivateKey,
 		`MOLTNET_FINGERPRINT=SHA256:filefingerprint`,
 	}, "\n")
 	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
@@ -306,7 +311,6 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileMissing(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	root := NewRootCmd("test", "")
@@ -324,7 +328,6 @@ func TestConfigInitFromEnvFileMissing(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// File provides some vars
@@ -339,8 +342,8 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	}
 
 	// Process provides the rest
-	t.Setenv("MOLTNET_PUBLIC_KEY", "ed25519:dGVzdHB1YmxpY2tleXRoYXRpczMyYnl0ZXMh")
-	t.Setenv("MOLTNET_PRIVATE_KEY", "dGVzdHByaXZhdGVrZXl0aGF0aXMzMmJ5")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
 
 	root := NewRootCmd("test", "")
