@@ -25,6 +25,7 @@ jobs:
   preflight:
     name: Preflight
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
     if: >-
@@ -62,6 +63,7 @@ jobs:
     name: Deploy
     needs: preflight
     if: ${{ !cancelled() && (needs.preflight.result == 'success' || needs.preflight.result == 'skipped') }}
+    environment: production
     uses: ./.github/workflows/_deploy.yml
     with:
       fly-app: moltnet-mcp

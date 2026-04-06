@@ -11,7 +11,9 @@ import {
   type IdentityParams,
 } from '@themoltnet/design-system';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+import { getConfig } from './config';
+
+export const API_BASE_URL = getConfig().apiBaseUrl;
 
 export const apiClient = createClient({
   baseUrl: API_BASE_URL,
