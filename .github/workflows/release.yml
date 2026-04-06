@@ -54,87 +54,6 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # After proxy tags are pushed for internal Go libs, sync apps/moltnet-cli/go.mod
-  # to those released versions and commit back to main so goreleaser builds against
-  # the correct, published module versions. Retries go get to allow proxy propagation.
-  sync-go-mod:
-    name: Sync CLI go.mod to released versions
-    needs: [resolve-publish, release-api-client, release-dspy-adapters]
-    if: |
-      always() && !cancelled() && !failure() &&
-      (needs.resolve-publish.outputs.api-client == 'true' || needs.resolve-publish.outputs.dspy-adapters == 'true')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Generate GitHub App token
-        uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
-          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
-
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 1
-          token: ${{ steps.app-token.outputs.token }}
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-
-      - name: Sync go.mod to released versions
-        id: sync
-        working-directory: apps/moltnet-cli
-        env:
-          API_CLIENT_VERSION: ${{ needs.resolve-publish.outputs.api-client-version }}
-          DSPY_ADAPTERS_VERSION: ${{ needs.resolve-publish.outputs.dspy-adapters-version }}
-        run: |
-          set -euo pipefail
-
-          CURRENT_API=$(grep 'moltnet-api-client' go.mod | awk '{print $2}' | sed 's/^v//')
-          CURRENT_DSPY=$(grep 'dspy-adapters' go.mod | awk '{print $2}' | sed 's/^v//')
-
-          CHANGED=false
-
-          if [ -n "${API_CLIENT_VERSION}" ] && [ "${API_CLIENT_VERSION}" != "${CURRENT_API}" ]; then
-            echo "Bumping moltnet-api-client: ${CURRENT_API} -> ${API_CLIENT_VERSION}"
-            for i in 1 2 3 4 5; do
-              GOWORK=off go get github.com/getlarge/themoltnet/libs/moltnet-api-client@v${API_CLIENT_VERSION} && break
-              echo "Attempt $i failed, retrying in 30s..."
-              sleep 30
-            done
-            CHANGED=true
-          fi
-
-          if [ -n "${DSPY_ADAPTERS_VERSION}" ] && [ "${DSPY_ADAPTERS_VERSION}" != "${CURRENT_DSPY}" ]; then
-            echo "Bumping dspy-adapters: ${CURRENT_DSPY} -> ${DSPY_ADAPTERS_VERSION}"
-            for i in 1 2 3 4 5; do
-              GOWORK=off go get github.com/getlarge/themoltnet/libs/dspy-adapters@v${DSPY_ADAPTERS_VERSION} && break
-              echo "Attempt $i failed, retrying in 30s..."
-              sleep 30
-            done
-            CHANGED=true
-          fi
-
-          if [ "$CHANGED" = "true" ]; then
-            GOWORK=off go mod tidy
-          fi
-
-          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
-
-      - name: Commit go.mod and go.sum to main
-        if: ${{ steps.sync.outputs.changed == 'true' }}
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add apps/moltnet-cli/go.mod apps/moltnet-cli/go.sum go.work.sum
-          git commit -m "chore(go): sync CLI go.mod to released module versions [skip ci]"
-          git push origin main
-
   # Unified resolution: merges release-please outputs with manual republish
   # inputs so downstream jobs use a single set of outputs regardless of trigger.
   resolve-publish:
@@ -265,7 +184,7 @@ jobs:
 
   publish-sdk:
     name: Publish SDK to npm
-    needs: [resolve-publish, release-cli]
+    needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.sdk == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -306,7 +225,7 @@ jobs:
 
   publish-github-agent:
     name: Publish GitHub Agent to npm
-    needs: [resolve-publish, release-cli]
+    needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.github-agent == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -404,9 +323,16 @@ jobs:
 
   release-cli:
     name: Release CLI binaries
-    needs:
-      [resolve-publish, release-api-client, release-dspy-adapters, sync-go-mod]
-    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
+    needs: resolve-publish
+    if: >-
+      ${{
+        always() &&
+        needs.resolve-publish.outputs.cli == 'true' &&
+        needs.resolve-publish.outputs.api-client != 'true' &&
+        needs.resolve-publish.outputs.dspy-adapters != 'true' &&
+        !failure() &&
+        !cancelled()
+      }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -425,11 +351,11 @@ jobs:
           TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
-          # Resolve the api-client version: use the resolved output when
-          # the api-client is being released in the same run, otherwise fall
-          # back to the version recorded in the manifest.
-          # No version resolution needed: go.mod pins both libs directly;
-          # goreleaser builds with GOWORK=off and resolves from the proxy.
+          # The CLI release is intentionally decoupled from Go lib releases.
+          # If the same run also releases moltnet-api-client or dspy-adapters,
+          # this job is skipped. apps/moltnet-cli/go.mod must be bumped to
+          # published module versions in a regular PR before a later CLI-only
+          # release run.
 
       - name: Generate GitHub App token for Homebrew tap
         uses: actions/create-github-app-token@v1
@@ -467,7 +393,14 @@ jobs:
   publish-cli-npm:
     name: Publish CLI to npm
     needs: [resolve-publish, release-cli]
-    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
+    if: >-
+      ${{
+        always() &&
+        needs.resolve-publish.outputs.cli == 'true' &&
+        needs.release-cli.result == 'success' &&
+        !failure() &&
+        !cancelled()
+      }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -539,7 +472,7 @@ jobs:
 
   publish-legreffier:
     name: Publish LeGreffier to npm
-    needs: [resolve-publish, release-cli]
+    needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.legreffier == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -581,7 +514,7 @@ jobs:
 
   publish-design-system:
     name: Publish Design System to npm
-    needs: [resolve-publish, release-cli]
+    needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.design-system == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
