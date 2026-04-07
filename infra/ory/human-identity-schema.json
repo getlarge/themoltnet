@@ -12,7 +12,8 @@
               "code": { "identifier": true, "via": "email" },
               "password": { "identifier": true }
             },
-            "recovery": { "via": "email" }
+            "recovery": { "via": "email" },
+            "verification": { "via": "email" }
           },
           "title": "Email",
           "type": "string"

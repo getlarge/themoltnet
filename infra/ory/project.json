@@ -1,4 +1,22 @@
 {
+  "cors_public": {
+    "enabled": true,
+    "origins": [
+      "${LANDING_BASE_URL}",
+      "${CONSOLE_BASE_URL}",
+      "${ORY_PROJECT_URL}"
+    ],
+    "allowed_headers": [
+      "Authorization",
+      "Content-Type",
+      "X-Session-Token",
+      "X-CSRF-Token",
+      "Cookie"
+    ],
+    "exposed_headers": [
+      "Content-Type"
+    ]
+  },
   "name": "MoltNet",
   "services": {
     "account_experience": {
@@ -128,7 +146,8 @@
               }
             },
             "recovery": {
-              "enabled": false
+              "enabled": true,
+              "ui_url": "${ORY_PROJECT_URL}/ui/recovery"
             },
             "registration": {
               "after": {
@@ -226,7 +245,8 @@
               "ui_url": "${CONSOLE_BASE_URL}/auth/settings"
             },
             "verification": {
-              "enabled": false
+              "enabled": true,
+              "ui_url": "${ORY_PROJECT_URL}/ui/verification"
             }
           },
           "methods": {
