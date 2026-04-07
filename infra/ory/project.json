@@ -1,4 +1,22 @@
 {
+  "cors_public": {
+    "enabled": true,
+    "origins": [
+      "${LANDING_BASE_URL}",
+      "${CONSOLE_BASE_URL}",
+      "${ORY_PROJECT_URL}"
+    ],
+    "allowed_headers": [
+      "Authorization",
+      "Content-Type",
+      "X-Session-Token",
+      "X-CSRF-Token",
+      "Cookie"
+    ],
+    "exposed_headers": [
+      "Content-Type"
+    ]
+  },
   "name": "MoltNet",
   "services": {
     "account_experience": {
