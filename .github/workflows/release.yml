@@ -324,15 +324,7 @@ jobs:
   release-cli:
     name: Release CLI binaries
     needs: resolve-publish
-    if: >-
-      ${{
-        always() &&
-        needs.resolve-publish.outputs.cli == 'true' &&
-        needs.resolve-publish.outputs.api-client != 'true' &&
-        needs.resolve-publish.outputs.dspy-adapters != 'true' &&
-        !failure() &&
-        !cancelled()
-      }}
+    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -351,11 +343,6 @@ jobs:
           TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
-          # The CLI release is intentionally decoupled from Go lib releases.
-          # If the same run also releases moltnet-api-client or dspy-adapters,
-          # this job is skipped. apps/moltnet-cli/go.mod must be bumped to
-          # published module versions in a regular PR before a later CLI-only
-          # release run.
 
       - name: Generate GitHub App token for Homebrew tap
         uses: actions/create-github-app-token@v1

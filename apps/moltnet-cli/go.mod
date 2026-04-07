@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/XiaoConstantine/dspy-go v0.82.2
-	github.com/getlarge/themoltnet/libs/dspy-adapters v0.5.0
-	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.8.0
+	github.com/getlarge/themoltnet/libs/dspy-adapters v0.7.0
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.10.0
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
