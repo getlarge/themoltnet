@@ -45,7 +45,7 @@ echo "=== Canary: Running Harbor engine ==="
 # live. The progress tracker also detects the non-TTY sink and falls back
 # to plain log lines for this reason.
 HARBOR_LOG=$(mktemp)
-if moltnet eval run --engine harbor --config "$CONFIG" "${PASSTHROUGH_FLAGS[@]}" 2>"$HARBOR_LOG"; then
+if moltnet eval run --engine harbor --config "$CONFIG" ${PASSTHROUGH_FLAGS[@]+"${PASSTHROUGH_FLAGS[@]}"} 2>"$HARBOR_LOG"; then
   echo "Harbor: completed successfully"
 else
   echo "Harbor: completed with errors (continuing)"
@@ -62,7 +62,7 @@ fi
 echo ""
 echo "=== Canary: Running DSPy engine ==="
 DSPY_LOG=$(mktemp)
-if moltnet eval run --engine dspy --config "$CONFIG" "${PASSTHROUGH_FLAGS[@]}" 2>"$DSPY_LOG"; then
+if moltnet eval run --engine dspy --config "$CONFIG" ${PASSTHROUGH_FLAGS[@]+"${PASSTHROUGH_FLAGS[@]}"} 2>"$DSPY_LOG"; then
   echo "DSPy: completed successfully"
 else
   echo "DSPy: completed with errors (continuing)"
