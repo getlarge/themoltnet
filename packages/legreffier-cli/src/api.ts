@@ -80,7 +80,12 @@ export function makeClient(baseUrl: string) {
 
 export async function startOnboarding(
   baseUrl: string,
-  body: { publicKey: string; fingerprint: string; agentName: string },
+  body: {
+    publicKey: string;
+    fingerprint: string;
+    agentName: string;
+    org?: string;
+  },
 ): Promise<OnboardingStart> {
   const client = makeClient(baseUrl);
   const res = await startLegreffierOnboarding({

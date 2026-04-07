@@ -222,6 +222,15 @@ export const StartOnboardingBodySchema = Type.Object({
   publicKey: PublicKeySchema,
   fingerprint: FingerprintSchema,
   agentName: Type.String({ minLength: 1, maxLength: 34 }),
+  org: Type.Optional(
+    Type.String({
+      minLength: 1,
+      maxLength: 39,
+      pattern: '^[a-zA-Z0-9-]+$',
+      description:
+        'GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account.',
+    }),
+  ),
 });
 
 export const StartOnboardingResponseSchema = Type.Object({

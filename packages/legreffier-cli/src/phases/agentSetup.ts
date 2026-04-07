@@ -21,6 +21,7 @@ export async function runAgentSetupPhase(opts: {
   identityId: string;
   clientId: string;
   clientSecret: string;
+  org?: string;
   dispatch: (a: UIAction) => void;
 }): Promise<void> {
   const {
@@ -37,6 +38,7 @@ export async function runAgentSetupPhase(opts: {
     identityId,
     clientId,
     clientSecret,
+    org,
     dispatch,
   } = opts;
 
@@ -63,6 +65,7 @@ export async function runAgentSetupPhase(opts: {
           app_slug: appSlug,
           installation_id: installationId,
           private_key_path: pemPath,
+          ...(org ? { org } : {}),
         },
       },
       configDir,
