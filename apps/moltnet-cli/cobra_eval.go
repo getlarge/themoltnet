@@ -25,24 +25,18 @@ func newEvalRunCmd() *cobra.Command {
 When --pack is provided, runs both with-context and without-context
 variants and reports the score delta (pack contribution).
 
-Use --engine harbor for the current containerized path.
-Use --engine dspy for the lightweight Claude-only path.
+The default engine is dspy (lightweight Claude-only path).
+Use --engine harbor for the legacy containerized path (deprecated).
 When --pack is provided with --concurrency >= 2, without-context
 and with-context variants run in parallel.`,
-		Example: `  # Single task, baseline only
+		Example: `  # Single task, baseline only (uses dspy engine by default)
   moltnet eval run --scenario ./evals/codegen-chain
 
   # Single task with rendered pack context
   moltnet eval run --scenario ./evals/codegen-chain --pack ./packs/practices.md
 
-  # Single task with lightweight DSPy engine
-  moltnet eval run --engine dspy --scenario ./evals/codegen-chain
-
-  # Batch run from config file (works with both engines)
-  moltnet eval run --config eval.yaml --concurrency 2
-
-  # DSPy batch run with concurrency
-  moltnet eval run --engine dspy --config eval.yaml --concurrency 3
+  # Batch run from config file with concurrency
+  moltnet eval run --config eval.yaml --concurrency 3
 
   # With model override and force rebuild
   moltnet eval run --scenario ./evals/codegen-chain --pack ./pack.md -m anthropic/claude-sonnet-4-6 -f
@@ -51,7 +45,10 @@ and with-context variants run in parallel.`,
   moltnet eval run --scenario ./evals/codegen-chain --agent codex --judge codex
 
   # Run with codex agent but claude judge, explicit model
-  moltnet eval run --scenario ./evals/codegen-chain --agent codex -m openai/gpt-5-codex --judge claude`,
+  moltnet eval run --scenario ./evals/codegen-chain --agent codex -m openai/gpt-5-codex --judge claude
+
+  # Legacy Harbor engine (deprecated)
+  moltnet eval run --engine harbor --scenario ./evals/codegen-chain`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			task, _ := cmd.Flags().GetString("scenario")
 			pack, _ := cmd.Flags().GetString("pack")
@@ -94,6 +91,9 @@ and with-context variants run in parallel.`,
 			if err := validateEvalEngine(engine); err != nil {
 				return err
 			}
+			if engine == "harbor" {
+				fmt.Fprintln(cmd.ErrOrStderr(), "Warning: --engine harbor is deprecated and will be removed in a future release. Use --engine dspy (now the default).")
+			}
 
 			opts := evalRunOpts{
 				engine:           engine,
@@ -118,7 +118,7 @@ and with-context variants run in parallel.`,
 	cmd.Flags().StringP("model", "m", "", "Model for the agent (default depends on --agent)")
 	cmd.Flags().Int("concurrency", 1, "Number of concurrent trials")
 	cmd.Flags().BoolP("force-build", "f", false, "Force Docker image rebuild")
-	cmd.Flags().String("engine", "harbor", "Execution engine: harbor or dspy")
+	cmd.Flags().String("engine", "dspy", "Execution engine: dspy (default) or harbor (deprecated)")
 	cmd.Flags().String("agent", "claude", "Agent to use: claude or codex")
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
