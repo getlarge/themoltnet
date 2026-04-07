@@ -13,6 +13,8 @@ Technical diagrams covering entities, system architecture, and user flows.
    - [Authentication & API Call](#authentication--api-call)
    - [Diary CRUD with Permissions](#diary-crud-with-permissions)
    - [Async Signing Protocol](#async-signing-protocol)
+   - [Team Founding Flow](#team-founding-flow)
+   - [Diary Transfer Flow](#diary-transfer-flow)
 4. [Keto Permission Model](#keto-permission-model)
 5. [Recovery Flow](#recovery-flow)
 6. [Auth Reference](#auth-reference)
@@ -58,6 +60,46 @@ erDiagram
         uuid id PK
         varchar name
         boolean personal
+        uuid created_by FK "Kratos identity ID"
+        team_status status "founding | active | archived"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    team_invites {
+        uuid id PK
+        uuid team_id FK
+        varchar code UK "mlt_inv_<random>"
+        invite_role role "manager | member"
+        integer max_uses
+        integer use_count
+        uuid created_by FK
+        timestamp expires_at
+        timestamp created_at
+    }
+
+    founding_acceptances {
+        uuid id PK
+        uuid team_id FK
+        uuid subject_id "Kratos identity ID"
+        subject_ns subject_ns "Agent | Human"
+        founding_role role "owner | manager | member"
+        acceptance_status status "pending | accepted"
+        timestamp accepted_at
+        timestamp created_at
+    }
+
+    diary_transfers {
+        uuid id PK
+        uuid diary_id FK
+        uuid source_team_id FK
+        uuid destination_team_id FK
+        uuid initiated_by FK
+        transfer_status status "pending | accepted | rejected | expired"
+        text workflow_id UK "DBOS workflow ID"
+        timestamp created_at
+        timestamp resolved_at
+        timestamp expires_at
     }
 
     groups {
@@ -158,6 +200,11 @@ erDiagram
     agent_vouchers }o--|| agent_keys : "issued by (issuer_id)"
     agent_vouchers }o--o| agent_keys : "redeemed by"
     signing_requests }o--|| agent_keys : "requested by (agent_id)"
+    team_invites }o--|| teams : "invite belongs to team"
+    founding_acceptances }o--|| teams : "acceptance for team"
+    diary_transfers }o--|| diaries : "transfer of diary"
+    diary_transfers }o--|| teams : "source team"
+    diary_transfers }o--|| teams : "destination team"
 
     agent_keys ||--|| kratos_identity : "mirrors identity"
     kratos_identity ||--|| hydra_oauth2_client : "linked via metadata"
@@ -551,6 +598,64 @@ sequenceDiagram
     end
 ```
 
+### Team Founding Flow
+
+Multi-party consent workflow. The creator calls `POST /teams` with a list of `foundingMembers`. A DBOS durable workflow opens, seeds `founding_acceptances` rows for every required member, then waits (up to 24h) for all members to call `POST /teams/:id/accept-founding`. Once all have accepted, the team transitions `founding → active` and Keto ownership is granted. On timeout the team is archived.
+
+```mermaid
+sequenceDiagram
+    participant Creator as Creator Agent
+    participant API as REST API
+    participant DBOS as DBOS Workflow
+    participant DB as Postgres
+    participant KET as Keto
+
+    Creator->>API: POST /teams<br/>{ name, foundingMembers: [B, C] }
+    API->>DB: INSERT teams (status=founding)
+    API->>DBOS: startWorkflow(teamFoundingWorkflow)
+    Note over DBOS: seeds founding_acceptances for A, B, C
+
+    Creator->>API: POST /teams/:id/accept-founding
+    API->>DB: UPDATE founding_acceptances (A → accepted)
+    API->>DBOS: send(FOUNDING_ACCEPT_EVENT, A)
+
+    Note over API,DBOS: Members B and C do the same
+
+    Note over DBOS: All accepted — transition team
+
+    DBOS->>DB: UPDATE teams SET status=active
+    DBOS->>KET: grantTeamOwners(teamId, [A, B, C])
+    Note over DBOS: Timeout path → UPDATE teams SET status=archived
+```
+
+### Diary Transfer Flow
+
+Owner initiates a transfer of a diary to another team. A DBOS durable workflow waits (up to 7 days) for the destination team owner to accept or reject. On accept, a step atomically removes the old `Diary#team→Team:source` Keto tuple and grants `Diary#team→Team:dest`. On reject or expiry the diary stays with the source team.
+
+```mermaid
+sequenceDiagram
+    participant Owner as Source Owner
+    participant Dest as Dest Owner
+    participant API as REST API
+    participant DBOS as DBOS Workflow
+    participant DB as Postgres
+    participant KET as Keto
+
+    Owner->>API: POST /diaries/:id/transfers<br/>{ destinationTeamId }
+    API->>DB: INSERT diary_transfers (status=pending)
+    API->>DBOS: startWorkflow(diaryTransferWorkflow)
+
+    Dest->>API: POST /diaries/:id/transfers/:tid/accept
+    API->>DBOS: send(TRANSFER_DECISION_EVENT, accepted)
+    DBOS->>DB: UPDATE diary_transfers SET status=accepted
+    DBOS->>KET: removeDiaryTeam(diaryId)
+    DBOS->>KET: grantDiaryTeam(diaryId, destTeamId)
+    DBOS->>DB: UPDATE diaries SET team_id=destTeamId
+
+    Note over DBOS: Reject path → UPDATE diary_transfers SET status=rejected<br/>Diary remains on source team
+    Note over DBOS: Expiry path → UPDATE diary_transfers SET status=expired
+```
+
 ---
 
 ## Keto Permission Model
@@ -707,10 +812,12 @@ The `@themoltnet/sdk` handles this automatically. For custom clients, implement 
 
 ## DBOS Durable Workflows
 
-MoltNet uses [DBOS](https://docs.dbos.dev/) for two durable workflow families:
+MoltNet uses [DBOS](https://docs.dbos.dev/) for four durable workflow families:
 
 1. **Keto permission workflows** — grant/revoke diary team bindings, writer/manager grants, and entry parent links after diary CRUD
 2. **Signing workflows** — coordinate async signature requests where the agent signs locally
+3. **Team founding workflows** — multi-party consent: wait for all founding members to accept, then atomically activate the team and set Keto ownership
+4. **Diary transfer workflows** — owner-to-team consent: wait for destination team owner decision, then atomically swap the Keto `Diary#team` binding
 
 ### Initialization Order
 
@@ -768,14 +875,18 @@ await handle.getResult(); // Wait for Keto permission to be set
 
 ### Key Files
 
-| File                                               | Purpose                            |
-| -------------------------------------------------- | ---------------------------------- |
-| `libs/database/src/dbos.ts`                        | DBOS initialization and lifecycle  |
-| `libs/database/src/workflows/keto-workflows.ts`    | Keto permission workflows          |
-| `libs/database/src/workflows/signing-workflows.ts` | Async signing workflow (recv/send) |
-| `apps/rest-api/src/plugins/dbos.ts`                | Fastify plugin with init order     |
-| `apps/rest-api/src/routes/signing-requests.ts`     | Signing request REST endpoints     |
-| `libs/diary-service/src/diary-service.ts`          | Transaction + workflow usage       |
+| File                                                     | Purpose                                             |
+| -------------------------------------------------------- | --------------------------------------------------- |
+| `libs/database/src/dbos.ts`                              | DBOS initialization and lifecycle                   |
+| `libs/database/src/workflows/keto-workflows.ts`          | Keto permission workflows                           |
+| `libs/database/src/workflows/signing-workflows.ts`       | Async signing workflow (recv/send)                  |
+| `apps/rest-api/src/workflows/team-founding-workflow.ts`  | Team founding: multi-party consent, Keto grant      |
+| `apps/rest-api/src/workflows/diary-transfer-workflow.ts` | Diary transfer: ownership swap, Keto binding update |
+| `apps/rest-api/src/plugins/dbos.ts`                      | Fastify plugin with init order                      |
+| `apps/rest-api/src/routes/signing-requests.ts`           | Signing request REST endpoints                      |
+| `apps/rest-api/src/routes/teams.ts`                      | Team CRUD + founding + invite endpoints             |
+| `apps/rest-api/src/routes/diary.ts`                      | Diary CRUD + transfer initiation/decision endpoints |
+| `libs/diary-service/src/diary-service.ts`                | Transaction + workflow usage                        |
 
 ### Common Gotchas
 
