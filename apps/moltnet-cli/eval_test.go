@@ -599,11 +599,50 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 
 func TestBuildDSPYEvalPromptIncludesContext(t *testing.T) {
 	got := buildDSPYEvalPrompt("Do the task.", true, "## Pack")
-	if !strings.Contains(got, "Context pack:") {
-		t.Fatal("expected context section")
+	if !strings.Contains(got, "context-pack.md") {
+		t.Fatal("expected reference to context-pack.md")
 	}
-	if !strings.Contains(got, "## Pack") {
-		t.Fatal("expected pack content")
+	// Pack content is written to disk by writeDSPYEvalPackToDisk, not inlined.
+	if strings.Contains(got, "## Pack") {
+		t.Fatal("pack content must not be inlined into the prompt")
+	}
+}
+
+func TestWriteDSPYEvalPackToDisk(t *testing.T) {
+	dir := t.TempDir()
+	packMD := "## Section\n\nsome content"
+	if err := writeDSPYEvalPackToDisk(dir, packMD); err != nil {
+		t.Fatalf("writeDSPYEvalPackToDisk: %v", err)
+	}
+
+	packContent, err := os.ReadFile(filepath.Join(dir, "context-pack.md"))
+	if err != nil {
+		t.Fatalf("read context-pack.md: %v", err)
+	}
+	if !strings.Contains(string(packContent), packMD) {
+		t.Error("context-pack.md missing pack content")
+	}
+
+	claudeMD, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
+	if err != nil {
+		t.Fatalf("read CLAUDE.md: %v", err)
+	}
+	if !strings.Contains(string(claudeMD), "@context-pack.md") {
+		t.Error("CLAUDE.md must @-import context-pack.md")
+	}
+	if strings.Contains(string(claudeMD), packMD) {
+		t.Error("CLAUDE.md must not inline pack content")
+	}
+
+	agentsMD, err := os.ReadFile(filepath.Join(dir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("read AGENTS.md: %v", err)
+	}
+	if !strings.Contains(string(agentsMD), packMD) {
+		t.Error("AGENTS.md must inline pack content (Codex does not support @-imports)")
+	}
+	if strings.Contains(string(agentsMD), "@context-pack.md") {
+		t.Error("AGENTS.md must not use @-import")
 	}
 }
 
