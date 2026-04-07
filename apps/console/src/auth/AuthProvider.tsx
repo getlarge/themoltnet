@@ -50,16 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void checkSession();
+    // Re-check every 5 minutes so an expired session triggers a redirect promptly
+    const interval = setInterval(() => void checkSession(), 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [checkSession]);
 
   const logout = useCallback(async () => {
     try {
       const kratosClient = getKratosClient();
       const logoutFlow = await kratosClient.createBrowserLogoutFlow();
-      await kratosClient.updateLogoutFlow({
-        token: logoutFlow.logout_token,
-      });
-      setSession(null);
+      // Redirect browser to Ory logout URL — avoids cross-origin POST CORS issues
+      window.location.assign(logoutFlow.logout_url);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Logout failed'));
     }

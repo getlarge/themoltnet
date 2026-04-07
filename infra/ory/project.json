@@ -78,7 +78,7 @@
           "default_browser_return_url": "${CONSOLE_BASE_URL}/",
           "flows": {
             "error": {
-              "ui_url": "${CONSOLE_BASE_URL}/auth/error"
+              "ui_url": "${ORY_PROJECT_URL}/ui/error"
             },
             "login": {
               "after": {
@@ -134,7 +134,7 @@
                 }
               },
               "lifespan": "1h",
-              "ui_url": "${CONSOLE_BASE_URL}/auth/login"
+              "ui_url": "${ORY_PROJECT_URL}/ui/login"
             },
             "logout": {
               "after": {
@@ -206,7 +206,7 @@
               },
               "enabled": true,
               "lifespan": "1h",
-              "ui_url": "${CONSOLE_BASE_URL}/auth/registration"
+              "ui_url": "${ORY_PROJECT_URL}/ui/registration"
             },
             "settings": {
               "after": {
@@ -238,7 +238,7 @@
               },
               "lifespan": "1h",
               "privileged_session_max_age": "15m",
-              "ui_url": "${CONSOLE_BASE_URL}/auth/settings"
+              "ui_url": "${ORY_PROJECT_URL}/ui/settings"
             },
             "verification": {
               "enabled": true,
@@ -366,11 +366,11 @@
         },
         "urls": {
           "consent": "${ORY_PROJECT_URL}/ui/consent",
-          "error": "${CONSOLE_BASE_URL}/auth/error",
-          "login": "${CONSOLE_BASE_URL}/auth/login",
+          "error": "${ORY_PROJECT_URL}/ui/error",
+          "login": "${ORY_PROJECT_URL}/ui/login",
           "logout": "${ORY_PROJECT_URL}/ui/logout",
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
-          "registration": "${CONSOLE_BASE_URL}/auth/registration",
+          "registration": "${ORY_PROJECT_URL}/ui/registration",
           "self": {
             "issuer": "${ORY_PROJECT_URL}/"
           }
