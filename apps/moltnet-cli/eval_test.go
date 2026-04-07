@@ -623,15 +623,15 @@ func TestWriteDSPYEvalPackToDisk(t *testing.T) {
 		t.Error("context-pack.md missing pack content")
 	}
 
-	claudeMD, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
+	claudeMD, err := os.ReadFile(filepath.Join(dir, ".claude", "CLAUDE.md"))
 	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
+		t.Fatalf("read .claude/CLAUDE.md: %v", err)
 	}
-	if !strings.Contains(string(claudeMD), "@context-pack.md") {
-		t.Error("CLAUDE.md must @-import context-pack.md")
+	if !strings.Contains(string(claudeMD), "@../context-pack.md") {
+		t.Error(".claude/CLAUDE.md must @-import ../context-pack.md")
 	}
 	if strings.Contains(string(claudeMD), packMD) {
-		t.Error("CLAUDE.md must not inline pack content")
+		t.Error(".claude/CLAUDE.md must not inline pack content")
 	}
 
 	agentsMD, err := os.ReadFile(filepath.Join(dir, "AGENTS.md"))

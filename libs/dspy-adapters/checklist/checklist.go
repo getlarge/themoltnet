@@ -199,6 +199,12 @@ func parseScores(raw any) ([]ScoredCriterion, error) {
 				fmt.Sprintf("checklist score out of range for %q", item.Name),
 			)
 		}
+		if strings.TrimSpace(item.Evidence) == "" {
+			return nil, dspyerrors.New(
+				dspyerrors.InvalidResponse,
+				fmt.Sprintf("checklist judge returned empty evidence for %q", item.Name),
+			)
+		}
 	}
 	return items, nil
 }

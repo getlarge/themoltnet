@@ -1241,8 +1241,9 @@ func buildDSPYEvalPrompt(task string, withContext bool, pack string) string {
 // Three files are written:
 //   - context-pack.md — canonical pack content; picked up by the workspace
 //     snapshot so the judge sees exactly what was provided to the agent.
-//   - CLAUDE.md — @-imports context-pack.md so Claude Code loads it as project
-//     context automatically via cwd discovery.
+//   - .claude/CLAUDE.md — @-imports context-pack.md so Claude Code loads it as
+//     project context automatically. Written under .claude/ to match the
+//     established scaffoldTask pattern used by the Harbor adapter.
 //   - AGENTS.md — inline copy of the pack content; Codex reads AGENTS.md as
 //     its system context but does not support the @file import syntax.
 //
@@ -1255,9 +1256,14 @@ func writeDSPYEvalPackToDisk(worktreeDir, packMD string) error {
 	if err := os.WriteFile(filepath.Join(worktreeDir, "context-pack.md"), []byte(packContent), 0o644); err != nil {
 		return fmt.Errorf("write context-pack.md: %w", err)
 	}
-	// Claude Code supports @file imports; reference the canonical file.
-	if err := os.WriteFile(filepath.Join(worktreeDir, "CLAUDE.md"), []byte("@context-pack.md\n"), 0o644); err != nil {
-		return fmt.Errorf("write CLAUDE.md: %w", err)
+	// Claude Code supports @file imports; write under .claude/ to match the
+	// scaffoldTask convention used in the Harbor adapter.
+	claudeDir := filepath.Join(worktreeDir, ".claude")
+	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir .claude: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(claudeDir, "CLAUDE.md"), []byte("@../context-pack.md\n"), 0o644); err != nil {
+		return fmt.Errorf("write .claude/CLAUDE.md: %w", err)
 	}
 	// Codex does not support @file imports in AGENTS.md (openai/codex#6038,
 	// openai/codex#13386), so inline the content directly.

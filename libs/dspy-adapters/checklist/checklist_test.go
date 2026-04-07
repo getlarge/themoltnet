@@ -61,6 +61,18 @@ func TestParseScoresInvalidJSONIncludesPreview(t *testing.T) {
 	}
 }
 
+func TestParseScoresEmptyEvidenceIncludesName(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseScores(`[{"name":"Criterion A","score":1,"max_score":2,"evidence":""}]`)
+	if err == nil {
+		t.Fatal("expected error for empty evidence")
+	}
+	if !strings.Contains(err.Error(), "Criterion A") {
+		t.Fatalf("error should mention criterion name, got: %v", err)
+	}
+}
+
 func TestNormalizeScoreKey(t *testing.T) {
 	t.Parallel()
 
