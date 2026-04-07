@@ -36,6 +36,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 # Run postinstall for onnxruntime-node (downloads platform-specific native binaries).
 # --ignore-scripts skips it during install; rebuild targets only this package.
+# Required by the `model` stage below: download-embedding-model.mjs imports
+# @huggingface/transformers which dlopens onnxruntime-node at runtime.
 RUN pnpm rebuild onnxruntime-node
 
 # ---------- model ----------
