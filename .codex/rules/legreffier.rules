@@ -67,6 +67,28 @@ prefix_rule(
     decision = "allow",
 )
 
+# GitHub CLI — read-only subcommands (write ops prompt the user)
+prefix_rule(
+    pattern = ["gh", "pr", "view"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["gh", "pr", "list"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["gh", "issue", "view"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["gh", "issue", "list"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["gh", "repo", "view"],
+    decision = "allow",
+)
+
 # Worktree symlink creation
 prefix_rule(
     pattern = ["ln", "-s"],
