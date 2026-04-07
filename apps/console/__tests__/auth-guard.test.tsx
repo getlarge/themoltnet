@@ -7,18 +7,21 @@ import { AuthGuard } from '../src/auth/AuthGuard.js';
 import { AuthProvider } from '../src/auth/AuthProvider.js';
 
 const mockToSession = vi.fn();
+const mockAssign = vi.fn();
 
 vi.mock('../src/kratos.js', () => ({
   getKratosClient: () => ({
     toSession: mockToSession,
     createBrowserLogoutFlow: vi.fn(),
-    updateLogoutFlow: vi.fn(),
   }),
 }));
 
-// Mock wouter's Redirect
-vi.mock('wouter', () => ({
-  Redirect: ({ to }: { to: string }) => <div data-testid="redirect">{to}</div>,
+vi.mock('../src/config.js', () => ({
+  getConfig: () => ({
+    kratosUrl: 'https://auth.example.com',
+    consoleUrl: 'https://console.example.com',
+    apiBaseUrl: 'https://api.example.com',
+  }),
 }));
 
 function Wrapper({ children }: { children: ReactNode }) {
@@ -32,6 +35,10 @@ function Wrapper({ children }: { children: ReactNode }) {
 describe('AuthGuard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: { assign: mockAssign },
+      writable: true,
+    });
   });
 
   it('shows loading state while checking session', () => {
@@ -48,7 +55,7 @@ describe('AuthGuard', () => {
     expect(screen.getByText('Loading...')).toBeDefined();
   });
 
-  it('redirects to login when not authenticated', async () => {
+  it('redirects to Ory login when not authenticated', async () => {
     mockToSession.mockRejectedValue(new Error('No session'));
 
     render(
@@ -59,10 +66,12 @@ describe('AuthGuard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('redirect')).toBeDefined();
+      expect(mockAssign).toHaveBeenCalled();
     });
 
-    expect(screen.getByTestId('redirect').textContent).toBe('/auth/login');
+    expect(mockAssign.mock.calls[0][0]).toContain(
+      'https://auth.example.com/self-service/login/browser',
+    );
     expect(screen.queryByTestId('protected')).toBeNull();
   });
 

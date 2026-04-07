@@ -60,14 +60,19 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
   _initialized = true;
 
   // ── Nonce Cleanup ────────────────────────────────────────────
-  DBOS.registerScheduled(
+  const nonceCleanupWorkflow = DBOS.registerWorkflow(
     async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
       const { nonceRepository, logger } = getDeps();
       await nonceRepository.cleanup();
       logger.info('maintenance: nonce cleanup complete');
     },
-    { name: 'maintenance.nonceCleanup', crontab: '0 0 * * *' },
+    { name: 'maintenance.nonceCleanup' },
   );
+
+  DBOS.registerScheduled(nonceCleanupWorkflow, {
+    name: 'maintenance.nonceCleanup',
+    crontab: '0 0 * * *',
+  });
 
   // ── Pack GC ──────────────────────────────────────────────────
 
@@ -137,14 +142,19 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
   const cron = packGcConfig.PACK_GC_CRON;
   const batchSize = packGcConfig.PACK_GC_BATCH_SIZE;
 
-  DBOS.registerScheduled(
+  const packGcSchedulerWorkflow = DBOS.registerWorkflow(
     async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
       // Fire-and-forget: don't await getResult() to avoid blocking
       // the next cron tick if GC takes longer than expected.
       await DBOS.startWorkflow(packGcWorkflow)({ batchSize });
     },
-    { name: 'maintenance.packGcScheduler', crontab: cron },
+    { name: 'maintenance.packGcScheduler' },
   );
+
+  DBOS.registerScheduled(packGcSchedulerWorkflow, {
+    name: 'maintenance.packGcScheduler',
+    crontab: cron,
+  });
 
   // ── Rendered Pack GC ────────────────────────────────────────
   // Rendered packs with pinned source packs won't be cleaned by
@@ -180,10 +190,15 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
     { name: 'maintenance.renderedPackGc' },
   );
 
-  DBOS.registerScheduled(
+  const renderedPackGcSchedulerWorkflow = DBOS.registerWorkflow(
     async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
       await DBOS.startWorkflow(renderedPackGcWorkflow)({ batchSize });
     },
-    { name: 'maintenance.renderedPackGcScheduler', crontab: cron },
+    { name: 'maintenance.renderedPackGcScheduler' },
   );
+
+  DBOS.registerScheduled(renderedPackGcSchedulerWorkflow, {
+    name: 'maintenance.renderedPackGcScheduler',
+    crontab: cron,
+  });
 }

@@ -1,11 +1,5 @@
 {
   "cors_public": {
-    "enabled": true,
-    "origins": [
-      "${LANDING_BASE_URL}",
-      "${CONSOLE_BASE_URL}",
-      "${ORY_PROJECT_URL}"
-    ],
     "allowed_headers": [
       "Authorization",
       "Content-Type",
@@ -13,8 +7,12 @@
       "X-CSRF-Token",
       "Cookie"
     ],
-    "exposed_headers": [
-      "Content-Type"
+    "enabled": true,
+    "exposed_headers": ["Content-Type"],
+    "origins": [
+      "${LANDING_BASE_URL}",
+      "${CONSOLE_BASE_URL}",
+      "${ORY_PROJECT_URL}"
     ]
   },
   "name": "MoltNet",
@@ -48,8 +46,6 @@
     "identity": {
       "config": {
         "cookies": {
-          "domain": "${BASE_DOMAIN}",
-          "path": "/",
           "same_site": "Lax"
         },
         "courier": {
