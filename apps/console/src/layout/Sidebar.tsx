@@ -7,10 +7,13 @@
 import { Button, Divider, Logo, Stack, Text } from '@themoltnet/design-system';
 import { useLocation } from 'wouter';
 
+import { getConfig } from '../config.js';
+
 interface NavItem {
   label: string;
   path: string;
   disabled?: boolean;
+  external?: boolean;
 }
 
 const mainNav: NavItem[] = [{ label: 'Overview', path: '/' }];
@@ -21,8 +24,6 @@ const exploreNav: NavItem[] = [
   { label: 'Tools', path: '/tools', disabled: true },
   { label: 'Labs', path: '/labs', disabled: true },
 ];
-
-const bottomNav: NavItem[] = [{ label: 'Settings', path: '/settings' }];
 
 function NavButton({
   item,
@@ -56,6 +57,13 @@ function NavButton({
 
 export function Sidebar() {
   const [location, navigate] = useLocation();
+  const bottomNav: NavItem[] = [
+    {
+      label: 'Settings',
+      path: `${getConfig().kratosUrl}/ui/settings`,
+      external: true,
+    },
+  ];
 
   return (
     <Stack
@@ -109,7 +117,13 @@ export function Sidebar() {
             key={item.path}
             item={item}
             isActive={location === item.path}
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              if (item.external) {
+                window.location.assign(item.path);
+              } else {
+                navigate(item.path);
+              }
+            }}
           />
         ))}
       </Stack>

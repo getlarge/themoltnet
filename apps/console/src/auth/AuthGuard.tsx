@@ -7,8 +7,8 @@
 
 import { Stack, Text } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
-import { Redirect } from 'wouter';
 
+import { getConfig } from '../config.js';
 import { useAuth } from './useAuth.js';
 
 export function AuthGuard({ children }: { children: ReactNode }) {
@@ -23,7 +23,11 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Redirect to="/auth/login" />;
+    const returnTo = encodeURIComponent(`${getConfig().consoleUrl}/`);
+    window.location.assign(
+      `${getConfig().kratosUrl}/self-service/login/browser?return_to=${returnTo}`,
+    );
+    return null;
   }
 
   return <>{children}</>;
