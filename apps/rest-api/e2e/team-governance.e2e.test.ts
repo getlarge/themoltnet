@@ -158,8 +158,8 @@ describe('Team Governance', () => {
       expect(error).toBeUndefined();
       expect(response.status).toBe(200);
       expect(data!.accepted).toBe(true);
-      // Route returns actual DB status (founding); workflow activates async
-      expect(data!.teamStatus).toBe('founding');
+      // Route returns synthetic 'active' when all owners have accepted (single owner here)
+      expect(data!.teamStatus).toBe('active');
     });
 
     it('accepting twice returns 409', async () => {
