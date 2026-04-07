@@ -35,8 +35,10 @@ command -v claude >/dev/null || { echo "Error: claude CLI not found on PATH (req
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 extract_artifact_dir() {
-  # Capture the "Artifacts preserved at: <path>" line from stderr
-  grep -oE 'Artifacts preserved at: .*' "$1" | sed 's/Artifacts preserved at: //' | tail -1
+  # Capture the "Artifacts preserved at: <path>" line from stderr.
+  # Use `|| true` so a no-match (grep exit 1) doesn't kill the script
+  # under set -e + pipefail.
+  { grep -oE 'Artifacts preserved at: .*' "$1" || true; } | sed 's/Artifacts preserved at: //' | tail -1
 }
 
 echo "=== Canary: Running Harbor engine ==="
