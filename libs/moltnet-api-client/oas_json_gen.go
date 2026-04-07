@@ -35687,15 +35687,22 @@ func (s *StartLegreffierOnboardingReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.Fingerprint)
 	}
 	{
+		if s.Org.Set {
+			e.FieldStart("org")
+			s.Org.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("publicKey")
 		e.Str(s.PublicKey)
 	}
 }
 
-var jsonFieldsNameOfStartLegreffierOnboardingReq = [3]string{
+var jsonFieldsNameOfStartLegreffierOnboardingReq = [4]string{
 	0: "agentName",
 	1: "fingerprint",
-	2: "publicKey",
+	2: "org",
+	3: "publicKey",
 }
 
 // Decode decodes StartLegreffierOnboardingReq from json.
@@ -35731,8 +35738,18 @@ func (s *StartLegreffierOnboardingReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"fingerprint\"")
 			}
+		case "org":
+			if err := func() error {
+				s.Org.Reset()
+				if err := s.Org.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"org\"")
+			}
 		case "publicKey":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.PublicKey = string(v)
@@ -35753,7 +35770,7 @@ func (s *StartLegreffierOnboardingReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

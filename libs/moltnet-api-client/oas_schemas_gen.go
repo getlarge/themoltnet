@@ -13412,6 +13412,9 @@ type StartLegreffierOnboardingReq struct {
 	AgentName string `json:"agentName"`
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
 	Fingerprint string `json:"fingerprint"`
+	// GitHub organization name. When provided, the GitHub App will be created under this org instead of
+	// the personal account.
+	Org OptString `json:"org"`
 	// Ed25519 public key with prefix.
 	PublicKey string `json:"publicKey"`
 }
@@ -13424,6 +13427,11 @@ func (s *StartLegreffierOnboardingReq) GetAgentName() string {
 // GetFingerprint returns the value of Fingerprint.
 func (s *StartLegreffierOnboardingReq) GetFingerprint() string {
 	return s.Fingerprint
+}
+
+// GetOrg returns the value of Org.
+func (s *StartLegreffierOnboardingReq) GetOrg() OptString {
+	return s.Org
 }
 
 // GetPublicKey returns the value of PublicKey.
@@ -13439,6 +13447,11 @@ func (s *StartLegreffierOnboardingReq) SetAgentName(val string) {
 // SetFingerprint sets the value of Fingerprint.
 func (s *StartLegreffierOnboardingReq) SetFingerprint(val string) {
 	s.Fingerprint = val
+}
+
+// SetOrg sets the value of Org.
+func (s *StartLegreffierOnboardingReq) SetOrg(val OptString) {
+	s.Org = val
 }
 
 // SetPublicKey sets the value of PublicKey.

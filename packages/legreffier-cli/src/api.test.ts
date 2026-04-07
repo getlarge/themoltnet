@@ -42,16 +42,14 @@ describe('startOnboarding', () => {
     expect(result.manifestFormUrl).toContain('github.com');
   });
 
-  it('includes org in request body when provided', async () => {
-    let capturedBody: unknown;
-    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
-      capturedBody = init?.body ? JSON.parse(init.body as string) : undefined;
-      return makeResponse({
+  it('accepts org and returns manifestFormUrl containing org param', async () => {
+    vi.stubGlobal('fetch', async () =>
+      makeResponse({
         workflowId: 'wf-456',
         manifestFormUrl:
           'https://api.example.com/manifest/wf-456?name=my-agent&org=my-org',
-      });
-    });
+      }),
+    );
 
     const result = await startOnboarding(BASE_URL, {
       publicKey: 'ed25519:abc',
@@ -61,27 +59,25 @@ describe('startOnboarding', () => {
     });
 
     expect(result.workflowId).toBe('wf-456');
-    expect((capturedBody as Record<string, unknown>)?.org).toBe('my-org');
+    expect(result.manifestFormUrl).toContain('org=my-org');
   });
 
-  it('does not include org in request body when omitted', async () => {
-    let capturedBody: unknown;
-    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
-      capturedBody = init?.body ? JSON.parse(init.body as string) : undefined;
-      return makeResponse({
+  it('manifestFormUrl has no org param when org is omitted', async () => {
+    vi.stubGlobal('fetch', async () =>
+      makeResponse({
         workflowId: 'wf-789',
         manifestFormUrl:
           'https://api.example.com/manifest/wf-789?name=my-agent',
-      });
-    });
+      }),
+    );
 
-    await startOnboarding(BASE_URL, {
+    const result = await startOnboarding(BASE_URL, {
       publicKey: 'ed25519:abc',
       fingerprint: 'A1B2-C3D4-E5F6-G7H8',
       agentName: 'my-agent',
     });
 
-    expect((capturedBody as Record<string, unknown>)?.org).toBeUndefined();
+    expect(result.manifestFormUrl).not.toContain('org=');
   });
 
   it('throws on non-ok response', async () => {
