@@ -10,6 +10,7 @@ import type {
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryGrantData,
+  CreateDiaryGrantResponse,
   CryptoIdentity,
   CryptoVerifyResult,
   DiaryCatalog,
@@ -26,17 +27,17 @@ import type {
   GetLegreffierOnboardingStatusResponse,
   GetProblemTypeData,
   GetPublicFeedData,
-  GetTeamResponses,
+  GetTeamResponse,
   GetTrustGraphData,
   Health,
   ListDiariesData,
   ListDiaryEntriesData,
-  ListDiaryGrantsResponses,
+  ListDiaryGrantsResponse,
   ListDiaryPacksData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
-  ListTeamMembersResponses,
-  ListTeamsResponses,
+  ListTeamMembersResponse,
+  ListTeamsResponse,
   NetworkInfo,
   ProvenanceGraph,
   PublicFeedEntry,
@@ -46,6 +47,7 @@ import type {
   RecoveryVerifyResponse,
   ReflectDiaryData,
   RevokeDiaryGrantData,
+  RevokeDiaryGrantResponse,
   RotateSecretResponse,
   SearchDiaryData,
   SearchPublicFeedData,
@@ -265,27 +267,23 @@ export interface ProblemsNamespace {
 }
 
 export interface TeamsNamespace {
-  list(): Promise<ListTeamsResponses[200]>;
-  get(id: string): Promise<GetTeamResponses[200]>;
-  listMembers(id: string): Promise<ListTeamMembersResponses[200]>;
+  list(): Promise<ListTeamsResponse>;
+  get(id: string): Promise<GetTeamResponse>;
+  listMembers(id: string): Promise<ListTeamMembersResponse>;
 }
 
 export interface DiaryGrantsNamespace {
   create(
     diaryId: string,
     body: CreateDiaryGrantData['body'],
-  ): Promise<{
-    subjectId: string;
-    subjectNs: 'Agent' | 'Human' | 'Group';
-    role: 'writer' | 'manager';
-  }>;
+  ): Promise<CreateDiaryGrantResponse>;
 
-  list(diaryId: string): Promise<ListDiaryGrantsResponses[200]>;
+  list(diaryId: string): Promise<ListDiaryGrantsResponse>;
 
   revoke(
     diaryId: string,
     body: RevokeDiaryGrantData['body'],
-  ): Promise<{ revoked: boolean }>;
+  ): Promise<RevokeDiaryGrantResponse>;
 }
 
 // ---------------------------------------------------------------------------
