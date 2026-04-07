@@ -505,7 +505,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         hook_attributes: { url: '', active: false },
         redirect_url: `${apiBaseUrl}/public/legreffier/callback`,
         setup_url: `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`,
-        public: false,
+        public: true,
         default_permissions: {
           contents: 'write',
           issues: 'write',
