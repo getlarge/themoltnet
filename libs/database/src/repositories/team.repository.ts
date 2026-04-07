@@ -11,7 +11,14 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
-import { type Team, type TeamInvite, teamInvites, teams } from '../schema.js';
+import {
+  type FoundingAcceptance,
+  foundingAcceptances,
+  type Team,
+  type TeamInvite,
+  teamInvites,
+  teams,
+} from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
 const INVITE_CODE_PREFIX = 'mlt_inv_';
@@ -29,6 +36,13 @@ export interface CreateInviteInput {
   maxUses: number;
   expiresAt: Date;
   createdBy: string;
+}
+
+export interface CreateFoundingAcceptanceInput {
+  teamId: string;
+  subjectId: string;
+  subjectNs: 'Agent' | 'Human';
+  role: 'owner' | 'manager' | 'member';
 }
 
 export interface TeamRepository {
@@ -52,6 +66,15 @@ export interface TeamRepository {
   listInvites(teamId: string): Promise<TeamInvite[]>;
   deleteInvite(id: string): Promise<boolean>;
   deleteInviteByTeam(inviteId: string, teamId: string): Promise<boolean>;
+
+  createFoundingAcceptance(
+    input: CreateFoundingAcceptanceInput,
+  ): Promise<FoundingAcceptance>;
+  listFoundingAcceptances(teamId: string): Promise<FoundingAcceptance[]>;
+  acceptFoundingMember(
+    teamId: string,
+    subjectId: string,
+  ): Promise<FoundingAcceptance | null>;
 }
 
 export function createTeamRepository(db: Database): TeamRepository {
@@ -191,6 +214,41 @@ export function createTeamRepository(db: Database): TeamRepository {
         )
         .returning({ id: teamInvites.id });
       return result.length > 0;
+    },
+
+    async createFoundingAcceptance(input) {
+      const [row] = await getExecutor(db)
+        .insert(foundingAcceptances)
+        .values({
+          teamId: input.teamId,
+          subjectId: input.subjectId,
+          subjectNs: input.subjectNs,
+          role: input.role,
+        })
+        .returning();
+      return row;
+    },
+
+    async listFoundingAcceptances(teamId) {
+      return db
+        .select()
+        .from(foundingAcceptances)
+        .where(eq(foundingAcceptances.teamId, teamId));
+    },
+
+    async acceptFoundingMember(teamId, subjectId) {
+      const [row] = await getExecutor(db)
+        .update(foundingAcceptances)
+        .set({ status: 'accepted', acceptedAt: new Date() })
+        .where(
+          and(
+            eq(foundingAcceptances.teamId, teamId),
+            eq(foundingAcceptances.subjectId, subjectId),
+            eq(foundingAcceptances.status, 'pending'),
+          ),
+        )
+        .returning();
+      return row ?? null;
     },
   };
 }

@@ -370,6 +370,71 @@ export type CreateTeamInvite = Static<typeof CreateTeamInviteSchema>;
 export type JoinTeam = Static<typeof JoinTeamSchema>;
 
 // ============================================================================
+// Team Founding Schemas
+// ============================================================================
+
+export const FoundingMemberSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: Type.Union([Type.Literal('Agent'), Type.Literal('Human')]),
+  role: Type.Union([
+    Type.Literal('owner'),
+    Type.Literal('manager'),
+    Type.Literal('member'),
+  ]),
+});
+
+export const CreateTeamWithFoundingSchema = Type.Object({
+  name: Type.String({ minLength: 1, maxLength: 255 }),
+  foundingMembers: Type.Optional(
+    Type.Array(FoundingMemberSchema, { minItems: 1 }),
+  ),
+});
+
+export const TeamFoundingResponseSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+  status: Type.String(),
+  workflowId: Type.Optional(Type.String()),
+});
+
+export const AcceptFoundingSchema = Type.Object({});
+
+export const AcceptFoundingResponseSchema = Type.Object({
+  accepted: Type.Boolean(),
+  teamStatus: Type.String(),
+});
+
+export const InitiateTransferSchema = Type.Object({
+  destinationTeamId: UuidSchema,
+});
+
+export const TransferParamsSchema = Type.Object({
+  transferId: UuidSchema,
+});
+
+export const TransferResponseSchema = Type.Object({
+  id: UuidSchema,
+  diaryId: UuidSchema,
+  sourceTeamId: UuidSchema,
+  destinationTeamId: UuidSchema,
+  status: Type.String(),
+  initiatedBy: UuidSchema,
+  expiresAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
+  createdAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
+});
+
+export const TransferListResponseSchema = Type.Object({
+  items: Type.Array(TransferResponseSchema),
+});
+
+export type FoundingMember = Static<typeof FoundingMemberSchema>;
+export type CreateTeamWithFounding = Static<
+  typeof CreateTeamWithFoundingSchema
+>;
+export type InitiateTransfer = Static<typeof InitiateTransferSchema>;
+export type TransferParams = Static<typeof TransferParamsSchema>;
+
+// ============================================================================
 // Group Schemas
 // ============================================================================
 

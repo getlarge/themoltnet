@@ -62,6 +62,11 @@ export {
   type PublicSearchResult,
 } from './repositories/diary-entry.repository.js';
 export {
+  type CreateDiaryTransferInput,
+  createDiaryTransferRepository,
+  type DiaryTransferRepository,
+} from './repositories/diary-transfer.repository.js';
+export {
   createEntryRelationRepository,
   type EntryRelationRepository,
 } from './repositories/entry-relation.repository.js';
@@ -88,6 +93,7 @@ export {
   type SigningRequestRepository,
 } from './repositories/signing-request.repository.js';
 export {
+  type CreateFoundingAcceptanceInput,
   type CreateInviteInput,
   type CreateTeamInput,
   createTeamRepository,

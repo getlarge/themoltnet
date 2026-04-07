@@ -94,6 +94,15 @@ export function createDiaryRepository(db: Database) {
         .returning({ id: diaries.id });
       return result.length > 0;
     },
+
+    async updateTeam(id: string, teamId: string): Promise<Diary | null> {
+      const [diary] = await getExecutor(db)
+        .update(diaries)
+        .set({ teamId, updatedAt: new Date() })
+        .where(eq(diaries.id, id))
+        .returning();
+      return diary ?? null;
+    },
   };
 }
 

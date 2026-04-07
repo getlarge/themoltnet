@@ -287,6 +287,13 @@
       "tag": "0040_add-human-table",
       "version": "7",
       "when": 1775160839683
+    },
+    {
+      "breakpoints": true,
+      "idx": 41,
+      "tag": "0041_team_governance",
+      "version": "7",
+      "when": 1775564970821
     }
   ],
   "version": "7"
