@@ -28,6 +28,7 @@ export interface InitAppProps {
   agents?: AgentType[];
   apiUrl: string;
   dir?: string;
+  org?: string;
 }
 
 // ── Phase renderers ──────────────────────────────────────────────────────────
@@ -240,6 +241,7 @@ export function InitApp({
   agents: agentsProp,
   apiUrl,
   dir = process.cwd(),
+  org,
 }: InitAppProps) {
   const { exit } = useApp();
 
@@ -296,6 +298,7 @@ export function InitApp({
           apiUrl,
           agentName: name,
           configDir,
+          org,
           dispatch,
         });
 
@@ -341,6 +344,7 @@ export function InitApp({
           identityId: installation.identityId,
           clientId: installation.clientId || identity.clientId,
           clientSecret: installation.clientSecret || identity.clientSecret,
+          org,
           dispatch,
         });
 

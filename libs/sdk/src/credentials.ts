@@ -28,6 +28,7 @@ export interface MoltNetConfig {
     app_slug?: string;
     installation_id: string;
     private_key_path: string;
+    org?: string;
   };
 }
 

@@ -230,6 +230,13 @@ describe('buildGhTokenRule', () => {
     expect(rule).toContain('gh-token-cache.json');
     expect(rule).toContain('401');
   });
+
+  it('includes worktree warning with absolute path resolution', () => {
+    const rule = buildGhTokenRule('legreffier');
+    expect(rule).toContain('Worktree warning');
+    expect(rule).toContain('CREDS=');
+    expect(rule).toContain('$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)');
+  });
 });
 
 describe('buildCodexRules', () => {
@@ -258,6 +265,14 @@ describe('buildCodexRules', () => {
     );
     expect(rules).toContain('pattern = ["ln", "-s"]');
     expect(rules).toContain('decision = "allow"');
+    // gh CLI — read-only subcommands only (write ops prompt the user)
+    expect(rules).toContain('pattern = ["gh", "pr", "view"]');
+    expect(rules).toContain('pattern = ["gh", "pr", "list"]');
+    expect(rules).toContain('pattern = ["gh", "issue", "view"]');
+    expect(rules).toContain('pattern = ["gh", "issue", "list"]');
+    expect(rules).toContain('pattern = ["gh", "repo", "view"]');
+    expect(rules).not.toContain('pattern = ["gh", "pr"]');
+    expect(rules).not.toContain('pattern = ["gh", "issue"]');
   });
 
   it('does not contain markdown', () => {

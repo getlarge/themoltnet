@@ -11,9 +11,10 @@ export async function runIdentityPhase(opts: {
   apiUrl: string;
   agentName: string;
   configDir: string;
+  org?: string;
   dispatch: (a: UIAction) => void;
 }): Promise<IdentityResult> {
-  const { apiUrl, agentName, configDir, dispatch } = opts;
+  const { apiUrl, agentName, configDir, org, dispatch } = opts;
   const existingConfig = await readConfig(configDir);
   const existingState = await readState(configDir);
 
@@ -107,6 +108,7 @@ export async function runIdentityPhase(opts: {
     publicKey: kp.publicKey,
     fingerprint: kp.fingerprint,
     agentName,
+    ...(org ? { org } : {}),
   });
   await writeState(
     {

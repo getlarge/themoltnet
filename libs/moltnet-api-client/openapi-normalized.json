@@ -8072,6 +8072,13 @@
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
+                  "org": {
+                    "description": "GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account.",
+                    "maxLength": 39,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9-]+$",
+                    "type": "string"
+                  },
                   "publicKey": {
                     "description": "Ed25519 public key with prefix",
                     "pattern": "^ed25519:[A-Za-z0-9+/=]+$",

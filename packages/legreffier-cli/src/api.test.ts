@@ -1,3 +1,4 @@
+import * as apiClientModule from '@moltnet/api-client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -40,6 +41,65 @@ describe('startOnboarding', () => {
 
     expect(result.workflowId).toBe('wf-123');
     expect(result.manifestFormUrl).toContain('github.com');
+  });
+
+  it('sends org in the request body when provided', async () => {
+    let capturedBody: unknown;
+
+    const spy = vi
+      .spyOn(apiClientModule, 'startLegreffierOnboarding')
+      .mockImplementation(async (opts) => {
+        capturedBody = opts.body;
+
+        return {
+          data: {
+            workflowId: 'wf-456',
+            manifestFormUrl:
+              'https://api.example.com/manifest/wf-456?name=my-agent&org=my-org',
+          },
+          request: new Request('http://localhost'),
+          response: new Response(),
+        } as any;
+      });
+
+    const result = await startOnboarding(BASE_URL, {
+      publicKey: 'ed25519:abc',
+      fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+      agentName: 'my-agent',
+      org: 'my-org',
+    });
+
+    expect(spy).toHaveBeenCalledOnce();
+    expect(capturedBody).toMatchObject({ org: 'my-org' });
+    expect(result.workflowId).toBe('wf-456');
+    expect(result.manifestFormUrl).toContain('org=my-org');
+  });
+
+  it('omits org from the request body when not provided', async () => {
+    let capturedBody: unknown;
+    vi.spyOn(apiClientModule, 'startLegreffierOnboarding').mockImplementation(
+      async (opts) => {
+        capturedBody = opts.body;
+
+        return {
+          data: {
+            workflowId: 'wf-789',
+            manifestFormUrl:
+              'https://api.example.com/manifest/wf-789?name=my-agent',
+          },
+          request: new Request('http://localhost'),
+          response: new Response(),
+        } as any;
+      },
+    );
+
+    await startOnboarding(BASE_URL, {
+      publicKey: 'ed25519:abc',
+      fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+      agentName: 'my-agent',
+    });
+
+    expect(capturedBody).not.toHaveProperty('org');
   });
 
   it('throws on non-ok response', async () => {

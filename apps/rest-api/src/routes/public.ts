@@ -393,7 +393,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, _reply) => {
-      const { publicKey, fingerprint, agentName } = request.body;
+      const { publicKey, fingerprint, agentName, org } = request.body;
 
       const sponsorAgentId = fastify.security.sponsorAgentId;
       if (!sponsorAgentId) {
@@ -413,7 +413,11 @@ export async function publicRoutes(fastify: FastifyInstance) {
       // manifestFormUrl points to our own relay page which POSTs the manifest
       // to GitHub (the manifest flow requires a POST form, not a GET URL).
       // agentName is passed as a query param so the relay can pre-fill it.
-      const manifestFormUrl = `${apiBaseUrl}/public/legreffier/manifest/${workflowId}?name=${encodeURIComponent(agentName)}`;
+      // org is passed through so the relay uses the org-scoped GitHub URL.
+      const manifestFormUrl =
+        `${apiBaseUrl}/public/legreffier/manifest/${workflowId}` +
+        `?name=${encodeURIComponent(agentName)}` +
+        (org ? `&org=${encodeURIComponent(org)}` : '');
 
       return { workflowId, manifestFormUrl };
     },
@@ -439,6 +443,13 @@ export async function publicRoutes(fastify: FastifyInstance) {
         }),
         querystring: Type.Object({
           name: Type.Optional(Type.String({ maxLength: 34 })),
+          org: Type.Optional(
+            Type.String({
+              minLength: 1,
+              maxLength: 39,
+              pattern: '^[a-zA-Z0-9-]+$',
+            }),
+          ),
         }),
         response: {
           200: { type: 'string' },
@@ -448,7 +459,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workflowId } = request.params;
-      const { name: agentName = 'legreffier-agent' } = request.query;
+      const { name: agentName = 'legreffier-agent', org } = request.query;
 
       // Validate the workflow is still active before serving the relay page
       const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
@@ -494,7 +505,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         hook_attributes: { url: '', active: false },
         redirect_url: `${apiBaseUrl}/public/legreffier/callback`,
         setup_url: `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`,
-        public: false,
+        public: true,
         default_permissions: {
           contents: 'write',
           issues: 'write',
@@ -503,8 +514,17 @@ export async function publicRoutes(fastify: FastifyInstance) {
         },
       };
 
-      // HTML-escape the manifest for embedding in an attribute value
-      const manifestJson = JSON.stringify(manifest).replace(/"/g, '&quot;');
+      // HTML-escape for safe embedding in HTML contexts
+      const escapeHtml = (s: string) =>
+        s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+      // Escape for attribute value: & must come before " so &quot; isn't double-escaped
+      const manifestJson = escapeHtml(JSON.stringify(manifest));
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -522,9 +542,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
 </head>
 <body>
   <div class="card">
-    <h1>Create GitHub App for <em>${agentName}</em></h1>
+    <h1>Create GitHub App for <em>${escapeHtml(agentName)}</em></h1>
     <p>Click the button below to register your GitHub App.<br>You will be redirected to GitHub.</p>
-    <form method="post" action="https://github.com/settings/apps/new?state=${encodeURIComponent(workflowId)}">
+    <form method="post" action="${org ? `https://github.com/organizations/${encodeURIComponent(org)}/settings/apps/new` : 'https://github.com/settings/apps/new'}?state=${encodeURIComponent(workflowId)}">
       <input type="hidden" name="manifest" value="${manifestJson}" />
       <button type="submit">Create GitHub App &rarr;</button>
     </form>
