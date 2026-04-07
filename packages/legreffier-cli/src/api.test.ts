@@ -45,23 +45,21 @@ describe('startOnboarding', () => {
 
   it('sends org in the request body when provided', async () => {
     let capturedBody: unknown;
+
     const spy = vi
       .spyOn(apiClientModule, 'startLegreffierOnboarding')
       .mockImplementation(async (opts) => {
         capturedBody = opts.body;
+
         return {
           data: {
             workflowId: 'wf-456',
             manifestFormUrl:
               'https://api.example.com/manifest/wf-456?name=my-agent&org=my-org',
           },
-          error: undefined,
+          request: new Request('http://localhost'),
           response: new Response(),
-        } as ReturnType<
-          typeof apiClientModule.startLegreffierOnboarding
-        > extends Promise<infer T>
-          ? T
-          : never;
+        } as any;
       });
 
     const result = await startOnboarding(BASE_URL, {
@@ -82,19 +80,16 @@ describe('startOnboarding', () => {
     vi.spyOn(apiClientModule, 'startLegreffierOnboarding').mockImplementation(
       async (opts) => {
         capturedBody = opts.body;
+
         return {
           data: {
             workflowId: 'wf-789',
             manifestFormUrl:
               'https://api.example.com/manifest/wf-789?name=my-agent',
           },
-          error: undefined,
+          request: new Request('http://localhost'),
           response: new Response(),
-        } as ReturnType<
-          typeof apiClientModule.startLegreffierOnboarding
-        > extends Promise<infer T>
-          ? T
-          : never;
+        } as any;
       },
     );
 
