@@ -13,6 +13,7 @@ on:
       - '.claude/skills/**'
       - '.agents/skills/**'
       - 'tiles/**/skills/**'
+  workflow_dispatch: {}
 
 jobs:
   skill-sync:
@@ -32,6 +33,13 @@ jobs:
           CLAUDE_DIR=".claude/skills"
           AGENTS_DIR=".agents/skills"
           failed=0
+
+          for dir in "$CLAUDE_DIR" "$AGENTS_DIR"; do
+            if [ ! -d "$dir" ]; then
+              echo "::error::Required directory '$dir' does not exist"
+              exit 1
+            fi
+          done
 
           # Skills in .claude but not in .agents
           while IFS= read -r -d '' skill_dir; do
@@ -79,6 +87,11 @@ jobs:
           CLAUDE_DIR=".claude/skills"
           TILES_DIR="tiles"
           failed=0
+
+          if [ ! -d "$TILES_DIR" ]; then
+            echo "OK: no tiles directory found, skipping tile skill sync."
+            exit 0
+          fi
 
           # Each tiles/<name>/skills/<skill-name>/ must match .claude/skills/<skill-name>/
           while IFS= read -r -d '' tile_skill_dir; do
