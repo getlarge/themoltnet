@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.87.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.86.1...sdk-v0.87.0) (2026-04-07)
+
+
+### Features
+
+* **sdk:** add teams and diaryGrants namespaces ([71bf343](https://github.com/getlarge/themoltnet/commit/71bf343f614ccde2c7151a8ae5174cdba970da3d))
+* **sdk:** add teams and diaryGrants namespaces ([22b57af](https://github.com/getlarge/themoltnet/commit/22b57af1236d0fed12f9c8e116239ca021e5a3a0))
+
+
+### Bug Fixes
+
+* **sdk:** use generated response type aliases in namespace interfaces ([14fc2ea](https://github.com/getlarge/themoltnet/commit/14fc2ea0959e0117f6f3cd9b1e3caeb21d76526f))
+
 ## [0.86.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.86.0...sdk-v0.86.1) (2026-04-02)
 
 
