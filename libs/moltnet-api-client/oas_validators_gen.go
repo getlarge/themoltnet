@@ -9,6 +9,78 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
+func (s *AcceptTeamFoundingBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTeamFoundingConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTeamFoundingForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTeamFoundingNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTeamFoundingUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTransferConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTransferForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTransferNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AcceptTransferUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *AddGroupMemberBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -2658,6 +2730,42 @@ func (s *CreateTeamReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.FoundingMembers == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    0,
+			MaxLengthSet: false,
+		}).ValidateLength(len(s.FoundingMembers)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.FoundingMembers {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "foundingMembers",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.String{
 			MinLength:     1,
 			MinLengthSet:  true,
@@ -2684,6 +2792,64 @@ func (s *CreateTeamReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s *CreateTeamReqFoundingMembersItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Role.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "role",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.SubjectNs.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "subjectNs",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s CreateTeamReqFoundingMembersItemRole) Validate() error {
+	switch s {
+	case "owner":
+		return nil
+	case "manager":
+		return nil
+	case "member":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s CreateTeamReqFoundingMembersItemSubjectNs) Validate() error {
+	switch s {
+	case "Agent":
+		return nil
+	case "Human":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *CreateTeamUnauthorized) Validate() error {
@@ -4453,6 +4619,18 @@ func (s GetProblemTypeType) Validate() error {
 		return nil
 	case "team-last-owner":
 		return nil
+	case "team-already-active":
+		return nil
+	case "team-not-founding":
+		return nil
+	case "founding-already-accepted":
+		return nil
+	case "diary-transfer-pending":
+		return nil
+	case "diary-transfer-not-found":
+		return nil
+	case "diary-transfer-already-resolved":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -4649,6 +4827,46 @@ func (s *GetWhoamiNotFound) Validate() error {
 }
 
 func (s *GetWhoamiUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InitiateTransferBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InitiateTransferConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InitiateTransferForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InitiateTransferNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InitiateTransferUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5172,6 +5390,29 @@ func (s *ListGroupsUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *ListPendingTransfersOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Items == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "items",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
 	}
 	return nil
 }
@@ -6086,6 +6327,18 @@ func (s ProblemDetailsCode) Validate() error {
 		return nil
 	case "TEAM_LAST_OWNER":
 		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -6975,6 +7228,38 @@ func (s *RegisterAgentReq) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RejectTransferConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RejectTransferForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RejectTransferNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RejectTransferUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
 	}
 	return nil
 }

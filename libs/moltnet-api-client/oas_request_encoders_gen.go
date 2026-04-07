@@ -10,6 +10,22 @@ import (
 	ht "github.com/ogen-go/ogen/http"
 )
 
+func encodeAcceptTeamFoundingRequest(
+	req *AcceptTeamFoundingReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		if req != nil {
+			req.Encode(e)
+		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeAddGroupMemberRequest(
 	req *AddGroupMemberReq,
 	r *http.Request,
@@ -184,6 +200,20 @@ func encodeCreateTeamInviteRequest(
 		if req.Set {
 			req.Encode(e)
 		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeInitiateTransferRequest(
+	req *InitiateTransferReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)

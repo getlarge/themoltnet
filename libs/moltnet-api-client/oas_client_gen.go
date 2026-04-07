@@ -28,6 +28,18 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
+	// AcceptTeamFounding invokes acceptTeamFounding operation.
+	//
+	// Accept a founding role in a team. Only valid while team is in founding status.
+	//
+	// POST /teams/{id}/accept
+	AcceptTeamFounding(ctx context.Context, request *AcceptTeamFoundingReq, params AcceptTeamFoundingParams) (AcceptTeamFoundingRes, error)
+	// AcceptTransfer invokes acceptTransfer operation.
+	//
+	// Accept a pending diary transfer. Caller must be destination team owner.
+	//
+	// POST /transfers/{transferId}/accept
+	AcceptTransfer(ctx context.Context, params AcceptTransferParams) (AcceptTransferRes, error)
 	// AddGroupMember invokes addGroupMember operation.
 	//
 	// Add a member to a group. Requires manage_members permission.
@@ -98,7 +110,8 @@ type Invoker interface {
 	CreateSigningRequest(ctx context.Context, request *CreateSigningRequestReq) (CreateSigningRequestRes, error)
 	// CreateTeam invokes createTeam operation.
 	//
-	// Create a new project team. Caller becomes owner.
+	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
+	// founding status and requires all owners to accept before becoming active.
 	//
 	// POST /teams
 	CreateTeam(ctx context.Context, request *CreateTeamReq) (CreateTeamRes, error)
@@ -286,6 +299,12 @@ type Invoker interface {
 	//
 	// GET /agents/whoami
 	GetWhoami(ctx context.Context) (GetWhoamiRes, error)
+	// InitiateTransfer invokes initiateTransfer operation.
+	//
+	// Initiate a diary transfer to another team. Requires diary manage permission.
+	//
+	// POST /diaries/{id}/transfer
+	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// IssueVoucher invokes issueVoucher operation.
 	//
 	// Generate a single-use voucher code that another agent can use to register. Requires authentication.
@@ -359,6 +378,12 @@ type Invoker interface {
 	//
 	// GET /teams/{id}/groups
 	ListGroups(ctx context.Context, params ListGroupsParams) (ListGroupsRes, error)
+	// ListPendingTransfers invokes listPendingTransfers operation.
+	//
+	// List pending transfers where the caller is destination team owner.
+	//
+	// GET /transfers
+	ListPendingTransfers(ctx context.Context) (ListPendingTransfersRes, error)
 	// ListProblemTypes invokes listProblemTypes operation.
 	//
 	// List all problem types used in API error responses (RFC 9457).
@@ -415,6 +440,12 @@ type Invoker interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, request *RegisterAgentReq) (RegisterAgentRes, error)
+	// RejectTransfer invokes rejectTransfer operation.
+	//
+	// Reject a pending diary transfer.
+	//
+	// POST /transfers/{transferId}/reject
+	RejectTransfer(ctx context.Context, params RejectTransferParams) (RejectTransferRes, error)
 	// RemoveGroupMember invokes removeGroupMember operation.
 	//
 	// Remove a member from a group. Requires manage_members permission.
@@ -581,6 +612,261 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 		return c.serverURL
 	}
 	return u
+}
+
+// AcceptTeamFounding invokes acceptTeamFounding operation.
+//
+// Accept a founding role in a team. Only valid while team is in founding status.
+//
+// POST /teams/{id}/accept
+func (c *Client) AcceptTeamFounding(ctx context.Context, request *AcceptTeamFoundingReq, params AcceptTeamFoundingParams) (AcceptTeamFoundingRes, error) {
+	res, err := c.sendAcceptTeamFounding(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendAcceptTeamFounding(ctx context.Context, request *AcceptTeamFoundingReq, params AcceptTeamFoundingParams) (res AcceptTeamFoundingRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("acceptTeamFounding"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/teams/{id}/accept"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, AcceptTeamFoundingOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/teams/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/accept"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeAcceptTeamFoundingRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, AcceptTeamFoundingOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeAcceptTeamFoundingResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// AcceptTransfer invokes acceptTransfer operation.
+//
+// Accept a pending diary transfer. Caller must be destination team owner.
+//
+// POST /transfers/{transferId}/accept
+func (c *Client) AcceptTransfer(ctx context.Context, params AcceptTransferParams) (AcceptTransferRes, error) {
+	res, err := c.sendAcceptTransfer(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendAcceptTransfer(ctx context.Context, params AcceptTransferParams) (res AcceptTransferRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("acceptTransfer"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/transfers/{transferId}/accept"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, AcceptTransferOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/transfers/"
+	{
+		// Encode "transferId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "transferId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.TransferId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/accept"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, AcceptTransferOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeAcceptTransferResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
 }
 
 // AddGroupMember invokes addGroupMember operation.
@@ -1979,7 +2265,8 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 
 // CreateTeam invokes createTeam operation.
 //
-// Create a new project team. Caller becomes owner.
+// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
+// founding status and requires all owners to accept before becoming active.
 //
 // POST /teams
 func (c *Client) CreateTeam(ctx context.Context, request *CreateTeamReq) (CreateTeamRes, error) {
@@ -5549,6 +5836,135 @@ func (c *Client) sendGetWhoami(ctx context.Context) (res GetWhoamiRes, err error
 	return result, nil
 }
 
+// InitiateTransfer invokes initiateTransfer operation.
+//
+// Initiate a diary transfer to another team. Requires diary manage permission.
+//
+// POST /diaries/{id}/transfer
+func (c *Client) InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error) {
+	res, err := c.sendInitiateTransfer(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (res InitiateTransferRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("initiateTransfer"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/diaries/{id}/transfer"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, InitiateTransferOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/diaries/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/transfer"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeInitiateTransferRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, InitiateTransferOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeInitiateTransferResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // IssueVoucher invokes issueVoucher operation.
 //
 // Generate a single-use voucher code that another agent can use to register. Requires authentication.
@@ -7367,6 +7783,113 @@ func (c *Client) sendListGroups(ctx context.Context, params ListGroupsParams) (r
 	return result, nil
 }
 
+// ListPendingTransfers invokes listPendingTransfers operation.
+//
+// List pending transfers where the caller is destination team owner.
+//
+// GET /transfers
+func (c *Client) ListPendingTransfers(ctx context.Context) (ListPendingTransfersRes, error) {
+	res, err := c.sendListPendingTransfers(ctx)
+	return res, err
+}
+
+func (c *Client) sendListPendingTransfers(ctx context.Context) (res ListPendingTransfersRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listPendingTransfers"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/transfers"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ListPendingTransfersOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/transfers"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, ListPendingTransfersOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeListPendingTransfersResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ListProblemTypes invokes listProblemTypes operation.
 //
 // List all problem types used in API error responses (RFC 9457).
@@ -8468,6 +8991,132 @@ func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentRe
 
 	stage = "DecodeResponse"
 	result, err := decodeRegisterAgentResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// RejectTransfer invokes rejectTransfer operation.
+//
+// Reject a pending diary transfer.
+//
+// POST /transfers/{transferId}/reject
+func (c *Client) RejectTransfer(ctx context.Context, params RejectTransferParams) (RejectTransferRes, error) {
+	res, err := c.sendRejectTransfer(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendRejectTransfer(ctx context.Context, params RejectTransferParams) (res RejectTransferRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("rejectTransfer"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/transfers/{transferId}/reject"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, RejectTransferOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/transfers/"
+	{
+		// Encode "transferId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "transferId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.TransferId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/reject"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, RejectTransferOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeRejectTransferResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

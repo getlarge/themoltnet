@@ -11,7 +11,14 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
-import { type Team, type TeamInvite, teamInvites, teams } from '../schema.js';
+import {
+  type FoundingAcceptance,
+  foundingAcceptances,
+  type Team,
+  type TeamInvite,
+  teamInvites,
+  teams,
+} from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
 const INVITE_CODE_PREFIX = 'mlt_inv_';
@@ -29,6 +36,13 @@ export interface CreateInviteInput {
   maxUses: number;
   expiresAt: Date;
   createdBy: string;
+}
+
+export interface CreateFoundingAcceptanceInput {
+  teamId: string;
+  subjectId: string;
+  subjectNs: 'Agent' | 'Human';
+  role: 'owner' | 'manager' | 'member';
 }
 
 export interface TeamRepository {
@@ -52,6 +66,15 @@ export interface TeamRepository {
   listInvites(teamId: string): Promise<TeamInvite[]>;
   deleteInvite(id: string): Promise<boolean>;
   deleteInviteByTeam(inviteId: string, teamId: string): Promise<boolean>;
+
+  createFoundingAcceptance(
+    input: CreateFoundingAcceptanceInput,
+  ): Promise<FoundingAcceptance>;
+  listFoundingAcceptances(teamId: string): Promise<FoundingAcceptance[]>;
+  acceptFoundingMember(
+    teamId: string,
+    subjectId: string,
+  ): Promise<FoundingAcceptance | null>;
 }
 
 export function createTeamRepository(db: Database): TeamRepository {
@@ -93,10 +116,21 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async updateStatus(id, status) {
+      // State machine guard: only allow valid transitions
+      // active requires founding; archived requires founding
+      type TeamStatus = 'founding' | 'active' | 'archived';
+      const allowedPrior: Partial<Record<TeamStatus, TeamStatus>> = {
+        active: 'founding',
+        archived: 'founding',
+      };
+      const priorStatus = allowedPrior[status];
+      const condition = priorStatus
+        ? and(eq(teams.id, id), eq(teams.status, priorStatus))
+        : eq(teams.id, id);
       const [team] = await getExecutor(db)
         .update(teams)
         .set({ status })
-        .where(eq(teams.id, id))
+        .where(condition)
         .returning();
       return team ?? null;
     },
@@ -191,6 +225,58 @@ export function createTeamRepository(db: Database): TeamRepository {
         )
         .returning({ id: teamInvites.id });
       return result.length > 0;
+    },
+
+    async createFoundingAcceptance(input) {
+      // ON CONFLICT DO NOTHING makes this idempotent — safe to call in a
+      // retried DBOS step without hitting the unique(teamId, subjectId) constraint.
+      const [row] = await getExecutor(db)
+        .insert(foundingAcceptances)
+        .values({
+          teamId: input.teamId,
+          subjectId: input.subjectId,
+          subjectNs: input.subjectNs,
+          role: input.role,
+        })
+        .onConflictDoNothing()
+        .returning();
+      // If the row already existed the insert is a no-op; fetch the existing row.
+      if (!row) {
+        const [existing] = await db
+          .select()
+          .from(foundingAcceptances)
+          .where(
+            and(
+              eq(foundingAcceptances.teamId, input.teamId),
+              eq(foundingAcceptances.subjectId, input.subjectId),
+            ),
+          )
+          .limit(1);
+        return existing;
+      }
+      return row;
+    },
+
+    async listFoundingAcceptances(teamId) {
+      return db
+        .select()
+        .from(foundingAcceptances)
+        .where(eq(foundingAcceptances.teamId, teamId));
+    },
+
+    async acceptFoundingMember(teamId, subjectId) {
+      const [row] = await getExecutor(db)
+        .update(foundingAcceptances)
+        .set({ status: 'accepted', acceptedAt: new Date() })
+        .where(
+          and(
+            eq(foundingAcceptances.teamId, teamId),
+            eq(foundingAcceptances.subjectId, subjectId),
+            eq(foundingAcceptances.status, 'pending'),
+          ),
+        )
+        .returning();
+      return row ?? null;
     },
   };
 }

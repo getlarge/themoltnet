@@ -6,6 +6,8 @@ package moltnetapi
 type OperationName = string
 
 const (
+	AcceptTeamFoundingOperation            OperationName = "AcceptTeamFounding"
+	AcceptTransferOperation                OperationName = "AcceptTransfer"
 	AddGroupMemberOperation                OperationName = "AddGroupMember"
 	ClaimVerificationOperation             OperationName = "ClaimVerification"
 	CompileDiaryOperation                  OperationName = "CompileDiary"
@@ -48,6 +50,7 @@ const (
 	GetTeamOperation                       OperationName = "GetTeam"
 	GetTrustGraphOperation                 OperationName = "GetTrustGraph"
 	GetWhoamiOperation                     OperationName = "GetWhoami"
+	InitiateTransferOperation              OperationName = "InitiateTransfer"
 	IssueVoucherOperation                  OperationName = "IssueVoucher"
 	JoinTeamOperation                      OperationName = "JoinTeam"
 	ListActiveVouchersOperation            OperationName = "ListActiveVouchers"
@@ -60,6 +63,7 @@ const (
 	ListEntryRelationsOperation            OperationName = "ListEntryRelations"
 	ListGroupMembersOperation              OperationName = "ListGroupMembers"
 	ListGroupsOperation                    OperationName = "ListGroups"
+	ListPendingTransfersOperation          OperationName = "ListPendingTransfers"
 	ListProblemTypesOperation              OperationName = "ListProblemTypes"
 	ListSigningRequestsOperation           OperationName = "ListSigningRequests"
 	ListTeamInvitesOperation               OperationName = "ListTeamInvites"
@@ -69,6 +73,7 @@ const (
 	PreviewRenderedPackOperation           OperationName = "PreviewRenderedPack"
 	ReflectDiaryOperation                  OperationName = "ReflectDiary"
 	RegisterAgentOperation                 OperationName = "RegisterAgent"
+	RejectTransferOperation                OperationName = "RejectTransfer"
 	RemoveGroupMemberOperation             OperationName = "RemoveGroupMember"
 	RemoveTeamMemberOperation              OperationName = "RemoveTeamMember"
 	RenderContextPackOperation             OperationName = "RenderContextPack"

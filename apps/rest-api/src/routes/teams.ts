@@ -8,15 +8,19 @@
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TeamRelation } from '@moltnet/auth';
+import { DBOS } from '@moltnet/database';
 import {
+  AcceptFoundingResponseSchema,
+  AcceptFoundingSchema,
   CreateTeamInviteSchema,
-  CreateTeamSchema,
+  CreateTeamWithFoundingSchema,
   DeletedResponseSchema,
   JoinTeamResponseSchema,
   JoinTeamSchema,
   ProblemDetailsSchema,
   RemovedResponseSchema,
   TeamDetailSchema,
+  TeamFoundingResponseSchema,
   TeamInviteParamsSchema,
   TeamInviteResponseSchema,
   TeamListItemSchema,
@@ -29,6 +33,10 @@ import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+import {
+  FOUNDING_ACCEPT_EVENT,
+  teamFoundingWorkflow,
+} from '../workflows/team-founding-workflow.js';
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -43,11 +51,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'createTeam',
         tags: ['teams'],
-        description: 'Create a new project team. Caller becomes owner.',
+        description:
+          'Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.',
         security: [{ bearerAuth: [] }],
-        body: CreateTeamSchema,
+        body: CreateTeamWithFoundingSchema,
         response: {
           201: TeamResponseSchema,
+          202: TeamFoundingResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
@@ -57,42 +67,94 @@ export async function teamRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-      const { name } = request.body;
+      const { name, foundingMembers } = request.body;
 
+      if (!foundingMembers || foundingMembers.length === 0) {
+        // Instant active team — original behavior
+        const team = await fastify.transactionRunner.runInTransaction(
+          async () => {
+            return fastify.teamRepository.create({
+              name,
+              personal: false,
+              createdBy: identityId,
+              status: 'active',
+            });
+          },
+        );
+
+        try {
+          await fastify.relationshipWriter.grantTeamOwners(
+            team.id,
+            identityId,
+            subjectNs,
+          );
+        } catch (err) {
+          request.log.error(
+            { teamId: team.id, identityId, err },
+            'team.keto_grant_owner_failed',
+          );
+          try {
+            await fastify.teamRepository.delete(team.id);
+          } catch (deleteErr) {
+            request.log.error(
+              { teamId: team.id, deleteErr },
+              'team.compensation_delete_failed',
+            );
+          }
+          throw err;
+        }
+
+        return reply.status(201).send({ id: team.id, name: team.name });
+      }
+
+      // Founding flow — team starts in 'founding' status
       const team = await fastify.transactionRunner.runInTransaction(
         async () => {
           return fastify.teamRepository.create({
             name,
             personal: false,
             createdBy: identityId,
-            status: 'active',
+            status: 'founding',
           });
         },
       );
 
+      // Creator is always an owner and must also accept — prepend them so the
+      // workflow seeds their acceptance row and grants their Keto tuple.
+      const creatorNs = subjectNs === KetoNamespace.Human ? 'Human' : 'Agent';
+      const allFoundingMembers: typeof foundingMembers = [
+        { subjectId: identityId, subjectNs: creatorNs, role: 'owner' },
+        ...foundingMembers.filter((m) => m.subjectId !== identityId),
+      ];
+
+      // Start workflow non-blocking — it grants Keto roles + seeds acceptance rows.
+      // On startup failure, delete the orphaned team row so the caller can retry.
+      let workflowId: string;
       try {
-        await fastify.relationshipWriter.grantTeamOwners(
-          team.id,
-          identityId,
-          subjectNs,
-        );
+        const workflowHandle = await DBOS.startWorkflow(
+          teamFoundingWorkflow.foundTeam,
+          { workflowID: `founding-${team.id}` },
+        )(team.id, identityId, creatorNs, allFoundingMembers);
+        workflowId = workflowHandle.workflowID;
       } catch (err) {
         request.log.error(
-          { teamId: team.id, identityId, err },
-          'team.keto_grant_owner_failed',
+          { teamId: team.id, err },
+          'team.founding.workflow_start_failed — deleting orphaned team',
         );
         try {
           await fastify.teamRepository.delete(team.id);
         } catch (deleteErr) {
           request.log.error(
             { teamId: team.id, deleteErr },
-            'team.compensation_delete_failed',
+            'team.founding.compensation_delete_failed',
           );
         }
         throw err;
       }
 
-      return reply.status(201).send({ id: team.id, name: team.name });
+      return reply
+        .status(202)
+        .send({ id: team.id, name: team.name, status: 'founding', workflowId });
     },
   );
 
@@ -616,6 +678,86 @@ export async function teamRoutes(fastify: FastifyInstance) {
       return reply.status(200).send({
         teamId: invite.teamId,
         role: invite.role,
+      });
+    },
+  );
+
+  // ── Accept Team Founding ─────────────────────────────────────
+  server.post(
+    '/teams/:id/accept',
+    {
+      schema: {
+        operationId: 'acceptTeamFounding',
+        tags: ['teams'],
+        description:
+          'Accept a founding role in a team. Only valid while team is in founding status.',
+        security: [{ bearerAuth: [] }],
+        params: TeamParamsSchema,
+        body: AcceptFoundingSchema,
+        response: {
+          200: AcceptFoundingResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { identityId } = request.authContext!;
+
+      const team = await fastify.teamRepository.findById(id);
+      if (!team) throw createProblem('not-found');
+
+      // Always check membership first — prevents existence oracle for non-members
+      const acceptances =
+        await fastify.teamRepository.listFoundingAcceptances(id);
+      const myAcceptance = acceptances.find((a) => a.subjectId === identityId);
+      if (!myAcceptance) throw createProblem('not-found');
+
+      // Already accepted (regardless of team status)
+      if (myAcceptance.status === 'accepted')
+        throw createProblem('founding-already-accepted');
+
+      // Team must still be in founding status
+      if (team.status !== 'founding') throw createProblem('team-not-founding');
+
+      // Record acceptance
+      await fastify.teamRepository.acceptFoundingMember(id, identityId);
+
+      // Check if all owners have accepted — send event if so
+      const updated = await fastify.teamRepository.listFoundingAcceptances(id);
+      const owners = updated.filter((a) => a.role === 'owner');
+      const allOwnersAccepted =
+        owners.length > 0 && owners.every((a) => a.status === 'accepted');
+
+      if (allOwnersAccepted) {
+        // Send signal to workflow — it will activate the team.
+        // Race note: two concurrent "last acceptance" requests can both reach
+        // this point (only one DB row is updated due to WHERE status='pending',
+        // but both see all owners accepted on the subsequent list). DBOS handles
+        // duplicate sends idempotently — the workflow's recv() consumes the first
+        // event and ignores subsequent ones for the same workflowId.
+        // Guard against DBOS send failure: acceptFoundingMember is already
+        // committed, so log the error but still return 200 — the workflow
+        // will re-check on its next retry cycle.
+        try {
+          await DBOS.send(`founding-${id}`, true, FOUNDING_ACCEPT_EVENT);
+        } catch (err) {
+          request.log.error(
+            { teamId: id, err },
+            'team.founding.send_accept_event_failed — team may not activate until timeout',
+          );
+        }
+      }
+
+      // Return the requested state — team activation is async (workflow-driven)
+      // so callers should poll GET /teams/:id until teamStatus === 'active'.
+      return reply.status(200).send({
+        accepted: true,
+        teamStatus: allOwnersAccepted ? 'active' : 'founding',
       });
     },
   );

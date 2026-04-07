@@ -102,6 +102,18 @@ export const teamInviteRoleEnum = pgEnum('team_invite_role', [
   'member',
 ]);
 
+export const diaryTransferStatusEnum = pgEnum('diary_transfer_status', [
+  'pending',
+  'accepted',
+  'rejected',
+  'expired',
+]);
+
+export const foundingAcceptanceStatusEnum = pgEnum(
+  'founding_acceptance_status',
+  ['pending', 'accepted'],
+);
+
 /**
  * Diaries Table
  *
@@ -651,6 +663,98 @@ export const teamInvites = pgTable(
 );
 
 /**
+ * Founding Acceptances Table
+ *
+ * Tracks per-member acceptance during project team founding.
+ * One row per founding member. Workflow polls until all owners accepted
+ * or deadline passes.
+ */
+export const foundingAcceptances = pgTable(
+  'founding_acceptances',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+
+    subjectId: uuid('subject_id').notNull(),
+    subjectNs: varchar('subject_ns', { length: 20 }).notNull(),
+
+    role: varchar('role', { length: 20 }).default('member').notNull(),
+
+    status: foundingAcceptanceStatusEnum('status').default('pending').notNull(),
+
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    teamIdx: index('founding_acceptances_team_idx').on(table.teamId),
+    uniqueMember: uniqueIndex('founding_acceptances_team_subject_idx').on(
+      table.teamId,
+      table.subjectId,
+    ),
+  }),
+);
+
+/**
+ * Diary Transfers Table
+ *
+ * Tracks resource transfer requests between teams.
+ * workflowId links to the DBOS workflow waiting for consent.
+ */
+export const diaryTransfers = pgTable(
+  'diary_transfers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    diaryId: uuid('diary_id')
+      .notNull()
+      .references(() => diaries.id, { onDelete: 'cascade' }),
+
+    sourceTeamId: uuid('source_team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+
+    destinationTeamId: uuid('destination_team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+
+    workflowId: text('workflow_id').notNull(),
+
+    status: diaryTransferStatusEnum('status').default('pending').notNull(),
+
+    initiatedBy: uuid('initiated_by').notNull(),
+
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    diaryIdx: index('diary_transfers_diary_idx').on(table.diaryId),
+    sourceTeamIdx: index('diary_transfers_source_team_idx').on(
+      table.sourceTeamId,
+    ),
+    destTeamIdx: index('diary_transfers_dest_team_idx').on(
+      table.destinationTeamId,
+    ),
+    workflowIdx: uniqueIndex('diary_transfers_workflow_idx').on(
+      table.workflowId,
+    ),
+  }),
+);
+
+/**
  * Rendered Packs Table
  *
  * Immutable, CID-addressed rendered versions of context packs. Each row
@@ -726,6 +830,10 @@ export type NewGroup = typeof groups.$inferInsert;
 export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;
 export type RenderedPack = typeof renderedPacks.$inferSelect;
 export type NewRenderedPack = typeof renderedPacks.$inferInsert;
+export type FoundingAcceptance = typeof foundingAcceptances.$inferSelect;
+export type NewFoundingAcceptance = typeof foundingAcceptances.$inferInsert;
+export type DiaryTransfer = typeof diaryTransfers.$inferSelect;
+export type NewDiaryTransfer = typeof diaryTransfers.$inferInsert;
 
 // ── Rendered Pack Verifications ────────────────────────────
 
