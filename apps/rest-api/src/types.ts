@@ -22,6 +22,7 @@ export type {
   ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
+  DiaryTransferRepository,
   EntryRelationRepository,
   GroupRepository,
   HumanRepository,
@@ -48,6 +49,7 @@ import type {
   ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
+  DiaryTransferRepository,
   EntryRelationRepository,
   GroupRepository,
   HumanRepository,
@@ -83,6 +85,7 @@ declare module 'fastify' {
     voucherRepository: VoucherRepository;
     groupRepository: GroupRepository;
     teamRepository: TeamRepository;
+    diaryTransferRepository: DiaryTransferRepository;
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;

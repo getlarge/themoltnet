@@ -9,6 +9,15 @@ export {
   setContextDistillDeps,
 } from './context-distill-workflows.js';
 export {
+  type DiaryTransferDeps,
+  type DiaryTransferResult,
+  diaryTransferWorkflow,
+  initDiaryTransferWorkflow,
+  setDiaryTransferDeps,
+  TRANSFER_DECISION_EVENT,
+  type TransferDecision,
+} from './diary-transfer-workflow.js';
+export {
   type HumanOnboardingDeps,
   HumanOnboardingError,
   type HumanOnboardingResult,
@@ -48,3 +57,13 @@ export {
   runWorkflow,
   type RunWorkflowOptions,
 } from './run-workflow.js';
+export {
+  FOUNDING_ACCEPT_EVENT,
+  type FoundingMember,
+  initTeamFoundingWorkflow,
+  setTeamFoundingDeps,
+  type TeamFoundingDeps,
+  type TeamFoundingResult,
+  TeamFoundingTimeoutError,
+  teamFoundingWorkflow,
+} from './team-founding-workflow.js';

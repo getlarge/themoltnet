@@ -8,15 +8,19 @@
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TeamRelation } from '@moltnet/auth';
+import { DBOS } from '@moltnet/database';
 import {
+  AcceptFoundingResponseSchema,
+  AcceptFoundingSchema,
   CreateTeamInviteSchema,
-  CreateTeamSchema,
+  CreateTeamWithFoundingSchema,
   DeletedResponseSchema,
   JoinTeamResponseSchema,
   JoinTeamSchema,
   ProblemDetailsSchema,
   RemovedResponseSchema,
   TeamDetailSchema,
+  TeamFoundingResponseSchema,
   TeamInviteParamsSchema,
   TeamInviteResponseSchema,
   TeamListItemSchema,
@@ -29,6 +33,10 @@ import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+import {
+  FOUNDING_ACCEPT_EVENT,
+  teamFoundingWorkflow,
+} from '../workflows/team-founding-workflow.js';
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -43,11 +51,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'createTeam',
         tags: ['teams'],
-        description: 'Create a new project team. Caller becomes owner.',
+        description:
+          'Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.',
         security: [{ bearerAuth: [] }],
-        body: CreateTeamSchema,
+        body: CreateTeamWithFoundingSchema,
         response: {
           201: TeamResponseSchema,
+          202: TeamFoundingResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
@@ -57,42 +67,73 @@ export async function teamRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-      const { name } = request.body;
+      const { name, foundingMembers } = request.body;
 
+      if (!foundingMembers || foundingMembers.length === 0) {
+        // Instant active team — original behavior
+        const team = await fastify.transactionRunner.runInTransaction(
+          async () => {
+            return fastify.teamRepository.create({
+              name,
+              personal: false,
+              createdBy: identityId,
+              status: 'active',
+            });
+          },
+        );
+
+        try {
+          await fastify.relationshipWriter.grantTeamOwners(
+            team.id,
+            identityId,
+            subjectNs,
+          );
+        } catch (err) {
+          request.log.error(
+            { teamId: team.id, identityId, err },
+            'team.keto_grant_owner_failed',
+          );
+          try {
+            await fastify.teamRepository.delete(team.id);
+          } catch (deleteErr) {
+            request.log.error(
+              { teamId: team.id, deleteErr },
+              'team.compensation_delete_failed',
+            );
+          }
+          throw err;
+        }
+
+        return reply.status(201).send({ id: team.id, name: team.name });
+      }
+
+      // Founding flow — team starts in 'founding' status
       const team = await fastify.transactionRunner.runInTransaction(
         async () => {
           return fastify.teamRepository.create({
             name,
             personal: false,
             createdBy: identityId,
-            status: 'active',
+            status: 'founding',
           });
         },
       );
 
-      try {
-        await fastify.relationshipWriter.grantTeamOwners(
-          team.id,
-          identityId,
-          subjectNs,
-        );
-      } catch (err) {
-        request.log.error(
-          { teamId: team.id, identityId, err },
-          'team.keto_grant_owner_failed',
-        );
-        try {
-          await fastify.teamRepository.delete(team.id);
-        } catch (deleteErr) {
-          request.log.error(
-            { teamId: team.id, deleteErr },
-            'team.compensation_delete_failed',
-          );
-        }
-        throw err;
-      }
+      // Start workflow non-blocking — it grants Keto roles + seeds acceptance rows
+      const workflowHandle = await DBOS.startWorkflow(
+        teamFoundingWorkflow.foundTeam,
+        { workflowID: `founding-${team.id}` },
+      )(
+        team.id,
+        identityId,
+        subjectNs === KetoNamespace.Human ? 'Human' : 'Agent',
+        foundingMembers,
+      );
+      const workflowId = workflowHandle.workflowID;
 
-      return reply.status(201).send({ id: team.id, name: team.name });
+      return reply
+        .status(202)
+        .send({ id: team.id, name: team.name, status: 'founding', workflowId });
     },
   );
 
@@ -616,6 +657,65 @@ export async function teamRoutes(fastify: FastifyInstance) {
       return reply.status(200).send({
         teamId: invite.teamId,
         role: invite.role,
+      });
+    },
+  );
+
+  // ── Accept Team Founding ─────────────────────────────────────
+  server.post(
+    '/teams/:id/accept',
+    {
+      schema: {
+        operationId: 'acceptTeamFounding',
+        tags: ['teams'],
+        description:
+          'Accept a founding role in a team. Only valid while team is in founding status.',
+        security: [{ bearerAuth: [] }],
+        params: TeamParamsSchema,
+        body: AcceptFoundingSchema,
+        response: {
+          200: AcceptFoundingResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { identityId } = request.authContext!;
+
+      const team = await fastify.teamRepository.findById(id);
+      if (!team) throw createProblem('not-found');
+      if (team.status !== 'founding') throw createProblem('team-not-founding');
+
+      // Check caller is a founding member
+      const acceptances =
+        await fastify.teamRepository.listFoundingAcceptances(id);
+      const myAcceptance = acceptances.find((a) => a.subjectId === identityId);
+      if (!myAcceptance) throw createProblem('forbidden');
+      if (myAcceptance.status === 'accepted')
+        throw createProblem('founding-already-accepted');
+
+      // Record acceptance
+      await fastify.teamRepository.acceptFoundingMember(id, identityId);
+
+      // Check if all owners have accepted — send event if so
+      const updated = await fastify.teamRepository.listFoundingAcceptances(id);
+      const owners = updated.filter((a) => a.role === 'owner');
+      const allOwnersAccepted =
+        owners.length > 0 && owners.every((a) => a.status === 'accepted');
+
+      if (allOwnersAccepted) {
+        // Send signal to workflow — it will activate the team
+        await DBOS.send(`founding-${id}`, true, FOUNDING_ACCEPT_EVENT);
+      }
+
+      return reply.status(200).send({
+        accepted: true,
+        teamStatus: allOwnersAccepted ? 'active' : 'founding',
       });
     },
   );

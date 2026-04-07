@@ -4,17 +4,22 @@
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
+import { DBOS } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   CreateDiaryGrantSchema,
   DiaryGrantListResponseSchema,
   DiaryGrantResponseSchema,
   DiaryParamsSchema,
+  InitiateTransferSchema,
   ProblemDetailsSchema,
   RevokeDiaryGrantSchema,
   RevokedResponseSchema,
   TeamHeaderOptionalSchema,
   TeamHeaderRequiredSchema,
+  TransferListResponseSchema,
+  TransferParamsSchema,
+  TransferResponseSchema,
   visibilityLiterals,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -26,6 +31,10 @@ import {
   DiaryCatalogSchema,
   SuccessSchema,
 } from '../schemas.js';
+import {
+  diaryTransferWorkflow,
+  TRANSFER_DECISION_EVENT,
+} from '../workflows/diary-transfer-workflow.js';
 
 function translateServiceError(err: DiaryServiceError): never {
   switch (err.code) {
@@ -427,6 +436,227 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       return { revoked: true };
+    },
+  );
+
+  // ── Initiate Diary Transfer ─────────────────────────────────
+  server.post(
+    '/diaries/:id/transfer',
+    {
+      schema: {
+        operationId: 'initiateTransfer',
+        tags: ['diary'],
+        description:
+          'Initiate a diary transfer to another team. Requires diary manage permission.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        body: InitiateTransferSchema,
+        response: {
+          202: TransferResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      // Must have diary manage permission
+      const canManage = await fastify.permissionChecker.canManageDiary(
+        id,
+        identityId,
+        subjectNs,
+      );
+      if (!canManage) throw createProblem('forbidden');
+
+      // Load diary to get teamId
+      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+      try {
+        diary = await fastify.diaryService.findDiary(id, identityId, subjectNs);
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
+
+      const { destinationTeamId } = request.body;
+
+      // Check no pending transfer exists
+      const existing =
+        await fastify.diaryTransferRepository.findPendingByDiary(id);
+      if (existing) throw createProblem('diary-transfer-pending');
+
+      // Destination team must be active and not personal
+      const destTeam = await fastify.teamRepository.findById(destinationTeamId);
+      if (!destTeam || destTeam.status !== 'active')
+        throw createProblem('not-found');
+      if (destTeam.personal) throw createProblem('team-personal-immutable');
+
+      const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+      const workflowId = `transfer-${id}-${Date.now()}`;
+
+      // Create transfer record
+      const transfer = await fastify.diaryTransferRepository.create({
+        diaryId: id,
+        sourceTeamId: diary.teamId,
+        destinationTeamId,
+        workflowId,
+        initiatedBy: identityId,
+        expiresAt,
+      });
+
+      // Start workflow (non-blocking)
+      await DBOS.startWorkflow(diaryTransferWorkflow.transferDiary, {
+        workflowID: workflowId,
+      })(transfer.id, id, destinationTeamId);
+
+      return reply.status(202).send(transfer);
+    },
+  );
+
+  // ── List Pending Transfers ──────────────────────────────────
+  server.get(
+    '/transfers',
+    {
+      schema: {
+        operationId: 'listPendingTransfers',
+        tags: ['diary'],
+        description:
+          'List pending transfers where the caller is destination team owner.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: TransferListResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId } = request.authContext!;
+
+      // Find teams where caller is owner
+      const teamRoles =
+        await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
+          identityId,
+        );
+      const ownedTeamIds = teamRoles
+        .filter((r) => r.relation === 'owners')
+        .map((r) => r.teamId);
+
+      if (ownedTeamIds.length === 0) return { items: [] };
+
+      // Fetch pending transfers for each owned team (parallel)
+      const results = await Promise.all(
+        ownedTeamIds.map((teamId) =>
+          fastify.diaryTransferRepository.listPendingByDestinationTeam(teamId),
+        ),
+      );
+
+      return { items: results.flat() };
+    },
+  );
+
+  // ── Accept Transfer ─────────────────────────────────────────
+  server.post(
+    '/transfers/:transferId/accept',
+    {
+      schema: {
+        operationId: 'acceptTransfer',
+        tags: ['diary'],
+        description:
+          'Accept a pending diary transfer. Caller must be destination team owner.',
+        security: [{ bearerAuth: [] }],
+        params: TransferParamsSchema,
+        response: {
+          200: TransferResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { transferId } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const transfer =
+        await fastify.diaryTransferRepository.findById(transferId);
+      if (!transfer) throw createProblem('diary-transfer-not-found');
+      if (transfer.status !== 'pending')
+        throw createProblem('diary-transfer-already-resolved');
+
+      // Must be owner of destination team
+      const canManage = await fastify.permissionChecker.canManageTeam(
+        transfer.destinationTeamId,
+        identityId,
+        subjectNs,
+      );
+      if (!canManage) throw createProblem('forbidden');
+
+      // Send decision to workflow
+      await DBOS.send(transfer.workflowId, 'accepted', TRANSFER_DECISION_EVENT);
+
+      // The workflow will update status async — return current transfer with optimistic status
+      const updated = await fastify.diaryTransferRepository.updateStatus(
+        transferId,
+        'accepted',
+      );
+      return reply.status(200).send(updated ?? transfer);
+    },
+  );
+
+  // ── Reject Transfer ─────────────────────────────────────────
+  server.post(
+    '/transfers/:transferId/reject',
+    {
+      schema: {
+        operationId: 'rejectTransfer',
+        tags: ['diary'],
+        description: 'Reject a pending diary transfer.',
+        security: [{ bearerAuth: [] }],
+        params: TransferParamsSchema,
+        response: {
+          200: TransferResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { transferId } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const transfer =
+        await fastify.diaryTransferRepository.findById(transferId);
+      if (!transfer) throw createProblem('diary-transfer-not-found');
+      if (transfer.status !== 'pending')
+        throw createProblem('diary-transfer-already-resolved');
+
+      const canManage = await fastify.permissionChecker.canManageTeam(
+        transfer.destinationTeamId,
+        identityId,
+        subjectNs,
+      );
+      if (!canManage) throw createProblem('forbidden');
+
+      await DBOS.send(transfer.workflowId, 'rejected', TRANSFER_DECISION_EVENT);
+
+      const updated = await fastify.diaryTransferRepository.updateStatus(
+        transferId,
+        'rejected',
+      );
+      return reply.status(200).send(updated ?? transfer);
     },
   );
 }

@@ -55,6 +55,7 @@ import type {
   DataSource,
   DiaryEntryRepository,
   DiaryService,
+  DiaryTransferRepository,
   EmbeddingService,
   EntryRelationRepository,
   GroupRepository,
@@ -118,6 +119,7 @@ export interface AppOptions {
   voucherRepository: VoucherRepository;
   groupRepository: GroupRepository;
   teamRepository: TeamRepository;
+  diaryTransferRepository: DiaryTransferRepository;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
   nonceRepository: NonceRepository;
@@ -269,6 +271,7 @@ export async function registerApiRoutes(
   decorateSafe('voucherRepository', options.voucherRepository);
   decorateSafe('groupRepository', options.groupRepository);
   decorateSafe('teamRepository', options.teamRepository);
+  decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
