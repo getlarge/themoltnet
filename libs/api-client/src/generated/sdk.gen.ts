@@ -3,6 +3,12 @@
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  AcceptTeamFoundingData,
+  AcceptTeamFoundingErrors,
+  AcceptTeamFoundingResponses,
+  AcceptTransferData,
+  AcceptTransferErrors,
+  AcceptTransferResponses,
   AddGroupMemberData,
   AddGroupMemberErrors,
   AddGroupMemberResponses,
@@ -125,6 +131,9 @@ import type {
   GetWhoamiData,
   GetWhoamiErrors,
   GetWhoamiResponses,
+  InitiateTransferData,
+  InitiateTransferErrors,
+  InitiateTransferResponses,
   IssueVoucherData,
   IssueVoucherErrors,
   IssueVoucherResponses,
@@ -161,6 +170,9 @@ import type {
   ListGroupsData,
   ListGroupsErrors,
   ListGroupsResponses,
+  ListPendingTransfersData,
+  ListPendingTransfersErrors,
+  ListPendingTransfersResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
   ListSigningRequestsData,
@@ -187,6 +199,9 @@ import type {
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
+  RejectTransferData,
+  RejectTransferErrors,
+  RejectTransferResponses,
   RemoveGroupMemberData,
   RemoveGroupMemberErrors,
   RemoveGroupMemberResponses,
@@ -443,6 +458,74 @@ export const createDiaryGrant = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Initiate a diary transfer to another team. Requires diary manage permission.
+ */
+export const initiateTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<InitiateTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    InitiateTransferResponses,
+    InitiateTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/transfer',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List pending transfers where the caller is destination team owner.
+ */
+export const listPendingTransfers = <ThrowOnError extends boolean = false>(
+  options?: Options<ListPendingTransfersData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListPendingTransfersResponses,
+    ListPendingTransfersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/transfers',
+    ...options,
+  });
+
+/**
+ * Accept a pending diary transfer. Caller must be destination team owner.
+ */
+export const acceptTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptTransferResponses,
+    AcceptTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/transfers/{transferId}/accept',
+    ...options,
+  });
+
+/**
+ * Reject a pending diary transfer.
+ */
+export const rejectTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<RejectTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RejectTransferResponses,
+    RejectTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/transfers/{transferId}/reject',
+    ...options,
   });
 
 /**
@@ -1229,7 +1312,7 @@ export const listTeams = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Create a new project team. Caller becomes owner.
+ * Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.
  */
 export const createTeam = <ThrowOnError extends boolean = false>(
   options: Options<CreateTeamData, ThrowOnError>,
@@ -1375,6 +1458,26 @@ export const joinTeam = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/teams/join',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Accept a founding role in a team. Only valid while team is in founding status.
+ */
+export const acceptTeamFounding = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptTeamFoundingData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptTeamFoundingResponses,
+    AcceptTeamFoundingErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/accept',
     ...options,
     headers: {
       'Content-Type': 'application/json',

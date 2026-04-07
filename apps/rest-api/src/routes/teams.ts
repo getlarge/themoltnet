@@ -119,17 +119,38 @@ export async function teamRoutes(fastify: FastifyInstance) {
         },
       );
 
-      // Start workflow non-blocking — it grants Keto roles + seeds acceptance rows
-      const workflowHandle = await DBOS.startWorkflow(
-        teamFoundingWorkflow.foundTeam,
-        { workflowID: `founding-${team.id}` },
-      )(
-        team.id,
-        identityId,
-        subjectNs === KetoNamespace.Human ? 'Human' : 'Agent',
-        foundingMembers,
-      );
-      const workflowId = workflowHandle.workflowID;
+      // Creator is always an owner and must also accept — prepend them so the
+      // workflow seeds their acceptance row and grants their Keto tuple.
+      const creatorNs = subjectNs === KetoNamespace.Human ? 'Human' : 'Agent';
+      const allFoundingMembers: typeof foundingMembers = [
+        { subjectId: identityId, subjectNs: creatorNs, role: 'owner' },
+        ...foundingMembers.filter((m) => m.subjectId !== identityId),
+      ];
+
+      // Start workflow non-blocking — it grants Keto roles + seeds acceptance rows.
+      // On startup failure, delete the orphaned team row so the caller can retry.
+      let workflowId: string;
+      try {
+        const workflowHandle = await DBOS.startWorkflow(
+          teamFoundingWorkflow.foundTeam,
+          { workflowID: `founding-${team.id}` },
+        )(team.id, identityId, creatorNs, allFoundingMembers);
+        workflowId = workflowHandle.workflowID;
+      } catch (err) {
+        request.log.error(
+          { teamId: team.id, err },
+          'team.founding.workflow_start_failed — deleting orphaned team',
+        );
+        try {
+          await fastify.teamRepository.delete(team.id);
+        } catch (deleteErr) {
+          request.log.error(
+            { teamId: team.id, deleteErr },
+            'team.founding.compensation_delete_failed',
+          );
+        }
+        throw err;
+      }
 
       return reply
         .status(202)
@@ -689,24 +710,19 @@ export async function teamRoutes(fastify: FastifyInstance) {
 
       const team = await fastify.teamRepository.findById(id);
       if (!team) throw createProblem('not-found');
-      if (team.status !== 'founding') {
-        // Don't leak existence to non-members — check membership first
-        const acceptances =
-          await fastify.teamRepository.listFoundingAcceptances(id);
-        const myAcceptance = acceptances.find(
-          (a) => a.subjectId === identityId,
-        );
-        if (!myAcceptance) throw createProblem('not-found');
-        throw createProblem('team-not-founding');
-      }
 
-      // Team is in founding status — check membership
+      // Always check membership first — prevents existence oracle for non-members
       const acceptances =
         await fastify.teamRepository.listFoundingAcceptances(id);
       const myAcceptance = acceptances.find((a) => a.subjectId === identityId);
       if (!myAcceptance) throw createProblem('not-found');
+
+      // Already accepted (regardless of team status)
       if (myAcceptance.status === 'accepted')
         throw createProblem('founding-already-accepted');
+
+      // Team must still be in founding status
+      if (team.status !== 'founding') throw createProblem('team-not-founding');
 
       // Record acceptance
       await fastify.teamRepository.acceptFoundingMember(id, identityId);
@@ -718,13 +734,24 @@ export async function teamRoutes(fastify: FastifyInstance) {
         owners.length > 0 && owners.every((a) => a.status === 'accepted');
 
       if (allOwnersAccepted) {
-        // Send signal to workflow — it will activate the team
-        await DBOS.send(`founding-${id}`, true, FOUNDING_ACCEPT_EVENT);
+        // Send signal to workflow — it will activate the team.
+        // Guard against DBOS send failure: acceptFoundingMember is already
+        // committed, so log the error but still return 200 — the workflow
+        // will re-check on its next retry cycle.
+        try {
+          await DBOS.send(`founding-${id}`, true, FOUNDING_ACCEPT_EVENT);
+        } catch (err) {
+          request.log.error(
+            { teamId: id, err },
+            'team.founding.send_accept_event_failed — team may not activate until timeout',
+          );
+        }
       }
 
+      // Return actual DB status — the workflow activates asynchronously
       return reply.status(200).send({
         accepted: true,
-        teamStatus: allOwnersAccepted ? 'active' : 'founding',
+        teamStatus: team.status,
       });
     },
   );

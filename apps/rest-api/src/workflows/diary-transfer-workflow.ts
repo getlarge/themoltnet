@@ -62,6 +62,7 @@ function getDeps(): DiaryTransferDeps {
 type TransferDiaryFn = (
   transferId: string,
   diaryId: string,
+  sourceTeamId: string,
   destinationTeamId: string,
 ) => Promise<DiaryTransferResult>;
 
@@ -73,10 +74,25 @@ export function initDiaryTransferWorkflow(): void {
   // ── Steps ──────────────────────────────────────────────────
 
   const swapDiaryTeamStep = DBOS.registerStep(
-    async (diaryId: string, destinationTeamId: string): Promise<void> => {
-      const { diaryRepository, relationshipWriter } = getDeps();
+    async (
+      diaryId: string,
+      sourceTeamId: string,
+      destinationTeamId: string,
+    ): Promise<void> => {
+      const { diaryRepository, relationshipWriter, logger } = getDeps();
+      // Update DB first — idempotent (same value on retry)
       await diaryRepository.updateTeam(diaryId, destinationTeamId);
-      await relationshipWriter.removeDiaryTeam(diaryId);
+      // Remove old Keto tuple — idempotent: if already removed this is a no-op
+      try {
+        await relationshipWriter.removeDiaryTeam(diaryId);
+      } catch (err) {
+        // Log but continue — the tuple may already be gone on a retry
+        logger.warn(
+          { diaryId, sourceTeamId, err },
+          'diary.transfer.swap.remove_old_team_failed',
+        );
+      }
+      // Grant new Keto tuple — idempotent: granting an existing tuple is a no-op
       await relationshipWriter.grantDiaryTeam(diaryId, destinationTeamId);
     },
     {
@@ -111,6 +127,7 @@ export function initDiaryTransferWorkflow(): void {
     async (
       transferId: string,
       diaryId: string,
+      sourceTeamId: string,
       destinationTeamId: string,
     ): Promise<DiaryTransferResult> => {
       // Wait for destination owner decision — 7-day timeout
@@ -136,7 +153,7 @@ export function initDiaryTransferWorkflow(): void {
       }
 
       // Accepted: swap diary team + resolve
-      await swapDiaryTeamStep(diaryId, destinationTeamId);
+      await swapDiaryTeamStep(diaryId, sourceTeamId, destinationTeamId);
       await resolveTransferStep(transferId, 'accepted');
       return { transferId, status: 'accepted' };
     },

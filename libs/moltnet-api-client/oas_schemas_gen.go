@@ -12,6 +12,169 @@ import (
 	"github.com/google/uuid"
 )
 
+type AcceptTeamFoundingBadRequest ProblemDetails
+
+func (*AcceptTeamFoundingBadRequest) acceptTeamFoundingRes() {}
+
+type AcceptTeamFoundingConflict ProblemDetails
+
+func (*AcceptTeamFoundingConflict) acceptTeamFoundingRes() {}
+
+type AcceptTeamFoundingForbidden ProblemDetails
+
+func (*AcceptTeamFoundingForbidden) acceptTeamFoundingRes() {}
+
+type AcceptTeamFoundingNotFound ProblemDetails
+
+func (*AcceptTeamFoundingNotFound) acceptTeamFoundingRes() {}
+
+type AcceptTeamFoundingOK struct {
+	Accepted   bool   `json:"accepted"`
+	TeamStatus string `json:"teamStatus"`
+}
+
+// GetAccepted returns the value of Accepted.
+func (s *AcceptTeamFoundingOK) GetAccepted() bool {
+	return s.Accepted
+}
+
+// GetTeamStatus returns the value of TeamStatus.
+func (s *AcceptTeamFoundingOK) GetTeamStatus() string {
+	return s.TeamStatus
+}
+
+// SetAccepted sets the value of Accepted.
+func (s *AcceptTeamFoundingOK) SetAccepted(val bool) {
+	s.Accepted = val
+}
+
+// SetTeamStatus sets the value of TeamStatus.
+func (s *AcceptTeamFoundingOK) SetTeamStatus(val string) {
+	s.TeamStatus = val
+}
+
+func (*AcceptTeamFoundingOK) acceptTeamFoundingRes() {}
+
+type AcceptTeamFoundingReq struct{}
+
+type AcceptTeamFoundingUnauthorized ProblemDetails
+
+func (*AcceptTeamFoundingUnauthorized) acceptTeamFoundingRes() {}
+
+type AcceptTransferConflict ProblemDetails
+
+func (*AcceptTransferConflict) acceptTransferRes() {}
+
+type AcceptTransferForbidden ProblemDetails
+
+func (*AcceptTransferForbidden) acceptTransferRes() {}
+
+type AcceptTransferNotFound ProblemDetails
+
+func (*AcceptTransferNotFound) acceptTransferRes() {}
+
+type AcceptTransferOK struct {
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	DestinationTeamId uuid.UUID `json:"destinationTeamId"`
+	// UUID v4 identifier.
+	DiaryId   uuid.UUID `json:"diaryId"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	// UUID v4 identifier.
+	ID uuid.UUID `json:"id"`
+	// UUID v4 identifier.
+	InitiatedBy uuid.UUID `json:"initiatedBy"`
+	// UUID v4 identifier.
+	SourceTeamId uuid.UUID `json:"sourceTeamId"`
+	Status       string    `json:"status"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *AcceptTransferOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDestinationTeamId returns the value of DestinationTeamId.
+func (s *AcceptTransferOK) GetDestinationTeamId() uuid.UUID {
+	return s.DestinationTeamId
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *AcceptTransferOK) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *AcceptTransferOK) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *AcceptTransferOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetInitiatedBy returns the value of InitiatedBy.
+func (s *AcceptTransferOK) GetInitiatedBy() uuid.UUID {
+	return s.InitiatedBy
+}
+
+// GetSourceTeamId returns the value of SourceTeamId.
+func (s *AcceptTransferOK) GetSourceTeamId() uuid.UUID {
+	return s.SourceTeamId
+}
+
+// GetStatus returns the value of Status.
+func (s *AcceptTransferOK) GetStatus() string {
+	return s.Status
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *AcceptTransferOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDestinationTeamId sets the value of DestinationTeamId.
+func (s *AcceptTransferOK) SetDestinationTeamId(val uuid.UUID) {
+	s.DestinationTeamId = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *AcceptTransferOK) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *AcceptTransferOK) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *AcceptTransferOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetInitiatedBy sets the value of InitiatedBy.
+func (s *AcceptTransferOK) SetInitiatedBy(val uuid.UUID) {
+	s.InitiatedBy = val
+}
+
+// SetSourceTeamId sets the value of SourceTeamId.
+func (s *AcceptTransferOK) SetSourceTeamId(val uuid.UUID) {
+	s.SourceTeamId = val
+}
+
+// SetStatus sets the value of Status.
+func (s *AcceptTransferOK) SetStatus(val string) {
+	s.Status = val
+}
+
+func (*AcceptTransferOK) acceptTransferRes() {}
+
+type AcceptTransferUnauthorized ProblemDetails
+
+func (*AcceptTransferUnauthorized) acceptTransferRes() {}
+
 type AddGroupMemberBadRequest ProblemDetails
 
 func (*AddGroupMemberBadRequest) addGroupMemberRes() {}
@@ -2727,6 +2890,56 @@ type CreateSigningRequestUnauthorized ProblemDetails
 
 func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
 
+type CreateTeamAccepted struct {
+	// UUID v4 identifier.
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`
+	WorkflowId OptString `json:"workflowId"`
+}
+
+// GetID returns the value of ID.
+func (s *CreateTeamAccepted) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *CreateTeamAccepted) GetName() string {
+	return s.Name
+}
+
+// GetStatus returns the value of Status.
+func (s *CreateTeamAccepted) GetStatus() string {
+	return s.Status
+}
+
+// GetWorkflowId returns the value of WorkflowId.
+func (s *CreateTeamAccepted) GetWorkflowId() OptString {
+	return s.WorkflowId
+}
+
+// SetID sets the value of ID.
+func (s *CreateTeamAccepted) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateTeamAccepted) SetName(val string) {
+	s.Name = val
+}
+
+// SetStatus sets the value of Status.
+func (s *CreateTeamAccepted) SetStatus(val string) {
+	s.Status = val
+}
+
+// SetWorkflowId sets the value of WorkflowId.
+func (s *CreateTeamAccepted) SetWorkflowId(val OptString) {
+	s.WorkflowId = val
+}
+
+func (*CreateTeamAccepted) createTeamRes() {}
+
 type CreateTeamCreated struct {
 	// UUID v4 identifier.
 	ID   uuid.UUID `json:"id"`
@@ -2880,7 +3093,13 @@ type CreateTeamInviteUnauthorized ProblemDetails
 func (*CreateTeamInviteUnauthorized) createTeamInviteRes() {}
 
 type CreateTeamReq struct {
-	Name string `json:"name"`
+	FoundingMembers []CreateTeamReqFoundingMembersItem `json:"foundingMembers"`
+	Name            string                             `json:"name"`
+}
+
+// GetFoundingMembers returns the value of FoundingMembers.
+func (s *CreateTeamReq) GetFoundingMembers() []CreateTeamReqFoundingMembersItem {
+	return s.FoundingMembers
 }
 
 // GetName returns the value of Name.
@@ -2888,9 +3107,140 @@ func (s *CreateTeamReq) GetName() string {
 	return s.Name
 }
 
+// SetFoundingMembers sets the value of FoundingMembers.
+func (s *CreateTeamReq) SetFoundingMembers(val []CreateTeamReqFoundingMembersItem) {
+	s.FoundingMembers = val
+}
+
 // SetName sets the value of Name.
 func (s *CreateTeamReq) SetName(val string) {
 	s.Name = val
+}
+
+type CreateTeamReqFoundingMembersItem struct {
+	Role CreateTeamReqFoundingMembersItemRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                                 `json:"subjectId"`
+	SubjectNs CreateTeamReqFoundingMembersItemSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *CreateTeamReqFoundingMembersItem) GetRole() CreateTeamReqFoundingMembersItemRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *CreateTeamReqFoundingMembersItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *CreateTeamReqFoundingMembersItem) GetSubjectNs() CreateTeamReqFoundingMembersItemSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *CreateTeamReqFoundingMembersItem) SetRole(val CreateTeamReqFoundingMembersItemRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *CreateTeamReqFoundingMembersItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *CreateTeamReqFoundingMembersItem) SetSubjectNs(val CreateTeamReqFoundingMembersItemSubjectNs) {
+	s.SubjectNs = val
+}
+
+type CreateTeamReqFoundingMembersItemRole string
+
+const (
+	CreateTeamReqFoundingMembersItemRoleOwner   CreateTeamReqFoundingMembersItemRole = "owner"
+	CreateTeamReqFoundingMembersItemRoleManager CreateTeamReqFoundingMembersItemRole = "manager"
+	CreateTeamReqFoundingMembersItemRoleMember  CreateTeamReqFoundingMembersItemRole = "member"
+)
+
+// AllValues returns all CreateTeamReqFoundingMembersItemRole values.
+func (CreateTeamReqFoundingMembersItemRole) AllValues() []CreateTeamReqFoundingMembersItemRole {
+	return []CreateTeamReqFoundingMembersItemRole{
+		CreateTeamReqFoundingMembersItemRoleOwner,
+		CreateTeamReqFoundingMembersItemRoleManager,
+		CreateTeamReqFoundingMembersItemRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTeamReqFoundingMembersItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTeamReqFoundingMembersItemRoleOwner:
+		return []byte(s), nil
+	case CreateTeamReqFoundingMembersItemRoleManager:
+		return []byte(s), nil
+	case CreateTeamReqFoundingMembersItemRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTeamReqFoundingMembersItemRole) UnmarshalText(data []byte) error {
+	switch CreateTeamReqFoundingMembersItemRole(data) {
+	case CreateTeamReqFoundingMembersItemRoleOwner:
+		*s = CreateTeamReqFoundingMembersItemRoleOwner
+		return nil
+	case CreateTeamReqFoundingMembersItemRoleManager:
+		*s = CreateTeamReqFoundingMembersItemRoleManager
+		return nil
+	case CreateTeamReqFoundingMembersItemRoleMember:
+		*s = CreateTeamReqFoundingMembersItemRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateTeamReqFoundingMembersItemSubjectNs string
+
+const (
+	CreateTeamReqFoundingMembersItemSubjectNsAgent CreateTeamReqFoundingMembersItemSubjectNs = "Agent"
+	CreateTeamReqFoundingMembersItemSubjectNsHuman CreateTeamReqFoundingMembersItemSubjectNs = "Human"
+)
+
+// AllValues returns all CreateTeamReqFoundingMembersItemSubjectNs values.
+func (CreateTeamReqFoundingMembersItemSubjectNs) AllValues() []CreateTeamReqFoundingMembersItemSubjectNs {
+	return []CreateTeamReqFoundingMembersItemSubjectNs{
+		CreateTeamReqFoundingMembersItemSubjectNsAgent,
+		CreateTeamReqFoundingMembersItemSubjectNsHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTeamReqFoundingMembersItemSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTeamReqFoundingMembersItemSubjectNsAgent:
+		return []byte(s), nil
+	case CreateTeamReqFoundingMembersItemSubjectNsHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTeamReqFoundingMembersItemSubjectNs) UnmarshalText(data []byte) error {
+	switch CreateTeamReqFoundingMembersItemSubjectNs(data) {
+	case CreateTeamReqFoundingMembersItemSubjectNsAgent:
+		*s = CreateTeamReqFoundingMembersItemSubjectNsAgent
+		return nil
+	case CreateTeamReqFoundingMembersItemSubjectNsHuman:
+		*s = CreateTeamReqFoundingMembersItemSubjectNsHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type CreateTeamUnauthorized ProblemDetails
@@ -5681,6 +6031,12 @@ const (
 	GetProblemTypeTypeInviteExpired                  GetProblemTypeType = "invite-expired"
 	GetProblemTypeTypeInviteExhausted                GetProblemTypeType = "invite-exhausted"
 	GetProblemTypeTypeTeamLastOwner                  GetProblemTypeType = "team-last-owner"
+	GetProblemTypeTypeTeamAlreadyActive              GetProblemTypeType = "team-already-active"
+	GetProblemTypeTypeTeamNotFounding                GetProblemTypeType = "team-not-founding"
+	GetProblemTypeTypeFoundingAlreadyAccepted        GetProblemTypeType = "founding-already-accepted"
+	GetProblemTypeTypeDiaryTransferPending           GetProblemTypeType = "diary-transfer-pending"
+	GetProblemTypeTypeDiaryTransferNotFound          GetProblemTypeType = "diary-transfer-not-found"
+	GetProblemTypeTypeDiaryTransferAlreadyResolved   GetProblemTypeType = "diary-transfer-already-resolved"
 )
 
 // AllValues returns all GetProblemTypeType values.
@@ -5707,6 +6063,12 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeInviteExpired,
 		GetProblemTypeTypeInviteExhausted,
 		GetProblemTypeTypeTeamLastOwner,
+		GetProblemTypeTypeTeamAlreadyActive,
+		GetProblemTypeTypeTeamNotFounding,
+		GetProblemTypeTypeFoundingAlreadyAccepted,
+		GetProblemTypeTypeDiaryTransferPending,
+		GetProblemTypeTypeDiaryTransferNotFound,
+		GetProblemTypeTypeDiaryTransferAlreadyResolved,
 	}
 }
 
@@ -5754,6 +6116,18 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeInviteExhausted:
 		return []byte(s), nil
 	case GetProblemTypeTypeTeamLastOwner:
+		return []byte(s), nil
+	case GetProblemTypeTypeTeamAlreadyActive:
+		return []byte(s), nil
+	case GetProblemTypeTypeTeamNotFounding:
+		return []byte(s), nil
+	case GetProblemTypeTypeFoundingAlreadyAccepted:
+		return []byte(s), nil
+	case GetProblemTypeTypeDiaryTransferPending:
+		return []byte(s), nil
+	case GetProblemTypeTypeDiaryTransferNotFound:
+		return []byte(s), nil
+	case GetProblemTypeTypeDiaryTransferAlreadyResolved:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5825,6 +6199,24 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeTeamLastOwner:
 		*s = GetProblemTypeTypeTeamLastOwner
+		return nil
+	case GetProblemTypeTypeTeamAlreadyActive:
+		*s = GetProblemTypeTypeTeamAlreadyActive
+		return nil
+	case GetProblemTypeTypeTeamNotFounding:
+		*s = GetProblemTypeTypeTeamNotFounding
+		return nil
+	case GetProblemTypeTypeFoundingAlreadyAccepted:
+		*s = GetProblemTypeTypeFoundingAlreadyAccepted
+		return nil
+	case GetProblemTypeTypeDiaryTransferPending:
+		*s = GetProblemTypeTypeDiaryTransferPending
+		return nil
+	case GetProblemTypeTypeDiaryTransferNotFound:
+		*s = GetProblemTypeTypeDiaryTransferNotFound
+		return nil
+	case GetProblemTypeTypeDiaryTransferAlreadyResolved:
+		*s = GetProblemTypeTypeDiaryTransferAlreadyResolved
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -6118,6 +6510,139 @@ func (s *Health) SetStatus(val string) {
 func (s *Health) SetTimestamp(val time.Time) {
 	s.Timestamp = val
 }
+
+type InitiateTransferAccepted struct {
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	DestinationTeamId uuid.UUID `json:"destinationTeamId"`
+	// UUID v4 identifier.
+	DiaryId   uuid.UUID `json:"diaryId"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	// UUID v4 identifier.
+	ID uuid.UUID `json:"id"`
+	// UUID v4 identifier.
+	InitiatedBy uuid.UUID `json:"initiatedBy"`
+	// UUID v4 identifier.
+	SourceTeamId uuid.UUID `json:"sourceTeamId"`
+	Status       string    `json:"status"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *InitiateTransferAccepted) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDestinationTeamId returns the value of DestinationTeamId.
+func (s *InitiateTransferAccepted) GetDestinationTeamId() uuid.UUID {
+	return s.DestinationTeamId
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *InitiateTransferAccepted) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *InitiateTransferAccepted) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *InitiateTransferAccepted) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetInitiatedBy returns the value of InitiatedBy.
+func (s *InitiateTransferAccepted) GetInitiatedBy() uuid.UUID {
+	return s.InitiatedBy
+}
+
+// GetSourceTeamId returns the value of SourceTeamId.
+func (s *InitiateTransferAccepted) GetSourceTeamId() uuid.UUID {
+	return s.SourceTeamId
+}
+
+// GetStatus returns the value of Status.
+func (s *InitiateTransferAccepted) GetStatus() string {
+	return s.Status
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *InitiateTransferAccepted) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDestinationTeamId sets the value of DestinationTeamId.
+func (s *InitiateTransferAccepted) SetDestinationTeamId(val uuid.UUID) {
+	s.DestinationTeamId = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *InitiateTransferAccepted) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *InitiateTransferAccepted) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *InitiateTransferAccepted) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetInitiatedBy sets the value of InitiatedBy.
+func (s *InitiateTransferAccepted) SetInitiatedBy(val uuid.UUID) {
+	s.InitiatedBy = val
+}
+
+// SetSourceTeamId sets the value of SourceTeamId.
+func (s *InitiateTransferAccepted) SetSourceTeamId(val uuid.UUID) {
+	s.SourceTeamId = val
+}
+
+// SetStatus sets the value of Status.
+func (s *InitiateTransferAccepted) SetStatus(val string) {
+	s.Status = val
+}
+
+func (*InitiateTransferAccepted) initiateTransferRes() {}
+
+type InitiateTransferBadRequest ProblemDetails
+
+func (*InitiateTransferBadRequest) initiateTransferRes() {}
+
+type InitiateTransferConflict ProblemDetails
+
+func (*InitiateTransferConflict) initiateTransferRes() {}
+
+type InitiateTransferForbidden ProblemDetails
+
+func (*InitiateTransferForbidden) initiateTransferRes() {}
+
+type InitiateTransferNotFound ProblemDetails
+
+func (*InitiateTransferNotFound) initiateTransferRes() {}
+
+type InitiateTransferReq struct {
+	// UUID v4 identifier.
+	DestinationTeamId uuid.UUID `json:"destinationTeamId"`
+}
+
+// GetDestinationTeamId returns the value of DestinationTeamId.
+func (s *InitiateTransferReq) GetDestinationTeamId() uuid.UUID {
+	return s.DestinationTeamId
+}
+
+// SetDestinationTeamId sets the value of DestinationTeamId.
+func (s *InitiateTransferReq) SetDestinationTeamId(val uuid.UUID) {
+	s.DestinationTeamId = val
+}
+
+type InitiateTransferUnauthorized ProblemDetails
+
+func (*InitiateTransferUnauthorized) initiateTransferRes() {}
 
 type IssueVoucherInternalServerError ProblemDetails
 
@@ -6644,6 +7169,118 @@ func (s *ListGroupsOKItemsItem) SetTeamId(val uuid.UUID) {
 type ListGroupsUnauthorized ProblemDetails
 
 func (*ListGroupsUnauthorized) listGroupsRes() {}
+
+type ListPendingTransfersOK struct {
+	Items []ListPendingTransfersOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListPendingTransfersOK) GetItems() []ListPendingTransfersOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListPendingTransfersOK) SetItems(val []ListPendingTransfersOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListPendingTransfersOK) listPendingTransfersRes() {}
+
+type ListPendingTransfersOKItemsItem struct {
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	DestinationTeamId uuid.UUID `json:"destinationTeamId"`
+	// UUID v4 identifier.
+	DiaryId   uuid.UUID `json:"diaryId"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	// UUID v4 identifier.
+	ID uuid.UUID `json:"id"`
+	// UUID v4 identifier.
+	InitiatedBy uuid.UUID `json:"initiatedBy"`
+	// UUID v4 identifier.
+	SourceTeamId uuid.UUID `json:"sourceTeamId"`
+	Status       string    `json:"status"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ListPendingTransfersOKItemsItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDestinationTeamId returns the value of DestinationTeamId.
+func (s *ListPendingTransfersOKItemsItem) GetDestinationTeamId() uuid.UUID {
+	return s.DestinationTeamId
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *ListPendingTransfersOKItemsItem) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ListPendingTransfersOKItemsItem) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *ListPendingTransfersOKItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetInitiatedBy returns the value of InitiatedBy.
+func (s *ListPendingTransfersOKItemsItem) GetInitiatedBy() uuid.UUID {
+	return s.InitiatedBy
+}
+
+// GetSourceTeamId returns the value of SourceTeamId.
+func (s *ListPendingTransfersOKItemsItem) GetSourceTeamId() uuid.UUID {
+	return s.SourceTeamId
+}
+
+// GetStatus returns the value of Status.
+func (s *ListPendingTransfersOKItemsItem) GetStatus() string {
+	return s.Status
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ListPendingTransfersOKItemsItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDestinationTeamId sets the value of DestinationTeamId.
+func (s *ListPendingTransfersOKItemsItem) SetDestinationTeamId(val uuid.UUID) {
+	s.DestinationTeamId = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *ListPendingTransfersOKItemsItem) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ListPendingTransfersOKItemsItem) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *ListPendingTransfersOKItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetInitiatedBy sets the value of InitiatedBy.
+func (s *ListPendingTransfersOKItemsItem) SetInitiatedBy(val uuid.UUID) {
+	s.InitiatedBy = val
+}
+
+// SetSourceTeamId sets the value of SourceTeamId.
+func (s *ListPendingTransfersOKItemsItem) SetSourceTeamId(val uuid.UUID) {
+	s.SourceTeamId = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ListPendingTransfersOKItemsItem) SetStatus(val string) {
+	s.Status = val
+}
 
 type ListProblemTypesOKItem struct {
 	Code         OptString `json:"code"`
@@ -10106,6 +10743,7 @@ func (s *ProblemDetails) SetType(val url.URL) {
 
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
+func (*ProblemDetails) listPendingTransfersRes()          {}
 func (*ProblemDetails) listTeamsRes()                     {}
 func (*ProblemDetails) verifyCryptoSignatureRes()         {}
 
@@ -10133,6 +10771,12 @@ const (
 	ProblemDetailsCodeINVITEEXPIRED                  ProblemDetailsCode = "INVITE_EXPIRED"
 	ProblemDetailsCodeINVITEEXHAUSTED                ProblemDetailsCode = "INVITE_EXHAUSTED"
 	ProblemDetailsCodeTEAMLASTOWNER                  ProblemDetailsCode = "TEAM_LAST_OWNER"
+	ProblemDetailsCodeTEAMALREADYACTIVE              ProblemDetailsCode = "TEAM_ALREADY_ACTIVE"
+	ProblemDetailsCodeTEAMNOTFOUNDING                ProblemDetailsCode = "TEAM_NOT_FOUNDING"
+	ProblemDetailsCodeFOUNDINGALREADYACCEPTED        ProblemDetailsCode = "FOUNDING_ALREADY_ACCEPTED"
+	ProblemDetailsCodeDIARYTRANSFERPENDING           ProblemDetailsCode = "DIARY_TRANSFER_PENDING"
+	ProblemDetailsCodeDIARYTRANSFERNOTFOUND          ProblemDetailsCode = "DIARY_TRANSFER_NOT_FOUND"
+	ProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED   ProblemDetailsCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
 )
 
 // AllValues returns all ProblemDetailsCode values.
@@ -10159,6 +10803,12 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeINVITEEXPIRED,
 		ProblemDetailsCodeINVITEEXHAUSTED,
 		ProblemDetailsCodeTEAMLASTOWNER,
+		ProblemDetailsCodeTEAMALREADYACTIVE,
+		ProblemDetailsCodeTEAMNOTFOUNDING,
+		ProblemDetailsCodeFOUNDINGALREADYACCEPTED,
+		ProblemDetailsCodeDIARYTRANSFERPENDING,
+		ProblemDetailsCodeDIARYTRANSFERNOTFOUND,
+		ProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED,
 	}
 }
 
@@ -10206,6 +10856,18 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeINVITEEXHAUSTED:
 		return []byte(s), nil
 	case ProblemDetailsCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ProblemDetailsCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ProblemDetailsCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ProblemDetailsCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -10277,6 +10939,24 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeTEAMLASTOWNER:
 		*s = ProblemDetailsCodeTEAMLASTOWNER
+		return nil
+	case ProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = ProblemDetailsCodeTEAMALREADYACTIVE
+		return nil
+	case ProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = ProblemDetailsCodeTEAMNOTFOUNDING
+		return nil
+	case ProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = ProblemDetailsCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = ProblemDetailsCodeDIARYTRANSFERPENDING
+		return nil
+	case ProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = ProblemDetailsCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -12006,6 +12686,120 @@ func (s *RegisterResponse) SetPublicKey(val string) {
 }
 
 func (*RegisterResponse) registerAgentRes() {}
+
+type RejectTransferConflict ProblemDetails
+
+func (*RejectTransferConflict) rejectTransferRes() {}
+
+type RejectTransferForbidden ProblemDetails
+
+func (*RejectTransferForbidden) rejectTransferRes() {}
+
+type RejectTransferNotFound ProblemDetails
+
+func (*RejectTransferNotFound) rejectTransferRes() {}
+
+type RejectTransferOK struct {
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	DestinationTeamId uuid.UUID `json:"destinationTeamId"`
+	// UUID v4 identifier.
+	DiaryId   uuid.UUID `json:"diaryId"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	// UUID v4 identifier.
+	ID uuid.UUID `json:"id"`
+	// UUID v4 identifier.
+	InitiatedBy uuid.UUID `json:"initiatedBy"`
+	// UUID v4 identifier.
+	SourceTeamId uuid.UUID `json:"sourceTeamId"`
+	Status       string    `json:"status"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RejectTransferOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDestinationTeamId returns the value of DestinationTeamId.
+func (s *RejectTransferOK) GetDestinationTeamId() uuid.UUID {
+	return s.DestinationTeamId
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *RejectTransferOK) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *RejectTransferOK) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *RejectTransferOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetInitiatedBy returns the value of InitiatedBy.
+func (s *RejectTransferOK) GetInitiatedBy() uuid.UUID {
+	return s.InitiatedBy
+}
+
+// GetSourceTeamId returns the value of SourceTeamId.
+func (s *RejectTransferOK) GetSourceTeamId() uuid.UUID {
+	return s.SourceTeamId
+}
+
+// GetStatus returns the value of Status.
+func (s *RejectTransferOK) GetStatus() string {
+	return s.Status
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RejectTransferOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDestinationTeamId sets the value of DestinationTeamId.
+func (s *RejectTransferOK) SetDestinationTeamId(val uuid.UUID) {
+	s.DestinationTeamId = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *RejectTransferOK) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *RejectTransferOK) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *RejectTransferOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetInitiatedBy sets the value of InitiatedBy.
+func (s *RejectTransferOK) SetInitiatedBy(val uuid.UUID) {
+	s.InitiatedBy = val
+}
+
+// SetSourceTeamId sets the value of SourceTeamId.
+func (s *RejectTransferOK) SetSourceTeamId(val uuid.UUID) {
+	s.SourceTeamId = val
+}
+
+// SetStatus sets the value of Status.
+func (s *RejectTransferOK) SetStatus(val string) {
+	s.Status = val
+}
+
+func (*RejectTransferOK) rejectTransferRes() {}
+
+type RejectTransferUnauthorized ProblemDetails
+
+func (*RejectTransferUnauthorized) rejectTransferRes() {}
 
 // Ref: #/components/schemas/RelationStatus
 type RelationStatus string

@@ -39,7 +39,13 @@ export type ProblemDetails = {
     | 'TEAM_NOT_ACTIVE'
     | 'INVITE_EXPIRED'
     | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER';
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
 };
@@ -69,7 +75,13 @@ export type ValidationProblemDetails = {
     | 'TEAM_NOT_ACTIVE'
     | 'INVITE_EXPIRED'
     | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER';
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
 } & {
@@ -1431,6 +1443,272 @@ export type CreateDiaryGrantResponses = {
 
 export type CreateDiaryGrantResponse =
   CreateDiaryGrantResponses[keyof CreateDiaryGrantResponses];
+
+export type InitiateTransferData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/transfer';
+};
+
+export type InitiateTransferErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type InitiateTransferError =
+  InitiateTransferErrors[keyof InitiateTransferErrors];
+
+export type InitiateTransferResponses = {
+  /**
+   * Default Response
+   */
+  202: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
+    sourceTeamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+    status: string;
+    /**
+     * UUID v4 identifier
+     */
+    initiatedBy: string;
+    expiresAt: string;
+    createdAt: string;
+  };
+};
+
+export type InitiateTransferResponse =
+  InitiateTransferResponses[keyof InitiateTransferResponses];
+
+export type ListPendingTransfersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/transfers';
+};
+
+export type ListPendingTransfersErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListPendingTransfersError =
+  ListPendingTransfersErrors[keyof ListPendingTransfersErrors];
+
+export type ListPendingTransfersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      id: string;
+      /**
+       * UUID v4 identifier
+       */
+      diaryId: string;
+      /**
+       * UUID v4 identifier
+       */
+      sourceTeamId: string;
+      /**
+       * UUID v4 identifier
+       */
+      destinationTeamId: string;
+      status: string;
+      /**
+       * UUID v4 identifier
+       */
+      initiatedBy: string;
+      expiresAt: string;
+      createdAt: string;
+    }>;
+  };
+};
+
+export type ListPendingTransfersResponse =
+  ListPendingTransfersResponses[keyof ListPendingTransfersResponses];
+
+export type AcceptTransferData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    transferId: string;
+  };
+  query?: never;
+  url: '/transfers/{transferId}/accept';
+};
+
+export type AcceptTransferErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type AcceptTransferError =
+  AcceptTransferErrors[keyof AcceptTransferErrors];
+
+export type AcceptTransferResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
+    sourceTeamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+    status: string;
+    /**
+     * UUID v4 identifier
+     */
+    initiatedBy: string;
+    expiresAt: string;
+    createdAt: string;
+  };
+};
+
+export type AcceptTransferResponse =
+  AcceptTransferResponses[keyof AcceptTransferResponses];
+
+export type RejectTransferData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    transferId: string;
+  };
+  query?: never;
+  url: '/transfers/{transferId}/reject';
+};
+
+export type RejectTransferErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type RejectTransferError =
+  RejectTransferErrors[keyof RejectTransferErrors];
+
+export type RejectTransferResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
+    sourceTeamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+    status: string;
+    /**
+     * UUID v4 identifier
+     */
+    initiatedBy: string;
+    expiresAt: string;
+    createdAt: string;
+  };
+};
+
+export type RejectTransferResponse =
+  RejectTransferResponses[keyof RejectTransferResponses];
 
 export type ListDiaryEntriesData = {
   body?: never;
@@ -3606,6 +3884,14 @@ export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
 export type CreateTeamData = {
   body: {
     name: string;
+    foundingMembers?: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: 'Agent' | 'Human';
+      role: 'owner' | 'manager' | 'member';
+    }>;
   };
   path?: never;
   query?: never;
@@ -3635,6 +3921,18 @@ export type CreateTeamResponses = {
      */
     id: string;
     name: string;
+  };
+  /**
+   * Default Response
+   */
+  202: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    name: string;
+    status: string;
+    workflowId?: string;
   };
 };
 
@@ -4017,6 +4315,59 @@ export type JoinTeamResponses = {
 };
 
 export type JoinTeamResponse = JoinTeamResponses[keyof JoinTeamResponses];
+
+export type AcceptTeamFoundingData = {
+  body?: {
+    [key: string]: unknown;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/accept';
+};
+
+export type AcceptTeamFoundingErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type AcceptTeamFoundingError =
+  AcceptTeamFoundingErrors[keyof AcceptTeamFoundingErrors];
+
+export type AcceptTeamFoundingResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    accepted: boolean;
+    teamStatus: string;
+  };
+};
+
+export type AcceptTeamFoundingResponse =
+  AcceptTeamFoundingResponses[keyof AcceptTeamFoundingResponses];
 
 export type ListGroupsData = {
   body?: never;
@@ -4756,7 +5107,13 @@ export type GetProblemTypeData = {
       | 'team-not-active'
       | 'invite-expired'
       | 'invite-exhausted'
-      | 'team-last-owner';
+      | 'team-last-owner'
+      | 'team-already-active'
+      | 'team-not-founding'
+      | 'founding-already-accepted'
+      | 'diary-transfer-pending'
+      | 'diary-transfer-not-found'
+      | 'diary-transfer-already-resolved';
   };
   query?: never;
   url: '/problems/{type}';

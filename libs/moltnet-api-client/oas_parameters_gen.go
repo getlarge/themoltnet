@@ -15,6 +15,138 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
+// AcceptTeamFoundingParams is parameters of acceptTeamFounding operation.
+type AcceptTeamFoundingParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackAcceptTeamFoundingParams(packed middleware.Parameters) (params AcceptTeamFoundingParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeAcceptTeamFoundingParams(args [1]string, argsEscaped bool, r *http.Request) (params AcceptTeamFoundingParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// AcceptTransferParams is parameters of acceptTransfer operation.
+type AcceptTransferParams struct {
+	// UUID v4 identifier.
+	TransferId uuid.UUID
+}
+
+func unpackAcceptTransferParams(packed middleware.Parameters) (params AcceptTransferParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "transferId",
+			In:   "path",
+		}
+		params.TransferId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeAcceptTransferParams(args [1]string, argsEscaped bool, r *http.Request) (params AcceptTransferParams, _ error) {
+	// Decode path: transferId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "transferId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TransferId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "transferId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // AddGroupMemberParams is parameters of addGroupMember operation.
 type AddGroupMemberParams struct {
 	// UUID v4 identifier.
@@ -2913,6 +3045,72 @@ func decodeGetTrustGraphParams(args [0]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// InitiateTransferParams is parameters of initiateTransfer operation.
+type InitiateTransferParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackInitiateTransferParams(packed middleware.Parameters) (params InitiateTransferParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeInitiateTransferParams(args [1]string, argsEscaped bool, r *http.Request) (params InitiateTransferParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListDiariesParams is parameters of listDiaries operation.
 type ListDiariesParams struct {
 	// Team ID (UUID) for scoping the request. Optional.
@@ -5747,6 +5945,72 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 		return params, &ogenerrors.DecodeParamError{
 			Name: "entryTypes",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RejectTransferParams is parameters of rejectTransfer operation.
+type RejectTransferParams struct {
+	// UUID v4 identifier.
+	TransferId uuid.UUID
+}
+
+func unpackRejectTransferParams(packed middleware.Parameters) (params RejectTransferParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "transferId",
+			In:   "path",
+		}
+		params.TransferId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRejectTransferParams(args [1]string, argsEscaped bool, r *http.Request) (params RejectTransferParams, _ error) {
+	// Decode path: transferId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "transferId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TransferId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "transferId",
+			In:   "path",
 			Err:  err,
 		}
 	}

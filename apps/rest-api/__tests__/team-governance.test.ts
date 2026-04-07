@@ -306,7 +306,8 @@ describe('POST /teams/:id/accept', () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body).toMatchObject({ accepted: true, teamStatus: 'active' });
+    // Route returns actual DB status (founding); workflow activates async
+    expect(body).toMatchObject({ accepted: true, teamStatus: 'founding' });
     expect(DBOS.send).toHaveBeenCalledWith(
       `founding-${TEAM_ID}`,
       true,
@@ -558,10 +559,8 @@ describe('POST /transfers/:transferId/accept', () => {
       'accepted',
       'diary.transfer.decision',
     );
-    expect(mocks.diaryTransferRepository.updateStatus).toHaveBeenCalledWith(
-      TRANSFER_ID,
-      'accepted',
-    );
+    // Route no longer calls updateStatus — the workflow is sole owner of status transitions
+    expect(mocks.diaryTransferRepository.updateStatus).not.toHaveBeenCalled();
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -644,10 +643,8 @@ describe('POST /transfers/:transferId/reject', () => {
       'rejected',
       'diary.transfer.decision',
     );
-    expect(mocks.diaryTransferRepository.updateStatus).toHaveBeenCalledWith(
-      TRANSFER_ID,
-      'rejected',
-    );
+    // Route no longer calls updateStatus — the workflow is sole owner of status transitions
+    expect(mocks.diaryTransferRepository.updateStatus).not.toHaveBeenCalled();
   });
 
   it('returns 401 when unauthenticated', async () => {

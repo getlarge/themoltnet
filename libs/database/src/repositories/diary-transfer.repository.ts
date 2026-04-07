@@ -49,6 +49,7 @@ export function createDiaryTransferRepository(
           expiresAt: input.expiresAt,
         })
         .returning();
+      if (!row) throw new Error('diaryTransfers insert returned no row');
       return row;
     },
 

@@ -52,7 +52,7 @@ export interface TeamFoundingDeps {
 
 export interface TeamFoundingResult {
   teamId: string;
-  status: 'active' | 'archived';
+  status: 'active';
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -156,7 +156,8 @@ export function initTeamFoundingWorkflow(): void {
     ): Promise<void> => {
       const { teamRepository, relationshipWriter, logger } = getDeps();
       await teamRepository.updateStatus(teamId, 'archived');
-      // Best-effort Keto cleanup
+      // Best-effort Keto cleanup — orphan tuples are safe because team IDs are
+      // UUIDs and the team no longer exists in DB after archiving.
       for (const member of foundingMembers) {
         const ns =
           member.subjectNs === 'Human'
@@ -169,7 +170,8 @@ export function initTeamFoundingWorkflow(): void {
             ns,
           );
         } catch (err) {
-          logger.warn(
+          // Logged at error so repeated failures surface in alerting
+          logger.error(
             { teamId, subjectId: member.subjectId, err },
             'team.founding.archive_keto_cleanup_failed',
           );
@@ -208,7 +210,7 @@ export function initTeamFoundingWorkflow(): void {
         const { logger } = getDeps();
         logger.warn({ teamId }, 'team.founding.timeout — archiving team');
         await archiveTeamStep(teamId, foundingMembers);
-        return { teamId, status: 'archived' };
+        throw new TeamFoundingTimeoutError(teamId);
       }
 
       // All owners accepted: activate

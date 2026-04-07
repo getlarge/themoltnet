@@ -157,7 +157,7 @@ describe('Team Governance', () => {
       expect(body.teamStatus).toBe('founding');
     });
 
-    it('agentA (creator) accepting completes the founding — team becomes active', async () => {
+    it('agentA (creator) accepting signals all-accepted — workflow activates team async', async () => {
       const res = await fetch(
         `${harness.baseUrl}/teams/${foundingTeamId}/accept`,
         {
@@ -173,7 +173,8 @@ describe('Team Governance', () => {
         teamStatus: string;
       };
       expect(body.accepted).toBe(true);
-      expect(body.teamStatus).toBe('active');
+      // Route returns actual DB status (founding); workflow activates async
+      expect(body.teamStatus).toBe('founding');
     });
 
     it('accepting twice returns 409', async () => {
@@ -445,7 +446,7 @@ describe('Team Governance', () => {
         expect(res.status).toBe(403);
       });
 
-      it('agentB (destination owner) rejects — status becomes rejected', async () => {
+      it('agentB (destination owner) rejects — decision sent to workflow', async () => {
         const res = await fetch(
           `${harness.baseUrl}/transfers/${transferId}/reject`,
           {
@@ -455,8 +456,9 @@ describe('Team Governance', () => {
           },
         );
         expect(res.status).toBe(200);
-        const body = (await res.json()) as { status: string };
-        expect(body.status).toBe('rejected');
+        // Workflow updates status async; route returns original transfer
+        const body = (await res.json()) as { id: string };
+        expect(body.id).toBe(transferId);
       });
 
       it('diary remains on source team after rejection', async () => {
@@ -470,15 +472,25 @@ describe('Team Governance', () => {
       });
 
       it('rejecting an already-resolved transfer returns 409', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/transfers/${transferId}/reject`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentB.accessToken),
-            body: JSON.stringify({}),
-          },
-        );
-        expect(res.status).toBe(409);
+        // Poll until the workflow has committed the rejected status
+        for (let i = 0; i < 20; i++) {
+          const res = await fetch(
+            `${harness.baseUrl}/transfers/${transferId}/reject`,
+            {
+              method: 'POST',
+              headers: authHeaders(agentB.accessToken),
+              body: JSON.stringify({}),
+            },
+          );
+          if (res.status === 409) {
+            expect(res.status).toBe(409);
+            return;
+          }
+          await new Promise<void>((r) => {
+            setTimeout(r, 500);
+          });
+        }
+        throw new Error('Transfer never reached rejected status after 10s');
       });
     });
 
@@ -525,7 +537,7 @@ describe('Team Governance', () => {
         expect(res.status).toBe(403);
       });
 
-      it('agentB accepts — status becomes accepted', async () => {
+      it('agentB accepts — decision sent to workflow (202-style async)', async () => {
         const res = await fetch(
           `${harness.baseUrl}/transfers/${transferId}/accept`,
           {
@@ -535,8 +547,9 @@ describe('Team Governance', () => {
           },
         );
         expect(res.status).toBe(200);
-        const body = (await res.json()) as { status: string };
-        expect(body.status).toBe('accepted');
+        // Workflow updates status async; route returns original transfer
+        const body = (await res.json()) as { id: string };
+        expect(body.id).toBe(transferId);
       });
 
       it('diary teamId is now destTeamId after acceptance', async () => {
@@ -561,15 +574,25 @@ describe('Team Governance', () => {
       });
 
       it('accepting already-accepted transfer returns 409', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/transfers/${transferId}/accept`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentB.accessToken),
-            body: JSON.stringify({}),
-          },
-        );
-        expect(res.status).toBe(409);
+        // Poll until the workflow has committed the accepted status
+        for (let i = 0; i < 20; i++) {
+          const res = await fetch(
+            `${harness.baseUrl}/transfers/${transferId}/accept`,
+            {
+              method: 'POST',
+              headers: authHeaders(agentB.accessToken),
+              body: JSON.stringify({}),
+            },
+          );
+          if (res.status === 409) {
+            expect(res.status).toBe(409);
+            return;
+          }
+          await new Promise<void>((r) => {
+            setTimeout(r, 500);
+          });
+        }
+        throw new Error('Transfer never reached accepted status after 10s');
       });
     });
   });

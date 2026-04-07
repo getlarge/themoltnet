@@ -116,10 +116,21 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async updateStatus(id, status) {
+      // State machine guard: only allow valid transitions
+      // active requires founding; archived requires founding
+      type TeamStatus = 'founding' | 'active' | 'archived';
+      const allowedPrior: Partial<Record<TeamStatus, TeamStatus>> = {
+        active: 'founding',
+        archived: 'founding',
+      };
+      const priorStatus = allowedPrior[status];
+      const condition = priorStatus
+        ? and(eq(teams.id, id), eq(teams.status, priorStatus))
+        : eq(teams.id, id);
       const [team] = await getExecutor(db)
         .update(teams)
         .set({ status })
-        .where(eq(teams.id, id))
+        .where(condition)
         .returning();
       return team ?? null;
     },
@@ -217,6 +228,8 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async createFoundingAcceptance(input) {
+      // ON CONFLICT DO NOTHING makes this idempotent — safe to call in a
+      // retried DBOS step without hitting the unique(teamId, subjectId) constraint.
       const [row] = await getExecutor(db)
         .insert(foundingAcceptances)
         .values({
@@ -225,7 +238,22 @@ export function createTeamRepository(db: Database): TeamRepository {
           subjectNs: input.subjectNs,
           role: input.role,
         })
+        .onConflictDoNothing()
         .returning();
+      // If the row already existed the insert is a no-op; fetch the existing row.
+      if (!row) {
+        const [existing] = await db
+          .select()
+          .from(foundingAcceptances)
+          .where(
+            and(
+              eq(foundingAcceptances.teamId, input.teamId),
+              eq(foundingAcceptances.subjectId, input.subjectId),
+            ),
+          )
+          .limit(1);
+        return existing;
+      }
       return row;
     },
 
