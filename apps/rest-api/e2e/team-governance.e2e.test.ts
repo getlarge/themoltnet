@@ -17,6 +17,7 @@ import {
   createClient,
   createDiary,
   createTeam,
+  getDiary,
   initiateTransfer,
   listPendingTransfers,
   listTeams,
@@ -409,13 +410,14 @@ describe('Team Governance', () => {
       });
 
       it('diary remains on source team after rejection', async () => {
-        // Use raw fetch — getDiary is in the client but it doesn't expose teamId
-        const res = await fetch(`${harness.baseUrl}/diaries/${rejectDiaryId}`, {
-          headers: { Authorization: `Bearer ${agentA.accessToken}` },
+        const { data, error, response } = await getDiary({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: rejectDiaryId },
         });
-        expect(res.status).toBe(200);
-        const body = (await res.json()) as { teamId: string };
-        expect(body.teamId).toBe(sourceTeamId);
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        expect(data!.teamId).toBe(sourceTeamId);
       });
 
       it('rejecting an already-resolved transfer returns 409', async () => {
@@ -490,13 +492,13 @@ describe('Team Governance', () => {
         // Poll briefly — the DBOS workflow swaps teamId asynchronously
         let teamId: string | undefined;
         for (let attempt = 0; attempt < 10; attempt++) {
-          const res = await fetch(
-            `${harness.baseUrl}/diaries/${acceptDiaryId}`,
-            { headers: { Authorization: `Bearer ${agentB.accessToken}` } },
-          );
-          if (res.ok) {
-            const body = (await res.json()) as { teamId: string };
-            teamId = body.teamId;
+          const { data, response } = await getDiary({
+            client,
+            auth: () => agentB.accessToken,
+            path: { id: acceptDiaryId },
+          });
+          if (response.ok && data) {
+            teamId = data.teamId;
             if (teamId === destTeamId) break;
           }
           await new Promise<void>((r) => {
