@@ -64,13 +64,13 @@ func TestProgressTracker_NonTTY_HeartbeatEmitsLine(t *testing.T) {
 	}
 }
 
-func TestTruncateProgress(t *testing.T) {
+func TestTruncate(t *testing.T) {
 	short := "hello"
-	if got := truncateProgress(short, 10); got != "hello" {
+	if got := truncate(short, 10); got != "hello" {
 		t.Errorf("expected %q, got %q", "hello", got)
 	}
 	long := "this is a very long error message that should be truncated"
-	got := truncateProgress(long, 20)
+	got := truncate(long, 20)
 	if len(got) != 23 { // 20 + "..."
 		t.Errorf("expected length 23, got %d: %q", len(got), got)
 	}

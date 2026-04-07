@@ -40,6 +40,10 @@ extract_artifact_dir() {
 }
 
 echo "=== Canary: Running Harbor engine ==="
+# Note: stderr is buffered to a temp file so we can extract the artifact
+# directory line. This means progress UX is replayed after the run, not
+# live. The progress tracker also detects the non-TTY sink and falls back
+# to plain log lines for this reason.
 HARBOR_LOG=$(mktemp)
 if moltnet eval run --engine harbor --config "$CONFIG" "${PASSTHROUGH_FLAGS[@]}" 2>"$HARBOR_LOG"; then
   echo "Harbor: completed successfully"

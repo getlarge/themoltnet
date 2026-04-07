@@ -107,7 +107,9 @@ func (tb *trialBar) complete(reward float64) {
 	msg := fmt.Sprintf("done (%.1f%%)", reward*100)
 	tb.phase.Store(msg)
 	if tb.bar != nil {
-		tb.bar.Abort(false)
+		// SetTotal(-1, true) is the mpb idiom for marking a spinner (total=0)
+		// as successfully completed; Abort() would leave it visually frozen.
+		tb.bar.SetTotal(-1, true)
 	}
 	if !tb.isTTY {
 		elapsed := time.Since(tb.start).Round(time.Second)
@@ -117,7 +119,7 @@ func (tb *trialBar) complete(reward float64) {
 
 // fail marks the trial as failed with an error reason.
 func (tb *trialBar) fail(reason string) {
-	msg := fmt.Sprintf("failed: %s", truncateProgress(reason, 60))
+	msg := fmt.Sprintf("failed: %s", truncate(reason, 60))
 	tb.phase.Store(msg)
 	if tb.bar != nil {
 		tb.bar.Abort(false)
@@ -140,10 +142,3 @@ func (tb *trialBar) heartbeatFor() func(time.Duration) {
 	}
 }
 
-func truncateProgress(s string, maxLen int) string {
-	runes := []rune(s)
-	if len(runes) <= maxLen {
-		return s
-	}
-	return string(runes[:maxLen]) + "..."
-}

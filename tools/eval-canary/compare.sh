@@ -31,18 +31,18 @@ DSPY="$2"
 command -v jq >/dev/null || { echo "Error: jq not found on PATH"; exit 1; }
 command -v bc >/dev/null || { echo "Error: bc not found on PATH"; exit 1; }
 
-# Extract summary metrics
-h_completion=$(jq -r '.summary.completion_rate' "$HARBOR")
-h_infra=$(jq -r '.summary.infra_failure_rate' "$HARBOR")
-h_judge=$(jq -r '.summary.judge_failure_rate' "$HARBOR")
-h_runtime=$(jq -r '.summary.total_runtime_ms' "$HARBOR")
-h_cost=$(jq -r '.summary.total_cost_usd' "$HARBOR")
+# Extract summary metrics. `// 0` keeps bc happy when fields are missing/null.
+h_completion=$(jq -r '.summary.completion_rate // 0' "$HARBOR")
+h_infra=$(jq -r '.summary.infra_failure_rate // 0' "$HARBOR")
+h_judge=$(jq -r '.summary.judge_failure_rate // 0' "$HARBOR")
+h_runtime=$(jq -r '.summary.total_runtime_ms // 0' "$HARBOR")
+h_cost=$(jq -r '.summary.total_cost_usd // 0' "$HARBOR")
 
-d_completion=$(jq -r '.summary.completion_rate' "$DSPY")
-d_infra=$(jq -r '.summary.infra_failure_rate' "$DSPY")
-d_judge=$(jq -r '.summary.judge_failure_rate' "$DSPY")
-d_runtime=$(jq -r '.summary.total_runtime_ms' "$DSPY")
-d_cost=$(jq -r '.summary.total_cost_usd' "$DSPY")
+d_completion=$(jq -r '.summary.completion_rate // 0' "$DSPY")
+d_infra=$(jq -r '.summary.infra_failure_rate // 0' "$DSPY")
+d_judge=$(jq -r '.summary.judge_failure_rate // 0' "$DSPY")
+d_runtime=$(jq -r '.summary.total_runtime_ms // 0' "$DSPY")
+d_cost=$(jq -r '.summary.total_cost_usd // 0' "$DSPY")
 
 fmt_pct() { printf "%.1f%%" "$(echo "$1 * 100" | bc -l)"; }
 fmt_time() {
