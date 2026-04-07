@@ -95,11 +95,22 @@ export function createDiaryRepository(db: Database) {
       return result.length > 0;
     },
 
-    async updateTeam(id: string, teamId: string): Promise<Diary | null> {
+    async updateTeam(
+      id: string,
+      teamId: string,
+      sourceTeamId?: string,
+    ): Promise<Diary | null> {
+      // When sourceTeamId is supplied, add a WHERE team_id = sourceTeamId guard
+      // so the update is idempotent on DBOS step retries: if a prior attempt
+      // already swapped the team, the condition won't match and we return null
+      // (which the caller treats as "already done").
+      const condition = sourceTeamId
+        ? and(eq(diaries.id, id), eq(diaries.teamId, sourceTeamId))
+        : eq(diaries.id, id);
       const [diary] = await getExecutor(db)
         .update(diaries)
         .set({ teamId, updatedAt: new Date() })
-        .where(eq(diaries.id, id))
+        .where(condition)
         .returning();
       return diary ?? null;
     },

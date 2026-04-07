@@ -99,6 +99,8 @@ export function initTeamFoundingWorkflow(): void {
           member.subjectNs === 'Human'
             ? KetoNamespace.Human
             : KetoNamespace.Agent;
+        // Keto grant calls are idempotent: granting an already-existing tuple
+        // is a no-op in Keto. This makes the step safe to retry on DBOS failure.
         if (member.role === 'owner') {
           await relationshipWriter.grantTeamOwners(
             teamId,
@@ -118,6 +120,7 @@ export function initTeamFoundingWorkflow(): void {
             ns,
           );
         }
+        // createFoundingAcceptance uses ON CONFLICT DO NOTHING — idempotent on retry.
         await teamRepository.createFoundingAcceptance({
           teamId,
           subjectId: member.subjectId,
@@ -155,7 +158,15 @@ export function initTeamFoundingWorkflow(): void {
       foundingMembers: FoundingMember[],
     ): Promise<void> => {
       const { teamRepository, relationshipWriter, logger } = getDeps();
-      await teamRepository.updateStatus(teamId, 'archived');
+      const archived = await teamRepository.updateStatus(teamId, 'archived');
+      if (!archived) {
+        // State machine guard returned null — team was not in 'founding' status.
+        // Log at error so this surfaces in alerting; do not swallow silently.
+        logger.error(
+          { teamId },
+          'team.founding.archive_failed — team was not in founding status',
+        );
+      }
       // Best-effort Keto cleanup — orphan tuples are safe because team IDs are
       // UUIDs and the team no longer exists in DB after archiving.
       for (const member of foundingMembers) {

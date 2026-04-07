@@ -80,8 +80,14 @@ export function initDiaryTransferWorkflow(): void {
       destinationTeamId: string,
     ): Promise<void> => {
       const { diaryRepository, relationshipWriter, logger } = getDeps();
-      // Update DB first — idempotent (same value on retry)
-      await diaryRepository.updateTeam(diaryId, destinationTeamId);
+      // Update DB with a WHERE team_id = sourceTeamId guard so this step is
+      // idempotent on DBOS retries: if a prior attempt already swapped the
+      // team, the condition won't match and null is returned — safe to continue.
+      await diaryRepository.updateTeam(
+        diaryId,
+        destinationTeamId,
+        sourceTeamId,
+      );
       // Remove old Keto tuple — idempotent: if already removed this is a no-op
       try {
         await relationshipWriter.removeDiaryTeam(diaryId);

@@ -735,6 +735,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
 
       if (allOwnersAccepted) {
         // Send signal to workflow — it will activate the team.
+        // Race note: two concurrent "last acceptance" requests can both reach
+        // this point (only one DB row is updated due to WHERE status='pending',
+        // but both see all owners accepted on the subsequent list). DBOS handles
+        // duplicate sends idempotently — the workflow's recv() consumes the first
+        // event and ignores subsequent ones for the same workflowId.
         // Guard against DBOS send failure: acceptFoundingMember is already
         // committed, so log the error but still return 200 — the workflow
         // will re-check on its next retry cycle.
@@ -748,10 +753,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Return actual DB status — the workflow activates asynchronously
+      // Return the requested state — team activation is async (workflow-driven)
+      // so callers should poll GET /teams/:id until teamStatus === 'active'.
       return reply.status(200).send({
         accepted: true,
-        teamStatus: team.status,
+        teamStatus: allOwnersAccepted ? 'active' : 'founding',
       });
     },
   );

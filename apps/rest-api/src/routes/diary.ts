@@ -645,7 +645,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
         throw err;
       }
-      return reply.status(200).send(transfer);
+      // Return synthetic status — the workflow owns the actual DB transition
+      // asynchronously. Callers should poll GET /diaries/:id to confirm teamId swap.
+      return reply
+        .status(200)
+        .send({ ...transfer, status: 'accepted' as const });
     },
   );
 
@@ -700,7 +704,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
         throw err;
       }
-      return reply.status(200).send(transfer);
+      // Return synthetic status — the workflow owns the actual DB transition
+      // asynchronously. Diary stays on source team until workflow confirms.
+      return reply
+        .status(200)
+        .send({ ...transfer, status: 'rejected' as const });
     },
   );
 }

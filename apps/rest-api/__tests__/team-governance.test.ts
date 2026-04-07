@@ -228,8 +228,8 @@ describe('POST /teams/:id/accept', () => {
         subjectId: OWNER_ID,
         role: 'owner',
         status: 'accepted',
+        acceptedAt: new Date(),
         createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ]);
 
@@ -244,23 +244,32 @@ describe('POST /teams/:id/accept', () => {
   });
 
   it('accepts successfully, returns teamStatus founding when not all owners accepted', async () => {
+    const OTHER_OWNER_ID = 'dd0e8400-e29b-41d4-a716-446655440099';
     const pendingAcceptance = {
       teamId: TEAM_ID,
       subjectId: OWNER_ID,
       role: 'owner',
-      status: 'pending',
+      status: 'pending' as const,
+      acceptedAt: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
+    };
+    const otherOwnerPending = {
+      ...pendingAcceptance,
+      subjectId: OTHER_OWNER_ID,
     };
     mocks.teamRepository.findById.mockResolvedValue(MOCK_FOUNDING_TEAM);
-    // First call (membership check) returns pending
-    // Second call (after acceptFoundingMember) returns one still pending owner
+    // First call (membership check) — caller is pending
+    // Second call (after acceptFoundingMember) — caller accepted, other owner still pending
     mocks.teamRepository.listFoundingAcceptances
-      .mockResolvedValueOnce([pendingAcceptance])
-      .mockResolvedValueOnce([{ ...pendingAcceptance, status: 'accepted' }]);
+      .mockResolvedValueOnce([pendingAcceptance, otherOwnerPending])
+      .mockResolvedValueOnce([
+        { ...pendingAcceptance, status: 'accepted', acceptedAt: new Date() },
+        otherOwnerPending,
+      ]);
     mocks.teamRepository.acceptFoundingMember.mockResolvedValue({
       ...pendingAcceptance,
       status: 'accepted',
+      acceptedAt: new Date(),
     });
 
     const res = await app.inject({
@@ -284,17 +293,20 @@ describe('POST /teams/:id/accept', () => {
       teamId: TEAM_ID,
       subjectId: OWNER_ID,
       role: 'owner',
-      status: 'pending',
+      status: 'pending' as const,
+      acceptedAt: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
     mocks.teamRepository.findById.mockResolvedValue(MOCK_FOUNDING_TEAM);
     mocks.teamRepository.listFoundingAcceptances
       .mockResolvedValueOnce([pendingAcceptance])
-      .mockResolvedValueOnce([{ ...pendingAcceptance, status: 'accepted' }]);
+      .mockResolvedValueOnce([
+        { ...pendingAcceptance, status: 'accepted', acceptedAt: new Date() },
+      ]);
     mocks.teamRepository.acceptFoundingMember.mockResolvedValue({
       ...pendingAcceptance,
       status: 'accepted',
+      acceptedAt: new Date(),
     });
 
     const res = await app.inject({
@@ -306,8 +318,8 @@ describe('POST /teams/:id/accept', () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    // Route returns actual DB status (founding); workflow activates async
-    expect(body).toMatchObject({ accepted: true, teamStatus: 'founding' });
+    // Route returns synthetic 'active' when all owners have accepted (workflow activates async)
+    expect(body).toMatchObject({ accepted: true, teamStatus: 'active' });
     expect(DBOS.send).toHaveBeenCalledWith(
       `founding-${TEAM_ID}`,
       true,
