@@ -10,6 +10,20 @@ GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$(dirname "$GIT_CONFI
 The token is cached locally (~1 hour lifetime, 5-min expiry buffer),
 so repeated calls are fast after the first API hit.
 
+## Worktree warning
+
+`GIT_CONFIG_GLOBAL` may be a **relative path** (e.g. `.moltnet/legreffier/gitconfig`).
+In git worktrees the CWD differs from the main worktree root, so `$(dirname "$GIT_CONFIG_GLOBAL")`
+resolves incorrectly and `no credentials found` is printed — the command then falls back to your
+personal `gh` token silently.
+
+**Always resolve to an absolute path first:**
+
+```bash
+CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"
+GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
+```
+
 ## Allowed `gh` subcommands
 
 The GitHub App only has these permissions:
