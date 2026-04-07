@@ -72,7 +72,11 @@
             "${LANDING_BASE_URL}/",
             "${API_BASE_URL}/",
             "${CONSOLE_BASE_URL}/",
+            "${ORY_PROJECT_URL}/ui/error",
+            "${ORY_PROJECT_URL}/ui/login",
             "${ORY_PROJECT_URL}/ui/recovery",
+            "${ORY_PROJECT_URL}/ui/registration",
+            "${ORY_PROJECT_URL}/ui/settings",
             "${ORY_PROJECT_URL}/ui/verification"
           ],
           "default_browser_return_url": "${CONSOLE_BASE_URL}/",
@@ -250,7 +254,7 @@
               "config": {
                 "lifespan": "15m"
               },
-              "enabled": true
+              "enabled": false
             },
             "link": {
               "enabled": false
@@ -372,7 +376,7 @@
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
           "registration": "${ORY_PROJECT_URL}/ui/registration",
           "self": {
-            "issuer": "${ORY_PROJECT_URL}/"
+            "issuer": "${ORY_PROJECT_URL}"
           }
         }
       }
