@@ -514,8 +514,17 @@ export async function publicRoutes(fastify: FastifyInstance) {
         },
       };
 
-      // HTML-escape the manifest for embedding in an attribute value
-      const manifestJson = JSON.stringify(manifest).replace(/"/g, '&quot;');
+      // HTML-escape for safe embedding in HTML contexts
+      const escapeHtml = (s: string) =>
+        s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+      // Escape for attribute value: & must come before " so &quot; isn't double-escaped
+      const manifestJson = escapeHtml(JSON.stringify(manifest));
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -533,7 +542,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
 </head>
 <body>
   <div class="card">
-    <h1>Create GitHub App for <em>${agentName}</em></h1>
+    <h1>Create GitHub App for <em>${escapeHtml(agentName)}</em></h1>
     <p>Click the button below to register your GitHub App.<br>You will be redirected to GitHub.</p>
     <form method="post" action="${org ? `https://github.com/organizations/${encodeURIComponent(org)}/settings/apps/new` : 'https://github.com/settings/apps/new'}?state=${encodeURIComponent(workflowId)}">
       <input type="hidden" name="manifest" value="${manifestJson}" />

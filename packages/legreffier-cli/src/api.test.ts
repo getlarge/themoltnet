@@ -1,3 +1,4 @@
+import * as apiClientModule from '@moltnet/api-client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -42,14 +43,26 @@ describe('startOnboarding', () => {
     expect(result.manifestFormUrl).toContain('github.com');
   });
 
-  it('accepts org and returns manifestFormUrl containing org param', async () => {
-    vi.stubGlobal('fetch', async () =>
-      makeResponse({
-        workflowId: 'wf-456',
-        manifestFormUrl:
-          'https://api.example.com/manifest/wf-456?name=my-agent&org=my-org',
-      }),
-    );
+  it('sends org in the request body when provided', async () => {
+    let capturedBody: unknown;
+    const spy = vi
+      .spyOn(apiClientModule, 'startLegreffierOnboarding')
+      .mockImplementation(async (opts) => {
+        capturedBody = opts.body;
+        return {
+          data: {
+            workflowId: 'wf-456',
+            manifestFormUrl:
+              'https://api.example.com/manifest/wf-456?name=my-agent&org=my-org',
+          },
+          error: undefined,
+          response: new Response(),
+        } as ReturnType<
+          typeof apiClientModule.startLegreffierOnboarding
+        > extends Promise<infer T>
+          ? T
+          : never;
+      });
 
     const result = await startOnboarding(BASE_URL, {
       publicKey: 'ed25519:abc',
@@ -58,26 +71,40 @@ describe('startOnboarding', () => {
       org: 'my-org',
     });
 
+    expect(spy).toHaveBeenCalledOnce();
+    expect(capturedBody).toMatchObject({ org: 'my-org' });
     expect(result.workflowId).toBe('wf-456');
     expect(result.manifestFormUrl).toContain('org=my-org');
   });
 
-  it('manifestFormUrl has no org param when org is omitted', async () => {
-    vi.stubGlobal('fetch', async () =>
-      makeResponse({
-        workflowId: 'wf-789',
-        manifestFormUrl:
-          'https://api.example.com/manifest/wf-789?name=my-agent',
-      }),
+  it('omits org from the request body when not provided', async () => {
+    let capturedBody: unknown;
+    vi.spyOn(apiClientModule, 'startLegreffierOnboarding').mockImplementation(
+      async (opts) => {
+        capturedBody = opts.body;
+        return {
+          data: {
+            workflowId: 'wf-789',
+            manifestFormUrl:
+              'https://api.example.com/manifest/wf-789?name=my-agent',
+          },
+          error: undefined,
+          response: new Response(),
+        } as ReturnType<
+          typeof apiClientModule.startLegreffierOnboarding
+        > extends Promise<infer T>
+          ? T
+          : never;
+      },
     );
 
-    const result = await startOnboarding(BASE_URL, {
+    await startOnboarding(BASE_URL, {
       publicKey: 'ed25519:abc',
       fingerprint: 'A1B2-C3D4-E5F6-G7H8',
       agentName: 'my-agent',
     });
 
-    expect(result.manifestFormUrl).not.toContain('org=');
+    expect(capturedBody).not.toHaveProperty('org');
   });
 
   it('throws on non-ok response', async () => {
