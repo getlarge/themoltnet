@@ -4,6 +4,7 @@ import {
   consolidateDiary,
   createDiary,
   createDiaryEntry,
+  createDiaryGrant,
   createSigningRequest,
   deleteDiary,
   deleteDiaryEntryById,
@@ -19,16 +20,21 @@ import {
   getPublicEntry,
   getPublicFeed,
   getSigningRequest,
+  getTeam,
   getTrustGraph,
   getWhoami,
   issueVoucher,
   listActiveVouchers,
   listDiaries,
   listDiaryEntries,
+  listDiaryGrants,
   listProblemTypes,
   listSigningRequests,
+  listTeamMembers,
+  listTeams,
   reflectDiary,
   requestRecoveryChallenge,
+  revokeDiaryGrant,
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
@@ -91,6 +97,12 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     getLegreffierOnboardingStatus: vi.fn(),
     listProblemTypes: vi.fn(),
     getProblemType: vi.fn(),
+    listTeams: vi.fn(),
+    getTeam: vi.fn(),
+    listTeamMembers: vi.fn(),
+    createDiaryGrant: vi.fn(),
+    listDiaryGrants: vi.fn(),
+    revokeDiaryGrant: vi.fn(),
   };
 });
 
@@ -950,6 +962,165 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await expect(agent.problems.list()).rejects.toThrow(MoltNetError);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // teams (read-only)
+  // -----------------------------------------------------------------------
+  describe('teams', () => {
+    it('teams.list calls listTeams', async () => {
+      const teamsData = {
+        items: [
+          {
+            id: 'team-1',
+            name: 'Builders',
+            personal: false,
+            status: 'active',
+            role: 'member',
+          },
+        ],
+      };
+      vi.mocked(listTeams).mockResolvedValueOnce({
+        data: teamsData,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.list();
+
+      expect(result).toEqual(teamsData);
+      expect(listTeams).toHaveBeenCalledWith(
+        expect.objectContaining({ client: mockClient }),
+      );
+    });
+
+    it('teams.get passes id as path param', async () => {
+      const teamDetail = {
+        id: 'team-1',
+        name: 'Builders',
+        status: 'active',
+        personal: false,
+        createdBy: 'owner-1',
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
+        members: [{ subjectId: 'agent-1', subjectNs: 'Agent', role: 'member' }],
+      };
+      vi.mocked(getTeam).mockResolvedValueOnce({
+        data: teamDetail,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.get('team-1');
+
+      expect(result).toEqual(teamDetail);
+      expect(getTeam).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'team-1' } }),
+      );
+    });
+
+    it('teams.listMembers passes id as path param', async () => {
+      const membersData = {
+        items: [{ subjectId: 'agent-1', subjectNs: 'Agent', role: 'member' }],
+      };
+      vi.mocked(listTeamMembers).mockResolvedValueOnce({
+        data: membersData,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.listMembers('team-1');
+
+      expect(result).toEqual(membersData);
+      expect(listTeamMembers).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'team-1' } }),
+      );
+    });
+
+    it('teams.list throws MoltNetError on error', async () => {
+      vi.mocked(listTeams).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(agent.teams.list()).rejects.toThrow(MoltNetError);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // diaryGrants
+  // -----------------------------------------------------------------------
+  describe('diaryGrants', () => {
+    const grantBody = {
+      subjectId: 'agent-1',
+      subjectNs: 'Agent' as const,
+      role: 'writer' as const,
+    };
+
+    it('diaryGrants.create passes diaryId and body', async () => {
+      vi.mocked(createDiaryGrant).mockResolvedValueOnce({
+        data: grantBody,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryGrants.create('diary-1', grantBody);
+
+      expect(result).toEqual(grantBody);
+      expect(createDiaryGrant).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          body: grantBody,
+        }),
+      );
+    });
+
+    it('diaryGrants.list passes diaryId as path param', async () => {
+      const grantsData = { grants: [grantBody] };
+      vi.mocked(listDiaryGrants).mockResolvedValueOnce({
+        data: grantsData,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryGrants.list('diary-1');
+
+      expect(result).toEqual(grantsData);
+      expect(listDiaryGrants).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'diary-1' } }),
+      );
+    });
+
+    it('diaryGrants.revoke passes diaryId and body', async () => {
+      vi.mocked(revokeDiaryGrant).mockResolvedValueOnce({
+        data: { revoked: true },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryGrants.revoke('diary-1', grantBody);
+
+      expect(result).toEqual({ revoked: true });
+      expect(revokeDiaryGrant).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          body: grantBody,
+        }),
+      );
+    });
+
+    it('diaryGrants.create throws MoltNetError on error', async () => {
+      vi.mocked(createDiaryGrant).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(
+        agent.diaryGrants.create('diary-1', grantBody),
+      ).rejects.toThrow(MoltNetError);
     });
   });
 

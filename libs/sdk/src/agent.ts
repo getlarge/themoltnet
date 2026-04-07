@@ -9,6 +9,7 @@ import type {
   ContextPackResponse,
   CreateDiaryData,
   CreateDiaryEntryData,
+  CreateDiaryGrantData,
   CryptoIdentity,
   CryptoVerifyResult,
   DiaryCatalog,
@@ -25,13 +26,17 @@ import type {
   GetLegreffierOnboardingStatusResponse,
   GetProblemTypeData,
   GetPublicFeedData,
+  GetTeamResponses,
   GetTrustGraphData,
   Health,
   ListDiariesData,
   ListDiaryEntriesData,
+  ListDiaryGrantsResponses,
   ListDiaryPacksData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
+  ListTeamMembersResponses,
+  ListTeamsResponses,
   NetworkInfo,
   ProvenanceGraph,
   PublicFeedEntry,
@@ -40,6 +45,7 @@ import type {
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
   ReflectDiaryData,
+  RevokeDiaryGrantData,
   RotateSecretResponse,
   SearchDiaryData,
   SearchPublicFeedData,
@@ -59,6 +65,7 @@ import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
 import { createCryptoNamespace } from './namespaces/crypto.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
+import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
 import { createLegreffierNamespace } from './namespaces/legreffier.js';
 import { createPacksNamespace } from './namespaces/packs.js';
@@ -66,6 +73,7 @@ import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
+import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
 import type { TokenManager } from './token.js';
 
@@ -256,12 +264,37 @@ export interface ProblemsNamespace {
   get(type: GetProblemTypeData['path']['type']): Promise<unknown>;
 }
 
+export interface TeamsNamespace {
+  list(): Promise<ListTeamsResponses[200]>;
+  get(id: string): Promise<GetTeamResponses[200]>;
+  listMembers(id: string): Promise<ListTeamMembersResponses[200]>;
+}
+
+export interface DiaryGrantsNamespace {
+  create(
+    diaryId: string,
+    body: CreateDiaryGrantData['body'],
+  ): Promise<{
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+    role: 'writer' | 'manager';
+  }>;
+
+  list(diaryId: string): Promise<ListDiaryGrantsResponses[200]>;
+
+  revoke(
+    diaryId: string,
+    body: RevokeDiaryGrantData['body'],
+  ): Promise<{ revoked: boolean }>;
+}
+
 // ---------------------------------------------------------------------------
 // Agent facade type
 // ---------------------------------------------------------------------------
 
 export interface Agent {
   diaries: DiariesNamespace;
+  diaryGrants: DiaryGrantsNamespace;
   packs: PacksNamespace;
   entries: EntriesNamespace;
   agents: AgentsNamespace;
@@ -272,6 +305,7 @@ export interface Agent {
   public: PublicNamespace;
   legreffier: LegreffierNamespace;
   problems: ProblemsNamespace;
+  teams: TeamsNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -295,6 +329,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const context: AgentContext = { client, auth };
 
   const diaries = createDiariesNamespace(context);
+  const diaryGrants = createDiaryGrantsNamespace(context);
   const packs = createPacksNamespace(context);
   const entries = createEntriesNamespace(context);
   const agents = createAgentsNamespace(context);
@@ -306,9 +341,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const publicNs = createPublicNamespace(context);
   const legreffierNs = createLegreffierNamespace(context);
   const problemsNs = createProblemsNamespace(context);
+  const teams = createTeamsNamespace(context);
 
   return {
     diaries,
+    diaryGrants,
     packs,
     entries,
     agents,
@@ -319,6 +356,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     public: publicNs,
     legreffier: legreffierNs,
     problems: problemsNs,
+    teams,
     client,
     getToken: () => tokenManager.getToken(),
   };

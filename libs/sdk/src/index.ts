@@ -4,6 +4,7 @@ export type {
   AuthNamespace,
   CryptoNamespace,
   DiariesNamespace,
+  DiaryGrantsNamespace,
   EntriesNamespace,
   LegreffierNamespace,
   PacksNamespace,
@@ -11,6 +12,7 @@ export type {
   PublicNamespace,
   RecoveryNamespace,
   SigningRequestsNamespace,
+  TeamsNamespace,
   VouchNamespace,
 } from './agent.js';
 export { createAgent } from './agent.js';
