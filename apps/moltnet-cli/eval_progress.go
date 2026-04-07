@@ -75,16 +75,18 @@ func (pt *progressTracker) addTrial(name string) *trialBar {
 	tb.phase.Store(phaseSettingUp)
 
 	if pt.isTTY && pt.p != nil {
+		// Layout: <spinner> <name> <phase>        <elapsed>
+		// Spinner is the bar filler and sits between prepend and append
+		// decorators. Leaving prepend empty puts it at column 0.
 		tb.bar = pt.p.AddSpinner(
 			0,
-			mpb.PrependDecorators(
-				decor.Name(name, decor.WC{W: len(name) + 2, C: decor.DindentRight}),
+			mpb.BarWidth(1),
+			mpb.AppendDecorators(
+				decor.Name(" "+name+" ", decor.WC{W: len(name) + 2}),
 				decor.Any(func(s decor.Statistics) string {
 					p, _ := tb.phase.Load().(string)
 					return p
-				}, decor.WC{W: 20, C: decor.DindentRight}),
-			),
-			mpb.AppendDecorators(
+				}, decor.WC{W: 28, C: decor.DindentRight}),
 				decor.Elapsed(decor.ET_STYLE_MMSS, decor.WC{W: 8}),
 			),
 		)

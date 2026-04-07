@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -1068,11 +1069,20 @@ func gitOutput(cwd string, args ...string) (string, error) {
 }
 
 func gitRun(cwd string, args ...string) error {
+	// Buffer git's output so its "Preparing worktree (...)" lines don't
+	// interleave with mpb's cursor-movement redraws. Only emit on error.
 	cmd := exec.Command("git", args...)
 	cmd.Dir = cwd
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	if err := cmd.Run(); err != nil {
+		if buf.Len() > 0 {
+			fmt.Fprint(os.Stderr, buf.String())
+		}
+		return err
+	}
+	return nil
 }
 
 func neutralizeDSPYEvalWorktree(worktreeDir string, filter dspyWorktreeFilter) error {
