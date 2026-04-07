@@ -484,6 +484,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw err;
       }
 
+      // Also require manage permission on the source team
+      const canManageSourceTeam = await fastify.permissionChecker.canManageTeam(
+        diary.teamId,
+        identityId,
+        subjectNs,
+      );
+      if (!canManageSourceTeam) throw createProblem('forbidden');
+
       const { destinationTeamId } = request.body;
 
       // Check no pending transfer exists

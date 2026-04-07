@@ -89,7 +89,9 @@ export function createDiaryTransferRepository(
       const [row] = await getExecutor(db)
         .update(diaryTransfers)
         .set({ status, updatedAt: now, resolvedAt: now })
-        .where(eq(diaryTransfers.id, id))
+        .where(
+          and(eq(diaryTransfers.id, id), eq(diaryTransfers.status, 'pending')),
+        )
         .returning();
       return row ?? null;
     },

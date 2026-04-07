@@ -689,13 +689,22 @@ export async function teamRoutes(fastify: FastifyInstance) {
 
       const team = await fastify.teamRepository.findById(id);
       if (!team) throw createProblem('not-found');
-      if (team.status !== 'founding') throw createProblem('team-not-founding');
+      if (team.status !== 'founding') {
+        // Don't leak existence to non-members — check membership first
+        const acceptances =
+          await fastify.teamRepository.listFoundingAcceptances(id);
+        const myAcceptance = acceptances.find(
+          (a) => a.subjectId === identityId,
+        );
+        if (!myAcceptance) throw createProblem('not-found');
+        throw createProblem('team-not-founding');
+      }
 
-      // Check caller is a founding member
+      // Team is in founding status — check membership
       const acceptances =
         await fastify.teamRepository.listFoundingAcceptances(id);
       const myAcceptance = acceptances.find((a) => a.subjectId === identityId);
-      if (!myAcceptance) throw createProblem('forbidden');
+      if (!myAcceptance) throw createProblem('not-found');
       if (myAcceptance.status === 'accepted')
         throw createProblem('founding-already-accepted');
 

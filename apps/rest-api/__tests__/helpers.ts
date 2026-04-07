@@ -22,6 +22,7 @@ import type {
   DataSource,
   DiaryEntryRepository,
   DiaryService,
+  DiaryTransferRepository,
   EmbeddingService,
   GroupRepository,
   HumanRepository,
@@ -201,6 +202,14 @@ export interface MockServices {
   };
   groupRepository: { [K in keyof GroupRepository]: ReturnType<typeof vi.fn> };
   teamRepository: { [K in keyof TeamRepository]: ReturnType<typeof vi.fn> };
+  diaryTransferRepository: {
+    create: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+    findByWorkflowId: ReturnType<typeof vi.fn>;
+    findPendingByDiary: ReturnType<typeof vi.fn>;
+    updateStatus: ReturnType<typeof vi.fn>;
+    listPendingByDestinationTeam: ReturnType<typeof vi.fn>;
+  };
   relationshipReader: {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
   };
@@ -403,6 +412,17 @@ export function createMockServices(): MockServices {
       deleteInvite: vi.fn(),
       deleteInviteByTeam: vi.fn(),
       revertInviteClaim: vi.fn().mockResolvedValue(null),
+      createFoundingAcceptance: vi.fn(),
+      listFoundingAcceptances: vi.fn().mockResolvedValue([]),
+      acceptFoundingMember: vi.fn(),
+    },
+    diaryTransferRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findByWorkflowId: vi.fn(),
+      findPendingByDiary: vi.fn().mockResolvedValue(null),
+      updateStatus: vi.fn(),
+      listPendingByDestinationTeam: vi.fn().mockResolvedValue([]),
     },
     relationshipReader: {
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
@@ -493,6 +513,8 @@ export async function createTestApp(
       findPersonalTeamId: async () => null,
     },
     teamRepository: mocks.teamRepository as never,
+    diaryTransferRepository:
+      mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
     groupRepository: mocks.groupRepository as never,
     relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',
