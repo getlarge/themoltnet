@@ -57,19 +57,26 @@ func NewSignature() core.Signature {
 			{Field: core.Field{Name: "criteria_json", Description: "Weighted checklist criteria as JSON"}},
 		},
 		[]core.OutputField{
-			{Field: core.Field{Name: "scores_json", Description: "JSON array of criterion objects with name, score, max_score, and evidence"}},
+			// scores_json MUST be a JSON-serialized string (not an inline object/array).
+			// The description is surfaced verbatim in the prompt — keep it explicit.
+			{Field: core.Field{Name: "scores_json", Description: `A JSON-serialized string containing a JSON array — one object per criterion. Each object MUST have exactly these four keys: "name" (string), "score" (number), "max_score" (number), "evidence" (string). Example value: "[{\"name\":\"criterion\",\"score\":1,\"max_score\":2,\"evidence\":\"seen in file.go\"}]"`}},
 			{Field: core.Field{Name: "reasoning", Description: "Short explanation of how the checklist was applied"}},
 		},
 	).WithInstruction(`You are an eval judge. Score the agent output against the weighted checklist criteria.
 
 Use only the workspace summary you were given.
 
-Return scores_json as a JSON array:
+You MUST populate the scores_json field. It must be a JSON string (not a nested object) containing a JSON array with one entry per criterion:
 [
-  { "name": "criterion name", "score": <number>, "max_score": <number>, "evidence": "one sentence" }
+  { "name": "criterion name", "score": 1, "max_score": 2, "evidence": "one sentence citing specific evidence" }
 ]
 
-Each score must be between 0 and max_score inclusive.`)
+Rules:
+- Every criterion from criteria_json must appear in the array (same name, exact match).
+- score must be a number between 0 and max_score inclusive.
+- evidence must be a non-empty string.
+- scores_json must be valid JSON — no trailing commas, no comments.
+- If the workspace is empty or unhelpful, score all criteria 0 with evidence "no evidence found".`)
 }
 
 func Run(ctx context.Context, req Request) (*Result, error) {
@@ -132,9 +139,28 @@ func Run(ctx context.Context, req Request) (*Result, error) {
 	return out, nil
 }
 
+// rawPreview returns up to 200 characters of a value's string representation
+// for inclusion in error messages.
+func rawPreview(v any) string {
+	var s string
+	switch val := v.(type) {
+	case string:
+		s = val
+	case nil:
+		return "<nil>"
+	default:
+		b, _ := json.Marshal(val)
+		s = string(b)
+	}
+	if len(s) > 200 {
+		return s[:200] + "..."
+	}
+	return s
+}
+
 func parseScores(raw any) ([]ScoredCriterion, error) {
 	if raw == nil {
-		return nil, dspyerrors.New(dspyerrors.InvalidResponse, "checklist judge missing scores_json")
+		return nil, dspyerrors.New(dspyerrors.InvalidResponse, "checklist judge missing scores_json (got nil)")
 	}
 
 	var payload []byte
@@ -142,20 +168,26 @@ func parseScores(raw any) ([]ScoredCriterion, error) {
 	case string:
 		text := strings.TrimSpace(val)
 		if text == "" {
-			return nil, dspyerrors.New(dspyerrors.InvalidResponse, "checklist judge missing scores_json")
+			return nil, dspyerrors.New(dspyerrors.InvalidResponse, "checklist judge missing scores_json (got empty string)")
 		}
 		payload = []byte(text)
 	default:
 		var err error
 		payload, err = json.Marshal(val)
 		if err != nil {
-			return nil, dspyerrors.Wrap(err, dspyerrors.InvalidResponse, "invalid checklist scores_json")
+			return nil, dspyerrors.Wrap(err, dspyerrors.InvalidResponse,
+				fmt.Sprintf("invalid checklist scores_json (got %T: %s)", raw, rawPreview(raw)))
 		}
 	}
 
 	var items []ScoredCriterion
 	if err := json.Unmarshal(payload, &items); err != nil {
-		return nil, dspyerrors.Wrap(err, dspyerrors.InvalidResponse, "invalid checklist scores_json")
+		preview := string(payload)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		return nil, dspyerrors.Wrap(err, dspyerrors.InvalidResponse,
+			fmt.Sprintf("invalid checklist scores_json: %s", preview))
 	}
 	for _, item := range items {
 		if strings.TrimSpace(item.Name) == "" {
@@ -165,6 +197,12 @@ func parseScores(raw any) ([]ScoredCriterion, error) {
 			return nil, dspyerrors.New(
 				dspyerrors.InvalidResponse,
 				fmt.Sprintf("checklist score out of range for %q", item.Name),
+			)
+		}
+		if strings.TrimSpace(item.Evidence) == "" {
+			return nil, dspyerrors.New(
+				dspyerrors.InvalidResponse,
+				fmt.Sprintf("checklist judge returned empty evidence for %q", item.Name),
 			)
 		}
 	}

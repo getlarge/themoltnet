@@ -71,6 +71,13 @@ func newDefaultDSPYWorktreeFilter() dspyWorktreeFilter {
 	}
 }
 
+// newDSPYWorktreeFilter merges user-supplied --worktree-exclude globs with the
+// default filter. Currently additive only: user globs extend the defaults.
+//
+// TODO: consider making this a replace/absolute mode so users can provide the
+// complete exclude list when they want full control (e.g. to preserve their own
+// CLAUDE.md or AGENTS.md from the repo). Right now the defaults always apply
+// and user globs can only add more paths to remove.
 func newDSPYWorktreeFilter(opts evalRunOpts) dspyWorktreeFilter {
 	filter := newDefaultDSPYWorktreeFilter()
 	for _, glob := range opts.worktreeExcludes {
@@ -911,6 +918,12 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if tb != nil {
 		tb.setPhase(phaseAgentRunning)
 	}
+	if withContext && strings.TrimSpace(input.packMD) != "" {
+		if err := writeDSPYEvalPackToDisk(worktreeDir, input.packMD); err != nil {
+			return nil, fmt.Errorf("write pack to disk: %w", err)
+		}
+	}
+
 	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
 	model := input.model
 	if model == "" {
@@ -1216,12 +1229,48 @@ func buildDSPYEvalPrompt(task string, withContext bool, pack string) string {
 	b.WriteString("- Create or update files needed to complete the task.\n")
 	b.WriteString("- When finished, briefly summarize what you changed.\n\n")
 	if withContext && strings.TrimSpace(pack) != "" {
-		b.WriteString("Context pack:\n")
-		b.WriteString(pack)
-		b.WriteString("\n\n")
+		b.WriteString("A context pack has been written to context-pack.md in your working directory.\n\n")
 	}
 	b.WriteString(task)
 	return b.String()
+}
+
+// writeDSPYEvalPackToDisk writes the context pack to disk in the worktree so
+// both the agent and the judge can observe what context was provided.
+//
+// Three files are written:
+//   - context-pack.md — canonical pack content; picked up by the workspace
+//     snapshot so the judge sees exactly what was provided to the agent.
+//   - .claude/CLAUDE.md — @-imports context-pack.md so Claude Code loads it as
+//     project context automatically. Written under .claude/ to match the
+//     established scaffoldTask pattern used by the Harbor adapter.
+//   - AGENTS.md — inline copy of the pack content; Codex reads AGENTS.md as
+//     its system context but does not support the @file import syntax.
+//
+// The neutralizer always removes CLAUDE.md, AGENTS.md, and .claude/** from the
+// cloned worktree before this runs, so these writes are always clean (no risk
+// of appending to or clobbering the repo's own config files).
+func writeDSPYEvalPackToDisk(worktreeDir, packMD string) error {
+	packContent := "# Context Pack\n\n" + packMD
+
+	if err := os.WriteFile(filepath.Join(worktreeDir, "context-pack.md"), []byte(packContent), 0o644); err != nil {
+		return fmt.Errorf("write context-pack.md: %w", err)
+	}
+	// Claude Code supports @file imports; write under .claude/ to match the
+	// scaffoldTask convention used in the Harbor adapter.
+	claudeDir := filepath.Join(worktreeDir, ".claude")
+	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir .claude: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(claudeDir, "CLAUDE.md"), []byte("@../context-pack.md\n"), 0o644); err != nil {
+		return fmt.Errorf("write .claude/CLAUDE.md: %w", err)
+	}
+	// Codex does not support @file imports in AGENTS.md (openai/codex#6038,
+	// openai/codex#13386), so inline the content directly.
+	if err := os.WriteFile(filepath.Join(worktreeDir, "AGENTS.md"), []byte(packContent), 0o644); err != nil {
+		return fmt.Errorf("write AGENTS.md: %w", err)
+	}
+	return nil
 }
 
 type dspyAgentRunResult struct {

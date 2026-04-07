@@ -3,6 +3,7 @@ package checklist
 import (
 	"context"
 	stderrors "errors"
+	"strings"
 	"testing"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
@@ -21,6 +22,54 @@ func TestParseScoresAcceptsJSONString(t *testing.T) {
 	}
 	if items[0].Name != "Criterion A" {
 		t.Fatalf("unexpected item: %+v", items[0])
+	}
+}
+
+func TestParseScoresNilIncludesContext(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseScores(nil)
+	if err == nil {
+		t.Fatal("expected error for nil scores_json")
+	}
+	if !strings.Contains(err.Error(), "nil") {
+		t.Fatalf("error should mention nil, got: %v", err)
+	}
+}
+
+func TestParseScoresEmptyStringIncludesContext(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseScores("")
+	if err == nil {
+		t.Fatal("expected error for empty scores_json")
+	}
+	if !strings.Contains(err.Error(), "empty string") {
+		t.Fatalf("error should mention empty string, got: %v", err)
+	}
+}
+
+func TestParseScoresInvalidJSONIncludesPreview(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseScores("not json at all")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+	if !strings.Contains(err.Error(), "not json at all") {
+		t.Fatalf("error should include raw preview, got: %v", err)
+	}
+}
+
+func TestParseScoresEmptyEvidenceIncludesName(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseScores(`[{"name":"Criterion A","score":1,"max_score":2,"evidence":""}]`)
+	if err == nil {
+		t.Fatal("expected error for empty evidence")
+	}
+	if !strings.Contains(err.Error(), "Criterion A") {
+		t.Fatalf("error should mention criterion name, got: %v", err)
 	}
 }
 
