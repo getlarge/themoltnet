@@ -10,21 +10,22 @@
  * Requires: `docker compose -f docker-compose.e2e.yaml up -d --build`
  */
 
-import { type Client, createClient, createDiary } from '@moltnet/api-client';
+import {
+  acceptTeamFounding,
+  acceptTransfer,
+  type Client,
+  createClient,
+  createDiary,
+  createTeam,
+  initiateTransfer,
+  listPendingTransfers,
+  listTeams,
+  rejectTransfer,
+} from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
-
-// ── Helper: raw fetch with bearer auth ───────────────────────────────────────
-
-function authHeaders(token: string): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-}
 
 // ── Team Founding ─────────────────────────────────────────────────────────────
 
@@ -66,39 +67,36 @@ describe('Team Governance', () => {
 
   describe('POST /teams — founding workflow', () => {
     it('creates a team in founding status when foundingMembers are provided', async () => {
-      const res = await fetch(`${harness.baseUrl}/teams`, {
-        method: 'POST',
-        headers: authHeaders(agentA.accessToken),
-        body: JSON.stringify({
+      const { data, error, response } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: {
           name: 'founding-test-team',
           foundingMembers: [
             { subjectId: agentB.identityId, subjectNs: 'Agent', role: 'owner' },
           ],
-        }),
+        },
       });
 
-      expect(res.status).toBe(202);
-      const body = (await res.json()) as {
-        id: string;
-        status: string;
-        workflowId: string;
-      };
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(202);
+      const body = data as { id: string; status: string; workflowId: string };
       expect(body.status).toBe('founding');
       expect(body.id).toBeDefined();
       expect(body.workflowId).toBeDefined();
     });
 
     it('creates a regular team instantly when no foundingMembers', async () => {
-      const res = await fetch(`${harness.baseUrl}/teams`, {
-        method: 'POST',
-        headers: authHeaders(agentA.accessToken),
-        body: JSON.stringify({ name: 'instant-team' }),
+      const { data, error, response } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'instant-team' },
       });
 
-      expect(res.status).toBe(201);
-      const body = (await res.json()) as { id: string; name: string };
-      expect(body.id).toBeDefined();
-      expect(body.name).toBe('instant-team');
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(201);
+      expect(data!.id).toBeDefined();
+      expect(data!.name).toBe('instant-team');
     });
   });
 
@@ -108,122 +106,108 @@ describe('Team Governance', () => {
     let foundingTeamId: string;
 
     beforeAll(async () => {
-      // agentA creates a founding team with agentB as co-owner
-      const res = await fetch(`${harness.baseUrl}/teams`, {
-        method: 'POST',
-        headers: authHeaders(agentA.accessToken),
-        body: JSON.stringify({
+      const { data, response } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: {
           name: `founding-accept-${Date.now()}`,
           foundingMembers: [
             { subjectId: agentB.identityId, subjectNs: 'Agent', role: 'owner' },
           ],
-        }),
+        },
       });
-      expect(res.status).toBe(202);
-      const body = (await res.json()) as { id: string };
-      foundingTeamId = body.id;
+      expect(response.status).toBe(202);
+      foundingTeamId = (data as { id: string }).id;
     });
 
     it('outsider probing a founding team gets 404 — no existence leak', async () => {
-      const res = await fetch(
-        `${harness.baseUrl}/teams/${foundingTeamId}/accept`,
-        {
-          method: 'POST',
-          headers: authHeaders(agentC.accessToken),
-          body: JSON.stringify({}),
-        },
-      );
+      const { response } = await acceptTeamFounding({
+        client,
+        auth: () => agentC.accessToken,
+        path: { id: foundingTeamId },
+        body: {},
+      });
 
-      expect(res.status).toBe(404);
+      expect(response.status).toBe(404);
     });
 
     it('agentB (co-founder) can accept their founding role', async () => {
-      const res = await fetch(
-        `${harness.baseUrl}/teams/${foundingTeamId}/accept`,
-        {
-          method: 'POST',
-          headers: authHeaders(agentB.accessToken),
-          body: JSON.stringify({}),
-        },
-      );
+      const { data, error, response } = await acceptTeamFounding({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: foundingTeamId },
+        body: {},
+      });
 
-      expect(res.status).toBe(200);
-      const body = (await res.json()) as {
-        accepted: boolean;
-        teamStatus: string;
-      };
-      expect(body.accepted).toBe(true);
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.accepted).toBe(true);
       // agentA (creator) hasn't accepted yet — still founding
-      expect(body.teamStatus).toBe('founding');
+      expect(data!.teamStatus).toBe('founding');
     });
 
     it('agentA (creator) accepting signals all-accepted — workflow activates team async', async () => {
-      const res = await fetch(
-        `${harness.baseUrl}/teams/${foundingTeamId}/accept`,
-        {
-          method: 'POST',
-          headers: authHeaders(agentA.accessToken),
-          body: JSON.stringify({}),
-        },
-      );
+      const { data, error, response } = await acceptTeamFounding({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: foundingTeamId },
+        body: {},
+      });
 
-      expect(res.status).toBe(200);
-      const body = (await res.json()) as {
-        accepted: boolean;
-        teamStatus: string;
-      };
-      expect(body.accepted).toBe(true);
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.accepted).toBe(true);
       // Route returns actual DB status (founding); workflow activates async
-      expect(body.teamStatus).toBe('founding');
+      expect(data!.teamStatus).toBe('founding');
     });
 
     it('accepting twice returns 409', async () => {
-      // agentB already accepted above
-      const res = await fetch(
-        `${harness.baseUrl}/teams/${foundingTeamId}/accept`,
-        {
-          method: 'POST',
-          headers: authHeaders(agentB.accessToken),
-          body: JSON.stringify({}),
-        },
-      );
-
-      expect(res.status).toBe(409);
+      // agentB already accepted above — poll until workflow has committed accepted status
+      for (let i = 0; i < 20; i++) {
+        const { response } = await acceptTeamFounding({
+          client,
+          auth: () => agentB.accessToken,
+          path: { id: foundingTeamId },
+          body: {},
+        });
+        if (response.status === 409) {
+          expect(response.status).toBe(409);
+          return;
+        }
+        await new Promise<void>((r) => {
+          setTimeout(r, 300);
+        });
+      }
+      throw new Error('Expected 409 after repeated accept but never got it');
     });
 
-    it('accepts token is required — unauthenticated gets 401', async () => {
-      const res = await fetch(
-        `${harness.baseUrl}/teams/${foundingTeamId}/accept`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        },
-      );
+    it('unauthenticated gets 401', async () => {
+      const { response } = await acceptTeamFounding({
+        client,
+        path: { id: foundingTeamId },
+        body: {},
+      });
 
-      expect(res.status).toBe(401);
+      expect(response.status).toBe(401);
     });
   });
 
   // ── Personal Team Limitation ──────────────────────────────────────────────
 
   describe('personal team restrictions', () => {
-    it('cannot create a project team named after an existing personal team', async () => {
-      // personal teams are auto-created at registration — just verify
-      // the personal flag is set and cannot be transferred to
-      const teamsRes = await fetch(`${harness.baseUrl}/teams`, {
-        headers: authHeaders(agentA.accessToken),
+    it('registration auto-creates a personal team for each agent', async () => {
+      const { data, error, response } = await listTeams({
+        client,
+        auth: () => agentA.accessToken,
       });
-      expect(teamsRes.status).toBe(200);
-      const { items } = (await teamsRes.json()) as {
-        items: Array<{ personal: boolean; id: string; status: string }>;
-      };
-      const personal = items.find((t) => t.personal);
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      const personal = data!.items.find(
+        (t: { personal: boolean }) => t.personal,
+      );
       expect(personal).toBeDefined();
       expect(personal!.status).toBe('active');
-
-      // Attempting to transfer a diary to a personal team should be rejected
-      // — this is tested in detail in the transfer section below
     });
   });
 
@@ -235,25 +219,22 @@ describe('Team Governance', () => {
     let diaryId: string; // agentA's diary on sourceTeam
 
     beforeAll(async () => {
-      // Create source project team for agentA
-      const srcRes = await fetch(`${harness.baseUrl}/teams`, {
-        method: 'POST',
-        headers: authHeaders(agentA.accessToken),
-        body: JSON.stringify({ name: `source-team-${Date.now()}` }),
+      const { data: srcData, response: srcRes } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: `source-team-${Date.now()}` },
       });
       expect(srcRes.status).toBe(201);
-      sourceTeamId = ((await srcRes.json()) as { id: string }).id;
+      sourceTeamId = srcData!.id;
 
-      // Create destination project team for agentB
-      const dstRes = await fetch(`${harness.baseUrl}/teams`, {
-        method: 'POST',
-        headers: authHeaders(agentB.accessToken),
-        body: JSON.stringify({ name: `dest-team-${Date.now()}` }),
+      const { data: dstData, response: dstRes } = await createTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { name: `dest-team-${Date.now()}` },
       });
       expect(dstRes.status).toBe(201);
-      destTeamId = ((await dstRes.json()) as { id: string }).id;
+      destTeamId = dstData!.id;
 
-      // Create a diary on sourceTeam
       const { data, error } = await createDiary({
         client,
         auth: () => agentA.accessToken,
@@ -268,91 +249,67 @@ describe('Team Governance', () => {
 
     describe('POST /diaries/:id/transfer', () => {
       it('rejects unauthenticated requests with 401', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${diaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(401);
+        const { response } = await initiateTransfer({
+          client,
+          path: { id: diaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(401);
       });
 
       it('non-diary-manager cannot initiate a transfer', async () => {
-        // agentC has no access to the diary
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${diaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentC.accessToken),
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(403);
+        const { response } = await initiateTransfer({
+          client,
+          auth: () => agentC.accessToken,
+          path: { id: diaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(403);
       });
 
       it('cannot transfer to a personal team', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${diaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentA.accessToken),
-            body: JSON.stringify({
-              destinationTeamId: agentB.personalTeamId,
-            }),
-          },
-        );
-        // personal team → 400 team-personal-immutable
-        expect(res.status).toBe(400);
+        const { response } = await initiateTransfer({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: diaryId },
+          body: { destinationTeamId: agentB.personalTeamId },
+        });
+        expect(response.status).toBe(400);
       });
 
       it('source team non-owner cannot initiate even with diary manage access', async () => {
-        // agentB is not a member of sourceTeam — no diary manage on source team
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${diaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentB.accessToken),
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(403);
+        const { response } = await initiateTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { id: diaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(403);
       });
 
       it('agentA initiates a transfer — returns 202 with transfer record', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${diaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentA.accessToken),
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(202);
-        const body = (await res.json()) as {
-          id: string;
-          status: string;
-          diaryId: string;
-          sourceTeamId: string;
-          destinationTeamId: string;
-        };
-        expect(body.status).toBe('pending');
-        expect(body.diaryId).toBe(diaryId);
-        expect(body.sourceTeamId).toBe(sourceTeamId);
-        expect(body.destinationTeamId).toBe(destTeamId);
+        const { data, error, response } = await initiateTransfer({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: diaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(202);
+        expect(error).toBeUndefined();
+        expect(data!.status).toBe('pending');
+        expect(data!.diaryId).toBe(diaryId);
+        expect(data!.sourceTeamId).toBe(sourceTeamId);
+        expect(data!.destinationTeamId).toBe(destTeamId);
       });
 
       it('duplicate transfer initiation returns 409', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${diaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentA.accessToken),
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(409);
+        const { response } = await initiateTransfer({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: diaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(409);
       });
     });
 
@@ -360,46 +317,45 @@ describe('Team Governance', () => {
 
     describe('GET /transfers', () => {
       it('destination team owner sees pending transfer', async () => {
-        const res = await fetch(`${harness.baseUrl}/transfers`, {
-          headers: authHeaders(agentB.accessToken),
+        const { data, error, response } = await listPendingTransfers({
+          client,
+          auth: () => agentB.accessToken,
         });
-        expect(res.status).toBe(200);
-        const body = (await res.json()) as {
-          items: Array<{ diaryId: string; status: string }>;
-        };
-        const transfer = body.items.find((t) => t.diaryId === diaryId);
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        const transfer = data!.items.find(
+          (t: { diaryId: string }) => t.diaryId === diaryId,
+        );
         expect(transfer).toBeDefined();
         expect(transfer!.status).toBe('pending');
       });
 
-      it('source team owner does not see their outgoing transfers here', async () => {
-        // /transfers lists incoming transfers for teams you own
-        // agentA owns sourceTeam, not destTeam — so this should not show the transfer
-        const res = await fetch(`${harness.baseUrl}/transfers`, {
-          headers: authHeaders(agentA.accessToken),
+      it('source team owner does not see outgoing transfers via this endpoint', async () => {
+        const { data, error, response } = await listPendingTransfers({
+          client,
+          auth: () => agentA.accessToken,
         });
-        expect(res.status).toBe(200);
-        const body = (await res.json()) as {
-          items: Array<{ diaryId: string }>;
-        };
-        // agentA's sourceTeam is not a destination, so no pending for them
-        const found = body.items.find((t) => t.diaryId === diaryId);
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        const found = data!.items.find(
+          (t: { diaryId: string }) => t.diaryId === diaryId,
+        );
         expect(found).toBeUndefined();
       });
 
       it('outsider gets empty list', async () => {
-        const res = await fetch(`${harness.baseUrl}/transfers`, {
-          headers: authHeaders(agentC.accessToken),
+        const { data, error, response } = await listPendingTransfers({
+          client,
+          auth: () => agentC.accessToken,
         });
-        expect(res.status).toBe(200);
-        const body = (await res.json()) as { items: unknown[] };
-        // agentC owns their personal team only, and it has no incoming transfers
-        expect(Array.isArray(body.items)).toBe(true);
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        expect(Array.isArray(data!.items)).toBe(true);
       });
 
       it('unauthenticated gets 401', async () => {
-        const res = await fetch(`${harness.baseUrl}/transfers`);
-        expect(res.status).toBe(401);
+        const { response } = await listPendingTransfers({ client });
+        expect(response.status).toBe(401);
       });
     });
 
@@ -410,7 +366,6 @@ describe('Team Governance', () => {
       let rejectDiaryId: string;
 
       beforeAll(async () => {
-        // Create a separate diary for the reject sub-suite
         const { data } = await createDiary({
           client,
           auth: () => agentA.accessToken,
@@ -422,49 +377,41 @@ describe('Team Governance', () => {
         });
         rejectDiaryId = data!.id;
 
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${rejectDiaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentA.accessToken),
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(202);
-        transferId = ((await res.json()) as { id: string }).id;
+        const { data: transferData, response } = await initiateTransfer({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: rejectDiaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(202);
+        transferId = transferData!.id;
       });
 
       it('non-destination-owner cannot reject', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/transfers/${transferId}/reject`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentC.accessToken),
-            body: JSON.stringify({}),
-          },
-        );
-        expect(res.status).toBe(403);
+        const { response } = await rejectTransfer({
+          client,
+          auth: () => agentC.accessToken,
+          path: { transferId },
+        });
+        expect(response.status).toBe(403);
       });
 
       it('agentB (destination owner) rejects — decision sent to workflow', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/transfers/${transferId}/reject`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentB.accessToken),
-            body: JSON.stringify({}),
-          },
-        );
-        expect(res.status).toBe(200);
+        const { data, error, response } = await rejectTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { transferId },
+        });
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
         // Workflow updates status async; route returns original transfer
-        const body = (await res.json()) as { id: string };
-        expect(body.id).toBe(transferId);
+        expect(data!.id).toBe(transferId);
       });
 
       it('diary remains on source team after rejection', async () => {
-        // Fetch diary via api-client and verify teamId is still sourceTeamId
+        // Use raw fetch — getDiary is in the client but it doesn't expose teamId
         const res = await fetch(`${harness.baseUrl}/diaries/${rejectDiaryId}`, {
-          headers: authHeaders(agentA.accessToken),
+          headers: { Authorization: `Bearer ${agentA.accessToken}` },
         });
         expect(res.status).toBe(200);
         const body = (await res.json()) as { teamId: string };
@@ -472,18 +419,14 @@ describe('Team Governance', () => {
       });
 
       it('rejecting an already-resolved transfer returns 409', async () => {
-        // Poll until the workflow has committed the rejected status
         for (let i = 0; i < 20; i++) {
-          const res = await fetch(
-            `${harness.baseUrl}/transfers/${transferId}/reject`,
-            {
-              method: 'POST',
-              headers: authHeaders(agentB.accessToken),
-              body: JSON.stringify({}),
-            },
-          );
-          if (res.status === 409) {
-            expect(res.status).toBe(409);
+          const { response } = await rejectTransfer({
+            client,
+            auth: () => agentB.accessToken,
+            path: { transferId },
+          });
+          if (response.status === 409) {
+            expect(response.status).toBe(409);
             return;
           }
           await new Promise<void>((r) => {
@@ -501,7 +444,6 @@ describe('Team Governance', () => {
       let acceptDiaryId: string;
 
       beforeAll(async () => {
-        // Create a fresh diary for the accept sub-suite
         const { data } = await createDiary({
           client,
           auth: () => agentA.accessToken,
@@ -513,59 +455,50 @@ describe('Team Governance', () => {
         });
         acceptDiaryId = data!.id;
 
-        const res = await fetch(
-          `${harness.baseUrl}/diaries/${acceptDiaryId}/transfer`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentA.accessToken),
-            body: JSON.stringify({ destinationTeamId: destTeamId }),
-          },
-        );
-        expect(res.status).toBe(202);
-        transferId = ((await res.json()) as { id: string }).id;
+        const { data: transferData, response } = await initiateTransfer({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: acceptDiaryId },
+          body: { destinationTeamId: destTeamId },
+        });
+        expect(response.status).toBe(202);
+        transferId = transferData!.id;
       });
 
       it('non-destination-owner cannot accept', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/transfers/${transferId}/accept`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentC.accessToken),
-            body: JSON.stringify({}),
-          },
-        );
-        expect(res.status).toBe(403);
+        const { response } = await acceptTransfer({
+          client,
+          auth: () => agentC.accessToken,
+          path: { transferId },
+        });
+        expect(response.status).toBe(403);
       });
 
-      it('agentB accepts — decision sent to workflow (202-style async)', async () => {
-        const res = await fetch(
-          `${harness.baseUrl}/transfers/${transferId}/accept`,
-          {
-            method: 'POST',
-            headers: authHeaders(agentB.accessToken),
-            body: JSON.stringify({}),
-          },
-        );
-        expect(res.status).toBe(200);
+      it('agentB accepts — decision sent to workflow (async)', async () => {
+        const { data, error, response } = await acceptTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { transferId },
+        });
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
         // Workflow updates status async; route returns original transfer
-        const body = (await res.json()) as { id: string };
-        expect(body.id).toBe(transferId);
+        expect(data!.id).toBe(transferId);
       });
 
       it('diary teamId is now destTeamId after acceptance', async () => {
-        // Poll briefly — the DBOS workflow may swap the teamId asynchronously
+        // Poll briefly — the DBOS workflow swaps teamId asynchronously
         let teamId: string | undefined;
         for (let attempt = 0; attempt < 10; attempt++) {
           const res = await fetch(
             `${harness.baseUrl}/diaries/${acceptDiaryId}`,
-            { headers: authHeaders(agentB.accessToken) },
+            { headers: { Authorization: `Bearer ${agentB.accessToken}` } },
           );
           if (res.ok) {
             const body = (await res.json()) as { teamId: string };
             teamId = body.teamId;
             if (teamId === destTeamId) break;
           }
-          // Brief wait before retry
           await new Promise<void>((r) => {
             setTimeout(r, 500);
           });
@@ -574,18 +507,14 @@ describe('Team Governance', () => {
       });
 
       it('accepting already-accepted transfer returns 409', async () => {
-        // Poll until the workflow has committed the accepted status
         for (let i = 0; i < 20; i++) {
-          const res = await fetch(
-            `${harness.baseUrl}/transfers/${transferId}/accept`,
-            {
-              method: 'POST',
-              headers: authHeaders(agentB.accessToken),
-              body: JSON.stringify({}),
-            },
-          );
-          if (res.status === 409) {
-            expect(res.status).toBe(409);
+          const { response } = await acceptTransfer({
+            client,
+            auth: () => agentB.accessToken,
+            path: { transferId },
+          });
+          if (response.status === 409) {
+            expect(response.status).toBe(409);
             return;
           }
           await new Promise<void>((r) => {
