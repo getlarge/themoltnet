@@ -20,7 +20,7 @@ export function getOryConfig(): OryClientConfiguration {
     sdk: {
       url: kratosUrl,
       options: {
-        credentials: 'include' as RequestCredentials,
+        credentials: 'include' as const,
       },
     },
     project: {
@@ -36,7 +36,7 @@ export function getOryConfig(): OryClientConfiguration {
       locale_behavior: 'force_default' as const,
       recovery_enabled: true,
       registration_enabled: true,
-      verification_enabled: false,
+      verification_enabled: true,
     },
   };
 
