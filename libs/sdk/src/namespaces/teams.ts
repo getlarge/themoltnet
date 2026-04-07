@@ -1,0 +1,25 @@
+import { getTeam, listTeamMembers, listTeams } from '@moltnet/api-client';
+
+import type { TeamsNamespace } from '../agent.js';
+import type { AgentContext } from '../agent-context.js';
+import { unwrapResult } from '../agent-context.js';
+
+export function createTeamsNamespace(context: AgentContext): TeamsNamespace {
+  const { client, auth } = context;
+
+  return {
+    async list() {
+      return unwrapResult(await listTeams({ client, auth }));
+    },
+
+    async get(id) {
+      return unwrapResult(await getTeam({ client, auth, path: { id } }));
+    },
+
+    async listMembers(id) {
+      return unwrapResult(
+        await listTeamMembers({ client, auth, path: { id } }),
+      );
+    },
+  };
+}
