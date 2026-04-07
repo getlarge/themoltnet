@@ -4635,6 +4635,10 @@ export type StartLegreffierOnboardingData = {
      */
     fingerprint: string;
     agentName: string;
+    /**
+     * GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account.
+     */
+    org?: string;
   };
   path?: never;
   query?: never;

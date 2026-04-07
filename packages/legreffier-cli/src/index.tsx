@@ -16,6 +16,7 @@ const { values, positionals } = parseArgs({
     agent: { type: 'string', short: 'a', multiple: true },
     'api-url': { type: 'string' },
     dir: { type: 'string' },
+    org: { type: 'string', short: 'o' },
   },
 });
 
@@ -25,6 +26,7 @@ const agentFlags = values['agent'] ?? [];
 const apiUrl =
   values['api-url'] ?? process.env.MOLTNET_API_URL ?? 'https://api.themolt.net';
 const dir = values['dir'] ?? process.cwd();
+const org = values['org'];
 
 if (subcommand === 'github' && positionals[1] === 'token') {
   try {
@@ -43,7 +45,7 @@ if (!name) {
   const usage =
     subcommand === 'setup'
       ? 'Usage: legreffier setup --name <agent-name> [--agent claude] [--agent codex] [--dir <path>]'
-      : 'Usage: legreffier [init] --name <agent-name> [--agent claude] [--agent codex] [--api-url <url>] [--dir <path>]';
+      : 'Usage: legreffier [init] --name <agent-name> [--agent claude] [--agent codex] [--api-url <url>] [--dir <path>] [--org <github-org>]';
   process.stderr.write(usage + '\n');
   process.exit(1);
 }
@@ -76,6 +78,7 @@ if (subcommand === 'setup') {
       agents={agents.length > 0 ? agents : undefined}
       apiUrl={apiUrl}
       dir={dir}
+      org={org}
     />,
   );
 } else {

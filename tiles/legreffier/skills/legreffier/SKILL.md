@@ -292,6 +292,41 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 8. Tools unavailable → **do not offer skipping**. Stop, state what's missing, wait. Proceed without diary only if user explicitly says so unprompted.
 
+## GitHub CLI authentication
+
+Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` contains a
+`github.appId` field. Skip this section entirely if `moltnet.json` has no `github` block.
+
+When active, authenticate `gh` commands as the GitHub App:
+
+```bash
+CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"
+GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
+```
+
+The `cd`+`pwd` pattern is required because `GIT_CONFIG_GLOBAL` may be a **relative path**
+(e.g. `.moltnet/legreffier/gitconfig`). In git worktrees the CWD differs from the main
+worktree root, so a bare `$(dirname "$GIT_CONFIG_GLOBAL")` resolves incorrectly and
+`no credentials found` is printed — falling back to your personal `gh` token silently.
+
+The token is cached locally (~1 hour lifetime, 5-min expiry buffer).
+
+### Allowed `gh` subcommands
+
+The GitHub App only has these permissions:
+
+- `gh pr ...` (pull_requests: write)
+- `gh issue ...` (issues: write)
+- `gh api repos/{owner}/{repo}/contents/...` (contents: write)
+- `gh repo view`, `gh repo clone` (metadata: read + contents: read)
+
+Do NOT use `GH_TOKEN` for other `gh` commands (releases, actions, packages, etc.).
+
+### 401 recovery
+
+If you get a 401 error, the cached token may be stale. Delete `gh-token-cache.json` next to
+`moltnet.json` and retry.
+
 ## Hard gate: no ship without diary
 
 Mandatory before `git push`, opening/updating a PR, or declaring complete:
