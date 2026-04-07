@@ -257,6 +257,10 @@
               "enabled": false
             },
             "link": {
+              "config": {
+                "base_url": "${ORY_PROJECT_URL}/",
+                "lifespan": "15m"
+              },
               "enabled": false
             },
             "oidc": {
