@@ -1,0 +1,107 @@
+name: Skill Sync Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.claude/skills/**'
+      - '.agents/skills/**'
+      - 'tiles/**/skills/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.claude/skills/**'
+      - '.agents/skills/**'
+      - 'tiles/**/skills/**'
+
+jobs:
+  skill-sync:
+    name: Skill Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check .claude/skills and .agents/skills are in sync
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CLAUDE_DIR=".claude/skills"
+          AGENTS_DIR=".agents/skills"
+          failed=0
+
+          # Skills in .claude but not in .agents
+          while IFS= read -r -d '' skill_dir; do
+            skill=$(basename "$skill_dir")
+            if [ ! -d "$AGENTS_DIR/$skill" ]; then
+              echo "::error::Skill '$skill' exists in $CLAUDE_DIR but not in $AGENTS_DIR"
+              failed=1
+            fi
+          done < <(find "$CLAUDE_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
+
+          # Skills in .agents but not in .claude
+          while IFS= read -r -d '' skill_dir; do
+            skill=$(basename "$skill_dir")
+            if [ ! -d "$CLAUDE_DIR/$skill" ]; then
+              echo "::error::Skill '$skill' exists in $AGENTS_DIR but not in $CLAUDE_DIR"
+              failed=1
+            fi
+          done < <(find "$AGENTS_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
+
+          # Diff all common skills
+          while IFS= read -r -d '' skill_dir; do
+            skill=$(basename "$skill_dir")
+            if [ -d "$AGENTS_DIR/$skill" ]; then
+              if ! diff -rq "$CLAUDE_DIR/$skill" "$AGENTS_DIR/$skill"; then
+                echo "::error::Skill '$skill' differs between $CLAUDE_DIR and $AGENTS_DIR"
+                diff -r "$CLAUDE_DIR/$skill" "$AGENTS_DIR/$skill" || true
+                failed=1
+              fi
+            fi
+          done < <(find "$CLAUDE_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
+
+          if [ "$failed" -ne 0 ]; then
+            echo ""
+            echo "Skill sync failed. Source of truth is .claude/skills/ — copy changes to .agents/skills/ to fix."
+            exit 1
+          fi
+
+          echo "OK: .claude/skills and .agents/skills are in sync."
+
+      - name: Check tile skills are in sync with .claude/skills
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CLAUDE_DIR=".claude/skills"
+          TILES_DIR="tiles"
+          failed=0
+
+          # Each tiles/<name>/skills/<skill-name>/ must match .claude/skills/<skill-name>/
+          while IFS= read -r -d '' tile_skill_dir; do
+            skill=$(basename "$tile_skill_dir")
+            canonical="$CLAUDE_DIR/$skill"
+
+            if [ ! -d "$canonical" ]; then
+              echo "::error::Tile skill '$skill' at $tile_skill_dir has no counterpart in $CLAUDE_DIR"
+              failed=1
+              continue
+            fi
+
+            if ! diff -rq "$canonical" "$tile_skill_dir"; then
+              echo "::error::Tile skill '$skill' differs between $canonical and $tile_skill_dir"
+              diff -r "$canonical" "$tile_skill_dir" || true
+              failed=1
+            fi
+          done < <(find "$TILES_DIR" -mindepth 3 -maxdepth 3 -type d -path "*/skills/*" -print0)
+
+          if [ "$failed" -ne 0 ]; then
+            echo ""
+            echo "Tile skill sync failed. Source of truth is .claude/skills/ — copy changes to the tile's skills/ directory to fix."
+            exit 1
+          fi
+
+          echo "OK: all tile skills are in sync with $CLAUDE_DIR."
