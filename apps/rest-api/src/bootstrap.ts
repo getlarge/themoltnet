@@ -29,6 +29,7 @@ import {
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
   createDiaryRepository,
+  createDiaryTransferRepository,
   createEntryRelationRepository,
   createGroupRepository,
   createHumanRepository,
@@ -69,15 +70,19 @@ import dbosPlugin from './plugins/dbos.js';
 import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
+  initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
+  initTeamFoundingWorkflow,
   setContextDistillDeps,
+  setDiaryTransferDeps,
   setHumanOnboardingDeps,
   setLegreffierOnboardingDeps,
   setMaintenanceDeps,
   setRegistrationDeps,
+  setTeamFoundingDeps,
 } from './workflows/index.js';
 
 export interface BootstrapResult {
@@ -182,6 +187,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
   const teamRepository = createTeamRepository(dbConnection.db);
+  const diaryTransferRepository = createDiaryTransferRepository(
+    dbConnection.db,
+  );
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
@@ -249,6 +257,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initDiaryWorkflows(),
       () => initContextDistillWorkflows(),
       () => initMaintenanceWorkflows(config.packGc),
+      () => initTeamFoundingWorkflow(),
+      () => initDiaryTransferWorkflow(),
     ],
     afterLaunch: [
       () => {
@@ -333,6 +343,21 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           createAttestation: (input) => attestationRepository.create(input),
         });
       },
+      () => {
+        setTeamFoundingDeps({
+          teamRepository,
+          relationshipWriter,
+          logger: app.log,
+        });
+      },
+      () => {
+        setDiaryTransferDeps({
+          diaryRepository,
+          diaryTransferRepository,
+          relationshipWriter,
+          logger: app.log,
+        });
+      },
     ],
   });
 
@@ -400,6 +425,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     voucherRepository,
     groupRepository,
     teamRepository,
+    diaryTransferRepository,
     signingRequestRepository,
     nonceRepository,
     dataSource,

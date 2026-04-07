@@ -23,6 +23,12 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('INVITE_EXPIRED'),
   Type.Literal('INVITE_EXHAUSTED'),
   Type.Literal('TEAM_LAST_OWNER'),
+  Type.Literal('TEAM_ALREADY_ACTIVE'),
+  Type.Literal('TEAM_NOT_FOUNDING'),
+  Type.Literal('FOUNDING_ALREADY_ACCEPTED'),
+  Type.Literal('DIARY_TRANSFER_PENDING'),
+  Type.Literal('DIARY_TRANSFER_NOT_FOUND'),
+  Type.Literal('DIARY_TRANSFER_ALREADY_RESOLVED'),
 ]);
 
 export type ProblemCode = Static<typeof ProblemCodeSchema>;

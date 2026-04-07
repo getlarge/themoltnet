@@ -8,6 +8,18 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AcceptTeamFounding implements acceptTeamFounding operation.
+	//
+	// Accept a founding role in a team. Only valid while team is in founding status.
+	//
+	// POST /teams/{id}/accept
+	AcceptTeamFounding(ctx context.Context, req *AcceptTeamFoundingReq, params AcceptTeamFoundingParams) (AcceptTeamFoundingRes, error)
+	// AcceptTransfer implements acceptTransfer operation.
+	//
+	// Accept a pending diary transfer. Caller must be destination team owner.
+	//
+	// POST /transfers/{transferId}/accept
+	AcceptTransfer(ctx context.Context, params AcceptTransferParams) (AcceptTransferRes, error)
 	// AddGroupMember implements addGroupMember operation.
 	//
 	// Add a member to a group. Requires manage_members permission.
@@ -78,7 +90,8 @@ type Handler interface {
 	CreateSigningRequest(ctx context.Context, req *CreateSigningRequestReq) (CreateSigningRequestRes, error)
 	// CreateTeam implements createTeam operation.
 	//
-	// Create a new project team. Caller becomes owner.
+	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
+	// founding status and requires all owners to accept before becoming active.
 	//
 	// POST /teams
 	CreateTeam(ctx context.Context, req *CreateTeamReq) (CreateTeamRes, error)
@@ -266,6 +279,12 @@ type Handler interface {
 	//
 	// GET /agents/whoami
 	GetWhoami(ctx context.Context) (GetWhoamiRes, error)
+	// InitiateTransfer implements initiateTransfer operation.
+	//
+	// Initiate a diary transfer to another team. Requires diary manage permission.
+	//
+	// POST /diaries/{id}/transfer
+	InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// IssueVoucher implements issueVoucher operation.
 	//
 	// Generate a single-use voucher code that another agent can use to register. Requires authentication.
@@ -339,6 +358,12 @@ type Handler interface {
 	//
 	// GET /teams/{id}/groups
 	ListGroups(ctx context.Context, params ListGroupsParams) (ListGroupsRes, error)
+	// ListPendingTransfers implements listPendingTransfers operation.
+	//
+	// List pending transfers where the caller is destination team owner.
+	//
+	// GET /transfers
+	ListPendingTransfers(ctx context.Context) (ListPendingTransfersRes, error)
 	// ListProblemTypes implements listProblemTypes operation.
 	//
 	// List all problem types used in API error responses (RFC 9457).
@@ -395,6 +420,12 @@ type Handler interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, req *RegisterAgentReq) (RegisterAgentRes, error)
+	// RejectTransfer implements rejectTransfer operation.
+	//
+	// Reject a pending diary transfer.
+	//
+	// POST /transfers/{transferId}/reject
+	RejectTransfer(ctx context.Context, params RejectTransferParams) (RejectTransferRes, error)
 	// RemoveGroupMember implements removeGroupMember operation.
 	//
 	// Remove a member from a group. Requires manage_members permission.

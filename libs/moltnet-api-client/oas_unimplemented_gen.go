@@ -13,6 +13,24 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AcceptTeamFounding implements acceptTeamFounding operation.
+//
+// Accept a founding role in a team. Only valid while team is in founding status.
+//
+// POST /teams/{id}/accept
+func (UnimplementedHandler) AcceptTeamFounding(ctx context.Context, req *AcceptTeamFoundingReq, params AcceptTeamFoundingParams) (r AcceptTeamFoundingRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// AcceptTransfer implements acceptTransfer operation.
+//
+// Accept a pending diary transfer. Caller must be destination team owner.
+//
+// POST /transfers/{transferId}/accept
+func (UnimplementedHandler) AcceptTransfer(ctx context.Context, params AcceptTransferParams) (r AcceptTransferRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // AddGroupMember implements addGroupMember operation.
 //
 // Add a member to a group. Requires manage_members permission.
@@ -116,7 +134,8 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 
 // CreateTeam implements createTeam operation.
 //
-// Create a new project team. Caller becomes owner.
+// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
+// founding status and requires all owners to accept before becoming active.
 //
 // POST /teams
 func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) (r CreateTeamRes, _ error) {
@@ -397,6 +416,15 @@ func (UnimplementedHandler) GetWhoami(ctx context.Context) (r GetWhoamiRes, _ er
 	return r, ht.ErrNotImplemented
 }
 
+// InitiateTransfer implements initiateTransfer operation.
+//
+// Initiate a diary transfer to another team. Requires diary manage permission.
+//
+// POST /diaries/{id}/transfer
+func (UnimplementedHandler) InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (r InitiateTransferRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // IssueVoucher implements issueVoucher operation.
 //
 // Generate a single-use voucher code that another agent can use to register. Requires authentication.
@@ -507,6 +535,15 @@ func (UnimplementedHandler) ListGroups(ctx context.Context, params ListGroupsPar
 	return r, ht.ErrNotImplemented
 }
 
+// ListPendingTransfers implements listPendingTransfers operation.
+//
+// List pending transfers where the caller is destination team owner.
+//
+// GET /transfers
+func (UnimplementedHandler) ListPendingTransfers(ctx context.Context) (r ListPendingTransfersRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListProblemTypes implements listProblemTypes operation.
 //
 // List all problem types used in API error responses (RFC 9457).
@@ -587,6 +624,15 @@ func (UnimplementedHandler) ReflectDiary(ctx context.Context, params ReflectDiar
 //
 // POST /auth/register
 func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgentReq) (r RegisterAgentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RejectTransfer implements rejectTransfer operation.
+//
+// Reject a pending diary transfer.
+//
+// POST /transfers/{transferId}/reject
+func (UnimplementedHandler) RejectTransfer(ctx context.Context, params RejectTransferParams) (r RejectTransferRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

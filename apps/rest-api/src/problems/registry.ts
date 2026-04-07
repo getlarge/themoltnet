@@ -253,6 +253,58 @@ export const problemTypes: Record<string, ProblemType> = {
       'Transfer ownership to another member first',
     ],
   },
+  'team-already-active': {
+    slug: 'team-already-active',
+    code: 'TEAM_ALREADY_ACTIVE',
+    status: 409,
+    title: 'Team Already Active',
+    description: 'The team is already in active status.',
+    commonCauses: ['Team founding has already completed'],
+  },
+  'team-not-founding': {
+    slug: 'team-not-founding',
+    code: 'TEAM_NOT_FOUNDING',
+    status: 400,
+    title: 'Team Not in Founding Status',
+    description: 'This operation requires the team to be in founding status.',
+    commonCauses: ['Team is already active or archived'],
+  },
+  'founding-already-accepted': {
+    slug: 'founding-already-accepted',
+    code: 'FOUNDING_ALREADY_ACCEPTED',
+    status: 409,
+    title: 'Founding Already Accepted',
+    description: 'You have already accepted the founding of this team.',
+    commonCauses: ['Duplicate acceptance submission'],
+  },
+  'diary-transfer-pending': {
+    slug: 'diary-transfer-pending',
+    code: 'DIARY_TRANSFER_PENDING',
+    status: 409,
+    title: 'Diary Transfer Already Pending',
+    description: 'A transfer request for this diary is already pending.',
+    commonCauses: [
+      'A destination owner must accept or reject before a new transfer can be initiated',
+    ],
+  },
+  'diary-transfer-not-found': {
+    slug: 'diary-transfer-not-found',
+    code: 'DIARY_TRANSFER_NOT_FOUND',
+    status: 404,
+    title: 'Transfer Not Found',
+    description:
+      'The transfer request does not exist or you do not have access.',
+    commonCauses: ['Invalid transfer ID', 'Transfer has already been resolved'],
+  },
+  'diary-transfer-already-resolved': {
+    slug: 'diary-transfer-already-resolved',
+    code: 'DIARY_TRANSFER_ALREADY_RESOLVED',
+    status: 409,
+    title: 'Transfer Already Resolved',
+    description:
+      'This transfer has already been accepted, rejected, or expired.',
+    commonCauses: ['Duplicate accept/reject call'],
+  },
 };
 
 export function getTypeUri(slug: string): string {
