@@ -1,0 +1,41 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent uses the generated @moltnet/api-client for governance endpoints rather than raw fetch(). The pack documents the rule: e2e tests must use api-client for any endpoint present in the generated spec; raw fetch only for /health, /oauth2/token, /auth/register. Derived from incident 24e3532a.",
+  "checklist": [
+    {
+      "name": "api-client used for governance endpoints",
+      "description": "All governance endpoint calls (create team, initiate/accept/reject transfer, list transfers, accept founding) use the generated api-client (e.g. client.teams.create, client.teams.initiateTransfer) rather than raw fetch()",
+      "max_score": 25
+    },
+    {
+      "name": "raw fetch only for allowed exceptions",
+      "description": "Raw fetch() is used only for /oauth2/token, /health, or /auth/register — not for any governance endpoints",
+      "max_score": 20
+    },
+    {
+      "name": "All six endpoints covered",
+      "description": "Tests exist for all six operations: createTeam, initiateTransfer, listTransfers, acceptTransfer, rejectTransfer, acceptFoundingRequest",
+      "max_score": 15
+    },
+    {
+      "name": "api-client instantiation matches pattern",
+      "description": "The api-client is instantiated using createApiClient (or equivalent factory from @moltnet/api-client), not constructed manually",
+      "max_score": 10
+    },
+    {
+      "name": "Auth token acquisition via fetch is acceptable",
+      "description": "The OAuth token acquisition step uses raw fetch() against /oauth2/token (this is the allowed exception for the token endpoint)",
+      "max_score": 10
+    },
+    {
+      "name": "Assertions on response shape",
+      "description": "Tests assert meaningful properties of the response (e.g. id is defined, status matches expected) rather than just checking no error was thrown",
+      "max_score": 10
+    },
+    {
+      "name": "Test isolation — no shared mutable state between tests",
+      "description": "Each test creates its own resources or uses beforeAll/beforeEach properly — tests do not depend on side-effects from previous tests in ways that would cause ordering-dependent failures",
+      "max_score": 10
+    }
+  ]
+}
