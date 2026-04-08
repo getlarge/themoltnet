@@ -1195,3 +1195,83 @@ func TestDspyJudgeProvider(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadEvalManifest_Vitro(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vitro"}`
+	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("loadEvalManifest: %v", err)
+	}
+	if m == nil {
+		t.Fatal("expected non-nil manifest")
+	}
+	if m.Mode != "vitro" {
+		t.Errorf("mode: got %q, want vitro", m.Mode)
+	}
+	if m.Fixture.Ref != "" {
+		t.Errorf("fixture.ref should be empty for vitro, got %q", m.Fixture.Ref)
+	}
+}
+
+func TestLoadEvalManifest_Vivo(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vivo","fixture":{"ref":"abc1234","exclude":["docs/**"]}}`
+	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("loadEvalManifest: %v", err)
+	}
+	if m.Mode != "vivo" {
+		t.Errorf("mode: got %q, want vivo", m.Mode)
+	}
+	if m.Fixture.Ref != "abc1234" {
+		t.Errorf("fixture.ref: got %q, want abc1234", m.Fixture.Ref)
+	}
+	if len(m.Fixture.Exclude) != 1 || m.Fixture.Exclude[0] != "docs/**" {
+		t.Errorf("fixture.exclude: got %v, want [docs/**]", m.Fixture.Exclude)
+	}
+}
+
+func TestLoadEvalManifest_Absent(t *testing.T) {
+	dir := t.TempDir()
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("expected nil error for absent eval.json, got: %v", err)
+	}
+	if m != nil {
+		t.Errorf("expected nil manifest for absent eval.json, got: %+v", m)
+	}
+}
+
+func TestLoadEvalManifest_UnknownField(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vitro","unknownField":"value"}`
+	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+
+	_, err := loadEvalManifest(dir)
+	if err == nil {
+		t.Fatal("expected error for unknown field in eval.json")
+	}
+}
+
+func TestLoadEvalManifest_WithPack(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vitro","pack":{"path":"../../packs/my-pack.md"}}`
+	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("loadEvalManifest: %v", err)
+	}
+	if m.Pack == nil {
+		t.Fatal("expected non-nil pack")
+	}
+	if m.Pack.Path != "../../packs/my-pack.md" {
+		t.Errorf("pack.path: got %q, want ../../packs/my-pack.md", m.Pack.Path)
+	}
+}

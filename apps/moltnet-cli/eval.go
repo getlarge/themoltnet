@@ -688,6 +688,44 @@ type evalChecklistCriteria struct {
 	Checklist []checklist.Criterion `json:"checklist"`
 }
 
+// evalManifest is the per-scenario eval.json schema.
+type evalManifest struct {
+	Mode    string              `json:"mode"`
+	Fixture evalManifestFixture `json:"fixture"`
+	Pack    *evalManifestPack   `json:"pack,omitempty"`
+}
+
+type evalManifestFixture struct {
+	Ref     string   `json:"ref,omitempty"`
+	Exclude []string `json:"exclude,omitempty"`
+	Include []string `json:"include,omitempty"`
+}
+
+type evalManifestPack struct {
+	Path string `json:"path"`
+}
+
+// loadEvalManifest reads and strictly parses eval.json from scenarioDir.
+// Returns nil, nil if the file is absent (Phase 1: no eval.json is allowed
+// with a warning — see validateScenario).
+func loadEvalManifest(scenarioDir string) (*evalManifest, error) {
+	p := filepath.Join(scenarioDir, "eval.json")
+	data, err := os.ReadFile(p)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading eval.json: %w", err)
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	var m evalManifest
+	if err := dec.Decode(&m); err != nil {
+		return nil, fmt.Errorf("parsing eval.json: %w", err)
+	}
+	return &m, nil
+}
+
 func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	if err := validateDSPYEvalOpts(opts); err != nil {
 		return err
