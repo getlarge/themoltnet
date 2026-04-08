@@ -31,7 +31,7 @@ describe('lookupBotUser', () => {
     expect(url).toContain('/users/legreffier%5Bbot%5D');
   });
 
-  it('should throw on non-ok response', async () => {
+  it('should throw when both [bot] and plain slug return non-ok', async () => {
     // Arrange
     vi.stubGlobal(
       'fetch',
@@ -44,7 +44,7 @@ describe('lookupBotUser', () => {
 
     // Act & Assert
     await expect(lookupBotUser('nonexistent')).rejects.toThrow(
-      'GitHub API error (404)',
+      'GitHub user lookup failed for app "nonexistent"',
     );
   });
 
@@ -61,11 +61,35 @@ describe('lookupBotUser', () => {
     );
 
     // Act
-    await lookupBotUser('test', 'http://localhost:3000');
+    await lookupBotUser('test', { apiBaseUrl: 'http://localhost:3000' });
 
     // Assert
     const url = vi.mocked(fetch).mock.calls[0][0] as string;
     expect(url).toMatch(/^http:\/\/localhost:3000\/users\//);
+  });
+
+  it('should fall back to plain slug when [bot] 404s', async () => {
+    // Arrange
+    const fetchMock = vi.fn();
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      text: async () => '',
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 99, login: 'my-app' }),
+      text: async () => '',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Act
+    const result = await lookupBotUser('my-app');
+
+    // Assert
+    expect(result).toEqual({ id: 99, login: 'my-app' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
