@@ -1,0 +1,66 @@
+{
+  "checklist": [
+    {
+      "description": "Commit plan splits the work so each commit represents one testable behavioral change, not mixing behavior+tests+codegen in one commit",
+      "max_score": 10,
+      "name": "One behavior per commit"
+    },
+    {
+      "description": "Guide mentions file count (>8), insertion count (>300), or workspace package count (>2) as signals to split",
+      "max_score": 8,
+      "name": "Splitting heuristic"
+    },
+    {
+      "description": "Every commit in the chain includes a Task-Group trailer with a descriptive kebab-case slug",
+      "max_score": 10,
+      "name": "Task-Group trailer"
+    },
+    {
+      "description": "First commit in chain includes Task-Family trailer with a category value (bugfix, feature, refactor, etc.)",
+      "max_score": 8,
+      "name": "Task-Family trailer"
+    },
+    {
+      "description": "Only the last commit in the chain includes Task-Completes: true, and only after verification",
+      "max_score": 10,
+      "name": "Task-Completes trailer"
+    },
+    {
+      "description": "verificationRequired function returns different verification requirements for different change types (tests must pass, CLI must run, config must be validated) — typecheck/lint alone is explicitly NOT sufficient",
+      "max_score": 10,
+      "name": "Verification gate"
+    },
+    {
+      "description": "Guide or code mentions that 2-4 commits is ideal and 5+ means the task should be broken down",
+      "max_score": 6,
+      "name": "Max chain length"
+    },
+    {
+      "description": "Pre-push checklist checks current branch and blocks push to main/master",
+      "max_score": 8,
+      "name": "Branch guard"
+    },
+    {
+      "description": "Pre-push checklist verifies at least one diary entry exists for the change set",
+      "max_score": 8,
+      "name": "Diary entry existence check"
+    },
+    {
+      "description": "Pre-push checklist verifies diary entries include branch:<branch> and scope:<...> tags",
+      "max_score": 8,
+      "name": "Tag completeness check"
+    },
+    {
+      "description": "Generated commit messages include MoltNet-Diary: <entry-id> trailer",
+      "max_score": 8,
+      "name": "MoltNet-Diary in commit"
+    },
+    {
+      "description": "Generated commit messages do NOT include Co-Authored-By trailers",
+      "max_score": 6,
+      "name": "No Co-Authored-By"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements commit shaping for task extraction: one-behavior-per-commit splitting, task-chain trailers (Task-Group, Task-Family, Task-Completes), verification gate before completion marker, pre-push checklist with branch guard and diary requirements, and no-ship-without-diary enforcement.",
+  "type": "weighted_checklist"
+}

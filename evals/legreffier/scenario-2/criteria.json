@@ -1,0 +1,61 @@
+{
+  "checklist": [
+    {
+      "description": "Investigation code performs metadata-based listing (by tags) before any semantic/hybrid search",
+      "max_score": 12,
+      "name": "Enumerate before search"
+    },
+    {
+      "description": "Enumeration phase filters by tags like accountable-commit, decision, incident combined with branch filter",
+      "max_score": 8,
+      "name": "Tag-based enumeration"
+    },
+    {
+      "description": "Semantic search uses w_relevance=1.0 or close to it as the dominant weight",
+      "max_score": 8,
+      "name": "Relevance weight"
+    },
+    {
+      "description": "Search strategy doc mentions reducing recency weight for older entries (e.g., 0.3 default, 0.1 if >14 days)",
+      "max_score": 10,
+      "name": "Recency weight decay"
+    },
+    {
+      "description": "Semantic search includes an importance weight parameter (around 0.2)",
+      "max_score": 6,
+      "name": "Importance weight"
+    },
+    {
+      "description": "Code or strategy doc distinguishes base64 Ed25519 signatures (verifiable) from UUID request IDs (not verifiable), with different handling for each",
+      "max_score": 12,
+      "name": "Base64 vs UUID distinction"
+    },
+    {
+      "description": "For base64 signatures, the code calls a verification function/API with the signature bytes (not a request ID)",
+      "max_score": 8,
+      "name": "Signature verification call"
+    },
+    {
+      "description": "Report type includes: entry type, date, importance, signer, signature status, content summary, and linked commit hash",
+      "max_score": 10,
+      "name": "Per-entry report fields"
+    },
+    {
+      "description": "Investigation concludes with an explicit gap note when no diary entry covers the question — does not infer from code",
+      "max_score": 8,
+      "name": "Gap reporting"
+    },
+    {
+      "description": "Search strategy mentions retrying with 2-3 shorter query phrasings before concluding no entry exists",
+      "max_score": 8,
+      "name": "Retry with shorter phrasings"
+    },
+    {
+      "description": "Search strategy mentions using exclude_tags to suppress high-volume categories that dilute signal",
+      "max_score": 10,
+      "name": "Exclude tags for noise"
+    }
+  ],
+  "context": "Tests whether the agent implements the investigation workflow correctly: enumerate-before-search strategy, search weight tuning, signature type discrimination (base64 Ed25519 vs UUID request IDs), and structured reporting with per-entry signature status.",
+  "type": "weighted_checklist"
+}

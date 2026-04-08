@@ -1,0 +1,1 @@
+Diary inventory and tag namespace discovery

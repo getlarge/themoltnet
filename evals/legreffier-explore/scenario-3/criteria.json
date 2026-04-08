@@ -1,0 +1,61 @@
+{
+  "checklist": [
+    {
+      "description": "Each recipe includes all required fields: name, intent, task_prompt, token_budget, lambda, w_importance, w_recency, include_tags, exclude_tags, rationale",
+      "max_score": 12,
+      "name": "Recipe YAML fields"
+    },
+    {
+      "description": "Recipe include_tags and exclude_tags reference only tags that actually exist in the inventory (not hypothetical tags)",
+      "max_score": 12,
+      "name": "Recipes use existing tags"
+    },
+    {
+      "description": "Gap analysis identifies subsystems from the project structure that have no or few diary entries covering them",
+      "max_score": 10,
+      "name": "Coverage gap detection"
+    },
+    {
+      "description": "Code uses learn:trace entries (which exist in the inventory) for identifying repeated questions or knowledge gaps",
+      "max_score": 10,
+      "name": "Learn trace analysis"
+    },
+    {
+      "description": "identifyNoiseSources returns tags or entry patterns that dilute search quality (e.g., scan-category:summary, source:scorecard)",
+      "max_score": 10,
+      "name": "Noise source identification"
+    },
+    {
+      "description": "Recommended recipes include identified noise sources in their exclude_tags parameter",
+      "max_score": 8,
+      "name": "Noise in exclude_tags"
+    },
+    {
+      "description": "Generator produces at least 3 distinct recipes targeting different task domains or subsystems",
+      "max_score": 8,
+      "name": "Multiple recipes"
+    },
+    {
+      "description": "Each recipe includes a rationale field explaining why those specific parameters suit this diary",
+      "max_score": 8,
+      "name": "Rationale per recipe"
+    },
+    {
+      "description": "Recipes specify numeric values for lambda, w_importance, and w_recency between 0.0 and 1.0",
+      "max_score": 8,
+      "name": "Weight parameters"
+    },
+    {
+      "description": "Each recipe includes a numeric token_budget value",
+      "max_score": 6,
+      "name": "Token budget specified"
+    },
+    {
+      "description": "Each coverage gap includes evidence for how it was discovered (e.g., which subsystem has no scope tag matches)",
+      "max_score": 8,
+      "name": "Gap evidence"
+    }
+  ],
+  "context": "Tests whether the agent implements Phase 4 coverage gap detection and Phase 5 compile recipe generation: comparing diary topics against project structure, using learn:trace entries for gap analysis, recommending recipes with all required YAML fields based on actual diary content, and identifying noise sources.",
+  "type": "weighted_checklist"
+}

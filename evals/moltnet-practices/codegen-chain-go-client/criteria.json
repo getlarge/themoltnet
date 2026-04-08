@@ -1,0 +1,31 @@
+{
+  "checklist": [
+    {
+      "description": "The procedure includes generating/updating the OpenAPI spec (e.g., pnpm run generate:openapi or equivalent)",
+      "max_score": 20,
+      "name": "OpenAPI spec generation mentioned"
+    },
+    {
+      "description": "The procedure includes regenerating the TypeScript API client from the OpenAPI spec",
+      "max_score": 20,
+      "name": "TS api-client regeneration mentioned"
+    },
+    {
+      "description": "The procedure includes regenerating the Go API client (e.g., pnpm run go:generate, go generate, or equivalent). This is the step agents most commonly forget.",
+      "max_score": 30,
+      "name": "Go api-client regeneration mentioned"
+    },
+    {
+      "description": "The procedure includes a verification step after regeneration — running typecheck, checking for diffs, or building all consumers",
+      "max_score": 15,
+      "name": "Verification step included"
+    },
+    {
+      "description": "The commands are in dependency order: OpenAPI first, then TS client, then Go client (not reversed or unordered)",
+      "max_score": 15,
+      "name": "Correct ordering"
+    }
+  ],
+  "context": "Tests whether the agent knows the full codegen chain: schema source → OpenAPI spec → TS api-client → Go api-client. Agents frequently forget the Go client regeneration, which causes silent failures (Go CLI breaks with decode errors at runtime, not at build time).",
+  "type": "weighted_checklist"
+}

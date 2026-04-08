@@ -1,0 +1,71 @@
+{
+  "checklist": [
+    {
+      "description": "Script checks for staged changes (git diff --cached) and exits if nothing is staged",
+      "max_score": 6,
+      "name": "Staged change check"
+    },
+    {
+      "description": "Script checks staged diff breadth (file count, insertion count, or workspace package count) and refuses to proceed if too broad",
+      "max_score": 8,
+      "name": "Scope gate enforcement"
+    },
+    {
+      "description": "Risk matrix lists crypto, CI/automation, dependency lockfiles, and auth/secrets as high risk",
+      "max_score": 8,
+      "name": "High risk classification"
+    },
+    {
+      "description": "Risk matrix lists new files, config changes, and UI as medium risk",
+      "max_score": 8,
+      "name": "Medium risk classification"
+    },
+    {
+      "description": "Risk matrix lists tests-only, comments, and formatting as low risk",
+      "max_score": 8,
+      "name": "Low risk classification"
+    },
+    {
+      "description": "Script extracts files-changed count, file paths for refs, branch name, and timestamp from the staged diff and git state",
+      "max_score": 8,
+      "name": "Metadata extraction"
+    },
+    {
+      "description": "The produced diary entry payload includes operator, tool, risk-level, refs, branch, scope, and timestamp metadata fields",
+      "max_score": 8,
+      "name": "Diary entry payload"
+    },
+    {
+      "description": "Commit message format includes a MoltNet-Diary: <entry-id> trailer in a separate -m block",
+      "max_score": 8,
+      "name": "MoltNet-Diary trailer"
+    },
+    {
+      "description": "Commit message uses conventional commit format: type(scope): description",
+      "max_score": 6,
+      "name": "Conventional commit format"
+    },
+    {
+      "description": "Script stops and reports unavailability when diary tools are unreachable — does NOT skip or offer to skip",
+      "max_score": 8,
+      "name": "Unavailable diary handling"
+    },
+    {
+      "description": "Script or specification mentions checking for architectural decisions and writing a semantic entry before the procedural commit entry",
+      "max_score": 6,
+      "name": "Semantic entry before procedural"
+    },
+    {
+      "description": "Script or specification treats high-risk commits differently by making the diary entry cryptographically immutable (e.g. a signing flag) and verifying the result",
+      "max_score": 10,
+      "name": "High-risk immutable signing"
+    },
+    {
+      "description": "Commit format spec does NOT include Co-Authored-By trailers",
+      "max_score": 8,
+      "name": "No Co-Authored-By"
+    }
+  ],
+  "context": "Tests whether the agent implements the accountable commit workflow correctly: scope gate, risk classification, metadata gathering, diary entry structure, commit message format with MoltNet-Diary trailer, high-risk signing, and behavior when diary tools are unavailable.",
+  "type": "weighted_checklist"
+}
