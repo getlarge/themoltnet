@@ -1661,3 +1661,13 @@ func TestSparsePassDSPYEvalWorktree_KeepsGitDir(t *testing.T) {
 		t.Error(".git should be preserved")
 	}
 }
+
+func TestEvalRunCmd_ModeFlagParsed(t *testing.T) {
+	cmd := newEvalRunCmd()
+	if f := cmd.Flags().Lookup("mode"); f == nil {
+		t.Fatal("expected --mode flag to exist")
+	}
+	if f := cmd.Flags().Lookup("fixture-ref"); f == nil {
+		t.Fatal("expected --fixture-ref flag to exist")
+	}
+}
