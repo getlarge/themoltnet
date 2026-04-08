@@ -1662,6 +1662,129 @@ func TestSparsePassDSPYEvalWorktree_KeepsGitDir(t *testing.T) {
 	}
 }
 
+// TestSparsePassDSPYEvalWorktree_KeepsGitFile verifies that .git as a
+// gitdir-pointer file (the shape `git worktree add` creates) is preserved.
+// The previous implementation only skipped .git when d.IsDir(), which
+// silently deleted the pointer file in real git worktree checkouts.
+func TestSparsePassDSPYEvalWorktree_KeepsGitFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatalf("write task.md: %v", err)
+	}
+	gitPointer := []byte("gitdir: /tmp/repo/.git/worktrees/test\n")
+	gitPath := filepath.Join(dir, ".git")
+	if err := os.WriteFile(gitPath, gitPointer, 0o644); err != nil {
+		t.Fatalf("write .git file: %v", err)
+	}
+
+	include := []string{"task.md"}
+	if err := sparsePassDSPYEvalWorktree(dir, include); err != nil {
+		t.Fatalf("sparsePassDSPYEvalWorktree: %v", err)
+	}
+
+	info, err := os.Stat(gitPath)
+	if err != nil {
+		t.Fatalf(".git should be preserved: %v", err)
+	}
+	if info.IsDir() {
+		t.Fatal(".git should remain a file for worktree checkouts")
+	}
+	got, err := os.ReadFile(gitPath)
+	if err != nil {
+		t.Fatalf("read .git: %v", err)
+	}
+	if !bytes.Equal(got, gitPointer) {
+		t.Fatalf(".git contents changed: got %q want %q", got, gitPointer)
+	}
+}
+
+// TestSparsePassDSPYEvalWorktree_EmptyIncludeWipesAll verifies the vitro
+// default: an empty include list produces a fully empty worktree except
+// for .git. Vitro scenarios receive task instructions through the prompt,
+// not the filesystem.
+func TestSparsePassDSPYEvalWorktree_EmptyIncludeWipesAll(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatalf("write task.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(`{}`), 0o644); err != nil {
+		t.Fatalf("write package.json: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "src"), 0o755); err != nil {
+		t.Fatalf("mkdir src: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".git"), []byte("gitdir: x\n"), 0o644); err != nil {
+		t.Fatalf("write .git: %v", err)
+	}
+
+	if err := sparsePassDSPYEvalWorktree(dir, nil); err != nil {
+		t.Fatalf("sparsePassDSPYEvalWorktree: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "task.md")); err == nil {
+		t.Error("task.md should be removed on empty include")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "package.json")); err == nil {
+		t.Error("package.json should be removed on empty include")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "src")); err == nil {
+		t.Error("src/ should be removed on empty include")
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".git")); err != nil {
+		t.Error(".git should be preserved even with empty include")
+	}
+}
+
+// TestNeutralizeDSPYEvalWorktree_KeepsGitFile verifies .git-as-file
+// preservation on the vivo path (neutralizeDSPYEvalWorktree).
+func TestNeutralizeDSPYEvalWorktree_KeepsGitFile(t *testing.T) {
+	dir := t.TempDir()
+	gitPath := filepath.Join(dir, ".git")
+	if err := os.WriteFile(gitPath, []byte("gitdir: /tmp/repo/.git/worktrees/test\n"), 0o644); err != nil {
+		t.Fatalf("write .git: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "keep.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write keep.txt: %v", err)
+	}
+
+	filter := newDefaultDSPYWorktreeFilter()
+	if err := neutralizeDSPYEvalWorktree(dir, filter); err != nil {
+		t.Fatalf("neutralizeDSPYEvalWorktree: %v", err)
+	}
+	if _, err := os.Stat(gitPath); err != nil {
+		t.Error(".git file should be preserved by neutralize pass")
+	}
+}
+
+func TestLoadEvalManifest_RejectsTrailingContent(t *testing.T) {
+	dir := t.TempDir()
+	body := []byte(`{"mode":"vitro","fixture":{}}{"mode":"vivo"}`)
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := loadEvalManifest(dir)
+	if err == nil {
+		t.Fatal("expected error for trailing content, got nil")
+	}
+	if !strings.Contains(err.Error(), "trailing content") {
+		t.Errorf("expected trailing-content error, got %v", err)
+	}
+}
+
+func TestEvalRunCmd_FixtureRefRequiresVivo(t *testing.T) {
+	cmd := newEvalRunCmd()
+	cmd.SetArgs([]string{"--scenario", "x", "--mode", "vitro", "--fixture-ref", "abc"})
+	cmd.SetOut(new(bytes.Buffer))
+	cmd.SetErr(new(bytes.Buffer))
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --fixture-ref used with --mode vitro")
+	}
+	if !strings.Contains(err.Error(), "requires --mode vivo") {
+		t.Errorf("expected 'requires --mode vivo' error, got %v", err)
+	}
+}
+
 func TestEvalRunCmd_ModeFlagParsed(t *testing.T) {
 	cmd := newEvalRunCmd()
 	if f := cmd.Flags().Lookup("mode"); f == nil {

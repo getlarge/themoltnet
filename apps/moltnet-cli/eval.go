@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -769,6 +770,11 @@ func loadEvalManifest(scenarioDir string) (*evalManifest, error) {
 	if err := dec.Decode(&m); err != nil {
 		return nil, fmt.Errorf("parsing eval.json: %w", err)
 	}
+	// Reject trailing content after the top-level object (e.g. `{...}{...}`
+	// or stray garbage). Strict manifests should be a single JSON value.
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return nil, fmt.Errorf("parsing eval.json: unexpected trailing content after top-level object")
+	}
 	return &m, nil
 }
 
@@ -1232,8 +1238,13 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts, manifest 
 	var neutralizeErr error
 	switch mode {
 	case "vitro":
-		include := []string{"task.md"}
-		if manifest != nil && len(manifest.Fixture.Include) > 0 {
+		// Vitro is a blank-slate worktree: the agent receives task
+		// instructions through the prompt (solverInput.task_description),
+		// not through the filesystem. Default include is empty — sparse
+		// pass wipes everything except .git. Scenarios that need on-disk
+		// fixtures declare them explicitly via fixture.include.
+		var include []string
+		if manifest != nil {
 			include = manifest.Fixture.Include
 		}
 		neutralizeErr = sparsePassDSPYEvalWorktree(worktreeDir, include)
@@ -1333,10 +1344,16 @@ func neutralizeDSPYEvalWorktree(worktreeDir string, filter dspyWorktreeFilter) e
 		if path == worktreeDir {
 			return nil
 		}
-		if d.IsDir() {
-			if filepath.Base(path) == ".git" {
+		// Preserve .git regardless of whether it is a directory or a
+		// gitdir-pointer file. `git worktree add` creates .git as a file
+		// (pointing at $GIT_DIR/worktrees/<name>), not a directory.
+		if filepath.Base(path) == ".git" {
+			if d.IsDir() {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+		if d.IsDir() {
 			if filter.matches(relPath(worktreeDir, path), true) {
 				if err := os.RemoveAll(path); err != nil && !os.IsNotExist(err) {
 					return err
@@ -1355,10 +1372,22 @@ func neutralizeDSPYEvalWorktree(worktreeDir string, filter dspyWorktreeFilter) e
 }
 
 // sparsePassDSPYEvalWorktree removes everything from worktreeDir except:
-// - paths listed in include (relative to worktreeDir)
-// - the .git directory (required for git worktree management)
+//   - paths listed in include (relative to worktreeDir). An empty include
+//     list produces a fully empty worktree — the vitro default.
+//   - .git, regardless of whether it is a directory or a file. `git worktree
+//     add` creates .git as a gitdir-pointer file; the main repo's .git is a
+//     directory. Both are preserved so `git worktree remove` cleanup works.
+//
 // Runner-written files (context-pack.md, CLAUDE.md, AGENTS.md) are written
 // by writeDSPYEvalPackToDisk AFTER this pass, so they don't need to be listed.
+//
+// Isolation tradeoff: preserving .git means the agent can use git plumbing
+// (`git show`, `git cat-file`, `git log`) to read blobs that were removed
+// from the working tree. Vitro isolation is therefore a "sparse filesystem
+// view", NOT a cryptographic air gap. A scenario that relies on the agent
+// being unable to see a specific file must not assume vitro hides it from
+// git-aware tooling. Full isolation would require `git archive | tar -x`
+// into a plain tempdir (no .git at all), which is tracked as a follow-up.
 func sparsePassDSPYEvalWorktree(worktreeDir string, include []string) error {
 	allowset := make(map[string]bool, len(include)+1)
 	for _, p := range include {
@@ -1379,8 +1408,13 @@ func sparsePassDSPYEvalWorktree(worktreeDir string, include []string) error {
 			return nil
 		}
 		rel := relPath(worktreeDir, path)
-		if d.IsDir() && filepath.Base(path) == ".git" {
-			return filepath.SkipDir
+		// Preserve .git regardless of whether it's a directory (main repo)
+		// or a gitdir-pointer file (git worktree checkouts).
+		if filepath.Base(path) == ".git" {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if d.IsDir() {
 			hasAllowedChild := false

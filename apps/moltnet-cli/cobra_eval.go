@@ -29,7 +29,24 @@ variants and reports the score delta (pack contribution).
 The default engine is dspy (lightweight Claude-only path).
 Use --engine harbor for the legacy containerized path (deprecated).
 When --pack is provided with --concurrency >= 2, without-context
-and with-context variants run in parallel.`,
+and with-context variants run in parallel.
+
+Isolation modes (--mode / eval.json):
+  vitro  sparse worktree. Task instructions are delivered via the prompt;
+         the filesystem starts empty. Scenarios declare on-disk fixtures
+         via eval.json "fixture.include" (repo-relative globs). Default
+         is an empty filesystem.
+  vivo   real repo checked out at fixture.ref (required). The agent sees
+         the repo as it existed at that commit, minus --worktree-exclude
+         globs.
+
+Isolation tradeoff: vitro preserves the .git entry (file or directory)
+so worktree cleanup works. This means an agent can use git plumbing
+(git show, cat-file, log) to read blobs that were removed from the
+working tree. Vitro is a "sparse filesystem view", NOT a cryptographic
+air gap — do not rely on it to hide content from git-aware tooling.
+Full isolation (git archive into a plain tempdir) is tracked as a
+follow-up.`,
 		Example: `  # Single task, baseline only (uses dspy engine by default)
   moltnet eval run --scenario ./evals/codegen-chain
 
@@ -69,8 +86,8 @@ and with-context variants run in parallel.`,
 			if mode != "" && mode != "vitro" && mode != "vivo" {
 				return fmt.Errorf("--mode must be vitro or vivo, got %q", mode)
 			}
-			if fixtureRef != "" && mode == "vitro" {
-				return fmt.Errorf("--fixture-ref is not valid with --mode vitro")
+			if fixtureRef != "" && mode != "" && mode != "vivo" {
+				return fmt.Errorf("--fixture-ref requires --mode vivo")
 			}
 
 			if concurrency < 1 {
@@ -133,7 +150,7 @@ and with-context variants run in parallel.`,
 	}
 	cmd.Flags().StringP("scenario", "s", "", "Path to eval scenario directory (contains task.md + criteria.json)")
 	cmd.Flags().StringP("pack", "p", "", "Path to rendered pack markdown to inject as context")
-	cmd.Flags().StringP("config", "c", "", "Path to YAML config file for batch runs")
+	cmd.Flags().StringP("config", "c", "", "Path to YAML or JSON config file for batch runs")
 	cmd.Flags().StringP("model", "m", "", "Model for the agent (default depends on --agent)")
 	cmd.Flags().Int("concurrency", 1, "Number of concurrent trials")
 	cmd.Flags().BoolP("force-build", "f", false, "Force Docker image rebuild")
