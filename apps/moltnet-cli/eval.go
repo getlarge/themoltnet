@@ -729,6 +729,94 @@ func loadEvalManifest(scenarioDir string) (*evalManifest, error) {
 	return &m, nil
 }
 
+// validateScenario validates task.md, criteria.json, and eval.json (if present).
+// Returns the parsed evalManifest (nil if eval.json is absent — Phase 1 fallback).
+// Hard-errors on malformed JSON, invalid criteria, or invalid eval.json semantics.
+func validateScenario(dir string) (*evalManifest, error) {
+	if err := validateTaskDir(dir); err != nil {
+		return nil, err
+	}
+
+	criteriaData, err := os.ReadFile(filepath.Join(dir, "criteria.json"))
+	if err != nil {
+		return nil, fmt.Errorf("reading criteria.json: %w", err)
+	}
+	if err := validateCriteriaJSON(criteriaData); err != nil {
+		return nil, fmt.Errorf("criteria.json in %s: %w", dir, err)
+	}
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		return nil, fmt.Errorf("eval.json in %s: %w", dir, err)
+	}
+	if m == nil {
+		return nil, nil
+	}
+	if err := validateEvalManifest(m); err != nil {
+		return nil, fmt.Errorf("eval.json in %s: %w", dir, err)
+	}
+	return m, nil
+}
+
+func validateCriteriaJSON(data []byte) error {
+	var c evalChecklistCriteria
+	if err := json.Unmarshal(data, &c); err != nil {
+		return fmt.Errorf("parse error: %w", err)
+	}
+	if c.Type != "" && c.Type != "weighted_checklist" {
+		return fmt.Errorf("unsupported type %q (must be weighted_checklist)", c.Type)
+	}
+	if len(c.Checklist) == 0 {
+		return fmt.Errorf("checklist must be non-empty")
+	}
+	var total float64
+	for i, item := range c.Checklist {
+		if strings.TrimSpace(item.Name) == "" {
+			return fmt.Errorf("checklist[%d]: name must be non-empty", i)
+		}
+		if strings.TrimSpace(item.Description) == "" {
+			return fmt.Errorf("checklist[%d]: description must be non-empty", i)
+		}
+		if item.MaxScore <= 0 {
+			return fmt.Errorf("checklist[%d]: max_score must be positive, got %v", i, item.MaxScore)
+		}
+		total += item.MaxScore
+	}
+	if total != 100 {
+		return fmt.Errorf("checklist max_score values must sum to 100, got %v", total)
+	}
+	return nil
+}
+
+func validateEvalManifest(m *evalManifest) error {
+	switch m.Mode {
+	case "vitro":
+		if m.Fixture.Ref != "" {
+			return fmt.Errorf("mode vitro: fixture.ref must be empty (ref is irrelevant in vitro mode)")
+		}
+		for i, g := range m.Fixture.Include {
+			if strings.TrimSpace(g) == "" {
+				return fmt.Errorf("fixture.include[%d]: must be non-empty", i)
+			}
+		}
+	case "vivo":
+		if strings.TrimSpace(m.Fixture.Ref) == "" {
+			return fmt.Errorf("mode vivo: fixture.ref is required")
+		}
+	default:
+		return fmt.Errorf("mode must be vitro or vivo, got %q", m.Mode)
+	}
+	for i, g := range m.Fixture.Exclude {
+		if strings.TrimSpace(g) == "" {
+			return fmt.Errorf("fixture.exclude[%d]: must be non-empty", i)
+		}
+	}
+	if m.Pack != nil && strings.TrimSpace(m.Pack.Path) == "" {
+		return fmt.Errorf("pack.path must be non-empty if pack is set")
+	}
+	return nil
+}
+
 func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	if err := validateDSPYEvalOpts(opts); err != nil {
 		return err

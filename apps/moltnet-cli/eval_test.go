@@ -1283,3 +1283,189 @@ func TestLoadEvalManifest_WithPack(t *testing.T) {
 		t.Errorf("pack.path: got %q, want ../../packs/my-pack.md", m.Pack.Path)
 	}
 }
+
+func TestValidateScenario_Valid(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":60},
+		{"name":"Does Y","description":"Agent does Y","max_score":40}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(`{"mode":"vitro"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateScenario_CriteriaScoresDontSum100(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":60},
+		{"name":"Does Y","description":"Agent does Y","max_score":30}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for scores not summing to 100")
+	}
+	if !strings.Contains(err.Error(), "sum") {
+		t.Errorf("expected 'sum' in error, got: %v", err)
+	}
+}
+
+func TestValidateScenario_CriteriaEmptyChecklist(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for empty checklist")
+	}
+	if !strings.Contains(err.Error(), "checklist") {
+		t.Errorf("expected 'checklist' in error, got: %v", err)
+	}
+}
+
+func TestValidateScenario_CriteriaZeroMaxScore(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":0}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for zero max_score")
+	}
+}
+
+func TestValidateScenario_CriteriaMissingName(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+}
+
+func TestValidateScenario_EvalJsonVivoMissingRef(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(`{"mode":"vivo"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for vivo missing fixture.ref")
+	}
+	if !strings.Contains(err.Error(), "fixture.ref") {
+		t.Errorf("expected 'fixture.ref' in error, got: %v", err)
+	}
+}
+
+func TestValidateScenario_EvalJsonVitroWithRef(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(`{"mode":"vitro","fixture":{"ref":"abc123"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for vitro with fixture.ref")
+	}
+}
+
+func TestValidateScenario_EvalJsonUnknownMode(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(`{"mode":"unknown"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for unknown mode")
+	}
+}
+
+func TestValidateScenario_NoEvalJson_Warning(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	manifest, err := validateScenario(dir)
+	if err != nil {
+		t.Fatalf("expected no error for absent eval.json (Phase 1), got: %v", err)
+	}
+	if manifest != nil {
+		t.Errorf("expected nil manifest for absent eval.json, got: %+v", manifest)
+	}
+}
