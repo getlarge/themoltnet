@@ -160,6 +160,7 @@ type evalRunInput struct {
 	packMD       string
 	agent        string
 	model        string
+	manifest     *evalManifest // nil if eval.json absent (Phase 1 fallback)
 }
 
 // evalConfig is the YAML config file schema.
@@ -606,9 +607,14 @@ func printBatchSummary(results []evalResult, model string) {
 // --- Orchestration ---
 
 func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, error) {
-	if err := validateTaskDir(scenarioDir); err != nil {
+	manifest, err := validateScenario(scenarioDir)
+	if err != nil {
 		return evalRunInput{}, err
 	}
+	if manifest == nil {
+		fmt.Fprintf(os.Stderr, "warning: %s has no eval.json — running with full worktree (Phase 1 fallback). Add eval.json with mode:vitro or mode:vivo to suppress this warning.\n", scenarioDir)
+	}
+
 	taskMD, err := os.ReadFile(filepath.Join(scenarioDir, "task.md"))
 	if err != nil {
 		return evalRunInput{}, fmt.Errorf("reading task.md from %s: %w", scenarioDir, err)
@@ -617,6 +623,8 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 	if err != nil {
 		return evalRunInput{}, fmt.Errorf("reading criteria.json from %s: %w", scenarioDir, err)
 	}
+
+	// Resolve pack: CLI --pack flag takes precedence over eval.json pack.path.
 	var packMD string
 	if packPath != "" {
 		data, err := os.ReadFile(packPath)
@@ -624,7 +632,18 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 			return evalRunInput{}, fmt.Errorf("reading pack %s: %w", packPath, err)
 		}
 		packMD = string(data)
+	} else if manifest != nil && manifest.Pack != nil && manifest.Pack.Path != "" {
+		absPath := manifest.Pack.Path
+		if !filepath.IsAbs(absPath) {
+			absPath = filepath.Join(scenarioDir, absPath)
+		}
+		data, err := os.ReadFile(absPath)
+		if err != nil {
+			return evalRunInput{}, fmt.Errorf("reading pack from eval.json pack.path %s: %w", absPath, err)
+		}
+		packMD = string(data)
 	}
+
 	return evalRunInput{
 		name:         filepath.Base(scenarioDir),
 		taskMD:       taskMD,
@@ -632,6 +651,7 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 		packMD:       packMD,
 		agent:        agent,
 		model:        model,
+		manifest:     manifest,
 	}, nil
 }
 

@@ -1469,3 +1469,114 @@ func TestValidateScenario_NoEvalJson_Warning(t *testing.T) {
 		t.Errorf("expected nil manifest for absent eval.json, got: %+v", manifest)
 	}
 }
+
+func TestResolveEvalRun_LoadsManifest(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(`{"mode":"vitro"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input, err := resolveEvalRun(dir, "", "claude", "anthropic/claude-sonnet-4-6")
+	if err != nil {
+		t.Fatalf("resolveEvalRun: %v", err)
+	}
+	if input.manifest == nil {
+		t.Fatal("expected non-nil manifest in evalRunInput")
+	}
+	if input.manifest.Mode != "vitro" {
+		t.Errorf("manifest.mode: got %q, want vitro", input.manifest.Mode)
+	}
+}
+
+func TestResolveEvalRun_NoManifestWarns(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// No eval.json
+
+	input, err := resolveEvalRun(dir, "", "claude", "anthropic/claude-sonnet-4-6")
+	if err != nil {
+		t.Fatalf("resolveEvalRun: %v", err)
+	}
+	if input.manifest != nil {
+		t.Errorf("expected nil manifest for absent eval.json, got: %+v", input.manifest)
+	}
+}
+
+func TestResolveEvalRun_ManifestPackPathResolved(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	packPath := filepath.Join(dir, "pack.md")
+	if err := os.WriteFile(packPath, []byte("# Pack Content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	evalJSON := `{"mode":"vitro","pack":{"path":"pack.md"}}`
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(evalJSON), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input, err := resolveEvalRun(dir, "", "claude", "anthropic/claude-sonnet-4-6")
+	if err != nil {
+		t.Fatalf("resolveEvalRun: %v", err)
+	}
+	if input.packMD != "# Pack Content" {
+		t.Errorf("packMD: got %q, want pack content", input.packMD)
+	}
+}
+
+func TestResolveEvalRun_CLIPackOverridesManifest(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	manifestPack := filepath.Join(dir, "manifest-pack.md")
+	cliPack := filepath.Join(dir, "cli-pack.md")
+	if err := os.WriteFile(manifestPack, []byte("manifest pack"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cliPack, []byte("cli pack"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	evalJSON := `{"mode":"vitro","pack":{"path":"manifest-pack.md"}}`
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(evalJSON), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input, err := resolveEvalRun(dir, cliPack, "claude", "anthropic/claude-sonnet-4-6")
+	if err != nil {
+		t.Fatalf("resolveEvalRun: %v", err)
+	}
+	if input.packMD != "cli pack" {
+		t.Errorf("CLI --pack should override eval.json pack, got: %q", input.packMD)
+	}
+}
