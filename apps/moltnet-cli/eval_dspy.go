@@ -382,8 +382,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 //   - context-pack.md — canonical pack content; picked up by the workspace
 //     snapshot so the judge sees exactly what was provided to the agent.
 //   - .claude/CLAUDE.md — @-imports context-pack.md so Claude Code loads it as
-//     project context automatically. Written under .claude/ to match the
-//     established scaffoldTask pattern used by the Harbor adapter.
+//     project context automatically.
 //   - AGENTS.md — inline copy of the pack content; Codex reads AGENTS.md as
 //     its system context but does not support the @file import syntax.
 //
@@ -396,8 +395,8 @@ func writeDSPYEvalPackToDisk(worktreeDir, packMD string) error {
 	if err := os.WriteFile(filepath.Join(worktreeDir, "context-pack.md"), []byte(packContent), 0o644); err != nil {
 		return fmt.Errorf("write context-pack.md: %w", err)
 	}
-	// Claude Code supports @file imports; write under .claude/ to match the
-	// scaffoldTask convention used in the Harbor adapter.
+	// Claude Code supports @file imports; write under .claude/ so it picks
+	// up the pack via its standard project-context discovery.
 	claudeDir := filepath.Join(worktreeDir, ".claude")
 	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir .claude: %w", err)

@@ -17,7 +17,6 @@ import (
 type evalRunOpts struct {
 	model            string
 	concurrency      int
-	forceBuild       bool
 	agent            string // "claude" | "codex"
 	judge            string // "claude" | "codex"
 	judgeModel       string // judge model (prefix-free)

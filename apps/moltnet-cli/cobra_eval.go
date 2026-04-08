@@ -68,7 +68,6 @@ follow-up.`,
 			config, _ := cmd.Flags().GetString("config")
 			model, _ := cmd.Flags().GetString("model")
 			concurrency, _ := cmd.Flags().GetInt("concurrency")
-			forceBuild, _ := cmd.Flags().GetBool("force-build")
 			agent, _ := cmd.Flags().GetString("agent")
 			judge, _ := cmd.Flags().GetString("judge")
 			judgeModel, _ := cmd.Flags().GetString("judge-model")
@@ -119,7 +118,6 @@ follow-up.`,
 			opts := evalRunOpts{
 				model:            model,
 				concurrency:      concurrency,
-				forceBuild:       forceBuild,
 				agent:            agent,
 				judge:            judge,
 				judgeModel:       judgeModel,
@@ -140,11 +138,10 @@ follow-up.`,
 	cmd.Flags().StringP("config", "c", "", "Path to YAML or JSON config file for batch runs")
 	cmd.Flags().StringP("model", "m", "", "Model for the agent (default depends on --agent)")
 	cmd.Flags().Int("concurrency", 1, "Number of concurrent trials")
-	cmd.Flags().BoolP("force-build", "f", false, "Force Docker image rebuild")
 	cmd.Flags().String("agent", "claude", "Agent to use: claude or codex")
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
-	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove before --engine dspy task execution")
+	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove from the eval worktree before task execution")
 	// TODO(#714): drop "— not yet implemented" once the ReAct tool registry lands.
 	cmd.Flags().String("solver", "cot", "Solver module: cot (ChainOfThought, default) or react (ReAct — not yet implemented)")
 	cmd.Flags().String("mode", "", "Isolation mode override: vitro (sparse, task inputs only) or vivo (real repo at fixture-ref). Overrides eval.json mode.")
