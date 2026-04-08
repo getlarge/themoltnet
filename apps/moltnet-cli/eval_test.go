@@ -692,7 +692,7 @@ func TestNeutralizeDSPYEvalWorktreeUsesGlobExcludes(t *testing.T) {
 
 	filter := newDSPYWorktreeFilter(evalRunOpts{
 		worktreeExcludes: []string{"docs/*.md"},
-	})
+	}, nil)
 	if !filter.matches(".agents/skills/guide.md", false) {
 		t.Fatal("expected default .agents exclusion to match")
 	}
@@ -721,7 +721,7 @@ func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
 			"vendor/**",
 			"agents/*.md",
 		},
-	})
+	}, nil)
 
 	tests := []struct {
 		rel   string
@@ -750,7 +750,7 @@ func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
 }
 
 func TestCreateDSPYEvalWorktreeRequiresFrozenSourceRef(t *testing.T) {
-	_, _, err := createDSPYEvalWorktree(t.TempDir(), "test", evalRunOpts{})
+	_, _, err := createDSPYEvalWorktree(t.TempDir(), "test", evalRunOpts{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "missing frozen dspy source ref") {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1578,5 +1578,86 @@ func TestResolveEvalRun_CLIPackOverridesManifest(t *testing.T) {
 	}
 	if input.packMD != "cli pack" {
 		t.Errorf("CLI --pack should override eval.json pack, got: %q", input.packMD)
+	}
+}
+
+func TestSparsePassDSPYEvalWorktree_KeepsTaskMD(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatalf("write task.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(`{"name":"app"}`), 0o644); err != nil {
+		t.Fatalf("write package.json: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "src"), 0o755); err != nil {
+		t.Fatalf("mkdir src: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "src", "index.ts"), []byte("export {}"), 0o644); err != nil {
+		t.Fatalf("write src/index.ts: %v", err)
+	}
+
+	include := []string{"task.md"}
+	if err := sparsePassDSPYEvalWorktree(dir, include); err != nil {
+		t.Fatalf("sparsePassDSPYEvalWorktree: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "task.md")); err != nil {
+		t.Error("task.md should be kept")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "package.json")); err == nil {
+		t.Error("package.json should be removed")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "src")); err == nil {
+		t.Error("src/ should be removed")
+	}
+}
+
+func TestSparsePassDSPYEvalWorktree_KeepsMultipleIncludes(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatalf("write task.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "fixture.ts"), []byte("export const x = 1"), 0o644); err != nil {
+		t.Fatalf("write fixture.ts: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "unrelated.go"), []byte("package main"), 0o644); err != nil {
+		t.Fatalf("write unrelated.go: %v", err)
+	}
+
+	include := []string{"task.md", "fixture.ts"}
+	if err := sparsePassDSPYEvalWorktree(dir, include); err != nil {
+		t.Fatalf("sparsePassDSPYEvalWorktree: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "task.md")); err != nil {
+		t.Error("task.md should be kept")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "fixture.ts")); err != nil {
+		t.Error("fixture.ts should be kept")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "unrelated.go")); err == nil {
+		t.Error("unrelated.go should be removed")
+	}
+}
+
+func TestSparsePassDSPYEvalWorktree_KeepsGitDir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatalf("write task.md: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir .git: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".git", "config"), []byte("[core]"), 0o644); err != nil {
+		t.Fatalf("write .git/config: %v", err)
+	}
+
+	include := []string{"task.md"}
+	if err := sparsePassDSPYEvalWorktree(dir, include); err != nil {
+		t.Fatalf("sparsePassDSPYEvalWorktree: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, ".git")); err != nil {
+		t.Error(".git should be preserved")
 	}
 }

@@ -39,6 +39,8 @@ type evalRunOpts struct {
 	dspyRepoRoot     string
 	dspySourceRef    string
 	solverKind       solver.Kind // "cot" (default) or "react"
+	dspyMode         string      // "vitro" | "vivo" | "" (legacy)
+	dspyFixtureRef   string      // --fixture-ref CLI override
 }
 
 // worktreeMu serializes git worktree add/remove operations to avoid
@@ -81,7 +83,7 @@ func newDefaultDSPYWorktreeFilter() dspyWorktreeFilter {
 // complete exclude list when they want full control (e.g. to preserve their own
 // CLAUDE.md or AGENTS.md from the repo). Right now the defaults always apply
 // and user globs can only add more paths to remove.
-func newDSPYWorktreeFilter(opts evalRunOpts) dspyWorktreeFilter {
+func newDSPYWorktreeFilter(opts evalRunOpts, manifest *evalManifest) dspyWorktreeFilter {
 	filter := newDefaultDSPYWorktreeFilter()
 	for _, glob := range opts.worktreeExcludes {
 		glob = strings.Trim(strings.TrimSpace(filepath.ToSlash(glob)), "/")
@@ -90,8 +92,29 @@ func newDSPYWorktreeFilter(opts evalRunOpts) dspyWorktreeFilter {
 		}
 		filter.excludeGlobs = append(filter.excludeGlobs, glob)
 	}
+	if manifest != nil {
+		for _, glob := range manifest.Fixture.Exclude {
+			glob = strings.Trim(strings.TrimSpace(filepath.ToSlash(glob)), "/")
+			if glob == "" {
+				continue
+			}
+			filter.excludeGlobs = append(filter.excludeGlobs, glob)
+		}
+	}
 	sort.Strings(filter.excludeGlobs)
 	return filter
+}
+
+// dspyEvalMode returns the effective mode for a variant run.
+// CLI --mode overrides eval.json; absent eval.json = legacy full-HEAD.
+func dspyEvalMode(manifest *evalManifest, opts evalRunOpts) string {
+	if opts.dspyMode != "" {
+		return opts.dspyMode
+	}
+	if manifest != nil {
+		return manifest.Mode
+	}
+	return ""
 }
 
 func defaultAgentModel(agent string) string {
@@ -841,7 +864,7 @@ func runDSPYEvalSingleTask(input evalRunInput, opts evalRunOpts) error {
 	if err := validateDSPYEvalOpts(opts); err != nil {
 		return err
 	}
-	repoRoot, sourceRef, err := resolveDSPYEvalSource()
+	repoRoot, sourceRef, err := resolveDSPYEvalSource(opts, input.manifest)
 	if err != nil {
 		return err
 	}
@@ -933,7 +956,10 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 			}
 		}
 	}
-	repoRoot, sourceRef, err := resolveDSPYEvalSource()
+	// Default batch source ref (nil manifest -> HEAD or CLI --fixture-ref).
+	// Per-input manifests with their own fixture.ref are resolved inside the
+	// per-input goroutine below so each scenario can pin its own commit.
+	repoRoot, sourceRef, err := resolveDSPYEvalSource(opts, nil)
 	if err != nil {
 		return err
 	}
@@ -978,15 +1004,27 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 			r := evalResult{taskName: in.name}
 			var runErr error
 
+			// Per-input source resolution: honor each scenario's eval.json fixture.ref.
+			inputOpts := opts
+			if in.manifest != nil && in.manifest.Fixture.Ref != "" && opts.dspyFixtureRef == "" {
+				perRepo, perRef, perErr := resolveDSPYEvalSource(opts, in.manifest)
+				if perErr != nil {
+					ch <- indexedResult{idx: idx, err: perErr}
+					return
+				}
+				inputOpts.dspyRepoRoot = perRepo
+				inputOpts.dspySourceRef = perRef
+			}
+
 			tb := pt.addTrial(in.name + " (without context)")
-			r.withoutContext, runErr = runDSPYEvalVariant(runDir, in, false, opts, tb)
+			r.withoutContext, runErr = runDSPYEvalVariant(runDir, in, false, inputOpts, tb)
 			if runErr != nil {
 				ch <- indexedResult{idx: idx, err: runErr}
 				return
 			}
 			if in.packMD != "" {
 				tb2 := pt.addTrial(in.name + " (with context)")
-				r.withContext, runErr = runDSPYEvalVariant(runDir, in, true, opts, tb2)
+				r.withContext, runErr = runDSPYEvalVariant(runDir, in, true, inputOpts, tb2)
 				if runErr != nil {
 					ch <- indexedResult{idx: idx, err: runErr}
 					return
@@ -1053,7 +1091,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		return nil, fmt.Errorf("creating variant dir: %w", err)
 	}
 
-	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName, opts)
+	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName, opts, input.manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -1177,7 +1215,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	return scores, nil
 }
 
-func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, func() error, error) {
+func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts, manifest *evalManifest) (string, func() error, error) {
 	if opts.dspyRepoRoot == "" || opts.dspySourceRef == "" {
 		return "", nil, fmt.Errorf("missing frozen dspy source ref")
 	}
@@ -1189,14 +1227,27 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, 
 	if addErr != nil {
 		return "", nil, fmt.Errorf("create dspy worktree for %s: %w", label, addErr)
 	}
-	if err := neutralizeDSPYEvalWorktree(worktreeDir, newDSPYWorktreeFilter(opts)); err != nil {
+
+	mode := dspyEvalMode(manifest, opts)
+	var neutralizeErr error
+	switch mode {
+	case "vitro":
+		include := []string{"task.md"}
+		if manifest != nil && len(manifest.Fixture.Include) > 0 {
+			include = manifest.Fixture.Include
+		}
+		neutralizeErr = sparsePassDSPYEvalWorktree(worktreeDir, include)
+	default:
+		neutralizeErr = neutralizeDSPYEvalWorktree(worktreeDir, newDSPYWorktreeFilter(opts, manifest))
+	}
+	if neutralizeErr != nil {
 		worktreeMu.Lock()
 		cleanupErr := gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir)
 		worktreeMu.Unlock()
 		if cleanupErr != nil {
-			return "", nil, fmt.Errorf("neutralize dspy worktree: %w; cleanup worktree: %v", err, cleanupErr)
+			return "", nil, fmt.Errorf("neutralize dspy worktree: %w; cleanup worktree: %v", neutralizeErr, cleanupErr)
 		}
-		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", err)
+		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", neutralizeErr)
 	}
 
 	cleanup := func() error {
@@ -1207,16 +1258,29 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts) (string, 
 	return worktreeDir, cleanup, nil
 }
 
-func resolveDSPYEvalSource() (string, string, error) {
+func resolveDSPYEvalSource(opts evalRunOpts, manifest *evalManifest) (string, string, error) {
 	repoRoot, err := currentRepoRoot()
 	if err != nil {
 		return "", "", err
 	}
-	headRef, err := gitOutput(repoRoot, "rev-parse", "HEAD")
-	if err != nil {
-		return "", "", fmt.Errorf("resolve dspy source ref: %w", err)
+	ref := ""
+	if opts.dspyFixtureRef != "" {
+		ref = opts.dspyFixtureRef
+	} else if manifest != nil && manifest.Fixture.Ref != "" {
+		ref = manifest.Fixture.Ref
 	}
-	return repoRoot, strings.TrimSpace(headRef), nil
+	if ref == "" {
+		headRef, err := gitOutput(repoRoot, "rev-parse", "HEAD")
+		if err != nil {
+			return "", "", fmt.Errorf("resolve dspy source ref: %w", err)
+		}
+		return repoRoot, strings.TrimSpace(headRef), nil
+	}
+	resolvedRef, err := gitOutput(repoRoot, "rev-parse", "--verify", ref)
+	if err != nil {
+		return "", "", fmt.Errorf("fixture.ref %q does not resolve in this repo: %w", ref, err)
+	}
+	return repoRoot, strings.TrimSpace(resolvedRef), nil
 }
 
 func currentRepoRoot() (string, error) {
@@ -1282,6 +1346,59 @@ func neutralizeDSPYEvalWorktree(worktreeDir string, filter dspyWorktreeFilter) e
 			return nil
 		}
 		if filter.matches(relPath(worktreeDir, path), false) {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// sparsePassDSPYEvalWorktree removes everything from worktreeDir except:
+// - paths listed in include (relative to worktreeDir)
+// - the .git directory (required for git worktree management)
+// Runner-written files (context-pack.md, CLAUDE.md, AGENTS.md) are written
+// by writeDSPYEvalPackToDisk AFTER this pass, so they don't need to be listed.
+func sparsePassDSPYEvalWorktree(worktreeDir string, include []string) error {
+	allowset := make(map[string]bool, len(include)+1)
+	for _, p := range include {
+		p = strings.Trim(strings.TrimSpace(filepath.ToSlash(p)), "/")
+		if p != "" {
+			allowset[p] = true
+		}
+	}
+
+	return filepath.WalkDir(worktreeDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if path == worktreeDir {
+			return nil
+		}
+		rel := relPath(worktreeDir, path)
+		if d.IsDir() && filepath.Base(path) == ".git" {
+			return filepath.SkipDir
+		}
+		if d.IsDir() {
+			hasAllowedChild := false
+			for allowed := range allowset {
+				if strings.HasPrefix(allowed, rel+"/") {
+					hasAllowedChild = true
+					break
+				}
+			}
+			if !hasAllowedChild && !allowset[rel] {
+				if err := os.RemoveAll(path); err != nil && !os.IsNotExist(err) {
+					return err
+				}
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !allowset[rel] {
 			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 				return err
 			}
