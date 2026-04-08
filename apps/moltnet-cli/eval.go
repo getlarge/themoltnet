@@ -924,13 +924,20 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		}
 	}
 
-	prompt := buildDSPYEvalPrompt(string(input.taskMD), withContext, input.packMD)
 	model := input.model
 	if model == "" {
 		model = opts.model
 	}
 
-	agentResult, err := runEvalAgent(worktreeDir, agentName, model, prompt, tb)
+	agentResult, err := runSolver(solverInput{
+		workDir:     worktreeDir,
+		agent:       agentName,
+		model:       model,
+		taskMD:      string(input.taskMD),
+		packMD:      input.packMD,
+		withContext: withContext,
+		tb:          tb,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -1288,20 +1295,41 @@ type dspyAgentRunResult struct {
 	trajectory        []json.RawMessage // raw stream-json events (assistant + result only)
 }
 
-// runEvalAgent spawns the appropriate CLI agent via the dspy-go adapter,
-// capturing trajectory, usage, and session metadata.
-func runEvalAgent(workDir, agent, model, prompt string, tb *trialBar) (*dspyAgentRunResult, error) {
+// solverInput bundles everything one eval trial needs to drive the agent.
+// It exists as the stable seam the dspy-go solver module (ChainOfThought
+// for vitro, ReAct for vivo — see docs/superpowers/specs/2026-04-08-eval-solver-dspy-module.md
+// and issue #714) will hook into.
+type solverInput struct {
+	workDir     string
+	agent       string
+	model       string
+	taskMD      string
+	packMD      string
+	withContext bool
+	tb          *trialBar
+}
+
+// runSolver executes one eval trial and returns the captured agent result.
+//
+// This is the dspy-go solver seam. Today it spawns the appropriate CLI
+// adapter directly with a hand-built prompt — behavior is identical to
+// the pre-refactor runner. The follow-up PR (issue #714) replaces the
+// body with a libs/dspy-adapters/solver call that owns signature +
+// module selection (ChainOfThought for vitro, ReAct plumbed for vivo).
+func runSolver(in solverInput) (*dspyAgentRunResult, error) {
+	prompt := buildDSPYEvalPrompt(in.taskMD, in.withContext, in.packMD)
+
 	var heartbeat dspytypes.HeartbeatFunc
-	if tb != nil {
-		heartbeat = dspytypes.HeartbeatFunc(tb.heartbeatFor())
+	if in.tb != nil {
+		heartbeat = dspytypes.HeartbeatFunc(in.tb.heartbeatFor())
 	}
 
 	var gen dspytypes.TrajectoryGenerator
-	switch agent {
+	switch in.agent {
 	case "codex":
 		llm, err := codex.New(codex.Config{
-			Model:       trimOpenAIModelPrefix(model),
-			WorkDir:     workDir,
+			Model:       trimOpenAIModelPrefix(in.model),
+			WorkDir:     in.workDir,
 			SandboxMode: "workspace-write",
 			IsolateHome: true,
 			OnHeartbeat: heartbeat,
@@ -1312,8 +1340,8 @@ func runEvalAgent(workDir, agent, model, prompt string, tb *trialBar) (*dspyAgen
 		gen = llm
 	default:
 		llm, err := claudecode.New(claudecode.Config{
-			Model:              trimAnthropicModelPrefix(model),
-			WorkDir:            workDir,
+			Model:              trimAnthropicModelPrefix(in.model),
+			WorkDir:            in.workDir,
 			IsolateFromSession: true,
 			OnHeartbeat:        heartbeat,
 		})
