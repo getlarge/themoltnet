@@ -26,8 +26,6 @@ func newEvalRunCmd() *cobra.Command {
 When --pack is provided, runs both with-context and without-context
 variants and reports the score delta (pack contribution).
 
-The default engine is dspy (lightweight Claude-only path).
-Use --engine harbor for the legacy containerized path (deprecated).
 When --pack is provided with --concurrency >= 2, without-context
 and with-context variants run in parallel.
 
@@ -47,7 +45,7 @@ working tree. Vitro is a "sparse filesystem view", NOT a cryptographic
 air gap — do not rely on it to hide content from git-aware tooling.
 Full isolation (git archive into a plain tempdir) is tracked as a
 follow-up.`,
-		Example: `  # Single task, baseline only (uses dspy engine by default)
+		Example: `  # Single task, baseline only
   moltnet eval run --scenario ./evals/codegen-chain
 
   # Single task with rendered pack context
@@ -63,10 +61,7 @@ follow-up.`,
   moltnet eval run --scenario ./evals/codegen-chain --agent codex --judge codex
 
   # Run with codex agent but claude judge, explicit model
-  moltnet eval run --scenario ./evals/codegen-chain --agent codex -m openai/gpt-5-codex --judge claude
-
-  # Legacy Harbor engine (deprecated)
-  moltnet eval run --engine harbor --scenario ./evals/codegen-chain`,
+  moltnet eval run --scenario ./evals/codegen-chain --agent codex -m openai/gpt-5-codex --judge claude`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			task, _ := cmd.Flags().GetString("scenario")
 			pack, _ := cmd.Flags().GetString("pack")
@@ -74,7 +69,6 @@ follow-up.`,
 			model, _ := cmd.Flags().GetString("model")
 			concurrency, _ := cmd.Flags().GetInt("concurrency")
 			forceBuild, _ := cmd.Flags().GetBool("force-build")
-			engine, _ := cmd.Flags().GetString("engine")
 			agent, _ := cmd.Flags().GetString("agent")
 			judge, _ := cmd.Flags().GetString("judge")
 			judgeModel, _ := cmd.Flags().GetString("judge-model")
@@ -116,12 +110,6 @@ follow-up.`,
 			if err := validateJudgeModel(judge, judgeModel); err != nil {
 				return err
 			}
-			if err := validateEvalEngine(engine); err != nil {
-				return err
-			}
-			if engine == "harbor" {
-				fmt.Fprintln(cmd.ErrOrStderr(), "Warning: --engine harbor is deprecated and will be removed in a future release. Use --engine dspy (now the default).")
-			}
 
 			solverKind, err := solver.ParseKind(solverFlag)
 			if err != nil {
@@ -129,7 +117,6 @@ follow-up.`,
 			}
 
 			opts := evalRunOpts{
-				engine:           engine,
 				model:            model,
 				concurrency:      concurrency,
 				forceBuild:       forceBuild,
@@ -154,7 +141,6 @@ follow-up.`,
 	cmd.Flags().StringP("model", "m", "", "Model for the agent (default depends on --agent)")
 	cmd.Flags().Int("concurrency", 1, "Number of concurrent trials")
 	cmd.Flags().BoolP("force-build", "f", false, "Force Docker image rebuild")
-	cmd.Flags().String("engine", "dspy", "Execution engine: dspy (default) or harbor (deprecated)")
 	cmd.Flags().String("agent", "claude", "Agent to use: claude or codex")
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")

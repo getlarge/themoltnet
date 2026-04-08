@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -29,7 +28,6 @@ import (
 
 // evalRunOpts holds flags shared by single-task and config modes.
 type evalRunOpts struct {
-	engine           string
 	model            string
 	concurrency      int
 	forceBuild       bool
@@ -50,10 +48,10 @@ var worktreeMu sync.Mutex
 
 func validateEvalEngine(engine string) error {
 	switch engine {
-	case "harbor", "dspy":
+	case "", "dspy":
 		return nil
 	default:
-		return fmt.Errorf("unknown engine %q (must be harbor or dspy)", engine)
+		return fmt.Errorf("unknown engine %q (must be dspy)", engine)
 	}
 }
 
@@ -195,51 +193,37 @@ type evalConfig struct {
 // --- Prerequisites ---
 
 func checkPrerequisites(engine string, opts ...evalRunOpts) error {
-	switch engine {
-	case "dspy":
-		if _, err := exec.LookPath("git"); err != nil {
-			return fmt.Errorf("git CLI not found on PATH: %w", err)
-		}
-		agent := "claude"
-		judge := "claude"
-		if len(opts) > 0 {
-			agent = opts[0].agent
-			judge = opts[0].judge
-		}
-		switch agent {
-		case "codex":
-			if _, err := exec.LookPath("codex"); err != nil {
-				return fmt.Errorf("codex CLI not found on PATH: %w", err)
-			}
-		default:
-			if _, err := exec.LookPath("claude"); err != nil {
-				return fmt.Errorf("claude CLI not found on PATH: %w", err)
-			}
-		}
-		if judge == "codex" && agent != "codex" {
-			if _, err := exec.LookPath("codex"); err != nil {
-				return fmt.Errorf("codex CLI not found on PATH (required for --judge codex): %w", err)
-			}
-		}
-		if judge == "claude" && agent != "claude" {
-			if _, err := exec.LookPath("claude"); err != nil {
-				return fmt.Errorf("claude CLI not found on PATH (required for --judge claude): %w", err)
-			}
-		}
-		return nil
-	case "harbor":
-	default:
+	if engine != "" && engine != "dspy" {
 		return fmt.Errorf("unsupported engine %q", engine)
 	}
-
-	if _, err := exec.LookPath("harbor"); err != nil {
-		return fmt.Errorf("harbor CLI not found on PATH — install with: uv tool install harbor")
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git CLI not found on PATH: %w", err)
 	}
-	if _, err := exec.LookPath("docker"); err != nil {
-		return fmt.Errorf("docker CLI not found on PATH: %w", err)
+	agent := "claude"
+	judge := "claude"
+	if len(opts) > 0 {
+		agent = opts[0].agent
+		judge = opts[0].judge
 	}
-	if err := exec.Command("docker", "info").Run(); err != nil {
-		return fmt.Errorf("docker daemon not running or not accessible: %w", err)
+	switch agent {
+	case "codex":
+		if _, err := exec.LookPath("codex"); err != nil {
+			return fmt.Errorf("codex CLI not found on PATH: %w", err)
+		}
+	default:
+		if _, err := exec.LookPath("claude"); err != nil {
+			return fmt.Errorf("claude CLI not found on PATH: %w", err)
+		}
+	}
+	if judge == "codex" && agent != "codex" {
+		if _, err := exec.LookPath("codex"); err != nil {
+			return fmt.Errorf("codex CLI not found on PATH (required for --judge codex): %w", err)
+		}
+	}
+	if judge == "claude" && agent != "claude" {
+		if _, err := exec.LookPath("claude"); err != nil {
+			return fmt.Errorf("claude CLI not found on PATH (required for --judge claude): %w", err)
+		}
 	}
 	return nil
 }
@@ -282,141 +266,6 @@ func validateTaskDir(dir string) error {
 		}
 	}
 	return nil
-}
-
-// --- Scaffolding ---
-
-func dockerfileTemplateForAgent(agent string) ([]byte, error) {
-	switch agent {
-	case "claude":
-		return dockerfileClaudeTemplate, nil
-	case "codex":
-		return dockerfileCodexTemplate, nil
-	default:
-		return nil, fmt.Errorf("unknown agent %q (must be claude or codex)", agent)
-	}
-}
-
-func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withContext bool, tmplData templateData, agent string) error {
-	dirs := []string{
-		filepath.Join(dir, "environment", "judge"),
-		filepath.Join(dir, "tests"),
-	}
-	if withContext && agent != "codex" {
-		dirs = append(dirs, filepath.Join(dir, "environment", ".claude"))
-	}
-	for _, d := range dirs {
-		if err := os.MkdirAll(d, 0o755); err != nil {
-			return fmt.Errorf("mkdir %s: %w", d, err)
-		}
-	}
-
-	taskToml, err := renderTemplate(taskTomlTmpl, tmplData)
-	if err != nil {
-		return fmt.Errorf("render task.toml: %w", err)
-	}
-	testSh, err := renderTemplate(testShTmpl, tmplData)
-	if err != nil {
-		return fmt.Errorf("render test.sh: %w", err)
-	}
-	dockerfileTemplate, err := dockerfileTemplateForAgent(agent)
-	if err != nil {
-		return err
-	}
-
-	files := map[string][]byte{
-		filepath.Join(dir, "task.toml"):                              []byte(taskToml),
-		filepath.Join(dir, "instruction.md"):                         taskMD,
-		filepath.Join(dir, "environment", "Dockerfile"):              dockerfileTemplate,
-		filepath.Join(dir, "environment", "judge", "retry.js"):       judgeRetryJS,
-		filepath.Join(dir, "environment", "judge", "judge.js"):       judgeJS,
-		filepath.Join(dir, "environment", "judge", "judge-codex.js"): judgeCodexJS,
-		filepath.Join(dir, "environment", "judge", "package.json"):   judgePackageJSON,
-		filepath.Join(dir, "tests", "criteria.json"):                 criteriaJSON,
-	}
-	for path, content := range files {
-		if err := os.WriteFile(path, content, 0o644); err != nil {
-			return fmt.Errorf("write %s: %w", path, err)
-		}
-	}
-
-	// test.sh needs execute permission
-	if err := os.WriteFile(filepath.Join(dir, "tests", "test.sh"), []byte(testSh), 0o755); err != nil {
-		return fmt.Errorf("write test.sh: %w", err)
-	}
-
-	if withContext {
-		content := fmt.Sprintf("# Context Pack\n\n%s", packMD)
-		if agent == "codex" {
-			path := filepath.Join(dir, "environment", "AGENTS.md")
-			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-				return fmt.Errorf("write AGENTS.md: %w", err)
-			}
-		} else {
-			path := filepath.Join(dir, "environment", ".claude", "CLAUDE.md")
-			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-				return fmt.Errorf("write CLAUDE.md: %w", err)
-			}
-		}
-	}
-
-	return nil
-}
-
-// --- Harbor invocation ---
-
-// setupAgentsDir writes the embedded Python agent to a temp directory
-// so Harbor can import it via PYTHONPATH.
-func setupAgentsDir(baseDir string) (string, error) {
-	agentsDir := filepath.Join(baseDir, "agents")
-	if err := os.MkdirAll(agentsDir, 0o755); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(agentsDir, "__init__.py"), []byte(""), 0o644); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(agentsDir, "claude_code_moltnet.py"), agentPython, 0o644); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(agentsDir, "headless_prompt.py"), agentPromptPython, 0o644); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(agentsDir, "codex_moltnet.py"), agentCodexPython, 0o644); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(agentsDir, "retry.py"), agentRetryPython, 0o644); err != nil {
-		return "", err
-	}
-	return baseDir, nil
-}
-
-func runHarbor(workDir, tasksDir, agentsDir, model, agent, judgeModel string, concurrency int, forceBuild bool) error {
-	agentImportPath := "agents.claude_code_moltnet:ClaudeCodeMoltNet"
-	if agent == "codex" {
-		agentImportPath = "agents.codex_moltnet:CodexMoltNet"
-	}
-
-	args := []string{
-		"run",
-		"-p", tasksDir,
-		"--agent-import-path", agentImportPath,
-		"--model", model,
-		"--n-concurrent", strconv.Itoa(concurrency),
-		"-y",
-	}
-	if forceBuild {
-		args = append(args, "--force-build")
-	}
-
-	cmd := exec.Command("harbor", args...)
-	cmd.Dir = workDir // Harbor writes jobs/ relative to CWD
-	cmd.Env = append(os.Environ(),
-		"PYTHONPATH="+agentsDir,
-		"JUDGE_MODEL="+judgeModel,
-	)
-	cmd.Stdout = os.Stderr // Harbor progress + results to stderr
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
 
 // --- Summary formatting ---
@@ -680,21 +529,18 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 }
 
 func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(opts.engine, opts); err != nil {
+	if err := checkPrerequisites("dspy", opts); err != nil {
 		return err
 	}
 	input, err := resolveEvalRun(taskDir, packPath, opts.agent, opts.model)
 	if err != nil {
 		return err
 	}
-	if opts.engine == "dspy" {
-		return runDSPYEvalSingleTask(input, opts)
-	}
-	return runEval([]evalRunInput{input}, opts)
+	return runDSPYEvalSingleTask(input, opts)
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(opts.engine, opts); err != nil {
+	if err := checkPrerequisites("dspy", opts); err != nil {
 		return err
 	}
 	runs, err := loadConfig(configPath)
@@ -720,10 +566,7 @@ func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 		}
 		inputs = append(inputs, input)
 	}
-	if opts.engine == "dspy" {
-		return runDSPYEvalBatch(inputs, opts)
-	}
-	return runEval(inputs, opts)
+	return runDSPYEvalBatch(inputs, opts)
 }
 
 type evalChecklistCriteria struct {
@@ -1992,117 +1835,3 @@ func groupRunsByAgentModel(inputs []evalRunInput) []runGroup {
 	return groups
 }
 
-func runEval(inputs []evalRunInput, opts evalRunOpts) error {
-	groups := groupRunsByAgentModel(inputs)
-
-	var allResults []evalResult
-	hasErrors := false
-
-	for gi, group := range groups {
-		header := groupHeaderLine(gi, len(groups), group)
-		fmt.Fprintln(os.Stderr, header)
-		fmt.Fprintln(os.Stdout, header)
-
-		results, groupHasErrors, err := runEvalGroup(group, opts)
-		if err != nil {
-			return fmt.Errorf("group %s/%s: %w", group.agent, group.model, err)
-		}
-		allResults = append(allResults, results...)
-		if groupHasErrors {
-			hasErrors = true
-		}
-	}
-
-	printSummary(allResults, "")
-	return evalRunCompletionError(allResults, hasErrors)
-}
-
-func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) {
-	startedAt := time.Now()
-	// Create temp working directory for Harbor
-	workDir, err := os.MkdirTemp("", "moltnet-eval-*")
-	if err != nil {
-		return nil, false, fmt.Errorf("creating temp dir: %w", err)
-	}
-	defer func() {
-		fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", workDir)
-	}()
-
-	tasksDir := filepath.Join(workDir, "tasks")
-	if err := os.MkdirAll(tasksDir, 0o755); err != nil {
-		return nil, false, fmt.Errorf("creating tasks dir: %w", err)
-	}
-
-	// Write Python agent to temp dir
-	agentsDir, err := setupAgentsDir(workDir)
-	if err != nil {
-		return nil, false, fmt.Errorf("setting up agents: %w", err)
-	}
-
-	// Deduplicate names (batch configs may have same basename)
-	seen := make(map[string]int)
-	for i := range group.inputs {
-		seen[group.inputs[i].name]++
-		if seen[group.inputs[i].name] > 1 {
-			group.inputs[i].name = fmt.Sprintf("%s-%d", group.inputs[i].name, seen[group.inputs[i].name])
-		}
-	}
-
-	tmplData := templateData{
-		JudgeSDK:          opts.judge,
-		JudgeModelDefault: opts.judgeModel,
-	}
-	for _, input := range group.inputs {
-		// Always scaffold without-context variant
-		dir := filepath.Join(tasksDir, input.name)
-		if err := scaffoldTask(dir, input.taskMD, input.criteriaJSON, "", false, tmplData, input.agent); err != nil {
-			return nil, false, fmt.Errorf("scaffolding %s: %w", input.name, err)
-		}
-
-		// If pack provided, also scaffold with-context variant
-		if input.packMD != "" {
-			ctxDir := filepath.Join(tasksDir, input.name+"-with-context")
-			if err := scaffoldTask(ctxDir, input.taskMD, input.criteriaJSON, input.packMD, true, tmplData, input.agent); err != nil {
-				return nil, false, fmt.Errorf("scaffolding %s-with-context: %w", input.name, err)
-			}
-		}
-	}
-
-	fmt.Fprintf(os.Stderr, "Running %d eval task(s) with agent=%s model=%s...\n", len(group.inputs), group.agent, group.model)
-	if err := runHarbor(workDir, tasksDir, agentsDir, group.model, group.agent, opts.judgeModel, opts.concurrency, opts.forceBuild); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: harbor exited with error (some trials may have failed): %v\n", err)
-	}
-
-	// Extract and display results
-	jobDir, err := findJobDir(workDir)
-	if err != nil {
-		return nil, false, fmt.Errorf("finding job results: %w", err)
-	}
-
-	results, err := extractResults(jobDir)
-	if err != nil {
-		return nil, false, fmt.Errorf("extracting results: %w", err)
-	}
-
-	// Write job_result.json for canary comparison parity with DSPy engine.
-	if err := writeJobResultSummary(jobDir, "harbor", startedAt, results, opts); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: could not write harbor job_result.json: %v\n", err)
-	}
-
-	printRunPaths(jobDir)
-
-	if len(results) == 0 {
-		return nil, false, fmt.Errorf("no results found — all trials may have failed")
-	}
-
-	// Check if any trial had errors
-	hasErrors := false
-	for _, r := range results {
-		if (r.withoutContext != nil && r.withoutContext.err != "") ||
-			(r.withContext != nil && r.withContext.err != "") {
-			hasErrors = true
-			break
-		}
-	}
-	return results, hasErrors, nil
-}
