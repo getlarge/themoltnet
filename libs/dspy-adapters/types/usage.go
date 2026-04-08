@@ -3,7 +3,6 @@
 package dspytypes
 
 import (
-	"context"
 	"encoding/json"
 	"time"
 
@@ -32,10 +31,37 @@ type GenerateResponse struct {
 	CacheReadTokens     int
 }
 
-// TrajectoryGenerator is implemented by adapters that can capture
-// raw event streams during generation.
-type TrajectoryGenerator interface {
-	GenerateWithTrajectory(ctx context.Context, prompt string) (*GenerateResponse, error)
+// TrajectoryProvider is implemented by adapters whose Generate method
+// captures the full CLI event stream (not just the final text). Every
+// Generate call appends one GenerateResponse to an internal buffer so
+// dspy-go modules (ChainOfThought, ReAct) can drive the adapter
+// normally while eval code still gets rich per-call metadata.
+//
+// Trajectories returns the full list in call order — required for
+// multi-step modules like ReAct where each iteration issues a fresh
+// Generate. LastTrajectory returns only the final entry (equivalent to
+// Trajectories()[len-1]) as a convenience for single-call modules like
+// ChainOfThought. Both return nil / empty slice before any Generate
+// call completes.
+//
+// Note: only Generate populates the buffer. GenerateWithJSON uses a
+// separate non-streaming CLI path and does not update trajectories —
+// the judge (which is the only GenerateWithJSON consumer in MoltNet)
+// reads token usage via UsageTracker.LastUsage instead.
+//
+// LLM instances are per-call in MoltNet usage: runSolver constructs a
+// fresh claudecode.New / codex.New for each trial, so the buffer
+// reflects exactly that trial. Do not share an LLM across goroutines —
+// the trajectory buffer is not synchronized.
+type TrajectoryProvider interface {
+	// LastTrajectory returns the most recent Generate trajectory, or
+	// nil if Generate has not been called.
+	LastTrajectory() *GenerateResponse
+	// Trajectories returns all Generate trajectories in call order, or
+	// an empty slice if Generate has not been called. The returned
+	// slice is a reference to the adapter's internal buffer — do not
+	// mutate.
+	Trajectories() []*GenerateResponse
 }
 
 // HeartbeatFunc is a callback invoked periodically during long-running

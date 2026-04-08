@@ -16,10 +16,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/codex"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 	"gopkg.in/yaml.v2"
 )
@@ -36,6 +38,7 @@ type evalRunOpts struct {
 	worktreeExcludes []string
 	dspyRepoRoot     string
 	dspySourceRef    string
+	solverKind       solver.Kind // "cot" (default) or "react"
 }
 
 // worktreeMu serializes git worktree add/remove operations to avoid
@@ -936,6 +939,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		taskMD:      string(input.taskMD),
 		packMD:      input.packMD,
 		withContext: withContext,
+		kind:        opts.solverKind,
 		tb:          tb,
 	})
 	if err != nil {
@@ -1227,21 +1231,6 @@ func parseChecklistCriteria(data []byte) (*evalChecklistCriteria, error) {
 	return &criteria, nil
 }
 
-func buildDSPYEvalPrompt(task string, withContext bool, pack string) string {
-	var b strings.Builder
-	b.WriteString("[AUTOMATED RUN -- no user is present to interact]\n")
-	b.WriteString("- Make decisions autonomously.\n")
-	b.WriteString("- Do not ask follow-up questions.\n")
-	b.WriteString("- Work in the current directory.\n")
-	b.WriteString("- Create or update files needed to complete the task.\n")
-	b.WriteString("- When finished, briefly summarize what you changed.\n\n")
-	if withContext && strings.TrimSpace(pack) != "" {
-		b.WriteString("A context pack has been written to context-pack.md in your working directory.\n\n")
-	}
-	b.WriteString(task)
-	return b.String()
-}
-
 // writeDSPYEvalPackToDisk writes the context pack to disk in the worktree so
 // both the agent and the judge can observe what context was provided.
 //
@@ -1306,28 +1295,34 @@ type solverInput struct {
 	taskMD      string
 	packMD      string
 	withContext bool
+	kind        solver.Kind // KindChainOfThought when empty
 	tb          *trialBar
 }
 
-// runSolver executes one eval trial and returns the captured agent result.
+// runSolver executes one eval trial via a dspy-go solver module and
+// returns the captured agent result.
 //
-// This is the dspy-go solver seam. Today it spawns the appropriate CLI
-// adapter directly with a hand-built prompt — behavior is identical to
-// the pre-refactor runner. The follow-up PR (issue #714) replaces the
-// body with a libs/dspy-adapters/solver call that owns signature +
-// module selection (ChainOfThought for vitro, ReAct plumbed for vivo).
+// The solver module (ChainOfThought for vitro today, ReAct once the tool
+// registry lands for vivo — see
+// docs/superpowers/specs/2026-04-08-eval-solver-dspy-module.md and issue
+// #714) owns the signature and prompt construction. The underlying LLM
+// is one of the CLI adapters (claudecode or codex), which internally
+// stream CLI events and expose them via dspytypes.TrajectoryProvider so
+// we still get rich per-trial artifacts (turn count, cost, trajectory).
 func runSolver(in solverInput) (*dspyAgentRunResult, error) {
-	prompt := buildDSPYEvalPrompt(in.taskMD, in.withContext, in.packMD)
-
 	var heartbeat dspytypes.HeartbeatFunc
 	if in.tb != nil {
 		heartbeat = dspytypes.HeartbeatFunc(in.tb.heartbeatFor())
 	}
 
-	var gen dspytypes.TrajectoryGenerator
+	// Construct a fresh LLM per trial. Adapters are not safe to share
+	// across goroutines — LastTrajectory() is a per-instance side channel
+	// populated by each Generate call.
+	var llm core.LLM
+	var trajProvider dspytypes.TrajectoryProvider
 	switch in.agent {
 	case "codex":
-		llm, err := codex.New(codex.Config{
+		adapter, err := codex.New(codex.Config{
 			Model:       trimOpenAIModelPrefix(in.model),
 			WorkDir:     in.workDir,
 			SandboxMode: "workspace-write",
@@ -1337,9 +1332,10 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("init codex adapter: %w", err)
 		}
-		gen = llm
+		llm = adapter
+		trajProvider = adapter
 	default:
-		llm, err := claudecode.New(claudecode.Config{
+		adapter, err := claudecode.New(claudecode.Config{
 			Model:              trimAnthropicModelPrefix(in.model),
 			WorkDir:            in.workDir,
 			IsolateFromSession: true,
@@ -1348,14 +1344,54 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("init claude adapter: %w", err)
 		}
-		gen = llm
+		llm = adapter
+		trajProvider = adapter
+	}
+
+	kind := in.kind
+	if kind == "" {
+		kind = solver.KindChainOfThought
+	}
+
+	module, err := solver.New(solver.Config{
+		Kind:      kind,
+		Signature: solver.VitroSignature(),
+		LLM:       llm,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init solver module: %w", err)
+	}
+
+	// Only feed the pack to the signature on "with-context" variants.
+	// The baseline variant must see an empty context_pack so with/without
+	// comparisons measure the effect of the pack. The on-disk
+	// context-pack.md (written by writeDSPYEvalPackToDisk) is already
+	// gated by withContext upstream; this gate keeps the signature input
+	// consistent with the filesystem state.
+	contextPack := ""
+	if in.withContext && strings.TrimSpace(in.packMD) != "" {
+		contextPack = in.packMD
 	}
 
 	ctx := context.Background()
-	resp, err := gen.GenerateWithTrajectory(ctx, prompt)
+	// TODO(#714): capture module.Process outputs (reasoning,
+	// workspace_summary) for GEPA once the optimizer lands. Today the
+	// judge reads the filesystem as ground truth so these outputs are
+	// narrative-only and deliberately discarded.
+	_, procErr := module.Process(ctx, map[string]any{
+		"task_markdown": in.taskMD,
+		"context_pack":  contextPack,
+	})
 
+	// The module's returned map holds the dspy-go-parsed output fields
+	// (reasoning, workspace_summary) which are narrative/GEPA-facing and
+	// not load-bearing for the judge. The judge reads the filesystem via
+	// buildWorkspaceSnapshot as ground truth. What we DO need here is the
+	// CLI trajectory side channel: turn count, cost, session id, raw
+	// events. That comes from trajProvider.LastTrajectory(), populated by
+	// the adapter's Generate call that dspy-go just made.
 	result := &dspyAgentRunResult{}
-	if resp != nil {
+	if resp := trajProvider.LastTrajectory(); resp != nil {
 		result.trajectory = resp.Trajectory
 		result.output = resp.Content
 		result.sessionID = resp.SessionID
@@ -1369,9 +1405,9 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		result.cachedInputTokens = resp.CacheReadTokens
 	}
 
-	if err != nil {
+	if procErr != nil {
 		if result.output == "" {
-			result.output = err.Error()
+			result.output = procErr.Error()
 		}
 		return result, nil
 	}

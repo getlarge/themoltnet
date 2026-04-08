@@ -54,10 +54,17 @@ type Config struct {
 }
 
 // LLM implements core.LLM by spawning the Codex CLI.
+//
+// LLM is NOT safe for concurrent use — lastUsage and trajectories are
+// shared mutable state on the instance. In MoltNet usage (eval solver,
+// judge modules) each goroutine constructs its own LLM via codex.New,
+// so there's no sharing. Do not change that assumption without adding
+// synchronization.
 type LLM struct {
 	*core.BaseLLM
-	config    Config
-	lastUsage *core.TokenInfo
+	config       Config
+	lastUsage    *core.TokenInfo
+	trajectories []*dspytypes.GenerateResponse
 }
 
 // New creates a new Codex CLI adapter.
@@ -89,9 +96,30 @@ func New(cfg Config) (*LLM, error) {
 }
 
 // Generate runs a prompt through codex exec and returns the response.
+//
+// Internally this uses codex exec --json so the full JSONL event stream
+// is captured on every call. Callers that want the rich trajectory
+// (used by eval artifacts) can read it via LastTrajectory(). Callers
+// that only want the final text use the returned *core.LLMResponse as
+// normal — the switch is transparent to dspy-go's Predict/ChainOfThought
+// modules.
 func (l *LLM) Generate(ctx context.Context, prompt string, opts ...core.GenerateOption) (*core.LLMResponse, error) {
-	args := l.buildArgs(nil)
-	return l.run(ctx, prompt, args)
+	traj, err := l.runStream(ctx, prompt)
+	if err != nil {
+		if traj == nil {
+			return nil, err
+		}
+		return &core.LLMResponse{
+			Content:  traj.Content,
+			Usage:    traj.Usage,
+			Metadata: map[string]interface{}{"provider": ProviderName},
+		}, err
+	}
+	return &core.LLMResponse{
+		Content:  traj.Content,
+		Usage:    traj.Usage,
+		Metadata: map[string]interface{}{"provider": ProviderName},
+	}, nil
 }
 
 // GenerateWithJSON runs a prompt with --output-schema and --json,
@@ -497,9 +525,32 @@ type codexTrajectoryEvent struct {
 	Message string `json:"message,omitempty"`
 }
 
-// GenerateWithTrajectory runs a prompt with --json and returns the full
-// event trajectory alongside usage metadata.
-func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
+// LastTrajectory returns the rich trajectory captured from the most
+// recent Generate call (or nil if Generate has not been called yet).
+// This is the side-channel used by eval artifacts to persist the full
+// CLI event stream, session ID, cost, and turn count.
+func (l *LLM) LastTrajectory() *dspytypes.GenerateResponse {
+	if len(l.trajectories) == 0 {
+		return nil
+	}
+	return l.trajectories[len(l.trajectories)-1]
+}
+
+// Trajectories returns all trajectories captured from Generate calls
+// in call order. Required for multi-step dspy-go modules like ReAct
+// where each iteration issues a fresh Generate; eval code aggregates
+// cost / turn count / events across iterations. Returns an empty slice
+// before any Generate call completes. The returned slice references
+// the adapter's internal buffer — do not mutate.
+func (l *LLM) Trajectories() []*dspytypes.GenerateResponse {
+	return l.trajectories
+}
+
+// runStream executes codex exec with --json --full-auto, parses the
+// full JSONL event trajectory, and stashes it on the LLM instance so
+// Generate can return a *core.LLMResponse while callers that need the
+// rich metadata can still read it via LastTrajectory().
+func (l *LLM) runStream(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
 	codexHome, cleanup, err := l.setupIsolation()
 	if err != nil {
 		return nil, err
@@ -549,6 +600,7 @@ func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspyt
 	resp.DurationMs = time.Since(start).Milliseconds()
 
 	l.lastUsage = resp.Usage
+	l.trajectories = append(l.trajectories, resp)
 
 	if runErr != nil {
 		if resp.Content == "" {
