@@ -3,9 +3,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +16,11 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
 )
+
+// cliInvocationTimeout bounds a single CLI binary invocation. The outer CI
+// job timeout is ~15 minutes, but a single hung call would starve every
+// subsequent test of signal, so we fail each call fast instead.
+const cliInvocationTimeout = 30 * time.Second
 
 // These tests exercise the compiled moltnet CLI binary against the live
 // rest-api (running via the e2e compose stack). They complement the
@@ -45,22 +53,39 @@ func newCLIHarness(t *testing.T) *cliHarness {
 
 func (h *cliHarness) run(t *testing.T, args ...string) (string, string) {
 	t.Helper()
-	stdout, stderr, err := runE2ECLI(h.bin, h.creds, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), cliInvocationTimeout)
+	defer cancel()
+
+	fullArgs := append(
+		[]string{"--api-url", e2eAPIURL, "--credentials", h.creds},
+		args...,
+	)
+	cmd := exec.CommandContext(ctx, h.bin, fullArgs...)
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+	cmd.Env = os.Environ()
+	err := cmd.Run()
+
+	stdout, stderr := outBuf.String(), errBuf.String()
+	if ctx.Err() == context.DeadlineExceeded {
+		t.Fatalf(
+			"CLI %v timed out after %s\nstdout:\n%s\nstderr:\n%s",
+			args, cliInvocationTimeout, stdout, stderr,
+		)
+	}
 	if err != nil {
 		t.Fatalf(
 			"CLI %v failed: %v\nstdout:\n%s\nstderr:\n%s",
-			args,
-			err,
-			stdout,
-			stderr,
+			args, err, stdout, stderr,
 		)
 	}
 	return stdout, stderr
 }
 
-// decodeJSON parses the last well-formed JSON value from stdout. The CLI
-// sometimes emits human-readable lines to stderr but always prints JSON to
-// stdout, so a direct Unmarshal is enough.
+// decodeJSON unmarshals the trimmed stdout into the target. The moltnet CLI
+// prints human-readable progress messages to stderr and a single JSON value
+// (object or list) to stdout, so a direct Unmarshal is sufficient.
 func decodeJSON(t *testing.T, stdout string, into any) {
 	t.Helper()
 	trimmed := strings.TrimSpace(stdout)
