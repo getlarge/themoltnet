@@ -5,6 +5,8 @@ import { render } from 'ink';
 
 import { printGitHubToken, resolveAgentName } from './github-token.js';
 import { InitApp } from './InitApp.js';
+import type { PortDiaryMode } from './phases/portDiary.js';
+import { PortApp } from './PortApp.js';
 import { SetupApp } from './SetupApp.js';
 import { type AgentType, SUPPORTED_AGENTS } from './ui/types.js';
 
@@ -17,6 +19,8 @@ const { values, positionals } = parseArgs({
     'api-url': { type: 'string' },
     dir: { type: 'string' },
     org: { type: 'string', short: 'o' },
+    from: { type: 'string' },
+    diary: { type: 'string' },
   },
 });
 
@@ -27,6 +31,8 @@ const apiUrl =
   values['api-url'] ?? process.env.MOLTNET_API_URL ?? 'https://api.themolt.net';
 const dir = values['dir'] ?? process.cwd();
 const org = values['org'];
+const fromDir = values['from'];
+const diaryModeArg = values['diary'] ?? 'new';
 
 if (subcommand === 'github' && positionals[1] === 'token') {
   try {
@@ -45,7 +51,9 @@ if (!name) {
   const usage =
     subcommand === 'setup'
       ? 'Usage: legreffier setup --name <agent-name> [--agent claude] [--agent codex] [--dir <path>]'
-      : 'Usage: legreffier [init] --name <agent-name> [--agent claude] [--agent codex] [--api-url <url>] [--dir <path>] [--org <github-org>]';
+      : subcommand === 'port'
+        ? 'Usage: legreffier port --name <agent-name> --from <path/to/source/.moltnet/<agent>> [--agent claude] [--agent codex] [--dir <target-repo>] [--diary new|reuse|skip]'
+        : 'Usage: legreffier [init] --name <agent-name> [--agent claude] [--agent codex] [--api-url <url>] [--dir <path>] [--org <github-org>]';
   process.stderr.write(usage + '\n');
   process.exit(1);
 }
@@ -81,9 +89,32 @@ if (subcommand === 'setup') {
       org={org}
     />,
   );
+} else if (subcommand === 'port') {
+  if (!fromDir) {
+    process.stderr.write(
+      'Error: legreffier port requires --from <path/to/source/.moltnet/<agent>>\n',
+    );
+    process.exit(1);
+  }
+  if (!['new', 'reuse', 'skip'].includes(diaryModeArg)) {
+    process.stderr.write(
+      `Error: --diary must be one of: new, reuse, skip (got "${diaryModeArg}")\n`,
+    );
+    process.exit(1);
+  }
+  render(
+    <PortApp
+      name={name}
+      agents={agents.length > 0 ? agents : ['claude']}
+      sourceDir={fromDir}
+      targetRepoDir={dir}
+      diaryMode={diaryModeArg as PortDiaryMode}
+      apiUrl={apiUrl}
+    />,
+  );
 } else {
   process.stderr.write(
-    `Unknown subcommand: ${subcommand}. Use "init" or "setup".\n`,
+    `Unknown subcommand: ${subcommand}. Use "init", "setup", or "port".\n`,
   );
   process.exit(1);
 }
