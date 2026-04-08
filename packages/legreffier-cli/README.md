@@ -55,6 +55,43 @@ legreffier setup --name my-agent --agent codex
 legreffier setup --name my-agent --agent claude --agent codex
 ```
 
+#### `legreffier port`
+
+Port an existing agent identity into a new repository — **reuses** the
+cryptographic identity, GitHub App, SSH keys, and gitconfig instead of
+creating a new agent. Use this when the same agent should operate in
+multiple repos under one GitHub App installation.
+
+```bash
+legreffier port \
+  --name my-agent \
+  --from /path/to/source-repo/.moltnet/my-agent \
+  [--dir /path/to/target-repo] \
+  [--agent claude] [--agent codex] \
+  [--diary new|reuse|skip]
+```
+
+Phases:
+
+1. **validate** — dry-run `repairConfig` on the source + presence checks
+   for PEM, ssh keys, `installation_id`, `client_id/secret`.
+2. **copy** — copies `moltnet.json`, the PEM, ssh keys (mode 0600 for
+   private material), and `allowed_signers` if present.
+3. **rewrite** — rewrites absolute paths in `moltnet.json` to the target
+   repo and regenerates `gitconfig` + `env`.
+4. **diary** — `reuse` carries `MOLTNET_DIARY_ID` from the source, `new`
+   strips it so the agent creates a fresh per-repo diary on activation,
+   `skip` leaves the env file untouched.
+5. **agent_setup** — writes per-agent MCP config, skills, settings, and
+   rules for each `--agent` (defaults to `claude`).
+6. **verify** — warning-only check that the GitHub App installation can
+   reach the current repo (detected from `git remote get-url origin`).
+   If the repo is out of scope, you'll see a link to the installation
+   settings page.
+
+**Identity guard:** if the target already has a `.moltnet/<name>/` with
+a different `identity_id`, port refuses to overwrite it.
+
 ### Options
 
 | Flag          | Description                             | Default                   |
@@ -63,6 +100,8 @@ legreffier setup --name my-agent --agent claude --agent codex
 | `--agent, -a` | Agent type(s) to configure (repeatable) | Interactive prompt        |
 | `--api-url`   | MoltNet API URL                         | `https://api.themolt.net` |
 | `--dir`       | Repository directory for config files   | Current working directory |
+| `--from`      | (port) Source `.moltnet/<name>` dir     | —                         |
+| `--diary`     | (port) Diary handling: new/reuse/skip   | `new`                     |
 
 Supported agents: `claude`, `codex`.
 
