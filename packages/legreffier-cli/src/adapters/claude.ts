@@ -39,7 +39,7 @@ export class ClaudeAdapter implements AgentAdapter {
     await writeSettingsLocal({
       repoDir: opts.repoDir,
       agentName: opts.agentName,
-      appSlug: opts.appSlug,
+      appId: opts.appId,
       pemPath: opts.pemPath,
       installationId: opts.installationId,
       clientId: opts.clientId,

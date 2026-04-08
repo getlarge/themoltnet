@@ -41,6 +41,7 @@ export async function runGithubAppPhase(opts: {
       appSlug: existingConfig.github.app_slug ?? '',
     });
     return {
+      appId: existingConfig.github.app_id,
       appSlug: existingConfig.github.app_slug ?? '',
       pemPath: existingConfig.github.private_key_path,
       installationId: existingConfig.github.installation_id,
@@ -55,6 +56,7 @@ export async function runGithubAppPhase(opts: {
     dispatch({ type: 'step', key: 'githubApp', status: 'skipped' });
     dispatch({ type: 'appSlug', appSlug: existingState.appSlug });
     return {
+      appId: existingState.appId,
       appSlug: existingState.appSlug,
       pemPath,
       installationId: '',
@@ -99,6 +101,7 @@ export async function runGithubAppPhase(opts: {
 
   dispatch({ type: 'step', key: 'githubApp', status: 'done' });
   return {
+    appId: ghCreds.appId,
     appSlug: ghCreds.appSlug,
     pemPath,
     installationId: '',

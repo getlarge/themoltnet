@@ -337,6 +337,7 @@ export function InitApp({
           agentTypes: selectedAgents,
           publicKey: identity.publicKey,
           fingerprint: identity.fingerprint,
+          appId: githubApp.appId,
           appSlug: githubApp.appSlug,
           pemPath: githubApp.pemPath,
           installationId:

@@ -8,6 +8,7 @@ export interface AgentAdapterOptions {
   clientId: string;
   clientSecret: string;
   appSlug: string;
+  appId: string;
   pemPath: string;
   installationId: string;
 }

@@ -8,7 +8,7 @@ export interface WriteEnvFileOptions {
   prefix: string;
   clientId: string;
   clientSecret: string;
-  appSlug: string;
+  appId: string;
   pemPath: string;
   installationId: string;
 }
@@ -39,10 +39,11 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
   const managedEntries: [string, string][] = [
     [`${opts.prefix}_CLIENT_ID`, q(opts.clientId)],
     [`${opts.prefix}_CLIENT_SECRET`, q(opts.clientSecret)],
-    [`${opts.prefix}_GITHUB_APP_ID`, q(opts.appSlug)],
+    [`${opts.prefix}_GITHUB_APP_ID`, q(opts.appId)],
     [`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`, q(opts.pemPath)],
     [`${opts.prefix}_GITHUB_APP_INSTALLATION_ID`, q(opts.installationId)],
     ['GIT_CONFIG_GLOBAL', q(`.moltnet/${opts.agentName}/gitconfig`)],
+    ['MOLTNET_AGENT_NAME', q(opts.agentName)],
   ];
   const managedKeys = new Set(managedEntries.map(([k]) => k));
 

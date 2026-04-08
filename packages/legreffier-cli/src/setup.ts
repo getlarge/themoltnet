@@ -256,7 +256,7 @@ export function buildCodexRules(_agentName: string): string {
 export interface SettingsLocalOptions {
   repoDir: string;
   agentName: string;
-  appSlug: string;
+  appId: string;
   pemPath: string;
   installationId: string;
   clientId: string;
@@ -302,7 +302,7 @@ export function toEnvPrefix(agentName: string): string {
 export async function writeSettingsLocal({
   repoDir,
   agentName,
-  appSlug,
+  appId,
   pemPath,
   installationId,
   clientId,
@@ -351,7 +351,7 @@ export async function writeSettingsLocal({
     },
     env: {
       ...existing.env,
-      [`${prefix}_GITHUB_APP_ID`]: appSlug,
+      [`${prefix}_GITHUB_APP_ID`]: appId,
       [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath,
       [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
       [`${prefix}_CLIENT_ID`]: clientId,

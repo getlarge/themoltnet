@@ -67,6 +67,7 @@ export function SetupApp({
           clientId: config.oauth2.client_id,
           clientSecret: config.oauth2.client_secret,
           appSlug: config.github?.app_slug ?? config.github?.app_id ?? '',
+          appId: config.github?.app_id ?? '',
           pemPath: config.github?.private_key_path ?? '',
           installationId: config.github?.installation_id ?? '',
         };
