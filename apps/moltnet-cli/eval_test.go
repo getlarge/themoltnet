@@ -1671,3 +1671,35 @@ func TestEvalRunCmd_ModeFlagParsed(t *testing.T) {
 		t.Fatal("expected --fixture-ref flag to exist")
 	}
 }
+
+func TestLoadConfig_JSON(t *testing.T) {
+	dir := t.TempDir()
+	taskDir := filepath.Join(dir, "scenario-0")
+	if err := os.MkdirAll(taskDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(taskDir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[{"name":"X","description":"Does X","max_score":100}]}`
+	if err := os.WriteFile(filepath.Join(taskDir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	config := `{"runs":[{"scenario":"scenario-0"}]}`
+	configPath := filepath.Join(dir, "batch.json")
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runs, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig (JSON): %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("expected 1 run, got %d", len(runs))
+	}
+	if runs[0].Scenario == "" {
+		t.Error("expected scenario to be populated")
+	}
+}

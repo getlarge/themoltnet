@@ -169,10 +169,10 @@ func validateJudgeModel(judge, model string) error {
 
 // evalRun describes one task + optional pack pair (used in config mode).
 type evalRun struct {
-	Scenario string `yaml:"scenario"`
-	Pack     string `yaml:"pack,omitempty"`
-	Agent    string `yaml:"agent,omitempty"`
-	Model    string `yaml:"model,omitempty"`
+	Scenario string `yaml:"scenario" json:"scenario"`
+	Pack     string `yaml:"pack,omitempty" json:"pack,omitempty"`
+	Agent    string `yaml:"agent,omitempty" json:"agent,omitempty"`
+	Model    string `yaml:"model,omitempty" json:"model,omitempty"`
 }
 
 // evalRunInput is the resolved input for a single eval run.
@@ -186,9 +186,9 @@ type evalRunInput struct {
 	manifest     *evalManifest // nil if eval.json absent (Phase 1 fallback)
 }
 
-// evalConfig is the YAML config file schema.
+// evalConfig is the batch config file schema (YAML or JSON).
 type evalConfig struct {
-	Runs []evalRun `yaml:"runs"`
+	Runs []evalRun `yaml:"runs" json:"runs"`
 }
 
 // --- Prerequisites ---
