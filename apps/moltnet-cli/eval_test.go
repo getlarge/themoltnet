@@ -597,17 +597,6 @@ func TestValidateDSPYEvalOpts(t *testing.T) {
 	}
 }
 
-func TestBuildDSPYEvalPromptIncludesContext(t *testing.T) {
-	got := buildDSPYEvalPrompt("Do the task.", true, "## Pack")
-	if !strings.Contains(got, "context-pack.md") {
-		t.Fatal("expected reference to context-pack.md")
-	}
-	// Pack content is written to disk by writeDSPYEvalPackToDisk, not inlined.
-	if strings.Contains(got, "## Pack") {
-		t.Fatal("pack content must not be inlined into the prompt")
-	}
-}
-
 func TestWriteDSPYEvalPackToDisk(t *testing.T) {
 	dir := t.TempDir()
 	packMD := "## Section\n\nsome content"

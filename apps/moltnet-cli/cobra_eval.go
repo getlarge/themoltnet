@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 	"github.com/spf13/cobra"
 )
 
@@ -61,6 +62,7 @@ and with-context variants run in parallel.`,
 			judge, _ := cmd.Flags().GetString("judge")
 			judgeModel, _ := cmd.Flags().GetString("judge-model")
 			worktreeExcludes, _ := cmd.Flags().GetStringSlice("worktree-exclude")
+			solverFlag, _ := cmd.Flags().GetString("solver")
 
 			if concurrency < 1 {
 				return fmt.Errorf("--concurrency must be at least 1")
@@ -95,6 +97,11 @@ and with-context variants run in parallel.`,
 				fmt.Fprintln(cmd.ErrOrStderr(), "Warning: --engine harbor is deprecated and will be removed in a future release. Use --engine dspy (now the default).")
 			}
 
+			solverKind, err := solver.ParseKind(solverFlag)
+			if err != nil {
+				return err
+			}
+
 			opts := evalRunOpts{
 				engine:           engine,
 				model:            model,
@@ -104,6 +111,7 @@ and with-context variants run in parallel.`,
 				judge:            judge,
 				judgeModel:       judgeModel,
 				worktreeExcludes: worktreeExcludes,
+				solverKind:       solverKind,
 			}
 
 			if config != "" {
@@ -123,5 +131,6 @@ and with-context variants run in parallel.`,
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
 	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove before --engine dspy task execution")
+	cmd.Flags().String("solver", "cot", "Solver module: cot (ChainOfThought, default) or react (ReAct — not yet implemented)")
 	return cmd
 }
