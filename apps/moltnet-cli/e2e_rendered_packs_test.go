@@ -3,87 +3,16 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
 )
-
-var (
-	e2eCLIBinaryOnce sync.Once
-	e2eCLIBinaryPath string
-	e2eCLIBuildErr   error
-)
-
-func ensureE2ECLIBinary() (string, error) {
-	e2eCLIBinaryOnce.Do(func() {
-		tmpDir, err := os.MkdirTemp("", "moltnet-e2e-bin-*")
-		if err != nil {
-			e2eCLIBuildErr = fmt.Errorf("create temp dir: %w", err)
-			return
-		}
-		binPath := filepath.Join(tmpDir, "moltnet-e2e")
-		cmd := exec.Command("go", "build", "-o", binPath, ".")
-		cmd.Dir = "."
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr
-		if err := cmd.Run(); err != nil {
-			e2eCLIBuildErr = fmt.Errorf("go build: %w (%s)", err, stderr.String())
-			return
-		}
-		e2eCLIBinaryPath = binPath
-	})
-
-	if e2eCLIBuildErr != nil {
-		return "", e2eCLIBuildErr
-	}
-	return e2eCLIBinaryPath, nil
-}
-
-func writeE2ECredsFile(base *CredentialsFile) (string, error) {
-	tmpDir, err := os.MkdirTemp("", "moltnet-e2e-creds-*")
-	if err != nil {
-		return "", fmt.Errorf("create temp dir: %w", err)
-	}
-	path := filepath.Join(tmpDir, "moltnet.json")
-	_, err = WriteConfigTo(base, path)
-	if err != nil {
-		return "", fmt.Errorf("write creds: %w", err)
-	}
-	return path, nil
-}
-
-func runE2ECLI(
-	binPath string,
-	credsPath string,
-	args ...string,
-) (stdout string, stderr string, runErr error) {
-	fullArgs := append(
-		[]string{
-			"--api-url", e2eAPIURL,
-			"--credentials", credsPath,
-		},
-		args...,
-	)
-
-	cmd := exec.Command(binPath, fullArgs...)
-	var outBuf bytes.Buffer
-	var errBuf bytes.Buffer
-	cmd.Stdout = &outBuf
-	cmd.Stderr = &errBuf
-	cmd.Env = os.Environ()
-	runErr = cmd.Run()
-	return outBuf.String(), errBuf.String(), runErr
-}
 
 func parseVerificationIDFromOutput(out string) string {
 	for _, line := range strings.Split(out, "\n") {
