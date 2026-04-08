@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	e2eAPIURL  string
-	e2eCreds   *CredentialsFile
-	e2eDiaryID uuid.UUID
-	e2eClient  *moltnetapi.Client
+	e2eAPIURL         string
+	e2eCreds          *CredentialsFile
+	e2eDiaryID        uuid.UUID
+	e2eClient         *moltnetapi.Client
+	e2ePersonalTeamID uuid.UUID
 )
 
 // bootstrapAgent holds one element from the JSON array output of `pnpm bootstrap`.
@@ -90,14 +91,13 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "E2E setup: unexpected teams response type: %T\n", teamsRes)
 		os.Exit(1)
 	}
-	var personalTeamID string
 	for _, t := range teamsList.Items {
 		if t.Personal {
-			personalTeamID = t.ID.String()
+			e2ePersonalTeamID = t.ID
 			break
 		}
 	}
-	if personalTeamID == "" {
+	if e2ePersonalTeamID == uuid.Nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: no personal team found\n")
 		os.Exit(1)
 	}
@@ -105,7 +105,7 @@ func TestMain(m *testing.M) {
 	// Create a test diary
 	diaryRes, err := e2eClient.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{
 		Name: "e2e-go-cli-" + uuid.New().String()[:8],
-	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: uuid.MustParse(personalTeamID)})
+	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: e2ePersonalTeamID})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: create diary: %v\n", err)
 		os.Exit(1)
