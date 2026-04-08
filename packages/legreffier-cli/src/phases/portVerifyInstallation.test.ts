@@ -1,3 +1,4 @@
+import { getInstallationToken } from '@themoltnet/github-agent';
 import type { MoltNetConfig } from '@themoltnet/sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,8 +7,6 @@ import { runPortVerifyInstallationPhase } from './portVerifyInstallation.js';
 vi.mock('@themoltnet/github-agent', () => ({
   getInstallationToken: vi.fn(),
 }));
-
-import { getInstallationToken } from '@themoltnet/github-agent';
 
 const baseConfig: MoltNetConfig = {
   identity_id: '11111111-1111-1111-1111-111111111111',
@@ -82,6 +81,7 @@ describe('runPortVerifyInstallationPhase', () => {
       vi.fn(async () => ({
         ok: true,
         status: 200,
+        headers: { get: () => null },
         json: async () => ({
           total_count: 1,
           repository_selection: 'selected',
@@ -105,6 +105,7 @@ describe('runPortVerifyInstallationPhase', () => {
       vi.fn(async () => ({
         ok: true,
         status: 200,
+        headers: { get: () => null },
         json: async () => ({
           total_count: 1,
           repository_selection: 'selected',
@@ -144,6 +145,49 @@ describe('runPortVerifyInstallationPhase', () => {
 
     expect(result.status).toBe('warning');
     expect(result.message).toContain('pem decode failed');
+  });
+
+  it('follows Link rel="next" pagination to find currentRepo on a later page', async () => {
+    const fetchMock = vi.fn();
+    // Page 1: no currentRepo, Link header points to page 2
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === 'link'
+            ? '<https://api.github.com/installation/repositories?per_page=100&page=2>; rel="next"'
+            : null,
+      },
+      json: async () => ({
+        total_count: 101,
+        repository_selection: 'selected',
+        repositories: Array.from({ length: 100 }, (_, i) => ({
+          full_name: `getlarge/other-${i}`,
+        })),
+      }),
+    });
+    // Page 2: includes currentRepo
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        total_count: 101,
+        repository_selection: 'selected',
+        repositories: [{ full_name: 'getlarge/themoltnet' }],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await runPortVerifyInstallationPhase({
+      config: baseConfig,
+      currentRepo: 'getlarge/themoltnet',
+    });
+
+    expect(result.status).toBe('ok');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.accessibleRepos?.length).toBe(101);
   });
 
   it("returns 'warning' on non-ok GitHub response", async () => {

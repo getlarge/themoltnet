@@ -73,42 +73,62 @@ export async function runPortVerifyInstallationPhase(opts: {
     };
   }
 
-  let res: Response;
-  try {
-    res = await fetch(`${apiBaseUrl}/installation/repositories?per_page=100`, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  } catch (err) {
-    return {
-      status: 'warning',
-      message: `installation check network error: ${(err as Error).message}`,
-      currentRepo,
-    };
+  // Paginate. GitHub caps per_page at 100; installations with >100 selected
+  // repos require following the `Link: rel="next"` header. We short-circuit
+  // as soon as `currentRepo` is found to avoid fetching every page for the
+  // common case. A safety cap prevents runaway loops.
+  const accessible: string[] = [];
+  let nextUrl: string | null =
+    `${apiBaseUrl}/installation/repositories?per_page=100`;
+  let pageCount = 0;
+  const MAX_PAGES = 20; // 20 * 100 = 2000 repos — generous upper bound
+
+  while (nextUrl && pageCount < MAX_PAGES) {
+    pageCount++;
+    let res: Response;
+    try {
+      res = await fetch(nextUrl, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      return {
+        status: 'warning',
+        message: `installation check network error: ${(err as Error).message}`,
+        currentRepo,
+      };
+    }
+
+    if (!res.ok) {
+      return {
+        status: 'warning',
+        message: `installation check failed (${res.status})`,
+        currentRepo,
+      };
+    }
+
+    const data = (await res.json()) as InstallationReposResponse;
+    if (data.repository_selection === 'all') {
+      return {
+        status: 'ok',
+        message: 'installation has access to all repos on the account',
+        currentRepo,
+        repositorySelection: 'all',
+      };
+    }
+    for (const r of data.repositories) {
+      accessible.push(r.full_name);
+    }
+    // Short-circuit: if we've seen currentRepo, no need to paginate further.
+    if (accessible.includes(currentRepo)) {
+      break;
+    }
+    nextUrl = parseNextLink(res.headers.get('link'));
   }
 
-  if (!res.ok) {
-    return {
-      status: 'warning',
-      message: `installation check failed (${res.status})`,
-      currentRepo,
-    };
-  }
-
-  const data = (await res.json()) as InstallationReposResponse;
-  if (data.repository_selection === 'all') {
-    return {
-      status: 'ok',
-      message: 'installation has access to all repos on the account',
-      currentRepo,
-      repositorySelection: 'all',
-    };
-  }
-
-  const accessible = data.repositories.map((r) => r.full_name);
   if (accessible.includes(currentRepo)) {
     return {
       status: 'ok',
@@ -119,13 +139,32 @@ export async function runPortVerifyInstallationPhase(opts: {
     };
   }
 
+  const truncated = pageCount >= MAX_PAGES && nextUrl !== null;
+  const truncatedNote = truncated
+    ? ' (scan truncated after ' + MAX_PAGES + ' pages — result may be stale)'
+    : '';
   return {
     status: 'repo-not-in-scope',
     message:
-      `installation is scoped to ${accessible.length} repo(s) but does not include ${currentRepo}. ` +
-      `Add the repo at https://github.com/settings/installations/${config.github.installation_id}`,
+      `installation is scoped to ${accessible.length}${truncated ? '+' : ''} repo(s) but does not include ${currentRepo}. ` +
+      `Add the repo at https://github.com/settings/installations/${config.github.installation_id}` +
+      truncatedNote,
     currentRepo,
     repositorySelection: 'selected',
     accessibleRepos: accessible,
   };
+}
+
+/**
+ * Parse the `Link` header for a `rel="next"` URL. Returns null if absent.
+ * GitHub's Link header format:
+ *   <https://api.github.com/...?page=2>; rel="next", <...>; rel="last"
+ */
+function parseNextLink(header: string | null): string | null {
+  if (!header) return null;
+  for (const part of header.split(',')) {
+    const match = part.match(/<([^>]+)>\s*;\s*rel="next"/);
+    if (match) return match[1];
+  }
+  return null;
 }

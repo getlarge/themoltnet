@@ -127,7 +127,12 @@ export async function runPortValidatePhase(opts: {
   // (checked softly; a missing file is a warning, not a blocker)
   // Note: repairConfig already checks the four path fields above.
 
-  const canProceed = issues.length === 0;
+  // Block only on unresolved warnings. `fixed` (auto-repaired by repairConfig)
+  // and `migrate` (advisory legacy format migration) are non-blocking by
+  // definition — they represent state that is already corrected or will be
+  // handled by the copy/rewrite phases.
+  const blockingIssues = issues.filter((i) => i.action === 'warning');
+  const canProceed = blockingIssues.length === 0;
   return { config, issues, canProceed };
 }
 
@@ -136,7 +141,7 @@ export function formatPortIssues(issues: ConfigIssue[]): string[] {
   return issues.map((i) => `${i.field}: ${i.problem}`);
 }
 
-/** Check whether a file is readable. Returns true if so. */
+/** Check whether a file is readable. Used by portCopy for optional files. */
 export async function fileExists(path: string): Promise<boolean> {
   try {
     await access(path);

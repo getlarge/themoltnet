@@ -114,6 +114,22 @@ describe('runPortValidatePhase', () => {
     );
   });
 
+  it('sets canProceed=true when only non-blocking (fixed/migrate) issues exist', async () => {
+    const dir = join(tmpRoot, 'fixed-only');
+    const config = baseConfig(dir);
+    // Strip endpoints.mcp so repairConfig auto-fixes it with action=fixed
+    delete (config.endpoints as Record<string, string>).mcp;
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({ sourceDir: dir });
+
+    // The fixed issue is reported but must not block the port
+    expect(result.issues.some((i) => i.action === 'fixed')).toBe(true);
+    expect(result.issues.some((i) => i.action === 'warning')).toBe(false);
+    expect(result.canProceed).toBe(true);
+  });
+
   it('flags missing required field github.installation_id', async () => {
     const dir = join(tmpRoot, 'no-install');
     const config = baseConfig(dir);

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { statSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import { render } from 'ink';
@@ -32,7 +33,16 @@ const apiUrl =
 const dir = values['dir'] ?? process.cwd();
 const org = values['org'];
 const fromDir = values['from'];
-const diaryModeArg = values['diary'] ?? 'new';
+const diaryModeArg = values['diary'];
+
+// --diary is only meaningful for `port`; reject it elsewhere so it doesn't
+// silently no-op.
+if (diaryModeArg !== undefined && subcommand !== 'port') {
+  process.stderr.write(
+    `Error: --diary is only valid for \`legreffier port\` (got subcommand "${subcommand}")\n`,
+  );
+  process.exit(1);
+}
 
 if (subcommand === 'github' && positionals[1] === 'token') {
   try {
@@ -96,10 +106,36 @@ if (subcommand === 'setup') {
     );
     process.exit(1);
   }
-  if (!['new', 'reuse', 'skip'].includes(diaryModeArg)) {
+  const resolvedDiaryMode = diaryModeArg ?? 'new';
+  if (!['new', 'reuse', 'skip'].includes(resolvedDiaryMode)) {
     process.stderr.write(
-      `Error: --diary must be one of: new, reuse, skip (got "${diaryModeArg}")\n`,
+      `Error: --diary must be one of: new, reuse, skip (got "${resolvedDiaryMode}")\n`,
     );
+    process.exit(1);
+  }
+  // Validate the target repo dir exists and is a directory. Without this,
+  // a typo in --dir would run the entire 5-phase port against a missing
+  // path, and the warning-only verify step would silently swallow the
+  // resulting git-remote lookup failure.
+  try {
+    const stat = statSync(dir);
+    if (!stat.isDirectory()) {
+      process.stderr.write(`Error: --dir "${dir}" is not a directory\n`);
+      process.exit(1);
+    }
+  } catch {
+    process.stderr.write(`Error: --dir "${dir}" does not exist\n`);
+    process.exit(1);
+  }
+  // Same for the source dir.
+  try {
+    const stat = statSync(fromDir);
+    if (!stat.isDirectory()) {
+      process.stderr.write(`Error: --from "${fromDir}" is not a directory\n`);
+      process.exit(1);
+    }
+  } catch {
+    process.stderr.write(`Error: --from "${fromDir}" does not exist\n`);
     process.exit(1);
   }
   render(
@@ -108,7 +144,7 @@ if (subcommand === 'setup') {
       agents={agents.length > 0 ? agents : ['claude']}
       sourceDir={fromDir}
       targetRepoDir={dir}
-      diaryMode={diaryModeArg as PortDiaryMode}
+      diaryMode={resolvedDiaryMode as PortDiaryMode}
       apiUrl={apiUrl}
     />,
   );

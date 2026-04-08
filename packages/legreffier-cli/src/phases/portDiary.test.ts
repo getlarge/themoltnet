@@ -21,14 +21,16 @@ afterEach(async () => {
   await rm(tmpRoot, { recursive: true, force: true });
 });
 
+const VALID_UUID = '6e4d9948-8ec5-4f59-b82a-3acbc4bbc396';
+
 describe('readSourceDiaryId', () => {
-  it('returns the diary id when present', async () => {
+  it('returns the diary id when present and a valid UUID', async () => {
     const dir = join(tmpRoot, 'src1');
     await seedEnv(dir, [
       "GIT_CONFIG_GLOBAL='.moltnet/legreffier/gitconfig'",
-      "MOLTNET_DIARY_ID='abc-123'",
+      `MOLTNET_DIARY_ID='${VALID_UUID}'`,
     ]);
-    expect(await readSourceDiaryId(dir)).toBe('abc-123');
+    expect(await readSourceDiaryId(dir)).toBe(VALID_UUID);
   });
 
   it('returns null when env file missing', async () => {
@@ -40,6 +42,12 @@ describe('readSourceDiaryId', () => {
   it('returns null when key absent', async () => {
     const dir = join(tmpRoot, 'src-nokey');
     await seedEnv(dir, ["LEGREFFIER_CLIENT_ID='x'"]);
+    expect(await readSourceDiaryId(dir)).toBeNull();
+  });
+
+  it('returns null when value is not a UUID (defensive)', async () => {
+    const dir = join(tmpRoot, 'src-badid');
+    await seedEnv(dir, ["MOLTNET_DIARY_ID='abc-123'"]);
     expect(await readSourceDiaryId(dir)).toBeNull();
   });
 });
@@ -56,15 +64,15 @@ describe('runPortDiaryPhase', () => {
     const result = await runPortDiaryPhase({
       targetDir: dir,
       mode: 'reuse',
-      sourceDiaryId: 'abc-123',
+      sourceDiaryId: VALID_UUID,
     });
 
     expect(result.mode).toBe('reuse');
-    expect(result.diaryId).toBe('abc-123');
+    expect(result.diaryId).toBe(VALID_UUID);
     expect(result.modified).toBe(true);
 
     const env = await readFile(join(dir, 'env'), 'utf-8');
-    expect(env).toContain("MOLTNET_DIARY_ID='abc-123'");
+    expect(env).toContain(`MOLTNET_DIARY_ID='${VALID_UUID}'`);
     // Positioned after GIT_CONFIG_GLOBAL
     const lines = env.split('\n');
     const gitIdx = lines.findIndex((l) => l.startsWith('GIT_CONFIG_GLOBAL='));
@@ -84,6 +92,39 @@ describe('runPortDiaryPhase', () => {
 
     expect(result.diaryId).toBeNull();
     expect(result.modified).toBe(false);
+  });
+
+  it('reuse: modified=false even when target had a stale diary id and source has none', async () => {
+    // Previously returned modified=true without writing — misleading signal.
+    const dir = join(tmpRoot, 'reuse-null-with-stale');
+    await seedEnv(dir, [
+      "LEGREFFIER_CLIENT_ID='cid'",
+      "MOLTNET_DIARY_ID='stale-uuid-value'",
+    ]);
+    const before = await readFile(join(dir, 'env'), 'utf-8');
+
+    const result = await runPortDiaryPhase({
+      targetDir: dir,
+      mode: 'reuse',
+      sourceDiaryId: null,
+    });
+
+    expect(result.modified).toBe(false);
+    const after = await readFile(join(dir, 'env'), 'utf-8');
+    expect(after).toBe(before);
+  });
+
+  it('reuse: throws on non-UUID sourceDiaryId (defensive)', async () => {
+    const dir = join(tmpRoot, 'reuse-bad-uuid');
+    await seedEnv(dir, ["LEGREFFIER_CLIENT_ID='cid'"]);
+
+    await expect(
+      runPortDiaryPhase({
+        targetDir: dir,
+        mode: 'reuse',
+        sourceDiaryId: "abc\nMALICIOUS='x'",
+      }),
+    ).rejects.toThrow(/invalid sourceDiaryId/);
   });
 
   it('new: strips existing MOLTNET_DIARY_ID', async () => {

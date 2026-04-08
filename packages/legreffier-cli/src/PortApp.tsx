@@ -177,11 +177,16 @@ export function PortApp({
           filesWritten.push(`${agentType}: gh token rule`);
         }
 
-        // P5 — warning-only
+        // P5 — warning-only. Use the rewritten target config so token
+        // minting reads the *copied* PEM (the source may have been on a
+        // different machine / become unreadable). Fall back to the source
+        // config only if the target read somehow fails.
         setPhase('verifying');
+        const targetConfig = await readConfig(targetDir);
+        const verifyConfig = targetConfig ?? config;
         const currentRepo = detectCurrentRepo(targetRepoDir);
         const verifyResult = await runPortVerifyInstallationPhase({
-          config,
+          config: verifyConfig,
           currentRepo: currentRepo ?? undefined,
         });
         if (verifyResult.status !== 'ok') {
