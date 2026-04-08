@@ -53,10 +53,17 @@ type Config struct {
 }
 
 // LLM implements core.LLM by spawning the Claude Code CLI.
+//
+// LLM is NOT safe for concurrent use — lastUsage and lastTrajectory are
+// shared mutable state on the instance. In MoltNet usage (eval solver,
+// judge modules) each goroutine constructs its own LLM via claudecode.New,
+// so there's no sharing. Do not change that assumption without adding
+// synchronization.
 type LLM struct {
 	*core.BaseLLM
-	config    Config
-	lastUsage *core.TokenInfo
+	config         Config
+	lastUsage      *core.TokenInfo
+	lastTrajectory *dspytypes.GenerateResponse
 }
 
 // New creates a new Claude Code CLI adapter.
@@ -86,9 +93,31 @@ func New(cfg Config) (*LLM, error) {
 }
 
 // Generate runs a prompt through the Claude Code CLI and returns the response.
+//
+// Internally this uses --output-format stream-json so the full CLI event
+// stream is captured on every call. Callers that want the rich trajectory
+// (used by eval artifacts) can read it via LastTrajectory(). Callers that
+// only want the final text use the returned *core.LLMResponse as normal —
+// the switch is transparent to dspy-go's Predict/ChainOfThought modules.
 func (l *LLM) Generate(ctx context.Context, prompt string, opts ...core.GenerateOption) (*core.LLMResponse, error) {
-	args := l.buildArgs(nil)
-	return l.run(ctx, prompt, args)
+	traj, err := l.runStream(ctx, prompt)
+	if err != nil {
+		if traj == nil {
+			return nil, err
+		}
+		// Return content-bearing error response so dspy-go gets something
+		// actionable (matches legacy GenerateWithTrajectory behavior).
+		return &core.LLMResponse{
+			Content:  traj.Content,
+			Usage:    traj.Usage,
+			Metadata: map[string]interface{}{"provider": ProviderName},
+		}, err
+	}
+	return &core.LLMResponse{
+		Content:  traj.Content,
+		Usage:    traj.Usage,
+		Metadata: map[string]interface{}{"provider": ProviderName},
+	}, nil
 }
 
 // GenerateWithJSON runs a prompt with --json-schema and --output-format json,
@@ -442,9 +471,19 @@ type streamEvent struct {
 	} `json:"usage,omitempty"`
 }
 
-// GenerateWithTrajectory runs a prompt with --output-format stream-json
-// and returns the full event trajectory alongside usage metadata.
-func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
+// LastTrajectory returns the rich trajectory captured from the most
+// recent Generate call (or nil if Generate has not been called yet).
+// This is the side-channel used by eval artifacts to persist the full
+// CLI event stream, session ID, cost, and turn count.
+func (l *LLM) LastTrajectory() *dspytypes.GenerateResponse {
+	return l.lastTrajectory
+}
+
+// runStream executes the Claude CLI with --output-format stream-json,
+// parses the full event trajectory, and stashes it on the LLM instance
+// so Generate can return a *core.LLMResponse while callers that need
+// the rich metadata can still read it via LastTrajectory().
+func (l *LLM) runStream(ctx context.Context, prompt string) (*dspytypes.GenerateResponse, error) {
 	args := l.buildArgsWithOutputFormat("stream-json", []string{"--verbose"})
 	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
 	cmd.Dir = l.config.WorkDir
@@ -470,6 +509,7 @@ func (l *LLM) GenerateWithTrajectory(ctx context.Context, prompt string) (*dspyt
 	resp.DurationMs = time.Since(start).Milliseconds()
 
 	l.lastUsage = resp.Usage
+	l.lastTrajectory = resp
 
 	if runErr != nil {
 		if resp.Content == "" {

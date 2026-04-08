@@ -3,7 +3,6 @@
 package dspytypes
 
 import (
-	"context"
 	"encoding/json"
 	"time"
 
@@ -32,10 +31,18 @@ type GenerateResponse struct {
 	CacheReadTokens     int
 }
 
-// TrajectoryGenerator is implemented by adapters that can capture
-// raw event streams during generation.
-type TrajectoryGenerator interface {
-	GenerateWithTrajectory(ctx context.Context, prompt string) (*GenerateResponse, error)
+// TrajectoryProvider is implemented by adapters whose Generate method
+// captures the full CLI event stream (not just the final text). Callers
+// can read the most recent trajectory via LastTrajectory() after any
+// Generate / GenerateWithJSON call — the side-channel is populated for
+// every invocation so dspy-go modules (ChainOfThought, ReAct) can drive
+// the adapter normally while eval code still gets rich metadata.
+//
+// LLM instances are per-call in MoltNet usage: runSolver constructs a
+// fresh claudecode.New / codex.New for each trial, so LastTrajectory()
+// reflects exactly that trial. Do not share an LLM across goroutines.
+type TrajectoryProvider interface {
+	LastTrajectory() *GenerateResponse
 }
 
 // HeartbeatFunc is a callback invoked periodically during long-running
