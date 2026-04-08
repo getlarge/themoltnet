@@ -131,6 +131,7 @@ and with-context variants run in parallel.`,
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
 	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove before --engine dspy task execution")
+	// TODO(#714): drop "— not yet implemented" once the ReAct tool registry lands.
 	cmd.Flags().String("solver", "cot", "Solver module: cot (ChainOfThought, default) or react (ReAct — not yet implemented)")
 	return cmd
 }

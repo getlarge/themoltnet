@@ -50,12 +50,31 @@ func TestNew_RequiresLLM(t *testing.T) {
 }
 
 func TestNew_RequiresSignature(t *testing.T) {
-	_, err := New(Config{
-		Kind: KindChainOfThought,
-		LLM:  &stubLLM{},
-	})
-	if err == nil {
-		t.Fatal("New without signature must error")
+	cases := []struct {
+		name string
+		sig  core.Signature
+	}{
+		{"empty", core.Signature{}},
+		{"inputs_only", core.NewSignature(
+			[]core.InputField{{Field: core.Field{Name: "x"}}},
+			nil,
+		)},
+		{"outputs_only", core.NewSignature(
+			nil,
+			[]core.OutputField{{Field: core.Field{Name: "y"}}},
+		)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := New(Config{
+				Kind:      KindChainOfThought,
+				Signature: tc.sig,
+				LLM:       &stubLLM{},
+			})
+			if err == nil {
+				t.Fatalf("New with %s signature must error", tc.name)
+			}
+		})
 	}
 }
 

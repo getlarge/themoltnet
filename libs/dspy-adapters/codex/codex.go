@@ -55,16 +55,16 @@ type Config struct {
 
 // LLM implements core.LLM by spawning the Codex CLI.
 //
-// LLM is NOT safe for concurrent use — lastUsage and lastTrajectory are
+// LLM is NOT safe for concurrent use — lastUsage and trajectories are
 // shared mutable state on the instance. In MoltNet usage (eval solver,
 // judge modules) each goroutine constructs its own LLM via codex.New,
 // so there's no sharing. Do not change that assumption without adding
 // synchronization.
 type LLM struct {
 	*core.BaseLLM
-	config         Config
-	lastUsage      *core.TokenInfo
-	lastTrajectory *dspytypes.GenerateResponse
+	config       Config
+	lastUsage    *core.TokenInfo
+	trajectories []*dspytypes.GenerateResponse
 }
 
 // New creates a new Codex CLI adapter.
@@ -530,7 +530,20 @@ type codexTrajectoryEvent struct {
 // This is the side-channel used by eval artifacts to persist the full
 // CLI event stream, session ID, cost, and turn count.
 func (l *LLM) LastTrajectory() *dspytypes.GenerateResponse {
-	return l.lastTrajectory
+	if len(l.trajectories) == 0 {
+		return nil
+	}
+	return l.trajectories[len(l.trajectories)-1]
+}
+
+// Trajectories returns all trajectories captured from Generate calls
+// in call order. Required for multi-step dspy-go modules like ReAct
+// where each iteration issues a fresh Generate; eval code aggregates
+// cost / turn count / events across iterations. Returns an empty slice
+// before any Generate call completes. The returned slice references
+// the adapter's internal buffer — do not mutate.
+func (l *LLM) Trajectories() []*dspytypes.GenerateResponse {
+	return l.trajectories
 }
 
 // runStream executes codex exec with --json --full-auto, parses the
@@ -587,7 +600,7 @@ func (l *LLM) runStream(ctx context.Context, prompt string) (*dspytypes.Generate
 	resp.DurationMs = time.Since(start).Milliseconds()
 
 	l.lastUsage = resp.Usage
-	l.lastTrajectory = resp
+	l.trajectories = append(l.trajectories, resp)
 
 	if runErr != nil {
 		if resp.Content == "" {

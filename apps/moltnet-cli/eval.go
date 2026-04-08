@@ -1362,10 +1362,25 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		return nil, fmt.Errorf("init solver module: %w", err)
 	}
 
+	// Only feed the pack to the signature on "with-context" variants.
+	// The baseline variant must see an empty context_pack so with/without
+	// comparisons measure the effect of the pack. The on-disk
+	// context-pack.md (written by writeDSPYEvalPackToDisk) is already
+	// gated by withContext upstream; this gate keeps the signature input
+	// consistent with the filesystem state.
+	contextPack := ""
+	if in.withContext && strings.TrimSpace(in.packMD) != "" {
+		contextPack = in.packMD
+	}
+
 	ctx := context.Background()
+	// TODO(#714): capture module.Process outputs (reasoning,
+	// workspace_summary) for GEPA once the optimizer lands. Today the
+	// judge reads the filesystem as ground truth so these outputs are
+	// narrative-only and deliberately discarded.
 	_, procErr := module.Process(ctx, map[string]any{
 		"task_markdown": in.taskMD,
-		"context_pack":  in.packMD,
+		"context_pack":  contextPack,
 	})
 
 	// The module's returned map holds the dspy-go-parsed output fields

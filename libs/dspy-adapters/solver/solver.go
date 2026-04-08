@@ -95,8 +95,12 @@ func New(cfg Config) (Module, error) {
 	if cfg.LLM == nil {
 		return nil, fmt.Errorf("solver: Config.LLM is required")
 	}
-	if len(cfg.Signature.Inputs) == 0 && len(cfg.Signature.Outputs) == 0 {
-		return nil, fmt.Errorf("solver: Config.Signature is required (no inputs or outputs)")
+	// Both inputs and outputs are required. A signature with only
+	// inputs produces a module that parses no outputs; a signature with
+	// only outputs has nothing to prompt with. Rejecting either keeps
+	// the factory strict — same spirit as ParseKind.
+	if len(cfg.Signature.Inputs) == 0 || len(cfg.Signature.Outputs) == 0 {
+		return nil, fmt.Errorf("solver: Config.Signature must have both inputs and outputs (got %d inputs, %d outputs)", len(cfg.Signature.Inputs), len(cfg.Signature.Outputs))
 	}
 
 	switch cfg.Kind {
