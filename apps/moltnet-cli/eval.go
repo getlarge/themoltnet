@@ -705,9 +705,12 @@ type evalManifestPack struct {
 	Path string `json:"path"`
 }
 
-// loadEvalManifest reads and strictly parses eval.json from scenarioDir.
-// Returns nil, nil if the file is absent (Phase 1: no eval.json is allowed
-// with a warning — see validateScenario).
+// loadEvalManifest reads and JSON-parses eval.json from a scenario directory.
+// It returns (nil, nil) if the file is absent (Phase 1 fallback: handled by
+// validateScenario, which prints a warning). Strict unmarshaling rejects
+// unknown top-level keys, but semantic validation of the mode value, fixture
+// fields, and pack contents is intentionally deferred to validateScenario
+// (Task 2) so this loader stays a pure parser.
 func loadEvalManifest(scenarioDir string) (*evalManifest, error) {
 	p := filepath.Join(scenarioDir, "eval.json")
 	data, err := os.ReadFile(p)

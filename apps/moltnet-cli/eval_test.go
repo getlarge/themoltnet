@@ -1199,7 +1199,9 @@ func TestDspyJudgeProvider(t *testing.T) {
 func TestLoadEvalManifest_Vitro(t *testing.T) {
 	dir := t.TempDir()
 	data := `{"mode":"vitro"}`
-	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	m, err := loadEvalManifest(dir)
 	if err != nil {
@@ -1219,7 +1221,9 @@ func TestLoadEvalManifest_Vitro(t *testing.T) {
 func TestLoadEvalManifest_Vivo(t *testing.T) {
 	dir := t.TempDir()
 	data := `{"mode":"vivo","fixture":{"ref":"abc1234","exclude":["docs/**"]}}`
-	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	m, err := loadEvalManifest(dir)
 	if err != nil {
@@ -1251,7 +1255,9 @@ func TestLoadEvalManifest_Absent(t *testing.T) {
 func TestLoadEvalManifest_UnknownField(t *testing.T) {
 	dir := t.TempDir()
 	data := `{"mode":"vitro","unknownField":"value"}`
-	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := loadEvalManifest(dir)
 	if err == nil {
@@ -1262,7 +1268,9 @@ func TestLoadEvalManifest_UnknownField(t *testing.T) {
 func TestLoadEvalManifest_WithPack(t *testing.T) {
 	dir := t.TempDir()
 	data := `{"mode":"vitro","pack":{"path":"../../packs/my-pack.md"}}`
-	os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644)
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	m, err := loadEvalManifest(dir)
 	if err != nil {
