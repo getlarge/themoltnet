@@ -1,0 +1,61 @@
+{
+  "checklist": [
+    {
+      "description": "Code first searches for entries with the incident tag before falling back to content-based search",
+      "max_score": 10,
+      "name": "Tag-first search"
+    },
+    {
+      "description": "When incident tag yields no results, code falls back to searching episodic entries by content patterns (e.g., 'what happened', 'root cause', 'fix applied')",
+      "max_score": 10,
+      "name": "Fallback search"
+    },
+    {
+      "description": "For each episodic entry, code extracts: what went wrong, root cause, fix applied, and preventive context as separate fields",
+      "max_score": 10,
+      "name": "Structured extraction"
+    },
+    {
+      "description": "classifySeverity returns one of Critical, High, Medium, or Low based on entry data",
+      "max_score": 8,
+      "name": "Severity classification"
+    },
+    {
+      "description": "Subsystem is inferred from tags or content rather than requiring an explicit field",
+      "max_score": 10,
+      "name": "Subsystem inference"
+    },
+    {
+      "description": "Triage report groups incidents by subsystem",
+      "max_score": 8,
+      "name": "Subsystem grouping"
+    },
+    {
+      "description": "Strategy doc or code identifies high-severity incidents with clear preventive context as best candidates for agent training tasks",
+      "max_score": 10,
+      "name": "Training candidates"
+    },
+    {
+      "description": "Tool correctly excludes non-episodic entries (semantic, procedural) from incident analysis even if they share tags with incidents",
+      "max_score": 8,
+      "name": "Non-episodic filtering"
+    },
+    {
+      "description": "Tool finds inc-3 (episodic entry without incident tag) through content-based search",
+      "max_score": 10,
+      "name": "Untagged incident detection"
+    },
+    {
+      "description": "Extracted structure includes a preventive context field capturing what knowledge would have prevented the incident",
+      "max_score": 8,
+      "name": "Preventive context field"
+    },
+    {
+      "description": "Report separates incidents into severity groups (Critical/High vs Medium/Low)",
+      "max_score": 8,
+      "name": "Severity in report"
+    }
+  ],
+  "context": "Tests whether the agent implements Phase 2 episodic analysis: searching by incident tag first then falling back to content-based search for untagged episodic entries, extracting structured fields, classifying severity, grouping by subsystem, and identifying training task candidates.",
+  "type": "weighted_checklist"
+}

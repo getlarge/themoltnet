@@ -63,6 +63,15 @@ and with-context variants run in parallel.`,
 			judgeModel, _ := cmd.Flags().GetString("judge-model")
 			worktreeExcludes, _ := cmd.Flags().GetStringSlice("worktree-exclude")
 			solverFlag, _ := cmd.Flags().GetString("solver")
+			mode, _ := cmd.Flags().GetString("mode")
+			fixtureRef, _ := cmd.Flags().GetString("fixture-ref")
+
+			if mode != "" && mode != "vitro" && mode != "vivo" {
+				return fmt.Errorf("--mode must be vitro or vivo, got %q", mode)
+			}
+			if fixtureRef != "" && mode == "vitro" {
+				return fmt.Errorf("--fixture-ref is not valid with --mode vitro")
+			}
 
 			if concurrency < 1 {
 				return fmt.Errorf("--concurrency must be at least 1")
@@ -112,6 +121,8 @@ and with-context variants run in parallel.`,
 				judgeModel:       judgeModel,
 				worktreeExcludes: worktreeExcludes,
 				solverKind:       solverKind,
+				dspyMode:         mode,
+				dspyFixtureRef:   fixtureRef,
 			}
 
 			if config != "" {
@@ -133,5 +144,7 @@ and with-context variants run in parallel.`,
 	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove before --engine dspy task execution")
 	// TODO(#714): drop "— not yet implemented" once the ReAct tool registry lands.
 	cmd.Flags().String("solver", "cot", "Solver module: cot (ChainOfThought, default) or react (ReAct — not yet implemented)")
+	cmd.Flags().String("mode", "", "Isolation mode override: vitro (sparse, task inputs only) or vivo (real repo at fixture-ref). Overrides eval.json mode.")
+	cmd.Flags().String("fixture-ref", "", "Git commit ref for vivo mode. Overrides eval.json fixture.ref.")
 	return cmd
 }

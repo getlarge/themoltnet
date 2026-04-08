@@ -1,0 +1,18 @@
+{
+  "runs": [
+    { "scenario": "evals/moltnet-practices/getexecutor-vs-raw-db" },
+    { "scenario": "evals/moltnet-practices/mcp-format-uuid-validation" },
+    { "scenario": "evals/moltnet-practices/codegen-chain-go-client" },
+    { "scenario": "evals/moltnet-practices/sql-function-return-type-change" },
+    { "scenario": "evals/legreffier/scenario-0" },
+    { "scenario": "evals/legreffier/scenario-1" },
+    { "scenario": "evals/legreffier/scenario-2" },
+    { "scenario": "evals/legreffier/scenario-3" },
+    { "scenario": "evals/legreffier/scenario-4" },
+    { "scenario": "evals/legreffier-explore/scenario-0" },
+    { "scenario": "evals/legreffier-explore/scenario-1" },
+    { "scenario": "evals/legreffier-explore/scenario-2" },
+    { "scenario": "evals/legreffier-explore/scenario-3" },
+    { "scenario": "evals/legreffier-explore/scenario-4" }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "checklist": [
+    {
+      "description": "paginateEntries function accepts a fetch function and batch size parameter, calling repeatedly with increasing offset until all entries are retrieved",
+      "max_score": 10,
+      "name": "Pagination function"
+    },
+    {
+      "description": "Default or recommended batch size is 50 entries per page",
+      "max_score": 8,
+      "name": "Batch size 50"
+    },
+    {
+      "description": "Report includes count per entryType value (procedural, semantic, episodic, reflection, identity)",
+      "max_score": 8,
+      "name": "Entry type counts"
+    },
+    {
+      "description": "Report includes frequency count for every distinct tag across all entries",
+      "max_score": 8,
+      "name": "Tag frequency"
+    },
+    {
+      "description": "Tags are grouped by prefix before the first colon (e.g., risk:, branch:, scope:) with distinct values listed under each namespace",
+      "max_score": 12,
+      "name": "Tag namespace grouping"
+    },
+    {
+      "description": "Code discovers namespaces dynamically from the data rather than checking a fixed list of known prefixes",
+      "max_score": 12,
+      "name": "Namespace discovery not hardcoded"
+    },
+    {
+      "description": "Report includes distribution of importance values across the 1-10 range",
+      "max_score": 8,
+      "name": "Importance histogram"
+    },
+    {
+      "description": "Report includes earliest and most recent entry dates",
+      "max_score": 8,
+      "name": "Temporal range"
+    },
+    {
+      "description": "inventory-report.md contains a rendered report from the sample data with markdown tables",
+      "max_score": 10,
+      "name": "Sample report generated"
+    },
+    {
+      "description": "Tag namespaces are presented as an indented tree (namespace → values with counts) rather than a flat list",
+      "max_score": 8,
+      "name": "Tag tree format"
+    },
+    {
+      "description": "Report header includes the total number of entries analyzed",
+      "max_score": 8,
+      "name": "Total entry count"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements Phase 1 inventory analysis: pagination with configurable batch size, entry type counting, tag frequency, tag namespace discovery from data (not hardcoded), importance histogram, and temporal range.",
+  "type": "weighted_checklist"
+}

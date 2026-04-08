@@ -1,0 +1,61 @@
+{
+  "checklist": [
+    {
+      "description": "Code searches for procedural entries using the most common tag found on procedural entries (e.g., accountable-commit) rather than hardcoding a search query",
+      "max_score": 10,
+      "name": "Procedural tag search"
+    },
+    {
+      "description": "Code falls back to content-based search with query 'commit' when no obvious procedural tag exists",
+      "max_score": 8,
+      "name": "Fallback search"
+    },
+    {
+      "description": "Report shows which tags appear most frequently across procedural entries specifically (not all entry types)",
+      "max_score": 8,
+      "name": "Tag frequency within procedural"
+    },
+    {
+      "description": "Report shows branch distribution with counts of procedural entries per branch",
+      "max_score": 8,
+      "name": "Branch grouping"
+    },
+    {
+      "description": "Anti-pattern detection catches double-prefix tags like scope:scope:db (entry p4 in sample data)",
+      "max_score": 12,
+      "name": "Double-prefix detection"
+    },
+    {
+      "description": "Anti-pattern detection catches entries missing scope tags (entry p5 in sample data)",
+      "max_score": 10,
+      "name": "Missing scope detection"
+    },
+    {
+      "description": "Anti-pattern detection catches entries missing branch tags (entry p7 in sample data)",
+      "max_score": 10,
+      "name": "Missing branch detection"
+    },
+    {
+      "description": "Anti-pattern detection identifies overly generic tags that don't follow the namespace convention",
+      "max_score": 8,
+      "name": "Catch-all tag detection"
+    },
+    {
+      "description": "Anti-pattern detection flags entries with unusually high files-changed counts",
+      "max_score": 8,
+      "name": "Broad entry detection"
+    },
+    {
+      "description": "Analysis correctly excludes non-procedural entries (e.g., semantic entry p8) from commit pattern analysis",
+      "max_score": 8,
+      "name": "Non-procedural filtering"
+    },
+    {
+      "description": "commit-report.md includes a dedicated section listing found anti-patterns with specific entries cited",
+      "max_score": 10,
+      "name": "Report has anti-patterns section"
+    }
+  ],
+  "context": "Tests whether the agent implements Phase 3 commit pattern analysis: using the most common procedural tag from Phase 1 to find entries, analyzing tag frequency and branch distribution within procedural entries, and detecting anti-patterns like double-prefix tags, missing branch/scope tags, and catch-all tags.",
+  "type": "weighted_checklist"
+}
