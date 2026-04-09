@@ -279,6 +279,10 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		model = opts.model
 	}
 
+	solverKind, err := dspyEvalSolver(input.manifest, opts)
+	if err != nil {
+		return nil, fmt.Errorf("resolve solver kind: %w", err)
+	}
 	agentResult, err := runSolver(solverInput{
 		workDir:     worktreeDir,
 		agent:       agentName,
@@ -286,7 +290,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		taskMD:      string(input.taskMD),
 		packMD:      input.packMD,
 		withContext: withContext,
-		kind:        opts.solverKind,
+		kind:        solverKind,
 		tb:          tb,
 	})
 	if err != nil {
@@ -679,4 +683,3 @@ func parseGitStatusPaths(output string) []string {
 	}
 	return paths
 }
-

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 )
 
 func TestNeutralizeDSPYEvalWorktreeUsesGlobExcludes(t *testing.T) {
@@ -265,5 +267,153 @@ func TestNeutralizeDSPYEvalWorktree_KeepsGitFile(t *testing.T) {
 	}
 	if _, err := os.Stat(gitPath); err != nil {
 		t.Error(".git file should be preserved by neutralize pass")
+	}
+}
+
+// TestDspyEvalSolver covers the precedence order from #720:
+// CLI/preset override (opts.solverKind) > manifest.Solver > built-in default.
+func TestDspyEvalSolver(t *testing.T) {
+	tests := []struct {
+		name     string
+		manifest *evalManifest
+		opts     evalRunOpts
+		want     solver.Kind
+		wantErr  bool
+	}{
+		{
+			name:     "nil manifest, no opts → default cot",
+			manifest: nil,
+			opts:     evalRunOpts{},
+			want:     solver.KindChainOfThought,
+		},
+		{
+			name:     "empty manifest solver, no opts → default cot",
+			manifest: &evalManifest{Mode: "vitro"},
+			opts:     evalRunOpts{},
+			want:     solver.KindChainOfThought,
+		},
+		{
+			name:     "manifest react, no opts → react",
+			manifest: &evalManifest{Mode: "vivo", Solver: "react"},
+			opts:     evalRunOpts{},
+			want:     solver.KindReAct,
+		},
+		{
+			name:     "manifest cot, opts react → react (CLI wins)",
+			manifest: &evalManifest{Mode: "vitro", Solver: "cot"},
+			opts:     evalRunOpts{solverKind: solver.KindReAct},
+			want:     solver.KindReAct,
+		},
+		{
+			name:     "manifest react, opts cot → cot (CLI wins)",
+			manifest: &evalManifest{Mode: "vivo", Solver: "react"},
+			opts:     evalRunOpts{solverKind: solver.KindChainOfThought},
+			want:     solver.KindChainOfThought,
+		},
+		{
+			name:     "manifest bogus, no opts → error",
+			manifest: &evalManifest{Mode: "vitro", Solver: "bogus"},
+			opts:     evalRunOpts{},
+			wantErr:  true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := dspyEvalSolver(tc.manifest, tc.opts)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil (got=%v)", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestExpandEvalPreset(t *testing.T) {
+	tests := []struct {
+		name       string
+		in         string
+		wantMode   string
+		wantSolver string
+		wantErr    bool
+	}{
+		{name: "baseline", in: "baseline", wantMode: "vitro", wantSolver: "cot"},
+		{name: "sandbox-agent", in: "sandbox-agent", wantMode: "vitro", wantSolver: "react"},
+		{name: "full-auto", in: "full-auto", wantMode: "vivo", wantSolver: "react"},
+		{name: "repo-baseline", in: "repo-baseline", wantMode: "vivo", wantSolver: "cot"},
+		{name: "unknown", in: "does-not-exist", wantErr: true},
+		{name: "empty", in: "", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mode, sol, err := expandEvalPreset(tc.in)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for %q, got mode=%q solver=%q", tc.in, mode, sol)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if mode != tc.wantMode || sol != tc.wantSolver {
+				t.Errorf("got (%q,%q), want (%q,%q)", mode, sol, tc.wantMode, tc.wantSolver)
+			}
+		})
+	}
+}
+
+// TestEvalRunCmd_PresetMutualExclusion verifies that --preset cannot be
+// combined with --mode or --solver. This is enforced at the cobra layer.
+func TestEvalRunCmd_PresetMutualExclusion(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "preset + mode",
+			args: []string{"run", "--scenario", "/does/not/exist", "--preset", "baseline", "--mode", "vivo"},
+		},
+		{
+			name: "preset + solver",
+			args: []string{"run", "--scenario", "/does/not/exist", "--preset", "baseline", "--solver", "react"},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := newEvalCmd()
+			cmd.SetArgs(tc.args)
+			cmd.SetOut(&bytes.Buffer{})
+			cmd.SetErr(&bytes.Buffer{})
+			err := cmd.Execute()
+			if err == nil {
+				t.Fatal("expected mutual-exclusion error, got nil")
+			}
+			if !strings.Contains(err.Error(), "mutually exclusive") {
+				t.Errorf("expected mutual exclusion error, got: %v", err)
+			}
+		})
+	}
+}
+
+// TestEvalRunCmd_UnknownPreset verifies unknown preset names are rejected.
+func TestEvalRunCmd_UnknownPreset(t *testing.T) {
+	cmd := newEvalCmd()
+	cmd.SetArgs([]string{"run", "--scenario", "/does/not/exist", "--preset", "bogus"})
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected unknown-preset error, got nil")
+	}
+	if !strings.Contains(err.Error(), "unknown preset") {
+		t.Errorf("expected unknown-preset error, got: %v", err)
 	}
 }

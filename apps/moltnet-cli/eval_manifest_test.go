@@ -288,6 +288,46 @@ func TestValidateScenario_NoEvalJson_Warning(t *testing.T) {
 	}
 }
 
+func TestLoadEvalManifest_WithSolver(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vivo","fixture":{"ref":"abc1234"},"solver":"react"}`
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("loadEvalManifest: %v", err)
+	}
+	if m.Solver != "react" {
+		t.Errorf("solver: got %q, want react", m.Solver)
+	}
+}
+
+func TestValidateEvalManifest_SolverInvalid(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vitro",
+		Fixture: evalManifestFixture{},
+		Solver:  "bogus",
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for invalid solver kind")
+	}
+	if !strings.Contains(err.Error(), "solver") {
+		t.Errorf("expected 'solver' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_SolverValid(t *testing.T) {
+	for _, kind := range []string{"cot", "react", ""} {
+		m := &evalManifest{Mode: "vitro", Solver: kind}
+		if err := validateEvalManifest(m); err != nil {
+			t.Errorf("kind=%q: unexpected error: %v", kind, err)
+		}
+	}
+}
+
 func TestLoadEvalManifest_RejectsTrailingContent(t *testing.T) {
 	dir := t.TempDir()
 	body := []byte(`{"mode":"vitro","fixture":{}}{"mode":"vivo"}`)

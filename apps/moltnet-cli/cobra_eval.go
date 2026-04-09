@@ -75,6 +75,28 @@ follow-up.`,
 			solverFlag, _ := cmd.Flags().GetString("solver")
 			mode, _ := cmd.Flags().GetString("mode")
 			fixtureRef, _ := cmd.Flags().GetString("fixture-ref")
+			presetFlag, _ := cmd.Flags().GetString("preset")
+
+			solverChanged := cmd.Flags().Changed("solver")
+			modeChanged := cmd.Flags().Changed("mode")
+
+			// --preset is mutually exclusive with --mode / --solver.
+			// To tweak a preset, drop it and set flags explicitly.
+			if presetFlag != "" {
+				if modeChanged || solverChanged {
+					return fmt.Errorf("--preset is mutually exclusive with --mode and --solver; drop --preset to set them explicitly")
+				}
+				pMode, pSolver, err := expandEvalPreset(presetFlag)
+				if err != nil {
+					return err
+				}
+				mode = pMode
+				solverFlag = pSolver
+				// Preset expansion counts as CLI-level override for
+				// downstream precedence (beats manifest).
+				modeChanged = true
+				solverChanged = true
+			}
 
 			if mode != "" && mode != "vitro" && mode != "vivo" {
 				return fmt.Errorf("--mode must be vitro or vivo, got %q", mode)
@@ -110,9 +132,17 @@ follow-up.`,
 				return err
 			}
 
-			solverKind, err := solver.ParseKind(solverFlag)
-			if err != nil {
-				return err
+			// Only set opts.solverKind when the user explicitly chose a
+			// solver (via --solver or --preset). Empty means "fall back
+			// to manifest, then built-in default" — resolved by
+			// dspyEvalSolver at the runSolver call site.
+			var solverKind solver.Kind
+			if solverChanged {
+				k, err := solver.ParseKind(solverFlag)
+				if err != nil {
+					return err
+				}
+				solverKind = k
 			}
 
 			opts := evalRunOpts{
@@ -143,8 +173,27 @@ follow-up.`,
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
 	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove from the eval worktree before task execution")
 	// TODO(#714): drop "— not yet implemented" once the ReAct tool registry lands.
-	cmd.Flags().String("solver", "cot", "Solver module: cot (ChainOfThought, default) or react (ReAct — not yet implemented)")
+	cmd.Flags().String("solver", "", "Solver module override: cot (ChainOfThought) or react (ReAct — not yet implemented). Overrides eval.json solver. Default: cot (via eval.json or built-in fallback).")
 	cmd.Flags().String("mode", "", "Isolation mode override: vitro (sparse, task inputs only) or vivo (real repo at fixture-ref). Overrides eval.json mode.")
 	cmd.Flags().String("fixture-ref", "", "Git commit ref for vivo mode. Overrides eval.json fixture.ref.")
+	cmd.Flags().String("preset", "", "Expand a named preset into --mode and --solver. Mutually exclusive with --mode and --solver. Valid presets: baseline (vitro+cot), sandbox-agent (vitro+react), full-auto (vivo+react), repo-baseline (vivo+cot).")
 	return cmd
+}
+
+// expandEvalPreset resolves a preset name to its (mode, solver) pair.
+// Presets are pure expansion macros — they set both axes to a common
+// combination so users don't have to remember the pairing.
+func expandEvalPreset(name string) (mode string, solverKind string, err error) {
+	switch name {
+	case "baseline":
+		return "vitro", "cot", nil
+	case "sandbox-agent":
+		return "vitro", "react", nil
+	case "full-auto":
+		return "vivo", "react", nil
+	case "repo-baseline":
+		return "vivo", "cot", nil
+	default:
+		return "", "", fmt.Errorf("--preset: unknown preset %q (valid: baseline, sandbox-agent, full-auto, repo-baseline)", name)
+	}
 }
