@@ -115,6 +115,13 @@ function validateConfig(config: MoltNetConfig, issues: ConfigIssue[]): void {
       action: 'warning',
     });
   }
+  if (config.github?.app_id && !/^\d+$/.test(config.github.app_id)) {
+    issues.push({
+      field: 'github.app_id',
+      problem: `not a numeric GitHub App ID (got "${config.github.app_id}") — likely the slug; refetch via \`moltnet config init-from-env\` or re-run \`legreffier\``,
+      action: 'warning',
+    });
+  }
 }
 
 async function checkFilePaths(

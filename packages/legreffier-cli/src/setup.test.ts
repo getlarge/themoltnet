@@ -287,7 +287,7 @@ describe('writeSettingsLocal', () => {
     await writeSettingsLocal({
       repoDir: tmpRepo,
       agentName: 'my-agent',
-      appSlug: 'my-app',
+      appId: '2878569',
       pemPath: '/home/user/.config/moltnet/proj/my-app.pem',
       installationId: '99999',
       clientId: 'cid',
@@ -299,7 +299,7 @@ describe('writeSettingsLocal', () => {
       'utf-8',
     );
     const parsed = JSON.parse(raw);
-    expect(parsed.env.MY_AGENT_GITHUB_APP_ID).toBe('my-app');
+    expect(parsed.env.MY_AGENT_GITHUB_APP_ID).toBe('2878569');
     expect(parsed.env.MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH).toBe(
       '/home/user/.config/moltnet/proj/my-app.pem',
     );
@@ -342,7 +342,7 @@ describe('writeSettingsLocal', () => {
     await writeSettingsLocal({
       repoDir: tmpRepo,
       agentName: 'my-agent',
-      appSlug: 'my-app',
+      appId: '2878569',
       pemPath: '/tmp/my-app.pem',
       installationId: '123',
       clientId: 'cid',
@@ -376,7 +376,7 @@ describe('writeSettingsLocal', () => {
     await writeSettingsLocal({
       repoDir: tmpRepo,
       agentName: 'x',
-      appSlug: 'x',
+      appId: 'x',
       pemPath: '/tmp/x.pem',
       installationId: '1',
       clientId: '',
@@ -400,7 +400,7 @@ describe('writeEnvFile', () => {
       prefix: 'MY_AGENT',
       clientId: 'cid',
       clientSecret: 'csec',
-      appSlug: 'my-app',
+      appId: '2878569',
       pemPath: '/tmp/my-app.pem',
       installationId: '12345',
     });
@@ -408,7 +408,7 @@ describe('writeEnvFile', () => {
     const content = await readFile(join(envDir, 'env'), 'utf-8');
     expect(content).toContain("MY_AGENT_CLIENT_ID='cid'");
     expect(content).toContain("MY_AGENT_CLIENT_SECRET='csec'");
-    expect(content).toContain("MY_AGENT_GITHUB_APP_ID='my-app'");
+    expect(content).toContain("MY_AGENT_GITHUB_APP_ID='2878569'");
     expect(content).toContain(
       "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='/tmp/my-app.pem'",
     );
@@ -416,6 +416,7 @@ describe('writeEnvFile', () => {
     expect(content).toContain(
       "GIT_CONFIG_GLOBAL='.moltnet/my-agent/gitconfig'",
     );
+    expect(content).toContain("MOLTNET_AGENT_NAME='my-agent'");
   });
 
   it('preserves user-added vars on re-run', async () => {
@@ -429,7 +430,7 @@ describe('writeEnvFile', () => {
       prefix: 'MY_AGENT',
       clientId: 'cid-v1',
       clientSecret: 'csec-v1',
-      appSlug: 'my-app',
+      appId: '2878569',
       pemPath: '/tmp/my-app.pem',
       installationId: '12345',
     });
@@ -447,7 +448,7 @@ describe('writeEnvFile', () => {
       prefix: 'MY_AGENT',
       clientId: 'cid-v2',
       clientSecret: 'csec-v2',
-      appSlug: 'my-app',
+      appId: '2878569',
       pemPath: '/tmp/my-app.pem',
       installationId: '12345',
     });

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { exchangeManifestCode, lookupBotUser, writePem } from './github.js';
+import { exchangeManifestCode, writePem } from './github.js';
 
 const TEST_SLUG = 'test-github-' + Math.random().toString(36).slice(2);
 const configDir = join(homedir(), '.config', 'moltnet', TEST_SLUG);
@@ -46,26 +46,6 @@ describe('exchangeManifestCode', () => {
     await expect(exchangeManifestCode('bad-code')).rejects.toThrow(
       'GitHub code exchange failed (422)',
     );
-  });
-});
-
-describe('lookupBotUser', () => {
-  it('derives noreply email from id and login', async () => {
-    vi.stubGlobal('fetch', async () => ({
-      ok: true,
-      json: async () => ({ id: 99, login: 'my-app[bot]' }),
-    }));
-
-    const user = await lookupBotUser('my-app');
-    expect(user.id).toBe(99);
-    expect(user.email).toBe('99+my-app[bot]@users.noreply.github.com');
-  });
-
-  it('throws on non-ok response', async () => {
-    vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
-    await expect(
-      lookupBotUser('no-such-app', { maxRetries: 0, baseDelayMs: 0 }),
-    ).rejects.toThrow('GitHub user lookup failed for app "no-such-app"');
   });
 });
 

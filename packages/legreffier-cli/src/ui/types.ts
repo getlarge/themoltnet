@@ -70,6 +70,7 @@ export interface IdentityResult {
 }
 
 export interface GithubAppResult {
+  appId: string;
   appSlug: string;
   pemPath: string;
   installationId: string;

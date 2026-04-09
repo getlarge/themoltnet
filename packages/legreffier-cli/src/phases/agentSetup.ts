@@ -15,6 +15,7 @@ export async function runAgentSetupPhase(opts: {
   agentTypes: AgentType[];
   publicKey: string;
   fingerprint: string;
+  appId: string;
   appSlug: string;
   pemPath: string;
   installationId: string;
@@ -32,6 +33,7 @@ export async function runAgentSetupPhase(opts: {
     agentTypes,
     publicKey,
     fingerprint,
+    appId,
     appSlug,
     pemPath,
     installationId,
@@ -61,7 +63,7 @@ export async function runAgentSetupPhase(opts: {
           mcp: apiUrl.replace('://api.', '://mcp.') + '/mcp',
         },
         github: {
-          app_id: appSlug,
+          app_id: appId,
           app_slug: appSlug,
           installation_id: installationId,
           private_key_path: pemPath,
@@ -82,6 +84,7 @@ export async function runAgentSetupPhase(opts: {
     clientId,
     clientSecret,
     appSlug,
+    appId,
     pemPath,
     installationId,
   };
@@ -108,7 +111,7 @@ export async function runAgentSetupPhase(opts: {
     prefix,
     clientId,
     clientSecret,
-    appSlug,
+    appId,
     pemPath,
     installationId,
   });

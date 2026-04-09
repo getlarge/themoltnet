@@ -20,6 +20,7 @@ const baseOpts: AgentAdapterOptions = {
   clientId: 'cid',
   clientSecret: 'csec',
   appSlug: 'my-app',
+  appId: '2878569',
   pemPath: '/tmp/my-app.pem',
   installationId: '99999',
 };

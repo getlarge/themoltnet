@@ -9,11 +9,6 @@ export interface GitHubAppCredentials {
   clientSecret: string;
 }
 
-export interface BotUser {
-  id: number;
-  email: string;
-}
-
 /** Exchange a GitHub App manifest code for credentials. PEM never leaves the client. */
 export async function exchangeManifestCode(
   code: string,
@@ -89,42 +84,6 @@ export async function suggestAppNames(appName: string): Promise<string[]> {
     })),
   );
   return results.filter((r) => r.available).map((r) => r.name);
-}
-
-/**
- * Look up GitHub bot user and derive noreply email.
- * Tries <appSlug>[bot] first (exists post-installation), then falls back to
- * plain <appSlug> (exists right after app creation, pre-installation).
- *
- * Retries with exponential backoff because GitHub's public /users API
- * may not index a newly created app account immediately.
- */
-export async function lookupBotUser(
-  appSlug: string,
-  { maxRetries = 5, baseDelayMs = 2_000 } = {},
-): Promise<BotUser> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    for (const username of [`${appSlug}[bot]`, appSlug]) {
-      const res = await fetch(
-        `https://api.github.com/users/${encodeURIComponent(username)}`,
-        { headers: GITHUB_HEADERS },
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { id: number; login: string };
-        return {
-          id: data.id,
-          email: `${data.id}+${data.login}@users.noreply.github.com`,
-        };
-      }
-    }
-    if (attempt < maxRetries) {
-      const delayMs = baseDelayMs * 2 ** attempt;
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, delayMs);
-      });
-    }
-  }
-  throw new Error(`GitHub user lookup failed for app "${appSlug}"`);
 }
 
 /** Write GitHub App PEM to <configDir>/<appSlug>.pem (mode 0o600). */

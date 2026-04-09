@@ -1,6 +1,7 @@
+import { buildBotEmail, lookupBotUser } from '@themoltnet/github-agent';
 import { exportSSHKey, readConfig, updateConfigSection } from '@themoltnet/sdk';
 
-import { lookupBotUser, writeGitConfig } from '../github.js';
+import { writeGitConfig } from '../github.js';
 import type { UIAction } from '../ui/types.js';
 
 export async function runGitSetupPhase(opts: {
@@ -20,18 +21,19 @@ export async function runGitSetupPhase(opts: {
   dispatch({ type: 'phase', phase: 'git_setup' });
   dispatch({ type: 'step', key: 'gitSetup', status: 'running' });
   const { privatePath } = await exportSSHKey({ configDir });
-  const botUser = await lookupBotUser(appSlug);
+  const botUser = await lookupBotUser(appSlug, { maxRetries: 5 });
+  const email = buildBotEmail(botUser.id, appSlug);
   const gitConfigPath = await writeGitConfig({
     configDir,
     name: agentName,
-    email: botUser.email,
+    email,
     sshKeyPath: privatePath,
   });
   await updateConfigSection(
     'git',
     {
       name: agentName,
-      email: botUser.email,
+      email,
       signing: true,
       config_path: gitConfigPath,
     },
