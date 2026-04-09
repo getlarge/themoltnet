@@ -1,31 +1,31 @@
 {
   "checklist": [
     {
-      "description": "The procedure includes generating/updating the OpenAPI spec (e.g., pnpm run generate:openapi or equivalent)",
-      "max_score": 20,
-      "name": "OpenAPI spec generation mentioned"
-    },
-    {
-      "description": "The procedure includes regenerating the TypeScript API client from the OpenAPI spec",
-      "max_score": 20,
-      "name": "TS api-client regeneration mentioned"
-    },
-    {
-      "description": "The procedure includes regenerating the Go API client (e.g., pnpm run go:generate, go generate, or equivalent). This is the step agents most commonly forget.",
+      "description": "Root cause section explicitly identifies the generated Go api-client (libs/moltnet-api-client or similar) as the stale artifact — NOT a generic 'generated code is out of sync' or 'the OpenAPI spec is stale'. The agent must isolate the Go client specifically as what needs to be regenerated, because the OpenAPI spec WAS regenerated and the TS side is fine.",
       "max_score": 30,
-      "name": "Go api-client regeneration mentioned"
+      "name": "Root cause isolates the Go api-client"
     },
     {
-      "description": "The procedure includes a verification step after regeneration — running typecheck, checking for diffs, or building all consumers",
-      "max_score": 15,
-      "name": "Verification step included"
+      "description": "The explanation describes the two-pipeline codegen chain: the TypeScript api-client is generated from OpenAPI via one tool, the Go api-client is generated separately via a different tool (ogen or equivalent). A generic 'the clients are generated separately' without naming the two-pipeline split does not fully count.",
+      "max_score": 20,
+      "name": "Explains the two-pipeline codegen split"
     },
     {
-      "description": "The commands are in dependency order: OpenAPI first, then TS client, then Go client (not reversed or unordered)",
+      "description": "The 'why the checks missed it' section correctly explains that the Go build and Go tests pass because the stale generated Go struct is still valid Go — the decode failure is a runtime JSON mismatch, not a compile-time type error. Answers that say 'the tests don't cover this endpoint' or similar surface-level excuses do NOT count.",
+      "max_score": 20,
+      "name": "Explains build-time silence vs runtime decode"
+    },
+    {
+      "description": "The fix procedure includes the specific MoltNet command `pnpm run go:generate` (or explicitly invokes `go generate ./libs/moltnet-api-client/...`). Generic 'regenerate the Go client' or 'run go generate' without the project-specific invocation path does not count.",
       "max_score": 15,
-      "name": "Correct ordering"
+      "name": "Fix uses the project-specific go:generate command"
+    },
+    {
+      "description": "The fix procedure lists the commands in dependency order: OpenAPI spec first (generate:openapi), then the Go client regen (go:generate), then a verification step (typecheck, build, or running the CLI against a dev server).",
+      "max_score": 15,
+      "name": "Fix commands in correct order with verification"
     }
   ],
-  "context": "Tests whether the agent knows the full codegen chain: schema source → OpenAPI spec → TS api-client → Go api-client. Agents frequently forget the Go client regeneration, which causes silent failures (Go CLI breaks with decode errors at runtime, not at build time).",
+  "context": "Tests whether the agent can debug a classic MoltNet codegen-chain bug from a runtime symptom, rather than produce a checklist from memory. The setup: a teammate merged a schema change, regenerated the OpenAPI spec and the TS client, and all checks passed — but forgot to run `pnpm run go:generate` which regenerates the Go api-client via ogen. The Go build stays green because the stale generated struct is still valid Go; the bug only surfaces at runtime in the `moltnet` CLI when decoding a JSON response with the new field. The without-context baseline is expected to produce a plausible-looking 'regenerate everything' checklist without isolating the Go client, without naming the two-pipeline split, and often without naming `pnpm run go:generate` specifically. The with-context variant (given `incident-patterns.md`) sees the documented codegen chain rule and should correctly identify the Go client, the chain, and the exact command.",
   "type": "weighted_checklist"
 }

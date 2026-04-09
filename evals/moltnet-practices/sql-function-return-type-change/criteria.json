@@ -1,31 +1,31 @@
 {
   "checklist": [
     {
-      "description": "The migration.sql includes a DROP FUNCTION (or DROP FUNCTION IF EXISTS) statement for diary_search before the CREATE OR REPLACE FUNCTION statement",
-      "max_score": 35,
+      "description": "The final _journal.json produced by the agent has a monotonically increasing `when` value for idx 3 — strictly greater than the previous entry's 1774560400002. The agent must have NOTICED that the drizzle-kit-generated value (1759329600000) is smaller than the previous entry and fixed it. A journal that ships the original 1759329600000 value fails this criterion even if the migration SQL is otherwise correct.",
+      "max_score": 30,
+      "name": "Journal is monotonic in the final output"
+    },
+    {
+      "description": "notes.md explicitly explains WHY the journal `when` values must be monotonically increasing in this repo — mentions that drizzle-kit uses Date.now() while the repo uses synthetic future-dated timestamps, OR mentions that migration ordering depends on monotonic `when` values. Generic 'I updated the timestamp' without explaining the invariant fails this criterion.",
+      "max_score": 25,
+      "name": "Notes explain the monotonic-journal invariant"
+    },
+    {
+      "description": "migration.sql includes a DROP FUNCTION (or DROP FUNCTION IF EXISTS) statement for diary_search before the CREATE OR REPLACE FUNCTION statement. CREATE OR REPLACE alone fails this criterion because PostgreSQL rejects RETURNS TABLE changes on REPLACE.",
+      "max_score": 20,
       "name": "DROP FUNCTION before CREATE"
     },
     {
-      "description": "The updated RETURNS TABLE clause includes `verified boolean` (or equivalent)",
+      "description": "notes.md explains that DROP is required because the RETURNS TABLE signature changed (not just the body or input params), or mentions that CREATE OR REPLACE cannot change the output type. A surface-level 'I added DROP for safety' without naming the RETURNS TABLE constraint fails this criterion.",
+      "max_score": 15,
+      "name": "Notes explain the DROP requirement"
+    },
+    {
+      "description": "The updated RETURNS TABLE clause includes `verified boolean` AND the RETURN QUERY SELECT includes `e.verified` from the diary_entries table. Both halves must be present.",
       "max_score": 10,
-      "name": "verified column in RETURNS TABLE"
-    },
-    {
-      "description": "The function body's RETURN QUERY SELECT includes `e.verified` from the diary_entries table",
-      "max_score": 10,
-      "name": "verified in SELECT"
-    },
-    {
-      "description": "The notes.md or migration output mentions checking that the new _journal.json entry's `when` value is monotonically greater than the previous entry, OR the agent produces a corrected _journal.json",
-      "max_score": 25,
-      "name": "Journal timestamp checked"
-    },
-    {
-      "description": "The notes.md explains that DROP is required because the return type changed (not just input params), or mentions that CREATE OR REPLACE cannot change RETURNS TABLE",
-      "max_score": 20,
-      "name": "Notes explain DROP requirement"
+      "name": "verified column wired through"
     }
   ],
-  "context": "Tests whether the agent knows that (1) PostgreSQL requires DROP FUNCTION before CREATE OR REPLACE when the RETURNS TABLE signature changes, and (2) drizzle-kit generates non-monotonic journal timestamps when the repo uses synthetic future-dated values — the agent must check and fix the journal entry.",
+  "context": "Tests whether the agent (1) notices that drizzle-kit generated a non-monotonic _journal.json entry and fixes it, (2) knows to DROP the function before CREATE OR REPLACE because the RETURNS TABLE signature changed, and (3) can articulate the reasoning for both in notes.md. The trap is embedded directly in the task: the journal included in task.md has idx 3 with `when: 1759329600000` which is LESS than the previous entry's 1774560400002. The monotonic-journal rule is MoltNet-specific and not in training data (the repo uses synthetic future timestamps to avoid drizzle-kit's Date.now() collisions). The DROP-before-REPLACE fact is well-known PostgreSQL trivia and is expected to be solved by the baseline; it provides a stability floor. The with-context variant receives `incident-patterns.md` which teaches both rules explicitly.",
   "type": "weighted_checklist"
 }

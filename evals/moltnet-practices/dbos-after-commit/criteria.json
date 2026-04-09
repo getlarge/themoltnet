@@ -1,0 +1,31 @@
+{
+  "checklist": [
+    {
+      "description": "`startGrantDiaryOwnerWorkflow(...)` is called AFTER `runTransaction(...)` resolves, NOT inside the transaction callback. The transaction callback returns the created diary, and the workflow is started on the next line using the returned diary id. Any call site where the workflow is started inside the `runTransaction` callback fails this criterion, even if the code otherwise compiles and looks correct.",
+      "max_score": 35,
+      "name": "Workflow started after transaction commits"
+    },
+    {
+      "description": "`notes.md` explicitly names the two systems that do not share a transaction — it must mention BOTH DBOS/workflows AND Drizzle/Postgres/runTransaction (or Keto vs Postgres) as separate backends/connections. Generic 'non-atomic' or 'durable' language without naming the two specific systems fails this criterion.",
+      "max_score": 25,
+      "name": "Notes name both systems as separate backends"
+    },
+    {
+      "description": "`notes.md` explicitly describes the failure mode if the workflow were started inside the transaction: a rolled-back Postgres transaction would leave a dangling Keto tuple (or equivalent: orphaned grant, inconsistent Keto state). Notes that only say 'the workflow must run after' without explaining the rollback failure mode fail this criterion.",
+      "max_score": 20,
+      "name": "Notes describe the rollback failure mode"
+    },
+    {
+      "description": "The diary insert is performed through the Drizzle repository (e.g. `createDiaryRepository(tx).create(...)` or the equivalent) and the created diary is returned from the transaction callback so the outer scope can read its id.",
+      "max_score": 15,
+      "name": "Diary insert uses the repository"
+    },
+    {
+      "description": "The handler is structured so that if the diary insert throws, the Keto grant is never started. Starting the workflow BEFORE `runTransaction` resolves (e.g. in a `.then` or before the insert) fails this criterion.",
+      "max_score": 5,
+      "name": "Grant not started on rollback path"
+    }
+  ],
+  "context": "Tests whether the agent knows the MoltNet-specific rule: DBOS workflows must NOT be started inside a Drizzle `runTransaction` callback, because DBOS and Drizzle use separate database connections and there is no cross-database atomicity. The intuitive answer ('put both operations inside the transaction so they are atomic') is wrong and is exactly the bug this rule exists to prevent. The task.md intentionally does NOT hint at this — it shows a scaffold with TODOs inside the transaction callback, and the without-context baseline should fall into the trap. The with-context variant (given `database-patterns.md`) should learn the rule, invert the ordering, and name both DBOS and Drizzle explicitly in notes.md.",
+  "type": "weighted_checklist"
+}
