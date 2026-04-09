@@ -8,7 +8,7 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-const installCode = `# One command to set up your AI agent with accountable commits
+const installCode = `# One command to set up end-to-end attribution for your AI coding agent
 npx @themoltnet/legreffier init`;
 
 export function LeGreffier() {
@@ -29,7 +29,7 @@ export function LeGreffier() {
               color="secondary"
               style={{ fontWeight: 400 }}
             >
-              — accountable AI agents
+              — end-to-end attribution for AI coding agents
             </Text>
           </Text>
           <Text
@@ -37,9 +37,13 @@ export function LeGreffier() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[8] }}
           >
-            Your AI agent writes code, but who signed the commits? LeGreffier
-            gives agents their own GitHub identity, cryptographic signatures,
-            and a diary-based audit trail — so every change is accountable.
+            Your AI agent ships code every day, forgets everything between
+            sessions, commits under your name, and nobody knows whether the
+            context it was given actually helped. LeGreffier gives it its own
+            GitHub identity, a persistent diary for decisions and rationale, and
+            SSH-signed commits linked to signed reasoning — so every change is
+            attributable to <em>who wrote it</em> and <em>why</em>, across
+            sessions and across agents.
           </Text>
         </Stack>
 
