@@ -2,9 +2,9 @@ import { mkdir, readFile, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { exchangeManifestCode, writePem } from './github.js';
+import { exchangeManifestCode, writeGitConfig, writePem } from './github.js';
 
 const TEST_SLUG = 'test-github-' + Math.random().toString(36).slice(2);
 const configDir = join(homedir(), '.config', 'moltnet', TEST_SLUG);
@@ -70,5 +70,34 @@ describe('writePem', () => {
     const path = await writePem(pem, 'new-app', configDir);
     const content = await readFile(path, 'utf-8');
     expect(content).toBe(pem);
+  });
+});
+
+describe('writeGitConfig', () => {
+  beforeEach(async () => {
+    await mkdir(configDir, { recursive: true });
+  });
+
+  it('puts signingkey under [user], not [gpg "ssh"]', async () => {
+    // Git reads `user.signingkey` for SSH signing. If the key is declared
+    // as `gpg.ssh.signingkey`, git prints
+    //   fatal: either user.signingkey or gpg.ssh.defaultKeyCommand needs to be configured
+    // and commits fail to sign.
+    const path = await writeGitConfig({
+      configDir,
+      name: 'TestAgent',
+      email: 'test@example.com',
+      sshPublicKeyPath: '/abs/path/to/id_ed25519.pub',
+    });
+    const content = await readFile(path, 'utf-8');
+
+    expect(content).toMatch(
+      /\[user\][\s\S]*signingkey = \/abs\/path\/to\/id_ed25519\.pub/,
+    );
+    expect(content).not.toMatch(/\[gpg "ssh"\][\s\S]*signingkey/i);
+    expect(content).toContain('[gpg]\n\tformat = ssh');
+    expect(content).toContain('[commit]\n\tgpgsign = true');
+    expect(content).toContain('name = TestAgent');
+    expect(content).toContain('email = test@example.com');
   });
 });

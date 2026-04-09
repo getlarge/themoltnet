@@ -1,7 +1,7 @@
 {
   "name": "@themoltnet/legreffier",
   "version": "0.29.0",
-  "description": "LeGreffier — one-command accountable AI agent setup",
+  "description": "LeGreffier — attribution and measured memory for AI coding agents.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "repository": {

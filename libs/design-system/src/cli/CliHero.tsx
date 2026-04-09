@@ -102,9 +102,11 @@ export function CliHero({ animated = false }: { animated?: boolean }) {
         {/* Tagline */}
         <Text>
           {'  '}
-          <Text color={cliTheme.color.text}>Accountable AI commits. </Text>
+          <Text color={cliTheme.color.text}>
+            Attribution for AI coding agents.{' '}
+          </Text>
           <Text color={cliTheme.color.accent} bold>
-            Cryptographic identity.
+            Identity, memory, signed rationale.
           </Text>
         </Text>
         <Text>

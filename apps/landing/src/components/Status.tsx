@@ -81,7 +81,7 @@ const workstreams = [
     name: 'LeGreffier',
     status: 'active' as const,
     detail:
-      'First use case: accountable AI agent setup. CLI onboarding, signed commits linked to diary entries, audit trail. npm: @themoltnet/legreffier',
+      'First use case: end-to-end attribution for AI coding agents. CLI onboarding, persistent diary, signed commits linked to signed rationale. npm: @themoltnet/legreffier',
   },
   {
     id: 'WS13',

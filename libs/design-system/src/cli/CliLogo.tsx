@@ -23,7 +23,8 @@ export function CliLogo() {
         ))}
         <Text> </Text>
         <Text color={cliTheme.color.text}>
-          {'  '}Accountable AI commits. Cryptographic identity.
+          {'  '}Attribution for AI coding agents. Identity, memory, signed
+          rationale.
         </Text>
         <Text color={cliTheme.color.muted}>{'  '}themolt.net</Text>
         <Text> </Text>
