@@ -20,14 +20,14 @@ export async function runGitSetupPhase(opts: {
 
   dispatch({ type: 'phase', phase: 'git_setup' });
   dispatch({ type: 'step', key: 'gitSetup', status: 'running' });
-  const { privatePath } = await exportSSHKey({ configDir });
+  const { publicPath } = await exportSSHKey({ configDir });
   const botUser = await lookupBotUser(appSlug, { maxRetries: 5 });
   const email = buildBotEmail(botUser.id, appSlug);
   const gitConfigPath = await writeGitConfig({
     configDir,
     name: agentName,
     email,
-    sshKeyPath: privatePath,
+    sshPublicKeyPath: publicPath,
   });
   await updateConfigSection(
     'git',

@@ -94,9 +94,15 @@ describe('runPortRewritePhase', () => {
     expect(reread?.github?.app_slug).toBe('legreffier');
     expect(reread?.git?.config_path).toBe(join(target, 'gitconfig'));
 
-    // gitconfig regenerated with new ssh key path
+    // gitconfig regenerated — signingkey points at the new ssh PUBLIC key
+    // path under [user] (where git actually reads it), not under [gpg "ssh"].
     const gitconfig = await readFile(join(target, 'gitconfig'), 'utf-8');
-    expect(gitconfig).toContain(join(target, 'ssh', 'id_ed25519'));
+    expect(gitconfig).toMatch(
+      new RegExp(
+        `\\[user\\][\\s\\S]*signingkey = ${join(target, 'ssh', 'id_ed25519.pub').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+      ),
+    );
+    expect(gitconfig).not.toMatch(/\[gpg "ssh"\][\s\S]*signingkey/i);
     expect(gitconfig).toContain('gpgsign = true');
 
     // env file has new PEM path and MOLTNET_AGENT_NAME

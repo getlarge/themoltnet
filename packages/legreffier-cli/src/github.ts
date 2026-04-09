@@ -103,28 +103,37 @@ export interface GitConfigOptions {
   configDir: string;
   name: string;
   email: string;
-  sshKeyPath: string;
+  /**
+   * Absolute path to the SSH **public** key (`id_ed25519.pub`). Git reads
+   * `user.signingkey` as the public key for SSH signing; passing the private
+   * key here does not work.
+   */
+  sshPublicKeyPath: string;
 }
 
 /**
  * Write a standalone gitconfig file to <configDir>/gitconfig and return
  * its path. The config sets user.name/email and enables SSH commit signing
- * using the agent's SSH key.
+ * using the agent's SSH public key.
+ *
+ * **Important:** `signingkey` must live under `[user]`, not `[gpg "ssh"]`.
+ * Git only reads `user.signingkey`; a key declared as `gpg.ssh.signingkey`
+ * is silently ignored and `git commit -S` fails with
+ * `fatal: either user.signingkey or gpg.ssh.defaultKeyCommand needs to be configured`.
  */
 export async function writeGitConfig({
   configDir,
   name,
   email,
-  sshKeyPath,
+  sshPublicKeyPath,
 }: GitConfigOptions): Promise<string> {
   const content = [
     '[user]',
     `\tname = ${name}`,
     `\temail = ${email}`,
+    `\tsigningkey = ${sshPublicKeyPath}`,
     '[gpg]',
     '\tformat = ssh',
-    '[gpg "ssh"]',
-    `\tsigningKey = ${sshKeyPath}`,
     '[commit]',
     '\tgpgsign = true',
     '',

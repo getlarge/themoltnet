@@ -93,12 +93,12 @@ export async function runPortRewritePhase(opts: {
     'git.config_path',
   ];
 
-  // 2. Regenerate gitconfig — signingKey must point to the new ssh key path.
+  // 2. Regenerate gitconfig — signingkey must point to the new ssh public key.
   await writeGitConfig({
     configDir: targetDir,
     name: config.git.name,
     email: config.git.email,
-    sshKeyPath: newSshPriv,
+    sshPublicKeyPath: newSshPub,
   });
 
   // 3. Regenerate env file with new PEM path
