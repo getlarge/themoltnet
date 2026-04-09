@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.19.0](https://github.com/getlarge/themoltnet/compare/cli-v1.18.0...cli-v1.19.0) (2026-04-09)
+
+
+### Features
+
+* **eval:** add --mode and --fixture-ref CLI flags ([46cd2c6](https://github.com/getlarge/themoltnet/commit/46cd2c6f6e49d89492185c110697229f7f3f3e21))
+* **eval:** add evalManifest struct and loadEvalManifest ([7c52f11](https://github.com/getlarge/themoltnet/commit/7c52f1119fb8c37edd7e057ed5d881899e9335ac))
+* **eval:** add sparsePassDSPYEvalWorktree and branch createDSPYEvalWorktree on vitro/vivo mode ([883eba8](https://github.com/getlarge/themoltnet/commit/883eba8d0d2dbf85a56982667057e45482c41c1e))
+* **eval:** add validateScenario with strict criteria.json + eval.json validation ([e71d22b](https://github.com/getlarge/themoltnet/commit/e71d22b23e8fa613503f964853f506c4ec50b697))
+* **eval:** drive solver via dspy-go ChainOfThought module ([371a133](https://github.com/getlarge/themoltnet/commit/371a133322ec1c318232f7f824ef8f6732793788))
+* **eval:** drive solver via dspy-go module with --solver flag ([e8b146a](https://github.com/getlarge/themoltnet/commit/e8b146a734a4b3bae1dacf024bd4066ce4ebf824)), closes [#714](https://github.com/getlarge/themoltnet/issues/714)
+* **eval:** DSPy engine migration — progress bar, canary scripts, cutover ([9d51c4d](https://github.com/getlarge/themoltnet/commit/9d51c4d5910e1f82dc1d90fd2de93c8e155de1e2))
+* **eval:** pin JSON batch config support with test and json struct tags ([34f34d9](https://github.com/getlarge/themoltnet/commit/34f34d98cc6cd80b1d2e4744c04eb1b1eb000b7b))
+* **eval:** smarter DSPy judge — pack on disk, hardened scores_json, incident-derived scenarios ([643753e](https://github.com/getlarge/themoltnet/commit/643753ee52f809cb3bc0695f3d958ae5e99d8bfc))
+* **eval:** vitro/vivo isolation modes for DSPy eval runner ([bd6f144](https://github.com/getlarge/themoltnet/commit/bd6f1442be104fac8a4b0c6cb7fd832cc9c3d764))
+* **eval:** wire validateScenario into resolveEvalRun, add manifest to evalRunInput ([43be425](https://github.com/getlarge/themoltnet/commit/43be425ce4f47d0cb73dba3376e1ca09425b644e))
+* **eval:** write context pack to disk for DSPy judge parity ([36510c5](https://github.com/getlarge/themoltnet/commit/36510c5288a0b9cf2ec4beae7b167b277154a22d))
+* **legreffier:** support GitHub org account in manifest flow ([fdb9621](https://github.com/getlarge/themoltnet/commit/fdb9621a90d5fa4fab1cde1862d33d19695990e8))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+
+
+### Bug Fixes
+
+* **dspy-adapters,eval:** address PR [#717](https://github.com/getlarge/themoltnet/issues/717) review — capture all trajectories, gate context_pack ([25e1b37](https://github.com/getlarge/themoltnet/commit/25e1b370212c6fc3e42b08a3d9c533a5107f2a40))
+* **eval:** address Copilot review comments ([95189d0](https://github.com/getlarge/themoltnet/commit/95189d06af6fd104077b73a2cc8f99449602dd20))
+* **eval:** address Copilot review on [#719](https://github.com/getlarge/themoltnet/issues/719) — vitro correctness, .git preservation ([37b0fd6](https://github.com/getlarge/themoltnet/commit/37b0fd64c67c91b060ba3d9ce6bb444ca61bad62))
+* **eval:** address Copilot review on [#719](https://github.com/getlarge/themoltnet/issues/719) — vitro correctness, .git preservation, validation strictness ([61e27a8](https://github.com/getlarge/themoltnet/commit/61e27a827768835a144d21eeaea3d520cb537262))
+* **eval:** address Task 1 review — guard test writes, clarify loadEvalManifest godoc ([80a1ed0](https://github.com/getlarge/themoltnet/commit/80a1ed0557a068e10f559cbb3260e5caf7d6baa0))
+* **eval:** progress bar layout and mpb corruption under concurrent runs ([5646d6e](https://github.com/getlarge/themoltnet/commit/5646d6e0041d68e5c368a90e1fc6be92e3dd1ca4))
+* **release:** recover cli v1.19.0 release cycle ([c2a6f27](https://github.com/getlarge/themoltnet/commit/c2a6f2784eadc19ff076a88875934ec993b17a99))
+* **release:** recover cli v1.19.0 release cycle ([2fcb830](https://github.com/getlarge/themoltnet/commit/2fcb8305e18bc5bed22df119a4b0ab916781a665))
+
 ## [1.18.0](https://github.com/getlarge/themoltnet/compare/cli-v1.17.0...cli-v1.18.0) (2026-04-07)
 
 
