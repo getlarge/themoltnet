@@ -1,6 +1,14 @@
-import { appendFile, mkdir, readFile, rm } from 'node:fs/promises';
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -139,7 +147,6 @@ describe('downloadSkills', () => {
     expect(stderrSpy).toHaveBeenCalledWith(
       expect.stringContaining('could not download skill'),
     );
-    const { stat } = await import('node:fs/promises');
     await expect(
       stat(join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md')),
     ).rejects.toThrow();
@@ -208,9 +215,11 @@ describe('buildPermissions', () => {
 });
 
 describe('buildGhTokenRule', () => {
-  it('produces rule using dynamic credentials path from GIT_CONFIG_GLOBAL', () => {
+  it('produces rule using absolute credentials path resolved from GIT_CONFIG_GLOBAL', () => {
     const rule = buildGhTokenRule();
-    expect(rule).toContain('$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json');
+    expect(rule).toContain(
+      '$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json',
+    );
     expect(rule).toContain('GH_TOKEN');
     expect(rule).toContain('npx @themoltnet/cli github token');
     expect(rule).toContain('.moltnet/<agent>/gitconfig');
@@ -248,6 +257,29 @@ describe('buildGhTokenRule', () => {
     );
     expect(rule).toContain('Forbidden patterns');
     expect(rule).toContain('Why absolute paths are mandatory');
+    // Behavioral centerpiece: hard failure on missing credentials file
+    expect(rule).toContain('[ -f "$CREDS" ]');
+  });
+
+  it('stays in sync with the committed .claude/rules/legreffier-gh.md', async () => {
+    // The committed file in this repo is read by agents running here; the
+    // generator output is what `legreffier port` writes into other repos.
+    // They must never drift — regenerate with:
+    //   node -e "import('./src/setup.ts').then(m => process.stdout.write(m.buildGhTokenRule()))" \
+    //     > ../../.claude/rules/legreffier-gh.md
+    const committed = await readFile(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        '..',
+        '.claude',
+        'rules',
+        'legreffier-gh.md',
+      ),
+      'utf-8',
+    );
+    expect(committed).toBe(buildGhTokenRule());
   });
 });
 
@@ -348,7 +380,6 @@ describe('writeSettingsLocal', () => {
       permissions: { allow: ['Bash(custom-cmd *)', 'Bash(git config *)'] },
       customKey: true,
     };
-    const { writeFile } = await import('node:fs/promises');
     await writeFile(filePath, JSON.stringify(existing), 'utf-8');
 
     await writeSettingsLocal({

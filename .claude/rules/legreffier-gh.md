@@ -1,8 +1,8 @@
-# GitHub CLI Authentication (LeGreffier)
+# GitHub CLI Authentication (MoltNet agents)
 
 > **STRICT RULE — read this before every `gh` call.**
 >
-> When `GIT_CONFIG_GLOBAL` is set to `.moltnet/legreffier/gitconfig`, you
+> When `GIT_CONFIG_GLOBAL` is set (matches `.moltnet/<agent>/gitconfig`), you
 > **MUST NOT** run bare `gh <command>`. You **MUST** prefix every `gh` call
 > with a `GH_TOKEN` resolved from an **absolute path** to `moltnet.json`.
 > Running bare `gh` silently falls back to the human personal token and
@@ -22,12 +22,14 @@ CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json"
 GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
 
-The token is cached locally (~1 hour lifetime, 5-min expiry buffer),
+The credentials file (`moltnet.json`) always lives next to the `gitconfig`
+inside the same `.moltnet/<agent>/` directory, regardless of which agent is
+active. The token is cached locally (~1 hour lifetime, 5-min expiry buffer),
 so repeated calls are fast after the first API hit.
 
 ## Why absolute paths are mandatory
 
-`GIT_CONFIG_GLOBAL` is almost always a **relative path** (e.g. `.moltnet/legreffier/gitconfig`).
+`GIT_CONFIG_GLOBAL` is almost always a **relative path** (e.g. `.moltnet/<agent>/gitconfig`).
 Every git worktree has a different CWD from the main worktree root, so
 `$(dirname "$GIT_CONFIG_GLOBAL")` resolves differently depending on where you are.
 When it resolves to a non-existent directory:
@@ -39,12 +41,6 @@ When it resolves to a non-existent directory:
 
 This failure is invisible in normal output. The `cd ... && pwd` dance in step 1
 is the only reliable way to get an absolute path that works across worktrees.
-
-If you already know the repo root, you can hard-code the absolute path:
-
-```bash
-GH_TOKEN=$(npx @themoltnet/cli github token --credentials "/Users/edouard/Dev/getlarge/themoltnet/.moltnet/legreffier/moltnet.json") gh <command>
-```
 
 ## Forbidden patterns
 

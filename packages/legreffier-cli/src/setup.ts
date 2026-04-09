@@ -94,7 +94,7 @@ export async function downloadSkills(
   }
 }
 
-export function buildGhTokenRule(_agentName?: string): string {
+export function buildGhTokenRule(): string {
   return [
     '# GitHub CLI Authentication (MoltNet agents)',
     '',
