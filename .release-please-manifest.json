@@ -1,10 +1,10 @@
 {
-  "apps/moltnet-cli": "1.19.0",
+  "apps/moltnet-cli": "1.20.0",
   "libs/design-system": "0.3.2",
   "libs/dspy-adapters": "0.8.0",
   "libs/moltnet-api-client": "1.11.0",
   "libs/sdk": "0.88.0",
   "packages/github-agent": "0.23.0",
-  "packages/legreffier-cli": "0.29.1",
+  "packages/legreffier-cli": "0.30.0",
   "packages/openclaw-skill": "0.27.1"
 }
