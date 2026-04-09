@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.89.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.88.0...sdk-v0.89.0) (2026-04-09)
+
+
+### Features
+
+* **legreffier-cli:** add `port` subcommand to reuse agent identity across repos ([7bc60df](https://github.com/getlarge/themoltnet/commit/7bc60dfd1671f91561d25b3dc751c98c00db4749))
+* **legreffier:** support GitHub org account in manifest flow ([fdb9621](https://github.com/getlarge/themoltnet/commit/fdb9621a90d5fa4fab1cde1862d33d19695990e8))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+* **sdk:** add teams and diaryGrants namespaces ([71bf343](https://github.com/getlarge/themoltnet/commit/71bf343f614ccde2c7151a8ae5174cdba970da3d))
+* **sdk:** add teams and diaryGrants namespaces ([22b57af](https://github.com/getlarge/themoltnet/commit/22b57af1236d0fed12f9c8e116239ca021e5a3a0))
+
+
+### Bug Fixes
+
+* **legreffier-cli:** propagate numeric GitHub App ID through init flow ([70e9182](https://github.com/getlarge/themoltnet/commit/70e9182c3650a0a2ba14f32868f2482b926fb9de))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+* **sdk:** use generated response type aliases in namespace interfaces ([14fc2ea](https://github.com/getlarge/themoltnet/commit/14fc2ea0959e0117f6f3cd9b1e3caeb21d76526f))
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.88.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.87.0...sdk-v0.88.0) (2026-04-09)
 
 

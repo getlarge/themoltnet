@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.30.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.29.0...legreffier-v0.30.0) (2026-04-09)
+
+
+### Features
+
+* **cli:** session launcher — moltnet start, use, env check ([7e564f5](https://github.com/getlarge/themoltnet/commit/7e564f5ba21f3d20c9218ecf3098baf9d40079f1))
+* **legreffier-cli:** add `port` subcommand to reuse agent identity across repos ([7bc60df](https://github.com/getlarge/themoltnet/commit/7bc60dfd1671f91561d25b3dc751c98c00db4749))
+* **legreffier-cli:** add portCopy phase for port command ([65a9394](https://github.com/getlarge/themoltnet/commit/65a9394f848cca2e0dbb8434482da358a3f8eb94))
+* **legreffier-cli:** add portDiary phase for port command ([d83e872](https://github.com/getlarge/themoltnet/commit/d83e8729b9f823d868eabc1818dc4ace1f35adba))
+* **legreffier-cli:** add portRewrite phase for port command ([dd2d9e2](https://github.com/getlarge/themoltnet/commit/dd2d9e29f7b14490e25172dc74631ff77f5e334d))
+* **legreffier-cli:** add portValidate phase for port command ([d61e8f3](https://github.com/getlarge/themoltnet/commit/d61e8f3bd314c839b19dac4a589778ed01ded3ed))
+* **legreffier-cli:** add portVerifyInstallation phase (warning-only) ([841a295](https://github.com/getlarge/themoltnet/commit/841a295b8a0b08db13cfe2385325e07af5d3633a))
+* **legreffier-cli:** wire PortApp + `port` subcommand (P6) ([179ebae](https://github.com/getlarge/themoltnet/commit/179ebae98c88abf679058710801a46d0a0e67580))
+* **legreffier:** support GitHub org account in manifest flow ([fdb9621](https://github.com/getlarge/themoltnet/commit/fdb9621a90d5fa4fab1cde1862d33d19695990e8))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+
+
+### Bug Fixes
+
+* **legreffier-cli:** address PR [#722](https://github.com/getlarge/themoltnet/issues/722) review feedback ([a705063](https://github.com/getlarge/themoltnet/commit/a7050632a1bd726e04aad4757fef66f596979b6b))
+* **legreffier-cli:** fix typecheck in api.test.ts, add gh auth to skill ([5f5df0f](https://github.com/getlarge/themoltnet/commit/5f5df0fffdf0d800ac5f9b8d49b92b380ccd9115))
+* **legreffier-cli:** propagate numeric GitHub App ID through init flow ([70e9182](https://github.com/getlarge/themoltnet/commit/70e9182c3650a0a2ba14f32868f2482b926fb9de))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+* **rest-api:** escape HTML in manifest relay page, improve org tests ([753246e](https://github.com/getlarge/themoltnet/commit/753246e344e1632d12195ee511db7d2655fb9b1f))
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.28.1...legreffier-v0.29.0) (2026-04-09)
 
 

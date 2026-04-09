@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.0...github-agent-v0.24.0) (2026-04-09)
+
+
+### Features
+
+* **legreffier-cli:** add `port` subcommand to reuse agent identity across repos ([7bc60df](https://github.com/getlarge/themoltnet/commit/7bc60dfd1671f91561d25b3dc751c98c00db4749))
+
+
+### Bug Fixes
+
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.22.2...github-agent-v0.23.0) (2026-04-09)
 
 
