@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 )
 
 func TestNeutralizeDSPYEvalWorktreeUsesGlobExcludes(t *testing.T) {
@@ -265,5 +267,80 @@ func TestNeutralizeDSPYEvalWorktree_KeepsGitFile(t *testing.T) {
 	}
 	if _, err := os.Stat(gitPath); err != nil {
 		t.Error(".git file should be preserved by neutralize pass")
+	}
+}
+
+// TestDspyEvalSolver covers the precedence order from #720:
+// CLI/preset override (opts.solverKind) > manifest.Solver > built-in default.
+func TestDspyEvalSolver(t *testing.T) {
+	tests := []struct {
+		name     string
+		manifest *evalManifest
+		opts     evalRunOpts
+		want     solver.Kind
+		wantErr  bool
+	}{
+		{
+			name:     "nil manifest, no opts → default cot",
+			manifest: nil,
+			opts:     evalRunOpts{},
+			want:     solver.KindChainOfThought,
+		},
+		{
+			name:     "empty manifest solver, no opts → default cot",
+			manifest: &evalManifest{Mode: "vitro"},
+			opts:     evalRunOpts{},
+			want:     solver.KindChainOfThought,
+		},
+		{
+			name:     "manifest react, no opts → react",
+			manifest: &evalManifest{Mode: "vivo", Solver: "react"},
+			opts:     evalRunOpts{},
+			want:     solver.KindReAct,
+		},
+		{
+			name:     "manifest cot, opts react → react (CLI wins)",
+			manifest: &evalManifest{Mode: "vitro", Solver: "cot"},
+			opts:     evalRunOpts{solverKind: solver.KindReAct},
+			want:     solver.KindReAct,
+		},
+		{
+			name:     "manifest react, opts cot → cot (CLI wins)",
+			manifest: &evalManifest{Mode: "vivo", Solver: "react"},
+			opts:     evalRunOpts{solverKind: solver.KindChainOfThought},
+			want:     solver.KindChainOfThought,
+		},
+		{
+			name:     "manifest bogus, no opts → error",
+			manifest: &evalManifest{Mode: "vitro", Solver: "bogus"},
+			opts:     evalRunOpts{},
+			wantErr:  true,
+		},
+		{
+			// Precedence short-circuit: CLI/preset override bypasses
+			// the manifest path entirely, so a stale/malformed
+			// manifest solver value never reaches ParseKind.
+			name:     "bogus manifest solver ignored when CLI override set",
+			manifest: &evalManifest{Mode: "vitro", Solver: "bogus"},
+			opts:     evalRunOpts{solverKind: solver.KindChainOfThought},
+			want:     solver.KindChainOfThought,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := dspyEvalSolver(tc.manifest, tc.opts)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil (got=%v)", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
 	}
 }

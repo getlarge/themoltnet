@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 )
 
 type evalChecklistCriteria struct {
@@ -23,6 +24,10 @@ type evalManifest struct {
 	Mode    string              `json:"mode"`
 	Fixture evalManifestFixture `json:"fixture"`
 	Pack    *evalManifestPack   `json:"pack,omitempty"`
+	// Solver selects the dspy-go solver module (cot | react). Optional;
+	// omitted or empty means "fall back to built-in default (cot)".
+	// Validated by validateEvalManifest against solver.ParseKind.
+	Solver string `json:"solver,omitempty"`
 }
 
 type evalManifestFixture struct {
@@ -157,6 +162,11 @@ func validateEvalManifest(m *evalManifest) error {
 	}
 	if m.Pack != nil && strings.TrimSpace(m.Pack.Path) == "" {
 		return fmt.Errorf("pack.path must be non-empty if pack is set")
+	}
+	if m.Solver != "" {
+		if _, err := solver.ParseKind(m.Solver); err != nil {
+			return fmt.Errorf("solver: %w", err)
+		}
 	}
 	return nil
 }

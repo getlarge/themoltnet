@@ -76,6 +76,8 @@ follow-up.`,
 			mode, _ := cmd.Flags().GetString("mode")
 			fixtureRef, _ := cmd.Flags().GetString("fixture-ref")
 
+			solverChanged := cmd.Flags().Changed("solver")
+
 			if mode != "" && mode != "vitro" && mode != "vivo" {
 				return fmt.Errorf("--mode must be vitro or vivo, got %q", mode)
 			}
@@ -110,9 +112,17 @@ follow-up.`,
 				return err
 			}
 
-			solverKind, err := solver.ParseKind(solverFlag)
-			if err != nil {
-				return err
+			// Only set opts.solverKind when the user explicitly chose a
+			// solver (via --solver). Empty means "fall back
+			// to manifest, then built-in default" — resolved by
+			// dspyEvalSolver at the runSolver call site.
+			var solverKind solver.Kind
+			if solverChanged {
+				k, err := solver.ParseKind(solverFlag)
+				if err != nil {
+					return err
+				}
+				solverKind = k
 			}
 
 			opts := evalRunOpts{
@@ -143,7 +153,7 @@ follow-up.`,
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
 	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove from the eval worktree before task execution")
 	// TODO(#714): drop "— not yet implemented" once the ReAct tool registry lands.
-	cmd.Flags().String("solver", "cot", "Solver module: cot (ChainOfThought, default) or react (ReAct — not yet implemented)")
+	cmd.Flags().String("solver", "", "Solver module override: cot (ChainOfThought) or react (ReAct — not yet implemented). Overrides eval.json solver. Default: cot (via eval.json or built-in fallback).")
 	cmd.Flags().String("mode", "", "Isolation mode override: vitro (sparse, task inputs only) or vivo (real repo at fixture-ref). Overrides eval.json mode.")
 	cmd.Flags().String("fixture-ref", "", "Git commit ref for vivo mode. Overrides eval.json fixture.ref.")
 	return cmd

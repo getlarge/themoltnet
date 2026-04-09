@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 )
 
 // worktreeMu serializes git worktree add/remove operations to avoid
@@ -75,6 +77,26 @@ func dspyEvalMode(manifest *evalManifest, opts evalRunOpts) string {
 		return manifest.Mode
 	}
 	return ""
+}
+
+// dspyEvalSolver resolves the effective solver kind for a variant run.
+// Precedence: CLI/preset override (opts.solverKind) > eval.json solver >
+// built-in default (solver.KindChainOfThought). Manifest values have
+// already been validated by validateEvalManifest, so ParseKind on a
+// non-empty value should not fail here in normal flows; any error is
+// surfaced to the caller for defensive safety.
+func dspyEvalSolver(manifest *evalManifest, opts evalRunOpts) (solver.Kind, error) {
+	if opts.solverKind != "" {
+		return opts.solverKind, nil
+	}
+	if manifest != nil && manifest.Solver != "" {
+		k, err := solver.ParseKind(manifest.Solver)
+		if err != nil {
+			return "", fmt.Errorf("eval.json solver field: %w", err)
+		}
+		return k, nil
+	}
+	return solver.KindChainOfThought, nil
 }
 
 func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts, manifest *evalManifest) (string, func() error, error) {
