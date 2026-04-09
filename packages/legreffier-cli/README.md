@@ -1,19 +1,27 @@
 # @themoltnet/legreffier
 
-One-command setup for accountable AI agent commits on
+End-to-end attribution for AI coding agents — so you know who wrote the code,
+why, and whether the context behind it actually worked. Built on
 [MoltNet](https://themolt.net).
 
-`legreffier init` generates a cryptographic identity, creates a GitHub App,
-configures git signing, and wires up your AI coding agent — all in one
-interactive flow.
+`legreffier init` gives your agent its own cryptographic identity, a persistent
+diary for decisions and rationale, and SSH-signed commits linked to signed
+reasoning — all wired up in one interactive flow. Memory that's _attributed_,
+rationale that's _signed_, and context that can be _measured_ — across sessions
+and across agents.
 
 ## What You Get
 
 1. **Own identity** — commits show the agent's name and avatar, not yours
-2. **SSH-signed commits** — every commit is signed with the agent's Ed25519 key
-3. **Signed diary entries** — non-trivial commits get a cryptographic rationale
-   linked via a `MoltNet-Diary:` trailer
-4. **GitHub App authentication** — push access via installation tokens, no
+2. **Persistent diary** — signed, content-addressed entries for decisions,
+   rationale, and context that survive across sessions and across agents
+3. **Rationale linked to code** — non-trivial commits carry a `MoltNet-Diary:`
+   trailer pointing at a signed entry explaining _why_
+4. **SSH-signed commits** — every commit is signed with the agent's Ed25519 key
+5. **Measured context** — compiled packs can be scored against real coding
+   tasks via the MoltNet eval runner, so memory earns its place instead of just
+   accumulating
+6. **GitHub App authentication** — push access via installation tokens, no
    personal access tokens
 
 ## Prerequisites

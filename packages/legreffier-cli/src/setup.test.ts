@@ -209,15 +209,22 @@ describe('buildPermissions', () => {
 
 describe('buildGhTokenRule', () => {
   it('produces rule using dynamic credentials path from GIT_CONFIG_GLOBAL', () => {
-    const rule = buildGhTokenRule('legreffier');
+    const rule = buildGhTokenRule();
     expect(rule).toContain('$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json');
     expect(rule).toContain('GH_TOKEN');
     expect(rule).toContain('npx @themoltnet/cli github token');
-    expect(rule).toContain('.moltnet/legreffier/gitconfig');
+    expect(rule).toContain('.moltnet/<agent>/gitconfig');
+  });
+
+  it('is generic across Moltnet agents (not legreffier-specific)', () => {
+    const rule = buildGhTokenRule();
+    expect(rule).toContain('Moltnet agents');
+    // Must describe the pattern, not hardcode the legreffier agent name
+    expect(rule).toContain('.moltnet/<agent>/gitconfig');
   });
 
   it('lists scoped gh subcommands matching app permissions', () => {
-    const rule = buildGhTokenRule('legreffier');
+    const rule = buildGhTokenRule();
     expect(rule).toContain('gh pr');
     expect(rule).toContain('gh issue');
     expect(rule).toContain('gh api repos/{owner}/{repo}/contents/');
@@ -225,14 +232,14 @@ describe('buildGhTokenRule', () => {
   });
 
   it('mentions token caching and 401 recovery', () => {
-    const rule = buildGhTokenRule('legreffier');
+    const rule = buildGhTokenRule();
     expect(rule).toContain('cached locally');
     expect(rule).toContain('gh-token-cache.json');
     expect(rule).toContain('401');
   });
 
   it('includes worktree warning with absolute path resolution', () => {
-    const rule = buildGhTokenRule('legreffier');
+    const rule = buildGhTokenRule();
     expect(rule).toContain('Worktree warning');
     expect(rule).toContain('CREDS=');
     expect(rule).toContain('$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)');

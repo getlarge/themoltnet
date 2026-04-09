@@ -94,23 +94,26 @@ export async function downloadSkills(
   }
 }
 
-export function buildGhTokenRule(agentName: string): string {
+export function buildGhTokenRule(_agentName?: string): string {
   return [
-    '# GitHub CLI Authentication (LeGreffier)',
+    '# GitHub CLI Authentication (Moltnet agents)',
     '',
-    `When \`GIT_CONFIG_GLOBAL\` is set to \`.moltnet/${agentName}/gitconfig\`,`,
-    'authenticate `gh` CLI commands as the GitHub App by prefixing them with:',
+    'When `GIT_CONFIG_GLOBAL` matches the pattern `.moltnet/<agent>/gitconfig`',
+    '(e.g. `.moltnet/legreffier/gitconfig`, `.moltnet/<any-agent>/gitconfig`),',
+    'authenticate `gh` CLI commands as the Moltnet GitHub App by prefixing them with:',
     '',
     '```bash',
     'GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh <command>',
     '```',
     '',
-    'The token is cached locally (~1 hour lifetime, 5-min expiry buffer),',
+    'The credentials file (`moltnet.json`) always lives next to the `gitconfig`',
+    'inside the same `.moltnet/<agent>/` directory, regardless of which agent is',
+    'active. The token is cached locally (~1 hour lifetime, 5-min expiry buffer),',
     'so repeated calls are fast after the first API hit.',
     '',
     '## Worktree warning',
     '',
-    `\`GIT_CONFIG_GLOBAL\` may be a **relative path** (e.g. \`.moltnet/${agentName}/gitconfig\`).`,
+    '`GIT_CONFIG_GLOBAL` may be a **relative path** (e.g. `.moltnet/<agent>/gitconfig`).',
     'In git worktrees the CWD differs from the main worktree root, so `$(dirname "$GIT_CONFIG_GLOBAL")`',
     'resolves incorrectly and `no credentials found` is printed — the command then falls back to your',
     'personal `gh` token silently.',

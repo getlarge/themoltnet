@@ -50,10 +50,6 @@ export class ClaudeAdapter implements AgentAdapter {
   async writeRules(opts: AgentAdapterOptions): Promise<void> {
     const dir = join(opts.repoDir, '.claude', 'rules');
     await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, 'legreffier-gh.md'),
-      buildGhTokenRule(opts.agentName),
-      'utf-8',
-    );
+    await writeFile(join(dir, 'legreffier-gh.md'), buildGhTokenRule(), 'utf-8');
   }
 }
