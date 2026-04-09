@@ -78,12 +78,13 @@ follow-up.`,
 			presetFlag, _ := cmd.Flags().GetString("preset")
 
 			solverChanged := cmd.Flags().Changed("solver")
-			modeChanged := cmd.Flags().Changed("mode")
 
 			// --preset is mutually exclusive with --mode / --solver.
 			// To tweak a preset, drop it and set flags explicitly.
+			// An explicit --preset "" (e.g. from an unset shell var) is
+			// rejected rather than silently ignored.
 			if presetFlag != "" {
-				if modeChanged || solverChanged {
+				if cmd.Flags().Changed("mode") || solverChanged {
 					return fmt.Errorf("--preset is mutually exclusive with --mode and --solver; drop --preset to set them explicitly")
 				}
 				pMode, pSolver, err := expandEvalPreset(presetFlag)
@@ -93,9 +94,12 @@ follow-up.`,
 				mode = pMode
 				solverFlag = pSolver
 				// Preset expansion counts as CLI-level override for
-				// downstream precedence (beats manifest).
-				modeChanged = true
+				// solver parsing below. Mode flows through opts.dspyMode
+				// unconditionally (empty-string sentinel), so no
+				// modeChanged bookkeeping is needed.
 				solverChanged = true
+			} else if cmd.Flags().Changed("preset") {
+				return fmt.Errorf("--preset: value must not be empty")
 			}
 
 			if mode != "" && mode != "vitro" && mode != "vivo" {

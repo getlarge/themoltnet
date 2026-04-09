@@ -92,7 +92,7 @@ func dspyEvalSolver(manifest *evalManifest, opts evalRunOpts) (solver.Kind, erro
 	if manifest != nil && manifest.Solver != "" {
 		k, err := solver.ParseKind(manifest.Solver)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("eval.json solver field: %w", err)
 		}
 		return k, nil
 	}

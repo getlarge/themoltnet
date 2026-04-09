@@ -316,6 +316,15 @@ func TestDspyEvalSolver(t *testing.T) {
 			opts:     evalRunOpts{},
 			wantErr:  true,
 		},
+		{
+			// Precedence short-circuit: CLI/preset override bypasses
+			// the manifest path entirely, so a stale/malformed
+			// manifest solver value never reaches ParseKind.
+			name:     "bogus manifest solver ignored when CLI override set",
+			manifest: &evalManifest{Mode: "vitro", Solver: "bogus"},
+			opts:     evalRunOpts{solverKind: solver.KindChainOfThought},
+			want:     solver.KindChainOfThought,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -415,5 +424,44 @@ func TestEvalRunCmd_UnknownPreset(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unknown preset") {
 		t.Errorf("expected unknown-preset error, got: %v", err)
+	}
+}
+
+// TestEvalRunCmd_EmptyPreset rejects an explicit --preset "" (e.g. an
+// unset shell variable) rather than silently defaulting.
+func TestEvalRunCmd_EmptyPreset(t *testing.T) {
+	cmd := newEvalCmd()
+	cmd.SetArgs([]string{"run", "--scenario", "/does/not/exist", "--preset", ""})
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected empty-preset error, got nil")
+	}
+	if !strings.Contains(err.Error(), "must not be empty") {
+		t.Errorf("expected empty-preset error, got: %v", err)
+	}
+}
+
+// TestEvalRunCmd_PresetBaselineWithFixtureRef verifies that validation
+// after preset expansion catches --preset baseline --fixture-ref abc,
+// since baseline expands to vitro and vitro forbids a fixture ref. This
+// pins the ordering: preset expansion must run before the
+// fixture-ref/mode cross-check.
+func TestEvalRunCmd_PresetBaselineWithFixtureRef(t *testing.T) {
+	cmd := newEvalCmd()
+	cmd.SetArgs([]string{
+		"run", "--scenario", "/does/not/exist",
+		"--preset", "baseline",
+		"--fixture-ref", "abc1234",
+	})
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected --fixture-ref/vivo error, got nil")
+	}
+	if !strings.Contains(err.Error(), "fixture-ref") {
+		t.Errorf("expected fixture-ref error, got: %v", err)
 	}
 }
