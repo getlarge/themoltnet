@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.29.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.29.0...legreffier-v0.29.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* **legreffier-cli:** address Claude review on [#726](https://github.com/getlarge/themoltnet/issues/726) ([cc673b0](https://github.com/getlarge/themoltnet/commit/cc673b083e047f07adee286bfa45ee168070ab47))
+* **legreffier-cli:** address Copilot review on [#726](https://github.com/getlarge/themoltnet/issues/726) ([5f0cac0](https://github.com/getlarge/themoltnet/commit/5f0cac0d598ea21ff33621abd515cac55ddbbc22))
+* **legreffier-cli:** write signingkey under [user], not [gpg "ssh"] ([b35dd45](https://github.com/getlarge/themoltnet/commit/b35dd456613db033948d31fa4b290067ccc9e9ae))
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.28.1...legreffier-v0.29.0) (2026-04-09)
 
 
