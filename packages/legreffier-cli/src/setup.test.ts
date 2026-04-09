@@ -216,9 +216,9 @@ describe('buildGhTokenRule', () => {
     expect(rule).toContain('.moltnet/<agent>/gitconfig');
   });
 
-  it('is generic across Moltnet agents (not legreffier-specific)', () => {
+  it('is generic across MoltNet agents (not legreffier-specific)', () => {
     const rule = buildGhTokenRule();
-    expect(rule).toContain('Moltnet agents');
+    expect(rule).toContain('MoltNet agents');
     // Must describe the pattern, not hardcode the legreffier agent name
     expect(rule).toContain('.moltnet/<agent>/gitconfig');
   });
