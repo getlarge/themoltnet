@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.22.2...github-agent-v0.23.0) (2026-04-09)
+
+
+### Features
+
+* **legreffier-cli:** add `port` subcommand to reuse agent identity across repos ([7bc60df](https://github.com/getlarge/themoltnet/commit/7bc60dfd1671f91561d25b3dc751c98c00db4749))
+
 ## [0.22.2](https://github.com/getlarge/themoltnet/compare/github-agent-v0.22.1...github-agent-v0.22.2) (2026-04-02)
 
 

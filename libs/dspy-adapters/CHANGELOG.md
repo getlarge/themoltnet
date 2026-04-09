@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.7.0...dspy-adapters-v0.8.0) (2026-04-09)
+
+
+### Features
+
+* **dspy-adapters:** add solver package wrapping dspy-go modules for eval ([e84337c](https://github.com/getlarge/themoltnet/commit/e84337c191b11af57fd696393bdff719c5918bfb)), closes [#714](https://github.com/getlarge/themoltnet/issues/714)
+* **eval:** drive solver via dspy-go ChainOfThought module ([371a133](https://github.com/getlarge/themoltnet/commit/371a133322ec1c318232f7f824ef8f6732793788))
+* **eval:** smarter DSPy judge — pack on disk, hardened scores_json, incident-derived scenarios ([643753e](https://github.com/getlarge/themoltnet/commit/643753ee52f809cb3bc0695f3d958ae5e99d8bfc))
+
+
+### Bug Fixes
+
+* **dspy-adapters,eval:** address PR [#717](https://github.com/getlarge/themoltnet/issues/717) review — capture all trajectories, gate context_pack ([25e1b37](https://github.com/getlarge/themoltnet/commit/25e1b370212c6fc3e42b08a3d9c533a5107f2a40))
+* **eval:** address Copilot review comments ([95189d0](https://github.com/getlarge/themoltnet/commit/95189d06af6fd104077b73a2cc8f99449602dd20))
+* **eval:** harden checklist judge against missing scores_json ([3d79249](https://github.com/getlarge/themoltnet/commit/3d79249e34e3ef96f1970ce302532e33b28f0af0))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.6.0...dspy-adapters-v0.7.0) (2026-04-06)
 
 

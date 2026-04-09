@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.88.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.87.0...sdk-v0.88.0) (2026-04-09)
+
+
+### Features
+
+* **legreffier-cli:** add `port` subcommand to reuse agent identity across repos ([7bc60df](https://github.com/getlarge/themoltnet/commit/7bc60dfd1671f91561d25b3dc751c98c00db4749))
+* **legreffier:** support GitHub org account in manifest flow ([fdb9621](https://github.com/getlarge/themoltnet/commit/fdb9621a90d5fa4fab1cde1862d33d19695990e8))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+
+
+### Bug Fixes
+
+* **legreffier-cli:** propagate numeric GitHub App ID through init flow ([70e9182](https://github.com/getlarge/themoltnet/commit/70e9182c3650a0a2ba14f32868f2482b926fb9de))
+
 ## [0.87.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.86.1...sdk-v0.87.0) (2026-04-07)
 
 

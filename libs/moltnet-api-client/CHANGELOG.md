@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.11.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.10.0...moltnet-api-client-v1.11.0) (2026-04-09)
+
+
+### Features
+
+* **governance:** team founding workflow, diary transfer, personal team limits ([9df1e74](https://github.com/getlarge/themoltnet/commit/9df1e746f54768bc989c8afbe3c81fb7f0a9ff54))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+
+
+### Bug Fixes
+
+* **governance:** address code review — idempotency, compensation, race conditions ([38253db](https://github.com/getlarge/themoltnet/commit/38253db6d8fd449844e87dd77b8f08a61a34763c))
+
+
+### Codegen
+
+* include missed Go client generated files ([dfc0bcb](https://github.com/getlarge/themoltnet/commit/dfc0bcbf853712acc47fae2b3713d1a84865a4d1))
+* regenerate OpenAPI spec and TS/Go clients with org field ([a65d284](https://github.com/getlarge/themoltnet/commit/a65d284cfb094a78ee91a44f05eb9c944c5fbbc4))
+
 ## [1.10.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.9.0...moltnet-api-client-v1.10.0) (2026-04-06)
 
 
