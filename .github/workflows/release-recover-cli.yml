@@ -6,7 +6,7 @@ name: Release Recover (moltnet-cli)
 # the manifest but does NOT sync `apps/moltnet-cli/go.mod`, so goreleaser
 # builds against a stale pin that doesn't yet contain the new symbols.
 #
-# The recipe (see docs/recipes/release-recovery.md):
+# The recipe:
 #   1. Revert cli version in the manifest to the previous released version
 #   2. Drop the premature `## [x.y.z]` section from cli CHANGELOG
 #   3. `GOWORK=off go get <lib>@<version>` for each bumped lib + go mod tidy
@@ -65,33 +65,40 @@ jobs:
 
       - name: Create recovery branch
         id: branch
+        env:
+          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
         run: |
-          BRANCH="chore/recover-cli-v${{ inputs.stuck-cli-version }}"
+          BRANCH="chore/recover-cli-v${STUCK_VERSION}"
           git checkout -b "$BRANCH"
           echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Revert manifest cli version
+        env:
+          PREVIOUS_VERSION: ${{ inputs.previous-cli-version }}
         run: |
-          jq --arg v '${{ inputs.previous-cli-version }}' \
+          jq --arg v "$PREVIOUS_VERSION" \
             '."apps/moltnet-cli" = $v' .release-please-manifest.json \
             > .release-please-manifest.json.tmp
           mv .release-please-manifest.json.tmp .release-please-manifest.json
           git diff --stat .release-please-manifest.json
 
       - name: Drop premature CHANGELOG section
+        env:
+          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
         run: |
           python3 - <<'PY'
-          import re, pathlib
+          import os, re, sys, pathlib
           p = pathlib.Path('apps/moltnet-cli/CHANGELOG.md')
           text = p.read_text()
-          stuck = '${{ inputs.stuck-cli-version }}'
+          stuck = os.environ['STUCK_VERSION']
           pattern = re.compile(
               r'^## \[?' + re.escape(stuck) + r'\]?.*?(?=^## \[)',
               re.MULTILINE | re.DOTALL,
           )
           new = pattern.sub('', text, count=1)
           if new == text:
-              print(f'WARNING: no ## [{stuck}] section found — nothing removed')
+              print(f'ERROR: no ## [{stuck}] section found in CHANGELOG', file=sys.stderr)
+              sys.exit(1)
           p.write_text(new)
           PY
           git diff --stat apps/moltnet-cli/CHANGELOG.md
@@ -100,20 +107,39 @@ jobs:
         working-directory: apps/moltnet-cli
         env:
           GOWORK: off
+          BUMPED_LIBS: ${{ inputs.bumped-libs }}
         run: |
-          IFS=',' read -ra PAIRS <<< '${{ inputs.bumped-libs }}'
-          for pair in "${PAIRS[@]}"; do
+          IFS=',' read -ra PAIRS <<< "$BUMPED_LIBS"
+          for raw in "${PAIRS[@]}"; do
+            # Trim whitespace
+            pair="$(echo "$raw" | xargs)"
+            if [[ "$pair" != *=* ]]; then
+              echo "ERROR: invalid bumped-libs entry '$raw' (expected name=version)" >&2
+              exit 1
+            fi
             name="${pair%%=*}"
             version="${pair##*=}"
+            if [ -z "$name" ] || [ -z "$version" ]; then
+              echo "ERROR: empty name or version in '$raw'" >&2
+              exit 1
+            fi
             module="github.com/getlarge/themoltnet/libs/${name}"
             echo "::group::go get ${module}@v${version}"
             go get "${module}@v${version}"
+            resolved=$(go list -m "$module" | awk '{print $2}')
+            if [ "$resolved" != "v${version}" ]; then
+              echo "ERROR: requested v${version} but MVS resolved ${resolved}" >&2
+              exit 1
+            fi
             echo "::endgroup::"
           done
           go mod tidy
           go build ./...
 
       - name: Commit and push
+        env:
+          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
           git add \
             .release-please-manifest.json \
@@ -124,43 +150,60 @@ jobs:
             echo 'No changes to commit — nothing to recover.'
             exit 1
           fi
-          git commit -m "fix(release): recover cli v${{ inputs.stuck-cli-version }} release cycle"
-          git push -u origin '${{ steps.branch.outputs.name }}'
+          git commit -m "fix(release): recover cli v${STUCK_VERSION} release cycle"
+          git push -u origin "$BRANCH_NAME"
 
       - name: Open recovery PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
+          PREVIOUS_VERSION: ${{ inputs.previous-cli-version }}
+          BUMPED_LIBS: ${{ inputs.bumped-libs }}
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
-          gh pr create \
-            --base main \
-            --head '${{ steps.branch.outputs.name }}' \
-            --title "fix(release): recover cli v${{ inputs.stuck-cli-version }} release cycle" \
-            --body "$(cat <<'EOF'
-          Automated recovery for a stuck `apps/moltnet-cli` release cycle.
+          BODY=$(cat <<EOF
+          Automated recovery for a stuck \`apps/moltnet-cli\` release cycle.
 
           **What this PR does:**
-          - Reverts `apps/moltnet-cli` in `.release-please-manifest.json` to the previous version
-          - Drops the premature CHANGELOG section from `apps/moltnet-cli/CHANGELOG.md`
-          - Syncs `apps/moltnet-cli/go.mod` to the bumped libs
+          - Reverts \`apps/moltnet-cli\` in \`.release-please-manifest.json\` from \`${STUCK_VERSION}\` back to \`${PREVIOUS_VERSION}\`
+          - Drops the premature \`## [${STUCK_VERSION}]\` section from \`apps/moltnet-cli/CHANGELOG.md\`
+          - Syncs \`apps/moltnet-cli/go.mod\` to: \`${BUMPED_LIBS}\`
 
           **Next steps:**
           1. Squash-merge this PR
           2. release-please will re-propose the cli bump with a synced go.mod
           3. Merging that PR triggers a clean release-cli run
 
-          See `docs/recipes/release-recovery.md` for the full dance.
+          The recovery recipe is documented in the workflow header at \`.github/workflows/release-recover-cli.yml\`.
           EOF
-          )"
+          )
+          gh pr create \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "fix(release): recover cli v${STUCK_VERSION} release cycle" \
+            --body "$BODY"
 
       - name: Delete stuck draft release
         if: ${{ inputs.delete-draft-release }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
         run: |
-          TAG="cli-v${{ inputs.stuck-cli-version }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          TAG="cli-v${STUCK_VERSION}"
+          # Query isDraft so we never delete a published release.
+          # Don't suppress stderr — surface 403/429/network errors.
+          if ! IS_DRAFT="$(gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/tmp/gh-err)"; then
+            if grep -qi 'release not found' /tmp/gh-err; then
+              echo "No release $TAG to delete"
+              exit 0
+            fi
+            echo "ERROR: gh release view failed:" >&2
+            cat /tmp/gh-err >&2
+            exit 1
+          fi
+          if [ "$IS_DRAFT" = 'true' ]; then
             gh release delete "$TAG" --yes --cleanup-tag
             echo "Deleted draft release $TAG"
           else
-            echo "No draft release $TAG to delete"
+            echo "Release $TAG exists but is not a draft; skipping deletion"
           fi
