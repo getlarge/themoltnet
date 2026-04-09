@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/getlarge/themoltnet/compare/cli-v1.19.0...cli-v1.20.0) (2026-04-09)
+
+
+### Features
+
+* **eval:** add solver field to eval.json manifest ([e6ae772](https://github.com/getlarge/themoltnet/commit/e6ae772538dfcef18b567b636e06ae9b16b70330))
+
 ## [1.19.0](https://github.com/getlarge/themoltnet/compare/cli-v1.18.0...cli-v1.19.0) (2026-04-09)
 
 
