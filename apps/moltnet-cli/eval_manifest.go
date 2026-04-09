@@ -167,7 +167,7 @@ func parseChecklistCriteria(data []byte) (*evalChecklistCriteria, error) {
 		return nil, fmt.Errorf("parsing criteria.json: %w", err)
 	}
 	if criteria.Type != "" && criteria.Type != "weighted_checklist" {
-		return nil, fmt.Errorf("unsupported criteria type %q for --engine dspy", criteria.Type)
+		return nil, fmt.Errorf("unsupported criteria type %q (must be weighted_checklist)", criteria.Type)
 	}
 	return &criteria, nil
 }

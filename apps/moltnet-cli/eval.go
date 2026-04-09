@@ -28,18 +28,6 @@ type evalRunOpts struct {
 	dspyFixtureRef   string          // --fixture-ref CLI override
 }
 
-// validateEvalEngine accepts only the dspy engine (or empty for default).
-// Kept as a small helper so the cobra layer + tests can exercise the
-// allowlist without reaching into runtime dispatch.
-func validateEvalEngine(engine string) error {
-	switch engine {
-	case "", "dspy":
-		return nil
-	default:
-		return fmt.Errorf("unknown engine %q (must be dspy)", engine)
-	}
-}
-
 func defaultAgentModel(agent string) string {
 	switch agent {
 	case "codex":
@@ -116,10 +104,7 @@ type evalConfig struct {
 
 // --- Prerequisites ---
 
-func checkPrerequisites(engine string, opts ...evalRunOpts) error {
-	if engine != "" && engine != "dspy" {
-		return fmt.Errorf("unsupported engine %q", engine)
-	}
+func checkPrerequisites(opts ...evalRunOpts) error {
 	if _, err := exec.LookPath("git"); err != nil {
 		return fmt.Errorf("git CLI not found on PATH: %w", err)
 	}
@@ -444,7 +429,7 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 }
 
 func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites("dspy", opts); err != nil {
+	if err := checkPrerequisites(opts); err != nil {
 		return err
 	}
 	input, err := resolveEvalRun(taskDir, packPath, opts.agent, opts.model)
@@ -455,7 +440,7 @@ func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites("dspy", opts); err != nil {
+	if err := checkPrerequisites(opts); err != nil {
 		return err
 	}
 	runs, err := loadConfig(configPath)
@@ -490,38 +475,3 @@ type runGroup struct {
 	inputs []evalRunInput
 }
 
-func groupRunsByAgentModel(inputs []evalRunInput) []runGroup {
-	type groupKey struct {
-		agent string
-		model string
-	}
-
-	order := make([]groupKey, 0)
-	grouped := make(map[groupKey][]evalRunInput)
-
-	for _, input := range inputs {
-		key := groupKey{agent: input.agent, model: input.model}
-		if _, exists := grouped[key]; !exists {
-			order = append(order, key)
-		}
-		grouped[key] = append(grouped[key], input)
-	}
-
-	sort.Slice(order, func(i, j int) bool {
-		if order[i].agent != order[j].agent {
-			return order[i].agent < order[j].agent
-		}
-		return order[i].model < order[j].model
-	})
-
-	groups := make([]runGroup, 0, len(order))
-	for _, key := range order {
-		groups = append(groups, runGroup{
-			agent:  key.agent,
-			model:  key.model,
-			inputs: grouped[key],
-		})
-	}
-
-	return groups
-}

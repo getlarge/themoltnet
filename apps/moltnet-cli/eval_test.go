@@ -129,28 +129,6 @@ func TestValidateAgentModel(t *testing.T) {
 	}
 }
 
-func TestValidateEvalEngine(t *testing.T) {
-	tests := []struct {
-		engine string
-		ok     bool
-	}{
-		{"dspy", true},
-		{"", true},
-		{"harbor", false},
-		{"nope", false},
-	}
-
-	for _, tt := range tests {
-		err := validateEvalEngine(tt.engine)
-		if tt.ok && err != nil {
-			t.Errorf("validateEvalEngine(%q) = %v, want nil", tt.engine, err)
-		}
-		if !tt.ok && err == nil {
-			t.Errorf("validateEvalEngine(%q) = nil, want error", tt.engine)
-		}
-	}
-}
-
 func TestValidateJudgeModel(t *testing.T) {
 	tests := []struct {
 		judge string
@@ -187,40 +165,6 @@ func TestDefaultModel(t *testing.T) {
 	}
 	if got := defaultJudgeModel("codex"); got != "gpt-5-codex" {
 		t.Errorf("defaultJudgeModel(codex) = %q", got)
-	}
-}
-
-func TestGroupRunsByAgentModel(t *testing.T) {
-	inputs := []evalRunInput{
-		{name: "task1", agent: "claude", model: "anthropic/claude-sonnet-4-6"},
-		{name: "task2", agent: "claude", model: "anthropic/claude-sonnet-4-6"},
-		{name: "task3", agent: "codex", model: "openai/gpt-5-codex"},
-		{name: "task4", agent: "claude", model: "anthropic/claude-opus-4-6"},
-	}
-
-	groups := groupRunsByAgentModel(inputs)
-
-	if len(groups) != 3 {
-		t.Fatalf("expected 3 groups, got %d", len(groups))
-	}
-
-	keys := make([]string, 0, len(groups))
-	for _, g := range groups {
-		keys = append(keys, g.agent+"/"+g.model)
-	}
-	for i := 1; i < len(keys); i++ {
-		if keys[i] < keys[i-1] {
-			t.Errorf("groups not sorted: %v", keys)
-			break
-		}
-	}
-
-	for _, g := range groups {
-		if g.agent == "claude" && g.model == "anthropic/claude-sonnet-4-6" {
-			if len(g.inputs) != 2 {
-				t.Errorf("claude-sonnet group: expected 2 inputs, got %d", len(g.inputs))
-			}
-		}
 	}
 }
 

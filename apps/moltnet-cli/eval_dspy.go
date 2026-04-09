@@ -112,7 +112,7 @@ func runDSPYEvalBatch(inputs []evalRunInput, opts evalRunOpts) error {
 			switch in.agent {
 			case "claude", "codex":
 			default:
-				return fmt.Errorf("scenario %q: --engine dspy supports --agent claude or codex (got %q)", in.name, in.agent)
+				return fmt.Errorf("scenario %q: --agent must be claude or codex, got %q", in.name, in.agent)
 			}
 		}
 	}
@@ -225,12 +225,12 @@ func validateDSPYEvalOpts(opts evalRunOpts) error {
 	switch opts.agent {
 	case "claude", "codex":
 	default:
-		return fmt.Errorf("--engine dspy supports --agent claude or codex, got %q", opts.agent)
+		return fmt.Errorf("--agent must be claude or codex, got %q", opts.agent)
 	}
 	switch opts.judge {
 	case "claude", "codex":
 	default:
-		return fmt.Errorf("--engine dspy supports --judge claude or codex, got %q", opts.judge)
+		return fmt.Errorf("--judge must be claude or codex, got %q", opts.judge)
 	}
 	return nil
 }
