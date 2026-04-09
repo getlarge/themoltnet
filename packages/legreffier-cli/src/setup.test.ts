@@ -238,11 +238,16 @@ describe('buildGhTokenRule', () => {
     expect(rule).toContain('401');
   });
 
-  it('includes worktree warning with absolute path resolution', () => {
+  it('enforces absolute path resolution for credentials', () => {
     const rule = buildGhTokenRule();
-    expect(rule).toContain('Worktree warning');
+    expect(rule).toContain('STRICT RULE');
+    expect(rule).toContain('absolute path');
     expect(rule).toContain('CREDS=');
-    expect(rule).toContain('$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)');
+    expect(rule).toContain(
+      '$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)',
+    );
+    expect(rule).toContain('Forbidden patterns');
+    expect(rule).toContain('Why absolute paths are mandatory');
   });
 });
 
