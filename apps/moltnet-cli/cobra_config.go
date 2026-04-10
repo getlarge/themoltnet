@@ -62,7 +62,32 @@ Optional env vars:
 	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
 	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")
 
+	exportEnvCmd := &cobra.Command{
+		Use:   "export-env",
+		Short: "Export agent config as MOLTNET_* environment variables",
+		Long: `Read a moltnet.json config and print the corresponding MOLTNET_*
+environment variables in dotenv format. The output is directly
+usable with init-from-env --env-file.`,
+		Example: `  # Print to stdout
+  moltnet config export-env --credentials .moltnet/legreffier/moltnet.json
+
+  # Write to file
+  moltnet config export-env --credentials .moltnet/legreffier/moltnet.json -o .env.moltnet
+
+  # Include GitHub App PEM content
+  moltnet config export-env --credentials .moltnet/legreffier/moltnet.json --include-github-pem`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			outFile, _ := cmd.Flags().GetString("output")
+			includeGitHubPEM, _ := cmd.Flags().GetBool("include-github-pem")
+			return runConfigExportEnvCmd(credPath, outFile, includeGitHubPEM)
+		},
+	}
+	exportEnvCmd.Flags().StringP("output", "o", "", "Write to file instead of stdout")
+	exportEnvCmd.Flags().Bool("include-github-pem", false, "Include GitHub App private key content")
+
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)
+	configCmd.AddCommand(exportEnvCmd)
 	return configCmd
 }
