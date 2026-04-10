@@ -176,18 +176,11 @@ func validateEvalManifest(m *evalManifest) error {
 		return fmt.Errorf("pack.path must be non-empty if pack is set")
 	}
 	for i, inj := range m.Fixture.Inject {
-		if strings.TrimSpace(inj.From) == "" {
-			return fmt.Errorf("fixture.inject[%d]: from must be non-empty", i)
+		if err := validateCleanRelPath(inj.From, fmt.Sprintf("fixture.inject[%d].from", i)); err != nil {
+			return err
 		}
-		to := filepath.ToSlash(inj.To)
-		if strings.TrimSpace(to) == "" {
-			return fmt.Errorf("fixture.inject[%d]: to must be non-empty", i)
-		}
-		if filepath.IsAbs(to) {
-			return fmt.Errorf("fixture.inject[%d]: to must be a relative path, got %q", i, inj.To)
-		}
-		if strings.Contains(to, "..") {
-			return fmt.Errorf("fixture.inject[%d]: to must not contain '..', got %q", i, inj.To)
+		if err := validateCleanRelPath(inj.To, fmt.Sprintf("fixture.inject[%d].to", i)); err != nil {
+			return err
 		}
 	}
 	if m.Solver != "" {
@@ -198,16 +191,54 @@ func validateEvalManifest(m *evalManifest) error {
 	return nil
 }
 
+// validateCleanRelPath checks that p is a non-empty, clean, relative path
+// with no ".." or "." segments. fieldName is used in error messages.
+func validateCleanRelPath(p, fieldName string) error {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return fmt.Errorf("%s: must be non-empty", fieldName)
+	}
+	if filepath.IsAbs(p) {
+		return fmt.Errorf("%s: must be a relative path, got %q", fieldName, p)
+	}
+	cleaned := filepath.Clean(filepath.ToSlash(p))
+	if cleaned != filepath.ToSlash(p) {
+		return fmt.Errorf("%s: must be a clean path (use %q instead of %q)", fieldName, cleaned, p)
+	}
+	for _, seg := range strings.Split(cleaned, "/") {
+		if seg == ".." || seg == "." {
+			return fmt.Errorf("%s: must not contain %q segment, got %q", fieldName, seg, p)
+		}
+	}
+	return nil
+}
+
 // validateFixtureInjectSources checks that every fixture.inject[].from path
-// exists on disk relative to the scenario directory.
+// exists on disk, is a file (not a directory), and resolves within the
+// scenario directory.
 func validateFixtureInjectSources(scenarioDir string, m *evalManifest) error {
 	if m == nil {
 		return nil
 	}
+	absScenario, err := filepath.Abs(scenarioDir)
+	if err != nil {
+		return fmt.Errorf("resolving scenario dir: %w", err)
+	}
 	for i, inj := range m.Fixture.Inject {
-		absFrom := filepath.Join(scenarioDir, inj.From)
-		if _, err := os.Stat(absFrom); err != nil {
+		absFrom, err := filepath.Abs(filepath.Join(scenarioDir, inj.From))
+		if err != nil {
+			return fmt.Errorf("fixture.inject[%d]: resolving from path: %w", i, err)
+		}
+		// Containment check: resolved path must be under scenario dir.
+		if !strings.HasPrefix(absFrom, absScenario+string(filepath.Separator)) {
+			return fmt.Errorf("fixture.inject[%d]: from %q escapes scenario directory", i, inj.From)
+		}
+		info, err := os.Stat(absFrom)
+		if err != nil {
 			return fmt.Errorf("fixture.inject[%d]: from %q does not exist in scenario dir", i, inj.From)
+		}
+		if info.IsDir() {
+			return fmt.Errorf("fixture.inject[%d]: from %q is a directory, only files are supported", i, inj.From)
 		}
 	}
 	return nil

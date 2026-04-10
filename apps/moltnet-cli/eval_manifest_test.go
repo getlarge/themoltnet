@@ -451,6 +451,66 @@ func TestValidateFixtureInjectSources_AcceptsExistingFile(t *testing.T) {
 	}
 }
 
+func TestValidateEvalManifest_InjectRejectsNonCleanTo(t *testing.T) {
+	for _, to := range []string{"a/./b/file.json", "a//b/file.json"} {
+		m := &evalManifest{
+			Mode: "vitro",
+			Fixture: evalManifestFixture{
+				Inject: []evalManifestInject{{From: "fixtures/f.json", To: to}},
+			},
+		}
+		err := validateEvalManifest(m)
+		if err == nil {
+			t.Errorf("expected error for non-clean to path %q", to)
+		}
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsAbsoluteFrom(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "/etc/passwd", To: "target.json"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for absolute from path")
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsDotDotInFrom(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "../escape/secret.json", To: "target.json"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for '..' in from path")
+	}
+}
+
+func TestValidateFixtureInjectSources_RejectsDirectory(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "fixtures", "subdir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	m := &evalManifest{
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/subdir", To: "target/dir"}},
+		},
+	}
+	err := validateFixtureInjectSources(dir, m)
+	if err == nil {
+		t.Fatal("expected error for directory as inject source")
+	}
+	if !strings.Contains(err.Error(), "directory") {
+		t.Errorf("expected 'directory' in error, got: %v", err)
+	}
+}
+
 func TestValidateScenario_InjectValidation(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
