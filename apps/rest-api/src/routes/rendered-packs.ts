@@ -466,24 +466,25 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
 
       const updated = await fastify.dataSource.runTransaction(async () => {
         if (pinned === true) {
-          await fastify.renderedPackRepository.pin(rendered.id);
+          return fastify.renderedPackRepository.pin(rendered.id);
         } else if (pinned === false) {
-          await fastify.renderedPackRepository.unpin(
+          return fastify.renderedPackRepository.unpin(
             rendered.id,
             new Date(expiresAt!),
           );
-        } else if (expiresAt !== undefined) {
-          await fastify.renderedPackRepository.updateExpiry(
+        } else {
+          return fastify.renderedPackRepository.updateExpiry(
             rendered.id,
-            new Date(expiresAt),
+            new Date(expiresAt!),
           );
         }
-
-        return fastify.renderedPackRepository.findById(rendered.id);
       });
 
       if (!updated) {
-        throw createProblem('not-found', 'Rendered pack not found');
+        throw createProblem(
+          'not-found',
+          'Rendered pack not found after update',
+        );
       }
       return updated;
     },

@@ -1,6 +1,10 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
 
 func newRenderedPacksCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -82,6 +86,10 @@ func newRenderedPacksUpdateCmd() *cobra.Command {
 				pinned = &v
 			}
 
+			if pinned == nil && expiresAt == "" {
+				return fmt.Errorf("at least one of --pinned, --no-pinned, or --expires-at must be provided")
+			}
+
 			return runRenderedPacksUpdate(apiURL, credPath, id, pinned, expiresAt)
 		},
 	}
@@ -90,5 +98,6 @@ func newRenderedPacksUpdateCmd() *cobra.Command {
 	cmd.Flags().Bool("no-pinned", false, "Unpin the rendered pack")
 	cmd.Flags().String("expires-at", "", "Expiration time in RFC3339 format")
 	_ = cmd.MarkFlagRequired("id")
+	cmd.MarkFlagsMutuallyExclusive("pinned", "no-pinned")
 	return cmd
 }

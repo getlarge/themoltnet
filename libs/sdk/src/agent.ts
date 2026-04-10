@@ -192,7 +192,7 @@ export interface PacksNamespace {
 
   updateRendered(
     id: string,
-    body: UpdateRenderedPackData['body'],
+    body: NonNullable<UpdateRenderedPackData['body']>,
   ): Promise<RenderedPackWithContent>;
 }
 

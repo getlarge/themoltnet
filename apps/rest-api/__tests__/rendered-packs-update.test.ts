@@ -43,13 +43,9 @@ describe('PATCH /rendered-packs/:id', () => {
   });
 
   it('pins a rendered pack', async () => {
-    mocks.renderedPackRepository.findById
-      .mockResolvedValueOnce(MOCK_RENDERED_PACK)
-      .mockResolvedValueOnce({
-        ...MOCK_RENDERED_PACK,
-        pinned: true,
-        expiresAt: null,
-      });
+    mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+      MOCK_RENDERED_PACK,
+    );
     mocks.permissionChecker.canManagePack.mockResolvedValue(true);
     mocks.renderedPackRepository.pin.mockResolvedValue({
       ...MOCK_RENDERED_PACK,
@@ -84,13 +80,7 @@ describe('PATCH /rendered-packs/:id', () => {
       expiresAt: null,
     };
     const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-    mocks.renderedPackRepository.findById
-      .mockResolvedValueOnce(pinnedPack)
-      .mockResolvedValueOnce({
-        ...MOCK_RENDERED_PACK,
-        pinned: false,
-        expiresAt: future,
-      });
+    mocks.renderedPackRepository.findById.mockResolvedValueOnce(pinnedPack);
     mocks.permissionChecker.canManagePack.mockResolvedValue(true);
     mocks.renderedPackRepository.unpin.mockResolvedValue({
       ...MOCK_RENDERED_PACK,
@@ -128,9 +118,9 @@ describe('PATCH /rendered-packs/:id', () => {
 
   it('updates expiresAt on non-pinned pack', async () => {
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    mocks.renderedPackRepository.findById
-      .mockResolvedValueOnce(MOCK_RENDERED_PACK)
-      .mockResolvedValueOnce({ ...MOCK_RENDERED_PACK, expiresAt: future });
+    mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+      MOCK_RENDERED_PACK,
+    );
     mocks.permissionChecker.canManagePack.mockResolvedValue(true);
     mocks.renderedPackRepository.updateExpiry.mockResolvedValue({
       ...MOCK_RENDERED_PACK,
