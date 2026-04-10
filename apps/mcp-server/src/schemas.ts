@@ -840,7 +840,6 @@ export type RenderedPackUpdateInput = {
 
 export const PackRenderSchema = Type.Object({
   pack_id: Type.String({
-    format: 'uuid',
     description: 'Source context pack UUID to render',
   }),
   rendered_markdown: Type.Optional(
@@ -873,7 +872,6 @@ export type PackRenderInput = {
 
 export const PackRenderPreviewSchema = Type.Object({
   pack_id: Type.String({
-    format: 'uuid',
     description: 'Source context pack UUID to preview',
   }),
   rendered_markdown: Type.Optional(
