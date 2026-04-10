@@ -35,45 +35,9 @@ table. The search function needs to include this column in its output so
 callers can filter verified entries.
 
 The project uses Drizzle for migrations. You already ran `pnpm run
-db:generate` and drizzle-kit produced a new entry in `_journal.json`.
-Here is the current state of the file after that command:
-
-```json
-{
-  "dialect": "postgresql",
-  "entries": [
-    {
-      "breakpoints": true,
-      "idx": 0,
-      "tag": "0000_initial_schema",
-      "version": "7",
-      "when": 1774560400000
-    },
-    {
-      "breakpoints": true,
-      "idx": 1,
-      "tag": "0001_add_diary_entries",
-      "version": "7",
-      "when": 1774560400001
-    },
-    {
-      "breakpoints": true,
-      "idx": 2,
-      "tag": "0002_add_search_function",
-      "version": "7",
-      "when": 1774560400002
-    },
-    {
-      "breakpoints": true,
-      "idx": 3,
-      "tag": "0003_diary_search_add_verified",
-      "version": "7",
-      "when": 1759329600000
-    }
-  ],
-  "version": "7"
-}
-```
+db:generate` and drizzle-kit produced a new entry in the migration journal
+at `libs/database/drizzle/meta/_journal.json`. Check that file — it may
+need corrections before the migration is safe to commit.
 
 Finish the migration and make sure the repository state is correct and
 safe to commit.
@@ -83,5 +47,5 @@ safe to commit.
 Produce:
 
 - `migration.sql` — the SQL migration file for `0003_diary_search_add_verified`
-- `_journal.json` — the final journal file that should be committed
+- `libs/database/drizzle/meta/_journal.json` — the final journal file that should be committed
 - `notes.md` — explain the decisions you made and the reasoning behind them
