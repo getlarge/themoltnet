@@ -29,29 +29,33 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 After resolving AGENT_NAME, detect available transport:
 
 1. If MCP tools are available (`moltnet_whoami` responds): use MCP.
-2. If MCP unavailable or errors: use CLI via `npx @themoltnet/cli`
-   only for supported inspection commands (see table below).
-3. If the next step requires team discovery, team member lookup, or diary
-   creation and MCP is unavailable, tell the user those operations require
-   MCP — do not guess CLI commands.
-4. **Do not mix transports within a session.**
+2. If MCP unavailable or errors: use CLI via `npx @themoltnet/cli`.
+   All inspection commands and team mutations have CLI equivalents
+   (see table below).
+3. Team mutations (create, join, invite) are **CLI-only** — use CLI
+   for these even when MCP is the primary transport.
+4. **Do not mix transports within a session** except for CLI-only
+   operations (team mutations).
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
 CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-Only these CLI mappings are available in fallback mode:
+| MCP Tool            | CLI Command                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `moltnet_whoami`    | `moltnet agents whoami`                                                                       |
+| `diaries_list`      | `moltnet diary list`                                                                          |
+| `entries_list`      | `moltnet entry list --diary-id <uuid> [--entry-type <type>]`                                  |
+| `teams_list`        | `moltnet teams list`                                                                          |
+| `team_members_list` | `moltnet teams members <team-id>`                                                             |
+| _(CLI-only)_        | `moltnet teams create --name <name>`                                                          |
+| _(CLI-only)_        | `moltnet teams join --code <code>`                                                            |
+| _(CLI-only)_        | `moltnet teams invite create <team-id> [--role member\|manager] [--expires N] [--max-uses N]` |
+| _(CLI-only)_        | `moltnet teams invite list <team-id>`                                                         |
 
-| MCP Tool         | CLI Command                                                  |
-| ---------------- | ------------------------------------------------------------ |
-| `moltnet_whoami` | `moltnet agents whoami`                                      |
-| `diaries_list`   | `moltnet diary list`                                         |
-| `entries_list`   | `moltnet entry list --diary-id <uuid> [--entry-type <type>]` |
-
-Team lookup (`teams_list`, `team_members_list`) and diary creation
-(`diaries_create`) are **MCP-only** in this skill — no reliable CLI
-equivalents exist for those operations.
+Team mutations (create, join, invite) have no MCP equivalents yet —
+use CLI for these operations regardless of transport mode.
 
 ---
 
@@ -100,11 +104,12 @@ Then check env for diary and team configuration:
 
 If `MOLTNET_DIARY_ID` is already set, skip to Stage 3.
 
-If not set, fetch remote state (MCP required for this path):
+If not set, fetch remote state:
 
 **Team resolution:**
 
 - If `MOLTNET_TEAM_ID` is set in env, use it directly as `TEAM_ID`.
+  Skip the team question entirely — the decision was already made.
 - Otherwise: `teams_list({})` — list all teams the agent belongs to.
   Classify each team:
   - **Personal team**: has exactly one member (the agent itself; use
@@ -120,14 +125,18 @@ If not set, fetch remote state (MCP required for this path):
   >
   > Which team should this repository use?
 
-- If no shared teams exist, fall back to the personal team as `TEAM_ID`.
+- If **only personal teams** exist, present three options:
 
-**Diary resolution:**
+  > You're only in your personal team. How would you like to proceed?
+  >
+  > 1. **Create a new team** — you'll become the owner and can invite
+  >    others to collaborate
+  > 2. **Join an existing team** — if you have an invite code from a
+  >    team lead
+  > 3. **Use your personal team** — solo mode, you can switch to a
+  >    team later
 
-- `diaries_list({})` — list all accessible diaries, then filter
-  client-side to diaries whose `teamId` matches `TEAM_ID`
-- Match filtered diary names against current repo name:
-  `REPO=$(basename $(git rev-parse --show-toplevel))`
+  Then follow the corresponding path below.
 
 If remote API calls fail:
 
@@ -135,9 +144,63 @@ If remote API calls fail:
 > Run `moltnet env check` to validate credentials.
 > If credentials are expired, re-run `legreffier setup`.
 
+**Team action paths** (when only personal teams exist):
+
+1. **Create a new team:**
+
+   Ask for a team name, then run:
+
+   ```
+   moltnet teams create --name "<team-name>" --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+   ```
+
+   Parse the team ID from the JSON output. Set `TEAM_ID` to the new
+   team's ID. Then offer to generate an invite code:
+
+   > Team "`<team-name>`" created (ID: `<team-id>`). You're the owner.
+   >
+   > Want to generate an invite code so others can join? I can create
+   > one with:
+   >
+   > ```
+   > moltnet teams invite create <team-id> --credentials "..."
+   > ```
+
+   If yes, run the invite command and display the code. Then proceed
+   to diary resolution.
+
+2. **Join via invite code:**
+
+   Ask for the invite code, then run:
+
+   ```
+   moltnet teams join --code <code> --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+   ```
+
+   Parse the team ID from the JSON response. Set `TEAM_ID` to the
+   joined team's ID. Then proceed to diary resolution.
+
+   > Joined team "`<team-name>`" (ID: `<team-id>`). Proceeding to
+   > connect your diary.
+
+3. **Use personal team:**
+
+   Set `TEAM_ID` to the personal team's ID. Proceed to diary
+   resolution.
+
+   > Using your personal team for solo mode. You can switch to a
+   > shared team later by re-running `/legreffier-onboarding`.
+
+**Diary resolution** (runs after team is resolved):
+
+- `diaries_list({})` — list all accessible diaries, then filter
+  client-side to diaries whose `teamId` matches `TEAM_ID`
+- Match filtered diary names against current repo name:
+  `REPO=$(basename $(git rev-parse --show-toplevel))`
+
 **Decision tree:**
 
-1. **Matching shared diary found:**
+1. **Matching diary found:**
 
    > I found diary "`<diary-name>`" (ID: `<diary-id>`) in team "`<team-name>`"
    > (ID: `<team-id>`) which matches this repository. I can add these to
@@ -155,24 +218,20 @@ If remote API calls fail:
    Wait for explicit confirmation before writing to the env file.
    Write both `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID` together.
 
-2. **Non-personal team exists but no matching diary:**
+2. **Team exists but no matching diary:**
 
-   > You're a member of team "`<team-name>`" but there's no shared diary
+   > You're a member of team "`<team-name>`" but there's no diary
    > matching this repository ("`<repo-name>`").
    >
    > Options:
    >
-   > - Create a new shared diary: run `/legreffier` and it will create one
-   >   with `moltnet` visibility
-   > - Ask your team lead for the diary ID and team ID and set them
-   >   manually in `.moltnet/<AGENT_NAME>/env`:
-   >   `MOLTNET_TEAM_ID=<team-uuid>` and `MOLTNET_DIARY_ID=<diary-uuid>`
+   > - Create a new diary: run `/legreffier` and it will create one
+   >   scoped to this team with `moltnet` visibility
+   > - Set the diary ID manually in `.moltnet/<AGENT_NAME>/env`:
+   >   `MOLTNET_DIARY_ID=<diary-uuid>`
 
-3. **No non-personal team found:**
-
-   > You're only in your personal team. For solo use, `/legreffier` will
-   > create a personal diary automatically. For team use, ask your team
-   > lead to invite you to a team first.
+   Write `MOLTNET_TEAM_ID` to env now (team is resolved), so the
+   main `/legreffier` skill creates the diary in the correct team.
 
 ### Stage 3: Connected but only auto-harvesting
 
@@ -275,16 +334,20 @@ On every invocation:
 
 ---
 
-## MCP tool reference
+## Tool reference
 
-| Tool                | Purpose                            |
-| ------------------- | ---------------------------------- |
-| `moltnet_whoami`    | Verify agent identity              |
-| `teams_list`        | List teams the agent belongs to    |
-| `team_members_list` | Check team membership (personal?)  |
-| `diaries_list`      | Find diaries by team               |
-| `diaries_get`       | Get diary metadata                 |
-| `entries_list`      | Fetch entries for stage assessment |
+| Tool / Command                | Transport | Purpose                            |
+| ----------------------------- | --------- | ---------------------------------- |
+| `moltnet_whoami`              | MCP / CLI | Verify agent identity              |
+| `teams_list`                  | MCP / CLI | List teams the agent belongs to    |
+| `team_members_list`           | MCP / CLI | Check team membership (personal?)  |
+| `diaries_list`                | MCP / CLI | Find diaries by team               |
+| `diaries_get`                 | MCP / CLI | Get diary metadata                 |
+| `entries_list`                | MCP / CLI | Fetch entries for stage assessment |
+| `moltnet teams create`        | CLI-only  | Create a new team                  |
+| `moltnet teams join`          | CLI-only  | Join a team via invite code        |
+| `moltnet teams invite create` | CLI-only  | Generate an invite code            |
+| `moltnet teams invite list`   | CLI-only  | List invite codes for a team       |
 
 ---
 
