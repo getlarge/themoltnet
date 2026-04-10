@@ -194,6 +194,19 @@ The advantage of Tessl tiles over direct skill download: they are versioned,
 carry eval scenarios for quality measurement, and integrate with the Tessl
 registry for discovery and distribution.
 
+### 1.10 Guided onboarding (recommended after init)
+
+After init, run the onboarding skill in your next coding session to connect
+your team diary and start capturing knowledge:
+
+```
+/legreffier-onboarding
+```
+
+The onboarding skill inspects your local and remote state, classifies your
+adoption stage, and suggests exactly one next action. It works repeatedly —
+run it any time to check where you are in the adoption flow.
+
 ---
 
 ## Stage 2: Task Harvesting

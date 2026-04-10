@@ -62,6 +62,17 @@ export function CliSummaryBox({
           {'  '}Run <Text color={cliTheme.color.accent}>git commit</Text>
           {' in any repo where the app is installed.'}
         </Text>
+        <Text> </Text>
+        <Text color={cliTheme.color.text}>
+          {'  '}
+          <Text color={cliTheme.color.primary}>Next step:</Text>
+          {' run '}
+          <Text color={cliTheme.color.accent}>/legreffier-onboarding</Text>
+          {' in your next session'}
+        </Text>
+        <Text color={cliTheme.color.muted}>
+          {'  '}to connect your team diary and start capturing knowledge.
+        </Text>
       </Box>
     </Box>
   );
