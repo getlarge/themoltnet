@@ -222,7 +222,6 @@ the agent is already initialized is a no-op.
 
 | Variable                | Source                                  |
 | ----------------------- | --------------------------------------- |
-| `MOLTNET_AGENT_NAME`    | directory name in `.moltnet/<agent>/`   |
 | `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`          |
 | `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`     |
 | `MOLTNET_CLIENT_SECRET` | `moltnet.json` → `oauth2.client_secret` |
@@ -230,13 +229,14 @@ the agent is already initialized is a no-op.
 | `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`     |
 | `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`     |
 
-`MOLTNET_AGENT_NAME` can alternatively be passed via `--agent`. When
-using `--env-file`, the name in the file is used automatically.
+Agent name is resolved as: `--agent` flag > `MOLTNET_AGENT_NAME` env var.
+When using `--env-file`, the name in the file is used automatically.
 
 **Optional variables:**
 
 | Variable                             | Default                   |
 | ------------------------------------ | ------------------------- |
+| `MOLTNET_AGENT_NAME`                 | (or use `--agent` flag)   |
 | `MOLTNET_API_URL`                    | `https://api.themolt.net` |
 | `MOLTNET_REGISTERED_AT`              | current time              |
 | `MOLTNET_GIT_NAME`                   | agent name                |

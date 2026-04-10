@@ -74,8 +74,8 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 		"MOLTNET_FINGERPRINT=SHA256:exportfingerprint",
 		"MOLTNET_API_URL=https://api.test.example.com",
 		"MOLTNET_REGISTERED_AT=2025-01-01T00:00:00Z",
-		"MOLTNET_GIT_NAME=test-bot",
-		"MOLTNET_GIT_EMAIL=test-bot@agents.themolt.net",
+		`MOLTNET_GIT_NAME="test-bot"`,
+		`MOLTNET_GIT_EMAIL="test-bot@agents.themolt.net"`,
 	} {
 		if !strings.Contains(stdout, expected) {
 			t.Errorf("expected stdout to contain %q, got:\n%s", expected, stdout)
@@ -282,8 +282,8 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 	exportedContent := string(exported)
 	for _, expected := range []string{
 		"MOLTNET_AGENT_NAME=rt-agent",
-		"MOLTNET_GIT_NAME=rt-agent",
-		"MOLTNET_GIT_EMAIL=rt-agent+rt-agent[bot]@users.noreply.github.com",
+		`MOLTNET_GIT_NAME="rt-agent"`,
+		`MOLTNET_GIT_EMAIL="rt-agent+rt-agent[bot]@users.noreply.github.com"`,
 	} {
 		if !strings.Contains(exportedContent, expected) {
 			t.Errorf("exported env missing %q, got:\n%s", expected, exportedContent)
