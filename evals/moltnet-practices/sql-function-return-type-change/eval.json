@@ -1,1 +1,11 @@
-{"mode":"vitro"}
+{
+  "fixture": {
+    "inject": [
+      {
+        "from": "fixtures/_journal.json",
+        "to": "libs/database/drizzle/meta/_journal.json"
+      }
+    ]
+  },
+  "mode": "vitro"
+}

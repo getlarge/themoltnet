@@ -24,8 +24,8 @@ type evalRunOpts struct {
 	dspyRepoRoot     string
 	dspySourceRef    string
 	solverKind       solver.Kind // "cot" (default) or "react"
-	dspyMode         string          // "vitro" | "vivo" | "" (legacy)
-	dspyFixtureRef   string          // --fixture-ref CLI override
+	dspyMode         string      // "vitro" | "vivo" | "" (legacy)
+	dspyFixtureRef   string      // --fixture-ref CLI override
 }
 
 func defaultAgentModel(agent string) string {
@@ -89,6 +89,7 @@ type evalRun struct {
 // evalRunInput is the resolved input for a single eval run.
 type evalRunInput struct {
 	name         string
+	scenarioDir  string // absolute path to the scenario directory
 	taskMD       []byte
 	criteriaJSON []byte
 	packMD       string
@@ -417,8 +418,14 @@ func resolveEvalRun(scenarioDir, packPath, agent, model string) (evalRunInput, e
 		packMD = string(data)
 	}
 
+	absScenarioDir, err := filepath.Abs(scenarioDir)
+	if err != nil {
+		return evalRunInput{}, fmt.Errorf("resolving scenario dir: %w", err)
+	}
+
 	return evalRunInput{
 		name:         filepath.Base(scenarioDir),
+		scenarioDir:  absScenarioDir,
 		taskMD:       taskMD,
 		criteriaJSON: criteriaJSON,
 		packMD:       packMD,
@@ -474,4 +481,3 @@ type runGroup struct {
 	model  string
 	inputs []evalRunInput
 }
-

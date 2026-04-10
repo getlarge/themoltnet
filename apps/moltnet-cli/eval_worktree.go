@@ -99,7 +99,7 @@ func dspyEvalSolver(manifest *evalManifest, opts evalRunOpts) (solver.Kind, erro
 	return solver.KindChainOfThought, nil
 }
 
-func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts, manifest *evalManifest) (string, func() error, error) {
+func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts, manifest *evalManifest, scenarioDir string) (string, func() error, error) {
 	if opts.dspyRepoRoot == "" || opts.dspySourceRef == "" {
 		return "", nil, fmt.Errorf("missing frozen dspy source ref")
 	}
@@ -137,6 +137,20 @@ func createDSPYEvalWorktree(parentDir, label string, opts evalRunOpts, manifest 
 			return "", nil, fmt.Errorf("neutralize dspy worktree: %w; cleanup worktree: %v", neutralizeErr, cleanupErr)
 		}
 		return "", nil, fmt.Errorf("neutralize dspy worktree: %w", neutralizeErr)
+	}
+
+	// Inject scenario-local fixtures after sparse-pass/neutralize so
+	// injected files overwrite anything restored from HEAD.
+	if manifest != nil && len(manifest.Fixture.Inject) > 0 {
+		if err := injectDSPYEvalFixtures(worktreeDir, scenarioDir, manifest.Fixture.Inject); err != nil {
+			worktreeMu.Lock()
+			cleanupErr := gitRun(opts.dspyRepoRoot, "worktree", "remove", "--force", worktreeDir)
+			worktreeMu.Unlock()
+			if cleanupErr != nil {
+				return "", nil, fmt.Errorf("inject fixtures: %w; cleanup worktree: %v", err, cleanupErr)
+			}
+			return "", nil, fmt.Errorf("inject fixtures: %w", err)
+		}
 	}
 
 	cleanup := func() error {
@@ -317,6 +331,32 @@ func sparsePassDSPYEvalWorktree(worktreeDir string, include []string) error {
 		}
 		return nil
 	})
+}
+
+// injectDSPYEvalFixtures copies files from the scenario directory into the
+// worktree according to fixture.inject mappings. Parent directories are
+// created as needed. This runs after sparse-pass (vitro) or neutralization
+// (vivo), so injected files overwrite anything restored from HEAD at the
+// same path.
+func injectDSPYEvalFixtures(worktreeDir, scenarioDir string, injections []evalManifestInject) error {
+	for _, inj := range injections {
+		src := filepath.Join(scenarioDir, inj.From)
+		dst := filepath.Join(worktreeDir, inj.To)
+
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return fmt.Errorf("reading inject source %q: %w", inj.From, err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return fmt.Errorf("creating parent dirs for %q: %w", inj.To, err)
+		}
+
+		if err := os.WriteFile(dst, data, 0o644); err != nil {
+			return fmt.Errorf("writing inject target %q: %w", inj.To, err)
+		}
+	}
+	return nil
 }
 
 func relPath(base, p string) string {

@@ -89,7 +89,7 @@ func TestDSPYWorktreeFilterMatchesDefaultsAndCustomGlobs(t *testing.T) {
 }
 
 func TestCreateDSPYEvalWorktreeRequiresFrozenSourceRef(t *testing.T) {
-	_, _, err := createDSPYEvalWorktree(t.TempDir(), "test", evalRunOpts{}, nil)
+	_, _, err := createDSPYEvalWorktree(t.TempDir(), "test", evalRunOpts{}, nil, "")
 	if err == nil || !strings.Contains(err.Error(), "missing frozen dspy source ref") {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -342,5 +342,83 @@ func TestDspyEvalSolver(t *testing.T) {
 				t.Errorf("got %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestInjectDSPYEvalFixtures_CopiesFiles(t *testing.T) {
+	scenarioDir := t.TempDir()
+	worktreeDir := t.TempDir()
+
+	// Create source fixture file in scenario dir.
+	if err := os.MkdirAll(filepath.Join(scenarioDir, "fixtures"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := []byte(`{"entries":[{"idx":0}]}`)
+	if err := os.WriteFile(filepath.Join(scenarioDir, "fixtures", "_journal.json"), content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	injections := []evalManifestInject{
+		{From: "fixtures/_journal.json", To: "libs/database/drizzle/meta/_journal.json"},
+	}
+	if err := injectDSPYEvalFixtures(worktreeDir, scenarioDir, injections); err != nil {
+		t.Fatalf("injectDSPYEvalFixtures: %v", err)
+	}
+
+	// Verify the file landed at the correct path.
+	got, err := os.ReadFile(filepath.Join(worktreeDir, "libs", "database", "drizzle", "meta", "_journal.json"))
+	if err != nil {
+		t.Fatalf("expected injected file to exist: %v", err)
+	}
+	if !bytes.Equal(got, content) {
+		t.Errorf("injected content mismatch: got %q, want %q", got, content)
+	}
+}
+
+func TestInjectDSPYEvalFixtures_OverwritesExisting(t *testing.T) {
+	scenarioDir := t.TempDir()
+	worktreeDir := t.TempDir()
+
+	// Pre-existing file in worktree.
+	targetDir := filepath.Join(worktreeDir, "meta")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(targetDir, "config.json"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Source file in scenario dir.
+	newContent := []byte("new")
+	if err := os.WriteFile(filepath.Join(scenarioDir, "config.json"), newContent, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	injections := []evalManifestInject{
+		{From: "config.json", To: "meta/config.json"},
+	}
+	if err := injectDSPYEvalFixtures(worktreeDir, scenarioDir, injections); err != nil {
+		t.Fatalf("injectDSPYEvalFixtures: %v", err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(worktreeDir, "meta", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, newContent) {
+		t.Errorf("expected overwritten content %q, got %q", newContent, got)
+	}
+}
+
+func TestInjectDSPYEvalFixtures_MissingSource(t *testing.T) {
+	scenarioDir := t.TempDir()
+	worktreeDir := t.TempDir()
+
+	injections := []evalManifestInject{
+		{From: "nonexistent.json", To: "target.json"},
+	}
+	err := injectDSPYEvalFixtures(worktreeDir, scenarioDir, injections)
+	if err == nil {
+		t.Fatal("expected error for missing source file")
 	}
 }

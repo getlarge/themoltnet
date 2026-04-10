@@ -328,6 +328,215 @@ func TestValidateEvalManifest_SolverValid(t *testing.T) {
 	}
 }
 
+func TestLoadEvalManifest_WithInject(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vitro","fixture":{"inject":[{"from":"fixtures/journal.json","to":"libs/database/drizzle/meta/_journal.json"}]}}`
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("loadEvalManifest: %v", err)
+	}
+	if len(m.Fixture.Inject) != 1 {
+		t.Fatalf("inject: got %d entries, want 1", len(m.Fixture.Inject))
+	}
+	if m.Fixture.Inject[0].From != "fixtures/journal.json" {
+		t.Errorf("inject[0].from: got %q", m.Fixture.Inject[0].From)
+	}
+	if m.Fixture.Inject[0].To != "libs/database/drizzle/meta/_journal.json" {
+		t.Errorf("inject[0].to: got %q", m.Fixture.Inject[0].To)
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsAbsoluteTo(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/f.json", To: "/etc/passwd"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for absolute to path")
+	}
+	if !strings.Contains(err.Error(), "relative path") {
+		t.Errorf("expected 'relative path' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsDotDot(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/f.json", To: "../escape/file.txt"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for '..' in to path")
+	}
+	if !strings.Contains(err.Error(), "..") {
+		t.Errorf("expected '..' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsEmptyFrom(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "", To: "dest/file.json"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for empty from")
+	}
+	if !strings.Contains(err.Error(), "from") {
+		t.Errorf("expected 'from' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsEmptyTo(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/f.json", To: ""}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for empty to")
+	}
+	if !strings.Contains(err.Error(), "to") {
+		t.Errorf("expected 'to' in error, got: %v", err)
+	}
+}
+
+func TestValidateFixtureInjectSources_RejectsMissingFile(t *testing.T) {
+	dir := t.TempDir()
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/nonexistent.json", To: "dest/file.json"}},
+		},
+	}
+	err := validateFixtureInjectSources(dir, m)
+	if err == nil {
+		t.Fatal("expected error for missing inject source file")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' in error, got: %v", err)
+	}
+}
+
+func TestValidateFixtureInjectSources_AcceptsExistingFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "fixtures"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "fixtures", "journal.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/journal.json", To: "libs/db/meta/_journal.json"}},
+		},
+	}
+	err := validateFixtureInjectSources(dir, m)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsNonCleanTo(t *testing.T) {
+	for _, to := range []string{"a/./b/file.json", "a//b/file.json"} {
+		m := &evalManifest{
+			Mode: "vitro",
+			Fixture: evalManifestFixture{
+				Inject: []evalManifestInject{{From: "fixtures/f.json", To: to}},
+			},
+		}
+		err := validateEvalManifest(m)
+		if err == nil {
+			t.Errorf("expected error for non-clean to path %q", to)
+		}
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsAbsoluteFrom(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "/etc/passwd", To: "target.json"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for absolute from path")
+	}
+}
+
+func TestValidateEvalManifest_InjectRejectsDotDotInFrom(t *testing.T) {
+	m := &evalManifest{
+		Mode: "vitro",
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "../escape/secret.json", To: "target.json"}},
+		},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for '..' in from path")
+	}
+}
+
+func TestValidateFixtureInjectSources_RejectsDirectory(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "fixtures", "subdir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	m := &evalManifest{
+		Fixture: evalManifestFixture{
+			Inject: []evalManifestInject{{From: "fixtures/subdir", To: "target/dir"}},
+		},
+	}
+	err := validateFixtureInjectSources(dir, m)
+	if err == nil {
+		t.Fatal("expected error for directory as inject source")
+	}
+	if !strings.Contains(err.Error(), "regular file") {
+		t.Errorf("expected 'regular file' in error, got: %v", err)
+	}
+}
+
+func TestValidateScenario_InjectValidation(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "task.md"), []byte("# Task"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	criteria := `{"type":"weighted_checklist","checklist":[
+		{"name":"Does X","description":"Agent does X","max_score":100}
+	]}`
+	if err := os.WriteFile(filepath.Join(dir, "criteria.json"), []byte(criteria), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// eval.json with inject pointing to a file that doesn't exist
+	eval := `{"mode":"vitro","fixture":{"inject":[{"from":"fixtures/missing.json","to":"target/file.json"}]}}`
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(eval), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := validateScenario(dir)
+	if err == nil {
+		t.Fatal("expected error for missing inject source in validateScenario")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' in error, got: %v", err)
+	}
+}
+
 func TestLoadEvalManifest_RejectsTrailingContent(t *testing.T) {
 	dir := t.TempDir()
 	body := []byte(`{"mode":"vitro","fixture":{}}{"mode":"vivo"}`)
