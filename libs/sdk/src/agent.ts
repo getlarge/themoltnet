@@ -11,6 +11,10 @@ import type {
   CreateDiaryEntryData,
   CreateDiaryGrantData,
   CreateDiaryGrantResponse,
+  CreateTeamData,
+  CreateTeamInviteData,
+  CreateTeamInviteResponse,
+  CreateTeamResponse,
   CryptoIdentity,
   CryptoVerifyResult,
   DiaryCatalog,
@@ -30,12 +34,14 @@ import type {
   GetTeamResponse,
   GetTrustGraphData,
   Health,
+  JoinTeamResponse,
   ListDiariesData,
   ListDiaryEntriesData,
   ListDiaryGrantsResponse,
   ListDiaryPacksData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
+  ListTeamInvitesResponse,
   ListTeamMembersResponse,
   ListTeamsResponse,
   NetworkInfo,
@@ -56,6 +62,7 @@ import type {
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
   Success,
+  UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   VerifyResult,
@@ -175,6 +182,11 @@ export interface PacksNamespace {
     cid: string,
     query?: GetContextPackProvenanceByCidData['query'],
   ): Promise<ProvenanceGraph>;
+
+  update(
+    id: string,
+    body?: UpdateContextPackData['body'],
+  ): Promise<ContextPackResponse>;
 }
 
 export interface AgentsNamespace {
@@ -270,6 +282,15 @@ export interface TeamsNamespace {
   list(): Promise<ListTeamsResponse>;
   get(id: string): Promise<GetTeamResponse>;
   listMembers(id: string): Promise<ListTeamMembersResponse>;
+  create(body: CreateTeamData['body']): Promise<CreateTeamResponse>;
+  join(code: string): Promise<JoinTeamResponse>;
+  invites: {
+    create(
+      teamId: string,
+      body?: CreateTeamInviteData['body'],
+    ): Promise<CreateTeamInviteResponse>;
+    list(teamId: string): Promise<ListTeamInvitesResponse>;
+  };
 }
 
 export interface DiaryGrantsNamespace {
