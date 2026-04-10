@@ -16,6 +16,28 @@ const (
 	altPrivateKey  = "ZmlsZS1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
 )
 
+// clearMoltnetEnv uses t.Setenv to blank every MOLTNET_* variable that might
+// leak from the host process into a test, ensuring a clean env slate.
+func clearMoltnetEnv(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"MOLTNET_IDENTITY_ID",
+		"MOLTNET_CLIENT_ID",
+		"MOLTNET_CLIENT_SECRET",
+		"MOLTNET_PUBLIC_KEY",
+		"MOLTNET_PRIVATE_KEY",
+		"MOLTNET_FINGERPRINT",
+		"MOLTNET_API_URL",
+		"MOLTNET_REGISTERED_AT",
+		"MOLTNET_GITHUB_APP_ID",
+		"MOLTNET_GITHUB_APP_INSTALLATION_ID",
+		"MOLTNET_GITHUB_APP_PRIVATE_KEY",
+		"MOLTNET_GITHUB_APP_SLUG",
+	} {
+		t.Setenv(key, "")
+	}
+}
+
 func TestConfigInitFromEnvHelp(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
@@ -47,7 +69,7 @@ func TestConfigInitFromEnvRequiresAgent(t *testing.T) {
 }
 
 func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
-	t.Parallel()
+	clearMoltnetEnv(t) // prevent ambient vars from satisfying the check
 	tmpDir := t.TempDir()
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", tmpDir)
@@ -144,7 +166,7 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 }
 
 func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
-	t.Parallel()
+	clearMoltnetEnv(t) // prevent ambient vars from overriding file values
 	tmpDir := t.TempDir()
 
 	// Write a dotenv file with all required vars
@@ -328,6 +350,7 @@ func TestConfigInitFromEnvFileMissing(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
+	clearMoltnetEnv(t) // prevent ambient vars from overriding file/test values
 	tmpDir := t.TempDir()
 
 	// File provides some vars

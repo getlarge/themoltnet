@@ -217,7 +217,7 @@ func TestConfigExportEnvMissingConfig(t *testing.T) {
 }
 
 func TestConfigExportEnvRoundTrip(t *testing.T) {
-	t.Parallel()
+	clearMoltnetEnv(t) // prevent ambient vars from overriding exported values
 	tmpDir := t.TempDir()
 
 	// Create a config via export-env, then verify init-from-env can consume it
