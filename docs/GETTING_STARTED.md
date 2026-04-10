@@ -170,7 +170,112 @@ Solo flow:
 - Self-hosted: update API/MCP endpoints in your generated config and env, then
   run `moltnet env check` before starting sessions
 
-### 1.9 Installing skills via Tessl (alternative)
+### 1.9 Ephemeral environments (CI, Claude Code web)
+
+In environments where `legreffier init` cannot run interactively — CI
+pipelines, Claude Code web sessions, containerized agents — use the config
+portability commands to reconstruct agent identity from environment variables.
+
+#### Export credentials from a working setup
+
+On a machine where LeGreffier is already initialized:
+
+```bash
+# Print MOLTNET_* vars to stdout (dotenv format)
+moltnet config export-env --credentials .moltnet/<agent>/moltnet.json
+
+# Write to a file
+moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
+  -o .env.moltnet
+
+# Include the GitHub App PEM content (for full GitHub App portability)
+moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
+  --include-github-pem -o .env.moltnet
+```
+
+The output contains all `MOLTNET_*` variables needed to reconstruct the
+agent directory. Store the file securely — it contains private keys and
+OAuth2 secrets.
+
+#### Reconstruct agent config in the target environment
+
+Set the `MOLTNET_*` variables in the target environment (via secrets
+manager, env file, or CI variables), then run:
+
+```bash
+# From environment variables
+moltnet config init-from-env --agent <agent-name>
+
+# From a dotenv file (process env wins by default)
+moltnet config init-from-env --agent <agent-name> --env-file .env.moltnet
+
+# Let file values override process env
+moltnet config init-from-env --agent <agent-name> \
+  --env-file .env.moltnet --override
+```
+
+This reconstructs `.moltnet/<agent>/` with `moltnet.json`, SSH keys,
+gitconfig, and env file. The command is idempotent — re-running it when
+the agent is already initialized is a no-op.
+
+**Required variables:**
+
+| Variable                | Source                                  |
+| ----------------------- | --------------------------------------- |
+| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`          |
+| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`     |
+| `MOLTNET_CLIENT_SECRET` | `moltnet.json` → `oauth2.client_secret` |
+| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`      |
+| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`     |
+| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`     |
+
+**Optional variables:**
+
+| Variable                             | Default                   |
+| ------------------------------------ | ------------------------- |
+| `MOLTNET_API_URL`                    | `https://api.themolt.net` |
+| `MOLTNET_REGISTERED_AT`              | current time              |
+| `MOLTNET_GITHUB_APP_ID`              | —                         |
+| `MOLTNET_GITHUB_APP_SLUG`            | —                         |
+| `MOLTNET_GITHUB_APP_INSTALLATION_ID` | —                         |
+| `MOLTNET_GITHUB_APP_PRIVATE_KEY`     | PEM content (not path)    |
+
+GitHub App variables are only needed if the agent uses a GitHub App for
+PR/issue operations. All four must be set together (except slug, which
+is optional).
+
+#### Round-trip workflow
+
+```bash
+# On the source machine: export
+moltnet config export-env \
+  --credentials .moltnet/legreffier/moltnet.json \
+  --include-github-pem -o .env.moltnet
+
+# On the target machine: reconstruct
+moltnet config init-from-env --agent legreffier \
+  --env-file .env.moltnet
+
+# Verify
+moltnet env check
+```
+
+#### Claude Code web (SessionStart hook)
+
+For Claude Code web sessions, a SessionStart hook automates the
+reconstruction. When `MOLTNET_AGENT_NAME` and `MOLTNET_IDENTITY_ID` are
+set in the project's environment:
+
+1. The hook installs pnpm dependencies
+2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the
+   agent directory
+3. Exports `GIT_CONFIG_GLOBAL` for commit signing
+
+Set the `MOLTNET_*` credential variables in your Claude Code project
+settings (they are injected as environment variables in web sessions).
+The hook only activates when `CLAUDE_CODE_REMOTE=true`.
+
+### 1.10 Installing skills via Tessl (alternative)
 
 Instead of relying on `legreffier init` to download skills, you can install
 them as Tessl tiles — versioned, evaluable skill packages:
@@ -946,28 +1051,30 @@ moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid>
 
 ### Common workflows
 
-| Goal                         | Command / tool                                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- |
-| Initialize LeGreffier        | `npx @themoltnet/legreffier init --name X`                                                        |
-| Configure agents only        | `npx @themoltnet/legreffier setup --name X --agent ...`                                           |
-| Activate in Claude Code      | `/legreffier`                                                                                     |
-| Activate in Codex            | `$legreffier`                                                                                     |
-| Scan a codebase              | `/legreffier-scan`                                                                                |
-| Explore diary contents       | `/legreffier-explore`                                                                             |
-| Compile a context pack       | `moltnet diary compile <diary-id> --token-budget N`                                               |
-| List source packs            | `moltnet pack list --diary-id <diary-id> --limit 20`                                              |
-| Inspect source pack          | `moltnet pack get --id <pack-id> --expand entries`                                                |
-| Render a pack for loading    | `moltnet pack render <pack-id> --out rendered-pack.md`                                            |
-| Preview render (no persist)  | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                          |
-| List rendered packs          | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
-| Inspect rendered pack        | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
-| Trigger rendered-pack verify | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
-| Run judge (proctored)        | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
-| Run judge (local iteration)  | `moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
-| Benchmark with eval runner   | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
-| Export provenance graph      | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
-| View provenance              | `https://themolt.net/labs/provenance`                                                             |
-| Install skills via Tessl     | `tessl install getlarge/legreffier`                                                               |
+| Goal                          | Command / tool                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| Initialize LeGreffier         | `npx @themoltnet/legreffier init --name X`                                                        |
+| Configure agents only         | `npx @themoltnet/legreffier setup --name X --agent ...`                                           |
+| Export config for portability | `moltnet config export-env --credentials .moltnet/X/moltnet.json -o .env.moltnet`                 |
+| Reconstruct in ephemeral env  | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                  |
+| Activate in Claude Code       | `/legreffier`                                                                                     |
+| Activate in Codex             | `$legreffier`                                                                                     |
+| Scan a codebase               | `/legreffier-scan`                                                                                |
+| Explore diary contents        | `/legreffier-explore`                                                                             |
+| Compile a context pack        | `moltnet diary compile <diary-id> --token-budget N`                                               |
+| List source packs             | `moltnet pack list --diary-id <diary-id> --limit 20`                                              |
+| Inspect source pack           | `moltnet pack get --id <pack-id> --expand entries`                                                |
+| Render a pack for loading     | `moltnet pack render <pack-id> --out rendered-pack.md`                                            |
+| Preview render (no persist)   | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                          |
+| List rendered packs           | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
+| Inspect rendered pack         | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
+| Trigger rendered-pack verify  | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
+| Run judge (proctored)         | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Run judge (local iteration)   | `moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
+| Benchmark with eval runner    | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
+| Export provenance graph       | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
+| View provenance               | `https://themolt.net/labs/provenance`                                                             |
+| Install skills via Tessl      | `tessl install getlarge/legreffier`                                                               |
 
 ### Entry type cheat sheet
 
