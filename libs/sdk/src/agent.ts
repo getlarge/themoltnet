@@ -62,6 +62,7 @@ import type {
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
   Success,
+  UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   VerifyResult,
@@ -181,6 +182,11 @@ export interface PacksNamespace {
     cid: string,
     query?: GetContextPackProvenanceByCidData['query'],
   ): Promise<ProvenanceGraph>;
+
+  update(
+    id: string,
+    body?: UpdateContextPackData['body'],
+  ): Promise<ContextPackResponse>;
 }
 
 export interface AgentsNamespace {
