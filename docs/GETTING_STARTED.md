@@ -551,6 +551,129 @@ Criteria are weighted by importance:
 { "name": "Correct ordering", "max_score": 15 }
 ```
 
+#### Scenario anatomy
+
+Each scenario lives in `evals/<suite>/<scenario-name>/` and contains:
+
+| File            | Required | Purpose                                                |
+| --------------- | -------- | ------------------------------------------------------ |
+| `task.md`       | yes      | Prompt the agent receives                              |
+| `criteria.json` | yes      | Weighted checklist the judge scores against            |
+| `eval.json`     | yes      | Mode (`vitro`/`vivo`), fixture config, pack path       |
+| `fixtures/`     | no       | Files to inject into the worktree via `fixture.inject` |
+
+**`eval.json` schema:**
+
+```jsonc
+{
+  "mode": "vitro", // "vitro" (blank slate) or "vivo" (real repo)
+  "fixture": {
+    "ref": "abc1234", // vivo only: pinned commit
+    "include": ["libs/database/**"], // vivo only: sparse-checkout paths
+    "exclude": ["*.test.ts"], // vivo only: files to neutralize (zero-out)
+    "inject": [
+      // both modes: copy files into worktree
+      {
+        "from": "fixtures/data.json",
+        "to": "libs/database/drizzle/meta/_journal.json",
+      },
+    ],
+  },
+  "pack": { "path": "path/to/pack.md" }, // optional: context pack for with-context variant
+  "solver": "cot", // optional: "cot" (default) or "react" (vivo only)
+}
+```
+
+**`criteria.json` schema:**
+
+```jsonc
+{
+  "type": "checklist",
+  "context": "One-line description of what a correct answer looks like",
+  "checklist": [
+    {
+      "name": "Criterion name",
+      "max_score": 30,
+      "description": "What the judge checks for",
+    },
+  ],
+}
+```
+
+Weights in `max_score` are relative — the judge normalises to 100%.
+
+#### Reference scenarios
+
+Copy from these when writing new scenarios:
+
+| Scenario                          | Mode  | Features demonstrated                                |
+| --------------------------------- | ----- | ---------------------------------------------------- |
+| `sql-function-return-type-change` | vitro | `fixture.inject` (copies `_journal.json`), pack file |
+| `dbos-after-commit`               | vitro | Minimal: task + criteria, no fixtures                |
+| `mcp-format-uuid-validation`      | vitro | Minimal: task + criteria, no fixtures                |
+| `codegen-chain-go-client`         | vivo  | Parked — waiting for ReAct/tool registry             |
+
+#### Writing a new scenario
+
+1. **Start from a real incident.** Find an episodic diary entry where context
+   made the difference. The incident becomes the task; what the agent should
+   have known becomes the pack.
+
+2. **Choose mode:**
+   - **vitro** — agent writes to a blank worktree. Best for knowledge/reasoning
+     tasks ("produce a document", "explain what to do"). Most scenarios start
+     here.
+   - **vivo** — agent works in a real repo checkout at a pinned commit. Best
+     for code-change tasks ("fix this bug", "run this tool"). Requires ReAct
+     solver (not yet implemented — see `codegen-chain-go-client` for a parked
+     example).
+
+3. **Write `task.md`.** The agent sees only this file. Be specific about what
+   output is expected but don't leak the criteria. Reference on-disk files if
+   you used `fixture.inject` to place them.
+
+4. **Write `criteria.json`.** Each criterion should be independently judgeable.
+   Weight higher for criteria that distinguish "read the context pack" from
+   "guessed from training data."
+
+5. **Add fixtures if needed.** Place source files under `fixtures/` and map
+   them via `fixture.inject`. Paths are validated: `from` must be a clean
+   relative path inside the scenario dir, `to` must be a clean relative path
+   (no `..`, no absolute).
+
+6. **Validate before running:**
+
+   ```bash
+   # Dry-run validation (checks eval.json, criteria.json, fixture paths)
+   moltnet eval validate --scenario evals/<suite>/<scenario>
+
+   # Run the eval
+   moltnet eval run --scenario evals/<suite>/<scenario> --pack <pack-path>
+   ```
+
+#### Failure patterns to watch for
+
+| Symptom                         | Cause                                             | Fix                                                           |
+| ------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| Baseline already 100%           | Task is too easy — model knows from training data | Make the task more specific to your repo                      |
+| Delta near 0%                   | Pack doesn't contain relevant information         | Check compile parameters, add diary entries                   |
+| Both variants score 0%          | Task or criteria are ambiguous                    | Rewrite task.md to be more explicit about output              |
+| `fixture.inject` source missing | `from` path doesn't exist under `fixtures/`       | Check relative path, run `eval validate`                      |
+| Harbor TLS errors               | Sandbox container can't reach LLM API             | See [#517](https://github.com/getlarge/themoltnet/issues/517) |
+| Codex session not found         | Eval runtime issue, not pack quality              | Fix Codex session config, rerun                               |
+
+#### Current state: vitro vs vivo
+
+**Vitro (operational):** Agent receives `task.md` + optional context pack in a
+blank worktree with injected fixtures. Solver: Chain-of-Thought via dspy-go.
+The judge reads filesystem output and scores against the checklist.
+
+**Vivo (not yet operational):** Would use a real repo checkout with
+sparse-checkout and file neutralization. Requires the ReAct solver and tool
+registry (tracked in [#714](https://github.com/getlarge/themoltnet/issues/714)).
+Scenarios marked `"mode": "vivo"` are skipped by the eval runner. The
+`codegen-chain-go-client` scenario is parked waiting for this.
+
 ### 5.2 Run evals via CLI
 
 ```bash
@@ -647,10 +770,10 @@ moltnet rendered-packs get --id <rendered-pack-id>
 
 Eval results show the delta between baseline and with-context runs:
 
-| Scenario              | Baseline | With Pack | Delta |
-| --------------------- | -------- | --------- | ----- |
-| Codegen chain         | 67%      | 95%       | +28pp |
-| getExecutor vs raw db | 20%      | 100%      | +80pp |
+| Scenario                        | Baseline | With Pack | Delta |
+| ------------------------------- | -------- | --------- | ----- |
+| Codegen chain                   | 67%      | 95%       | +28pp |
+| SQL function return type change | 60%      | 100%      | +40pp |
 
 Scenarios where baseline is already 100% are low-signal — the model
 handles them without help. The high-signal scenarios are the ones where
