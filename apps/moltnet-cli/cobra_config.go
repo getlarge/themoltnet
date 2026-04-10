@@ -80,7 +80,7 @@ usable with init-from-env --env-file.`,
 			credPath, _ := cmd.Flags().GetString("credentials")
 			outFile, _ := cmd.Flags().GetString("output")
 			includeGitHubPEM, _ := cmd.Flags().GetBool("include-github-pem")
-			return runConfigExportEnvCmd(credPath, outFile, includeGitHubPEM)
+			return runConfigExportEnvCmd(cmd.OutOrStdout(), credPath, outFile, includeGitHubPEM)
 		},
 	}
 	exportEnvCmd.Flags().StringP("output", "o", "", "Write to file instead of stdout")

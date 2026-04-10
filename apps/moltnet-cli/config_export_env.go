@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
 
 // runConfigExportEnvCmd reads a moltnet.json and prints MOLTNET_* env vars
 // in dotenv format. The output is directly usable with init-from-env --env-file.
-func runConfigExportEnvCmd(credPath, outFile string, includeGitHubPEM bool) error {
+func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubPEM bool) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
@@ -57,6 +58,6 @@ func runConfigExportEnvCmd(credPath, outFile string, includeGitHubPEM bool) erro
 		return nil
 	}
 
-	fmt.Print(content)
+	fmt.Fprint(w, content)
 	return nil
 }
