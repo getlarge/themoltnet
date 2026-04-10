@@ -6,6 +6,8 @@ import {
   createDiaryEntry,
   createDiaryGrant,
   createSigningRequest,
+  createTeam,
+  createTeamInvite,
   deleteDiary,
   deleteDiaryEntryById,
   getAgentProfile,
@@ -24,12 +26,14 @@ import {
   getTrustGraph,
   getWhoami,
   issueVoucher,
+  joinTeam,
   listActiveVouchers,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
   listProblemTypes,
   listSigningRequests,
+  listTeamInvites,
   listTeamMembers,
   listTeams,
   reflectDiary,
@@ -40,6 +44,7 @@ import {
   searchPublicFeed,
   startLegreffierOnboarding,
   submitSignature,
+  updateContextPack,
   updateDiary,
   updateDiaryEntryById,
   verifyAgentSignature,
@@ -100,6 +105,11 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     listTeams: vi.fn(),
     getTeam: vi.fn(),
     listTeamMembers: vi.fn(),
+    createTeam: vi.fn(),
+    joinTeam: vi.fn(),
+    createTeamInvite: vi.fn(),
+    listTeamInvites: vi.fn(),
+    updateContextPack: vi.fn(),
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
     revokeDiaryGrant: vi.fn(),
@@ -966,7 +976,7 @@ describe('Agent facade', () => {
   });
 
   // -----------------------------------------------------------------------
-  // teams (read-only)
+  // teams
   // -----------------------------------------------------------------------
   describe('teams', () => {
     it('teams.list calls listTeams', async () => {
@@ -1046,6 +1056,111 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await expect(agent.teams.list()).rejects.toThrow(MoltNetError);
+    });
+
+    it('teams.create sends body', async () => {
+      const created = { id: 'team-new', name: 'New Team' };
+      vi.mocked(createTeam).mockResolvedValueOnce({
+        data: created,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.create({ name: 'New Team' });
+
+      expect(result).toEqual(created);
+      expect(createTeam).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { name: 'New Team' } }),
+      );
+    });
+
+    it('teams.join sends code in body', async () => {
+      const joined = { id: 'team-1', name: 'Builders' };
+      vi.mocked(joinTeam).mockResolvedValueOnce({
+        data: joined,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.join('abc123');
+
+      expect(result).toEqual(joined);
+      expect(joinTeam).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { code: 'abc123' } }),
+      );
+    });
+
+    it('teams.invites.create sends teamId and body', async () => {
+      const invite = { code: 'inv-code', teamId: 'team-1' };
+      vi.mocked(createTeamInvite).mockResolvedValueOnce({
+        data: invite,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.invites.create('team-1', {
+        role: 'member',
+      });
+
+      expect(result).toEqual(invite);
+      expect(createTeamInvite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'team-1' },
+          body: { role: 'member' },
+        }),
+      );
+    });
+
+    it('teams.invites.list sends teamId as path param', async () => {
+      const invites = { items: [{ code: 'inv-1' }] };
+      vi.mocked(listTeamInvites).mockResolvedValueOnce({
+        data: invites,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.invites.list('team-1');
+
+      expect(result).toEqual(invites);
+      expect(listTeamInvites).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'team-1' } }),
+      );
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // packs
+  // -----------------------------------------------------------------------
+  describe('packs', () => {
+    it('packs.update sends id and body', async () => {
+      const updated = { id: 'pack-1', pinned: true };
+      vi.mocked(updateContextPack).mockResolvedValueOnce({
+        data: updated,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.packs.update('pack-1', { pinned: true });
+
+      expect(result).toEqual(updated);
+      expect(updateContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'pack-1' },
+          body: { pinned: true },
+        }),
+      );
+    });
+
+    it('packs.update throws MoltNetError on error', async () => {
+      vi.mocked(updateContextPack).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(
+        agent.packs.update('pack-1', { pinned: true }),
+      ).rejects.toThrow(MoltNetError);
     });
   });
 
