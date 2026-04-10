@@ -41,6 +41,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newPackCmd())
 	rootCmd.AddCommand(newRenderedPacksCmd())
 	rootCmd.AddCommand(newRelationsCmd())
+	rootCmd.AddCommand(newTeamsCmd())
 	rootCmd.AddCommand(newEvalCmd())
 	rootCmd.AddCommand(newCompletionCmd())
 	rootCmd.AddCommand(newUseCmd())
