@@ -70,8 +70,17 @@ has a detection method and a recommended action.
 **Action:**
 
 > LeGreffier is not initialized in this repository.
+>
+> **Option A — Fresh setup:**
 > Run `npx @themoltnet/legreffier init --name <agent-name> --agent claude`
-> to set up identity, GitHub App, and MCP connection.
+> to create a new identity, GitHub App, and MCP connection.
+>
+> **Option B — Reuse an existing agent:**
+> If you already have a `.moltnet/<agent-name>/` directory in another
+> repository, you can port it here:
+> `npx @themoltnet/legreffier port --name <agent-name> --from <source-repo> --agent claude`
+> This copies credentials, rewrites paths, and configures the diary
+> for this repo — much faster than a full init.
 
 Stop here. Do not attempt API calls without credentials.
 
