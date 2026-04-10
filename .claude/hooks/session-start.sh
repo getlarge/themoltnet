@@ -19,7 +19,7 @@ fi
 # Set MOLTNET_AGENT_NAME and credential env vars in Claude Code project settings.
 if [ -n "${MOLTNET_AGENT_NAME:-}" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
   if [ ! -f "$CLAUDE_PROJECT_DIR/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json" ]; then
-    npx @themoltnet/cli config init-from-env \
+    npx --yes @themoltnet/cli config init-from-env \
       --agent "$MOLTNET_AGENT_NAME" --dir "$CLAUDE_PROJECT_DIR"
   fi
 

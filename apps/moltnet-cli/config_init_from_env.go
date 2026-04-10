@@ -187,7 +187,7 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 }
 
 // shellQuote escapes a value for single-quoted shell strings by replacing
-// each ' with '\”.
+// each single quote with the escape sequence: quote-backslash-quote-quote.
 func shellQuote(v string) string {
 	return strings.ReplaceAll(v, "'", `'\''`)
 }
