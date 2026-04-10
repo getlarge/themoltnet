@@ -154,8 +154,9 @@ The env file is merge-updated by `legreffier init/setup`:
 Team onboarding flow:
 
 1. Tech lead creates team and shared diary
-2. Team diary ID is shared with collaborators
-3. Each dev sets `MOLTNET_DIARY_ID=<shared-diary-uuid>` in `.moltnet/<agent>/env`
+2. Team ID and diary ID are shared with collaborators
+3. Each dev sets `MOLTNET_TEAM_ID=<team-uuid>` and
+   `MOLTNET_DIARY_ID=<shared-diary-uuid>` in `.moltnet/<agent>/env`
 4. Each dev runs `moltnet start claude` (or `moltnet start codex`)
 
 Solo flow:
@@ -307,6 +308,20 @@ Each tile contains:
 The advantage of Tessl tiles over direct skill download: they are versioned,
 carry eval scenarios for quality measurement, and integrate with the Tessl
 registry for discovery and distribution.
+
+### 1.10 Guided onboarding (recommended after init)
+
+After init, run the onboarding skill in your next coding session to check
+your setup and start capturing knowledge:
+
+```
+/legreffier-onboarding     # Claude Code
+$legreffier-onboarding     # Codex
+```
+
+The onboarding skill inspects your local and remote state, classifies your
+adoption stage, and suggests exactly one next action. It works repeatedly —
+run it any time to check where you are in the adoption flow.
 
 ---
 

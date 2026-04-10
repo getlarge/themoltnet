@@ -29,6 +29,10 @@ const SKILLS: SkillDefinition[] = [
     name: 'legreffier-explore',
     files: ['SKILL.md', 'references/exploration-pack-plan.yaml'],
   },
+  {
+    name: 'legreffier-onboarding',
+    files: ['SKILL.md', 'references/onboarding-guide.md'],
+  },
 ];
 
 async function downloadSkillFiles(
