@@ -1,19 +1,28 @@
 # Implement the fetchEntries step in a consolidation workflow
 
-## Problem
+## Context
 
-The consolidation workflow at `apps/rest-api/src/workflows/consolidate-workflow.ts` has an unimplemented `fetchEntries` function. It needs to:
+MoltNet is a TypeScript backend. The consolidation workflow takes a
+diary's entries and produces a summary. There are two modes:
 
-1. If `entryIds` are provided, fetch those specific entries
-2. If not, fetch the latest 50 entries from the diary
+1. **Selective**: caller provides specific `entryIds` to consolidate.
+2. **Latest**: no IDs provided, consolidate the 50 most recent entries.
 
-The diary entry repository is at `libs/database/src/repositories/diary-entry.repository.ts`. Use its existing `list()` method.
+The workflow already verifies diary ownership in step 1 — the caller's
+identity is checked against the diary before any data is fetched.
 
-Step 1 already verifies that the caller owns the diary via `findByIdAndOwner`. Your job is to implement `fetchEntries` using the repository.
+The diary entry repository's `list()` method handles both modes
+conveniently: pass `ids` for selective, or `diaryId` for latest.
+It also supports `tags` filtering and pagination.
 
-## Output
+## Task
 
-Produce:
+Fill in the `fetchEntries` function. The skeleton already shows the
+two-branch structure (with IDs vs without). Keep it simple — the
+repository does the heavy lifting.
 
-- `consolidate-workflow-fixed.ts` — the completed workflow file
-- `notes.md` — explain your implementation and any concerns
+Produce two files:
+
+1. `consolidate-workflow-fixed.ts` — the completed workflow.
+2. `notes.md` — explain your implementation choices and any
+   concerns about the approach.

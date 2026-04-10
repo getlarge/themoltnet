@@ -1,10 +1,14 @@
-import { Database, getExecutor } from '../database.js';
-import { diaryEntries, DiaryEntry, NewDiaryEntry } from '../schema.js';
-import { eq, inArray, and, desc } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+
+import type { Database } from '../database.js';
+import { getExecutor } from '../database.js';
+import type { DiaryEntry, NewDiaryEntry } from '../schema.js';
+import { diaryEntries } from '../schema.js';
 
 export interface ListEntriesOptions {
   diaryId?: string;
   ids?: string[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -28,24 +32,35 @@ export function createDiaryEntryRepository(db: Database) {
       return entry ?? null;
     },
 
+    /**
+     * List entries with optional filters. Supports filtering by diary,
+     * specific IDs, or tags. Results are ordered by creation date descending.
+     */
     async list(options: ListEntriesOptions = {}): Promise<DiaryEntry[]> {
-      const { diaryId, ids, limit = 50, offset = 0 } = options;
+      const { diaryId, ids, tags, limit = 50, offset = 0 } = options;
 
       if (ids?.length) {
-        // Fetch specific entries by ID
+        // Fast path: fetch specific entries by UUID
+        const conditions = [inArray(diaryEntries.id, ids)];
+        if (tags?.length) {
+          conditions.push(inArray(diaryEntries.tags, tags));
+        }
         return db
           .select()
           .from(diaryEntries)
-          .where(inArray(diaryEntries.id, ids))
+          .where(and(...conditions))
           .orderBy(desc(diaryEntries.createdAt))
           .limit(limit)
           .offset(offset);
       } else if (diaryId) {
-        // Fetch entries scoped to a diary
+        const conditions = [eq(diaryEntries.diaryId, diaryId)];
+        if (tags?.length) {
+          conditions.push(inArray(diaryEntries.tags, tags));
+        }
         return db
           .select()
           .from(diaryEntries)
-          .where(eq(diaryEntries.diaryId, diaryId))
+          .where(and(...conditions))
           .orderBy(desc(diaryEntries.createdAt))
           .limit(limit)
           .offset(offset);
@@ -59,12 +74,20 @@ export function createDiaryEntryRepository(db: Database) {
         .offset(offset);
     },
 
+    async count(diaryId: string): Promise<number> {
+      const [result] = await db
+        .select({ count: diaryEntries.id })
+        .from(diaryEntries)
+        .where(eq(diaryEntries.diaryId, diaryId));
+      return Number(result?.count ?? 0);
+    },
+
     async delete(id: string): Promise<void> {
-      await getExecutor(db)
-        .delete(diaryEntries)
-        .where(eq(diaryEntries.id, id));
+      await getExecutor(db).delete(diaryEntries).where(eq(diaryEntries.id, id));
     },
   };
 }
 
-export type DiaryEntryRepository = ReturnType<typeof createDiaryEntryRepository>;
+export type DiaryEntryRepository = ReturnType<
+  typeof createDiaryEntryRepository
+>;
