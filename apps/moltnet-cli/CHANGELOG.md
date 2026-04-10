@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.21.0](https://github.com/getlarge/themoltnet/compare/cli-v1.20.0...cli-v1.21.0) (2026-04-10)
+
+
+### Features
+
+* **cli:** add `moltnet config export-env` — inverse of init-from-env ([70a6dc3](https://github.com/getlarge/themoltnet/commit/70a6dc350670d18a6f680b8e4712fa6fea4f0ba2))
+* **cli:** add config init-from-env, export-env, and SessionStart hook ([56deec2](https://github.com/getlarge/themoltnet/commit/56deec2b16479cb8fafd8d2fa3cae924b058c45c))
+* **eval:** add fixture.inject for scenario-local file injection ([301d681](https://github.com/getlarge/themoltnet/commit/301d681b15490fd02973336c913878b2dc6dc501))
+* **eval:** scenario-local fixture injection ([a6282fe](https://github.com/getlarge/themoltnet/commit/a6282fe5cc158365c709bc7e47bf13f3ae87e4f6))
+
+
+### Bug Fixes
+
+* **cli:** fix export-env stdout capture, init-from-env idempotency, and env file AppID ([78332f3](https://github.com/getlarge/themoltnet/commit/78332f36075470b497398ea3358f09f49c7017bf))
+* **eval:** harden fixture.inject path validation ([e46c038](https://github.com/getlarge/themoltnet/commit/e46c0381291bb4d4604a8303b61e0be1810e8cb1))
+* **eval:** preserve os.Stat error and use IsRegular for inject source ([2ed88b8](https://github.com/getlarge/themoltnet/commit/2ed88b8d454cb91cdf18eff4196eb36319e6725f))
+
 ## [1.20.0](https://github.com/getlarge/themoltnet/compare/cli-v1.19.0...cli-v1.20.0) (2026-04-09)
 
 
