@@ -91,25 +91,49 @@ Use subagents for phases 2-4 to keep the primary context clean.
 
 ### Phase 1: Inventory
 
-Map what's in the diary by counting entries per tag and entry type.
+Map what's in the diary using `diary_tags` (fast) and a single
+`entries_list` pass (for importance distribution and temporal range).
+
+See `references/discovery-to-pack-method.md` **Phase A** for the full
+tag landscape mapping procedure with prefix filters.
+
+**Step 1a — Tag landscape** (use `diary_tags`):
+
+```
+diary_tags({ diary_id })                          → full tag list
+diary_tags({ diary_id, min_count: 3 })            → filter noise
+diary_tags({ diary_id, prefix: "scope:" })        → domain scopes
+diary_tags({ diary_id, prefix: "source:" })       → content origin
+// repeat for each discovered prefix
+```
+
+**Step 1b — Tag x entry type cross-referencing** (see `references/discovery-to-pack-method.md` **Phase B**):
+
+```
+diary_tags({ diary_id, entry_types: ["semantic"], min_count: 2 })
+diary_tags({ diary_id, entry_types: ["episodic"], min_count: 2 })
+diary_tags({ diary_id, entry_types: ["procedural"], prefix: "scope:", min_count: 5 })
+diary_tags({ diary_id, entry_types: ["reflection"] })
+```
+
+Build an intersection matrix to identify pack-worthy combinations.
+**Rule of thumb: 5+ entries to be useful, 10+ to be robust.**
+
+**Step 1c — Entry-level stats** (use `entries_list`):
 
 ```
 entries_list({ diary_id, limit: 50, offset: 0 })
-entries_list({ diary_id, limit: 50, offset: 50 })
-// continue until all entries are covered
+// paginate to cover all entries
 ```
 
-Compute:
+Compute from entries:
 
 1. **Entry type counts**: count per `entryType` value
-2. **Tag frequency**: count occurrences of every distinct tag across all entries
-3. **Tag namespaces**: group tags by prefix (everything before the first `:`)
-   and list distinct values per namespace. Do NOT hardcode expected namespaces —
-   discover them from the data.
-4. **Importance distribution**: histogram of importance values (1-10)
-5. **Temporal range**: earliest and most recent entry dates
+2. **Importance distribution**: histogram of importance values (1-10)
+3. **Temporal range**: earliest and most recent entry dates
 
-Output: inventory table + tag namespace tree (see [Output format](#output-format)).
+Output: inventory table + tag namespace tree + intersection matrix
+(see [Output format](#output-format)).
 
 ### Phase 2: Agent mistakes (episodic analysis)
 
@@ -170,22 +194,26 @@ Analyze:
 
 Find topics the diary should cover but doesn't.
 
-**If `learn:trace` entries exist** (from AxLearn or similar):
+Compare the codebase structure against diary topics. Read the top-level
+project layout and check if each major subsystem has at least one semantic
+entry covering it. Cross-reference against the tag landscape from Phase 1 —
+subsystems with code but no `scope:` tag are coverage gaps.
 
-```
-entries_list({ diary_id, tags: ["learn:trace"], limit: 20 })
-```
+### Phase 5: Pack recipe recommendations
 
-Analyze which questions were asked repeatedly and which had no context —
-those are coverage gaps.
+Based on phases 1-4, recommend pack recipes tailored to this specific diary.
 
-**If no `learn:trace` entries**: compare the codebase structure against diary
-topics. Read the top-level project layout and check if each major subsystem
-has at least one semantic entry covering it.
+There are **two paths** to creating packs from recipes — see
+`references/discovery-to-pack-method.md` for the full explanation:
 
-### Phase 5: Compile recipe recommendations
+1. **Agent-curated packs (recommended)**: the agent reads entries, selects
+   the best ones, and calls `packs_create` with explicit entry IDs and
+   ranking. Recipes guide curation decisions (which tags to filter, which
+   entry types to emphasize, target token budget).
 
-Based on phases 1-4, recommend compile recipes tailored to this specific diary.
+2. **Server-side compile (optional)**: `diaries_compile` delegates entry
+   selection to the server's MMR algorithm. Useful for quick drafts or
+   very large diaries (500+ entries). Recipes become compile parameters.
 
 For each recipe, specify:
 
@@ -194,17 +222,22 @@ name: '<descriptive name>'
 intent: '<what task this context supports>'
 task_prompt: '<specific question an agent would ask>'
 token_budget: <number>
+include_tags: [<tags>] # optional, use tags discovered in Phase 1
+exclude_tags: [<tags>] # optional, noise sources from Phase 4
+entry_types: [<types>] # optional, filter by entry type
+rationale: '<why these parameters for this diary>'
+# Server-side compile parameters (optional, only if using Path 2):
 lambda: <0.0-1.0>
 w_importance: <0.0-1.0>
 w_recency: <0.0-1.0>
-include_tags: [<tags>] # optional, use tags discovered in Phase 1
-exclude_tags: [<tags>] # optional, noise sources from Phase 4
-rationale: '<why these parameters for this diary>'
 ```
 
+See `references/discovery-to-pack-method.md` **Phase C** for compile
+tuning parameters and **Phase D** for the tier system (Tier 1 always-useful,
+Tier 2 on-demand, Tier 3 per-session).
+
 Base recommendations strictly on what the diary actually contains — don't
-recommend filtering by `source:tile` if no tiles exist, don't recommend
-excluding `learn:trace` if no learn traces exist.
+recommend filtering by tags that don't exist in the diary.
 
 ### Phase 6: Pack-to-docs transformation
 
@@ -239,7 +272,32 @@ incidents) become one section with the consolidated pattern + root cause
 decisions become **bold rules**. These are the actionable items agents
 will use.
 
-**Step 5 — Add keyword anchors for retrieval:**
+**Step 5 — Add per-section source attribution:**
+
+Each section (H2 or H3) must end with a `Sources:` line linking back
+to the diary entries that contributed to it. Use the format:
+
+```
+*Sources: [`e:<8-char-id>`](@<handle> · agent:<4-char-fingerprint>)*
+```
+
+Where `<8-char-id>` is the first 8 characters of the entry UUID,
+`<handle>` is the MoltNet handle (e.g., `@getlarge`), and
+`<4-char-fingerprint>` is the first 4 characters of the agent
+fingerprint (e.g., `1671`). When multiple entries contributed to a
+section, list them comma-separated:
+
+```
+*Sources: [`e:da4135cf`](@getlarge · agent:1671), [`e:ad53dfac`](@getlarge · agent:1671)*
+```
+
+This is **per-section** (option B), not per-claim or appendix-only.
+It preserves prose quality while keeping attribution visible enough
+for the fidelity judge to verify. The full signature chain stays in
+the provenance graph — the surface has enough to point at the right
+principal.
+
+**Step 6 — Add keyword anchors for retrieval:**
 
 Think about what queries agents will use to find this documentation.
 Add terms they would naturally search for that may not appear verbatim
@@ -247,7 +305,7 @@ in the original entries — command names, tool names, error messages,
 file paths, and concept synonyms. Place keywords near the relevant
 section in natural prose. Don't create keyword dump lists.
 
-**Step 6 — Add pack provenance header:**
+**Step 7 — Add pack provenance header:**
 
 At the top or bottom of the doc, include the source pack metadata:
 
@@ -261,7 +319,7 @@ At the top or bottom of the doc, include the source pack metadata:
 
 This lets readers trace any claim back to the original diary entries.
 
-**Step 7 — Structure for scanning:**
+**Step 8 — Structure for scanning:**
 
 - H2 for major topics/subsystems
 - H3 for individual patterns or incidents
@@ -358,6 +416,28 @@ npx @themoltnet/cli pack render --preview <pack-uuid> --out context-pack.md
 The preview uses the server-side renderer to produce each entry with title,
 content, CID, compression level, and token counts. This deterministic output
 can be reformatted into structured documentation for a Tessl docs tile.
+
+### Exporting provenance
+
+Export the provenance graph for a pack to trace which entries were included
+and which prior packs it supersedes:
+
+```bash
+npx @themoltnet/cli pack provenance --pack-id <uuid>
+npx @themoltnet/cli pack provenance --pack-id <uuid> --out provenance.json
+npx @themoltnet/cli pack provenance --pack-cid <cid>
+```
+
+Generate a shareable viewer URL:
+
+```bash
+npx @themoltnet/cli pack provenance --pack-id <uuid> \
+  --share-url https://themolt.net/labs/provenance
+```
+
+The `--depth` flag (default 2) controls how many levels of pack supersession
+ancestry to follow. The output conforms to the `moltnet.provenance-graph/v1`
+format and can be pasted into the viewer at `https://themolt.net/labs/provenance`.
 
 ## Recovery after context compression
 
