@@ -1,0 +1,26 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent handles ogen-generated multi-status-code responses correctly. The ogen client returns distinct Go types for each HTTP status (DeletePackOK for 200, DeletePackNoContent for 204). Copying the single type assertion pattern from the reference code (res.(*GetPackOK)) misses the 204 path — the assertion returns false, and formatAPIError prints a misleading error even though the deletion succeeded server-side.",
+  "checklist": [
+    {
+      "name": "Handles both 200 and 204 success types",
+      "description": "The response handling uses a type switch or multiple type assertions that handle both *DeletePackOK and *DeletePackNoContent as success cases",
+      "max_score": 45
+    },
+    {
+      "name": "Does not copy single-assertion pattern",
+      "description": "The handler does NOT use only `res.(*DeletePackOK)` like the reference packs_get.go, which would miss the 204 response",
+      "max_score": 25
+    },
+    {
+      "name": "204 path handles no content correctly",
+      "description": "The 204 (No Content) path prints a success message or exits cleanly rather than trying to JSON-print an empty struct",
+      "max_score": 15
+    },
+    {
+      "name": "Notes explain multi-status handling",
+      "description": "The notes.md mentions that ogen generates separate types per HTTP status code, or explains why a type switch is needed",
+      "max_score": 15
+    }
+  ]
+}

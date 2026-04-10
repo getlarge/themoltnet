@@ -1,0 +1,26 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent identifies that e2e tests should use the generated API client for endpoints that exist in the spec, not raw fetch(). The test file uses raw fetch() for all 5 governance endpoints, but the generated sdk.gen.ts already has typed functions for each one (initiateTransfer, acceptTransfer, rejectTransfer, listPendingTransfers, createTeam). Raw fetch is only acceptable for non-spec endpoints like /health, /oauth2/token, and /auth/register.",
+  "checklist": [
+    {
+      "name": "Identifies that all governance endpoints exist in the generated client",
+      "description": "The agent correctly identifies that initiateTransfer, acceptTransfer, rejectTransfer, listPendingTransfers, and createTeam are all available in sdk.gen.ts",
+      "max_score": 25
+    },
+    {
+      "name": "Rewrites tests to use the generated client",
+      "description": "The fixed test file imports and uses createClient from the API client library instead of raw fetch() for governance endpoints",
+      "max_score": 35
+    },
+    {
+      "name": "States the rule for raw fetch vs api-client",
+      "description": "The notes articulate the rule: use the generated client for any endpoint in the OpenAPI spec; raw fetch only for endpoints not in the spec (health, OAuth2 token, auth register)",
+      "max_score": 25
+    },
+    {
+      "name": "Preserves test assertions",
+      "description": "The rewritten tests still verify the same functional expectations (status codes, response shapes) even though the HTTP layer is now abstracted",
+      "max_score": 15
+    }
+  ]
+}

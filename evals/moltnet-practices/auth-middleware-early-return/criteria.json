@@ -1,0 +1,26 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent identifies that the session cookie path in optionalAuth returns early WITHOUT calling resolveTeamContext, while the bearer token path correctly resolves team context. Session-authenticated users (human console users) get no teamId in their authContext, meaning they can't access team-scoped resources. This is a functional asymmetry between two auth paths that should produce equivalent authContext objects.",
+  "checklist": [
+    {
+      "name": "Identifies missing resolveTeamContext on session path",
+      "description": "The agent identifies that the session cookie path (Path 1) returns without calling resolveTeamContext, unlike the bearer token path (Path 2)",
+      "max_score": 40
+    },
+    {
+      "name": "Adds resolveTeamContext to session path",
+      "description": "The fix adds a resolveTeamContext call to the session cookie path before returning, so both paths produce equivalent authContext objects with teamId",
+      "max_score": 30
+    },
+    {
+      "name": "Notes explain impact on team-scoped resources",
+      "description": "The notes explain that without team context, session-authenticated users cannot access team-scoped resources (diaries, packs, entries) even though they are authenticated",
+      "max_score": 20
+    },
+    {
+      "name": "Preserves early-return on auth failure",
+      "description": "The fix does not change the behavior when session validation fails — it only adds team resolution when session auth succeeds",
+      "max_score": 10
+    }
+  ]
+}

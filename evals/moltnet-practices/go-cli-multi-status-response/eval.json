@@ -1,0 +1,9 @@
+{
+  "mode": "vitro",
+  "fixture": {
+    "inject": [
+      { "from": "fixtures/packs_get.go", "to": "apps/moltnet-cli/packs_get.go" },
+      { "from": "fixtures/oas_response_decoders_gen.go", "to": "libs/moltnet-api-client/oas_response_decoders_gen.go" }
+    ]
+  }
+}

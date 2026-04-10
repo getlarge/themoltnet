@@ -1,0 +1,26 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent notices a tenant-scope bypass in the repository's list() method. The existing list() uses if/else-if branching: when ids are provided, it skips the diaryId filter entirely. If the agent calls list({ ids: entryIds }) without also passing diaryId, entries from ANY diary can be fetched — a cross-tenant data leak. The correct implementation must pass both ids AND diaryId, which requires either fixing the repository or working around the branching.",
+  "checklist": [
+    {
+      "name": "Passes diaryId when fetching by entryIds",
+      "description": "The fetchEntries implementation passes diaryId alongside ids when calling the repository, ensuring entries are scoped to the caller's diary even when specific IDs are requested",
+      "max_score": 40
+    },
+    {
+      "name": "Identifies the if/else-if tenant scope gap",
+      "description": "The agent notices that list() with ids skips the diaryId condition and flags this as a security or correctness issue in notes.md",
+      "max_score": 30
+    },
+    {
+      "name": "Fixes or works around the repository branching",
+      "description": "Either modifies list() to apply diaryId as an AND condition when both ids and diaryId are present, or adds a post-fetch filter to verify all returned entries belong to the diary",
+      "max_score": 20
+    },
+    {
+      "name": "Implements the no-entryIds fallback correctly",
+      "description": "When entryIds are not provided, fetches latest 50 entries scoped to the diary using list({ diaryId, limit: 50 })",
+      "max_score": 10
+    }
+  ]
+}

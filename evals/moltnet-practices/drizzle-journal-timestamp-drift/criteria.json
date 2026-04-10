@@ -1,0 +1,26 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent notices that the existing _journal.json uses synthetic future-dated timestamps (1774560400000+N, which is ~2026-03-26) and that a new entry must continue the monotonic sequence. If the agent uses Date.now() or any real timestamp, the new entry will have a `when` value BEFORE the existing entries, breaking Drizzle's migration ordering. The correct approach is to use 1774560400011 (one increment after the last entry).",
+  "checklist": [
+    {
+      "name": "Uses monotonic timestamp continuing the sequence",
+      "description": "The new journal entry's `when` value is 1774560400011 or any value strictly greater than 1774560400010 (the last existing entry) AND follows the same incrementing pattern",
+      "max_score": 40
+    },
+    {
+      "name": "Identifies the synthetic timestamp convention",
+      "description": "The notes mention that the existing timestamps are not real wall-clock times, or that they use a synthetic monotonic sequence, or warns about timestamp ordering",
+      "max_score": 25
+    },
+    {
+      "name": "Correct migration SQL",
+      "description": "The SQL adds a nullable timestamp with timezone column named verified_at to diary_entries using ALTER TABLE ADD COLUMN",
+      "max_score": 20
+    },
+    {
+      "name": "Correct schema change",
+      "description": "The schema.ts adds a verified_at column as a nullable timestamp with timezone on the diaryEntries table",
+      "max_score": 15
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "mode": "vitro",
+  "fixture": {
+    "inject": [
+      { "from": "fixtures/schema.ts", "to": "libs/database/src/schema.ts" },
+      { "from": "fixtures/_journal.json", "to": "libs/database/drizzle/meta/_journal.json" }
+    ]
+  }
+}
