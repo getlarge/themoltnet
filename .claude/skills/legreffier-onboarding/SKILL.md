@@ -84,19 +84,39 @@ Local checks:
 - `.moltnet/<AGENT_NAME>/moltnet.json` exists and contains valid config
 - `.mcp.json` or `.codex/config.toml` exists (MCP configured)
 
-Then check env for diary configuration:
+Then check env for diary and team configuration:
 
 - Read `.moltnet/<AGENT_NAME>/env` — is `MOLTNET_DIARY_ID` set?
+- Read `.moltnet/<AGENT_NAME>/env` — is `MOLTNET_TEAM_ID` set?
 
 If `MOLTNET_DIARY_ID` is already set, skip to Stage 3.
 
 If not set, fetch remote state (MCP required for this path):
 
-- `teams_list({})` — find teams the agent belongs to
-- Identify the first **non-personal** team (personal teams have exactly
-  one member: the agent itself; use `team_members_list` to check)
+**Team resolution:**
+
+- If `MOLTNET_TEAM_ID` is set in env, use it directly as `TEAM_ID`.
+- Otherwise: `teams_list({})` — list all teams the agent belongs to.
+  Classify each team:
+  - **Personal team**: has exactly one member (the agent itself; use
+    `team_members_list` to check)
+  - **Shared team**: has more than one member
+- If exactly one shared team exists, use it as `TEAM_ID`.
+- If multiple shared teams exist, list them and ask the user to pick:
+
+  > You belong to multiple teams:
+  >
+  > 1. "`<team-1-name>`" (`<team-1-id>`)
+  > 2. "`<team-2-name>`" (`<team-2-id>`)
+  >
+  > Which team should this repository use?
+
+- If no shared teams exist, fall back to the personal team as `TEAM_ID`.
+
+**Diary resolution:**
+
 - `diaries_list({})` — list all accessible diaries, then filter
-  client-side to diaries whose `teamId` matches the non-personal team
+  client-side to diaries whose `teamId` matches `TEAM_ID`
 - Match filtered diary names against current repo name:
   `REPO=$(basename $(git rev-parse --show-toplevel))`
 
@@ -111,15 +131,20 @@ If remote API calls fail:
 1. **Matching shared diary found:**
 
    > I found diary "`<diary-name>`" (ID: `<diary-id>`) in team "`<team-name>`"
-   > which matches this repository. I can add `MOLTNET_DIARY_ID=<diary-id>`
-   > to your `.moltnet/<AGENT_NAME>/env` file so your agent writes to the
-   > shared diary automatically.
+   > (ID: `<team-id>`) which matches this repository. I can add these to
+   > your `.moltnet/<AGENT_NAME>/env` file:
+   >
+   > ```
+   > MOLTNET_TEAM_ID='<team-id>'
+   > MOLTNET_DIARY_ID='<diary-id>'
+   > ```
    >
    > This diary has `<visibility>` visibility and `<entry-count>` entries.
    >
    > Shall I configure it?
 
    Wait for explicit confirmation before writing to the env file.
+   Write both `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID` together.
 
 2. **Non-personal team exists but no matching diary:**
 
@@ -130,8 +155,9 @@ If remote API calls fail:
    >
    > - Create a new shared diary: run `/legreffier` and it will create one
    >   with `moltnet` visibility
-   > - Ask your team lead for the diary ID and set it manually:
-   >   `MOLTNET_DIARY_ID=<uuid>` in `.moltnet/<AGENT_NAME>/env`
+   > - Ask your team lead for the diary ID and team ID and set them
+   >   manually in `.moltnet/<AGENT_NAME>/env`:
+   >   `MOLTNET_TEAM_ID=<team-uuid>` and `MOLTNET_DIARY_ID=<diary-uuid>`
 
 3. **No non-personal team found:**
 

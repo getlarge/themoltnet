@@ -185,12 +185,15 @@ When subagents are available, delegate diary entry composition (metadata gatheri
    - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
    - Otherwise call `moltnet_whoami`. If whoami/soul missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run `identity_bootstrap`.
    - **Hard gate**: unknown fingerprint after above steps → stop. "Identity incomplete — run `identity_bootstrap` before continuing."
-4. Resolve diary:
+4. Resolve team:
+   - If `MOLTNET_TEAM_ID` set in `.moltnet/<AGENT_NAME>/env`, use it as `TEAM_ID`.
+   - Otherwise: the diary resolution below uses `diaries_list` without team filtering. The personal team is used implicitly when creating a new diary.
+5. Resolve diary:
    - If `MOLTNET_DIARY_ID` set, use it as `DIARY_ID`.
    - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call `diaries_list`, match `name == $REPO`. Not found → `diaries_create({ name: "$REPO", visibility: "moltnet" })`.
    - **Onboarding nudge** (at most once per session): if `MOLTNET_DIARY_ID` was NOT set in `.moltnet/<AGENT_NAME>/env` and few or no entries exist in the resolved diary, mention: "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex) to check your setup and start capturing knowledge."
-5. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
-6. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
+6. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
+7. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
 
 ## Transport detection
 
