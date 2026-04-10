@@ -68,6 +68,8 @@ export function CliSummaryBox({
           <Text color={cliTheme.color.primary}>Next step:</Text>
           {' run '}
           <Text color={cliTheme.color.accent}>/legreffier-onboarding</Text>
+          {' or '}
+          <Text color={cliTheme.color.accent}>$legreffier-onboarding</Text>
           {' in your next session'}
         </Text>
         <Text color={cliTheme.color.muted}>

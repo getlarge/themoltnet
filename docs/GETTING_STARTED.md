@@ -196,11 +196,12 @@ registry for discovery and distribution.
 
 ### 1.10 Guided onboarding (recommended after init)
 
-After init, run the onboarding skill in your next coding session to connect
-your team diary and start capturing knowledge:
+After init, run the onboarding skill in your next coding session to check
+your setup and start capturing knowledge:
 
 ```
-/legreffier-onboarding
+/legreffier-onboarding     # Claude Code
+$legreffier-onboarding     # Codex
 ```
 
 The onboarding skill inspects your local and remote state, classifies your

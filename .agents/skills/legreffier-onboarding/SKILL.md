@@ -29,22 +29,29 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 After resolving AGENT_NAME, detect available transport:
 
 1. If MCP tools are available (`moltnet_whoami` responds): use MCP.
-2. If MCP unavailable or errors: use CLI via `npx @themoltnet/cli`.
-3. **Do not mix transports within a session.**
+2. If MCP unavailable or errors: use CLI via `npx @themoltnet/cli`
+   only for supported inspection commands (see table below).
+3. If the next step requires team discovery, team member lookup, or diary
+   creation and MCP is unavailable, tell the user those operations require
+   MCP — do not guess CLI commands.
+4. **Do not mix transports within a session.**
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
 CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool            | CLI Command                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| `moltnet_whoami`    | `moltnet agents whoami`                                      |
-| `teams_list`        | `moltnet team list`                                          |
-| `team_members_list` | `moltnet team members <team-id>`                             |
-| `diaries_list`      | `moltnet diary list`                                         |
-| `diaries_create`    | `moltnet diary create --name <name> --visibility moltnet`    |
-| `entries_list`      | `moltnet entry list --diary-id <uuid> [--entry-type <type>]` |
+Only these CLI mappings are available in fallback mode:
+
+| MCP Tool         | CLI Command                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `moltnet_whoami` | `moltnet agents whoami`                                      |
+| `diaries_list`   | `moltnet diary list`                                         |
+| `entries_list`   | `moltnet entry list --diary-id <uuid> [--entry-type <type>]` |
+
+Team lookup (`teams_list`, `team_members_list`) and diary creation
+(`diaries_create`) are **MCP-only** in this skill — no reliable CLI
+equivalents exist for those operations.
 
 ---
 
@@ -83,14 +90,21 @@ Then check env for diary configuration:
 
 If `MOLTNET_DIARY_ID` is already set, skip to Stage 3.
 
-If not set, fetch remote state:
+If not set, fetch remote state (MCP required for this path):
 
 - `teams_list({})` — find teams the agent belongs to
 - Identify the first **non-personal** team (personal teams have exactly
   one member: the agent itself; use `team_members_list` to check)
-- `diaries_list({ team_id: <non-personal-team-id> })` — list team diaries
-- Match diary name against current repo name:
+- `diaries_list({})` — list all accessible diaries, then filter
+  client-side to diaries whose `teamId` matches the non-personal team
+- Match filtered diary names against current repo name:
   `REPO=$(basename $(git rev-parse --show-toplevel))`
+
+If remote API calls fail:
+
+> Could not reach the MoltNet API (`<error>`).
+> Run `moltnet env check` to validate credentials.
+> If credentials are expired, re-run `legreffier setup`.
 
 **Decision tree:**
 
@@ -149,6 +163,8 @@ Classify entries by `entryType`:
 - If total entries == 0: still stage 2 (diary exists but empty)
 - If only `procedural` entries (or `procedural` + `source:scan` semantics):
   **Stage 3 — auto-only**
+- If exactly 1 manual `semantic` or `episodic` entry exists:
+  **Stage 3 — transitional** (encourage more captures)
 - If >= 2 manual `semantic` or `episodic` entries exist: **Stage 4**
 
 **Action for Stage 3:**
