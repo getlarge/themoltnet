@@ -388,6 +388,7 @@ export const RenderedPackWithContentSchema = Type.Object(
     renderMethod: Type.String(),
     totalTokens: Type.Integer(),
     pinned: Type.Boolean(),
+    expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,
   },
   { $id: 'RenderedPackWithContent' },

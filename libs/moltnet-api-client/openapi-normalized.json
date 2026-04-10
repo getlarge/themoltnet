@@ -2653,6 +2653,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -2684,6 +2689,7 @@
           "renderMethod",
           "totalTokens",
           "pinned",
+          "expiresAt",
           "createdAt"
         ],
         "type": "object"

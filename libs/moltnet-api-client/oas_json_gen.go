@@ -35842,6 +35842,10 @@ func (s *RenderedPackWithContent) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.DiaryId)
 	}
 	{
+		e.FieldStart("expiresAt")
+		s.ExpiresAt.Encode(e, json.EncodeDateTime)
+	}
+	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
@@ -35867,17 +35871,18 @@ func (s *RenderedPackWithContent) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRenderedPackWithContent = [10]string{
-	0: "content",
-	1: "contentHash",
-	2: "createdAt",
-	3: "diaryId",
-	4: "id",
-	5: "packCid",
-	6: "pinned",
-	7: "renderMethod",
-	8: "sourcePackId",
-	9: "totalTokens",
+var jsonFieldsNameOfRenderedPackWithContent = [11]string{
+	0:  "content",
+	1:  "contentHash",
+	2:  "createdAt",
+	3:  "diaryId",
+	4:  "expiresAt",
+	5:  "id",
+	6:  "packCid",
+	7:  "pinned",
+	8:  "renderMethod",
+	9:  "sourcePackId",
+	10: "totalTokens",
 }
 
 // Decode decodes RenderedPackWithContent from json.
@@ -35937,8 +35942,18 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
-		case "id":
+		case "expiresAt":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAt\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -35950,7 +35965,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "packCid":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCid = string(v)
@@ -35962,7 +35977,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
 		case "pinned":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Bool()
 				s.Pinned = bool(v)
@@ -35974,7 +35989,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
 		case "renderMethod":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.RenderMethod = string(v)
@@ -35986,7 +36001,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"renderMethod\"")
 			}
 		case "sourcePackId":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SourcePackId = v
@@ -35998,7 +36013,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourcePackId\"")
 			}
 		case "totalTokens":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalTokens = int(v)
@@ -36020,7 +36035,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

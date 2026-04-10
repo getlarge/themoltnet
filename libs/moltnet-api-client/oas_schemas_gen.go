@@ -13443,16 +13443,17 @@ func (*RenderedPackResult) renderContextPackRes() {}
 
 // Ref: #/components/schemas/RenderedPackWithContent
 type RenderedPackWithContent struct {
-	Content      string    `json:"content"`
-	ContentHash  string    `json:"contentHash"`
-	CreatedAt    time.Time `json:"createdAt"`
-	DiaryId      uuid.UUID `json:"diaryId"`
-	ID           uuid.UUID `json:"id"`
-	PackCid      string    `json:"packCid"`
-	Pinned       bool      `json:"pinned"`
-	RenderMethod string    `json:"renderMethod"`
-	SourcePackId uuid.UUID `json:"sourcePackId"`
-	TotalTokens  int       `json:"totalTokens"`
+	Content      string      `json:"content"`
+	ContentHash  string      `json:"contentHash"`
+	CreatedAt    time.Time   `json:"createdAt"`
+	DiaryId      uuid.UUID   `json:"diaryId"`
+	ExpiresAt    NilDateTime `json:"expiresAt"`
+	ID           uuid.UUID   `json:"id"`
+	PackCid      string      `json:"packCid"`
+	Pinned       bool        `json:"pinned"`
+	RenderMethod string      `json:"renderMethod"`
+	SourcePackId uuid.UUID   `json:"sourcePackId"`
+	TotalTokens  int         `json:"totalTokens"`
 }
 
 // GetContent returns the value of Content.
@@ -13473,6 +13474,11 @@ func (s *RenderedPackWithContent) GetCreatedAt() time.Time {
 // GetDiaryId returns the value of DiaryId.
 func (s *RenderedPackWithContent) GetDiaryId() uuid.UUID {
 	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *RenderedPackWithContent) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
 }
 
 // GetID returns the value of ID.
@@ -13523,6 +13529,11 @@ func (s *RenderedPackWithContent) SetCreatedAt(val time.Time) {
 // SetDiaryId sets the value of DiaryId.
 func (s *RenderedPackWithContent) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *RenderedPackWithContent) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
 }
 
 // SetID sets the value of ID.

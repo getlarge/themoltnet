@@ -3321,6 +3321,17 @@
             "format": "uuid",
             "type": "string"
           },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -3352,6 +3363,7 @@
           "renderMethod",
           "totalTokens",
           "pinned",
+          "expiresAt",
           "createdAt"
         ],
         "type": "object"

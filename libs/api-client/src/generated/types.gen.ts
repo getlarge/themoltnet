@@ -743,6 +743,7 @@ export type RenderedPackWithContent = {
   renderMethod: string;
   totalTokens: number;
   pinned: boolean;
+  expiresAt: string | null;
   createdAt: string;
 };
 
