@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.21.1](https://github.com/getlarge/themoltnet/compare/cli-v1.21.0...cli-v1.21.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* **cli:** config portability — agent name and git identity export/import ([4bfad3e](https://github.com/getlarge/themoltnet/commit/4bfad3e02e302cd9e9b68db8ae20e74ebdd51594))
+* **cli:** config portability — agent name, git identity, docs ([1cb997b](https://github.com/getlarge/themoltnet/commit/1cb997b9999ddc10c2ab8426b4aef8f990ddc834))
+* **moltnet-cli:** isolate config tests from ambient MOLTNET_* env vars ([53ff938](https://github.com/getlarge/themoltnet/commit/53ff9384ef8e4e31fb1749f5f410413109ecc5a9))
+
 ## [1.21.0](https://github.com/getlarge/themoltnet/compare/cli-v1.20.0...cli-v1.21.0) (2026-04-10)
 
 
