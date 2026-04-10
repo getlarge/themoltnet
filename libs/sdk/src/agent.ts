@@ -11,6 +11,10 @@ import type {
   CreateDiaryEntryData,
   CreateDiaryGrantData,
   CreateDiaryGrantResponse,
+  CreateTeamData,
+  CreateTeamInviteData,
+  CreateTeamInviteResponse,
+  CreateTeamResponse,
   CryptoIdentity,
   CryptoVerifyResult,
   DiaryCatalog,
@@ -30,12 +34,14 @@ import type {
   GetTeamResponse,
   GetTrustGraphData,
   Health,
+  JoinTeamResponse,
   ListDiariesData,
   ListDiaryEntriesData,
   ListDiaryGrantsResponse,
   ListDiaryPacksData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
+  ListTeamInvitesResponse,
   ListTeamMembersResponse,
   ListTeamsResponse,
   NetworkInfo,
@@ -270,6 +276,15 @@ export interface TeamsNamespace {
   list(): Promise<ListTeamsResponse>;
   get(id: string): Promise<GetTeamResponse>;
   listMembers(id: string): Promise<ListTeamMembersResponse>;
+  create(body: CreateTeamData['body']): Promise<CreateTeamResponse>;
+  join(code: string): Promise<JoinTeamResponse>;
+  invites: {
+    create(
+      teamId: string,
+      body?: CreateTeamInviteData['body'],
+    ): Promise<CreateTeamInviteResponse>;
+    list(teamId: string): Promise<ListTeamInvitesResponse>;
+  };
 }
 
 export interface DiaryGrantsNamespace {
