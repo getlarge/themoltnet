@@ -33,6 +33,9 @@ func clearMoltnetEnv(t *testing.T) {
 		"MOLTNET_GITHUB_APP_INSTALLATION_ID",
 		"MOLTNET_GITHUB_APP_PRIVATE_KEY",
 		"MOLTNET_GITHUB_APP_SLUG",
+		"MOLTNET_AGENT_NAME",
+		"MOLTNET_GIT_NAME",
+		"MOLTNET_GIT_EMAIL",
 	} {
 		t.Setenv(key, "")
 	}

@@ -41,9 +41,18 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 			API: "https://api.test.example.com",
 			MCP: "https://mcp.test.example.com/mcp",
 		},
+		Git: &GitSection{
+			Name:  "test-bot",
+			Email: "test-bot@agents.themolt.net",
+		},
 		RegisteredAt: "2025-01-01T00:00:00Z",
 	}
-	credPath := filepath.Join(tmpDir, "moltnet.json")
+	// Write config in .moltnet/<agent>/ structure so agent name is derivable
+	agentDir := filepath.Join(tmpDir, ".moltnet", "test-bot")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	credPath := filepath.Join(agentDir, "moltnet.json")
 	if _, err := WriteConfigTo(config, credPath); err != nil {
 		t.Fatal(err)
 	}
@@ -56,6 +65,7 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 
 	// Check that all required vars are present
 	for _, expected := range []string{
+		"MOLTNET_AGENT_NAME=test-bot",
 		"MOLTNET_IDENTITY_ID=export-test-id",
 		"MOLTNET_CLIENT_ID=export-client-id",
 		"MOLTNET_CLIENT_SECRET=export-client-secret",
@@ -64,6 +74,8 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 		"MOLTNET_FINGERPRINT=SHA256:exportfingerprint",
 		"MOLTNET_API_URL=https://api.test.example.com",
 		"MOLTNET_REGISTERED_AT=2025-01-01T00:00:00Z",
+		"MOLTNET_GIT_NAME=test-bot",
+		"MOLTNET_GIT_EMAIL=test-bot@agents.themolt.net",
 	} {
 		if !strings.Contains(stdout, expected) {
 			t.Errorf("expected stdout to contain %q, got:\n%s", expected, stdout)
@@ -220,7 +232,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from overriding exported values
 	tmpDir := t.TempDir()
 
-	// Create a config via export-env, then verify init-from-env can consume it
+	// Create a config in .moltnet/<agent>/ structure with git identity
 	config := &CredentialsFile{
 		IdentityID: "roundtrip-id",
 		OAuth2: CredentialsOAuth2{
@@ -236,9 +248,17 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 			API: "https://api.rt.example.com",
 			MCP: "https://mcp.rt.example.com/mcp",
 		},
+		Git: &GitSection{
+			Name:  "rt-agent",
+			Email: "rt-agent+rt-agent[bot]@users.noreply.github.com",
+		},
 		RegisteredAt: "2025-06-01T12:00:00Z",
 	}
-	credPath := filepath.Join(tmpDir, "source", "moltnet.json")
+	sourceAgentDir := filepath.Join(tmpDir, "source", ".moltnet", "rt-agent")
+	if err := os.MkdirAll(sourceAgentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	credPath := filepath.Join(sourceAgentDir, "moltnet.json")
 	if _, err := WriteConfigTo(config, credPath); err != nil {
 		t.Fatal(err)
 	}
@@ -254,11 +274,26 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 		t.Fatalf("export-env failed: %v", err)
 	}
 
-	// Step 2: init-from-env from that file into a new directory
+	// Verify exported file contains agent name and git identity
+	exported, err := os.ReadFile(envFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exportedContent := string(exported)
+	for _, expected := range []string{
+		"MOLTNET_AGENT_NAME=rt-agent",
+		"MOLTNET_GIT_NAME=rt-agent",
+		"MOLTNET_GIT_EMAIL=rt-agent+rt-agent[bot]@users.noreply.github.com",
+	} {
+		if !strings.Contains(exportedContent, expected) {
+			t.Errorf("exported env missing %q, got:\n%s", expected, exportedContent)
+		}
+	}
+
+	// Step 2: init-from-env WITHOUT --agent — should derive from MOLTNET_AGENT_NAME
 	targetDir := filepath.Join(tmpDir, "target")
 	root2 := NewRootCmd("test", "")
 	_, _, err = executeCommand(root2, "config", "init-from-env",
-		"--agent", "roundtrip-agent",
 		"--dir", targetDir,
 		"--skip-git",
 		"--env-file", envFile,
@@ -269,7 +304,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 3: read back the reconstructed config and verify
 	reconstructed, err := ReadConfigFrom(
-		filepath.Join(targetDir, ".moltnet", "roundtrip-agent", "moltnet.json"),
+		filepath.Join(targetDir, ".moltnet", "rt-agent", "moltnet.json"),
 	)
 	if err != nil {
 		t.Fatalf("failed to read reconstructed config: %v", err)

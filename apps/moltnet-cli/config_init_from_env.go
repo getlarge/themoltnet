@@ -30,10 +30,6 @@ func getenv(key string, fileVars map[string]string, override bool) string {
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where legreffier init cannot run interactively.
 func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
-	if agentName == "" {
-		return fmt.Errorf("--agent is required")
-	}
-
 	// Read env file without mutating the process environment.
 	var fileVars map[string]string
 	if envFile != "" {
@@ -43,6 +39,14 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 			return fmt.Errorf("read env file %q: %w", envFile, err)
 		}
 		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
+	}
+
+	// Resolve agent name: --agent flag > MOLTNET_AGENT_NAME env var
+	if agentName == "" {
+		agentName = getenv("MOLTNET_AGENT_NAME", fileVars, override)
+	}
+	if agentName == "" {
+		return fmt.Errorf("--agent is required (or set MOLTNET_AGENT_NAME)")
 	}
 
 	// Resolve agent config directory early so we can skip before validating env vars.
@@ -157,7 +161,12 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 
 	// Set up git signing (reuses existing logic)
 	if !skipGit {
-		if err := runGitSetupCmd(configPath, agentName, ""); err != nil {
+		gitName := getenv("MOLTNET_GIT_NAME", fileVars, override)
+		gitEmail := getenv("MOLTNET_GIT_EMAIL", fileVars, override)
+		if gitName == "" {
+			gitName = agentName
+		}
+		if err := runGitSetupCmd(configPath, gitName, gitEmail); err != nil {
 			return fmt.Errorf("git setup: %w", err)
 		}
 	}
@@ -178,7 +187,7 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 }
 
 // shellQuote escapes a value for single-quoted shell strings by replacing
-// each ' with '\''.
+// each ' with '\”.
 func shellQuote(v string) string {
 	return strings.ReplaceAll(v, "'", `'\''`)
 }
