@@ -235,10 +235,13 @@ func validateFixtureInjectSources(scenarioDir string, m *evalManifest) error {
 		}
 		info, err := os.Stat(absFrom)
 		if err != nil {
-			return fmt.Errorf("fixture.inject[%d]: from %q does not exist in scenario dir", i, inj.From)
+			if os.IsNotExist(err) {
+				return fmt.Errorf("fixture.inject[%d]: from %q not found in scenario dir", i, inj.From)
+			}
+			return fmt.Errorf("fixture.inject[%d]: stat from %q: %w", i, inj.From, err)
 		}
-		if info.IsDir() {
-			return fmt.Errorf("fixture.inject[%d]: from %q is a directory, only files are supported", i, inj.From)
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("fixture.inject[%d]: from %q must be a regular file, got %s", i, inj.From, info.Mode().Type())
 		}
 	}
 	return nil

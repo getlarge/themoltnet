@@ -426,8 +426,8 @@ func TestValidateFixtureInjectSources_RejectsMissingFile(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing inject source file")
 	}
-	if !strings.Contains(err.Error(), "does not exist") {
-		t.Errorf("expected 'does not exist' in error, got: %v", err)
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' in error, got: %v", err)
 	}
 }
 
@@ -506,8 +506,8 @@ func TestValidateFixtureInjectSources_RejectsDirectory(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for directory as inject source")
 	}
-	if !strings.Contains(err.Error(), "directory") {
-		t.Errorf("expected 'directory' in error, got: %v", err)
+	if !strings.Contains(err.Error(), "regular file") {
+		t.Errorf("expected 'regular file' in error, got: %v", err)
 	}
 }
 
@@ -532,8 +532,8 @@ func TestValidateScenario_InjectValidation(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing inject source in validateScenario")
 	}
-	if !strings.Contains(err.Error(), "does not exist") {
-		t.Errorf("expected 'does not exist' in error, got: %v", err)
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' in error, got: %v", err)
 	}
 }
 
