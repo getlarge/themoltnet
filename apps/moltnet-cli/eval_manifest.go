@@ -31,9 +31,18 @@ type evalManifest struct {
 }
 
 type evalManifestFixture struct {
-	Ref     string   `json:"ref,omitempty"`
-	Exclude []string `json:"exclude,omitempty"`
-	Include []string `json:"include,omitempty"`
+	Ref     string               `json:"ref,omitempty"`
+	Exclude []string             `json:"exclude,omitempty"`
+	Include []string             `json:"include,omitempty"`
+	Inject  []evalManifestInject `json:"inject,omitempty"`
+}
+
+// evalManifestInject maps a file from the scenario directory into the
+// worktree at an arbitrary target path. From is resolved relative to the
+// scenario dir; To is resolved relative to the worktree root.
+type evalManifestInject struct {
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 type evalManifestPack struct {
@@ -93,6 +102,9 @@ func validateScenario(dir string) (*evalManifest, error) {
 		return nil, nil
 	}
 	if err := validateEvalManifest(m); err != nil {
+		return nil, fmt.Errorf("eval.json in %s: %w", dir, err)
+	}
+	if err := validateFixtureInjectSources(dir, m); err != nil {
 		return nil, fmt.Errorf("eval.json in %s: %w", dir, err)
 	}
 	return m, nil
@@ -163,9 +175,39 @@ func validateEvalManifest(m *evalManifest) error {
 	if m.Pack != nil && strings.TrimSpace(m.Pack.Path) == "" {
 		return fmt.Errorf("pack.path must be non-empty if pack is set")
 	}
+	for i, inj := range m.Fixture.Inject {
+		if strings.TrimSpace(inj.From) == "" {
+			return fmt.Errorf("fixture.inject[%d]: from must be non-empty", i)
+		}
+		to := filepath.ToSlash(inj.To)
+		if strings.TrimSpace(to) == "" {
+			return fmt.Errorf("fixture.inject[%d]: to must be non-empty", i)
+		}
+		if filepath.IsAbs(to) {
+			return fmt.Errorf("fixture.inject[%d]: to must be a relative path, got %q", i, inj.To)
+		}
+		if strings.Contains(to, "..") {
+			return fmt.Errorf("fixture.inject[%d]: to must not contain '..', got %q", i, inj.To)
+		}
+	}
 	if m.Solver != "" {
 		if _, err := solver.ParseKind(m.Solver); err != nil {
 			return fmt.Errorf("solver: %w", err)
+		}
+	}
+	return nil
+}
+
+// validateFixtureInjectSources checks that every fixture.inject[].from path
+// exists on disk relative to the scenario directory.
+func validateFixtureInjectSources(scenarioDir string, m *evalManifest) error {
+	if m == nil {
+		return nil
+	}
+	for i, inj := range m.Fixture.Inject {
+		absFrom := filepath.Join(scenarioDir, inj.From)
+		if _, err := os.Stat(absFrom); err != nil {
+			return fmt.Errorf("fixture.inject[%d]: from %q does not exist in scenario dir", i, inj.From)
 		}
 	}
 	return nil

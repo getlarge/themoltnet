@@ -251,7 +251,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		return nil, fmt.Errorf("creating variant dir: %w", err)
 	}
 
-	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName, opts, input.manifest)
+	worktreeDir, cleanupWorktree, err := createDSPYEvalWorktree(variantDir, variantName, opts, input.manifest, input.scenarioDir)
 	if err != nil {
 		return nil, err
 	}
