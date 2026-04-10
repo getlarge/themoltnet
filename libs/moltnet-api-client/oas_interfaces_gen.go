@@ -313,6 +313,10 @@ type UpdateEntryRelationStatusRes interface {
 	updateEntryRelationStatusRes()
 }
 
+type UpdateRenderedPackRes interface {
+	updateRenderedPackRes()
+}
+
 type VerifyAgentSignatureRes interface {
 	verifyAgentSignatureRes()
 }

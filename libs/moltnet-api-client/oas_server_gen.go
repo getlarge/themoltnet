@@ -520,6 +520,12 @@ type Handler interface {
 	//
 	// PATCH /relations/{id}
 	UpdateEntryRelationStatus(ctx context.Context, req *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (UpdateEntryRelationStatusRes, error)
+	// UpdateRenderedPack implements updateRenderedPack operation.
+	//
+	// Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+	//
+	// PATCH /rendered-packs/{id}
+	UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (UpdateRenderedPackRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.

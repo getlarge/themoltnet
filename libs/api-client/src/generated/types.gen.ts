@@ -3025,6 +3025,54 @@ export type GetRenderedPackByIdResponses = {
 export type GetRenderedPackByIdResponse =
   GetRenderedPackByIdResponses[keyof GetRenderedPackByIdResponses];
 
+export type UpdateRenderedPackData = {
+  body?: {
+    pinned?: boolean;
+    expiresAt?: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}';
+};
+
+export type UpdateRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateRenderedPackError =
+  UpdateRenderedPackErrors[keyof UpdateRenderedPackErrors];
+
+export type UpdateRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackWithContent;
+};
+
+export type UpdateRenderedPackResponse =
+  UpdateRenderedPackResponses[keyof UpdateRenderedPackResponses];
+
 export type VerifyRenderedPackData = {
   /**
    * Trigger fidelity verification for an agent-rendered pack.

@@ -13,6 +13,7 @@ import {
   RenderedPackParamsSchema,
   RenderedPackPreviewSchema,
   RenderedPackResultSchema,
+  RenderedPackUpdateBodySchema,
   RenderedPackWithContentSchema,
   RenderPackBodySchema,
   RenderPackPreviewBodySchema,
@@ -381,6 +382,110 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       }
 
       return rendered;
+    },
+  );
+
+  // ── PATCH /rendered-packs/:id ──────────────────────────────────
+
+  server.patch(
+    '/rendered-packs/:id',
+    {
+      schema: {
+        operationId: 'updateRenderedPack',
+        tags: ['diary'],
+        description:
+          'Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.',
+        security: [{ bearerAuth: [] }],
+        params: RenderedPackParamsSchema,
+        body: RenderedPackUpdateBodySchema,
+        response: {
+          200: Type.Ref(RenderedPackWithContentSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const rendered = await fastify.renderedPackRepository.findById(
+        request.params.id,
+      );
+      if (!rendered) {
+        throw createProblem('not-found', 'Rendered pack not found');
+      }
+
+      // Permission check via source pack
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const allowed = await fastify.permissionChecker.canManagePack(
+        rendered.sourcePackId,
+        identityId,
+        subjectNs,
+      );
+      if (!allowed) {
+        throw createProblem(
+          'forbidden',
+          'Not authorized to manage this rendered pack',
+        );
+      }
+
+      const { pinned, expiresAt } = request.body;
+      const now = new Date();
+
+      if (pinned === false && !expiresAt) {
+        throw createProblem(
+          'validation-failed',
+          'expiresAt is required when setting pinned to false',
+        );
+      }
+      if (
+        expiresAt !== undefined &&
+        pinned !== true &&
+        new Date(expiresAt) <= now
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'expiresAt must be in the future',
+        );
+      }
+      if (pinned === undefined && expiresAt !== undefined && rendered.pinned) {
+        throw createProblem(
+          'validation-failed',
+          'Cannot set expiresAt on a pinned pack — unpin it first or send pinned: false together',
+        );
+      }
+      if (pinned === undefined && expiresAt === undefined) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of pinned or expiresAt must be provided',
+        );
+      }
+
+      const updated = await fastify.dataSource.runTransaction(async () => {
+        if (pinned === true) {
+          await fastify.renderedPackRepository.pin(rendered.id);
+        } else if (pinned === false) {
+          await fastify.renderedPackRepository.unpin(
+            rendered.id,
+            new Date(expiresAt!),
+          );
+        } else if (expiresAt !== undefined) {
+          await fastify.renderedPackRepository.updateExpiry(
+            rendered.id,
+            new Date(expiresAt),
+          );
+        }
+
+        return fastify.renderedPackRepository.findById(rendered.id);
+      });
+
+      if (!updated) {
+        throw createProblem('not-found', 'Rendered pack not found');
+      }
+      return updated;
     },
   );
 }

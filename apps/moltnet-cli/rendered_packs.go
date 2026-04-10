@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -67,6 +68,46 @@ func runRenderedPacksGet(apiURL, credPath, id string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("rendered-packs get: %w", err)
+	}
+
+	pack, ok := res.(*moltnetapi.RenderedPackWithContent)
+	if !ok {
+		return formatAPIError(res)
+	}
+
+	return printJSON(pack)
+}
+
+func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt string) error {
+	renderedPackID, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid --id %q: %w", id, err)
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	req := moltnetapi.UpdateRenderedPackReq{}
+	if pinned != nil {
+		req.Pinned = moltnetapi.NewOptBool(*pinned)
+	}
+	if expiresAt != "" {
+		t, err := time.Parse(time.RFC3339, expiresAt)
+		if err != nil {
+			return fmt.Errorf("invalid --expires-at %q: %w", expiresAt, err)
+		}
+		req.ExpiresAt = moltnetapi.NewOptDateTime(t)
+	}
+
+	res, err := client.UpdateRenderedPack(
+		context.Background(),
+		moltnetapi.OptUpdateRenderedPackReq{Value: req, Set: true},
+		moltnetapi.UpdateRenderedPackParams{ID: renderedPackID},
+	)
+	if err != nil {
+		return fmt.Errorf("rendered-packs update: %w", err)
 	}
 
 	pack, ok := res.(*moltnetapi.RenderedPackWithContent)

@@ -102,6 +102,7 @@ var operationRolesBearerAuth = map[string][]string{
 	UpdateDiaryOperation:                   []string{},
 	UpdateDiaryEntryByIdOperation:          []string{},
 	UpdateEntryRelationStatusOperation:     []string{},
+	UpdateRenderedPackOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
 	VerifyRenderedPackOperation:            []string{},
 }

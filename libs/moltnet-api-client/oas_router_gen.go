@@ -141,7 +141,8 @@ var (
 		"PATCH":  "Authorization,Content-Type",
 	}
 	rn13AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET":   "Authorization",
+		"PATCH": "Authorization,Content-Type",
 	}
 	rn107AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
@@ -1976,12 +1977,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							s.handleGetRenderedPackByIdRequest([1]string{
 								args[0],
 							}, elemIsEscaped, w, r)
+						case "PATCH":
+							s.handleUpdateRenderedPackRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
 						default:
 							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "GET",
+								allowedMethods: "GET,PATCH",
 								allowedHeaders: rn13AllowedHeaders,
 								acceptPost:     "",
-								acceptPatch:    "",
+								acceptPatch:    "application/json",
 							})
 						}
 
@@ -4458,6 +4463,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							r.name = GetRenderedPackByIdOperation
 							r.summary = ""
 							r.operationID = "getRenderedPackById"
+							r.operationGroup = ""
+							r.pathPattern = "/rendered-packs/{id}"
+							r.args = args
+							r.count = 1
+							return r, true
+						case "PATCH":
+							r.name = UpdateRenderedPackOperation
+							r.summary = ""
+							r.operationID = "updateRenderedPack"
 							r.operationGroup = ""
 							r.pathPattern = "/rendered-packs/{id}"
 							r.args = args
