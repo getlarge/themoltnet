@@ -222,6 +222,7 @@ the agent is already initialized is a no-op.
 
 | Variable                | Source                                  |
 | ----------------------- | --------------------------------------- |
+| `MOLTNET_AGENT_NAME`    | directory name in `.moltnet/<agent>/`   |
 | `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`          |
 | `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`     |
 | `MOLTNET_CLIENT_SECRET` | `moltnet.json` → `oauth2.client_secret` |
@@ -229,16 +230,25 @@ the agent is already initialized is a no-op.
 | `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`     |
 | `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`     |
 
+`MOLTNET_AGENT_NAME` can alternatively be passed via `--agent`. When
+using `--env-file`, the name in the file is used automatically.
+
 **Optional variables:**
 
 | Variable                             | Default                   |
 | ------------------------------------ | ------------------------- |
 | `MOLTNET_API_URL`                    | `https://api.themolt.net` |
 | `MOLTNET_REGISTERED_AT`              | current time              |
+| `MOLTNET_GIT_NAME`                   | agent name                |
+| `MOLTNET_GIT_EMAIL`                  | —                         |
 | `MOLTNET_GITHUB_APP_ID`              | —                         |
 | `MOLTNET_GITHUB_APP_SLUG`            | —                         |
 | `MOLTNET_GITHUB_APP_INSTALLATION_ID` | —                         |
 | `MOLTNET_GITHUB_APP_PRIVATE_KEY`     | PEM content (not path)    |
+
+`MOLTNET_GIT_NAME` and `MOLTNET_GIT_EMAIL` are used for git commit
+signing setup. If `MOLTNET_GIT_NAME` is not set, it defaults to the
+agent name.
 
 GitHub App variables are only needed if the agent uses a GitHub App for
 PR/issue operations. All four must be set together (except slug, which
@@ -252,9 +262,8 @@ moltnet config export-env \
   --credentials .moltnet/legreffier/moltnet.json \
   --include-github-pem -o .env.moltnet
 
-# On the target machine: reconstruct
-moltnet config init-from-env --agent legreffier \
-  --env-file .env.moltnet
+# On the target machine: reconstruct (agent name derived from env file)
+moltnet config init-from-env --env-file .env.moltnet
 
 # Verify
 moltnet env check

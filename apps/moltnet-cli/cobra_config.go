@@ -28,21 +28,25 @@ func newConfigCmd() *cobra.Command {
 Designed for ephemeral environments (CI, Claude Code web) where
 legreffier init cannot run interactively.
 
+Agent name resolution: --agent flag > MOLTNET_AGENT_NAME env var.
+
 Required env vars:
   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
 
 Optional env vars:
+  MOLTNET_AGENT_NAME (alternative to --agent flag)
   MOLTNET_API_URL (default: https://api.themolt.net)
   MOLTNET_REGISTERED_AT (default: now)
+  MOLTNET_GIT_NAME (default: agent name), MOLTNET_GIT_EMAIL
   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_SLUG,
   MOLTNET_GITHUB_APP_INSTALLATION_ID, MOLTNET_GITHUB_APP_PRIVATE_KEY`,
 		Example: `  # Set env vars, then run:
   moltnet config init-from-env --agent legreffier
   moltnet config init-from-env --agent legreffier --skip-git
 
-  # Load vars from a file (process env wins by default):
-  moltnet config init-from-env --agent legreffier --env-file .env.moltnet
+  # Derive agent name from MOLTNET_AGENT_NAME in env file:
+  moltnet config init-from-env --env-file .env.moltnet
 
   # Load vars from a file and override process env:
   moltnet config init-from-env --agent legreffier --env-file .env.moltnet --override`,
@@ -55,8 +59,7 @@ Optional env vars:
 			return runConfigInitFromEnvCmd(dir, agent, skipGit, envFile, override)
 		},
 	}
-	initFromEnvCmd.Flags().String("agent", "", "Agent name (required)")
-	_ = initFromEnvCmd.MarkFlagRequired("agent")
+	initFromEnvCmd.Flags().String("agent", "", "Agent name (or set MOLTNET_AGENT_NAME)")
 	initFromEnvCmd.Flags().String("dir", ".", "Repository root directory")
 	initFromEnvCmd.Flags().Bool("skip-git", false, "Skip git signing setup")
 	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
