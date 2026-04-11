@@ -28,9 +28,10 @@
     "node": ">=22"
   },
   "dependencies": {
-    "figlet": "^1.8.0",
-    "ink": "^6.8.0",
-    "open": "^10.1.2",
+    "citty": "catalog:",
+    "figlet": "catalog:",
+    "ink": "catalog:",
+    "open": "catalog:",
     "react": "catalog:",
     "smol-toml": "catalog:"
   },
