@@ -60,6 +60,35 @@ use CLI for these operations regardless of transport mode.
 
 ---
 
+## Temporal thresholds
+
+Stages 1-3 factor in how long ago things happened. Signals are derived
+from data already returned by the calls the skill is making anyway —
+no extra API calls.
+
+```
+STALE_MANUAL_DAYS = 30   // manual capture has gone quiet
+RECENT_DAYS       = 7    // just happened
+ADOPTION_LAG_DAYS = 7    // registered but still not connected
+```
+
+**Signal sources:**
+
+| Signal                 | Source                                                          |
+| ---------------------- | --------------------------------------------------------------- |
+| `REGISTERED_AT`        | `.moltnet/<AGENT_NAME>/moltnet.json` → `registered_at` (local)  |
+| `DIARY_CREATED_AT`     | `diaries_list` response (fetched in Stage 2)                    |
+| `TEAM_CREATED_AT`      | `teams_list` response (fetched in Stage 2)                      |
+| `LAST_ENTRY_AT`        | max `createdAt` from `entries_list` (Stage 3)                   |
+| `LAST_MANUAL_ENTRY_AT` | max `createdAt` filtered to non-`source:scan` semantic/episodic |
+| `NOW`                  | runtime                                                         |
+
+Before proposing the action for a stage, print a single-line `**Signals:**`
+block summarizing the relevant ages (e.g. `Registered 42 days ago.
+Personal-only team. No diary yet.`). **Stage 4 has no Signals line** —
+the user is already capturing manually and signals would be noise
+without a corrective action.
+
 ## Adoption stages
 
 The skill classifies the current repo into one of four stages. Each stage
@@ -71,6 +100,22 @@ has a detection method and a recommended action.
 
 - `.moltnet/` directory does not exist, OR
 - No subdirectory in `.moltnet/` contains a `moltnet.json` file
+
+**Signals:** Read `REGISTERED_AT` from `.moltnet/<AGENT_NAME>/moltnet.json`
+if the directory exists but `moltnet.json` is incomplete. Compute
+`days = (NOW - REGISTERED_AT) / 1 day`. Show:
+`Registered <days> days ago. Setup never completed.`
+
+**Refinement — "installed but never adopted"**
+
+If `.moltnet/` exists with a `<AGENT_NAME>/` subdirectory but the
+`moltnet.json` inside is missing or incomplete, **and** `REGISTERED_AT`
+is more than `ADOPTION_LAG_DAYS` ago, lead with a stronger framing:
+
+> You registered `<N>` days ago but never completed setup. Run `init` to
+> finish, or `port` if you've been using this agent elsewhere.
+
+Otherwise use the default action:
 
 **Action:**
 
@@ -128,6 +173,27 @@ suggest `--from <repo-name>` or `--from ~/...` forms — those shapes
 are rejected by the CLI.
 
 ### Stage 2: Initialized but not connected to a shared diary
+
+**Signals:** Read `REGISTERED_AT` from `moltnet.json`, and — after
+`teams_list` runs — `TEAM_CREATED_AT` for the resolved team. Print:
+`Registered <N> days ago. Team <name> created <M> days ago. No diary yet.`
+
+**Refinement — "delayed activation"**
+
+If `REGISTERED_AT` is more than `ADOPTION_LAG_DAYS` ago, soften the
+opening framing of the action block:
+
+> You've been registered for `<N>` days. Let's get this repo wired up.
+
+**Refinement — "team lead onboarding"**
+
+After team resolution, if `TEAM_CREATED_AT` is within `RECENT_DAYS` and
+the resolved team is shared (not personal), append this note to the
+team-resolved branch:
+
+> Your team `<name>` was created `<N>` days ago — if you're the team
+> lead setting this up, choose create-diary when the main `/legreffier`
+> skill offers it.
 
 **Detection (local first, then remote):**
 
@@ -274,6 +340,24 @@ If remote API calls fail:
 
 ### Stage 3: Connected but only auto-harvesting
 
+**Signals:** Compute `LAST_ENTRY_AT` as `max(createdAt)` across the
+`entries_list` response and `LAST_MANUAL_ENTRY_AT` as the same filtered
+to non-`source:scan` semantic/episodic entries (may be `null`). Print:
+`<procedural-count> procedural entries. Last entry <N> days ago.
+No manual captures yet.`
+
+**Refinement — "auto-only stalled"**
+
+If only procedural/scan entries exist **and** `LAST_ENTRY_AT` is more
+than `STALE_MANUAL_DAYS` ago, replace the default Stage 3 action with a
+stronger nudge:
+
+> Commit capture is running but the last entry was `<N>` days ago. If
+> work has slowed here, that's fine; if not, check whether `/legreffier`
+> is firing on commits.
+
+Otherwise use the default Stage 3 action below.
+
 **Detection (requires API calls):**
 
 Resolve `DIARY_ID` from env or by matching repo name via `diaries_list`.
@@ -336,8 +420,9 @@ If scan entries exist but no manual entries:
 > design compile recipes. Then use `/legreffier-consolidate` to build
 > entry relations and prepare for context packs.
 >
-> See the co-located reference doc for the full harvest -> compile ->
-> evaluate -> load pipeline.
+> If the user wants the full harvest -> compile -> evaluate -> load
+> pipeline, fetch
+> `https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md`.
 
 ---
 
