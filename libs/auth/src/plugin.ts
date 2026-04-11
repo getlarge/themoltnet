@@ -54,6 +54,33 @@ function extractSessionToken(request: FastifyRequest): string | null {
   return token?.trim() || null;
 }
 
+/**
+ * Extract the raw `Cookie` request header for Kratos browser session auth.
+ * The value is forwarded unchanged to Kratos, which extracts
+ * `ory_kratos_session` (or whichever cookie name its deployment uses) itself.
+ * We intentionally do not parse or rename cookies here.
+ */
+function extractCookieHeader(request: FastifyRequest): string | null {
+  const header = request.headers.cookie as string | string[] | undefined;
+  const value = Array.isArray(header) ? header[0] : header;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Cheap substring check: does the raw Cookie header look like it contains a
+ * Kratos session cookie? Kratos uses `ory_kratos_session` by default and
+ * `ory_session_<slug>` on Ory Network deployments. Matching both avoids a
+ * Kratos round-trip for every anonymous browser request (e.g. on public
+ * endpoints that also accept optional auth).
+ */
+function cookieLooksLikeKratosSession(cookie: string): boolean {
+  return (
+    cookie.includes('ory_kratos_session') || cookie.includes('ory_session_')
+  );
+}
+
 function extractBearerToken(request: FastifyRequest): string | null {
   const header = request.headers.authorization;
   if (!header) return null;
@@ -140,11 +167,22 @@ async function resolveTeamContext(
 
 export const requireAuth: preHandlerAsyncHookHandler =
   async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
-    // Try session token first (Kratos session for dashboard)
+    // Try Kratos session first (native X-Moltnet-Session-Token header OR
+    // browser Cookie header). Native token takes precedence when both are
+    // present — see session-resolver.ts. The cookie header is only forwarded
+    // when it looks like a Kratos session cookie, to avoid round-tripping to
+    // Kratos for every browser request that happens to carry unrelated
+    // cookies (analytics, theme, CSRF, etc.).
     const sessionToken = extractSessionToken(request);
-    if (sessionToken && request.server.sessionResolver) {
+    const rawCookie = extractCookieHeader(request);
+    const cookie =
+      rawCookie && cookieLooksLikeKratosSession(rawCookie) ? rawCookie : null;
+    if ((sessionToken || cookie) && request.server.sessionResolver) {
       const sessionContext =
-        await request.server.sessionResolver.resolveSession(sessionToken);
+        await request.server.sessionResolver.resolveSession({
+          sessionToken,
+          cookie,
+        });
       if (sessionContext) {
         await resolveTeamContext(request, sessionContext);
         request.authContext = sessionContext;
@@ -196,11 +234,18 @@ export const requireAuth: preHandlerAsyncHookHandler =
 
 export const optionalAuth: preHandlerAsyncHookHandler =
   async function optionalAuth(request: FastifyRequest) {
-    // Try session token first
+    // Try Kratos session first (native token header OR browser cookie).
+    // See requireAuth() for the cookie gating rationale.
     const sessionToken = extractSessionToken(request);
-    if (sessionToken && request.server.sessionResolver) {
+    const rawCookie = extractCookieHeader(request);
+    const cookie =
+      rawCookie && cookieLooksLikeKratosSession(rawCookie) ? rawCookie : null;
+    if ((sessionToken || cookie) && request.server.sessionResolver) {
       const sessionContext =
-        await request.server.sessionResolver.resolveSession(sessionToken);
+        await request.server.sessionResolver.resolveSession({
+          sessionToken,
+          cookie,
+        });
       if (sessionContext) {
         await resolveTeamContext(request, sessionContext);
         request.authContext = sessionContext;

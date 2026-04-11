@@ -522,9 +522,10 @@ describe('requireAuth with sessionResolver', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().authContext).toEqual(VALID_SESSION_CONTEXT);
-    expect(mockSessionResolver.resolveSession).toHaveBeenCalledWith(
-      'valid-session-token',
-    );
+    expect(mockSessionResolver.resolveSession).toHaveBeenCalledWith({
+      sessionToken: 'valid-session-token',
+      cookie: null,
+    });
     expect(mockTokenValidator.resolveAuthContext).not.toHaveBeenCalled();
   });
 
@@ -580,6 +581,240 @@ describe('requireAuth with sessionResolver', () => {
     });
 
     expect(response.statusCode).toBe(401);
+  });
+});
+
+describe('requireAuth with cookie-based session', () => {
+  let app: FastifyInstance;
+  let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
+  let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
+  let mockSessionResolver: ReturnType<typeof createMockSessionResolver>;
+
+  const KRATOS_COOKIE =
+    'csrf_token=xyz; ory_kratos_session=MTczMjE5ODk2MHxEdjBGQUFFR01; theme=dark';
+  const ORY_NETWORK_COOKIE =
+    'ory_session_practicalnapier7zp=MTczMjE5ODk2MHw; something=else';
+  const UNRELATED_COOKIE = 'theme=dark; csrf_token=xyz; analytics_id=abc123';
+
+  beforeEach(async () => {
+    mockTokenValidator = createMockTokenValidator();
+    mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
+    mockSessionResolver = createMockSessionResolver();
+
+    app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      sessionResolver: mockSessionResolver,
+    } as never);
+  });
+
+  it('authenticates when Cookie header contains ory_kratos_session', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { cookie: KRATOS_COOKIE },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_SESSION_CONTEXT);
+    expect(mockSessionResolver.resolveSession).toHaveBeenCalledWith({
+      sessionToken: null,
+      cookie: KRATOS_COOKIE,
+    });
+  });
+
+  it('authenticates when Cookie header contains ory_session_ (Ory Network)', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { cookie: ORY_NETWORK_COOKIE },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_SESSION_CONTEXT);
+  });
+
+  it('does NOT call Kratos when only unrelated cookies are present', async () => {
+    // Regression guard: browsers send cookies on every request. We must not
+    // round-trip to Kratos for analytics/theme/CSRF cookies that have nothing
+    // to do with a Kratos session. Request should fall through to Bearer
+    // token, which is also absent → 401.
+    app.get('/protected', { preHandler: [requireAuth] }, async () => {
+      return { ok: true };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { cookie: UNRELATED_COOKIE },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(mockSessionResolver.resolveSession).not.toHaveBeenCalled();
+  });
+
+  it('session token header wins over browser cookie when both are present', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        'x-moltnet-session-token': 'ory_st_native_token',
+        cookie: KRATOS_COOKIE,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    // Plugin passes both to the resolver; resolver itself prefers the token.
+    expect(mockSessionResolver.resolveSession).toHaveBeenCalledWith({
+      sessionToken: 'ory_st_native_token',
+      cookie: KRATOS_COOKIE,
+    });
+  });
+
+  it('treats empty Session-Token header as absent and uses cookie instead', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        'x-moltnet-session-token': '',
+        cookie: KRATOS_COOKIE,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    // extractSessionToken() already returns null for empty/whitespace, so the
+    // resolver receives sessionToken: null — not an empty string.
+    expect(mockSessionResolver.resolveSession).toHaveBeenCalledWith({
+      sessionToken: null,
+      cookie: KRATOS_COOKIE,
+    });
+  });
+
+  it('falls through to Bearer when cookie session is invalid', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(null);
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        cookie: KRATOS_COOKIE,
+        authorization: `Bearer ${VALID_TOKEN}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_AUTH_CONTEXT);
+  });
+
+  it('returns 401 when cookie session is invalid and no Bearer present', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(null);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async () => {
+      return { ok: true };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { cookie: KRATOS_COOKIE },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+});
+
+describe('optionalAuth with cookie-based session', () => {
+  let app: FastifyInstance;
+  let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
+  let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
+  let mockSessionResolver: ReturnType<typeof createMockSessionResolver>;
+
+  const KRATOS_COOKIE =
+    'csrf_token=xyz; ory_kratos_session=MTczMjE5ODk2MHxEdjBGQUFFR01';
+  const UNRELATED_COOKIE = 'theme=dark; csrf_token=xyz';
+
+  beforeEach(async () => {
+    mockTokenValidator = createMockTokenValidator();
+    mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
+    mockSessionResolver = createMockSessionResolver();
+
+    app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      sessionResolver: mockSessionResolver,
+    } as never);
+  });
+
+  it('authenticates via Kratos cookie when present', async () => {
+    mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
+
+    app.get('/optional', { preHandler: [optionalAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: { cookie: KRATOS_COOKIE },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toEqual(VALID_SESSION_CONTEXT);
+  });
+
+  it('does NOT round-trip to Kratos for unrelated cookies', async () => {
+    app.get('/optional', { preHandler: [optionalAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: { cookie: UNRELATED_COOKIE },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toBeNull();
+    expect(mockSessionResolver.resolveSession).not.toHaveBeenCalled();
   });
 });
 
