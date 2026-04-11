@@ -6,8 +6,10 @@ import { render } from 'ink';
 
 import { printCommandHelp, printRootHelp } from './commands/help.js';
 import { COMMANDS } from './commands/registry.js';
+import { resolveHelpCommand } from './commands/resolveCommand.js';
 import { printGitHubToken, resolveAgentName } from './github-token.js';
 import { InitApp } from './InitApp.js';
+import { validatePortFromArg } from './phases/portArgs.js';
 import type { PortDiaryMode } from './phases/portDiary.js';
 import { PortApp } from './PortApp.js';
 import { SetupApp } from './SetupApp.js';
@@ -18,10 +20,7 @@ import { type AgentType, SUPPORTED_AGENTS } from './ui/types.js';
 const rawArgs = process.argv.slice(2);
 const wantsHelp = rawArgs.includes('--help') || rawArgs.includes('-h');
 if (wantsHelp) {
-  const maybeCommand = rawArgs.find((a) => !a.startsWith('-'));
-  const help = maybeCommand
-    ? COMMANDS.find((c) => c.command === maybeCommand)
-    : undefined;
+  const help = resolveHelpCommand(rawArgs, COMMANDS);
   if (help) {
     printCommandHelp(help);
   } else {
@@ -122,12 +121,13 @@ if (subcommand === 'setup') {
     />,
   );
 } else if (subcommand === 'port') {
-  if (!fromDir) {
-    process.stderr.write(
-      'Error: legreffier port requires --from <path/to/source/.moltnet/<agent>>\n',
-    );
+  const fromValidation = validatePortFromArg(fromDir);
+  if (!fromValidation.ok) {
+    process.stderr.write(`Error: ${fromValidation.error}\n`);
     process.exit(1);
   }
+  // Narrowed to string by the validator.
+  const absoluteFromDir = fromDir as string;
   const resolvedDiaryMode = diaryModeArg ?? 'new';
   if (!['new', 'reuse', 'skip'].includes(resolvedDiaryMode)) {
     process.stderr.write(
@@ -151,20 +151,22 @@ if (subcommand === 'setup') {
   }
   // Same for the source dir.
   try {
-    const stat = statSync(fromDir);
+    const stat = statSync(absoluteFromDir);
     if (!stat.isDirectory()) {
-      process.stderr.write(`Error: --from "${fromDir}" is not a directory\n`);
+      process.stderr.write(
+        `Error: --from "${absoluteFromDir}" is not a directory\n`,
+      );
       process.exit(1);
     }
   } catch {
-    process.stderr.write(`Error: --from "${fromDir}" does not exist\n`);
+    process.stderr.write(`Error: --from "${absoluteFromDir}" does not exist\n`);
     process.exit(1);
   }
   render(
     <PortApp
       name={name}
       agents={agents.length > 0 ? agents : ['claude']}
-      sourceDir={fromDir}
+      sourceDir={absoluteFromDir}
       targetRepoDir={dir}
       diaryMode={resolvedDiaryMode as PortDiaryMode}
       apiUrl={apiUrl}
