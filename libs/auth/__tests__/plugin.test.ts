@@ -670,6 +670,26 @@ describe('requireAuth with cookie-based session', () => {
     expect(mockSessionResolver.resolveSession).not.toHaveBeenCalled();
   });
 
+  it('does NOT call Kratos when a non-session cookie value contains `ory_session_`', async () => {
+    // Regression guard: `String.includes('ory_session_')` would match any
+    // cookie VALUE containing that substring (e.g. an analytics_id). The
+    // regex gate must only match cookie NAMES.
+    const tricky =
+      'analytics_id=ory_session_abcdef; theme=dark; csrf_token=xyz';
+    app.get('/protected', { preHandler: [requireAuth] }, async () => {
+      return { ok: true };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { cookie: tricky },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(mockSessionResolver.resolveSession).not.toHaveBeenCalled();
+  });
+
   it('session token header wins over browser cookie when both are present', async () => {
     mockSessionResolver.resolveSession.mockResolvedValue(VALID_SESSION_CONTEXT);
 

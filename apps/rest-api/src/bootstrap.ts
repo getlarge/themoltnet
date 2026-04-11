@@ -406,7 +406,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
   });
 
-  const sessionResolver = createSessionResolver(oryClients.frontend);
+  const sessionResolver = createSessionResolver(oryClients.frontend, {
+    logger: app.log,
+  });
 
   // ── REST API routes ────────────────────────────────────────────
   await registerApiRoutes(app, {

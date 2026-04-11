@@ -199,7 +199,7 @@ export async function registerApiRoutes(
             in: 'cookie',
             name: 'ory_kratos_session',
             description:
-              'Kratos session cookie set automatically by the browser after self-service login. Resolved via FrontendApi.toSession({ cookie }). Any Kratos session cookie (including the `ory_session_<slug>` variant used on Ory Network) is accepted — the API forwards the raw Cookie header to Kratos unchanged.',
+              'Kratos session cookie set automatically by the browser after self-service login. Resolved via FrontendApi.toSession({ cookie }). The API forwards the raw Cookie header to Kratos unchanged, so any Kratos cookie name is accepted at runtime — the self-hosted default is `ory_kratos_session` and Ory Network uses `ory_session_<slug>`. **Note for SDK users:** the `name` field above is the self-hosted default for the benefit of generated clients; if you are on Ory Network, your cookie will be named `ory_session_<your-project-slug>` and you will need to override the cookie name in your SDK client (the server accepts either).',
           },
         },
       },

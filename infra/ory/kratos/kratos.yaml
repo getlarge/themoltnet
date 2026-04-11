@@ -43,7 +43,12 @@ identity:
       url: file:///etc/config/kratos/human-identity-schema.json
 
 selfservice:
-  default_browser_return_url: http://localhost:4455/
+  # Default post-flow destination is the landing app (5173), NOT the
+  # self-service UI node (4455). The UI node is a form-rendering shim for
+  # Kratos flows only — it should never be the resting place after
+  # registration/recovery/settings succeed. Flows that legitimately want to
+  # redirect to the UI set `return_to` explicitly.
+  default_browser_return_url: http://localhost:5173/
   allowed_return_urls:
     - http://localhost:4455/
     - http://localhost:5173/
@@ -164,7 +169,8 @@ selfservice:
 
     logout:
       after:
-        default_browser_return_url: http://localhost:4455/
+        # Post-logout: land on the landing app, not the self-service UI shim.
+        default_browser_return_url: http://localhost:5173/
 
 session:
   lifespan: 720h

@@ -210,4 +210,72 @@ describe('createSessionResolver', () => {
 
     expect(result?.scopes).toEqual(['custom:scope']);
   });
+
+  describe('Kratos error observability', () => {
+    it('stays quiet on 401 (expected expired/invalid session)', async () => {
+      const warn = vi.fn();
+      const loggingResolver = createSessionResolver(mockFrontendApi as never, {
+        logger: { warn },
+      });
+      const err = Object.assign(new Error('Unauthorized'), { status: 401 });
+      mockFrontendApi.toSession.mockRejectedValue(err);
+
+      const result = await loggingResolver.resolveSession({
+        sessionToken: VALID_SESSION_TOKEN,
+      });
+
+      expect(result).toBeNull();
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('warns on 503 so a degraded Kratos is observable', async () => {
+      const warn = vi.fn();
+      const loggingResolver = createSessionResolver(mockFrontendApi as never, {
+        logger: { warn },
+      });
+      const err = Object.assign(new Error('Service Unavailable'), {
+        status: 503,
+      });
+      mockFrontendApi.toSession.mockRejectedValue(err);
+
+      const result = await loggingResolver.resolveSession({
+        sessionToken: VALID_SESSION_TOKEN,
+      });
+
+      expect(result).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 503 }),
+        expect.stringContaining('Kratos toSession error'),
+      );
+    });
+
+    it('warns on network error with no status', async () => {
+      const warn = vi.fn();
+      const loggingResolver = createSessionResolver(mockFrontendApi as never, {
+        logger: { warn },
+      });
+      mockFrontendApi.toSession.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const result = await loggingResolver.resolveSession({
+        sessionToken: VALID_SESSION_TOKEN,
+      });
+
+      expect(result).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('no-ops when no logger is configured (default)', async () => {
+      mockFrontendApi.toSession.mockRejectedValue(
+        Object.assign(new Error('boom'), { status: 500 }),
+      );
+
+      // Default resolver has no logger — this must not throw.
+      const result = await resolver.resolveSession({
+        sessionToken: VALID_SESSION_TOKEN,
+      });
+
+      expect(result).toBeNull();
+    });
+  });
 });
