@@ -5,12 +5,13 @@ go 1.25.0
 require (
 	github.com/XiaoConstantine/dspy-go v0.82.2
 	github.com/getlarge/themoltnet/libs/dspy-adapters v0.8.0
-	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.12.0
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.13.0
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/multiformats/go-multihash v0.2.3
+	github.com/ogen-go/ogen v1.19.0
 	github.com/spf13/cobra v1.10.2
 	github.com/vbauerster/mpb/v8 v8.12.0
 	golang.org/x/crypto v0.48.0
@@ -48,7 +49,6 @@ require (
 	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-varint v0.1.0 // indirect
-	github.com/ogen-go/ogen v1.19.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
