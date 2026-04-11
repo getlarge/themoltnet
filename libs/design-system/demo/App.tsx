@@ -103,7 +103,7 @@ function Swatch({ color, label }: { color: string; label: string }) {
 
 function DemoContent() {
   const theme = useTheme();
-  const { mode, setMode } = useThemeMode();
+  const { resolvedMode, setMode } = useThemeMode();
   const [inputVal, setInputVal] = useState('');
 
   return (
@@ -128,9 +128,9 @@ function DemoContent() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}
+            onClick={() => setMode(resolvedMode === 'dark' ? 'light' : 'dark')}
           >
-            {mode === 'dark' ? 'Light mode' : 'Dark mode'}
+            {resolvedMode === 'dark' ? 'Light mode' : 'Dark mode'}
           </Button>
         </Stack>
 
