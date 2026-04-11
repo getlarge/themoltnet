@@ -6,12 +6,23 @@ name: Release Recover (moltnet-cli)
 # the manifest but does NOT sync `apps/moltnet-cli/go.mod`, so goreleaser
 # builds against a stale pin that doesn't yet contain the new symbols.
 #
+# Usage: trigger this workflow with the number of the merged release-please
+# PR that caused the failure (the "chore: release main" PR). Everything
+# else — previous/stuck cli versions, which libs to re-pin — is inferred by
+# diffing `.release-please-manifest.json` between the PR's merge commit and
+# its first parent, then filtering against the cli's actual `libs/` deps in
+# `apps/moltnet-cli/go.mod`.
+#
 # The recipe:
-#   1. Revert cli version in the manifest to the previous released version
-#   2. Drop the premature `## [x.y.z]` section from cli CHANGELOG
-#   3. `GOWORK=off go get <lib>@<version>` for each bumped lib + go mod tidy
-#   4. Commit on a branch, open PR (squash-merge it manually)
-#   5. Delete the stuck draft `cli-vX.Y.Z` GitHub release
+#   1. Resolve merge commit + parent from the PR number
+#   2. Diff .release-please-manifest.json between parent and merge commit
+#   3. Extract previous + stuck cli versions; collect bumped libs that the
+#      cli depends on (auto-discovered from apps/moltnet-cli/go.mod)
+#   4. Revert cli version in the manifest to the previous released version
+#   5. Drop the premature `## [x.y.z]` section from cli CHANGELOG
+#   6. `GOWORK=off go get <lib>@<version>` for each bumped lib + go mod tidy
+#   7. Commit on a branch, open PR (squash-merge it manually)
+#   8. Delete the stuck draft `cli-vX.Y.Z` GitHub release
 #
 # After merging the PR, release-please will re-propose the cli bump with a
 # synced go.mod on main, and the next release-cli run will succeed.
@@ -19,18 +30,8 @@ name: Release Recover (moltnet-cli)
 on:
   workflow_dispatch:
     inputs:
-      previous-cli-version:
-        description: 'Last successfully released cli version (e.g. 1.18.0)'
-        required: true
-        type: string
-      stuck-cli-version:
-        description: 'Stuck cli version to roll back (e.g. 1.19.0)'
-        required: true
-        type: string
-      bumped-libs:
-        description: >
-          Comma-separated `name=version` pairs for libs to sync in go.mod.
-          Example: `dspy-adapters=0.8.0,moltnet-api-client=1.11.0`
+      release-pr:
+        description: 'Number of the merged release-please PR that caused the failure (e.g. 766)'
         required: true
         type: string
       delete-draft-release:
@@ -63,10 +64,123 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
+      - name: Infer recovery parameters from release PR
+        id: infer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.release-pr }}
+        run: |
+          set -euo pipefail
+
+          # 1. Fetch PR metadata. Must be merged.
+          pr_json=$(gh pr view "$PR_NUMBER" --json state,mergeCommit,title,url)
+          state=$(echo "$pr_json" | jq -r '.state')
+          merge_sha=$(echo "$pr_json" | jq -r '.mergeCommit.oid // empty')
+          pr_title=$(echo "$pr_json" | jq -r '.title')
+          pr_url=$(echo "$pr_json" | jq -r '.url')
+
+          if [ "$state" != 'MERGED' ]; then
+            echo "ERROR: PR #$PR_NUMBER is $state, expected MERGED" >&2
+            exit 1
+          fi
+          if [ -z "$merge_sha" ]; then
+            echo "ERROR: PR #$PR_NUMBER has no merge commit" >&2
+            exit 1
+          fi
+
+          echo "PR:          #$PR_NUMBER ($pr_url)"
+          echo "Title:       $pr_title"
+          echo "Merge SHA:   $merge_sha"
+
+          # 2. Parent commit = manifest state before the release PR merged.
+          #    We use ^1 (first parent) rather than baseRefOid because the
+          #    base branch may have advanced since the merge.
+          parent_sha=$(git rev-parse "${merge_sha}^1")
+          echo "Parent SHA:  $parent_sha"
+
+          # 3. Read manifest at both commits.
+          manifest_path='.release-please-manifest.json'
+          git show "${parent_sha}:${manifest_path}" > /tmp/manifest.before.json
+          git show "${merge_sha}:${manifest_path}" > /tmp/manifest.after.json
+
+          previous_cli=$(jq -r '."apps/moltnet-cli"' /tmp/manifest.before.json)
+          stuck_cli=$(jq -r '."apps/moltnet-cli"' /tmp/manifest.after.json)
+
+          if [ "$previous_cli" = 'null' ] || [ "$stuck_cli" = 'null' ]; then
+            echo "ERROR: apps/moltnet-cli missing from manifest at one of the commits" >&2
+            exit 1
+          fi
+          if [ "$previous_cli" = "$stuck_cli" ]; then
+            echo "ERROR: apps/moltnet-cli version unchanged in PR #$PR_NUMBER ($previous_cli)" >&2
+            echo "       This PR did not bump the cli — nothing to recover." >&2
+            exit 1
+          fi
+
+          echo "Previous cli: $previous_cli"
+          echo "Stuck cli:    $stuck_cli"
+
+          # 4. Auto-discover cli's direct libs/ dependencies from go.mod.
+          #    We only look at the first `require (...)` block (direct deps);
+          #    indirect deps live in a second block marked `// indirect`.
+          cli_libs=$(awk '
+            /^require \(/ { in_block=1; next }
+            in_block && /^\)/ { in_block=0; next }
+            in_block && /github\.com\/getlarge\/themoltnet\/libs\// && !/\/\/ indirect/ {
+              # Line format: "\tgithub.com/getlarge/themoltnet/libs/<name> v<ver>"
+              sub(/^[[:space:]]+/, "", $0)
+              split($0, parts, " ")
+              sub(/^github\.com\/getlarge\/themoltnet\/libs\//, "", parts[1])
+              print parts[1]
+            }
+          ' apps/moltnet-cli/go.mod)
+
+          if [ -z "$cli_libs" ]; then
+            echo "ERROR: no direct libs/* dependencies found in apps/moltnet-cli/go.mod" >&2
+            exit 1
+          fi
+
+          echo 'Cli libs/* deps:'
+          echo "$cli_libs" | sed 's/^/  - /'
+
+          # 5. For each cli lib dep, compare before/after manifest versions.
+          pairs=()
+          while IFS= read -r lib; do
+            [ -n "$lib" ] || continue
+            before=$(jq -r --arg k "libs/${lib}" '.[$k] // empty' /tmp/manifest.before.json)
+            after=$(jq -r --arg k "libs/${lib}" '.[$k] // empty' /tmp/manifest.after.json)
+            if [ -z "$after" ]; then
+              echo "  libs/${lib}: not tracked in manifest (skipping)"
+              continue
+            fi
+            if [ "$before" = "$after" ]; then
+              echo "  libs/${lib}: unchanged (${after})"
+              continue
+            fi
+            echo "  libs/${lib}: ${before:-<none>} -> ${after}"
+            pairs+=("${lib}=${after}")
+          done <<< "$cli_libs"
+
+          if [ ${#pairs[@]} -eq 0 ]; then
+            echo "ERROR: no cli lib dependencies were bumped in PR #$PR_NUMBER" >&2
+            echo "       If goreleaser still failed, the root cause is elsewhere." >&2
+            exit 1
+          fi
+
+          bumped_libs=$(IFS=,; echo "${pairs[*]}")
+          echo "Bumped libs: $bumped_libs"
+
+          # Export outputs for downstream steps.
+          {
+            echo "previous-cli-version=${previous_cli}"
+            echo "stuck-cli-version=${stuck_cli}"
+            echo "bumped-libs=${bumped_libs}"
+            echo "pr-url=${pr_url}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create recovery branch
         id: branch
         env:
-          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
         run: |
           BRANCH="chore/recover-cli-v${STUCK_VERSION}"
           git checkout -b "$BRANCH"
@@ -74,7 +188,7 @@ jobs:
 
       - name: Revert manifest cli version
         env:
-          PREVIOUS_VERSION: ${{ inputs.previous-cli-version }}
+          PREVIOUS_VERSION: ${{ steps.infer.outputs.previous-cli-version }}
         run: |
           jq --arg v "$PREVIOUS_VERSION" \
             '."apps/moltnet-cli" = $v' .release-please-manifest.json \
@@ -84,7 +198,7 @@ jobs:
 
       - name: Drop premature CHANGELOG section
         env:
-          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
         run: |
           python3 - <<'PY'
           import os, re, sys, pathlib
@@ -107,7 +221,7 @@ jobs:
         working-directory: apps/moltnet-cli
         env:
           GOWORK: off
-          BUMPED_LIBS: ${{ inputs.bumped-libs }}
+          BUMPED_LIBS: ${{ steps.infer.outputs.bumped-libs }}
         run: |
           IFS=',' read -ra PAIRS <<< "$BUMPED_LIBS"
           for raw in "${PAIRS[@]}"; do
@@ -138,7 +252,7 @@ jobs:
 
       - name: Commit and push
         env:
-          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
           BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
           git add \
@@ -156,13 +270,16 @@ jobs:
       - name: Open recovery PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
-          PREVIOUS_VERSION: ${{ inputs.previous-cli-version }}
-          BUMPED_LIBS: ${{ inputs.bumped-libs }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
+          PREVIOUS_VERSION: ${{ steps.infer.outputs.previous-cli-version }}
+          BUMPED_LIBS: ${{ steps.infer.outputs.bumped-libs }}
+          SOURCE_PR_URL: ${{ steps.infer.outputs.pr-url }}
           BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
           BODY=$(cat <<EOF
           Automated recovery for a stuck \`apps/moltnet-cli\` release cycle.
+
+          **Triggered by:** ${SOURCE_PR_URL}
 
           **What this PR does:**
           - Reverts \`apps/moltnet-cli\` in \`.release-please-manifest.json\` from \`${STUCK_VERSION}\` back to \`${PREVIOUS_VERSION}\`
@@ -187,7 +304,7 @@ jobs:
         if: ${{ inputs.delete-draft-release }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STUCK_VERSION: ${{ inputs.stuck-cli-version }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
         run: |
           TAG="cli-v${STUCK_VERSION}"
           # Query isDraft so we never delete a published release.
