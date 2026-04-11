@@ -89,6 +89,44 @@ has a detection method and a recommended action.
 
 Stop here. Do not attempt API calls without credentials.
 
+#### Resolving `--from` when the user names a source repo
+
+If the user mentions reusing an agent from another repo (examples:
+"I already have `jobi` set up in `dev/getlarge/my-repo`", "port `jobi`
+from my other repo"), the user is on the Option B path above. The
+`legreffier port --from` flag is **strict**: it only accepts the exact
+shape `<repo-root>/.moltnet/<agent-name>`. Build that path for the
+user instead of echoing their hint back.
+
+Steps:
+
+1. Extract `<repo-root>` and `<agent-name>` from the user's message.
+2. Resolve `<repo-root>` to an absolute path:
+   - Absolute path (`/Users/me/code/other-repo`) → use as-is.
+   - `~`-prefixed (`~/code/other-repo`) → expand against `$HOME`.
+   - Relative-looking (`dev/getlarge/my-repo`) → resolve against
+     `$HOME` first; if that directory doesn't exist, try the parent
+     of the current repository root.
+3. Propose the full command:
+
+   ```
+   npx @themoltnet/legreffier port \
+     --name <agent-name> \
+     --from <absolute-repo-root>/.moltnet/<agent-name> \
+     --agent claude
+   ```
+
+4. If the repo root cannot be resolved to an existing directory, stop
+   and ask for an absolute path explicitly:
+
+   > I can't resolve `<hint>` to an absolute path. Please provide the
+   > full path to the source repo root, e.g.
+   > `~/code/my-repo` or `/Users/me/code/my-repo`.
+
+Never fabricate a fallback path, never try fuzzy matching, and never
+suggest `--from <repo-name>` or `--from ~/...` forms — those shapes
+are rejected by the CLI.
+
 ### Stage 2: Initialized but not connected to a shared diary
 
 **Detection (local first, then remote):**
