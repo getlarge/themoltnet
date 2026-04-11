@@ -125,7 +125,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'Rotate the OAuth2 client secret. ' +
           'Returns the new clientId/clientSecret pair. ' +
           'The old secret is invalidated immediately.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: Type.Ref(RotateSecretResponseSchema),
           401: Type.Ref(ProblemDetailsSchema),

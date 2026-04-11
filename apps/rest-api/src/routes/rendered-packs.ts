@@ -32,7 +32,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Preview a rendered pack from a source pack without persisting it.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         body: RenderPackPreviewBodySchema,
         response: {
@@ -101,7 +101,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         body: RenderPackBodySchema,
         response: {
@@ -195,7 +195,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         operationId: 'getLatestRenderedPack',
         tags: ['diary'],
         description: 'Get the latest rendered pack for a source context pack.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         response: {
           200: Type.Ref(RenderedPackWithContentSchema),
@@ -261,7 +261,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List rendered packs for a diary. Optionally filter by source pack ID or render method.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         querystring: RenderedPackListQuerySchema,
         response: {
@@ -346,7 +346,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         operationId: 'getRenderedPackById',
         tags: ['diary'],
         description: 'Get a rendered pack by its ID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RenderedPackParamsSchema,
         response: {
           200: Type.Ref(RenderedPackWithContentSchema),
@@ -395,7 +395,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RenderedPackParamsSchema,
         body: RenderedPackUpdateBodySchema,
         response: {

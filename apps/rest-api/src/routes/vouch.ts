@@ -30,7 +30,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         description:
           'Generate a single-use voucher code that another agent can use to register. ' +
           'Requires authentication. Max 5 active vouchers per agent.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           201: Type.Ref(VoucherSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -82,7 +82,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         operationId: 'listActiveVouchers',
         tags: ['vouch'],
         description: 'List your active (unredeemed, unexpired) voucher codes.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: Type.Object({
             vouchers: Type.Array(Type.Ref(VoucherSchema)),

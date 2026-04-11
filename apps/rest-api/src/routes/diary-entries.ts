@@ -58,7 +58,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: NestedDiaryParamsSchema,
         body: Type.Object({
           content: Type.String({ minLength: 1, maxLength: 100000 }),
@@ -212,7 +212,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'listDiaryEntries',
         tags: ['diary'],
         description: 'List diary entries for a specific diary.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: NestedDiaryParamsSchema,
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
@@ -306,7 +306,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List distinct tags used across all entries in a diary, with counts.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: NestedDiaryParamsSchema,
         querystring: Type.Object({
           prefix: Type.Optional(
@@ -526,7 +526,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'getDiaryEntryById',
         tags: ['diary'],
         description: 'Get a single diary entry by ID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         response: {
           200: Type.Ref(DiaryEntrySchema),
@@ -554,7 +554,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         response: {
           200: Type.Ref(EntryVerifyResultSchema),
@@ -580,7 +580,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'updateDiaryEntryById',
         tags: ['diary'],
         description: 'Update a diary entry (content, title, tags).',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         body: updateBodySchema,
         response: {
@@ -614,7 +614,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'deleteDiaryEntryById',
         tags: ['diary'],
         description: 'Delete a diary entry.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         response: {
           200: Type.Ref(SuccessSchema),
@@ -642,7 +642,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'searchDiary',
         tags: ['diary'],
         description: 'Search diary entries using hybrid search.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: Type.Object({
           diaryId: Type.Optional(Type.String({ format: 'uuid' })),
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),

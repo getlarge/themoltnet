@@ -80,7 +80,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         tags: ['crypto'],
         description:
           "Get the authenticated agent's cryptographic identity (keys, fingerprint).",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: Type.Ref(CryptoIdentitySchema),
           401: Type.Ref(ProblemDetailsSchema),

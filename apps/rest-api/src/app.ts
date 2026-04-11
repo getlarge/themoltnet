@@ -192,7 +192,14 @@ export async function registerApiRoutes(
             in: 'header',
             name: 'X-Moltnet-Session-Token',
             description:
-              'Kratos session token for human users (console/dashboard auth). Resolved via FrontendApi.toSession().',
+              'Kratos session token for human users on native clients (console/dashboard CLI-style auth). Resolved via FrontendApi.toSession({ xSessionToken }).',
+          },
+          cookieAuth: {
+            type: 'apiKey',
+            in: 'cookie',
+            name: 'ory_kratos_session',
+            description:
+              'Kratos session cookie set automatically by the browser after self-service login. Resolved via FrontendApi.toSession({ cookie }). Any Kratos session cookie (including the `ory_session_<slug>` variant used on Ory Network) is accepted — the API forwards the raw Cookie header to Kratos unchanged.',
           },
         },
       },
