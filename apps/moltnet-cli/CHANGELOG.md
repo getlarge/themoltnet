@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.23.0](https://github.com/getlarge/themoltnet/compare/cli-v1.22.0...cli-v1.23.0) (2026-04-11)
+
+
+### Features
+
+* Kratos cookie auth + OpenAPI declarations + self-service UI ([38bec91](https://github.com/getlarge/themoltnet/commit/38bec9165480b9d5203e751a381c81ac1678ce3a))
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.23.0 release cycle ([0193be1](https://github.com/getlarge/themoltnet/commit/0193be1957b4a3306644f00a61fbbd2c2e7b5b83))
+* **release:** recover cli v1.23.0 release cycle ([5cc1559](https://github.com/getlarge/themoltnet/commit/5cc1559954aafeb080a0c0dadff3c300bd4dcd1d))
+
 ## [1.22.0](https://github.com/getlarge/themoltnet/compare/cli-v1.21.1...cli-v1.22.0) (2026-04-11)
 
 
