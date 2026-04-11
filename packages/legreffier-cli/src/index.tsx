@@ -4,6 +4,8 @@ import { parseArgs } from 'node:util';
 
 import { render } from 'ink';
 
+import { printCommandHelp, printRootHelp } from './commands/help.js';
+import { COMMANDS } from './commands/registry.js';
 import { printGitHubToken, resolveAgentName } from './github-token.js';
 import { InitApp } from './InitApp.js';
 import type { PortDiaryMode } from './phases/portDiary.js';
@@ -11,8 +13,31 @@ import { PortApp } from './PortApp.js';
 import { SetupApp } from './SetupApp.js';
 import { type AgentType, SUPPORTED_AGENTS } from './ui/types.js';
 
+// Intercept --help / -h before parseArgs so every command (including
+// unknown ones) gets consistent help output.
+const rawArgs = process.argv.slice(2);
+const wantsHelp = rawArgs.includes('--help') || rawArgs.includes('-h');
+if (wantsHelp) {
+  const maybeCommand = rawArgs.find((a) => !a.startsWith('-'));
+  const help = maybeCommand
+    ? COMMANDS.find((c) => c.command === maybeCommand)
+    : undefined;
+  if (help) {
+    printCommandHelp(help);
+  } else {
+    printRootHelp(COMMANDS);
+  }
+  process.exit(0);
+}
+
+// No args at all → root help.
+if (rawArgs.length === 0) {
+  printRootHelp(COMMANDS);
+  process.exit(0);
+}
+
 const { values, positionals } = parseArgs({
-  args: process.argv.slice(2),
+  args: rawArgs,
   allowPositionals: true,
   options: {
     name: { type: 'string', short: 'n' },
@@ -58,13 +83,10 @@ if (subcommand === 'github' && positionals[1] === 'token') {
 }
 
 if (!name) {
-  const usage =
-    subcommand === 'setup'
-      ? 'Usage: legreffier setup --name <agent-name> [--agent claude] [--agent codex] [--dir <path>]'
-      : subcommand === 'port'
-        ? 'Usage: legreffier port --name <agent-name> --from <path/to/source/.moltnet/<agent>> [--agent claude] [--agent codex] [--dir <target-repo>] [--diary new|reuse|skip]'
-        : 'Usage: legreffier [init] --name <agent-name> [--agent claude] [--agent codex] [--api-url <url>] [--dir <path>] [--org <github-org>]';
-  process.stderr.write(usage + '\n');
+  const help = COMMANDS.find((c) => c.command === subcommand);
+  process.stderr.write(
+    `Error: --name is required.\n\nRun \`legreffier ${help ? help.command : '<command>'} --help\` for details.\n`,
+  );
   process.exit(1);
 }
 
