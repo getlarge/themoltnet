@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.29.1...legreffier-v0.30.0) (2026-04-11)
+
+
+### Features
+
+* **legreffier:** wire onboarding skill into download list and add discoverability ([5fdaacc](https://github.com/getlarge/themoltnet/commit/5fdaacc6a1d84c20cdd08d93571a267cb3294ba3)), closes [#737](https://github.com/getlarge/themoltnet/issues/737)
+
 ## [0.29.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.29.0...legreffier-v0.29.1) (2026-04-09)
 
 

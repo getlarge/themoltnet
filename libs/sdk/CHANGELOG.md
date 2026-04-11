@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.89.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.88.0...sdk-v0.89.0) (2026-04-11)
+
+
+### Features
+
+* add rendered pack update endpoint across the stack ([7394985](https://github.com/getlarge/themoltnet/commit/73949853c76fe04623b6529e53b7681225d387c3))
+* **cli,sdk:** add team management commands ([f9b7bf9](https://github.com/getlarge/themoltnet/commit/f9b7bf9a6e96f7deb4391c2a10edfd97885ee184))
+* **rest-api,mcp,cli,sdk:** add rendered pack update endpoint ([098363b](https://github.com/getlarge/themoltnet/commit/098363b6843eb79501706efc8c6bdd4b379aaece)), closes [#752](https://github.com/getlarge/themoltnet/issues/752)
+* **sdk:** add packs.update method for pin/unpin and expiry ([b0d58d1](https://github.com/getlarge/themoltnet/commit/b0d58d1e3d6e5716da5c40d8cdfeec775d2c0b92))
+* **sdk:** extend TeamsNamespace with create, join, invites ([f63dab0](https://github.com/getlarge/themoltnet/commit/f63dab021239685638ad38bbb577c12c696217aa))
+
+
+### Bug Fixes
+
+* address PR review feedback ([cfcbbe5](https://github.com/getlarge/themoltnet/commit/cfcbbe5f3eb80cec36df81351c0a2a36e5b993e7))
+
 ## [0.88.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.87.0...sdk-v0.88.0) (2026-04-09)
 
 
