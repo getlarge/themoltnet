@@ -29,6 +29,9 @@ export const setupCommand = defineCommand({
     const apiUrl = resolveApiUrl(args['api-url']);
     const dir = resolveDir(args.dir);
 
+    // `agents` can be empty here — unlike `port.tsx` (which falls back to
+    // ['claude']), `SetupApp` handles the no-agents case itself by prompting
+    // the user to pick one in the TUI, so we pass the array through as-is.
     render(<SetupApp name={name} agents={agents} apiUrl={apiUrl} dir={dir} />);
   }),
 });

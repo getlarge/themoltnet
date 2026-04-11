@@ -58,6 +58,12 @@ export function collectAgents(rawArgs: string[]): AgentType[] {
   const out: AgentType[] = [];
   for (let i = 0; i < rawArgs.length; i++) {
     const token = rawArgs[i];
+    // `--` is the POSIX end-of-options sentinel. Anything after it is a
+    // positional, even if it looks like a flag. Node's `parseArgs` stops
+    // here, and the previous hand-rolled CLI (which used `parseArgs` under
+    // the hood) did too — so we match that to avoid surprising users who
+    // pass `-- --agent` as literal positional data.
+    if (token === '--') break;
     let value: string | undefined;
     if (token === '--agent' || token === '-a') {
       value = rawArgs[i + 1];

@@ -64,11 +64,18 @@ describe('collectAgents', () => {
     );
   });
 
-  it('ignores --agent occurrences inside positional chunks', () => {
-    // If a user literally puts "--agent" after `--` or as a positional,
-    // our walker still picks it up because citty's rawArgs include
-    // everything. That's intentional: matches the hand-rolled behavior.
-    expect(collectAgents(['--', '--agent', 'claude'])).toEqual(['claude']);
+  it('stops collecting at the `--` end-of-options sentinel', () => {
+    // POSIX: `--` marks the end of options, everything after is positional.
+    // Node's `parseArgs` respects this, and so do we — passing
+    // `-- --agent claude` means the user wants a literal positional
+    // "--agent", not an agent flag.
+    expect(collectAgents(['--', '--agent', 'claude'])).toEqual([]);
+  });
+
+  it('still collects --agent values that appear before `--`', () => {
+    expect(
+      collectAgents(['--agent', 'claude', '--', '--agent', 'codex']),
+    ).toEqual(['claude']);
   });
 });
 
