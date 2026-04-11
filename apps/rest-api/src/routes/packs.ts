@@ -786,6 +786,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -837,12 +838,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Cannot set expiresAt on a pinned pack — unpin it first or send pinned: false together',
         );
       }
-      if (pinned === undefined && expiresAt === undefined) {
-        throw createProblem(
-          'validation-failed',
-          'At least one of pinned or expiresAt must be provided',
-        );
-      }
+      // Schema-level `minProperties: 1` guarantees at least one field is set.
 
       // Mutate + re-fetch atomically to avoid race with GC
       const updated = await fastify.dataSource.runTransaction(async () => {
@@ -854,10 +850,19 @@ export async function packRoutes(fastify: FastifyInstance) {
             new Date(expiresAt!),
           );
         } else if (expiresAt !== undefined) {
-          await fastify.contextPackRepository.updateExpiry(
+          // updateExpiry filters on `pinned = false`. A concurrent pin between
+          // the pre-check and this write produces a silent no-op — surface it
+          // as a conflict rather than returning stale state.
+          const result = await fastify.contextPackRepository.updateExpiry(
             pack.id,
             new Date(expiresAt),
           );
+          if (!result) {
+            throw createProblem(
+              'conflict',
+              'Pack state changed concurrently — retry the request',
+            );
+          }
         }
 
         return fastify.contextPackRepository.findById(pack.id);

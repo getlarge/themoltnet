@@ -195,10 +195,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
-        body: Type.Object({
-          name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
-          visibility: Type.Optional(Type.Union(visibilityLiterals)),
-        }),
+        body: Type.Object(
+          {
+            name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+            visibility: Type.Optional(Type.Union(visibilityLiterals)),
+          },
+          {
+            minProperties: 1,
+            description: 'At least one of name or visibility must be provided.',
+          },
+        ),
         response: {
           200: Type.Ref(DiaryCatalogSchema),
           401: Type.Ref(ProblemDetailsSchema),

@@ -5472,6 +5472,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "description": "At least one of name or visibility must be provided.",
+                "minProperties": 1,
                 "properties": {
                   "name": {
                     "maxLength": 255,
@@ -5498,7 +5500,8 @@
                 "type": "object"
               }
             }
-          }
+          },
+          "description": "At least one of name or visibility must be provided."
         },
         "responses": {
           "200": {
@@ -7049,6 +7052,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "description": "At least one of title, content, tags, importance, or entryType must be provided.",
+                "minProperties": 1,
                 "properties": {
                   "content": {
                     "maxLength": 100000,
@@ -7104,7 +7109,8 @@
                 "type": "object"
               }
             }
-          }
+          },
+          "description": "At least one of title, content, tags, importance, or entryType must be provided."
         },
         "responses": {
           "200": {
@@ -8758,6 +8764,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.",
+                "minProperties": 1,
                 "properties": {
                   "expiresAt": {
                     "format": "date-time",
@@ -8770,7 +8778,8 @@
                 "type": "object"
               }
             }
-          }
+          },
+          "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints."
         },
         "responses": {
           "200": {
@@ -8814,6 +8823,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10243,6 +10262,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.",
+                "minProperties": 1,
                 "properties": {
                   "expiresAt": {
                     "format": "date-time",
@@ -10255,7 +10276,8 @@
                 "type": "object"
               }
             }
-          }
+          },
+          "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints."
         },
         "responses": {
           "200": {
@@ -10299,6 +10321,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {

@@ -368,15 +368,22 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
   );
 
-  const updateBodySchema = Type.Object({
-    title: Type.Optional(Type.String({ maxLength: 255 })),
-    content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
-    tags: Type.Optional(
-      Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
-    ),
-    importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
-    entryType: Type.Optional(Type.Union(entryTypeLiterals)),
-  });
+  const updateBodySchema = Type.Object(
+    {
+      title: Type.Optional(Type.String({ maxLength: 255 })),
+      content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
+      tags: Type.Optional(
+        Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+      ),
+      importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
+      entryType: Type.Optional(Type.Union(entryTypeLiterals)),
+    },
+    {
+      minProperties: 1,
+      description:
+        'At least one of title, content, tags, importance, or entryType must be provided.',
+    },
+  );
 
   const getEntry = async (
     entryId: string,

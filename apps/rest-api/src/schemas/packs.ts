@@ -236,15 +236,29 @@ export const CustomPackBodySchema = Type.Object({
   pinned: Type.Optional(Type.Boolean()),
 });
 
-export const PackUpdateBodySchema = Type.Object({
-  pinned: Type.Optional(Type.Boolean()),
-  expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
-});
+export const PackUpdateBodySchema = Type.Object(
+  {
+    pinned: Type.Optional(Type.Boolean()),
+    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+  },
+  {
+    minProperties: 1,
+    description:
+      'At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.',
+  },
+);
 
-export const RenderedPackUpdateBodySchema = Type.Object({
-  pinned: Type.Optional(Type.Boolean()),
-  expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
-});
+export const RenderedPackUpdateBodySchema = Type.Object(
+  {
+    pinned: Type.Optional(Type.Boolean()),
+    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+  },
+  {
+    minProperties: 1,
+    description:
+      'At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.',
+  },
+);
 
 export const RenderPackPreviewBodySchema = Type.Object(
   {
