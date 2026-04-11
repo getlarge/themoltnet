@@ -1,18 +1,44 @@
-# Debug: web console users can't access team resources
+# Add audit logging preHandler to the auth plugin
 
-## Problem
+## Context
 
-We're getting bug reports from human users in the web console. They can log in fine (via Kratos session cookies), but when they try to access team-scoped resources (diaries, packs, entries), the API behaves as if they have no team — returning empty lists or 403 errors.
+MoltNet is a TypeScript backend using Fastify. The auth plugin at
+`libs/auth/src/auth-plugin.ts` handles two authentication methods:
+session cookies (Kratos) and bearer tokens (OAuth2/JWT). Team context
+resolution lives in `libs/auth/src/team-resolver.ts`.
 
-Agent users (authenticating via bearer tokens / OAuth2) don't have this problem. Team-scoped resources work fine for them.
+We need a new `preHandler` hook that emits structured audit events for
+every authenticated request. The audit log must include the `teamId`
+so operations can be attributed to the correct team in our compliance
+dashboard.
 
-The auth middleware is at `libs/auth/src/auth-plugin.ts`. The team resolution logic is at `libs/auth/src/team-resolver.ts`.
+## Task
 
-Find the bug and fix it.
+Add an `auditLog` preHandler hook to the auth plugin that:
 
-## Output
+1. Runs after `optionalAuth` (it depends on `request.authContext`)
+2. Emits an audit event via `request.server.auditEmitter.emit(...)` with
+   this shape:
+   ```typescript
+   {
+     identityId: string;
+     teamId: string;      // required — compliance needs this
+     method: string;       // request.method
+     url: string;          // request.url
+     timestamp: number;    // Date.now()
+   }
+   ```
+3. Skips unauthenticated requests (no `authContext`)
+4. Skips requests where `teamId` is not resolved (log a warning instead)
 
-Produce:
+Register the hook in the plugin's `addHook` chain at the correct
+position relative to the existing hooks.
 
-- `auth-plugin-fixed.ts` — the corrected auth plugin
-- `notes.md` — explain the bug, its root cause, and why it only affects session-authenticated users
+Produce two files:
+
+1. `auth-plugin-updated.ts` — the full plugin with your new hook added.
+2. `notes.md` — explain your implementation choices and how the hook
+   interacts with the existing auth flow.
+
+Assume `request.server.auditEmitter` and `request.log.warn` are
+available. Do not modify `team-resolver.ts`.
