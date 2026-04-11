@@ -54,6 +54,15 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  kratos-selfservice-ui-node:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos-selfservice-ui-node
+    depends_on:
+      kratos:
+        condition: service_healthy
+    restart: unless-stopped
+
   hydra-postgres:
     extends:
       file: docker-compose.base.yaml
