@@ -135,6 +135,9 @@ catalogs:
     '@testing-library/jest-dom':
       specifier: ^6.0.0
       version: 6.9.1
+    '@testing-library/react':
+      specifier: ^16.0.0
+      version: 16.3.2
     '@types/node':
       specifier: ^20.11.0
       version: 20.19.30
@@ -432,7 +435,7 @@ importers:
         specifier: 'catalog:'
         version: 6.9.1
       '@testing-library/react':
-        specifier: ^16.0.0
+        specifier: 'catalog:'
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@types/react':
         specifier: 'catalog:'
@@ -910,6 +913,12 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1(react@19.2.4)
     devDependencies:
+      '@testing-library/jest-dom':
+        specifier: 'catalog:'
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: 'catalog:'
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@types/figlet':
         specifier: ^1.7.0
         version: 1.7.0
@@ -928,6 +937,9 @@ importers:
       ink:
         specifier: 'catalog:'
         version: 6.8.0(@types/react@19.2.10)(react@19.2.4)
+      jsdom:
+        specifier: 'catalog:'
+        version: 25.0.1
       react:
         specifier: 'catalog:'
         version: 19.2.4
@@ -943,6 +955,9 @@ importers:
       vite-plugin-dts:
         specifier: 'catalog:'
         version: 4.5.4(@types/node@25.1.0)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   libs/diary-service:
     dependencies:

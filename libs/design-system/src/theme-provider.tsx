@@ -1,4 +1,10 @@
-import { createContext, type ReactNode, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { darkTheme, lightTheme, type MoltTheme } from './theme.js';
 
@@ -8,10 +14,33 @@ import { darkTheme, lightTheme, type MoltTheme } from './theme.js';
 
 export interface ThemeContextValue {
   theme: MoltTheme;
-  setMode: (mode: 'dark' | 'light') => void;
+  setMode: (mode: 'dark' | 'light' | 'system') => void;
+  resolvedMode: 'dark' | 'light';
+  preferredMode: 'dark' | 'light' | 'system';
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+// ---------------------------------------------------------------------------
+// System theme detection
+// ---------------------------------------------------------------------------
+
+function useSystemTheme(): 'dark' | 'light' {
+  const [systemMode, setSystemMode] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  });
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) =>
+      setSystemMode(e.matches ? 'dark' : 'light');
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+  return systemMode;
+}
 
 // ---------------------------------------------------------------------------
 // CSS custom properties generation
@@ -84,7 +113,7 @@ function generateGlobalStyles(): string {
 
 export interface MoltThemeProviderProps {
   /** Initial theme mode. Defaults to 'dark'. */
-  mode?: 'dark' | 'light';
+  mode?: 'dark' | 'light' | 'system';
   children: ReactNode;
 }
 
@@ -92,17 +121,24 @@ export function MoltThemeProvider({
   mode: initialMode = 'dark',
   children,
 }: MoltThemeProviderProps) {
-  const [mode, setMode] = useState<'dark' | 'light'>(initialMode);
-  const theme = mode === 'dark' ? darkTheme : lightTheme;
+  const [preferredMode, setPreferredMode] = useState<
+    'dark' | 'light' | 'system'
+  >(initialMode);
+  const systemMode = useSystemTheme();
+  const resolvedMode = preferredMode === 'system' ? systemMode : preferredMode;
+  const theme = resolvedMode === 'dark' ? darkTheme : lightTheme;
 
-  const value = useMemo<ThemeContextValue>(() => ({ theme, setMode }), [theme]);
+  const value = useMemo<ThemeContextValue>(
+    () => ({ theme, setMode: setPreferredMode, resolvedMode, preferredMode }),
+    [theme, resolvedMode, preferredMode],
+  );
 
   const cssVars = useMemo(() => themeToCssVars(theme), [theme]);
 
   return (
     <ThemeContext.Provider value={value}>
       <style dangerouslySetInnerHTML={{ __html: generateGlobalStyles() }} />
-      <div data-molt-theme={mode} style={parseCssVars(cssVars)}>
+      <div data-molt-theme={resolvedMode} style={parseCssVars(cssVars)}>
         {children}
       </div>
     </ThemeContext.Provider>

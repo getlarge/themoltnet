@@ -15,14 +15,18 @@ export function useTheme(): MoltTheme {
 }
 
 /**
- * Access the theme toggle function.
+ * Access the theme mode and toggle function.
  */
 export function useThemeMode() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     throw new Error('useThemeMode must be used within a MoltThemeProvider');
   }
-  return { mode: ctx.theme.mode, setMode: ctx.setMode };
+  return {
+    resolvedMode: ctx.resolvedMode,
+    preferredMode: ctx.preferredMode,
+    setMode: ctx.setMode,
+  };
 }
 
 /**
