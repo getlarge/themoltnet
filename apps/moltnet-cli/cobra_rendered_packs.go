@@ -1,6 +1,10 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
 
 func newRenderedPacksCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -9,6 +13,7 @@ func newRenderedPacksCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newRenderedPacksListCmd())
 	cmd.AddCommand(newRenderedPacksGetCmd())
+	cmd.AddCommand(newRenderedPacksUpdateCmd())
 	cmd.AddCommand(newRenderedPacksVerifyCmd())
 	cmd.AddCommand(newRenderedPacksJudgeCmd())
 	return cmd
@@ -55,5 +60,44 @@ func newRenderedPacksGetCmd() *cobra.Command {
 	}
 	cmd.Flags().String("id", "", "Rendered pack UUID (required)")
 	_ = cmd.MarkFlagRequired("id")
+	return cmd
+}
+
+func newRenderedPacksUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "Update a rendered pack",
+		Long:  `Update a rendered pack's pinned status or expiration time.`,
+		Example: `  moltnet rendered-packs update --id <uuid> --pinned
+  moltnet rendered-packs update --id <uuid> --no-pinned --expires-at 2026-05-01T00:00:00Z
+  moltnet rendered-packs update --id <uuid> --expires-at 2026-05-01T00:00:00Z`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			id, _ := cmd.Flags().GetString("id")
+			expiresAt, _ := cmd.Flags().GetString("expires-at")
+
+			var pinned *bool
+			if cmd.Flags().Changed("pinned") {
+				v := true
+				pinned = &v
+			} else if cmd.Flags().Changed("no-pinned") {
+				v := false
+				pinned = &v
+			}
+
+			if pinned == nil && expiresAt == "" {
+				return fmt.Errorf("at least one of --pinned, --no-pinned, or --expires-at must be provided")
+			}
+
+			return runRenderedPacksUpdate(apiURL, credPath, id, pinned, expiresAt)
+		},
+	}
+	cmd.Flags().String("id", "", "Rendered pack UUID (required)")
+	cmd.Flags().Bool("pinned", false, "Pin the rendered pack")
+	cmd.Flags().Bool("no-pinned", false, "Unpin the rendered pack")
+	cmd.Flags().String("expires-at", "", "Expiration time in RFC3339 format")
+	_ = cmd.MarkFlagRequired("id")
+	cmd.MarkFlagsMutuallyExclusive("pinned", "no-pinned")
 	return cmd
 }

@@ -241,6 +241,11 @@ export const PackUpdateBodySchema = Type.Object({
   expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
 });
 
+export const RenderedPackUpdateBodySchema = Type.Object({
+  pinned: Type.Optional(Type.Boolean()),
+  expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+});
+
 export const RenderPackPreviewBodySchema = Type.Object(
   {
     renderedMarkdown: Type.Optional(
@@ -383,6 +388,7 @@ export const RenderedPackWithContentSchema = Type.Object(
     renderMethod: Type.String(),
     totalTokens: Type.Integer(),
     pinned: Type.Boolean(),
+    expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,
   },
   { $id: 'RenderedPackWithContent' },

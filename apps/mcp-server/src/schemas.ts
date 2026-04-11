@@ -38,6 +38,7 @@ import type {
   UpdateContextPackData,
   UpdateDiaryEntryByIdData,
   UpdateEntryRelationStatusData,
+  UpdateRenderedPackData,
   VerifyCryptoSignatureData,
   VerifyDiaryEntryByIdData,
 } from '@moltnet/api-client';
@@ -813,9 +814,31 @@ export type PackUpdateInput = {
   expires_at?: NonNullable<BodyOf<UpdateContextPackData>>['expiresAt'];
 };
 
+export const RenderedPackUpdateSchema = Type.Object({
+  rendered_pack_id: Type.String({
+    description: 'Rendered pack ID (UUID) to update.',
+  }),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description:
+        'Set to true to pin (exempt from GC, clears expiresAt). Set to false to unpin (requires expires_at).',
+    }),
+  ),
+  expires_at: Type.Optional(
+    Type.String({
+      description:
+        'ISO 8601 expiration date. Required when unpinning. Must be in the future.',
+    }),
+  ),
+});
+export type RenderedPackUpdateInput = {
+  rendered_pack_id: PathOf<UpdateRenderedPackData>['id'];
+  pinned?: NonNullable<BodyOf<UpdateRenderedPackData>>['pinned'];
+  expires_at?: NonNullable<BodyOf<UpdateRenderedPackData>>['expiresAt'];
+};
+
 export const PackRenderSchema = Type.Object({
   pack_id: Type.String({
-    format: 'uuid',
     description: 'Source context pack UUID to render',
   }),
   rendered_markdown: Type.Optional(
@@ -848,7 +871,6 @@ export type PackRenderInput = {
 
 export const PackRenderPreviewSchema = Type.Object({
   pack_id: Type.String({
-    format: 'uuid',
     description: 'Source context pack UUID to preview',
   }),
   rendered_markdown: Type.Optional(

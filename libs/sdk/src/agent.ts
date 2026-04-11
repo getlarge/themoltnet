@@ -52,6 +52,7 @@ import type {
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
   ReflectDiaryData,
+  RenderedPackWithContent,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
   RotateSecretResponse,
@@ -65,6 +66,7 @@ import type {
   UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
+  UpdateRenderedPackData,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
@@ -187,6 +189,11 @@ export interface PacksNamespace {
     id: string,
     body?: UpdateContextPackData['body'],
   ): Promise<ContextPackResponse>;
+
+  updateRendered(
+    id: string,
+    body: NonNullable<UpdateRenderedPackData['body']>,
+  ): Promise<RenderedPackWithContent>;
 }
 
 export interface AgentsNamespace {

@@ -247,6 +247,9 @@ import type {
   UpdateEntryRelationStatusData,
   UpdateEntryRelationStatusErrors,
   UpdateEntryRelationStatusResponses,
+  UpdateRenderedPackData,
+  UpdateRenderedPackErrors,
+  UpdateRenderedPackResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -938,6 +941,26 @@ export const getRenderedPackById = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/rendered-packs/{id}',
     ...options,
+  });
+
+/**
+ * Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+ */
+export const updateRenderedPack = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateRenderedPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateRenderedPackResponses,
+    UpdateRenderedPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/rendered-packs/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

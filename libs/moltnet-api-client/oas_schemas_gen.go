@@ -10427,6 +10427,52 @@ func (o OptUpdateDiaryReqVisibility) Or(d UpdateDiaryReqVisibility) UpdateDiaryR
 	return d
 }
 
+// NewOptUpdateRenderedPackReq returns new OptUpdateRenderedPackReq with value set to v.
+func NewOptUpdateRenderedPackReq(v UpdateRenderedPackReq) OptUpdateRenderedPackReq {
+	return OptUpdateRenderedPackReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRenderedPackReq is optional UpdateRenderedPackReq.
+type OptUpdateRenderedPackReq struct {
+	Value UpdateRenderedPackReq
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRenderedPackReq was set.
+func (o OptUpdateRenderedPackReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRenderedPackReq) Reset() {
+	var v UpdateRenderedPackReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRenderedPackReq) SetTo(v UpdateRenderedPackReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRenderedPackReq) Get() (v UpdateRenderedPackReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRenderedPackReq) Or(d UpdateRenderedPackReq) UpdateRenderedPackReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptVerifyResultSigner returns new OptVerifyResultSigner with value set to v.
 func NewOptVerifyResultSigner(v VerifyResultSigner) OptVerifyResultSigner {
 	return OptVerifyResultSigner{
@@ -13397,16 +13443,17 @@ func (*RenderedPackResult) renderContextPackRes() {}
 
 // Ref: #/components/schemas/RenderedPackWithContent
 type RenderedPackWithContent struct {
-	Content      string    `json:"content"`
-	ContentHash  string    `json:"contentHash"`
-	CreatedAt    time.Time `json:"createdAt"`
-	DiaryId      uuid.UUID `json:"diaryId"`
-	ID           uuid.UUID `json:"id"`
-	PackCid      string    `json:"packCid"`
-	Pinned       bool      `json:"pinned"`
-	RenderMethod string    `json:"renderMethod"`
-	SourcePackId uuid.UUID `json:"sourcePackId"`
-	TotalTokens  int       `json:"totalTokens"`
+	Content      string      `json:"content"`
+	ContentHash  string      `json:"contentHash"`
+	CreatedAt    time.Time   `json:"createdAt"`
+	DiaryId      uuid.UUID   `json:"diaryId"`
+	ExpiresAt    NilDateTime `json:"expiresAt"`
+	ID           uuid.UUID   `json:"id"`
+	PackCid      string      `json:"packCid"`
+	Pinned       bool        `json:"pinned"`
+	RenderMethod string      `json:"renderMethod"`
+	SourcePackId uuid.UUID   `json:"sourcePackId"`
+	TotalTokens  int         `json:"totalTokens"`
 }
 
 // GetContent returns the value of Content.
@@ -13427,6 +13474,11 @@ func (s *RenderedPackWithContent) GetCreatedAt() time.Time {
 // GetDiaryId returns the value of DiaryId.
 func (s *RenderedPackWithContent) GetDiaryId() uuid.UUID {
 	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *RenderedPackWithContent) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
 }
 
 // GetID returns the value of ID.
@@ -13479,6 +13531,11 @@ func (s *RenderedPackWithContent) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
 }
 
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *RenderedPackWithContent) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
 // SetID sets the value of ID.
 func (s *RenderedPackWithContent) SetID(val uuid.UUID) {
 	s.ID = val
@@ -13511,6 +13568,7 @@ func (s *RenderedPackWithContent) SetTotalTokens(val int) {
 
 func (*RenderedPackWithContent) getLatestRenderedPackRes() {}
 func (*RenderedPackWithContent) getRenderedPackByIdRes()   {}
+func (*RenderedPackWithContent) updateRenderedPackRes()    {}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 
@@ -14751,6 +14809,51 @@ func (s *UpdateEntryRelationStatusReq) SetStatus(val RelationStatus) {
 type UpdateEntryRelationStatusUnauthorized ProblemDetails
 
 func (*UpdateEntryRelationStatusUnauthorized) updateEntryRelationStatusRes() {}
+
+type UpdateRenderedPackBadRequest ProblemDetails
+
+func (*UpdateRenderedPackBadRequest) updateRenderedPackRes() {}
+
+type UpdateRenderedPackForbidden ProblemDetails
+
+func (*UpdateRenderedPackForbidden) updateRenderedPackRes() {}
+
+type UpdateRenderedPackInternalServerError ProblemDetails
+
+func (*UpdateRenderedPackInternalServerError) updateRenderedPackRes() {}
+
+type UpdateRenderedPackNotFound ProblemDetails
+
+func (*UpdateRenderedPackNotFound) updateRenderedPackRes() {}
+
+type UpdateRenderedPackReq struct {
+	ExpiresAt OptDateTime `json:"expiresAt"`
+	Pinned    OptBool     `json:"pinned"`
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *UpdateRenderedPackReq) GetExpiresAt() OptDateTime {
+	return s.ExpiresAt
+}
+
+// GetPinned returns the value of Pinned.
+func (s *UpdateRenderedPackReq) GetPinned() OptBool {
+	return s.Pinned
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *UpdateRenderedPackReq) SetExpiresAt(val OptDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *UpdateRenderedPackReq) SetPinned(val OptBool) {
+	s.Pinned = val
+}
+
+type UpdateRenderedPackUnauthorized ProblemDetails
+
+func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
 
 type VerifyAgentSignatureInternalServerError ProblemDetails
 

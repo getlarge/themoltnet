@@ -213,4 +213,84 @@ describe('Pack Tools E2E', () => {
     expect(unpinParsed.pack.pinned).toBe(false);
     expect(unpinParsed.pack.expiresAt).toBeDefined();
   });
+
+  it('packs_update_rendered pins and unpins a rendered pack', async () => {
+    requireSetup();
+
+    // Compile to get a source pack
+    const compileResult = await client.callTool({
+      name: 'diaries_compile',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        token_budget: 2000,
+      },
+    });
+    const compileContent = compileResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      compileResult.isError,
+      `diaries_compile error: ${compileContent[0].text}`,
+    ).toBeUndefined();
+    const compileParsed = JSON.parse(compileContent[0].text);
+    const sourcePackId = compileParsed.id as string;
+
+    // Render the pack to get a rendered pack
+    const renderResult = await client.callTool({
+      name: 'packs_render',
+      arguments: {
+        pack_id: sourcePackId,
+        render_method: 'server:pack-to-docs-v1',
+      },
+    });
+    const renderContent = renderResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      renderResult.isError,
+      `packs_render error: ${renderContent[0].text}`,
+    ).toBeUndefined();
+    const renderParsed = JSON.parse(renderContent[0].text);
+    const renderedPackId = renderParsed.id as string;
+
+    // Pin the rendered pack
+    const pinResult = await client.callTool({
+      name: 'packs_update_rendered',
+      arguments: { rendered_pack_id: renderedPackId, pinned: true },
+    });
+    const pinContent = pinResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      pinResult.isError,
+      `packs_update_rendered (pin) error: ${pinContent[0].text}`,
+    ).toBeUndefined();
+    const pinParsed = JSON.parse(pinContent[0].text);
+    expect(pinParsed.renderedPack.pinned).toBe(true);
+
+    // Unpin with new expiresAt
+    const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const unpinResult = await client.callTool({
+      name: 'packs_update_rendered',
+      arguments: {
+        rendered_pack_id: renderedPackId,
+        pinned: false,
+        expires_at: future.toISOString(),
+      },
+    });
+    const unpinContent2 = unpinResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      unpinResult.isError,
+      `packs_update_rendered (unpin) error: ${unpinContent2[0].text}`,
+    ).toBeUndefined();
+    const unpinParsed2 = JSON.parse(unpinContent2[0].text);
+    expect(unpinParsed2.renderedPack.pinned).toBe(false);
+    expect(unpinParsed2.renderedPack.expiresAt).toBeDefined();
+  });
 });

@@ -15,6 +15,7 @@ import {
   previewRenderedPack,
   renderContextPack,
   updateContextPack,
+  updateRenderedPack,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -27,6 +28,7 @@ import type {
   PackRenderInput,
   PackRenderPreviewInput,
   PackUpdateInput,
+  RenderedPackUpdateInput,
 } from './schemas.js';
 import {
   PackCreateSchema,
@@ -37,6 +39,7 @@ import {
   PackRenderPreviewSchema,
   PackRenderSchema,
   PackUpdateSchema,
+  RenderedPackUpdateSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
@@ -265,6 +268,38 @@ export async function handlePacksUpdate(
   return textResult({ pack: data });
 }
 
+export async function handleRenderedPacksUpdate(
+  args: RenderedPackUpdateInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'packs_update_rendered' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await updateRenderedPack({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.rendered_pack_id },
+    body: {
+      ...(args.pinned !== undefined && { pinned: args.pinned }),
+      ...(args.expires_at !== undefined && { expiresAt: args.expires_at }),
+    },
+  });
+
+  if (error) {
+    deps.logger.error(
+      { tool: 'packs_update_rendered', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to update rendered pack'),
+    );
+  }
+
+  return textResult({ renderedPack: data });
+}
+
 export async function handlePacksRender(
   args: PackRenderInput,
   deps: McpDeps,
@@ -384,6 +419,18 @@ export function registerPackTools(
       inputSchema: PackUpdateSchema,
     },
     async (args, ctx) => handlePacksUpdate(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'packs_update_rendered',
+      description:
+        'Update a rendered pack — pin/unpin or change expiration date. ' +
+        'Pin a rendered pack to protect it from garbage collection. ' +
+        'When unpinning, expires_at is required.',
+      inputSchema: RenderedPackUpdateSchema,
+    },
+    async (args, ctx) => handleRenderedPacksUpdate(args, deps, ctx),
   );
 
   fastify.mcpAddTool(

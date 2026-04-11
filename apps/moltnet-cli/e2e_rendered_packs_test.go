@@ -305,3 +305,70 @@ func TestE2E_RenderedPacksVerifyCmd_IdempotentNonce(t *testing.T) {
 		t.Fatalf("expected idempotent verification ID, got %s then %s", id1, id2)
 	}
 }
+
+func TestE2E_RenderedPacksUpdateCmd(t *testing.T) {
+	binPath, err := ensureE2ECLIBinary()
+	if err != nil {
+		t.Fatalf("build CLI: %v", err)
+	}
+	credsPath, err := writeE2ECredsFile(e2eCreds)
+	if err != nil {
+		t.Fatalf("write creds: %v", err)
+	}
+
+	renderedPackID, err := createAgentRenderedPackForVerification(
+		t,
+		"# E2E update test pack\nContent for update testing.",
+	)
+	if err != nil {
+		t.Fatalf("create rendered pack: %v", err)
+	}
+
+	t.Run("pin", func(t *testing.T) {
+		stdout, stderr, err := runE2ECLI(
+			binPath, credsPath,
+			"rendered-packs", "update",
+			"--id", renderedPackID.String(),
+			"--pinned",
+		)
+		if err != nil {
+			t.Fatalf("rendered-packs update --pinned: err=%v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+		}
+		if !strings.Contains(stdout, `"pinned":true`) && !strings.Contains(stdout, `"pinned": true`) {
+			t.Errorf("expected pinned:true in output, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("unpin with expires-at", func(t *testing.T) {
+		future := time.Now().Add(14 * 24 * time.Hour).UTC().Format(time.RFC3339)
+		stdout, stderr, err := runE2ECLI(
+			binPath, credsPath,
+			"rendered-packs", "update",
+			"--id", renderedPackID.String(),
+			"--no-pinned",
+			"--expires-at", future,
+		)
+		if err != nil {
+			t.Fatalf("rendered-packs update --no-pinned: err=%v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+		}
+		if !strings.Contains(stdout, `"pinned":false`) && !strings.Contains(stdout, `"pinned": false`) {
+			t.Errorf("expected pinned:false in output, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("update expires-at only", func(t *testing.T) {
+		newFuture := time.Now().Add(30 * 24 * time.Hour).UTC().Format(time.RFC3339)
+		stdout, stderr, err := runE2ECLI(
+			binPath, credsPath,
+			"rendered-packs", "update",
+			"--id", renderedPackID.String(),
+			"--expires-at", newFuture,
+		)
+		if err != nil {
+			t.Fatalf("rendered-packs update --expires-at: err=%v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+		}
+		if !strings.Contains(stdout, `"pinned":false`) && !strings.Contains(stdout, `"pinned": false`) {
+			t.Errorf("expected pinned:false in output, got:\n%s", stdout)
+		}
+	})
+}

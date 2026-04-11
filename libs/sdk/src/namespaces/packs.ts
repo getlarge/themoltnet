@@ -4,6 +4,7 @@ import {
   getContextPackProvenanceById,
   listDiaryPacks,
   updateContextPack,
+  updateRenderedPack,
 } from '@moltnet/api-client';
 
 import type { PacksNamespace } from '../agent.js';
@@ -61,6 +62,17 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
     async update(id, body) {
       return unwrapResult(
         await updateContextPack({
+          client,
+          auth,
+          path: { id },
+          body,
+        }),
+      );
+    },
+
+    async updateRendered(id, body) {
+      return unwrapResult(
+        await updateRenderedPack({
           client,
           auth,
           path: { id },

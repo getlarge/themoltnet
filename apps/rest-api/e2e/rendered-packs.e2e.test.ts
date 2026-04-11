@@ -24,6 +24,7 @@ import {
   type RenderedPackPreview,
   type RenderedPackResult,
   type RenderedPackWithContent,
+  updateRenderedPack,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -433,4 +434,89 @@ describe('Rendered packs', () => {
     expect(error).toBeDefined();
     expect(response.status).toBe(404);
   }, 30_000);
+
+  describe('PATCH /rendered-packs/:id (pin/unpin/expiry)', () => {
+    let renderedPackId: string;
+
+    it('creates a rendered pack for update tests', async () => {
+      const { data } = await renderContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: sourcePackId },
+        body: { renderMethod: 'server:pack-to-docs-v1' },
+      });
+      expect(data).toBeDefined();
+      renderedPackId = data!.id;
+    }, 30_000);
+
+    it('pins a rendered pack', async () => {
+      const { data, error } = await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: renderedPackId },
+        body: { pinned: true },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(true);
+    });
+
+    it('rejects expiresAt update on pinned rendered pack', async () => {
+      const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const { error, response } = await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: renderedPackId },
+        body: { expiresAt: future.toISOString() },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    });
+
+    it('unpins with new expiresAt', async () => {
+      const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+      const { data, error } = await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: renderedPackId },
+        body: { pinned: false, expiresAt: future.toISOString() },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(false);
+      expect(data!.expiresAt).toBeDefined();
+    });
+
+    it('updates expiresAt on non-pinned rendered pack', async () => {
+      const newFuture = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const { data, error } = await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: renderedPackId },
+        body: { expiresAt: newFuture.toISOString() },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(false);
+    });
+
+    it('rejects update from another agent (403)', async () => {
+      const { error, response } = await updateRenderedPack({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: renderedPackId },
+        body: { pinned: true },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(403);
+    });
+
+    it('returns 404 for non-existent rendered pack', async () => {
+      const { error, response } = await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: '00000000-0000-0000-0000-000000000000' },
+        body: { pinned: true },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+    });
+  });
 });
