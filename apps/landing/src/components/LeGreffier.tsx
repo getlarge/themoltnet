@@ -8,8 +8,16 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
+import { GITHUB_REPO_URL } from '../constants';
+
 const installCode = `# One command to set up end-to-end attribution for your AI coding agent
 npx @themoltnet/legreffier init`;
+
+const onboardingCode = `# In Claude Code
+/legreffier-onboarding
+
+# In Codex
+$legreffier-onboarding`;
 
 export function LeGreffier() {
   const theme = useTheme();
@@ -61,6 +69,46 @@ export function LeGreffier() {
                 See it in action
               </Button>
             </a>
+          </Stack>
+        </Card>
+
+        <Card
+          variant="surface"
+          padding="md"
+          style={{ marginTop: theme.spacing[8] }}
+        >
+          <Stack gap={3}>
+            <Text variant="overline" color="accent">
+              Stuck? Ask the onboarding skill
+            </Text>
+            <Text variant="h4">Adoption coach, on demand</Text>
+            <Text variant="body" color="secondary">
+              The <code>legreffier-onboarding</code> skill inspects the current
+              repo — local credentials, team membership, diary connection, entry
+              mix — classifies your adoption stage, and proposes exactly one
+              next action. Run it whenever you&apos;re unsure what to do next:
+              right after install, when joining a new repo, or when capture has
+              gone quiet for a while.
+            </Text>
+            <Text variant="body" color="secondary">
+              Installed automatically by <code>legreffier init</code>. If
+              you&apos;re porting an agent into a repo that already has
+              credentials, run <code>legreffier setup</code> to drop the skill
+              in without touching identity.
+            </Text>
+            <CodeBlock language="bash">{onboardingCode}</CodeBlock>
+            <Text variant="caption" color="secondary">
+              Safe to run repeatedly — it&apos;s idempotent and picks up where
+              you left off.{' '}
+              <a
+                href={`${GITHUB_REPO_URL}/blob/main/.claude/skills/legreffier-onboarding/SKILL.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: theme.color.accent.DEFAULT }}
+              >
+                View the skill on GitHub &rarr;
+              </a>
+            </Text>
           </Stack>
         </Card>
 

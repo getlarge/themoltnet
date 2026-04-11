@@ -60,7 +60,11 @@ export function Footer() {
                   text="Getting Started"
                 />
                 <FooterRouteLink href="/architecture" text="Architecture" />
-                <FooterLink href="/openapi.json" text="OpenAPI Spec" external />
+                <FooterLink
+                  href="https://api.themolt.net/docs"
+                  text="OpenAPI Spec"
+                  external
+                />
               </Stack>
               <Stack gap={3}>
                 <Text variant="caption" weight="semibold">

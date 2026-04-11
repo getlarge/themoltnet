@@ -60,6 +60,35 @@ use CLI for these operations regardless of transport mode.
 
 ---
 
+## Temporal thresholds
+
+Stages 1-3 factor in how long ago things happened. Signals are derived
+from data already returned by the calls the skill is making anyway —
+no extra API calls.
+
+```
+STALE_MANUAL_DAYS = 30   // manual capture has gone quiet
+RECENT_DAYS       = 7    // just happened
+ADOPTION_LAG_DAYS = 7    // registered but still not connected
+```
+
+**Signal sources:**
+
+| Signal                 | Source                                                          |
+| ---------------------- | --------------------------------------------------------------- |
+| `REGISTERED_AT`        | `.moltnet/<AGENT_NAME>/moltnet.json` → `registered_at` (local)  |
+| `DIARY_CREATED_AT`     | `diaries_list` response (fetched in Stage 2)                    |
+| `TEAM_CREATED_AT`      | `teams_list` response (fetched in Stage 2)                      |
+| `LAST_ENTRY_AT`        | max `createdAt` from `entries_list` (Stage 3)                   |
+| `LAST_MANUAL_ENTRY_AT` | max `createdAt` filtered to non-`source:scan` semantic/episodic |
+| `NOW`                  | runtime                                                         |
+
+Before proposing the action for a stage, print a single-line `**Signals:**`
+block summarizing the relevant ages (e.g. `Registered 42 days ago.
+Personal-only team. No diary yet.`). **Stage 4 has no Signals line** —
+the user is already capturing manually and signals would be noise
+without a corrective action.
+
 ## Adoption stages
 
 The skill classifies the current repo into one of four stages. Each stage
@@ -71,6 +100,32 @@ has a detection method and a recommended action.
 
 - `.moltnet/` directory does not exist, OR
 - No subdirectory in `.moltnet/` contains a `moltnet.json` file
+
+**Signals:** There are two sub-cases, and they produce different lines.
+
+1. **`.moltnet/` is entirely absent** (nothing was ever started). Nothing
+   to read, nothing to age. Print a single line that states the fact:
+   `No .moltnet/ directory. Never initialized.`
+2. **`.moltnet/<AGENT_NAME>/` exists but `moltnet.json` is missing or
+   incomplete** (setup started, never finished). Only in this case try
+   to read `REGISTERED_AT`. If the field is present, compute
+   `days = (NOW - REGISTERED_AT) / 1 day` and print:
+   `Registered <days> days ago. Setup never completed.`
+   If `moltnet.json` exists but has no `REGISTERED_AT`, fall back to:
+   `Partial .moltnet/<AGENT_NAME>/ found. Setup never completed.`
+
+Never attempt to read `moltnet.json` in sub-case 1 — there is no file.
+
+**Refinement — "installed but never adopted"**
+
+If `.moltnet/` exists with a `<AGENT_NAME>/` subdirectory but the
+`moltnet.json` inside is missing or incomplete, **and** `REGISTERED_AT`
+is more than `ADOPTION_LAG_DAYS` ago, lead with a stronger framing:
+
+> You registered `<N>` days ago but never completed setup. Run `init` to
+> finish, or `port` if you've been using this agent elsewhere.
+
+Otherwise use the default action:
 
 **Action:**
 
@@ -89,7 +144,66 @@ has a detection method and a recommended action.
 
 Stop here. Do not attempt API calls without credentials.
 
+#### Resolving `--from` when the user names a source repo
+
+If the user mentions reusing an agent from another repo (examples:
+"I already have `jobi` set up in `dev/getlarge/my-repo`", "port `jobi`
+from my other repo"), the user is on the Option B path above. The
+`legreffier port --from` flag is **strict**: it only accepts the exact
+shape `<repo-root>/.moltnet/<agent-name>`. Build that path for the
+user instead of echoing their hint back.
+
+Steps:
+
+1. Extract `<repo-root>` and `<agent-name>` from the user's message.
+2. Resolve `<repo-root>` to an absolute path:
+   - Absolute path (`/Users/me/code/other-repo`) → use as-is.
+   - `~`-prefixed (`~/code/other-repo`) → expand against `$HOME`.
+   - Relative-looking (`dev/getlarge/my-repo`) → resolve against
+     `$HOME` first; if that directory doesn't exist, try the parent
+     of the current repository root.
+3. Propose the full command:
+
+   ```
+   npx @themoltnet/legreffier port \
+     --name <agent-name> \
+     --from <absolute-repo-root>/.moltnet/<agent-name> \
+     --agent claude
+   ```
+
+4. If the repo root cannot be resolved to an existing directory, stop
+   and ask for an absolute path explicitly:
+
+   > I can't resolve `<hint>` to an absolute path. Please provide the
+   > full path to the source repo root, e.g.
+   > `~/code/my-repo` or `/Users/me/code/my-repo`.
+
+Never fabricate a fallback path, never try fuzzy matching, and never
+suggest `--from <repo-name>` or `--from ~/...` forms — those shapes
+are rejected by the CLI.
+
 ### Stage 2: Initialized but not connected to a shared diary
+
+**Signals:** Read `REGISTERED_AT` from `moltnet.json`, and — after
+`teams_list` runs — `TEAM_CREATED_AT` for the resolved team. Print:
+`Registered <N> days ago. Team <name> created <M> days ago. No diary yet.`
+
+**Refinement — "delayed activation"**
+
+If `REGISTERED_AT` is more than `ADOPTION_LAG_DAYS` ago, soften the
+opening framing of the action block:
+
+> You've been registered for `<N>` days. Let's get this repo wired up.
+
+**Refinement — "team lead onboarding"**
+
+After team resolution, if `TEAM_CREATED_AT` is within `RECENT_DAYS` and
+the resolved team is shared (not personal), append this note to the
+team-resolved branch:
+
+> Your team `<name>` was created `<N>` days ago — if you're the team
+> lead setting this up, choose create-diary when the main `/legreffier`
+> skill offers it.
 
 **Detection (local first, then remote):**
 
@@ -236,6 +350,24 @@ If remote API calls fail:
 
 ### Stage 3: Connected but only auto-harvesting
 
+**Signals:** Compute `LAST_ENTRY_AT` as `max(createdAt)` across the
+`entries_list` response and `LAST_MANUAL_ENTRY_AT` as the same filtered
+to non-`source:scan` semantic/episodic entries (may be `null`). Print:
+`<procedural-count> procedural entries. Last entry <N> days ago.
+No manual captures yet.`
+
+**Refinement — "auto-only stalled"**
+
+If only procedural/scan entries exist **and** `LAST_ENTRY_AT` is more
+than `STALE_MANUAL_DAYS` ago, replace the default Stage 3 action with a
+stronger nudge:
+
+> Commit capture is running but the last entry was `<N>` days ago. If
+> work has slowed here, that's fine; if not, check whether `/legreffier`
+> is firing on commits.
+
+Otherwise use the default Stage 3 action below.
+
 **Detection (requires API calls):**
 
 Resolve `DIARY_ID` from env or by matching repo name via `diaries_list`.
@@ -298,8 +430,9 @@ If scan entries exist but no manual entries:
 > design compile recipes. Then use `/legreffier-consolidate` to build
 > entry relations and prepare for context packs.
 >
-> See the co-located reference doc for the full harvest -> compile ->
-> evaluate -> load pipeline.
+> If the user wants the full harvest -> compile -> evaluate -> load
+> pipeline, fetch
+> `https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md`.
 
 ---
 
@@ -352,15 +485,25 @@ On every invocation:
 
 ---
 
-## Internal references
+## External references
 
-- `references/onboarding-guide.md` — co-located onboarding reference
-  derived from `docs/GETTING_STARTED.md`. Covers install, harvest,
-  compile, evaluate, and load stages.
+When the user asks for deeper context ("how does commit capture work",
+"how do I compile a context pack", "what's the harvest/compile/evaluate
+pipeline"), fetch the canonical Getting Started guide on demand rather
+than relying on a bundled copy:
 
-If that reference file is missing, warn that the skill bundle is
-incomplete but continue with stage detection (the reference is for
-user guidance, not skill logic).
+```
+https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md
+```
+
+Use this URL with the agent's built-in fetch capability (WebFetch or
+equivalent). Agents are always online during interactive sessions, so
+a local-first reference is not required. Fetching on demand guarantees
+the skill never drifts from the upstream guide.
+
+If the fetch fails (offline, GitHub outage, network error), tell the
+user the external guide is unavailable right now and continue with
+stage detection — the reference is for user guidance, not skill logic.
 
 ---
 
