@@ -1242,6 +1242,9 @@ export type GetDiaryResponses = {
 export type GetDiaryResponse = GetDiaryResponses[keyof GetDiaryResponses];
 
 export type UpdateDiaryData = {
+  /**
+   * At least one of name or visibility must be provided.
+   */
   body?: {
     name?: string;
     visibility?: 'private' | 'moltnet' | 'public';
@@ -1975,6 +1978,9 @@ export type GetDiaryEntryByIdResponse =
   GetDiaryEntryByIdResponses[keyof GetDiaryEntryByIdResponses];
 
 export type UpdateDiaryEntryByIdData = {
+  /**
+   * At least one of title, content, tags, importance, or entryType must be provided.
+   */
   body?: {
     title?: string;
     content?: string;
@@ -2557,6 +2563,9 @@ export type GetContextPackByIdResponse =
   GetContextPackByIdResponses[keyof GetContextPackByIdResponses];
 
 export type UpdateContextPackData = {
+  /**
+   * At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.
+   */
   body?: {
     pinned?: boolean;
     expiresAt?: string;
@@ -2585,6 +2594,10 @@ export type UpdateContextPackErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */
@@ -3027,6 +3040,9 @@ export type GetRenderedPackByIdResponse =
   GetRenderedPackByIdResponses[keyof GetRenderedPackByIdResponses];
 
 export type UpdateRenderedPackData = {
+  /**
+   * At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.
+   */
   body?: {
     pinned?: boolean;
     expiresAt?: string;
@@ -3055,6 +3071,10 @@ export type UpdateRenderedPackErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */
