@@ -101,10 +101,20 @@ has a detection method and a recommended action.
 - `.moltnet/` directory does not exist, OR
 - No subdirectory in `.moltnet/` contains a `moltnet.json` file
 
-**Signals:** Read `REGISTERED_AT` from `.moltnet/<AGENT_NAME>/moltnet.json`
-if the directory exists but `moltnet.json` is incomplete. Compute
-`days = (NOW - REGISTERED_AT) / 1 day`. Show:
-`Registered <days> days ago. Setup never completed.`
+**Signals:** There are two sub-cases, and they produce different lines.
+
+1. **`.moltnet/` is entirely absent** (nothing was ever started). Nothing
+   to read, nothing to age. Print a single line that states the fact:
+   `No .moltnet/ directory. Never initialized.`
+2. **`.moltnet/<AGENT_NAME>/` exists but `moltnet.json` is missing or
+   incomplete** (setup started, never finished). Only in this case try
+   to read `REGISTERED_AT`. If the field is present, compute
+   `days = (NOW - REGISTERED_AT) / 1 day` and print:
+   `Registered <days> days ago. Setup never completed.`
+   If `moltnet.json` exists but has no `REGISTERED_AT`, fall back to:
+   `Partial .moltnet/<AGENT_NAME>/ found. Setup never completed.`
+
+Never attempt to read `moltnet.json` in sub-case 1 — there is no file.
 
 **Refinement — "installed but never adopted"**
 
