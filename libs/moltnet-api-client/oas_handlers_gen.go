@@ -129,11 +129,47 @@ func (s *Server) handleAcceptTeamFoundingRequest(args [1]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, AcceptTeamFoundingOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, AcceptTeamFoundingOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -331,11 +367,47 @@ func (s *Server) handleAcceptTransferRequest(args [1]string, argsEscaped bool, w
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, AcceptTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, AcceptTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -518,11 +590,47 @@ func (s *Server) handleAddGroupMemberRequest(args [1]string, argsEscaped bool, w
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, AddGroupMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, AddGroupMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -720,11 +828,47 @@ func (s *Server) handleClaimVerificationRequest(args [1]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ClaimVerificationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ClaimVerificationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -907,11 +1051,47 @@ func (s *Server) handleCompileDiaryRequest(args [1]string, argsEscaped bool, w h
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CompileDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CompileDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1109,11 +1289,47 @@ func (s *Server) handleConsolidateDiaryRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ConsolidateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ConsolidateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1311,11 +1527,47 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1513,11 +1765,47 @@ func (s *Server) handleCreateDiaryCustomPackRequest(args [1]string, argsEscaped 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryCustomPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateDiaryCustomPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1715,11 +2003,47 @@ func (s *Server) handleCreateDiaryEntryRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryEntryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateDiaryEntryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1917,11 +2241,47 @@ func (s *Server) handleCreateDiaryGrantRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateDiaryGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2120,11 +2480,47 @@ func (s *Server) handleCreateEntryRelationRequest(args [1]string, argsEscaped bo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateEntryRelationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateEntryRelationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2322,11 +2718,47 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2525,11 +2957,47 @@ func (s *Server) handleCreateSigningRequestRequest(args [0]string, argsEscaped b
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateSigningRequestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateSigningRequestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2713,11 +3181,47 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2900,11 +3404,47 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, CreateTeamInviteOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, CreateTeamInviteOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3102,11 +3642,47 @@ func (s *Server) handleDeleteDiaryRequest(args [1]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, DeleteDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, DeleteDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3293,11 +3869,47 @@ func (s *Server) handleDeleteDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, DeleteDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, DeleteDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3480,11 +4092,47 @@ func (s *Server) handleDeleteEntryRelationRequest(args [1]string, argsEscaped bo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, DeleteEntryRelationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, DeleteEntryRelationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3667,11 +4315,47 @@ func (s *Server) handleDeleteGroupRequest(args [1]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, DeleteGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, DeleteGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3854,11 +4538,47 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, DeleteTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, DeleteTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4041,11 +4761,47 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, DeleteTeamInviteOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, DeleteTeamInviteOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4375,11 +5131,47 @@ func (s *Server) handleGetContextPackByIdRequest(args [1]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetContextPackByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetContextPackByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4566,11 +5358,47 @@ func (s *Server) handleGetContextPackProvenanceByCidRequest(args [1]string, args
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetContextPackProvenanceByCidOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetContextPackProvenanceByCidOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4757,11 +5585,47 @@ func (s *Server) handleGetContextPackProvenanceByIdRequest(args [1]string, argsE
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetContextPackProvenanceByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetContextPackProvenanceByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4948,11 +5812,47 @@ func (s *Server) handleGetCryptoIdentityRequest(args [0]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetCryptoIdentityOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetCryptoIdentityOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5120,11 +6020,47 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5311,11 +6247,47 @@ func (s *Server) handleGetDiaryEntryByIdRequest(args [1]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5498,11 +6470,47 @@ func (s *Server) handleGetGroupRequest(args [1]string, argsEscaped bool, w http.
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5809,11 +6817,47 @@ func (s *Server) handleGetLatestRenderedPackRequest(args [1]string, argsEscaped 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetLatestRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetLatestRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7079,11 +8123,47 @@ func (s *Server) handleGetRenderedPackByIdRequest(args [1]string, argsEscaped bo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetRenderedPackByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetRenderedPackByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7266,11 +8346,47 @@ func (s *Server) handleGetSigningRequestRequest(args [1]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetSigningRequestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetSigningRequestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7453,11 +8569,47 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7788,11 +8940,47 @@ func (s *Server) handleGetWhoamiRequest(args [0]string, argsEscaped bool, w http
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, GetWhoamiOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, GetWhoamiOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7960,11 +9148,47 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, InitiateTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, InitiateTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8164,11 +9388,47 @@ func (s *Server) handleIssueVoucherRequest(args [0]string, argsEscaped bool, w h
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, IssueVoucherOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, IssueVoucherOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8336,11 +9596,47 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, JoinTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, JoinTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8523,11 +9819,47 @@ func (s *Server) handleListActiveVouchersRequest(args [0]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListActiveVouchersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListActiveVouchersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8695,11 +10027,47 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListDiariesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListDiariesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8882,11 +10250,47 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryEntriesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListDiaryEntriesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9089,11 +10493,47 @@ func (s *Server) handleListDiaryGrantsRequest(args [1]string, argsEscaped bool, 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryGrantsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListDiaryGrantsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9276,11 +10716,47 @@ func (s *Server) handleListDiaryPacksRequest(args [1]string, argsEscaped bool, w
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListDiaryPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9475,11 +10951,47 @@ func (s *Server) handleListDiaryRenderedPacksRequest(args [1]string, argsEscaped
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryRenderedPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListDiaryRenderedPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9678,11 +11190,47 @@ func (s *Server) handleListDiaryTagsRequest(args [1]string, argsEscaped bool, w 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryTagsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListDiaryTagsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9877,11 +11425,47 @@ func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListEntryRelationsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListEntryRelationsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10084,11 +11668,47 @@ func (s *Server) handleListGroupMembersRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListGroupMembersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListGroupMembersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10271,11 +11891,47 @@ func (s *Server) handleListGroupsRequest(args [1]string, argsEscaped bool, w htt
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListGroupsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListGroupsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10458,11 +12114,47 @@ func (s *Server) handleListPendingTransfersRequest(args [0]string, argsEscaped b
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListPendingTransfersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListPendingTransfersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10754,11 +12446,47 @@ func (s *Server) handleListSigningRequestsRequest(args [0]string, argsEscaped bo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListSigningRequestsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListSigningRequestsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10949,11 +12677,47 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListTeamInvitesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListTeamInvitesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11136,11 +12900,47 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListTeamMembersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListTeamMembersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11323,11 +13123,47 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ListTeamsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ListTeamsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11495,11 +13331,47 @@ func (s *Server) handlePreviewDiaryCustomPackRequest(args [1]string, argsEscaped
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, PreviewDiaryCustomPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, PreviewDiaryCustomPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11697,11 +13569,47 @@ func (s *Server) handlePreviewRenderedPackRequest(args [1]string, argsEscaped bo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, PreviewRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, PreviewRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11899,11 +13807,47 @@ func (s *Server) handleReflectDiaryRequest(args [0]string, argsEscaped bool, w h
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, ReflectDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, ReflectDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12243,11 +14187,47 @@ func (s *Server) handleRejectTransferRequest(args [1]string, argsEscaped bool, w
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, RejectTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, RejectTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12430,11 +14410,47 @@ func (s *Server) handleRemoveGroupMemberRequest(args [2]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, RemoveGroupMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, RemoveGroupMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12621,11 +14637,47 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, RemoveTeamMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, RemoveTeamMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12813,11 +14865,47 @@ func (s *Server) handleRenderContextPackRequest(args [1]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, RenderContextPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, RenderContextPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13158,11 +15246,47 @@ func (s *Server) handleRevokeDiaryGrantRequest(args [1]string, argsEscaped bool,
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, RevokeDiaryGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, RevokeDiaryGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13361,11 +15485,47 @@ func (s *Server) handleRotateClientSecretRequest(args [0]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, RotateClientSecretOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, RotateClientSecretOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13533,11 +15693,47 @@ func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, SearchDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, SearchDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14028,11 +16224,47 @@ func (s *Server) handleSubmitSignatureRequest(args [1]string, argsEscaped bool, 
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, SubmitSignatureOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, SubmitSignatureOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14230,11 +16462,47 @@ func (s *Server) handleSubmitVerificationRequest(args [1]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, SubmitVerificationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, SubmitVerificationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14432,11 +16700,47 @@ func (s *Server) handleUpdateContextPackRequest(args [1]string, argsEscaped bool
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, UpdateContextPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, UpdateContextPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14634,11 +16938,47 @@ func (s *Server) handleUpdateDiaryRequest(args [1]string, argsEscaped bool, w ht
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, UpdateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, UpdateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14840,11 +17180,47 @@ func (s *Server) handleUpdateDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, UpdateDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, UpdateDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15042,11 +17418,47 @@ func (s *Server) handleUpdateEntryRelationStatusRequest(args [1]string, argsEsca
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, UpdateEntryRelationStatusOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, UpdateEntryRelationStatusOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15244,11 +17656,47 @@ func (s *Server) handleUpdateRenderedPackRequest(args [1]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, UpdateRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, UpdateRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15748,11 +18196,47 @@ func (s *Server) handleVerifyDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, VerifyDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, VerifyDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16078,11 +18562,47 @@ func (s *Server) handleVerifyRenderedPackRequest(args [1]string, argsEscaped boo
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securitySessionAuth(ctx, VerifyRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "SessionAuth",
+					Err:              err,
+				}
+				defer recordError("Security:SessionAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
+			sctx, ok, err := s.securityCookieAuth(ctx, VerifyRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "CookieAuth",
+					Err:              err,
+				}
+				defer recordError("Security:CookieAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 2
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
+				{0b00000100},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

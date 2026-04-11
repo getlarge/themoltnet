@@ -2017,6 +2017,31 @@ func (s *ContextPackResponsePackType) UnmarshalText(data []byte) error {
 	}
 }
 
+type CookieAuth struct {
+	APIKey string
+	Roles  []string
+}
+
+// GetAPIKey returns the value of APIKey.
+func (s *CookieAuth) GetAPIKey() string {
+	return s.APIKey
+}
+
+// GetRoles returns the value of Roles.
+func (s *CookieAuth) GetRoles() []string {
+	return s.Roles
+}
+
+// SetAPIKey sets the value of APIKey.
+func (s *CookieAuth) SetAPIKey(val string) {
+	s.APIKey = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *CookieAuth) SetRoles(val []string) {
+	s.Roles = val
+}
+
 type CreateDiaryBadRequest ProblemDetails
 
 func (*CreateDiaryBadRequest) createDiaryRes() {}
@@ -13999,6 +14024,31 @@ func (*SearchPublicFeedInternalServerError) searchPublicFeedRes() {}
 type SearchPublicFeedTooManyRequests ProblemDetails
 
 func (*SearchPublicFeedTooManyRequests) searchPublicFeedRes() {}
+
+type SessionAuth struct {
+	APIKey string
+	Roles  []string
+}
+
+// GetAPIKey returns the value of APIKey.
+func (s *SessionAuth) GetAPIKey() string {
+	return s.APIKey
+}
+
+// GetRoles returns the value of Roles.
+func (s *SessionAuth) GetRoles() []string {
+	return s.Roles
+}
+
+// SetAPIKey sets the value of APIKey.
+func (s *SessionAuth) SetAPIKey(val string) {
+	s.APIKey = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *SessionAuth) SetRoles(val []string) {
+	s.Roles = val
+}
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
