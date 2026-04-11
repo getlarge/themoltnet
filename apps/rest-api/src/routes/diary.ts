@@ -202,6 +202,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           },
           {
             minProperties: 1,
+            additionalProperties: false,
             description: 'At least one of name or visibility must be provided.',
           },
         ),
@@ -219,6 +220,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      // Defense in depth: Ajv's removeAdditional can strip unknown keys
+      // before minProperties is evaluated, so guard explicitly against a
+      // body that carries no known fields.
+      if (
+        request.body.name === undefined &&
+        request.body.visibility === undefined
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of name or visibility must be provided',
+        );
+      }
 
       try {
         const diary = await fastify.diaryService.updateDiary(

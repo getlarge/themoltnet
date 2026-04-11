@@ -243,6 +243,7 @@ export const PackUpdateBodySchema = Type.Object(
   },
   {
     minProperties: 1,
+    additionalProperties: false,
     description:
       'At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.',
   },
@@ -255,6 +256,7 @@ export const RenderedPackUpdateBodySchema = Type.Object(
   },
   {
     minProperties: 1,
+    additionalProperties: false,
     description:
       'At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.',
   },

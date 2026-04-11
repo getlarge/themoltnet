@@ -380,6 +380,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
     {
       minProperties: 1,
+      additionalProperties: false,
       description:
         'At least one of title, content, tags, importance, or entryType must be provided.',
     },
@@ -604,6 +605,24 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      // Defense in depth: Ajv's removeAdditional can strip unknown keys
+      // before minProperties is evaluated, so guard explicitly against a
+      // body that carries no known fields.
+      const { title, content, tags, importance, entryType } = request.body;
+      if (
+        title === undefined &&
+        content === undefined &&
+        tags === undefined &&
+        importance === undefined &&
+        entryType === undefined
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of title, content, tags, importance, or entryType must be provided',
+        );
+      }
+
       return updateEntry(
         request.params.entryId,
         identityId,

@@ -815,6 +815,18 @@ export async function packRoutes(fastify: FastifyInstance) {
       const { pinned, expiresAt } = request.body;
       const now = new Date();
 
+      // Defense in depth: schema-level `minProperties: 1` +
+      // `additionalProperties: false` should reject empty or unknown-only
+      // bodies, but Ajv's removeAdditional strips unknown keys before
+      // minProperties is evaluated against the original data, so an
+      // explicit guard here is the only reliable way to block silent no-ops.
+      if (pinned === undefined && expiresAt === undefined) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of pinned or expiresAt must be provided',
+        );
+      }
+
       // Validate upfront before entering the transaction
       if (pinned === false && !expiresAt) {
         throw createProblem(
@@ -838,7 +850,6 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Cannot set expiresAt on a pinned pack — unpin it first or send pinned: false together',
         );
       }
-      // Schema-level `minProperties: 1` guarantees at least one field is set.
 
       // Mutate + re-fetch atomically to avoid race with GC
       const updated = await fastify.dataSource.runTransaction(async () => {

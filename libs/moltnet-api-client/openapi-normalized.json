@@ -4630,6 +4630,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "description": "At least one of name or visibility must be provided.",
                 "minProperties": 1,
                 "properties": {
@@ -6089,6 +6090,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "description": "At least one of title, content, tags, importance, or entryType must be provided.",
                 "minProperties": 1,
                 "properties": {
@@ -7383,6 +7385,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.",
                 "minProperties": 1,
                 "properties": {
@@ -8787,6 +8790,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.",
                 "minProperties": 1,
                 "properties": {

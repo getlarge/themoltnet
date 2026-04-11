@@ -192,6 +192,23 @@ describe('PATCH /packs/:id', () => {
     expect(response.statusCode).toBe(400);
   });
 
+  it('rejects body containing only unknown properties', async () => {
+    mocks.contextPackRepository.findById.mockResolvedValue(MOCK_PACK);
+    mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/packs/${PACK_ID}`,
+      headers: authHeaders,
+      payload: { foo: 'bar' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.contextPackRepository.pin).not.toHaveBeenCalled();
+    expect(mocks.contextPackRepository.unpin).not.toHaveBeenCalled();
+    expect(mocks.contextPackRepository.updateExpiry).not.toHaveBeenCalled();
+  });
+
   it('returns 409 when concurrent pin turns updateExpiry into a no-op', async () => {
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     // Pre-check sees the pack as unpinned; another request pins it before the
