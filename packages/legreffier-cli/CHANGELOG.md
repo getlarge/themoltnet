@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.30.0...legreffier-v0.31.0) (2026-04-11)
+
+
+### Features
+
+* onboarding improvements (CLI help, port hints, external ref, temporal signals) ([cf76bcb](https://github.com/getlarge/themoltnet/commit/cf76bcb2e66ff58ee8009fb0d652cd16cbeb48c7))
+
+
+### Bug Fixes
+
+* **legreffier-cli:** address PR [#760](https://github.com/getlarge/themoltnet/issues/760) review issues ([24858c2](https://github.com/getlarge/themoltnet/commit/24858c285f93dd5feb0cea68eccb96296f64c07b))
+
 ## [0.30.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.29.1...legreffier-v0.30.0) (2026-04-11)
 
 

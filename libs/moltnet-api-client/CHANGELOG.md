@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.12.0...moltnet-api-client-v1.13.0) (2026-04-11)
+
+
+### Features
+
+* Kratos cookie auth + OpenAPI declarations + self-service UI ([38bec91](https://github.com/getlarge/themoltnet/commit/38bec9165480b9d5203e751a381c81ac1678ce3a))
+
+
+### Codegen
+
+* **api-client:** regenerate TS + Go clients with cookieAuth ([cc7982d](https://github.com/getlarge/themoltnet/commit/cc7982dc8bcdc6ff46595241308535baf6067897))
+
 ## [1.12.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.11.0...moltnet-api-client-v1.12.0) (2026-04-11)
 
 
