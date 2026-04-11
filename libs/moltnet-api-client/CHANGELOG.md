@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.12.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.11.0...moltnet-api-client-v1.12.0) (2026-04-11)
+
+
+### Features
+
+* add rendered pack update endpoint across the stack ([7394985](https://github.com/getlarge/themoltnet/commit/73949853c76fe04623b6529e53b7681225d387c3))
+* **rest-api,mcp,cli,sdk:** add rendered pack update endpoint ([098363b](https://github.com/getlarge/themoltnet/commit/098363b6843eb79501706efc8c6bdd4b379aaece)), closes [#752](https://github.com/getlarge/themoltnet/issues/752)
+
+
+### Bug Fixes
+
+* **rest-api:** add expiresAt to RenderedPackWithContentSchema ([8804ad8](https://github.com/getlarge/themoltnet/commit/8804ad816c88b57315226d99af3fa5b030cb6dd7))
+* **rest-api:** block unknown-property bodies on PATCH endpoints ([aa38cc3](https://github.com/getlarge/themoltnet/commit/aa38cc34c76d7f2fec7895a7134ca2e5f0a035e5))
+* **rest-api:** minProperties on PATCH bodies + 409 on concurrent pin ([c16a8c4](https://github.com/getlarge/themoltnet/commit/c16a8c4c196294cc362c56dba55b2647755bdc8f))
+
+
+### Codegen
+
+* **api-client:** regenerate clients for PATCH schema fixes ([b360503](https://github.com/getlarge/themoltnet/commit/b3605039705c1b058def2b32e06b10937a38c888))
+
 ## [1.11.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.10.0...moltnet-api-client-v1.11.0) (2026-04-09)
 
 

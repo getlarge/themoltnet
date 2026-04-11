@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.3.2...design-system-v0.4.0) (2026-04-11)
+
+
+### Features
+
+* **legreffier:** wire onboarding skill into download list and add discoverability ([5fdaacc](https://github.com/getlarge/themoltnet/commit/5fdaacc6a1d84c20cdd08d93571a267cb3294ba3)), closes [#737](https://github.com/getlarge/themoltnet/issues/737)
+
+
+### Bug Fixes
+
+* **skills:** address review feedback from Copilot and claude[bot] ([41d8d3c](https://github.com/getlarge/themoltnet/commit/41d8d3cee8f70953c9ca67950dd6afc8601aeb69))
+
 ## [0.3.2](https://github.com/getlarge/themoltnet/compare/design-system-v0.3.1...design-system-v0.3.2) (2026-04-02)
 
 
