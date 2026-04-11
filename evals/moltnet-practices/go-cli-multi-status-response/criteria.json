@@ -1,25 +1,30 @@
 {
   "type": "weighted_checklist",
-  "context": "Tests whether the agent handles ogen-generated multi-status-code responses correctly. The ogen client returns distinct Go types for each HTTP status (DeletePackOK for 200, DeletePackNoContent for 204). Copying the single type assertion pattern from the reference code (res.(*GetPackOK)) misses the 204 path — the assertion returns false, and formatAPIError prints a misleading error even though the deletion succeeded server-side.",
+  "context": "Tests whether the agent recognizes that ogen generates distinct Go types per HTTP status code, and that copying the single type-assertion pattern from packs_get.go silently breaks for endpoints returning multiple success statuses. The packs get endpoint only returns 200, so a single assertion works. The compile endpoint returns either 200 (CompilePackOK, synchronous completion with the compiled Pack) or 202 (CompilePackAccepted, async job with a jobId string). A single `res.(*CompilePackOK)` assertion returns false when the server responds 202, causing `formatAPIError` to report a spurious error even though compilation was accepted. The task.md intentionally does NOT mention this, does NOT include the decoder file, and frames the work as 'follow the existing pattern'. The model must know from project context that ogen endpoints can have multiple success types and that the compile endpoint specifically returns 200 or 202.",
   "checklist": [
     {
-      "name": "Handles both 200 and 204 success types",
-      "description": "The response handling uses a type switch or multiple type assertions that handle both *DeletePackOK and *DeletePackNoContent as success cases",
-      "max_score": 45
-    },
-    {
-      "name": "Does not copy single-assertion pattern",
-      "description": "The handler does NOT use only `res.(*DeletePackOK)` like the reference packs_get.go, which would miss the 204 response",
+      "name": "Notes explain ogen per-status-code type generation",
+      "description": "notes.md explicitly states that ogen generates a separate Go type for each HTTP status code (e.g. CompilePackOK for 200, CompilePackAccepted for 202), or explains that the response is a sum type / interface with multiple concrete implementations. Generic statements like 'handle errors properly' without naming the per-status-code type mapping fail this criterion.",
       "max_score": 25
     },
     {
-      "name": "204 path handles no content correctly",
-      "description": "The 204 (No Content) path prints a success message or exits cleanly rather than trying to JSON-print an empty struct",
-      "max_score": 15
+      "name": "Notes describe the silent failure mode of single assertion",
+      "description": "notes.md explains what goes wrong if you copy the packs_get.go pattern: the type assertion `res.(*CompilePackOK)` returns false when the server responds 202, so `formatAPIError` prints a misleading error even though compilation was accepted server-side. Notes that only say 'use a type switch' without describing the failure mode fail this criterion.",
+      "max_score": 20
     },
     {
-      "name": "Notes explain multi-status handling",
-      "description": "The notes.md mentions that ogen generates separate types per HTTP status code, or explains why a type switch is needed",
+      "name": "Handles both success types",
+      "description": "The response handling uses a type switch (or equivalent multiple assertions) that treats both *CompilePackOK and *CompilePackAccepted as success cases. The 202 branch should surface the job ID or indicate async acceptance. Code that only asserts for one of the two types fails this criterion.",
+      "max_score": 30
+    },
+    {
+      "name": "Async path prints job ID or acceptance message",
+      "description": "The 202 path prints the job ID or a message indicating compilation was accepted for async processing. It does NOT attempt to JSON-decode a Pack struct from the 202 response. The 200 path may print the compiled pack details.",
+      "max_score": 10
+    },
+    {
+      "name": "Command structure follows conventions",
+      "description": "The handler uses flag.NewFlagSet, accepts --id and --api-url flags, calls newClientFromCreds, and uses formatAPIError for non-success responses — consistent with packs_get.go.",
       "max_score": 15
     }
   ]
