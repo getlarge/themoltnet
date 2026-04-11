@@ -390,15 +390,25 @@ On every invocation:
 
 ---
 
-## Internal references
+## External references
 
-- `references/onboarding-guide.md` — co-located onboarding reference
-  derived from `docs/GETTING_STARTED.md`. Covers install, harvest,
-  compile, evaluate, and load stages.
+When the user asks for deeper context ("how does commit capture work",
+"how do I compile a context pack", "what's the harvest/compile/evaluate
+pipeline"), fetch the canonical Getting Started guide on demand rather
+than relying on a bundled copy:
 
-If that reference file is missing, warn that the skill bundle is
-incomplete but continue with stage detection (the reference is for
-user guidance, not skill logic).
+```
+https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md
+```
+
+Use this URL with the agent's built-in fetch capability (WebFetch or
+equivalent). Agents are always online during interactive sessions, so
+a local-first reference is not required. Fetching on demand guarantees
+the skill never drifts from the upstream guide.
+
+If the fetch fails (offline, GitHub outage, network error), tell the
+user the external guide is unavailable right now and continue with
+stage detection — the reference is for user guidance, not skill logic.
 
 ---
 

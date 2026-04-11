@@ -31,7 +31,7 @@ const SKILLS: SkillDefinition[] = [
   },
   {
     name: 'legreffier-onboarding',
-    files: ['SKILL.md', 'references/onboarding-guide.md'],
+    files: ['SKILL.md'],
   },
 ];
 
