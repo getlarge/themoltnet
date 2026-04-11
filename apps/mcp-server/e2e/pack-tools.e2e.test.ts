@@ -253,7 +253,7 @@ describe('Pack Tools E2E', () => {
       `packs_render error: ${renderContent[0].text}`,
     ).toBeUndefined();
     const renderParsed = JSON.parse(renderContent[0].text);
-    const renderedPackId = renderParsed.renderedPack.id as string;
+    const renderedPackId = renderParsed.id as string;
 
     // Pin the rendered pack
     const pinResult = await client.callTool({
