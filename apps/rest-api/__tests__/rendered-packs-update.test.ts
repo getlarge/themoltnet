@@ -190,6 +190,45 @@ describe('PATCH /rendered-packs/:id', () => {
     expect(response.statusCode).toBe(400);
   });
 
+  it('rejects body containing only unknown properties', async () => {
+    mocks.renderedPackRepository.findById.mockResolvedValue(MOCK_RENDERED_PACK);
+    mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/rendered-packs/${RENDERED_PACK_ID}`,
+      headers: authHeaders,
+      payload: { foo: 'bar' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.renderedPackRepository.pin).not.toHaveBeenCalled();
+    expect(mocks.renderedPackRepository.unpin).not.toHaveBeenCalled();
+    expect(mocks.renderedPackRepository.updateExpiry).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when concurrent pin turns updateExpiry into a no-op', async () => {
+    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+      MOCK_RENDERED_PACK,
+    );
+    mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+    mocks.renderedPackRepository.updateExpiry.mockResolvedValue(null);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/rendered-packs/${RENDERED_PACK_ID}`,
+      headers: authHeaders,
+      payload: { expiresAt: future.toISOString() },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(mocks.renderedPackRepository.updateExpiry).toHaveBeenCalledWith(
+      RENDERED_PACK_ID,
+      expect.any(Date),
+    );
+  });
+
   it('returns 403 for unauthorized agent', async () => {
     mocks.renderedPackRepository.findById.mockResolvedValue(MOCK_RENDERED_PACK);
     mocks.permissionChecker.canManagePack.mockResolvedValue(false);

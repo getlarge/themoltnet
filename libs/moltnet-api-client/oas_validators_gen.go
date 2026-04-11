@@ -8586,6 +8586,14 @@ func (s *UpdateContextPackBadRequest) Validate() error {
 	return nil
 }
 
+func (s *UpdateContextPackConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *UpdateContextPackForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9004,6 +9012,14 @@ func (s *UpdateEntryRelationStatusUnauthorized) Validate() error {
 }
 
 func (s *UpdateRenderedPackBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateRenderedPackConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

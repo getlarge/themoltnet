@@ -404,6 +404,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -435,6 +436,18 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       const { pinned, expiresAt } = request.body;
       const now = new Date();
 
+      // Defense in depth: schema-level `minProperties: 1` +
+      // `additionalProperties: false` should reject empty or unknown-only
+      // bodies, but Ajv's removeAdditional strips unknown keys before
+      // minProperties is evaluated against the original data, so an
+      // explicit guard here is the only reliable way to block silent no-ops.
+      if (pinned === undefined && expiresAt === undefined) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of pinned or expiresAt must be provided',
+        );
+      }
+
       if (pinned === false && !expiresAt) {
         throw createProblem(
           'validation-failed',
@@ -457,12 +470,6 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           'Cannot set expiresAt on a pinned pack — unpin it first or send pinned: false together',
         );
       }
-      if (pinned === undefined && expiresAt === undefined) {
-        throw createProblem(
-          'validation-failed',
-          'At least one of pinned or expiresAt must be provided',
-        );
-      }
 
       const updated = await fastify.dataSource.runTransaction(async () => {
         if (pinned === true) {
@@ -473,10 +480,20 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
             new Date(expiresAt!),
           );
         } else {
-          return fastify.renderedPackRepository.updateExpiry(
+          // updateExpiry filters on `pinned = false`. A concurrent pin between
+          // the pre-check and this write produces a silent no-op — surface it
+          // as a conflict rather than returning stale state.
+          const result = await fastify.renderedPackRepository.updateExpiry(
             rendered.id,
             new Date(expiresAt!),
           );
+          if (!result) {
+            throw createProblem(
+              'conflict',
+              'Rendered pack state changed concurrently — retry the request',
+            );
+          }
+          return result;
         }
       });
 

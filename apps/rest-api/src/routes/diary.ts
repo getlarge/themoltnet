@@ -195,10 +195,17 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
-        body: Type.Object({
-          name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
-          visibility: Type.Optional(Type.Union(visibilityLiterals)),
-        }),
+        body: Type.Object(
+          {
+            name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+            visibility: Type.Optional(Type.Union(visibilityLiterals)),
+          },
+          {
+            minProperties: 1,
+            additionalProperties: false,
+            description: 'At least one of name or visibility must be provided.',
+          },
+        ),
         response: {
           200: Type.Ref(DiaryCatalogSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -213,6 +220,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      // Defense in depth: Ajv's removeAdditional can strip unknown keys
+      // before minProperties is evaluated, so guard explicitly against a
+      // body that carries no known fields.
+      if (
+        request.body.name === undefined &&
+        request.body.visibility === undefined
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of name or visibility must be provided',
+        );
+      }
 
       try {
         const diary = await fastify.diaryService.updateDiary(

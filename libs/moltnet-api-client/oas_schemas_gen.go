@@ -14503,6 +14503,10 @@ type UpdateContextPackBadRequest ProblemDetails
 
 func (*UpdateContextPackBadRequest) updateContextPackRes() {}
 
+type UpdateContextPackConflict ProblemDetails
+
+func (*UpdateContextPackConflict) updateContextPackRes() {}
+
 type UpdateContextPackForbidden ProblemDetails
 
 func (*UpdateContextPackForbidden) updateContextPackRes() {}
@@ -14515,6 +14519,8 @@ type UpdateContextPackNotFound ProblemDetails
 
 func (*UpdateContextPackNotFound) updateContextPackRes() {}
 
+// At least one of pinned or expiresAt must be provided. See route handler for field-combination
+// constraints.
 type UpdateContextPackReq struct {
 	ExpiresAt OptDateTime `json:"expiresAt"`
 	Pinned    OptBool     `json:"pinned"`
@@ -14560,6 +14566,7 @@ type UpdateDiaryEntryByIdNotFound ProblemDetails
 
 func (*UpdateDiaryEntryByIdNotFound) updateDiaryEntryByIdRes() {}
 
+// At least one of title, content, tags, importance, or entryType must be provided.
 type UpdateDiaryEntryByIdReq struct {
 	Content    OptString                           `json:"content"`
 	EntryType  OptUpdateDiaryEntryByIdReqEntryType `json:"entryType"`
@@ -14703,6 +14710,7 @@ type UpdateDiaryNotFound ProblemDetails
 
 func (*UpdateDiaryNotFound) updateDiaryRes() {}
 
+// At least one of name or visibility must be provided.
 type UpdateDiaryReq struct {
 	Name       OptString                   `json:"name"`
 	Visibility OptUpdateDiaryReqVisibility `json:"visibility"`
@@ -14814,6 +14822,10 @@ type UpdateRenderedPackBadRequest ProblemDetails
 
 func (*UpdateRenderedPackBadRequest) updateRenderedPackRes() {}
 
+type UpdateRenderedPackConflict ProblemDetails
+
+func (*UpdateRenderedPackConflict) updateRenderedPackRes() {}
+
 type UpdateRenderedPackForbidden ProblemDetails
 
 func (*UpdateRenderedPackForbidden) updateRenderedPackRes() {}
@@ -14826,6 +14838,8 @@ type UpdateRenderedPackNotFound ProblemDetails
 
 func (*UpdateRenderedPackNotFound) updateRenderedPackRes() {}
 
+// At least one of pinned or expiresAt must be provided. See route handler for field-combination
+// constraints.
 type UpdateRenderedPackReq struct {
 	ExpiresAt OptDateTime `json:"expiresAt"`
 	Pinned    OptBool     `json:"pinned"`
