@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.90.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.89.0...sdk-v0.90.0) (2026-04-11)
+
+
+### Features
+
+* add rendered pack update endpoint across the stack ([7394985](https://github.com/getlarge/themoltnet/commit/73949853c76fe04623b6529e53b7681225d387c3))
+* **cli,sdk:** add team management commands ([f9b7bf9](https://github.com/getlarge/themoltnet/commit/f9b7bf9a6e96f7deb4391c2a10edfd97885ee184))
+* **legreffier-cli:** add `port` subcommand to reuse agent identity across repos ([7bc60df](https://github.com/getlarge/themoltnet/commit/7bc60dfd1671f91561d25b3dc751c98c00db4749))
+* **legreffier:** support GitHub org account in manifest flow ([fdb9621](https://github.com/getlarge/themoltnet/commit/fdb9621a90d5fa4fab1cde1862d33d19695990e8))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+* **rest-api,mcp,cli,sdk:** add rendered pack update endpoint ([098363b](https://github.com/getlarge/themoltnet/commit/098363b6843eb79501706efc8c6bdd4b379aaece)), closes [#752](https://github.com/getlarge/themoltnet/issues/752)
+* **sdk:** add packs.update method for pin/unpin and expiry ([b0d58d1](https://github.com/getlarge/themoltnet/commit/b0d58d1e3d6e5716da5c40d8cdfeec775d2c0b92))
+* **sdk:** add teams and diaryGrants namespaces ([71bf343](https://github.com/getlarge/themoltnet/commit/71bf343f614ccde2c7151a8ae5174cdba970da3d))
+* **sdk:** add teams and diaryGrants namespaces ([22b57af](https://github.com/getlarge/themoltnet/commit/22b57af1236d0fed12f9c8e116239ca021e5a3a0))
+* **sdk:** extend TeamsNamespace with create, join, invites ([f63dab0](https://github.com/getlarge/themoltnet/commit/f63dab021239685638ad38bbb577c12c696217aa))
+
+
+### Bug Fixes
+
+* address PR review feedback ([cfcbbe5](https://github.com/getlarge/themoltnet/commit/cfcbbe5f3eb80cec36df81351c0a2a36e5b993e7))
+* **legreffier-cli:** propagate numeric GitHub App ID through init flow ([70e9182](https://github.com/getlarge/themoltnet/commit/70e9182c3650a0a2ba14f32868f2482b926fb9de))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+* **sdk:** use generated response type aliases in namespace interfaces ([14fc2ea](https://github.com/getlarge/themoltnet/commit/14fc2ea0959e0117f6f3cd9b1e3caeb21d76526f))
+
 ## [0.89.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.88.0...sdk-v0.89.0) (2026-04-11)
 
 
