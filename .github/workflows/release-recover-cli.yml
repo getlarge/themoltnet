@@ -319,8 +319,26 @@ jobs:
             exit 1
           fi
           if [ "$IS_DRAFT" = 'true' ]; then
-            gh release delete "$TAG" --yes --cleanup-tag
+            # Delete the draft release WITHOUT --cleanup-tag. Draft releases
+            # don't have a real git tag ref backing them, so `gh release
+            # delete --cleanup-tag` tries to DELETE /git/refs/tags/<tag>,
+            # gets HTTP 422 "Reference does not exist", and exits non-zero
+            # even though the release itself was deleted cleanly.
+            gh release delete "$TAG" --yes
             echo "Deleted draft release $TAG"
+
+            # Best-effort tag cleanup: only delete the ref if it actually
+            # exists. A stray published tag with the same name would be a
+            # separate bug, so we warn but do not hard-fail on delete errors.
+            if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" >/dev/null 2>&1; then
+              if gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" >/dev/null 2>&1; then
+                echo "Deleted leftover tag ref $TAG"
+              else
+                echo "WARN: failed to delete leftover tag ref $TAG (continuing)" >&2
+              fi
+            else
+              echo "No leftover tag ref $TAG to clean up"
+            fi
           else
             echo "Release $TAG exists but is not a draft; skipping deletion"
           fi
