@@ -6,11 +6,10 @@ import { printCommandHelp, printRootHelp } from './help.js';
 function capture(fn: () => void): string {
   const chunks: string[] = [];
   const original = process.stdout.write.bind(process.stdout);
-  // @ts-expect-error narrow override for test
-  process.stdout.write = (chunk: string | Uint8Array): boolean => {
+  process.stdout.write = ((chunk: string | Uint8Array): boolean => {
     chunks.push(typeof chunk === 'string' ? chunk : chunk.toString());
     return true;
-  };
+  }) as typeof process.stdout.write;
   try {
     fn();
   } finally {
