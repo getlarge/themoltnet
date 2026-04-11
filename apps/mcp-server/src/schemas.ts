@@ -826,7 +826,6 @@ export const RenderedPackUpdateSchema = Type.Object({
   ),
   expires_at: Type.Optional(
     Type.String({
-      format: 'date-time',
       description:
         'ISO 8601 expiration date. Required when unpinning. Must be in the future.',
     }),
