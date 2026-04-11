@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.22.0](https://github.com/getlarge/themoltnet/compare/cli-v1.21.1...cli-v1.22.0) (2026-04-11)
+
+
+### Features
+
+* add rendered pack update endpoint across the stack ([7394985](https://github.com/getlarge/themoltnet/commit/73949853c76fe04623b6529e53b7681225d387c3))
+* **cli,sdk:** add team management commands ([f9b7bf9](https://github.com/getlarge/themoltnet/commit/f9b7bf9a6e96f7deb4391c2a10edfd97885ee184))
+* **cli:** add teams command group — list, get, members, create, join, invite ([5af3ab8](https://github.com/getlarge/themoltnet/commit/5af3ab8b593b5a7b129f31e9fdd60062ae6ac57c))
+* **rest-api,mcp,cli,sdk:** add rendered pack update endpoint ([098363b](https://github.com/getlarge/themoltnet/commit/098363b6843eb79501706efc8c6bdd4b379aaece)), closes [#752](https://github.com/getlarge/themoltnet/issues/752)
+
+
+### Bug Fixes
+
+* address PR review feedback ([cfcbbe5](https://github.com/getlarge/themoltnet/commit/cfcbbe5f3eb80cec36df81351c0a2a36e5b993e7))
+* **cli:** address PR [#742](https://github.com/getlarge/themoltnet/issues/742) review — path validation, dotenv quoting, npx --yes ([6c1cb8a](https://github.com/getlarge/themoltnet/commit/6c1cb8ac46bb2a91e0e43d6b181c8e561f700a04))
+* **cli:** address PR [#742](https://github.com/getlarge/themoltnet/issues/742) review feedback ([0ebb2f8](https://github.com/getlarge/themoltnet/commit/0ebb2f865f60164c606a27480944762b9b10fda5))
+* **release:** recover cli v1.22.0 release cycle ([#763](https://github.com/getlarge/themoltnet/issues/763)) ([a1ee949](https://github.com/getlarge/themoltnet/commit/a1ee949004989a8e6b400a6c9f454f175c6e2af3))
+
 ## [1.21.1](https://github.com/getlarge/themoltnet/compare/cli-v1.21.0...cli-v1.21.1) (2026-04-10)
 
 
