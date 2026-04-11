@@ -6,10 +6,21 @@ import (
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
+	"github.com/ogen-go/ogen/ogenerrors"
 )
 
 // tokenSecuritySource implements moltnetapi.SecuritySource using a TokenManager.
 // It provides Bearer tokens obtained via OAuth2 client_credentials flow.
+//
+// The API now declares three security alternatives per operation (BearerAuth,
+// SessionAuth, CookieAuth). The CLI only supports OAuth2 client_credentials,
+// so CookieAuth and SessionAuth return ogenerrors.ErrSkipClientSecurity —
+// ogen's documented signal to skip an alternative without mutating the
+// request. Because ogen calls every source method and then checks whether
+// ANY security requirement is satisfied (OR across alternatives), returning
+// ErrSkipClientSecurity is order-independent: only the BearerAuth method
+// actually sets a header, so the final request always carries exactly one
+// credential regardless of how the generator lists the alternatives.
 type tokenSecuritySource struct {
 	tm *TokenManager
 }
@@ -21,6 +32,20 @@ func (s *tokenSecuritySource) BearerAuth(_ context.Context, _ moltnetapi.Operati
 		return moltnetapi.BearerAuth{}, fmt.Errorf("get token: %w", err)
 	}
 	return moltnetapi.BearerAuth{Token: token}, nil
+}
+
+// CookieAuth is not used by the CLI — it authenticates with OAuth2 bearer
+// tokens only. Returning ErrSkipClientSecurity tells ogen's security picker
+// to skip this alternative without touching the request.
+func (s *tokenSecuritySource) CookieAuth(_ context.Context, _ moltnetapi.OperationName) (moltnetapi.CookieAuth, error) {
+	return moltnetapi.CookieAuth{}, ogenerrors.ErrSkipClientSecurity
+}
+
+// SessionAuth is not used by the CLI — it authenticates with OAuth2 bearer
+// tokens only. Returning ErrSkipClientSecurity tells ogen's security picker
+// to skip this alternative without touching the request.
+func (s *tokenSecuritySource) SessionAuth(_ context.Context, _ moltnetapi.OperationName) (moltnetapi.SessionAuth, error) {
+	return moltnetapi.SessionAuth{}, ogenerrors.ErrSkipClientSecurity
 }
 
 // newAuthedClient builds a moltnetapi.Client authenticated via the TokenManager.

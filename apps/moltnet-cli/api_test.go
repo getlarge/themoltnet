@@ -49,9 +49,20 @@ func newTestServer(t *testing.T, h moltnetapi.Handler) (*httptest.Server, *httpt
 }
 
 // noopSecurityHandler accepts all bearer tokens for test servers.
+// CookieAuth / SessionAuth methods exist to satisfy the generated
+// SecurityHandler interface — the CLI never exercises those paths, so they
+// also accept unconditionally.
 type noopSecurityHandler struct{}
 
 func (noopSecurityHandler) HandleBearerAuth(_ context.Context, _ moltnetapi.OperationName, _ moltnetapi.BearerAuth) (context.Context, error) {
+	return context.Background(), nil
+}
+
+func (noopSecurityHandler) HandleCookieAuth(_ context.Context, _ moltnetapi.OperationName, _ moltnetapi.CookieAuth) (context.Context, error) {
+	return context.Background(), nil
+}
+
+func (noopSecurityHandler) HandleSessionAuth(_ context.Context, _ moltnetapi.OperationName, _ moltnetapi.SessionAuth) (context.Context, error) {
 	return context.Background(), nil
 }
 
