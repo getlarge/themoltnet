@@ -13,6 +13,7 @@ serve:
     cors:
       enabled: true
       allowed_origins:
+        - http://localhost:4455
         - http://localhost:5173
         - http://localhost:8000
       allowed_methods:
@@ -42,8 +43,14 @@ identity:
       url: file:///etc/config/kratos/human-identity-schema.json
 
 selfservice:
+  # Default post-flow destination is the landing app (5173), NOT the
+  # self-service UI node (4455). The UI node is a form-rendering shim for
+  # Kratos flows only — it should never be the resting place after
+  # registration/recovery/settings succeed. Flows that legitimately want to
+  # redirect to the UI set `return_to` explicitly.
   default_browser_return_url: http://localhost:5173/
   allowed_return_urls:
+    - http://localhost:4455/
     - http://localhost:5173/
     - http://localhost:8000/
 
@@ -64,7 +71,7 @@ selfservice:
   flows:
     registration:
       enabled: true
-      ui_url: http://localhost:5173/auth/registration
+      ui_url: http://localhost:4455/registration
       lifespan: 1h
       after:
         oidc:
@@ -105,7 +112,7 @@ selfservice:
             - hook: session
 
     login:
-      ui_url: http://localhost:5173/auth/login
+      ui_url: http://localhost:4455/login
       lifespan: 1h
       after:
         oidc:
@@ -146,22 +153,23 @@ selfservice:
     recovery:
       enabled: true
       use: code
-      ui_url: http://localhost:5173/auth/recovery
+      ui_url: http://localhost:4455/recovery
       lifespan: 15m
 
     verification:
       enabled: false
 
     settings:
-      ui_url: http://localhost:5173/auth/settings
+      ui_url: http://localhost:4455/settings
       lifespan: 1h
       privileged_session_max_age: 15m
 
     error:
-      ui_url: http://localhost:5173/auth/error
+      ui_url: http://localhost:4455/error
 
     logout:
       after:
+        # Post-logout: land on the landing app, not the self-service UI shim.
         default_browser_return_url: http://localhost:5173/
 
 session:

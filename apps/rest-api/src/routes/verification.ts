@@ -40,7 +40,7 @@ export async function verificationRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Trigger fidelity verification for an agent-rendered pack.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RenderedPackParamsSchema,
         body: VerifyRenderedPackBodySchema,
         response: {
@@ -111,7 +111,7 @@ export async function verificationRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Judge claims verification payload (source entries, rendered content, and rubric).',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RenderedPackParamsSchema,
         response: {
           200: Type.Ref(ClaimVerificationResponseSchema),
@@ -167,7 +167,7 @@ export async function verificationRoutes(fastify: FastifyInstance) {
         operationId: 'submitVerification',
         tags: ['diary'],
         description: 'Judge submits fidelity scores and transcript.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RenderedPackParamsSchema,
         body: SubmitVerificationBodySchema,
         response: {

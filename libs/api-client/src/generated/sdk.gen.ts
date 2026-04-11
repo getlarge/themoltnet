@@ -330,7 +330,15 @@ export const listDiaries = <ThrowOnError extends boolean = false>(
     ListDiariesErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries',
     ...options,
   });
@@ -346,7 +354,15 @@ export const createDiary = <ThrowOnError extends boolean = false>(
     CreateDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries',
     ...options,
     headers: {
@@ -366,7 +382,15 @@ export const deleteDiary = <ThrowOnError extends boolean = false>(
     DeleteDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}',
     ...options,
   });
@@ -382,7 +406,15 @@ export const getDiary = <ThrowOnError extends boolean = false>(
     GetDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}',
     ...options,
   });
@@ -398,7 +430,15 @@ export const updateDiary = <ThrowOnError extends boolean = false>(
     UpdateDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}',
     ...options,
     headers: {
@@ -418,7 +458,15 @@ export const revokeDiaryGrant = <ThrowOnError extends boolean = false>(
     RevokeDiaryGrantErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/grants',
     ...options,
     headers: {
@@ -438,7 +486,15 @@ export const listDiaryGrants = <ThrowOnError extends boolean = false>(
     ListDiaryGrantsErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/grants',
     ...options,
   });
@@ -454,7 +510,15 @@ export const createDiaryGrant = <ThrowOnError extends boolean = false>(
     CreateDiaryGrantErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/grants',
     ...options,
     headers: {
@@ -474,7 +538,15 @@ export const initiateTransfer = <ThrowOnError extends boolean = false>(
     InitiateTransferErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/transfer',
     ...options,
     headers: {
@@ -494,7 +566,15 @@ export const listPendingTransfers = <ThrowOnError extends boolean = false>(
     ListPendingTransfersErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/transfers',
     ...options,
   });
@@ -510,7 +590,15 @@ export const acceptTransfer = <ThrowOnError extends boolean = false>(
     AcceptTransferErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/transfers/{transferId}/accept',
     ...options,
   });
@@ -526,7 +614,15 @@ export const rejectTransfer = <ThrowOnError extends boolean = false>(
     RejectTransferErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/transfers/{transferId}/reject',
     ...options,
   });
@@ -542,7 +638,15 @@ export const listDiaryEntries = <ThrowOnError extends boolean = false>(
     ListDiaryEntriesErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{diaryId}/entries',
     ...options,
   });
@@ -558,7 +662,15 @@ export const createDiaryEntry = <ThrowOnError extends boolean = false>(
     CreateDiaryEntryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{diaryId}/entries',
     ...options,
     headers: {
@@ -578,7 +690,15 @@ export const listDiaryTags = <ThrowOnError extends boolean = false>(
     ListDiaryTagsErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{diaryId}/tags',
     ...options,
   });
@@ -594,7 +714,15 @@ export const deleteDiaryEntryById = <ThrowOnError extends boolean = false>(
     DeleteDiaryEntryByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/entries/{entryId}',
     ...options,
   });
@@ -610,7 +738,15 @@ export const getDiaryEntryById = <ThrowOnError extends boolean = false>(
     GetDiaryEntryByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/entries/{entryId}',
     ...options,
   });
@@ -626,7 +762,15 @@ export const updateDiaryEntryById = <ThrowOnError extends boolean = false>(
     UpdateDiaryEntryByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/entries/{entryId}',
     ...options,
     headers: {
@@ -646,7 +790,15 @@ export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
     VerifyDiaryEntryByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/entries/{entryId}/verify',
     ...options,
   });
@@ -662,7 +814,15 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
     SearchDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/search',
     ...options,
     headers: {
@@ -682,7 +842,15 @@ export const reflectDiary = <ThrowOnError extends boolean = false>(
     ReflectDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/reflect',
     ...options,
   });
@@ -698,7 +866,15 @@ export const consolidateDiary = <ThrowOnError extends boolean = false>(
     ConsolidateDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/consolidate',
     ...options,
     headers: {
@@ -718,7 +894,15 @@ export const compileDiary = <ThrowOnError extends boolean = false>(
     CompileDiaryErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/compile',
     ...options,
     headers: {
@@ -740,7 +924,15 @@ export const getContextPackProvenanceById = <
     GetContextPackProvenanceByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/{id}/provenance',
     ...options,
   });
@@ -758,7 +950,15 @@ export const getContextPackProvenanceByCid = <
     GetContextPackProvenanceByCidErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/by-cid/{cid}/provenance',
     ...options,
   });
@@ -774,7 +974,15 @@ export const getContextPackById = <ThrowOnError extends boolean = false>(
     GetContextPackByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/{id}',
     ...options,
   });
@@ -790,7 +998,15 @@ export const updateContextPack = <ThrowOnError extends boolean = false>(
     UpdateContextPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/{id}',
     ...options,
     headers: {
@@ -810,7 +1026,15 @@ export const previewDiaryCustomPack = <ThrowOnError extends boolean = false>(
     PreviewDiaryCustomPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/packs/preview',
     ...options,
     headers: {
@@ -830,7 +1054,15 @@ export const listDiaryPacks = <ThrowOnError extends boolean = false>(
     ListDiaryPacksErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/packs',
     ...options,
   });
@@ -846,7 +1078,15 @@ export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
     CreateDiaryCustomPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/packs',
     ...options,
     headers: {
@@ -866,7 +1106,15 @@ export const previewRenderedPack = <ThrowOnError extends boolean = false>(
     PreviewRenderedPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/{id}/render/preview',
     ...options,
     headers: {
@@ -886,7 +1134,15 @@ export const renderContextPack = <ThrowOnError extends boolean = false>(
     RenderContextPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/{id}/render',
     ...options,
     headers: {
@@ -906,7 +1162,15 @@ export const getLatestRenderedPack = <ThrowOnError extends boolean = false>(
     GetLatestRenderedPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/packs/{id}/rendered',
     ...options,
   });
@@ -922,7 +1186,15 @@ export const listDiaryRenderedPacks = <ThrowOnError extends boolean = false>(
     ListDiaryRenderedPacksErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/diaries/{id}/rendered-packs',
     ...options,
   });
@@ -938,7 +1210,15 @@ export const getRenderedPackById = <ThrowOnError extends boolean = false>(
     GetRenderedPackByIdErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/rendered-packs/{id}',
     ...options,
   });
@@ -954,7 +1234,15 @@ export const updateRenderedPack = <ThrowOnError extends boolean = false>(
     UpdateRenderedPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/rendered-packs/{id}',
     ...options,
     headers: {
@@ -974,7 +1262,15 @@ export const verifyRenderedPack = <ThrowOnError extends boolean = false>(
     VerifyRenderedPackErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/rendered-packs/{id}/verify',
     ...options,
     headers: {
@@ -994,7 +1290,15 @@ export const claimVerification = <ThrowOnError extends boolean = false>(
     ClaimVerificationErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/rendered-packs/{id}/verify/claim',
     ...options,
   });
@@ -1010,7 +1314,15 @@ export const submitVerification = <ThrowOnError extends boolean = false>(
     SubmitVerificationErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/rendered-packs/{id}/verify/submit',
     ...options,
     headers: {
@@ -1030,7 +1342,15 @@ export const listEntryRelations = <ThrowOnError extends boolean = false>(
     ListEntryRelationsErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/entries/{entryId}/relations',
     ...options,
   });
@@ -1046,7 +1366,15 @@ export const createEntryRelation = <ThrowOnError extends boolean = false>(
     CreateEntryRelationErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/entries/{entryId}/relations',
     ...options,
     headers: {
@@ -1066,7 +1394,15 @@ export const deleteEntryRelation = <ThrowOnError extends boolean = false>(
     DeleteEntryRelationErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/relations/{id}',
     ...options,
   });
@@ -1082,7 +1418,15 @@ export const updateEntryRelationStatus = <ThrowOnError extends boolean = false>(
     UpdateEntryRelationStatusErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/relations/{id}',
     ...options,
     headers: {
@@ -1133,7 +1477,15 @@ export const getWhoami = <ThrowOnError extends boolean = false>(
     GetWhoamiErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/agents/whoami',
     ...options,
   });
@@ -1168,7 +1520,15 @@ export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
     GetCryptoIdentityErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/crypto/identity',
     ...options,
   });
@@ -1184,7 +1544,15 @@ export const listSigningRequests = <ThrowOnError extends boolean = false>(
     ListSigningRequestsErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/crypto/signing-requests',
     ...options,
   });
@@ -1200,7 +1568,15 @@ export const createSigningRequest = <ThrowOnError extends boolean = false>(
     CreateSigningRequestErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/crypto/signing-requests',
     ...options,
     headers: {
@@ -1220,7 +1596,15 @@ export const getSigningRequest = <ThrowOnError extends boolean = false>(
     GetSigningRequestErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/crypto/signing-requests/{id}',
     ...options,
   });
@@ -1236,7 +1620,15 @@ export const submitSignature = <ThrowOnError extends boolean = false>(
     SubmitSignatureErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/crypto/signing-requests/{id}/sign',
     ...options,
     headers: {
@@ -1313,7 +1705,15 @@ export const rotateClientSecret = <ThrowOnError extends boolean = false>(
     RotateClientSecretErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/auth/rotate-secret',
     ...options,
   });
@@ -1329,7 +1729,15 @@ export const listTeams = <ThrowOnError extends boolean = false>(
     ListTeamsErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams',
     ...options,
   });
@@ -1345,7 +1753,15 @@ export const createTeam = <ThrowOnError extends boolean = false>(
     CreateTeamErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams',
     ...options,
     headers: {
@@ -1365,7 +1781,15 @@ export const deleteTeam = <ThrowOnError extends boolean = false>(
     DeleteTeamErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}',
     ...options,
   });
@@ -1378,7 +1802,15 @@ export const getTeam = <ThrowOnError extends boolean = false>(
 ) =>
   (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>(
     {
-      security: [{ scheme: 'bearer', type: 'http' }],
+      security: [
+        { scheme: 'bearer', type: 'http' },
+        { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+        {
+          in: 'cookie',
+          name: 'ory_kratos_session',
+          type: 'apiKey',
+        },
+      ],
       url: '/teams/{id}',
       ...options,
     },
@@ -1395,7 +1827,15 @@ export const listTeamMembers = <ThrowOnError extends boolean = false>(
     ListTeamMembersErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/members',
     ...options,
   });
@@ -1411,7 +1851,15 @@ export const removeTeamMember = <ThrowOnError extends boolean = false>(
     RemoveTeamMemberErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/members/{subjectId}',
     ...options,
   });
@@ -1427,7 +1875,15 @@ export const listTeamInvites = <ThrowOnError extends boolean = false>(
     ListTeamInvitesErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/invites',
     ...options,
   });
@@ -1443,7 +1899,15 @@ export const createTeamInvite = <ThrowOnError extends boolean = false>(
     CreateTeamInviteErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/invites',
     ...options,
     headers: {
@@ -1463,7 +1927,15 @@ export const deleteTeamInvite = <ThrowOnError extends boolean = false>(
     DeleteTeamInviteErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/invites/{inviteId}',
     ...options,
   });
@@ -1479,7 +1951,15 @@ export const joinTeam = <ThrowOnError extends boolean = false>(
     JoinTeamErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/join',
     ...options,
     headers: {
@@ -1499,7 +1979,15 @@ export const acceptTeamFounding = <ThrowOnError extends boolean = false>(
     AcceptTeamFoundingErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/accept',
     ...options,
     headers: {
@@ -1519,7 +2007,15 @@ export const listGroups = <ThrowOnError extends boolean = false>(
     ListGroupsErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/groups',
     ...options,
   });
@@ -1535,7 +2031,15 @@ export const createGroup = <ThrowOnError extends boolean = false>(
     CreateGroupErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/teams/{id}/groups',
     ...options,
     headers: {
@@ -1555,7 +2059,15 @@ export const deleteGroup = <ThrowOnError extends boolean = false>(
     DeleteGroupErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/groups/{groupId}',
     ...options,
   });
@@ -1571,7 +2083,15 @@ export const getGroup = <ThrowOnError extends boolean = false>(
     GetGroupErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/groups/{groupId}',
     ...options,
   });
@@ -1587,7 +2107,15 @@ export const listGroupMembers = <ThrowOnError extends boolean = false>(
     ListGroupMembersErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/groups/{groupId}/members',
     ...options,
   });
@@ -1603,7 +2131,15 @@ export const addGroupMember = <ThrowOnError extends boolean = false>(
     AddGroupMemberErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/groups/{groupId}/members',
     ...options,
     headers: {
@@ -1623,7 +2159,15 @@ export const removeGroupMember = <ThrowOnError extends boolean = false>(
     RemoveGroupMemberErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/groups/{groupId}/members/{subjectId}',
     ...options,
   });
@@ -1639,7 +2183,15 @@ export const issueVoucher = <ThrowOnError extends boolean = false>(
     IssueVoucherErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/vouch',
     ...options,
   });
@@ -1655,7 +2207,15 @@ export const listActiveVouchers = <ThrowOnError extends boolean = false>(
     ListActiveVouchersErrors,
     ThrowOnError
   >({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
     url: '/vouch/active',
     ...options,
   });

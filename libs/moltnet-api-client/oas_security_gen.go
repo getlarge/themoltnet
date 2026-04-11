@@ -16,6 +16,19 @@ type SecurityHandler interface {
 	// HandleBearerAuth handles bearerAuth security.
 	// OAuth2 access token from Ory Hydra (agent auth via client_credentials flow).
 	HandleBearerAuth(ctx context.Context, operationName OperationName, t BearerAuth) (context.Context, error)
+	// HandleCookieAuth handles cookieAuth security.
+	// Kratos session cookie set automatically by the browser after self-service login. Resolved via
+	// FrontendApi.toSession({ cookie }). The API forwards the raw Cookie header to Kratos unchanged, so
+	// any Kratos cookie name is accepted at runtime — the self-hosted default is `ory_kratos_session`
+	// and Ory Network uses `ory_session_<slug>`. **Note for SDK users:** the `name` field above is the
+	// self-hosted default for the benefit of generated clients; if you are on Ory Network, your cookie
+	// will be named `ory_session_<your-project-slug>` and you will need to override the cookie name in
+	// your SDK client (the server accepts either).
+	HandleCookieAuth(ctx context.Context, operationName OperationName, t CookieAuth) (context.Context, error)
+	// HandleSessionAuth handles sessionAuth security.
+	// Kratos session token for human users on native clients (console/dashboard CLI-style auth).
+	// Resolved via FrontendApi.toSession({ xSessionToken }).
+	HandleSessionAuth(ctx context.Context, operationName OperationName, t SessionAuth) (context.Context, error)
 }
 
 func findAuthorization(h http.Header, prefix string) (string, bool) {
@@ -128,6 +141,196 @@ func GetRolesForBearerAuth(operation string) []string {
 	return result
 }
 
+// operationRolesCookieAuth is a private map storing roles per operation.
+var operationRolesCookieAuth = map[string][]string{
+	AcceptTeamFoundingOperation:            []string{},
+	AcceptTransferOperation:                []string{},
+	AddGroupMemberOperation:                []string{},
+	ClaimVerificationOperation:             []string{},
+	CompileDiaryOperation:                  []string{},
+	ConsolidateDiaryOperation:              []string{},
+	CreateDiaryOperation:                   []string{},
+	CreateDiaryCustomPackOperation:         []string{},
+	CreateDiaryEntryOperation:              []string{},
+	CreateDiaryGrantOperation:              []string{},
+	CreateEntryRelationOperation:           []string{},
+	CreateGroupOperation:                   []string{},
+	CreateSigningRequestOperation:          []string{},
+	CreateTeamOperation:                    []string{},
+	CreateTeamInviteOperation:              []string{},
+	DeleteDiaryOperation:                   []string{},
+	DeleteDiaryEntryByIdOperation:          []string{},
+	DeleteEntryRelationOperation:           []string{},
+	DeleteGroupOperation:                   []string{},
+	DeleteTeamOperation:                    []string{},
+	DeleteTeamInviteOperation:              []string{},
+	GetContextPackByIdOperation:            []string{},
+	GetContextPackProvenanceByCidOperation: []string{},
+	GetContextPackProvenanceByIdOperation:  []string{},
+	GetCryptoIdentityOperation:             []string{},
+	GetDiaryOperation:                      []string{},
+	GetDiaryEntryByIdOperation:             []string{},
+	GetGroupOperation:                      []string{},
+	GetLatestRenderedPackOperation:         []string{},
+	GetRenderedPackByIdOperation:           []string{},
+	GetSigningRequestOperation:             []string{},
+	GetTeamOperation:                       []string{},
+	GetWhoamiOperation:                     []string{},
+	InitiateTransferOperation:              []string{},
+	IssueVoucherOperation:                  []string{},
+	JoinTeamOperation:                      []string{},
+	ListActiveVouchersOperation:            []string{},
+	ListDiariesOperation:                   []string{},
+	ListDiaryEntriesOperation:              []string{},
+	ListDiaryGrantsOperation:               []string{},
+	ListDiaryPacksOperation:                []string{},
+	ListDiaryRenderedPacksOperation:        []string{},
+	ListDiaryTagsOperation:                 []string{},
+	ListEntryRelationsOperation:            []string{},
+	ListGroupMembersOperation:              []string{},
+	ListGroupsOperation:                    []string{},
+	ListPendingTransfersOperation:          []string{},
+	ListSigningRequestsOperation:           []string{},
+	ListTeamInvitesOperation:               []string{},
+	ListTeamMembersOperation:               []string{},
+	ListTeamsOperation:                     []string{},
+	PreviewDiaryCustomPackOperation:        []string{},
+	PreviewRenderedPackOperation:           []string{},
+	ReflectDiaryOperation:                  []string{},
+	RejectTransferOperation:                []string{},
+	RemoveGroupMemberOperation:             []string{},
+	RemoveTeamMemberOperation:              []string{},
+	RenderContextPackOperation:             []string{},
+	RevokeDiaryGrantOperation:              []string{},
+	RotateClientSecretOperation:            []string{},
+	SearchDiaryOperation:                   []string{},
+	SubmitSignatureOperation:               []string{},
+	SubmitVerificationOperation:            []string{},
+	UpdateContextPackOperation:             []string{},
+	UpdateDiaryOperation:                   []string{},
+	UpdateDiaryEntryByIdOperation:          []string{},
+	UpdateEntryRelationStatusOperation:     []string{},
+	UpdateRenderedPackOperation:            []string{},
+	VerifyDiaryEntryByIdOperation:          []string{},
+	VerifyRenderedPackOperation:            []string{},
+}
+
+// GetRolesForCookieAuth returns the required roles for the given operation.
+//
+// This is useful for authorization scenarios where you need to know which roles
+// are required for an operation.
+//
+// Example:
+//
+//	requiredRoles := GetRolesForCookieAuth(AddPetOperation)
+//
+// Returns nil if the operation has no role requirements or if the operation is unknown.
+func GetRolesForCookieAuth(operation string) []string {
+	roles, ok := operationRolesCookieAuth[operation]
+	if !ok {
+		return nil
+	}
+	// Return a copy to prevent external modification
+	result := make([]string, len(roles))
+	copy(result, roles)
+	return result
+}
+
+// operationRolesSessionAuth is a private map storing roles per operation.
+var operationRolesSessionAuth = map[string][]string{
+	AcceptTeamFoundingOperation:            []string{},
+	AcceptTransferOperation:                []string{},
+	AddGroupMemberOperation:                []string{},
+	ClaimVerificationOperation:             []string{},
+	CompileDiaryOperation:                  []string{},
+	ConsolidateDiaryOperation:              []string{},
+	CreateDiaryOperation:                   []string{},
+	CreateDiaryCustomPackOperation:         []string{},
+	CreateDiaryEntryOperation:              []string{},
+	CreateDiaryGrantOperation:              []string{},
+	CreateEntryRelationOperation:           []string{},
+	CreateGroupOperation:                   []string{},
+	CreateSigningRequestOperation:          []string{},
+	CreateTeamOperation:                    []string{},
+	CreateTeamInviteOperation:              []string{},
+	DeleteDiaryOperation:                   []string{},
+	DeleteDiaryEntryByIdOperation:          []string{},
+	DeleteEntryRelationOperation:           []string{},
+	DeleteGroupOperation:                   []string{},
+	DeleteTeamOperation:                    []string{},
+	DeleteTeamInviteOperation:              []string{},
+	GetContextPackByIdOperation:            []string{},
+	GetContextPackProvenanceByCidOperation: []string{},
+	GetContextPackProvenanceByIdOperation:  []string{},
+	GetCryptoIdentityOperation:             []string{},
+	GetDiaryOperation:                      []string{},
+	GetDiaryEntryByIdOperation:             []string{},
+	GetGroupOperation:                      []string{},
+	GetLatestRenderedPackOperation:         []string{},
+	GetRenderedPackByIdOperation:           []string{},
+	GetSigningRequestOperation:             []string{},
+	GetTeamOperation:                       []string{},
+	GetWhoamiOperation:                     []string{},
+	InitiateTransferOperation:              []string{},
+	IssueVoucherOperation:                  []string{},
+	JoinTeamOperation:                      []string{},
+	ListActiveVouchersOperation:            []string{},
+	ListDiariesOperation:                   []string{},
+	ListDiaryEntriesOperation:              []string{},
+	ListDiaryGrantsOperation:               []string{},
+	ListDiaryPacksOperation:                []string{},
+	ListDiaryRenderedPacksOperation:        []string{},
+	ListDiaryTagsOperation:                 []string{},
+	ListEntryRelationsOperation:            []string{},
+	ListGroupMembersOperation:              []string{},
+	ListGroupsOperation:                    []string{},
+	ListPendingTransfersOperation:          []string{},
+	ListSigningRequestsOperation:           []string{},
+	ListTeamInvitesOperation:               []string{},
+	ListTeamMembersOperation:               []string{},
+	ListTeamsOperation:                     []string{},
+	PreviewDiaryCustomPackOperation:        []string{},
+	PreviewRenderedPackOperation:           []string{},
+	ReflectDiaryOperation:                  []string{},
+	RejectTransferOperation:                []string{},
+	RemoveGroupMemberOperation:             []string{},
+	RemoveTeamMemberOperation:              []string{},
+	RenderContextPackOperation:             []string{},
+	RevokeDiaryGrantOperation:              []string{},
+	RotateClientSecretOperation:            []string{},
+	SearchDiaryOperation:                   []string{},
+	SubmitSignatureOperation:               []string{},
+	SubmitVerificationOperation:            []string{},
+	UpdateContextPackOperation:             []string{},
+	UpdateDiaryOperation:                   []string{},
+	UpdateDiaryEntryByIdOperation:          []string{},
+	UpdateEntryRelationStatusOperation:     []string{},
+	UpdateRenderedPackOperation:            []string{},
+	VerifyDiaryEntryByIdOperation:          []string{},
+	VerifyRenderedPackOperation:            []string{},
+}
+
+// GetRolesForSessionAuth returns the required roles for the given operation.
+//
+// This is useful for authorization scenarios where you need to know which roles
+// are required for an operation.
+//
+// Example:
+//
+//	requiredRoles := GetRolesForSessionAuth(AddPetOperation)
+//
+// Returns nil if the operation has no role requirements or if the operation is unknown.
+func GetRolesForSessionAuth(operation string) []string {
+	roles, ok := operationRolesSessionAuth[operation]
+	if !ok {
+		return nil
+	}
+	// Return a copy to prevent external modification
+	result := make([]string, len(roles))
+	copy(result, roles)
+	return result
+}
+
 func (s *Server) securityBearerAuth(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
 	var t BearerAuth
 	token, ok := findAuthorization(req.Header, "Bearer")
@@ -145,11 +348,65 @@ func (s *Server) securityBearerAuth(ctx context.Context, operationName Operation
 	return rctx, true, err
 }
 
+func (s *Server) securityCookieAuth(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
+	var t CookieAuth
+	const parameterName = "ory_kratos_session"
+	var value string
+	switch cookie, err := req.Cookie(parameterName); {
+	case err == nil: // if NO error
+		value = cookie.Value
+	case errors.Is(err, http.ErrNoCookie):
+		return ctx, false, nil
+	default:
+		return nil, false, errors.Wrap(err, "get cookie value")
+	}
+	t.APIKey = value
+	t.Roles = operationRolesCookieAuth[operationName]
+	rctx, err := s.sec.HandleCookieAuth(ctx, operationName, t)
+	if errors.Is(err, ogenerrors.ErrSkipServerSecurity) {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, false, err
+	}
+	return rctx, true, err
+}
+
+func (s *Server) securitySessionAuth(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
+	var t SessionAuth
+	const parameterName = "X-Moltnet-Session-Token"
+	value := req.Header.Get(parameterName)
+	if value == "" {
+		return ctx, false, nil
+	}
+	t.APIKey = value
+	t.Roles = operationRolesSessionAuth[operationName]
+	rctx, err := s.sec.HandleSessionAuth(ctx, operationName, t)
+	if errors.Is(err, ogenerrors.ErrSkipServerSecurity) {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, false, err
+	}
+	return rctx, true, err
+}
+
 // SecuritySource is provider of security values (tokens, passwords, etc.).
 type SecuritySource interface {
 	// BearerAuth provides bearerAuth security value.
 	// OAuth2 access token from Ory Hydra (agent auth via client_credentials flow).
 	BearerAuth(ctx context.Context, operationName OperationName) (BearerAuth, error)
+	// CookieAuth provides cookieAuth security value.
+	// Kratos session cookie set automatically by the browser after self-service login. Resolved via
+	// FrontendApi.toSession({ cookie }). The API forwards the raw Cookie header to Kratos unchanged, so
+	// any Kratos cookie name is accepted at runtime — the self-hosted default is `ory_kratos_session`
+	// and Ory Network uses `ory_session_<slug>`. **Note for SDK users:** the `name` field above is the
+	// self-hosted default for the benefit of generated clients; if you are on Ory Network, your cookie
+	// will be named `ory_session_<your-project-slug>` and you will need to override the cookie name in
+	// your SDK client (the server accepts either).
+	CookieAuth(ctx context.Context, operationName OperationName) (CookieAuth, error)
+	// SessionAuth provides sessionAuth security value.
+	// Kratos session token for human users on native clients (console/dashboard CLI-style auth).
+	// Resolved via FrontendApi.toSession({ xSessionToken }).
+	SessionAuth(ctx context.Context, operationName OperationName) (SessionAuth, error)
 }
 
 func (s *Client) securityBearerAuth(ctx context.Context, operationName OperationName, req *http.Request) error {
@@ -158,5 +415,24 @@ func (s *Client) securityBearerAuth(ctx context.Context, operationName Operation
 		return errors.Wrap(err, "security source \"BearerAuth\"")
 	}
 	req.Header.Set("Authorization", "Bearer "+t.Token)
+	return nil
+}
+func (s *Client) securityCookieAuth(ctx context.Context, operationName OperationName, req *http.Request) error {
+	t, err := s.sec.CookieAuth(ctx, operationName)
+	if err != nil {
+		return errors.Wrap(err, "security source \"CookieAuth\"")
+	}
+	req.AddCookie(&http.Cookie{
+		Name:  "ory_kratos_session",
+		Value: t.APIKey,
+	})
+	return nil
+}
+func (s *Client) securitySessionAuth(ctx context.Context, operationName OperationName, req *http.Request) error {
+	t, err := s.sec.SessionAuth(ctx, operationName)
+	if err != nil {
+		return errors.Wrap(err, "security source \"SessionAuth\"")
+	}
+	req.Header.Set("X-Moltnet-Session-Token", t.APIKey)
 	return nil
 }

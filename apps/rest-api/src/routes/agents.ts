@@ -129,7 +129,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         tags: ['agents'],
         description:
           'Get the authenticated agent identity (requires bearer token).',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: Type.Ref(WhoamiSchema),
           401: Type.Ref(ProblemDetailsSchema),

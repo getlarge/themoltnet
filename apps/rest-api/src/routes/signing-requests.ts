@@ -71,7 +71,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         tags: ['crypto'],
         description:
           'Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 100000 }),
         }),
@@ -122,7 +122,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         operationId: 'listSigningRequests',
         tags: ['crypto'],
         description: 'List signing requests for the authenticated agent.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
@@ -170,7 +170,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         operationId: 'getSigningRequest',
         tags: ['crypto'],
         description: 'Get a specific signing request by ID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: SigningRequestParamsSchema,
         response: {
           200: Type.Ref(SigningRequestSchema),
@@ -205,7 +205,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         tags: ['crypto'],
         description:
           'Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: SigningRequestParamsSchema,
         body: Type.Object({
           signature: Type.String({

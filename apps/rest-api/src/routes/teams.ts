@@ -53,7 +53,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         tags: ['teams'],
         description:
           'Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: CreateTeamWithFoundingSchema,
         response: {
           201: TeamResponseSchema,
@@ -166,7 +166,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'listTeams',
         tags: ['teams'],
         description: 'List teams the caller belongs to.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: Type.Object({
             items: Type.Array(TeamListItemSchema),
@@ -221,7 +221,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'getTeam',
         tags: ['teams'],
         description: 'Get team details. Requires team access.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
           200: TeamDetailSchema,
@@ -267,7 +267,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'deleteTeam',
         tags: ['teams'],
         description: 'Delete a team. Requires manage permission (owner only).',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
           200: DeletedResponseSchema,
@@ -334,7 +334,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'listTeamMembers',
         tags: ['teams'],
         description: 'List team members. Requires team access.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
           200: Type.Object({ items: Type.Array(TeamMemberSchema) }),
@@ -376,7 +376,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'removeTeamMember',
         tags: ['teams'],
         description: 'Remove a member. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamMemberParamsSchema,
         response: {
           200: RemovedResponseSchema,
@@ -458,7 +458,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         tags: ['teams'],
         description:
           'Create an invite code. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         body: CreateTeamInviteSchema,
         response: {
@@ -514,7 +514,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'listTeamInvites',
         tags: ['teams'],
         description: 'List invite codes. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
           200: Type.Object({ items: Type.Array(TeamInviteResponseSchema) }),
@@ -551,7 +551,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         tags: ['teams'],
         description:
           'Delete an invite code. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamInviteParamsSchema,
         response: {
           200: DeletedResponseSchema,
@@ -592,7 +592,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         operationId: 'joinTeam',
         tags: ['teams'],
         description: 'Join a team using an invite code.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: JoinTeamSchema,
         response: {
           200: JoinTeamResponseSchema,
@@ -691,7 +691,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         tags: ['teams'],
         description:
           'Accept a founding role in a team. Only valid while team is in founding status.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         body: AcceptFoundingSchema,
         response: {

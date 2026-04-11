@@ -12,7 +12,7 @@ import (
 
 var (
 	rn67AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn101AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
@@ -21,111 +21,111 @@ var (
 		"POST": "Content-Type",
 	}
 	rn93AllowedHeaders = map[string]string{
-		"POST": "Authorization",
+		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn47AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn30AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn65AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn98AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn102AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 	rn20AllowedHeaders = map[string]string{
-		"GET":  "Authorization,X-Moltnet-Team-Id",
-		"POST": "Authorization,Content-Type,X-Moltnet-Team-Id",
+		"GET":  "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn82AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn94AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn16AllowedHeaders = map[string]string{
-		"DELETE": "Authorization,X-Moltnet-Team-Id",
-		"GET":    "Authorization,X-Moltnet-Team-Id",
-		"PATCH":  "Authorization,Content-Type,X-Moltnet-Team-Id",
+		"DELETE": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"GET":    "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"PATCH":  "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn17AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn19AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn23AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn24AllowedHeaders = map[string]string{
-		"DELETE": "Authorization,Content-Type",
-		"GET":    "Authorization",
-		"POST":   "Authorization,Content-Type",
+		"DELETE": "Authorization,Content-Type,X-Moltnet-Session-Token",
+		"GET":    "Authorization,X-Moltnet-Session-Token",
+		"POST":   "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn22AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn79AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn73AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn75AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn68AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn26AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"GET":    "Authorization",
-		"PATCH":  "Authorization,Content-Type",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
+		"GET":    "Authorization,X-Moltnet-Session-Token",
+		"PATCH":  "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn27AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn104AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn10AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"GET":    "Authorization",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
+		"GET":    "Authorization,X-Moltnet-Session-Token",
 	}
 	rn11AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn88AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn44AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn41AllowedHeaders = map[string]string{
-		"GET":   "Authorization",
-		"PATCH": "Authorization,Content-Type",
+		"GET":   "Authorization,X-Moltnet-Session-Token",
+		"PATCH": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn45AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn80AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn81AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn50AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn97AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
@@ -137,67 +137,67 @@ var (
 		"POST": "Content-Type",
 	}
 	rn35AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"PATCH":  "Authorization,Content-Type",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
+		"PATCH":  "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn13AllowedHeaders = map[string]string{
-		"GET":   "Authorization",
-		"PATCH": "Authorization,Content-Type",
+		"GET":   "Authorization,X-Moltnet-Session-Token",
+		"PATCH": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn107AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn14AllowedHeaders = map[string]string{
-		"POST": "Authorization",
+		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn100AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn31AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn70AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn2AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"GET":    "Authorization",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
+		"GET":    "Authorization,X-Moltnet-Session-Token",
 	}
 	rn3AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn29AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn32AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn37AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn78AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn90AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
+		"DELETE": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn76AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn7AllowedHeaders = map[string]string{
-		"POST": "Authorization",
+		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn86AllowedHeaders = map[string]string{
-		"POST": "Authorization",
+		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn69AllowedHeaders = map[string]string{
-		"POST": "Authorization",
+		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn72AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 )
 

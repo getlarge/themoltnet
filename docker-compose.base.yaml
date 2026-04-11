@@ -63,6 +63,35 @@ services:
       retries: 5
       start_period: 20s
 
+  # Reference self-service UI for Kratos flows (registration, login, recovery,
+  # settings, error). Kratos delegates form rendering to an external app; this
+  # is the official Node.js reference implementation. Used by both dev and e2e
+  # so browser-based cookie auth (issue #753) works out of the box. Served on
+  # port 4455 — kratos.yaml points flow ui_url values here.
+  kratos-selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:v25.4.0
+    ports:
+      - '4455:4455'
+    environment:
+      PORT: '4455'
+      SECURITY_MODE: 'standalone'
+      # Public Kratos URL the browser hits (host port-forward). Must match
+      # kratos `serve.public.base_url` so CSRF/cookie domains line up.
+      KRATOS_PUBLIC_URL: http://localhost:4433/
+      # Admin URL used for server-side flow calls from inside the container.
+      KRATOS_ADMIN_URL: http://kratos:4434/
+      KRATOS_BROWSER_URL: http://localhost:4433/
+      COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:-local-dev-cookie-secret-not-for-production}
+      CSRF_COOKIE_NAME: ory_csrf_ui
+      CSRF_COOKIE_SECRET: ${KRATOS_UI_CSRF_SECRET:-local-dev-csrf-secret-not-for-production}
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4455/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
   hydra-postgres:
     image: postgres:16
     environment:

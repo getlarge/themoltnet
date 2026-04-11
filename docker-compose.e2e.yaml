@@ -51,6 +51,14 @@ services:
       mailslurper:
         condition: service_started
 
+  kratos-selfservice-ui-node:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos-selfservice-ui-node
+    depends_on:
+      kratos:
+        condition: service_healthy
+
   hydra-postgres:
     extends:
       file: docker-compose.base.yaml

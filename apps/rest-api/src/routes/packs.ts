@@ -451,7 +451,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Export the provenance graph for a persisted context pack by ID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
@@ -510,7 +510,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Export the provenance graph for a persisted context pack by CID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackCidParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
@@ -569,7 +569,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Get a persisted context pack by ID. Use `expand=entries` to include entry content.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         querystring: PackQuerySchema,
         response: {
@@ -623,7 +623,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Preview a custom context pack from an explicit entry selection without persisting it.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: CustomPackBodySchema,
         response: {
@@ -655,7 +655,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Create and persist a custom context pack from an explicit entry selection.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: CustomPackBodySchema,
         response: {
@@ -690,7 +690,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List persisted context packs for a diary. Use `expand=entries` to include entry content.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         querystring: PackListQuerySchema,
         response: {
@@ -777,7 +777,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         body: PackUpdateBodySchema,
         response: {

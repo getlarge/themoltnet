@@ -2986,8 +2986,14 @@
         "scheme": "bearer",
         "type": "http"
       },
+      "cookieAuth": {
+        "description": "Kratos session cookie set automatically by the browser after self-service login. Resolved via FrontendApi.toSession({ cookie }). The API forwards the raw Cookie header to Kratos unchanged, so any Kratos cookie name is accepted at runtime — the self-hosted default is `ory_kratos_session` and Ory Network uses `ory_session_\u003cslug\u003e`. **Note for SDK users:** the `name` field above is the self-hosted default for the benefit of generated clients; if you are on Ory Network, your cookie will be named `ory_session_\u003cyour-project-slug\u003e` and you will need to override the cookie name in your SDK client (the server accepts either).",
+        "in": "cookie",
+        "name": "ory_kratos_session",
+        "type": "apiKey"
+      },
       "sessionAuth": {
-        "description": "Kratos session token for human users (console/dashboard auth). Resolved via FrontendApi.toSession().",
+        "description": "Kratos session token for human users on native clients (console/dashboard CLI-style auth). Resolved via FrontendApi.toSession({ xSessionToken }).",
         "in": "header",
         "name": "X-Moltnet-Session-Token",
         "type": "apiKey"
@@ -3069,6 +3075,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["agents"]
@@ -3324,6 +3336,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["auth"]
@@ -3368,6 +3386,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["crypto"]
@@ -3443,6 +3467,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["crypto"]
@@ -3503,6 +3533,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["crypto"]
@@ -3568,6 +3604,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["crypto"]
@@ -3661,6 +3703,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["crypto"]
@@ -3764,6 +3812,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -3850,6 +3904,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -3945,6 +4005,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4072,6 +4138,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4190,6 +4262,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4330,6 +4408,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4427,6 +4511,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4523,6 +4613,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4597,6 +4693,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4705,6 +4807,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4868,6 +4976,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -4988,6 +5102,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5086,6 +5206,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5175,6 +5301,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5281,6 +5413,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5385,6 +5523,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5517,6 +5661,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5651,6 +5801,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5765,6 +5921,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5917,6 +6079,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -5993,6 +6161,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -6067,6 +6241,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -6199,6 +6379,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -6317,6 +6503,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -6435,6 +6627,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -6501,6 +6699,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -6573,6 +6777,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -6676,6 +6886,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -6752,6 +6968,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -6859,6 +7081,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -6941,6 +7169,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -7279,6 +7513,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -7363,6 +7603,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -7478,6 +7724,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -7563,6 +7815,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -7703,6 +7961,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -7830,6 +8094,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -7905,6 +8175,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -8604,6 +8880,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -8693,6 +8975,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -8768,6 +9056,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -8883,6 +9177,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -8989,6 +9289,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -9074,6 +9380,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -9214,6 +9526,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -9283,6 +9601,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -9404,6 +9728,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -9506,6 +9836,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -9588,6 +9924,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -9701,6 +10043,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -9806,6 +10154,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -9887,6 +10241,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -10005,6 +10365,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["groups"]
@@ -10080,6 +10446,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -10190,6 +10562,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -10272,6 +10650,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -10351,6 +10735,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -10433,6 +10823,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["teams"]
@@ -10524,6 +10920,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -10648,6 +11050,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -10772,6 +11180,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["diary"]
@@ -10826,6 +11240,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["vouch"]
@@ -10879,6 +11299,12 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": ["vouch"]

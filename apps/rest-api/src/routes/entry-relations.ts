@@ -88,7 +88,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         body: CreateRelationBodySchema,
         response: {
@@ -174,7 +174,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         operationId: 'listEntryRelations',
         tags: ['diary'],
         description: 'List relations for a diary entry.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
         response: {
@@ -234,7 +234,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         operationId: 'updateEntryRelationStatus',
         tags: ['diary'],
         description: 'Update the status of an entry relation.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RelationIdParamsSchema,
         body: UpdateRelationStatusBodySchema,
         response: {
@@ -290,7 +290,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         operationId: 'deleteEntryRelation',
         tags: ['diary'],
         description: 'Delete an entry relation.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RelationIdParamsSchema,
         response: {
           204: Type.Null(),

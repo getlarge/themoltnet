@@ -41,7 +41,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         tags: ['groups'],
         description:
           'Create a group within a team. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         body: CreateGroupSchema,
         response: {
@@ -130,7 +130,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'listGroups',
         tags: ['groups'],
         description: 'List groups within a team. Requires team access.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
           200: Type.Object({ items: Type.Array(GroupResponseSchema) }),
@@ -172,7 +172,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'getGroup',
         tags: ['groups'],
         description: 'Get group details. Requires team access.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
           200: GroupDetailSchema,
@@ -222,7 +222,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'deleteGroup',
         tags: ['groups'],
         description: 'Delete a group. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
           200: DeletedResponseSchema,
@@ -272,7 +272,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         tags: ['groups'],
         description:
           'Add a member to a group. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         body: AddGroupMemberSchema,
         response: {
@@ -339,7 +339,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'listGroupMembers',
         tags: ['groups'],
         description: 'List group members. Requires team access.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
           200: Type.Object({ items: Type.Array(GroupMemberResponseSchema) }),
@@ -385,7 +385,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         tags: ['groups'],
         description:
           'Remove a member from a group. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupMemberParamsSchema,
         response: {
           200: RemovedResponseSchema,

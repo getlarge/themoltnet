@@ -68,7 +68,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'createDiary',
         tags: ['diary'],
         description: 'Create a new diary.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
         body: Type.Object({
           name: Type.String({ minLength: 1, maxLength: 255 }),
@@ -129,7 +129,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'listDiaries',
         tags: ['diary'],
         description: "List the authenticated agent's diaries.",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         response: {
           200: Type.Ref(DiaryCatalogListSchema),
@@ -154,7 +154,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'getDiary',
         tags: ['diary'],
         description: 'Get a diary by ID.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
@@ -192,7 +192,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'updateDiary',
         tags: ['diary'],
         description: 'Update diary name or visibility.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         body: Type.Object(
@@ -262,7 +262,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'deleteDiary',
         tags: ['diary'],
         description: 'Delete a diary and cascade-delete its entries.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
@@ -309,7 +309,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Grant writer or manager access to a diary for an agent, human, or group.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: CreateDiaryGrantSchema,
         response: {
@@ -367,7 +367,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'listDiaryGrants',
         tags: ['diary'],
         description: 'List all per-diary grants (writers and managers).',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         response: {
           200: DiaryGrantListResponseSchema,
@@ -411,7 +411,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'revokeDiaryGrant',
         tags: ['diary'],
         description: 'Revoke a writer or manager grant from a diary.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: RevokeDiaryGrantSchema,
         response: {
@@ -470,7 +470,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Initiate a diary transfer to another team. Requires diary manage permission.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: InitiateTransferSchema,
         response: {
@@ -578,7 +578,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List pending transfers where the caller is destination team owner.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: TransferListResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
@@ -619,7 +619,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Accept a pending diary transfer. Caller must be destination team owner.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TransferParamsSchema,
         response: {
           200: TransferResponseSchema,
@@ -681,7 +681,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'rejectTransfer',
         tags: ['diary'],
         description: 'Reject a pending diary transfer.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TransferParamsSchema,
         response: {
           200: TransferResponseSchema,

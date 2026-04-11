@@ -54,7 +54,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         operationId: 'reflectDiary',
         tags: ['diary'],
         description: 'Get a digest of recent diary entries.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         querystring: Type.Object({
           diaryId: Type.String({ format: 'uuid' }),
           days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
@@ -121,7 +121,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Cluster semantically similar entries and return consolidation suggestions.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: Type.Object({
           entryIds: Type.Optional(
@@ -195,7 +195,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Compile a token-budget-fitted context pack from diary entries.',
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: Type.Object({
           tokenBudget: Type.Integer({ minimum: 1, maximum: 100000 }),
