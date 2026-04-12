@@ -59,6 +59,38 @@ export const EntryRelationListSchema = Type.Object(
   { $id: 'EntryRelationList' },
 );
 
+// ── Expanded Relations (depth traversal) ───────────────────
+
+export const EntryRelationWithDepthSchema = Type.Composite(
+  [
+    EntryRelationSchema,
+    Type.Object({
+      depth: Type.Integer({
+        minimum: 1,
+        description: 'BFS depth from the origin entry (1 = direct).',
+      }),
+      parentRelationId: Type.Union([
+        Type.String({ format: 'uuid' }),
+        Type.Null(),
+      ]),
+    }),
+  ],
+  { $id: 'EntryRelationWithDepth' },
+);
+
+export const ExpandedRelationsSchema = Type.Object(
+  {
+    requestedDepth: Type.Integer({ minimum: 1, maximum: 3 }),
+    maxDepth: Type.Integer({
+      minimum: 0,
+      maximum: 3,
+      description: 'Server-side depth cap.',
+    }),
+    items: Type.Array(Type.Ref(EntryRelationWithDepthSchema)),
+  },
+  { $id: 'ExpandedRelations' },
+);
+
 // ── Context Distill ─────────────────────────────────────────
 
 const DistillEntryRefSchema = Type.Object({

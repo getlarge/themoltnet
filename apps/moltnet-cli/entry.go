@@ -158,8 +158,8 @@ func runEntryListCmd(apiURL, credPath, diaryID, tags, excludeTags, entryType str
 	return printJSON(list)
 }
 
-// runEntryGetCmd fetches a diary entry by ID.
-func runEntryGetCmd(apiURL, credPath, entryID string) error {
+// runEntryGetCmd fetches a diary entry by ID, optionally expanding relations.
+func runEntryGetCmd(apiURL, credPath, entryID, expand string, depth int) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -169,11 +169,25 @@ func runEntryGetCmd(apiURL, credPath, entryID string) error {
 	if err != nil {
 		return err
 	}
-	res, err := client.GetDiaryEntryById(context.Background(), moltnetapi.GetDiaryEntryByIdParams{EntryId: entryUUID})
+
+	if expand != "" && expand != "relations" {
+		return fmt.Errorf("--expand: unsupported value %q (only \"relations\" is valid)", expand)
+	}
+
+	params := moltnetapi.GetDiaryEntryByIdParams{EntryId: entryUUID}
+	if expand == "relations" {
+		params.Expand = moltnetapi.OptGetDiaryEntryByIdExpand{
+			Value: moltnetapi.GetDiaryEntryByIdExpandRelations,
+			Set:   true,
+		}
+		params.Depth = moltnetapi.OptInt{Value: depth, Set: true}
+	}
+
+	res, err := client.GetDiaryEntryById(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("entry get: %w", err)
 	}
-	entry, ok := res.(*moltnetapi.DiaryEntry)
+	entry, ok := res.(*moltnetapi.DiaryEntryWithRelations)
 	if !ok {
 		return formatAPIError(res)
 	}

@@ -972,6 +972,59 @@ export type EntryRelationList = {
   offset: number;
 };
 
+export type EntryRelationWithDepth = {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  relation: RelationType;
+  status: RelationStatus;
+  sourceCidSnapshot: string | null;
+  targetCidSnapshot: string | null;
+  workflowId: string | null;
+  confidence: number | null;
+  similarity: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /**
+   * BFS depth from the origin entry (1 = direct).
+   */
+  depth: number;
+  parentRelationId: string | null;
+};
+
+export type ExpandedRelations = {
+  requestedDepth: number;
+  /**
+   * Server-side depth cap.
+   */
+  maxDepth: number;
+  items: Array<EntryRelationWithDepth>;
+};
+
+export type DiaryEntryWithRelations = {
+  id: string;
+  diaryId: string;
+  title: string | null;
+  content: string;
+  tags: Array<string> | null;
+  injectionRisk: boolean;
+  importance: number;
+  accessCount: number;
+  lastAccessedAt: string | null;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  contentHash: string | null;
+  contentSignature: string | null;
+  createdAt: string;
+  updatedAt: string;
+  relations?: ExpandedRelations;
+};
+
 export type GetOAuth2TokenData = {
   body?: never;
   path?: never;
@@ -1941,7 +1994,10 @@ export type GetDiaryEntryByIdData = {
      */
     entryId: string;
   };
-  query?: never;
+  query?: {
+    expand?: 'relations';
+    depth?: number;
+  };
   url: '/entries/{entryId}';
 };
 
@@ -1971,7 +2027,7 @@ export type GetDiaryEntryByIdResponses = {
   /**
    * Default Response
    */
-  200: DiaryEntry;
+  200: DiaryEntryWithRelations;
 };
 
 export type GetDiaryEntryByIdResponse =
@@ -3259,6 +3315,10 @@ export type ListEntryRelationsData = {
     direction?: 'as_source' | 'as_target' | 'both';
     limit?: number;
     offset?: number;
+    /**
+     * Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.
+     */
+    depth?: number;
   };
   url: '/entries/{entryId}/relations';
 };

@@ -1346,6 +1346,142 @@
         ],
         "type": "object"
       },
+      "DiaryEntryWithRelations": {
+        "properties": {
+          "accessCount": {
+            "type": "number"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentHash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentSignature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entryType": {
+            "anyOf": [
+              {
+                "enum": ["episodic"],
+                "type": "string"
+              },
+              {
+                "enum": ["semantic"],
+                "type": "string"
+              },
+              {
+                "enum": ["procedural"],
+                "type": "string"
+              },
+              {
+                "enum": ["reflection"],
+                "type": "string"
+              },
+              {
+                "enum": ["identity"],
+                "type": "string"
+              },
+              {
+                "enum": ["soul"],
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "importance": {
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          },
+          "injectionRisk": {
+            "type": "boolean"
+          },
+          "lastAccessedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relations": {
+            "$ref": "#/components/schemas/ExpandedRelations"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "title",
+          "content",
+          "tags",
+          "injectionRisk",
+          "importance",
+          "accessCount",
+          "lastAccessedAt",
+          "entryType",
+          "contentHash",
+          "contentSignature",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "DiaryList": {
         "properties": {
           "items": {
@@ -1617,6 +1753,119 @@
         "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
+      "EntryRelationWithDepth": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "depth": {
+            "description": "BFS depth from the origin entry (1 = direct).",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "parentRelationId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relation": {
+            "$ref": "#/components/schemas/RelationType"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceCidSnapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationStatus"
+          },
+          "targetCidSnapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workflowId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "sourceId",
+          "targetId",
+          "relation",
+          "status",
+          "sourceCidSnapshot",
+          "targetCidSnapshot",
+          "workflowId",
+          "confidence",
+          "similarity",
+          "createdAt",
+          "updatedAt",
+          "depth",
+          "parentRelationId"
+        ],
+        "type": "object"
+      },
       "EntryType": {
         "anyOf": [
           {
@@ -1773,6 +2022,29 @@
           "createdAt",
           "entry"
         ],
+        "type": "object"
+      },
+      "ExpandedRelations": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EntryRelationWithDepth"
+            },
+            "type": "array"
+          },
+          "maxDepth": {
+            "description": "Server-side depth cap.",
+            "maximum": 3,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "requestedDepth": {
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": ["requestedDepth", "maxDepth", "items"],
         "type": "object"
       },
       "Health": {
@@ -7135,9 +7407,29 @@
         "tags": ["diary"]
       },
       "get": {
-        "description": "Get a single diary entry by ID.",
+        "description": "Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.",
         "operationId": "getDiaryEntryById",
         "parameters": [
+          {
+            "in": "query",
+            "name": "expand",
+            "required": false,
+            "schema": {
+              "enum": ["relations"],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 3,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
           {
             "description": "UUID v4 identifier",
             "in": "path",
@@ -7154,7 +7446,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
+                  "$ref": "#/components/schemas/DiaryEntryWithRelations"
                 }
               }
             },
@@ -7372,7 +7664,7 @@
     },
     "/entries/{entryId}/relations": {
       "get": {
-        "description": "List relations for a diary entry.",
+        "description": "List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.",
         "operationId": "listEntryRelations",
         "parameters": [
           {
@@ -7426,6 +7718,18 @@
             "required": false,
             "schema": {
               "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.",
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 3,
+              "minimum": 1,
               "type": "integer"
             }
           },

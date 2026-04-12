@@ -102,17 +102,23 @@ func newEntryListCmd() *cobra.Command {
 }
 
 func newEntryGetCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:     "get <entry-id>",
-		Short:   "Fetch a diary entry by ID",
-		Example: `  moltnet entry get <entry-uuid>`,
-		Args:    cobra.ExactArgs(1),
+	cmd := &cobra.Command{
+		Use:   "get <entry-id>",
+		Short: "Fetch a diary entry by ID",
+		Example: `  moltnet entry get <entry-uuid>
+  moltnet entry get <entry-uuid> --expand relations --depth 2`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
-			return runEntryGetCmd(apiURL, credPath, args[0])
+			expand, _ := cmd.Flags().GetString("expand")
+			depth, _ := cmd.Flags().GetInt("depth")
+			return runEntryGetCmd(apiURL, credPath, args[0], expand, depth)
 		},
 	}
+	cmd.Flags().String("expand", "", `Expand inline data ("relations")`)
+	cmd.Flags().Int("depth", 1, "Relation traversal depth (1-3, only with --expand relations)")
+	return cmd
 }
 
 func newEntryUpdateCmd() *cobra.Command {

@@ -261,7 +261,8 @@ func (UnimplementedHandler) GetDiary(ctx context.Context, params GetDiaryParams)
 
 // GetDiaryEntryById implements getDiaryEntryById operation.
 //
-// Get a single diary entry by ID.
+// Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
+// hops. Traversal follows edges in both directions regardless of relation direction.
 //
 // GET /entries/{entryId}
 func (UnimplementedHandler) GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (r GetDiaryEntryByIdRes, _ error) {
@@ -510,7 +511,9 @@ func (UnimplementedHandler) ListDiaryTags(ctx context.Context, params ListDiaryT
 
 // ListEntryRelations implements listEntryRelations operation.
 //
-// List relations for a diary entry.
+// List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows
+// edges in both directions). Note: depth/parentRelationId annotations are not included in the list
+// response schema.
 //
 // GET /entries/{entryId}/relations
 func (UnimplementedHandler) ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (r ListEntryRelationsRes, _ error) {

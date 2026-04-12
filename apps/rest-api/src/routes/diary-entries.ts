@@ -5,6 +5,7 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
+import type { RelationAtDepth } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -20,12 +21,37 @@ import type { FastifyInstance } from 'fastify';
 import { createProblem, isUniqueViolation } from '../problems/index.js';
 import {
   DiaryEntrySchema,
+  DiaryEntryWithRelationsSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   DiaryTagsResponseSchema,
   EntryVerifyResultSchema,
   SuccessSchema,
 } from '../schemas.js';
+
+function wantsExpandedRelations(expand?: 'relations'): boolean {
+  return expand === 'relations';
+}
+
+function toRelationWithDepthResponse(row: RelationAtDepth) {
+  const meta = (row.metadata ?? {}) as Record<string, unknown>;
+  return {
+    id: row.id,
+    sourceId: row.sourceId,
+    targetId: row.targetId,
+    relation: row.relation,
+    status: row.status,
+    sourceCidSnapshot: row.sourceCidSnapshot ?? null,
+    targetCidSnapshot: row.targetCidSnapshot ?? null,
+    workflowId: row.workflowId ?? null,
+    confidence: typeof meta.confidence === 'number' ? meta.confidence : null,
+    similarity: typeof meta.similarity === 'number' ? meta.similarity : null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    depth: row.depth,
+    parentRelationId: row.parentRelationId,
+  };
+}
 
 function translateServiceError(err: DiaryServiceError): never {
   switch (err.code) {
@@ -533,11 +559,18 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'getDiaryEntryById',
         tags: ['diary'],
-        description: 'Get a single diary entry by ID.',
+        description:
+          'Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
+        querystring: Type.Object({
+          expand: Type.Optional(Type.Literal('relations')),
+          depth: Type.Optional(
+            Type.Integer({ minimum: 1, maximum: 3, default: 1 }),
+          ),
+        }),
         response: {
-          200: Type.Ref(DiaryEntrySchema),
+          200: Type.Ref(DiaryEntryWithRelationsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -549,7 +582,33 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-      return getEntry(request.params.entryId, identityId, subjectNs);
+      const entry = await getEntry(
+        request.params.entryId,
+        identityId,
+        subjectNs,
+      );
+
+      if (!wantsExpandedRelations(request.query.expand)) {
+        return entry;
+      }
+
+      const depth = request.query.depth ?? 1;
+      const traversal = await fastify.entryRelationRepository.traverseFromEntry(
+        entry.id,
+        {
+          depth,
+        },
+      );
+      const maxDepth = traversal.reduce((m, r) => Math.max(m, r.depth), 0);
+
+      return {
+        ...entry,
+        relations: {
+          requestedDepth: depth,
+          maxDepth,
+          items: traversal.map(toRelationWithDepthResponse),
+        },
+      };
     },
   );
 

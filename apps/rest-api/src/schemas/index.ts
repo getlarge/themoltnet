@@ -44,6 +44,7 @@ import {
   DiaryCatalogSchema,
   DiaryEntrySchema,
   DiaryEntryWithCreatorSchema,
+  DiaryEntryWithRelationsSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   DiaryTagsResponseSchema,
@@ -81,6 +82,8 @@ import {
   ConsolidateResultSchema,
   EntryRelationListSchema,
   EntryRelationSchema,
+  EntryRelationWithDepthSchema,
+  ExpandedRelationsSchema,
   RelationStatusSchema,
   RelationTypeSchema,
 } from './relations.js';
@@ -148,4 +151,7 @@ export const sharedSchemas = [
   RelationStatusSchema,
   EntryRelationSchema,
   EntryRelationListSchema,
+  EntryRelationWithDepthSchema,
+  ExpandedRelationsSchema,
+  DiaryEntryWithRelationsSchema,
 ];

@@ -1982,11 +1982,31 @@ func decodeGetDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 
 // GetDiaryEntryByIdParams is parameters of getDiaryEntryById operation.
 type GetDiaryEntryByIdParams struct {
+	Expand OptGetDiaryEntryByIdExpand `json:",omitempty,omitzero"`
+	Depth  OptInt                     `json:",omitempty,omitzero"`
 	// UUID v4 identifier.
 	EntryId uuid.UUID
 }
 
 func unpackGetDiaryEntryByIdParams(packed middleware.Parameters) (params GetDiaryEntryByIdParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "expand",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Expand = v.(OptGetDiaryEntryByIdExpand)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "depth",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Depth = v.(OptInt)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "entryId",
@@ -1998,6 +2018,134 @@ func unpackGetDiaryEntryByIdParams(packed middleware.Parameters) (params GetDiar
 }
 
 func decodeGetDiaryEntryByIdParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDiaryEntryByIdParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: expand.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "expand",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotExpandVal GetDiaryEntryByIdExpand
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotExpandVal = GetDiaryEntryByIdExpand(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Expand.SetTo(paramsDotExpandVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Expand.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "expand",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: depth.
+	{
+		val := int(1)
+		params.Depth.SetTo(val)
+	}
+	// Decode query: depth.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "depth",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotDepthVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDepthVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Depth.SetTo(paramsDotDepthVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Depth.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           3,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "depth",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode path: entryId.
 	if err := func() error {
 		param := args[0]
@@ -4614,6 +4762,8 @@ type ListEntryRelationsParams struct {
 	Direction OptListEntryRelationsDirection `json:",omitempty,omitzero"`
 	Limit     OptInt                         `json:",omitempty,omitzero"`
 	Offset    OptInt                         `json:",omitempty,omitzero"`
+	// Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.
+	Depth OptInt `json:",omitempty,omitzero"`
 	// UUID v4 identifier.
 	EntryId uuid.UUID
 }
@@ -4662,6 +4812,15 @@ func unpackListEntryRelationsParams(packed middleware.Parameters) (params ListEn
 		}
 		if v, ok := packed[key]; ok {
 			params.Offset = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "depth",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Depth = v.(OptInt)
 		}
 	}
 	{
@@ -4972,6 +5131,77 @@ func decodeListEntryRelationsParams(args [1]string, argsEscaped bool, r *http.Re
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "offset",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: depth.
+	{
+		val := int(1)
+		params.Depth.SetTo(val)
+	}
+	// Decode query: depth.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "depth",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotDepthVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDepthVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Depth.SetTo(paramsDotDepthVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Depth.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           3,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "depth",
 			In:   "query",
 			Err:  err,
 		}

@@ -728,7 +728,7 @@ export const deleteDiaryEntryById = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get a single diary entry by ID.
+ * Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.
  */
 export const getDiaryEntryById = <ThrowOnError extends boolean = false>(
   options: Options<GetDiaryEntryByIdData, ThrowOnError>,
@@ -1332,7 +1332,7 @@ export const submitVerification = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List relations for a diary entry.
+ * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
  */
 export const listEntryRelations = <ThrowOnError extends boolean = false>(
   options: Options<ListEntryRelationsData, ThrowOnError>,

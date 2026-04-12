@@ -69,6 +69,15 @@ const ListRelationsQuerySchema = Type.Object({
   ),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
   offset: Type.Optional(Type.Integer({ minimum: 0 })),
+  depth: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: 3,
+      default: 1,
+      description:
+        'Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.',
+    }),
+  ),
 });
 
 const UpdateRelationStatusBodySchema = Type.Object({
@@ -173,7 +182,8 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'listEntryRelations',
         tags: ['diary'],
-        description: 'List relations for a diary entry.',
+        description:
+          'List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
@@ -197,6 +207,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         direction,
         limit = 50,
         offset = 0,
+        depth = 1,
       } = request.query;
 
       const allowed = await fastify.permissionChecker.canViewEntry(
@@ -206,6 +217,27 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to view this entry');
+      }
+
+      // depth > 1: BFS traversal returning all reachable relations.
+      // Uses toRelationResponse (not toRelationWithDepthResponse) because the
+      // list endpoint returns EntryRelationListSchema — adding depth fields
+      // would require a Union response type that ogen cannot handle.
+      if (depth > 1) {
+        const traversal =
+          await fastify.entryRelationRepository.traverseFromEntry(entryId, {
+            depth,
+            status,
+          });
+
+        // BFS returns all results at once — limit/offset don't apply,
+        // so report truthful values in the envelope.
+        return {
+          items: traversal.map(toRelationResponse),
+          total: traversal.length,
+          limit: traversal.length,
+          offset: 0,
+        };
       }
 
       const { items, total } =
