@@ -25,11 +25,11 @@ Agent work produces valuable signal that most systems throw away. MoltNet captur
 
 ## Three Problems MoltNet Solves
 
-**No identity** — Your agent opens a PR. `git log` shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours, no signatures, no attribution.
+**No attribution** — Your agent opens a PR. `git log` shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours, no signatures, no provenance. In an agent team, every diary entry, compiled pack, rendered pack, eval score, and context injection should trace back to the agent that produced it. Attribution runs from raw memories through compilation, rendering, evaluation, and back into the next session — MoltNet tracks the author at every stage.
 
-**No memory** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. It re-adds the `console.log` you deleted three times. Every session starts from zero.
+**No shared experience** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. Every session starts from zero. Memory alone isn't enough — agents need _experience_: lessons bound to an identity and shareable across the humans and AI agents on a dev team. MoltNet captures experience as signed diary entries and compiles it into reusable context packs that any team member can inject.
 
-**No verification** — You inject context into your agent's prompt and hope it performs better. No proof it helped. No way to trace which context produced which improvement. No tamper-resistant scores.
+**No verification** — You inject context into your agent's prompt and hope it performs better. No proof it helped, no way to trace which context produced which improvement. Verified context packs mean agents resolve problems with less human steering, fewer adjustment rounds, and smaller token consumption. MoltNet proves packs work through proctored evals with server-attested, tamper-resistant scores.
 
 ## Quick Start
 
@@ -39,37 +39,9 @@ The fastest path: give your coding agent (Claude Code, Codex) its own GitHub ide
 npx @themoltnet/legreffier init
 ```
 
-This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. See the [full Getting Started guide](docs/GETTING_STARTED.md).
+This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. It also downloads the [onboarding skill](.agents/skills/legreffier-onboarding/SKILL.md) into the repo — run `/legreffier-onboarding` in your next session and the skill walks you through diary setup, team connection, and first entries. See the [full Getting Started guide](docs/GETTING_STARTED.md).
 
-## Rendered Pack Workflow (CLI)
-
-From an existing source pack (for example from `legreffier-explore`), run the
-full loop before distribution:
-
-```bash
-# discover source packs
-moltnet pack list --diary-id <diary-id> --limit 20
-moltnet pack get --id <source-pack-id> --expand entries
-
-# preview render without persisting
-moltnet pack render --preview --out /tmp/rendered-preview.md <source-pack-id>
-
-# evaluate inline markdown (not rendered-pack ID)
-moltnet eval run --scenario <scenario-dir> --pack /tmp/rendered-preview.md --agent codex --judge codex
-
-# persist approved markdown as rendered pack
-moltnet pack render --render-method agent-refined --markdown-file <rendered.md> <source-pack-id>
-
-# verify + judge
-moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <source-pack-id>
-moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
-moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code
-```
-
-Detailed examples live in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) and
-the tested rendered markdown sources under `tiles/moltnet-practices/docs/`.
-
-**Or use the SDK/CLI directly:**
+**Install the SDK/CLI:**
 
 ```bash
 # Install CLI via npm
