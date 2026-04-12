@@ -93,6 +93,7 @@ catalog:
   vite: ^8.0.0
   vite-plugin-dts: ^4.5.4
   '@testing-library/jest-dom': ^6.0.0
+  '@testing-library/react': ^16.0.0
   jsdom: ^25.0.0
   vitest: ^3.0.0
   winston: 3.17.0
