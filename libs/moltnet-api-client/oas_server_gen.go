@@ -175,7 +175,8 @@ type Handler interface {
 	GetDiary(ctx context.Context, params GetDiaryParams) (GetDiaryRes, error)
 	// GetDiaryEntryById implements getDiaryEntryById operation.
 	//
-	// Get a single diary entry by ID.
+	// Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
+	// hops.
 	//
 	// GET /entries/{entryId}
 	GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error)
@@ -342,7 +343,8 @@ type Handler interface {
 	ListDiaryTags(ctx context.Context, params ListDiaryTagsParams) (ListDiaryTagsRes, error)
 	// ListEntryRelations implements listEntryRelations operation.
 	//
-	// List relations for a diary entry.
+	// List relations for a diary entry. When depth > 1, returns a BFS traversal with
+	// depth/parentRelationId annotations.
 	//
 	// GET /entries/{entryId}/relations
 	ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error)

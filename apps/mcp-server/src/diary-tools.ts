@@ -113,6 +113,9 @@ export async function handleEntryGet(
     client: deps.client,
     auth: () => token,
     path: { entryId: args.entry_id },
+    query: args.expand_relations
+      ? { expand: 'relations', depth: args.depth ?? 1 }
+      : undefined,
   });
 
   if (error) {
@@ -555,7 +558,10 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_get',
-      description: 'Get a single diary entry by ID.',
+      description:
+        'Get a single diary entry by ID. Set expand_relations=true to include' +
+        ' inline relation graph (supersedes, elaborates, etc.) up to `depth`' +
+        ' hops. Relations include depth and parentRelationId for tree reconstruction.',
       inputSchema: EntryGetSchema,
     },
     async (args, ctx) => handleEntryGet(args, deps, ctx),

@@ -1048,6 +1048,95 @@
         ],
         "type": "object"
       },
+      "DiaryEntryWithRelations": {
+        "properties": {
+          "accessCount": {
+            "type": "number"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "contentSignature": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entryType": {
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "importance": {
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          },
+          "injectionRisk": {
+            "type": "boolean"
+          },
+          "lastAccessedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "relations": {
+            "$ref": "#/components/schemas/ExpandedRelations"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "title": {
+            "nullable": true,
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "title",
+          "content",
+          "tags",
+          "injectionRisk",
+          "importance",
+          "accessCount",
+          "lastAccessedAt",
+          "entryType",
+          "contentHash",
+          "contentSignature",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "DiaryList": {
         "properties": {
           "items": {
@@ -1266,6 +1355,83 @@
         "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
+      "EntryRelationWithDepth": {
+        "properties": {
+          "confidence": {
+            "nullable": true,
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "depth": {
+            "description": "BFS depth from the origin entry (1 = direct).",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "parentRelationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/RelationType"
+          },
+          "similarity": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sourceCidSnapshot": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationStatus"
+          },
+          "targetCidSnapshot": {
+            "nullable": true,
+            "type": "string"
+          },
+          "targetId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workflowId": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sourceId",
+          "targetId",
+          "relation",
+          "status",
+          "sourceCidSnapshot",
+          "targetCidSnapshot",
+          "workflowId",
+          "confidence",
+          "similarity",
+          "createdAt",
+          "updatedAt",
+          "depth",
+          "parentRelationId"
+        ],
+        "type": "object"
+      },
       "EntryType": {
         "enum": [
           "episodic",
@@ -1363,6 +1529,29 @@
           "createdAt",
           "entry"
         ],
+        "type": "object"
+      },
+      "ExpandedRelations": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EntryRelationWithDepth"
+            },
+            "type": "array"
+          },
+          "maxDepth": {
+            "description": "Server-side depth cap.",
+            "maximum": 3,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "requestedDepth": {
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": ["requestedDepth", "maxDepth", "items"],
         "type": "object"
       },
       "Health": {
@@ -6172,9 +6361,29 @@
         "tags": ["diary"]
       },
       "get": {
-        "description": "Get a single diary entry by ID.",
+        "description": "Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops.",
         "operationId": "getDiaryEntryById",
         "parameters": [
+          {
+            "in": "query",
+            "name": "expand",
+            "required": false,
+            "schema": {
+              "enum": ["relations"],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 3,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
           {
             "description": "UUID v4 identifier",
             "in": "path",
@@ -6191,7 +6400,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
+                  "$ref": "#/components/schemas/DiaryEntryWithRelations"
                 }
               }
             },
@@ -6392,7 +6601,7 @@
     },
     "/entries/{entryId}/relations": {
       "get": {
-        "description": "List relations for a diary entry.",
+        "description": "List relations for a diary entry. When depth \u003e 1, returns a BFS traversal with depth/parentRelationId annotations.",
         "operationId": "listEntryRelations",
         "parameters": [
           {
@@ -6434,6 +6643,18 @@
             "required": false,
             "schema": {
               "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Traversal depth. When \u003e 1, returns a BFS traversal with depth/parentRelationId annotations.",
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 3,
+              "minimum": 1,
               "type": "integer"
             }
           },

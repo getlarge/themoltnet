@@ -4018,7 +4018,6 @@ func (s *DiaryEntry) SetUpdatedAt(val time.Time) {
 }
 
 func (*DiaryEntry) createDiaryEntryRes()     {}
-func (*DiaryEntry) getDiaryEntryByIdRes()    {}
 func (*DiaryEntry) updateDiaryEntryByIdRes() {}
 
 type DiaryEntryEntryType string
@@ -4322,6 +4321,246 @@ func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case DiaryEntryWithCreatorEntryTypeSoul:
 		*s = DiaryEntryWithCreatorEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/DiaryEntryWithRelations
+type DiaryEntryWithRelations struct {
+	AccessCount      float64                          `json:"accessCount"`
+	Content          string                           `json:"content"`
+	ContentHash      NilString                        `json:"contentHash"`
+	ContentSignature NilString                        `json:"contentSignature"`
+	CreatedAt        time.Time                        `json:"createdAt"`
+	DiaryId          uuid.UUID                        `json:"diaryId"`
+	EntryType        DiaryEntryWithRelationsEntryType `json:"entryType"`
+	ID               uuid.UUID                        `json:"id"`
+	Importance       float64                          `json:"importance"`
+	InjectionRisk    bool                             `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime                      `json:"lastAccessedAt"`
+	Relations        OptExpandedRelations             `json:"relations"`
+	Tags             []string                         `json:"tags"`
+	Title            NilString                        `json:"title"`
+	UpdatedAt        time.Time                        `json:"updatedAt"`
+}
+
+// GetAccessCount returns the value of AccessCount.
+func (s *DiaryEntryWithRelations) GetAccessCount() float64 {
+	return s.AccessCount
+}
+
+// GetContent returns the value of Content.
+func (s *DiaryEntryWithRelations) GetContent() string {
+	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *DiaryEntryWithRelations) GetContentHash() NilString {
+	return s.ContentHash
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *DiaryEntryWithRelations) GetContentSignature() NilString {
+	return s.ContentSignature
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiaryEntryWithRelations) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *DiaryEntryWithRelations) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *DiaryEntryWithRelations) GetEntryType() DiaryEntryWithRelationsEntryType {
+	return s.EntryType
+}
+
+// GetID returns the value of ID.
+func (s *DiaryEntryWithRelations) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImportance returns the value of Importance.
+func (s *DiaryEntryWithRelations) GetImportance() float64 {
+	return s.Importance
+}
+
+// GetInjectionRisk returns the value of InjectionRisk.
+func (s *DiaryEntryWithRelations) GetInjectionRisk() bool {
+	return s.InjectionRisk
+}
+
+// GetLastAccessedAt returns the value of LastAccessedAt.
+func (s *DiaryEntryWithRelations) GetLastAccessedAt() NilDateTime {
+	return s.LastAccessedAt
+}
+
+// GetRelations returns the value of Relations.
+func (s *DiaryEntryWithRelations) GetRelations() OptExpandedRelations {
+	return s.Relations
+}
+
+// GetTags returns the value of Tags.
+func (s *DiaryEntryWithRelations) GetTags() []string {
+	return s.Tags
+}
+
+// GetTitle returns the value of Title.
+func (s *DiaryEntryWithRelations) GetTitle() NilString {
+	return s.Title
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *DiaryEntryWithRelations) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetAccessCount sets the value of AccessCount.
+func (s *DiaryEntryWithRelations) SetAccessCount(val float64) {
+	s.AccessCount = val
+}
+
+// SetContent sets the value of Content.
+func (s *DiaryEntryWithRelations) SetContent(val string) {
+	s.Content = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *DiaryEntryWithRelations) SetContentHash(val NilString) {
+	s.ContentHash = val
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *DiaryEntryWithRelations) SetContentSignature(val NilString) {
+	s.ContentSignature = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiaryEntryWithRelations) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *DiaryEntryWithRelations) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *DiaryEntryWithRelations) SetEntryType(val DiaryEntryWithRelationsEntryType) {
+	s.EntryType = val
+}
+
+// SetID sets the value of ID.
+func (s *DiaryEntryWithRelations) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImportance sets the value of Importance.
+func (s *DiaryEntryWithRelations) SetImportance(val float64) {
+	s.Importance = val
+}
+
+// SetInjectionRisk sets the value of InjectionRisk.
+func (s *DiaryEntryWithRelations) SetInjectionRisk(val bool) {
+	s.InjectionRisk = val
+}
+
+// SetLastAccessedAt sets the value of LastAccessedAt.
+func (s *DiaryEntryWithRelations) SetLastAccessedAt(val NilDateTime) {
+	s.LastAccessedAt = val
+}
+
+// SetRelations sets the value of Relations.
+func (s *DiaryEntryWithRelations) SetRelations(val OptExpandedRelations) {
+	s.Relations = val
+}
+
+// SetTags sets the value of Tags.
+func (s *DiaryEntryWithRelations) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiaryEntryWithRelations) SetTitle(val NilString) {
+	s.Title = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *DiaryEntryWithRelations) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*DiaryEntryWithRelations) getDiaryEntryByIdRes() {}
+
+type DiaryEntryWithRelationsEntryType string
+
+const (
+	DiaryEntryWithRelationsEntryTypeEpisodic   DiaryEntryWithRelationsEntryType = "episodic"
+	DiaryEntryWithRelationsEntryTypeSemantic   DiaryEntryWithRelationsEntryType = "semantic"
+	DiaryEntryWithRelationsEntryTypeProcedural DiaryEntryWithRelationsEntryType = "procedural"
+	DiaryEntryWithRelationsEntryTypeReflection DiaryEntryWithRelationsEntryType = "reflection"
+	DiaryEntryWithRelationsEntryTypeIdentity   DiaryEntryWithRelationsEntryType = "identity"
+	DiaryEntryWithRelationsEntryTypeSoul       DiaryEntryWithRelationsEntryType = "soul"
+)
+
+// AllValues returns all DiaryEntryWithRelationsEntryType values.
+func (DiaryEntryWithRelationsEntryType) AllValues() []DiaryEntryWithRelationsEntryType {
+	return []DiaryEntryWithRelationsEntryType{
+		DiaryEntryWithRelationsEntryTypeEpisodic,
+		DiaryEntryWithRelationsEntryTypeSemantic,
+		DiaryEntryWithRelationsEntryTypeProcedural,
+		DiaryEntryWithRelationsEntryTypeReflection,
+		DiaryEntryWithRelationsEntryTypeIdentity,
+		DiaryEntryWithRelationsEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiaryEntryWithRelationsEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiaryEntryWithRelationsEntryTypeEpisodic:
+		return []byte(s), nil
+	case DiaryEntryWithRelationsEntryTypeSemantic:
+		return []byte(s), nil
+	case DiaryEntryWithRelationsEntryTypeProcedural:
+		return []byte(s), nil
+	case DiaryEntryWithRelationsEntryTypeReflection:
+		return []byte(s), nil
+	case DiaryEntryWithRelationsEntryTypeIdentity:
+		return []byte(s), nil
+	case DiaryEntryWithRelationsEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiaryEntryWithRelationsEntryType) UnmarshalText(data []byte) error {
+	switch DiaryEntryWithRelationsEntryType(data) {
+	case DiaryEntryWithRelationsEntryTypeEpisodic:
+		*s = DiaryEntryWithRelationsEntryTypeEpisodic
+		return nil
+	case DiaryEntryWithRelationsEntryTypeSemantic:
+		*s = DiaryEntryWithRelationsEntryTypeSemantic
+		return nil
+	case DiaryEntryWithRelationsEntryTypeProcedural:
+		*s = DiaryEntryWithRelationsEntryTypeProcedural
+		return nil
+	case DiaryEntryWithRelationsEntryTypeReflection:
+		*s = DiaryEntryWithRelationsEntryTypeReflection
+		return nil
+	case DiaryEntryWithRelationsEntryTypeIdentity:
+		*s = DiaryEntryWithRelationsEntryTypeIdentity
+		return nil
+	case DiaryEntryWithRelationsEntryTypeSoul:
+		*s = DiaryEntryWithRelationsEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -4839,6 +5078,165 @@ func (s *EntryRelationList) SetTotal(val float64) {
 
 func (*EntryRelationList) listEntryRelationsRes() {}
 
+// Ref: #/components/schemas/EntryRelationWithDepth
+type EntryRelationWithDepth struct {
+	Confidence NilFloat64 `json:"confidence"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	// BFS depth from the origin entry (1 = direct).
+	Depth             int            `json:"depth"`
+	ID                uuid.UUID      `json:"id"`
+	ParentRelationId  NilUUID        `json:"parentRelationId"`
+	Relation          RelationType   `json:"relation"`
+	Similarity        NilFloat64     `json:"similarity"`
+	SourceCidSnapshot NilString      `json:"sourceCidSnapshot"`
+	SourceId          uuid.UUID      `json:"sourceId"`
+	Status            RelationStatus `json:"status"`
+	TargetCidSnapshot NilString      `json:"targetCidSnapshot"`
+	TargetId          uuid.UUID      `json:"targetId"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
+	WorkflowId        NilString      `json:"workflowId"`
+}
+
+// GetConfidence returns the value of Confidence.
+func (s *EntryRelationWithDepth) GetConfidence() NilFloat64 {
+	return s.Confidence
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *EntryRelationWithDepth) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDepth returns the value of Depth.
+func (s *EntryRelationWithDepth) GetDepth() int {
+	return s.Depth
+}
+
+// GetID returns the value of ID.
+func (s *EntryRelationWithDepth) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetParentRelationId returns the value of ParentRelationId.
+func (s *EntryRelationWithDepth) GetParentRelationId() NilUUID {
+	return s.ParentRelationId
+}
+
+// GetRelation returns the value of Relation.
+func (s *EntryRelationWithDepth) GetRelation() RelationType {
+	return s.Relation
+}
+
+// GetSimilarity returns the value of Similarity.
+func (s *EntryRelationWithDepth) GetSimilarity() NilFloat64 {
+	return s.Similarity
+}
+
+// GetSourceCidSnapshot returns the value of SourceCidSnapshot.
+func (s *EntryRelationWithDepth) GetSourceCidSnapshot() NilString {
+	return s.SourceCidSnapshot
+}
+
+// GetSourceId returns the value of SourceId.
+func (s *EntryRelationWithDepth) GetSourceId() uuid.UUID {
+	return s.SourceId
+}
+
+// GetStatus returns the value of Status.
+func (s *EntryRelationWithDepth) GetStatus() RelationStatus {
+	return s.Status
+}
+
+// GetTargetCidSnapshot returns the value of TargetCidSnapshot.
+func (s *EntryRelationWithDepth) GetTargetCidSnapshot() NilString {
+	return s.TargetCidSnapshot
+}
+
+// GetTargetId returns the value of TargetId.
+func (s *EntryRelationWithDepth) GetTargetId() uuid.UUID {
+	return s.TargetId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *EntryRelationWithDepth) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// GetWorkflowId returns the value of WorkflowId.
+func (s *EntryRelationWithDepth) GetWorkflowId() NilString {
+	return s.WorkflowId
+}
+
+// SetConfidence sets the value of Confidence.
+func (s *EntryRelationWithDepth) SetConfidence(val NilFloat64) {
+	s.Confidence = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *EntryRelationWithDepth) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDepth sets the value of Depth.
+func (s *EntryRelationWithDepth) SetDepth(val int) {
+	s.Depth = val
+}
+
+// SetID sets the value of ID.
+func (s *EntryRelationWithDepth) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetParentRelationId sets the value of ParentRelationId.
+func (s *EntryRelationWithDepth) SetParentRelationId(val NilUUID) {
+	s.ParentRelationId = val
+}
+
+// SetRelation sets the value of Relation.
+func (s *EntryRelationWithDepth) SetRelation(val RelationType) {
+	s.Relation = val
+}
+
+// SetSimilarity sets the value of Similarity.
+func (s *EntryRelationWithDepth) SetSimilarity(val NilFloat64) {
+	s.Similarity = val
+}
+
+// SetSourceCidSnapshot sets the value of SourceCidSnapshot.
+func (s *EntryRelationWithDepth) SetSourceCidSnapshot(val NilString) {
+	s.SourceCidSnapshot = val
+}
+
+// SetSourceId sets the value of SourceId.
+func (s *EntryRelationWithDepth) SetSourceId(val uuid.UUID) {
+	s.SourceId = val
+}
+
+// SetStatus sets the value of Status.
+func (s *EntryRelationWithDepth) SetStatus(val RelationStatus) {
+	s.Status = val
+}
+
+// SetTargetCidSnapshot sets the value of TargetCidSnapshot.
+func (s *EntryRelationWithDepth) SetTargetCidSnapshot(val NilString) {
+	s.TargetCidSnapshot = val
+}
+
+// SetTargetId sets the value of TargetId.
+func (s *EntryRelationWithDepth) SetTargetId(val uuid.UUID) {
+	s.TargetId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *EntryRelationWithDepth) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// SetWorkflowId sets the value of WorkflowId.
+func (s *EntryRelationWithDepth) SetWorkflowId(val NilString) {
+	s.WorkflowId = val
+}
+
 // Ref: #/components/schemas/EntryVerifyResult
 type EntryVerifyResult struct {
 	AgentFingerprint NilString `json:"agentFingerprint"`
@@ -5071,6 +5469,44 @@ func (s *ExpandedPackEntryCompressionLevel) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
+}
+
+// Ref: #/components/schemas/ExpandedRelations
+type ExpandedRelations struct {
+	Items []EntryRelationWithDepth `json:"items"`
+	// Server-side depth cap.
+	MaxDepth       int `json:"maxDepth"`
+	RequestedDepth int `json:"requestedDepth"`
+}
+
+// GetItems returns the value of Items.
+func (s *ExpandedRelations) GetItems() []EntryRelationWithDepth {
+	return s.Items
+}
+
+// GetMaxDepth returns the value of MaxDepth.
+func (s *ExpandedRelations) GetMaxDepth() int {
+	return s.MaxDepth
+}
+
+// GetRequestedDepth returns the value of RequestedDepth.
+func (s *ExpandedRelations) GetRequestedDepth() int {
+	return s.RequestedDepth
+}
+
+// SetItems sets the value of Items.
+func (s *ExpandedRelations) SetItems(val []EntryRelationWithDepth) {
+	s.Items = val
+}
+
+// SetMaxDepth sets the value of MaxDepth.
+func (s *ExpandedRelations) SetMaxDepth(val int) {
+	s.MaxDepth = val
+}
+
+// SetRequestedDepth sets the value of RequestedDepth.
+func (s *ExpandedRelations) SetRequestedDepth(val int) {
+	s.RequestedDepth = val
 }
 
 type GetAgentProfileInternalServerError ProblemDetails
@@ -5526,6 +5962,40 @@ func (*GetCryptoIdentityInternalServerError) getCryptoIdentityRes() {}
 type GetCryptoIdentityUnauthorized ProblemDetails
 
 func (*GetCryptoIdentityUnauthorized) getCryptoIdentityRes() {}
+
+type GetDiaryEntryByIdExpand string
+
+const (
+	GetDiaryEntryByIdExpandRelations GetDiaryEntryByIdExpand = "relations"
+)
+
+// AllValues returns all GetDiaryEntryByIdExpand values.
+func (GetDiaryEntryByIdExpand) AllValues() []GetDiaryEntryByIdExpand {
+	return []GetDiaryEntryByIdExpand{
+		GetDiaryEntryByIdExpandRelations,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetDiaryEntryByIdExpand) MarshalText() ([]byte, error) {
+	switch s {
+	case GetDiaryEntryByIdExpandRelations:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetDiaryEntryByIdExpand) UnmarshalText(data []byte) error {
+	switch GetDiaryEntryByIdExpand(data) {
+	case GetDiaryEntryByIdExpandRelations:
+		*s = GetDiaryEntryByIdExpandRelations
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type GetDiaryEntryByIdForbidden ProblemDetails
 
@@ -9498,6 +9968,52 @@ func (o OptDateTime) Or(d time.Time) time.Time {
 	return d
 }
 
+// NewOptExpandedRelations returns new OptExpandedRelations with value set to v.
+func NewOptExpandedRelations(v ExpandedRelations) OptExpandedRelations {
+	return OptExpandedRelations{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptExpandedRelations is optional ExpandedRelations.
+type OptExpandedRelations struct {
+	Value ExpandedRelations
+	Set   bool
+}
+
+// IsSet returns true if OptExpandedRelations was set.
+func (o OptExpandedRelations) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptExpandedRelations) Reset() {
+	var v ExpandedRelations
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptExpandedRelations) SetTo(v ExpandedRelations) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptExpandedRelations) Get() (v ExpandedRelations, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptExpandedRelations) Or(d ExpandedRelations) ExpandedRelations {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptFloat64 returns new OptFloat64 with value set to v.
 func NewOptFloat64(v float64) OptFloat64 {
 	return OptFloat64{
@@ -9630,6 +10146,52 @@ func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) Get() (v GetContextPack
 
 // Or returns value if set, or given parameter if does not.
 func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) Or(d GetContextPackProvenanceByCidOKEdgesItemMeta) GetContextPackProvenanceByCidOKEdgesItemMeta {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptGetDiaryEntryByIdExpand returns new OptGetDiaryEntryByIdExpand with value set to v.
+func NewOptGetDiaryEntryByIdExpand(v GetDiaryEntryByIdExpand) OptGetDiaryEntryByIdExpand {
+	return OptGetDiaryEntryByIdExpand{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGetDiaryEntryByIdExpand is optional GetDiaryEntryByIdExpand.
+type OptGetDiaryEntryByIdExpand struct {
+	Value GetDiaryEntryByIdExpand
+	Set   bool
+}
+
+// IsSet returns true if OptGetDiaryEntryByIdExpand was set.
+func (o OptGetDiaryEntryByIdExpand) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGetDiaryEntryByIdExpand) Reset() {
+	var v GetDiaryEntryByIdExpand
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGetDiaryEntryByIdExpand) SetTo(v GetDiaryEntryByIdExpand) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGetDiaryEntryByIdExpand) Get() (v GetDiaryEntryByIdExpand, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGetDiaryEntryByIdExpand) Or(d GetDiaryEntryByIdExpand) GetDiaryEntryByIdExpand {
 	if v, ok := o.Get(); ok {
 		return v
 	}

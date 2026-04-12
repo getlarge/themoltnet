@@ -195,7 +195,8 @@ type Invoker interface {
 	GetDiary(ctx context.Context, params GetDiaryParams) (GetDiaryRes, error)
 	// GetDiaryEntryById invokes getDiaryEntryById operation.
 	//
-	// Get a single diary entry by ID.
+	// Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
+	// hops.
 	//
 	// GET /entries/{entryId}
 	GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error)
@@ -362,7 +363,8 @@ type Invoker interface {
 	ListDiaryTags(ctx context.Context, params ListDiaryTagsParams) (ListDiaryTagsRes, error)
 	// ListEntryRelations invokes listEntryRelations operation.
 	//
-	// List relations for a diary entry.
+	// List relations for a diary entry. When depth > 1, returns a BFS traversal with
+	// depth/parentRelationId annotations.
 	//
 	// GET /entries/{entryId}/relations
 	ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error)
@@ -4702,7 +4704,8 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 
 // GetDiaryEntryById invokes getDiaryEntryById operation.
 //
-// Get a single diary entry by ID.
+// Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
+// hops.
 //
 // GET /entries/{entryId}
 func (c *Client) GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error) {
@@ -4768,6 +4771,44 @@ func (c *Client) sendGetDiaryEntryById(ctx context.Context, params GetDiaryEntry
 		pathParts[1] = encoded
 	}
 	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "expand" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "expand",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Expand.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "depth" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "depth",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Depth.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "GET", u)
@@ -8356,7 +8397,8 @@ func (c *Client) sendListDiaryTags(ctx context.Context, params ListDiaryTagsPara
 
 // ListEntryRelations invokes listEntryRelations operation.
 //
-// List relations for a diary entry.
+// List relations for a diary entry. When depth > 1, returns a BFS traversal with
+// depth/parentRelationId annotations.
 //
 // GET /entries/{entryId}/relations
 func (c *Client) ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error) {
@@ -8504,6 +8546,23 @@ func (c *Client) sendListEntryRelations(ctx context.Context, params ListEntryRel
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.Offset.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "depth" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "depth",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Depth.Get(); ok {
 				return e.EncodeValue(conv.IntToString(val))
 			}
 			return nil

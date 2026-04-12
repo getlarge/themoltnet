@@ -108,10 +108,26 @@ export const EntryGetSchema = Type.Object({
     }),
   ),
   entry_id: Type.String({ description: 'The entry ID' }),
+  expand_relations: Type.Optional(
+    Type.Boolean({
+      description:
+        'When true, includes inline relation graph up to `depth` hops.',
+    }),
+  ),
+  depth: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: 3,
+      description:
+        'Traversal depth for relation expansion (1-3). Only used when expand_relations=true. Default: 1.',
+    }),
+  ),
 });
 export type EntryGetInput = {
   diary_id?: string;
   entry_id: PathOf<GetDiaryEntryByIdData>['entryId'];
+  expand_relations?: boolean;
+  depth?: number;
 };
 
 export const EntryListSchema = Type.Object({

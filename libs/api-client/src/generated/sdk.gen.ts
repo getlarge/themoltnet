@@ -728,7 +728,7 @@ export const deleteDiaryEntryById = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get a single diary entry by ID.
+ * Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops.
  */
 export const getDiaryEntryById = <ThrowOnError extends boolean = false>(
   options: Options<GetDiaryEntryByIdData, ThrowOnError>,
@@ -1332,7 +1332,7 @@ export const submitVerification = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List relations for a diary entry.
+ * List relations for a diary entry. When depth > 1, returns a BFS traversal with depth/parentRelationId annotations.
  */
 export const listEntryRelations = <ThrowOnError extends boolean = false>(
   options: Options<ListEntryRelationsData, ThrowOnError>,

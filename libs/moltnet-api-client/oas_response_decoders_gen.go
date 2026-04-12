@@ -5833,7 +5833,7 @@ func decodeGetDiaryEntryByIdResponse(resp *http.Response) (res GetDiaryEntryById
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response DiaryEntry
+			var response DiaryEntryWithRelations
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
