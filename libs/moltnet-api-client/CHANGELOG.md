@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.13.0...moltnet-api-client-v1.14.0) (2026-04-12)
+
+
+### Features
+
+* **cli,mcp-server:** regen clients + wire expand/depth params ([#740](https://github.com/getlarge/themoltnet/issues/740)) ([b6549ef](https://github.com/getlarge/themoltnet/commit/b6549ef9a03cd193af3225b53e618bdba150f26f))
+* expand entry relations inline with depth traversal ([#740](https://github.com/getlarge/themoltnet/issues/740)) ([147c5d4](https://github.com/getlarge/themoltnet/commit/147c5d4221e9c133a7bc10f6a2d37e30a3470eaa))
+
 ## [1.13.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.12.0...moltnet-api-client-v1.13.0) (2026-04-11)
 
 

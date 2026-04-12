@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.4.0...design-system-v0.5.0) (2026-04-12)
+
+
+### Features
+
+* **console:** sidebar shell + team management ([ab0a2bc](https://github.com/getlarge/themoltnet/commit/ab0a2bc02a5ddbf1a0fde814674b3124d9d7a384))
+* **design-system:** add system theme mode to MoltThemeProvider ([d56138e](https://github.com/getlarge/themoltnet/commit/d56138ea74c552a3c38813f74fd16df620a0ad2a))
+
+
+### Bug Fixes
+
+* **design-system:** fix demo app and improve theme mode tests ([16f990f](https://github.com/getlarge/themoltnet/commit/16f990faa100f811847c336bb7ae5a1114c78bbd))
+* **design-system:** guard matchMedia in useSystemTheme for jsdom ([2eefd75](https://github.com/getlarge/themoltnet/commit/2eefd7592ffc44e2c9f2bd2752de7935c4fb0ab1))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.3.2...design-system-v0.4.0) (2026-04-11)
 
 
