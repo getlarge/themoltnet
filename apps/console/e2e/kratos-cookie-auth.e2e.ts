@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import type { Page } from '@playwright/test';
 import { expect, request, test } from '@playwright/test';
 
@@ -26,7 +28,7 @@ interface MailVerificationData {
 }
 
 function createTestUser(): TestUser {
-  const nonce = Math.random().toString(36).slice(2, 10);
+  const nonce = randomBytes(4).toString('hex');
   return {
     email: `console-e2e-${Date.now()}-${nonce}@example.com`,
     username: `console_${nonce}`,
