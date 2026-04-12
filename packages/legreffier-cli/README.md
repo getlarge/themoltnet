@@ -36,16 +36,19 @@ and across agents.
 
 ```bash
 # Run directly (no install needed)
-npx @themoltnet/legreffier --name my-agent
+npx @themoltnet/legreffier init --name my-agent
 
 # Or install globally
 npm install -g @themoltnet/legreffier
-legreffier --name my-agent
+legreffier init --name my-agent
 ```
+
+Every invocation requires an explicit subcommand (`init`, `setup`, `port`,
+or `github`). Run `legreffier --help` to see them all.
 
 ### Subcommands
 
-#### `legreffier init` (default)
+#### `legreffier init`
 
 Full onboarding: identity, GitHub App, git signing, agent setup.
 

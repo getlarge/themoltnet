@@ -147,6 +147,9 @@ catalogs:
     '@vitejs/plugin-react':
       specifier: ^5.0.2
       version: 5.2.0
+    citty:
+      specifier: ^0.2.2
+      version: 0.2.2
     drizzle-kit:
       specifier: ^0.31.10
       version: 0.31.10
@@ -174,12 +177,18 @@ catalogs:
     fastq:
       specifier: ^1.20.1
       version: 1.20.1
+    figlet:
+      specifier: ^1.10.0
+      version: 1.10.0
     get-jwks:
       specifier: ^11.0.3
       version: 11.0.3
     husky:
       specifier: ^9.1.0
       version: 9.1.7
+    ink:
+      specifier: ^6.8.0
+      version: 6.8.0
     jsdom:
       specifier: ^25.0.0
       version: 25.0.1
@@ -192,6 +201,9 @@ catalogs:
     multiformats:
       specifier: ^13.3.0
       version: 13.4.2
+    open:
+      specifier: ^10.1.2
+      version: 10.2.0
     pg:
       specifier: ^8.13.0
       version: 8.18.0
@@ -905,10 +917,10 @@ importers:
         specifier: 'catalog:'
         version: 5.2.0(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       figlet:
-        specifier: ^1.10.0
+        specifier: 'catalog:'
         version: 1.10.0
       ink:
-        specifier: ^6.8.0
+        specifier: 'catalog:'
         version: 6.8.0(@types/react@19.2.10)(react@19.2.4)
       react:
         specifier: 'catalog:'
@@ -1140,14 +1152,17 @@ importers:
 
   packages/legreffier-cli:
     dependencies:
+      citty:
+        specifier: 'catalog:'
+        version: 0.2.2
       figlet:
-        specifier: ^1.8.0
+        specifier: 'catalog:'
         version: 1.10.0
       ink:
-        specifier: ^6.8.0
+        specifier: 'catalog:'
         version: 6.8.0(@types/react@19.2.10)(react@19.2.4)
       open:
-        specifier: ^10.1.2
+        specifier: 'catalog:'
         version: 10.2.0
       react:
         specifier: 'catalog:'
@@ -4875,6 +4890,12 @@ packages:
     resolution:
       {
         integrity: sha512-8csy5IBFI2ex2hTVpaHN2j+LNE199AgiI7y4dMintrr8i0lQiFn+0AWMZrWdHKIgMOer65f8IThysYhoReqjWA==,
+      }
+
+  citty@0.2.2:
+    resolution:
+      {
+        integrity: sha512-+6vJA3L98yv+IdfKGZHBNiGW5KHn22e/JwID0Strsz8h4S/csAu/OuICwxrg44k5MRiZHWIo8XXuJgQTriRP4w==,
       }
 
   cjs-module-lexer@2.2.0:
@@ -11997,6 +12018,8 @@ snapshots:
 
   citty@0.2.0: {}
 
+  citty@0.2.2: {}
+
   cjs-module-lexer@2.2.0: {}
 
   cli-boxes@3.0.0: {}
@@ -12731,7 +12754,7 @@ snapshots:
 
   figlet@1.10.0:
     dependencies:
-      commander: 14.0.2
+      commander: 14.0.3
 
   file-entry-cache@8.0.0:
     dependencies:
