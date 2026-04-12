@@ -27,12 +27,17 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function useSystemTheme(): 'dark' | 'light' {
   const [systemMode, setSystemMode] = useState<'dark' | 'light'>(() => {
-    if (typeof window === 'undefined') return 'dark';
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    )
+      return 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark'
       : 'light';
   });
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) =>
       setSystemMode(e.matches ? 'dark' : 'light');
