@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "catalog:",
+    "@playwright/test": "catalog:",
     "@testing-library/react": "^16.0.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

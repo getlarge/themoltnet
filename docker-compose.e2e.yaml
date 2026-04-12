@@ -41,6 +41,7 @@ services:
       file: docker-compose.base.yaml
       service: kratos
     environment:
+      SELFSERVICE_FLOWS_VERIFICATION_ENABLED: 'true'
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
       SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
@@ -55,6 +56,8 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: kratos-selfservice-ui-node
+    environment:
+      KRATOS_PUBLIC_URL: http://kratos:4433/
     depends_on:
       kratos:
         condition: service_healthy
@@ -168,6 +171,22 @@ services:
       timeout: 3s
       retries: 15
       start_period: 30s
+
+  console:
+    build:
+      context: .
+      dockerfile: apps/console/Dockerfile
+    ports:
+      - '5174:80'
+    environment:
+      KRATOS_PUBLIC_URL: http://localhost:4433
+      API_BASE_URL: http://localhost:8080
+      CONSOLE_BASE_URL: http://localhost:5174
+    depends_on:
+      rest-api:
+        condition: service_healthy
+      kratos:
+        condition: service_healthy
 
   mcp-server:
     build:

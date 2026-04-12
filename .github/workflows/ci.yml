@@ -444,6 +444,7 @@ jobs:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -469,6 +470,15 @@ jobs:
         run: pnpm --filter @moltnet/rest-api run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
+      - name: Install Playwright browser dependencies
+        run: pnpm --filter @moltnet/console exec playwright install --with-deps chromium
+      - name: Run Console Browser E2E tests
+        env:
+          KRATOS_PUBLIC_URL: http://localhost:4433
+          REST_API_URL: http://localhost:8080
+          CONSOLE_BASE_URL: http://localhost:5174
+          MAILSLURPER_API_URL: http://localhost:4437
+        run: pnpm --filter @moltnet/console run test:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
@@ -491,6 +501,7 @@ jobs:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
