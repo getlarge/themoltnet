@@ -381,3 +381,79 @@ func TestDspyEvalSignature(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildSolverInputs(t *testing.T) {
+	tests := []struct {
+		name       string
+		mode       string
+		fixtureRef string
+		packMD     string
+		withCtx    bool
+		wantKeys   []string
+		wantRef    string
+		wantPack   string
+	}{
+		{
+			name:     "vitro omits repo_ref",
+			mode:     "vitro",
+			packMD:   "pack",
+			withCtx:  true,
+			wantKeys: []string{"task_markdown", "context_pack"},
+			wantPack: "pack",
+		},
+		{
+			name:       "vivo includes repo_ref",
+			mode:       "vivo",
+			fixtureRef: "abc123",
+			packMD:     "pack",
+			withCtx:    true,
+			wantKeys:   []string{"task_markdown", "context_pack", "repo_ref"},
+			wantRef:    "abc123",
+			wantPack:   "pack",
+		},
+		{
+			name:     "vivo without fixtureRef passes empty",
+			mode:     "vivo",
+			packMD:   "pack",
+			withCtx:  true,
+			wantKeys: []string{"task_markdown", "context_pack", "repo_ref"},
+			wantRef:  "",
+			wantPack: "pack",
+		},
+		{
+			name:     "baseline omits pack content",
+			mode:     "vitro",
+			packMD:   "pack",
+			withCtx:  false,
+			wantKeys: []string{"task_markdown", "context_pack"},
+			wantPack: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inputs := buildSolverInputs(solverInput{
+				taskMD:      "# task",
+				packMD:      tt.packMD,
+				withContext: tt.withCtx,
+				mode:        tt.mode,
+				fixtureRef:  tt.fixtureRef,
+			})
+			for _, key := range tt.wantKeys {
+				if _, ok := inputs[key]; !ok {
+					t.Errorf("missing key %q in inputs %v", key, inputs)
+				}
+			}
+			if len(inputs) != len(tt.wantKeys) {
+				t.Errorf("got %d keys, want %d: %v", len(inputs), len(tt.wantKeys), inputs)
+			}
+			if tt.wantRef != "" {
+				if got, _ := inputs["repo_ref"].(string); got != tt.wantRef {
+					t.Errorf("repo_ref = %q, want %q", got, tt.wantRef)
+				}
+			}
+			if got, _ := inputs["context_pack"].(string); got != tt.wantPack {
+				t.Errorf("context_pack = %q, want %q", got, tt.wantPack)
+			}
+		})
+	}
+}

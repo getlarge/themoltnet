@@ -451,6 +451,23 @@ type solverInput struct {
 	tb          *trialBar
 }
 
+// buildSolverInputs constructs the named input map for module.Process.
+// Vivo mode adds repo_ref; baseline variants get an empty context_pack.
+func buildSolverInputs(in solverInput) map[string]any {
+	contextPack := ""
+	if in.withContext && strings.TrimSpace(in.packMD) != "" {
+		contextPack = in.packMD
+	}
+	inputs := map[string]any{
+		"task_markdown": in.taskMD,
+		"context_pack":  contextPack,
+	}
+	if in.mode == "vivo" {
+		inputs["repo_ref"] = in.fixtureRef
+	}
+	return inputs
+}
+
 // dspyEvalSignature selects the dspy-go signature based on eval mode.
 // Vivo gets the VivoSignature (extra repo_ref input, tool_trace output);
 // everything else gets VitroSignature.
@@ -524,26 +541,14 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		return nil, fmt.Errorf("init solver module: %w", err)
 	}
 
-	// Only feed the pack to the signature on "with-context" variants.
-	// The baseline variant must see an empty context_pack so with/without
-	// comparisons measure the effect of the pack. The on-disk
-	// context-pack.md (written by writeDSPYEvalPackToDisk) is already
-	// gated by withContext upstream; this gate keeps the signature input
-	// consistent with the filesystem state.
-	contextPack := ""
-	if in.withContext && strings.TrimSpace(in.packMD) != "" {
-		contextPack = in.packMD
-	}
+	inputs := buildSolverInputs(in)
 
 	ctx := context.Background()
 	// TODO(#714): capture module.Process outputs (reasoning,
 	// workspace_summary) for GEPA once the optimizer lands. Today the
-	// judge reads the filesystem as ground truth so these outputs are
-	// narrative-only and deliberately discarded.
-	_, procErr := module.Process(ctx, map[string]any{
-		"task_markdown": in.taskMD,
-		"context_pack":  contextPack,
-	})
+	// judge reads the filesystem via buildWorkspaceSnapshot as ground truth;
+	// these outputs are narrative-only and deliberately discarded.
+	_, procErr := module.Process(ctx, inputs)
 
 	// The module's returned map holds the dspy-go-parsed output fields
 	// (reasoning, workspace_summary) which are narrative/GEPA-facing and
