@@ -470,6 +470,44 @@ jobs:
         run: pnpm --filter @moltnet/rest-api run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+      - name: Teardown Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+
+  e2e-browser:
+    name: E2E Tests (Browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    needs: [lint, typecheck, build-and-push]
+    env:
+      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Install Playwright browser dependencies
         run: pnpm --filter @moltnet/console exec playwright install --with-deps chromium
       - name: Run Console Browser E2E tests
@@ -486,9 +524,10 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
-  # Go CLI e2e runs in parallel with e2e-node. It brings up its own copy of the
-  # compose stack (~45s overhead) but does not contend with the rest-api restart
-  # sequence and runs in parallel, saving wall-clock time on the critical path.
+  # Go CLI e2e runs in parallel with the Node and browser e2e jobs. It brings
+  # up its own copy of the compose stack (~45s overhead) but does not contend
+  # with the rest-api restart sequence, saving wall-clock time on the critical
+  # path.
   e2e-go-cli:
     name: E2E Tests (Go CLI)
     runs-on: ubuntu-latest
