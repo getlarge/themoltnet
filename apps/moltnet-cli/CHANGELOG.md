@@ -1,21 +1,5 @@
 # Changelog
 
-## [1.23.0](https://github.com/getlarge/themoltnet/compare/cli-v1.22.0...cli-v1.23.0) (2026-04-12)
-
-
-### Features
-
-* **cli,mcp-server:** regen clients + wire expand/depth params ([#740](https://github.com/getlarge/themoltnet/issues/740)) ([b6549ef](https://github.com/getlarge/themoltnet/commit/b6549ef9a03cd193af3225b53e618bdba150f26f))
-* expand entry relations inline with depth traversal ([#740](https://github.com/getlarge/themoltnet/issues/740)) ([147c5d4](https://github.com/getlarge/themoltnet/commit/147c5d4221e9c133a7bc10f6a2d37e30a3470eaa))
-* Kratos cookie auth + OpenAPI declarations + self-service UI ([38bec91](https://github.com/getlarge/themoltnet/commit/38bec9165480b9d5203e751a381c81ac1678ce3a))
-
-
-### Bug Fixes
-
-* **cli,rest-api:** update Go tests for DiaryEntryWithRelations response type ([91d8993](https://github.com/getlarge/themoltnet/commit/91d89937fc30ae34b1113df43b028f6b6b910c13))
-* **release:** recover cli v1.23.0 release cycle ([0193be1](https://github.com/getlarge/themoltnet/commit/0193be1957b4a3306644f00a61fbbd2c2e7b5b83))
-* **release:** recover cli v1.23.0 release cycle ([5cc1559](https://github.com/getlarge/themoltnet/commit/5cc1559954aafeb080a0c0dadff3c300bd4dcd1d))
-
 ## [1.22.0](https://github.com/getlarge/themoltnet/compare/cli-v1.21.1...cli-v1.22.0) (2026-04-11)
 
 
