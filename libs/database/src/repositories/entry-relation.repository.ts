@@ -14,6 +14,11 @@ import {
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
+export interface RelationAtDepth extends EntryRelation {
+  depth: number;
+  parentRelationId: string | null;
+}
+
 export function createEntryRelationRepository(db: Database) {
   function relationKey(
     input: Pick<EntryRelation, 'sourceId' | 'targetId' | 'relation'>,
@@ -212,6 +217,108 @@ export function createEntryRelationRepository(db: Database) {
         .returning({ id: entryRelations.id });
 
       return rows.length > 0;
+    },
+
+    /**
+     * BFS traversal from a starting entry, returning relations annotated
+     * with depth and parentRelationId for client-side tree reconstruction.
+     *
+     * Runs under READ COMMITTED (Postgres default), not REPEATABLE READ.
+     * A relation created or deleted between depth-level queries could
+     * produce a slightly inconsistent snapshot. Acceptable for a read-only
+     * expansion endpoint — upgrading to REPEATABLE READ via
+     * db.transaction({ isolationLevel: 'repeatable read' }) is a future
+     * option if snapshot consistency becomes a requirement.
+     */
+    async traverseFromEntry(
+      startId: string,
+      options?: {
+        depth?: number;
+        status?: EntryRelation['status'];
+      },
+    ): Promise<RelationAtDepth[]> {
+      const { depth: maxDepth = 1, status } = options ?? {};
+      const clamped = Math.min(Math.max(maxDepth, 1), 3);
+
+      const results: RelationAtDepth[] = [];
+      const visited = new Set<string>([startId]);
+      const seenRelations = new Set<string>();
+      // Maps each entry to the relation that introduced it into the frontier
+      const entryToParentRelation = new Map<string, string | null>();
+      entryToParentRelation.set(startId, null);
+
+      let frontier = [startId];
+
+      for (let d = 1; d <= clamped && frontier.length > 0; d++) {
+        const conditions = [
+          or(
+            inArray(entryRelations.sourceId, frontier),
+            inArray(entryRelations.targetId, frontier),
+          ),
+        ];
+        if (status) {
+          conditions.push(eq(entryRelations.status, status));
+        }
+
+        const rows = await getExecutor(db)
+          .select()
+          .from(entryRelations)
+          .where(and(...conditions));
+
+        const nextFrontier: string[] = [];
+
+        for (const row of rows) {
+          if (seenRelations.has(row.id)) continue;
+          seenRelations.add(row.id);
+
+          const sourceInFrontier = frontier.includes(row.sourceId);
+          const targetInFrontier = frontier.includes(row.targetId);
+
+          // Determine which end(s) are the "known" side and which is "new"
+          const knownEntryId = sourceInFrontier ? row.sourceId : row.targetId;
+          const otherEntryId = sourceInFrontier ? row.targetId : row.sourceId;
+
+          // Both ends already visited — cycle, record the edge but don't
+          // expand further from it
+          if (visited.has(otherEntryId) && visited.has(knownEntryId)) {
+            results.push({
+              ...row,
+              depth: d,
+              parentRelationId: entryToParentRelation.get(knownEntryId) ?? null,
+            });
+            continue;
+          }
+
+          // If both ends are in the frontier (same depth level), pick the
+          // first as "known" — the other gets added for next-level expansion
+          const parentRelationId =
+            entryToParentRelation.get(knownEntryId) ?? null;
+
+          results.push({ ...row, depth: d, parentRelationId });
+
+          if (!visited.has(otherEntryId)) {
+            visited.add(otherEntryId);
+            nextFrontier.push(otherEntryId);
+            entryToParentRelation.set(otherEntryId, row.id);
+          }
+
+          // If both ends were in frontier but only target was "other",
+          // handle the reverse too
+          if (
+            sourceInFrontier &&
+            targetInFrontier &&
+            !visited.has(row.sourceId)
+          ) {
+            visited.add(row.sourceId);
+            nextFrontier.push(row.sourceId);
+            entryToParentRelation.set(row.sourceId, row.id);
+          }
+        }
+
+        frontier = nextFrontier;
+      }
+
+      return results;
     },
 
     async listSupersededTargetIds(entryIds: string[]): Promise<string[]> {

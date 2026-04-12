@@ -9,7 +9,7 @@
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
-import type { EntryRelation } from '@moltnet/database';
+import type { EntryRelation, RelationAtDepth } from '@moltnet/database';
 import { EntryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -18,6 +18,7 @@ import { createProblem } from '../problems/index.js';
 import {
   EntryRelationListSchema,
   EntryRelationSchema,
+  EntryRelationWithDepthSchema,
   RelationStatusSchema,
   RelationTypeSchema,
 } from '../schemas.js';
@@ -45,6 +46,14 @@ function toRelationResponse(row: EntryRelation) {
   } as const;
 }
 
+function toRelationWithDepthResponse(row: RelationAtDepth) {
+  return {
+    ...toRelationResponse(row),
+    depth: row.depth,
+    parentRelationId: row.parentRelationId,
+  } as const;
+}
+
 const RelationIdParamsSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });
@@ -69,6 +78,15 @@ const ListRelationsQuerySchema = Type.Object({
   ),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
   offset: Type.Optional(Type.Integer({ minimum: 0 })),
+  depth: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: 3,
+      default: 1,
+      description:
+        'Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.',
+    }),
+  ),
 });
 
 const UpdateRelationStatusBodySchema = Type.Object({
@@ -173,12 +191,21 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'listEntryRelations',
         tags: ['diary'],
-        description: 'List relations for a diary entry.',
+        description:
+          'List relations for a diary entry. When depth > 1, returns a BFS traversal with depth/parentRelationId annotations.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
         response: {
-          200: Type.Ref(EntryRelationListSchema),
+          200: Type.Union([
+            Type.Ref(EntryRelationListSchema),
+            Type.Object({
+              items: Type.Array(Type.Ref(EntryRelationWithDepthSchema)),
+              total: Type.Number(),
+              limit: Type.Number(),
+              offset: Type.Number(),
+            }),
+          ]),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -197,6 +224,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         direction,
         limit = 50,
         offset = 0,
+        depth = 1,
       } = request.query;
 
       const allowed = await fastify.permissionChecker.canViewEntry(
@@ -206,6 +234,22 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to view this entry');
+      }
+
+      // depth > 1: BFS traversal returning annotated relations
+      if (depth > 1) {
+        const traversal =
+          await fastify.entryRelationRepository.traverseFromEntry(entryId, {
+            depth,
+            status,
+          });
+
+        return {
+          items: traversal.map(toRelationWithDepthResponse),
+          total: traversal.length,
+          limit,
+          offset,
+        };
       }
 
       const { items, total } =

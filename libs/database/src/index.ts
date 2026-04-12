@@ -69,6 +69,7 @@ export {
 export {
   createEntryRelationRepository,
   type EntryRelationRepository,
+  type RelationAtDepth,
 } from './repositories/entry-relation.repository.js';
 export {
   type CreateGroupInput,

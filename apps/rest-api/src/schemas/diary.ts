@@ -7,6 +7,7 @@ import {
 import { Type } from '@sinclair/typebox';
 
 import { DateTime, EntryTypeSchema } from './atoms.js';
+import { ExpandedRelationsSchema } from './relations.js';
 
 // ── Diary ───────────────────────────────────────────────────
 
@@ -28,6 +29,16 @@ export const DiaryEntrySchema = Type.Object(
     updatedAt: DateTime,
   },
   { $id: 'DiaryEntry' },
+);
+
+export const DiaryEntryWithRelationsSchema = Type.Composite(
+  [
+    DiaryEntrySchema,
+    Type.Object({
+      relations: Type.Optional(Type.Ref(ExpandedRelationsSchema)),
+    }),
+  ],
+  { $id: 'DiaryEntryWithRelations' },
 );
 
 export const DiaryListSchema = Type.Object(
