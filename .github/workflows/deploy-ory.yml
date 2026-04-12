@@ -42,4 +42,5 @@ jobs:
           SELFSERVICE_OIDC_GITHUB_CLIENT_ID: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_ID }}
           SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET }}
           SMTP_CONNECTION_URI: ${{ secrets.SMTP_CONNECTION_URI }}
+          SMTP_FROM_ADDRESS: ${{ secrets.SMTP_FROM_ADDRESS }}
         run: npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
