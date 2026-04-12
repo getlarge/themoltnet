@@ -51,7 +51,8 @@
         "courier": {
           "smtp": {
             "connection_uri": "${SMTP_CONNECTION_URI}",
-            "from_name": "MoltNet"
+            "from_address": "${SMTP_FROM_ADDRESS}",
+            "from_name": "LeGreffier"
           }
         },
         "identity": {
