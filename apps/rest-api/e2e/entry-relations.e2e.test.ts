@@ -13,6 +13,7 @@ import {
   createDiaryEntry,
   createEntryRelation,
   deleteEntryRelation,
+  getDiaryEntryById,
   listEntryRelations,
   updateEntryRelationStatus,
 } from '@moltnet/api-client';
@@ -213,5 +214,171 @@ describe('Entry relations', () => {
 
     expect(error).toBeDefined();
     expect(response.status).toBe(400);
+  });
+});
+
+// ── Depth traversal & expand=relations ──────────────────────────
+describe('Entry relations — depth traversal', () => {
+  let harness: TestHarness;
+  let client: Client;
+  let agent: TestAgent;
+
+  // Chain: A → B → C (A supersedes B, B supersedes C)
+  let entryAId: string;
+  let entryBId: string;
+  let entryCId: string;
+  let relationABId: string;
+  let relationBCId: string;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+
+    agent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    // Create three entries in a chain
+    const entries = await Promise.all(
+      ['Chain entry A', 'Chain entry B', 'Chain entry C'].map((content) =>
+        createDiaryEntry({
+          client,
+          auth: () => agent.accessToken,
+          path: { diaryId: agent.privateDiaryId },
+          body: { content },
+        }),
+      ),
+    );
+
+    for (const { error } of entries) {
+      expect(error).toBeUndefined();
+    }
+
+    entryAId = entries[0].data!.id;
+    entryBId = entries[1].data!.id;
+    entryCId = entries[2].data!.id;
+
+    // A supersedes B
+    const { data: relAB, error: errAB } = await createEntryRelation({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+      body: { targetId: entryBId, relation: 'supersedes', status: 'accepted' },
+    });
+    expect(errAB).toBeUndefined();
+    relationABId = relAB!.id;
+
+    // B supersedes C
+    const { data: relBC, error: errBC } = await createEntryRelation({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryBId },
+      body: { targetId: entryCId, relation: 'supersedes', status: 'accepted' },
+    });
+    expect(errBC).toBeUndefined();
+    relationBCId = relBC!.id;
+  }, 60_000);
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  // ── GET /entries/:entryId/relations?depth=1 ─────────────────
+
+  it('depth=1 returns only direct relations', async () => {
+    const { data, error } = await listEntryRelations({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+      query: { depth: 1 },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items).toHaveLength(1);
+    expect(data!.items[0].id).toBe(relationABId);
+  });
+
+  // ── GET /entries/:entryId/relations?depth=2 ─────────────────
+
+  it('depth=2 returns two-hop chain A→B→C', async () => {
+    const { data, error } = await listEntryRelations({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+      query: { depth: 2 },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items).toHaveLength(2);
+
+    const ids = data!.items.map((r) => r.id);
+    expect(ids).toContain(relationABId);
+    expect(ids).toContain(relationBCId);
+  });
+
+  // ── GET /entries/:entryId?expand=relations ──────────────────
+
+  it('expand=relations returns entry with inline relations', async () => {
+    const { data, error } = await getDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+      query: { expand: 'relations' },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data).toBeDefined();
+    expect(data!.id).toBe(entryAId);
+    expect(data!.relations).toBeDefined();
+    expect(data!.relations!.requestedDepth).toBe(1);
+    expect(data!.relations!.maxDepth).toBe(3);
+    expect(data!.relations!.items.length).toBeGreaterThanOrEqual(1);
+
+    // Direct relation A→B should be present
+    const relAB = data!.relations!.items.find((r) => r.id === relationABId);
+    expect(relAB).toBeDefined();
+    expect(relAB!.depth).toBe(1);
+    expect(relAB!.parentRelationId).toBeNull();
+  });
+
+  it('expand=relations&depth=2 returns two-hop with depth annotations', async () => {
+    const { data, error } = await getDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+      query: { expand: 'relations', depth: 2 },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.relations).toBeDefined();
+    expect(data!.relations!.requestedDepth).toBe(2);
+    expect(data!.relations!.items).toHaveLength(2);
+
+    const relAB = data!.relations!.items.find((r) => r.id === relationABId);
+    const relBC = data!.relations!.items.find((r) => r.id === relationBCId);
+
+    expect(relAB).toBeDefined();
+    expect(relAB!.depth).toBe(1);
+    expect(relAB!.parentRelationId).toBeNull();
+
+    expect(relBC).toBeDefined();
+    expect(relBC!.depth).toBe(2);
+    expect(relBC!.parentRelationId).toBe(relationABId);
+  });
+
+  // ── Without expand, no relations key ────────────────────────
+
+  it('without expand param, response has no relations property', async () => {
+    const { data, error } = await getDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.id).toBe(entryAId);
+    expect(data!.relations).toBeUndefined();
   });
 });
