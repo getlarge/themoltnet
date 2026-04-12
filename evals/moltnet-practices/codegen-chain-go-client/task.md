@@ -1,44 +1,25 @@
-# Go CLI breaks in production after a merge
+# Add `pinned_reason` field to context packs
 
 ## Context
 
-A teammate shipped a PR earlier today that added an optional field
-`pinned_reason` (string) to the `ContextPackSchema` in
-`apps/rest-api/src/schemas.ts`. Their PR:
+Context packs can be pinned to a specific rendered snapshot. When a pack
+is pinned, we want to store a human-readable reason explaining why it was
+pinned (e.g., "stable baseline for Q2 eval suite").
 
-- Updated the schema
-- Added handling for the new field in the REST API route
-- Ran `pnpm run generate:openapi` to regenerate the OpenAPI spec
-- Ran `pnpm run typecheck` — green
-- Ran `pnpm run test` — green
-- Ran `pnpm run build` — green
-- Ran `go vet ./...` and `go test ./...` — both green
-
-CI passed, the PR was merged. An hour later, production users of the
-`moltnet` Go CLI start reporting this error when listing context packs:
-
-```
-Error: failed to decode response: json: cannot unmarshal object into Go
-struct field ContextPackSchema.pinned_reason of type string
-```
-
-The REST API is healthy. The TypeScript tests still pass. The Go build
-still succeeds. Only users running the compiled `moltnet` CLI are broken.
+The `ContextPackSchema` in `apps/rest-api/src/schemas/packs.ts` needs a new
+optional string field `pinned_reason`. The REST API route that returns
+packs should include this field in its response.
 
 ## Task
 
-Investigate the cause and produce a fix procedure. Your output must
-explain what went wrong, why none of the teammate's checks caught it,
-and the exact steps to fix it.
+1. Add `pinned_reason` (optional string) to `ContextPackSchema`
+2. Update the REST API route handler to pass the field through
+3. Regenerate any artifacts that depend on the schema
+4. Verify the full build is clean: TypeScript, Go, tests
 
 ## Output
 
-Produce a single file `incident-fix.md` with three sections:
-
-1. **Root cause** — one paragraph identifying exactly which artifact is
-   stale and why the error manifests only at runtime for Go CLI users.
-2. **Why the teammate's checks missed it** — a short explanation of why
-   `typecheck`, `test`, `build`, `go vet`, and `go test` all passed
-   despite the bug.
-3. **Fix procedure** — the exact commands to run, in dependency order,
-   to repair the repository state so a new release of the CLI will work.
+Produce `notes.md` explaining:
+- What you changed and why
+- Which artifacts you regenerated and in what order
+- Any concerns about the change
