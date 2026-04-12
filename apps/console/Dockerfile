@@ -35,6 +35,7 @@ RUN pnpm --filter @moltnet/console run build
 FROM nginx:alpine AS production
 
 COPY --from=build /app/apps/console/dist /usr/share/nginx/html
+COPY apps/console/nginx/50x.html /usr/share/nginx/html/50x.html
 COPY apps/console/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
