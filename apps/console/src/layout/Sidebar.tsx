@@ -1,131 +1,126 @@
-/**
- * Sidebar — Dashboard navigation sidebar.
- *
- * Uses design system primitives. Shows active route highlight.
- */
-
-import { Button, Divider, Logo, Stack, Text } from '@themoltnet/design-system';
+import {
+  Button,
+  Divider,
+  Logo,
+  Stack,
+  useTheme,
+} from '@themoltnet/design-system';
 import { useLocation } from 'wouter';
 
+import { TeamSelector } from '../components/TeamSelector.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import { getConfig } from '../config.js';
 
 interface NavItem {
   label: string;
   path: string;
-  disabled?: boolean;
-  external?: boolean;
 }
 
-const mainNav: NavItem[] = [{ label: 'Overview', path: '/' }];
-
-const exploreNav: NavItem[] = [
-  { label: 'Explore', path: '/explore', disabled: true },
-  { label: 'Packs', path: '/packs', disabled: true },
-  { label: 'Tools', path: '/tools', disabled: true },
-  { label: 'Labs', path: '/labs', disabled: true },
+const navItems: NavItem[] = [
+  { label: 'Overview', path: '/' },
+  { label: 'Team', path: '/team' },
+  { label: 'Diaries', path: '/diaries' },
 ];
 
-function NavButton({
-  item,
-  isActive,
-  onClick,
-}: {
-  item: NavItem;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      variant={isActive ? 'primary' : 'ghost'}
-      disabled={item.disabled}
-      onClick={onClick}
-      style={{
-        justifyContent: 'flex-start',
-        width: '100%',
-        opacity: item.disabled ? 0.4 : 1,
-      }}
-    >
-      {item.label}
-      {item.disabled && (
-        <Text variant="caption" color="muted" style={{ marginLeft: 'auto' }}>
-          soon
-        </Text>
-      )}
-    </Button>
-  );
+function isActive(location: string, path: string): boolean {
+  if (path === '/') return location === '/';
+  return location === path || location.startsWith(`${path}/`);
 }
 
-export function Sidebar() {
+export interface SidebarProps {
+  collapsed?: boolean;
+}
+
+export function Sidebar({ collapsed = false }: SidebarProps) {
+  const theme = useTheme();
   const [location, navigate] = useLocation();
-  const bottomNav: NavItem[] = [
-    {
-      label: 'Settings',
-      path: `${getConfig().kratosUrl}/ui/settings`,
-      external: true,
-    },
-  ];
+
+  const width = collapsed ? 56 : 220;
 
   return (
     <Stack
       gap={2}
       style={{
-        width: 220,
+        width,
         minHeight: '100vh',
-        padding: '1rem 0.75rem',
-        borderRight: '1px solid var(--color-border, #333)',
+        padding: collapsed ? '1rem 0.25rem' : '1rem 0.75rem',
+        borderRight: `1px solid ${theme.color.border.DEFAULT}`,
+        background: theme.color.bg.void,
         flexShrink: 0,
+        transition: `width ${theme.transition.fast}`,
+        overflow: 'hidden',
       }}
     >
-      <Stack gap={1} style={{ padding: '0.5rem' }}>
+      {/* Logo */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing[1],
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          padding: '0.5rem',
+          cursor: 'pointer',
+        }}
+        onClick={() => navigate('/')}
+      >
         <Logo variant="mark" style={{ width: 28, height: 28 }} />
-        <Text variant="h4">MoltNet</Text>
-      </Stack>
+        {!collapsed && (
+          <span
+            style={{
+              fontFamily: theme.font.family.sans,
+              fontWeight: theme.font.weight.semibold,
+              fontSize: theme.font.size.lg,
+              color: theme.color.text.DEFAULT,
+            }}
+          >
+            MoltNet
+          </span>
+        )}
+      </div>
+
+      {/* Team selector */}
+      {!collapsed && <TeamSelector />}
 
       <Divider />
 
+      {/* Nav items */}
       <Stack gap={1}>
-        {mainNav.map((item) => (
-          <NavButton
+        {navItems.map((item) => (
+          <Button
             key={item.path}
-            item={item}
-            isActive={location === item.path}
+            variant={isActive(location, item.path) ? 'primary' : 'ghost'}
             onClick={() => navigate(item.path)}
-          />
+            style={{
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              width: '100%',
+            }}
+          >
+            {collapsed ? item.label.charAt(0) : item.label}
+          </Button>
         ))}
       </Stack>
 
-      <Divider />
-
-      <Stack gap={1}>
-        {exploreNav.map((item) => (
-          <NavButton
-            key={item.path}
-            item={item}
-            isActive={location === item.path}
-            onClick={() => !item.disabled && navigate(item.path)}
-          />
-        ))}
-      </Stack>
-
+      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
       <Divider />
 
+      {/* Bottom section */}
       <Stack gap={1}>
-        {bottomNav.map((item) => (
-          <NavButton
-            key={item.path}
-            item={item}
-            isActive={location === item.path}
-            onClick={() => {
-              if (item.external) {
-                window.location.assign(item.path);
-              } else {
-                navigate(item.path);
-              }
-            }}
-          />
-        ))}
+        {!collapsed && <ThemeToggle />}
+        <Button
+          variant="ghost"
+          onClick={() =>
+            window.location.assign(`${getConfig().kratosUrl}/ui/settings`)
+          }
+          style={{
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            width: '100%',
+          }}
+        >
+          {collapsed ? 'S' : 'Settings'}
+        </Button>
       </Stack>
     </Stack>
   );
