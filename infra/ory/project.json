@@ -33,10 +33,10 @@
           "ru",
           "zh"
         ],
-        "favicon_dark_url": "",
+        "favicon_dark_url": "https://storage.googleapis.com/bac-gcs-production/f52fd20549615bb3ab067924479b5dd9b699588922e417d34ed10b373aee1a4f2bab09c245b5ec03fea02fa73ced98a03c69a0a94d9ce97afd709328b550d3aa.svg",
         "favicon_light_url": "https://storage.googleapis.com/bac-gcs-production/f52fd20549615bb3ab067924479b5dd9b699588922e417d34ed10b373aee1a4f2bab09c245b5ec03fea02fa73ced98a03c69a0a94d9ce97afd709328b550d3aa.svg",
         "locale_behavior": "respect_accept_language",
-        "logo_dark_url": "",
+        "logo_dark_url": "https://storage.googleapis.com/bac-gcs-production/f52fd20549615bb3ab067924479b5dd9b699588922e417d34ed10b373aee1a4f2bab09c245b5ec03fea02fa73ced98a03c69a0a94d9ce97afd709328b550d3aa.svg",
         "logo_light_url": "https://storage.googleapis.com/bac-gcs-production/f52fd20549615bb3ab067924479b5dd9b699588922e417d34ed10b373aee1a4f2bab09c245b5ec03fea02fa73ced98a03c69a0a94d9ce97afd709328b550d3aa.svg",
         "theme_variables_dark": {},
         "theme_variables_light": {},
@@ -266,6 +266,7 @@
             },
             "oidc": {
               "config": {
+                "base_redirect_uri": "${ORY_PROJECT_URL}",
                 "providers": [
                   {
                     "client_id": "${SELFSERVICE_OIDC_GITHUB_CLIENT_ID}",
