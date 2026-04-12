@@ -67,7 +67,7 @@ func TestGetEntryReturnsNotFoundDetails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected nil transport error, got: %v", err)
 	}
-	if _, ok := res.(*moltnetapi.DiaryEntry); ok {
+	if _, ok := res.(*moltnetapi.DiaryEntryWithRelations); ok {
 		t.Fatal("expected error response, got success")
 	}
 

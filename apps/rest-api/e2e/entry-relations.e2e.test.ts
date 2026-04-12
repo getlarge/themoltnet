@@ -333,7 +333,8 @@ describe('Entry relations — depth traversal', () => {
     expect(data!.id).toBe(entryAId);
     expect(data!.relations).toBeDefined();
     expect(data!.relations!.requestedDepth).toBe(1);
-    expect(data!.relations!.maxDepth).toBe(3);
+    // maxDepth is the actual max depth reached in results, not the server cap
+    expect(data!.relations!.maxDepth).toBe(1);
     expect(data!.relations!.items.length).toBeGreaterThanOrEqual(1);
 
     // Direct relation A→B should be present

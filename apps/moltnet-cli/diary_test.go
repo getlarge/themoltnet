@@ -30,6 +30,19 @@ func newTestEntry(content string) *moltnetapi.DiaryEntry {
 	}
 }
 
+func newTestEntryWithRelations(content string) *moltnetapi.DiaryEntryWithRelations {
+	return &moltnetapi.DiaryEntryWithRelations{
+		ID:         testEntryID,
+		DiaryId:    testDiaryID,
+		Content:    content,
+		EntryType:  moltnetapi.DiaryEntryWithRelationsEntryTypeEpisodic,
+		Importance: 5,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		Tags:       []string{},
+	}
+}
+
 func (h *stubDiaryHandler) CreateDiaryEntry(_ context.Context, req *moltnetapi.CreateDiaryEntryReq, _ moltnetapi.CreateDiaryEntryParams) (moltnetapi.CreateDiaryEntryRes, error) {
 	return newTestEntry(req.Content), nil
 }
@@ -43,7 +56,7 @@ func (h *stubDiaryHandler) ListDiaryEntries(_ context.Context, _ moltnetapi.List
 }
 
 func (h *stubDiaryHandler) GetDiaryEntryById(_ context.Context, params moltnetapi.GetDiaryEntryByIdParams) (moltnetapi.GetDiaryEntryByIdRes, error) {
-	e := newTestEntry("fetched content")
+	e := newTestEntryWithRelations("fetched content")
 	e.ID = params.EntryId
 	return e, nil
 }
@@ -249,9 +262,9 @@ func TestEntryGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDiaryEntryById() error: %v", err)
 	}
-	entry, ok := res.(*moltnetapi.DiaryEntry)
+	entry, ok := res.(*moltnetapi.DiaryEntryWithRelations)
 	if !ok {
-		t.Fatalf("expected *DiaryEntry, got %T", res)
+		t.Fatalf("expected *DiaryEntryWithRelations, got %T", res)
 	}
 	if entry.ID != testEntryID {
 		t.Errorf("expected id=%s, got %s", testEntryID, entry.ID)

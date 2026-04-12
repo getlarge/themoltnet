@@ -224,7 +224,7 @@ func TestE2E_DiaryCommit_Unsigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get entry: %v", err)
 	}
-	entry, ok := getRes.(*moltnetapi.DiaryEntry)
+	entry, ok := getRes.(*moltnetapi.DiaryEntryWithRelations)
 	if !ok {
 		t.Fatalf("unexpected response type: %T", getRes)
 	}
