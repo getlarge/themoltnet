@@ -352,3 +352,32 @@ func TestDspyJudgeProvider(t *testing.T) {
 		}
 	}
 }
+
+func TestDspyEvalSignature(t *testing.T) {
+	tests := []struct {
+		name       string
+		mode       string
+		wantInputs []string
+	}{
+		{"vitro uses VitroSignature", "vitro", []string{"task_markdown", "context_pack"}},
+		{"vivo uses VivoSignature", "vivo", []string{"task_markdown", "context_pack", "repo_ref"}},
+		{"empty mode defaults to vitro", "", []string{"task_markdown", "context_pack"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sig := dspyEvalSignature(tt.mode)
+			gotNames := make([]string, len(sig.Inputs))
+			for i, inp := range sig.Inputs {
+				gotNames[i] = inp.Field.Name
+			}
+			if len(gotNames) != len(tt.wantInputs) {
+				t.Fatalf("got %d inputs %v, want %d %v", len(gotNames), gotNames, len(tt.wantInputs), tt.wantInputs)
+			}
+			for i, want := range tt.wantInputs {
+				if gotNames[i] != want {
+					t.Errorf("input[%d] = %q, want %q", i, gotNames[i], want)
+				}
+			}
+		})
+	}
+}

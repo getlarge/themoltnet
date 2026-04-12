@@ -451,6 +451,16 @@ type solverInput struct {
 	tb          *trialBar
 }
 
+// dspyEvalSignature selects the dspy-go signature based on eval mode.
+// Vivo gets the VivoSignature (extra repo_ref input, tool_trace output);
+// everything else gets VitroSignature.
+func dspyEvalSignature(mode string) core.Signature {
+	if mode == "vivo" {
+		return solver.VivoSignature()
+	}
+	return solver.VitroSignature()
+}
+
 // runSolver executes one eval trial via a dspy-go solver module and
 // returns the captured agent result.
 //
@@ -507,7 +517,7 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 
 	module, err := solver.New(solver.Config{
 		Kind:      kind,
-		Signature: solver.VitroSignature(),
+		Signature: dspyEvalSignature(in.mode),
 		LLM:       llm,
 	})
 	if err != nil {
