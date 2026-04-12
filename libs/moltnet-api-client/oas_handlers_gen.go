@@ -6154,7 +6154,7 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 // handleGetDiaryEntryByIdRequest handles getDiaryEntryById operation.
 //
 // Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
-// hops.
+// hops. Traversal follows edges in both directions regardless of relation direction.
 //
 // GET /entries/{entryId}
 func (s *Server) handleGetDiaryEntryByIdRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -11340,8 +11340,9 @@ func (s *Server) handleListDiaryTagsRequest(args [1]string, argsEscaped bool, w 
 
 // handleListEntryRelationsRequest handles listEntryRelations operation.
 //
-// List relations for a diary entry. When depth > 1, returns a BFS traversal with
-// depth/parentRelationId annotations.
+// List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows
+// edges in both directions). Note: depth/parentRelationId annotations are not included in the list
+// response schema.
 //
 // GET /entries/{entryId}/relations
 func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

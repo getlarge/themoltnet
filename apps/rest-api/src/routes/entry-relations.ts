@@ -183,7 +183,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         operationId: 'listEntryRelations',
         tags: ['diary'],
         description:
-          'List relations for a diary entry. When depth > 1, returns a BFS traversal with depth/parentRelationId annotations.',
+          'List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
@@ -219,7 +219,10 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         throw createProblem('forbidden', 'Not authorized to view this entry');
       }
 
-      // depth > 1: BFS traversal returning all reachable relations
+      // depth > 1: BFS traversal returning all reachable relations.
+      // Uses toRelationResponse (not toRelationWithDepthResponse) because the
+      // list endpoint returns EntryRelationListSchema — adding depth fields
+      // would require a Union response type that ogen cannot handle.
       if (depth > 1) {
         const traversal =
           await fastify.entryRelationRepository.traverseFromEntry(entryId, {
@@ -227,11 +230,13 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
             status,
           });
 
+        // BFS returns all results at once — limit/offset don't apply,
+        // so report truthful values in the envelope.
         return {
           items: traversal.map(toRelationResponse),
           total: traversal.length,
-          limit,
-          offset,
+          limit: traversal.length,
+          offset: 0,
         };
       }
 

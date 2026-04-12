@@ -170,6 +170,10 @@ func runEntryGetCmd(apiURL, credPath, entryID, expand string, depth int) error {
 		return err
 	}
 
+	if expand != "" && expand != "relations" {
+		return fmt.Errorf("--expand: unsupported value %q (only \"relations\" is valid)", expand)
+	}
+
 	params := moltnetapi.GetDiaryEntryByIdParams{EntryId: entryUUID}
 	if expand == "relations" {
 		params.Expand = moltnetapi.OptGetDiaryEntryByIdExpand{

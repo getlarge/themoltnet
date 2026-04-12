@@ -560,7 +560,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'getDiaryEntryById',
         tags: ['diary'],
         description:
-          'Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops.',
+          'Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         querystring: Type.Object({
@@ -599,8 +599,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           depth,
         },
       );
-      const maxDepth =
-        traversal.length > 0 ? Math.max(...traversal.map((r) => r.depth)) : 0;
+      const maxDepth = traversal.reduce((m, r) => Math.max(m, r.depth), 0);
 
       return {
         ...entry,

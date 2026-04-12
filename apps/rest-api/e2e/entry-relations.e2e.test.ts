@@ -382,4 +382,37 @@ describe('Entry relations — depth traversal', () => {
     expect(data!.id).toBe(entryAId);
     expect(data!.relations).toBeUndefined();
   });
+
+  // ── Cycle handling ──────────────────────────────────────────
+
+  it('cycle (A→B, B→A) does not produce duplicates or infinite loop', async () => {
+    // Create reverse relation B→A (A already supersedes B from setup)
+    const { error: cycleErr } = await createEntryRelation({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryBId },
+      body: {
+        targetId: entryAId,
+        relation: 'references',
+        status: 'accepted',
+      },
+    });
+    expect(cycleErr).toBeUndefined();
+
+    // Traverse from A at depth=3 — should not infinite-loop
+    const { data, error } = await getDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entryAId },
+      query: { expand: 'relations', depth: 3 },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.relations).toBeDefined();
+
+    // Each relation should appear at most once
+    const ids = data!.relations!.items.map((r) => r.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
 });

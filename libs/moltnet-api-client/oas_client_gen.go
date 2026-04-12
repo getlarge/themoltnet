@@ -196,7 +196,7 @@ type Invoker interface {
 	// GetDiaryEntryById invokes getDiaryEntryById operation.
 	//
 	// Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
-	// hops.
+	// hops. Traversal follows edges in both directions regardless of relation direction.
 	//
 	// GET /entries/{entryId}
 	GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error)
@@ -363,8 +363,9 @@ type Invoker interface {
 	ListDiaryTags(ctx context.Context, params ListDiaryTagsParams) (ListDiaryTagsRes, error)
 	// ListEntryRelations invokes listEntryRelations operation.
 	//
-	// List relations for a diary entry. When depth > 1, returns a BFS traversal with
-	// depth/parentRelationId annotations.
+	// List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows
+	// edges in both directions). Note: depth/parentRelationId annotations are not included in the list
+	// response schema.
 	//
 	// GET /entries/{entryId}/relations
 	ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error)
@@ -4705,7 +4706,7 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 // GetDiaryEntryById invokes getDiaryEntryById operation.
 //
 // Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth`
-// hops.
+// hops. Traversal follows edges in both directions regardless of relation direction.
 //
 // GET /entries/{entryId}
 func (c *Client) GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error) {
@@ -8397,8 +8398,9 @@ func (c *Client) sendListDiaryTags(ctx context.Context, params ListDiaryTagsPara
 
 // ListEntryRelations invokes listEntryRelations operation.
 //
-// List relations for a diary entry. When depth > 1, returns a BFS traversal with
-// depth/parentRelationId annotations.
+// List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows
+// edges in both directions). Note: depth/parentRelationId annotations are not included in the list
+// response schema.
 //
 // GET /entries/{entryId}/relations
 func (c *Client) ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error) {

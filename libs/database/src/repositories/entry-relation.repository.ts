@@ -230,6 +230,21 @@ export function createEntryRelationRepository(db: Database) {
      * db.transaction({ isolationLevel: 'repeatable read' }) is a future
      * option if snapshot consistency becomes a requirement.
      */
+    /**
+     * BFS traversal from a starting entry.
+     *
+     * Traversal follows edges in **both directions** regardless of relation
+     * direction — e.g. for A→B (`supersedes`), querying from B will also
+     * return the A→B edge. Callers that need directional semantics should
+     * post-filter the returned array.
+     *
+     * Runs under READ COMMITTED (Postgres default), not REPEATABLE READ.
+     * A relation created or deleted between depth-level queries could produce
+     * a slightly inconsistent snapshot. Acceptable for a read-only expansion
+     * endpoint — upgrading to REPEATABLE READ via
+     * `db.transaction({ isolationLevel: 'repeatable read' })` is a future
+     * option if snapshot consistency becomes a requirement.
+     */
     async traverseFromEntry(
       startId: string,
       options?: {
@@ -272,7 +287,6 @@ export function createEntryRelationRepository(db: Database) {
           seenRelations.add(row.id);
 
           const sourceInFrontier = frontier.includes(row.sourceId);
-          const targetInFrontier = frontier.includes(row.targetId);
 
           // Determine which end(s) are the "known" side and which is "new"
           const knownEntryId = sourceInFrontier ? row.sourceId : row.targetId;
@@ -300,18 +314,6 @@ export function createEntryRelationRepository(db: Database) {
             visited.add(otherEntryId);
             nextFrontier.push(otherEntryId);
             entryToParentRelation.set(otherEntryId, row.id);
-          }
-
-          // If both ends were in frontier but only target was "other",
-          // handle the reverse too
-          if (
-            sourceInFrontier &&
-            targetInFrontier &&
-            !visited.has(row.sourceId)
-          ) {
-            visited.add(row.sourceId);
-            nextFrontier.push(row.sourceId);
-            entryToParentRelation.set(row.sourceId, row.id);
           }
         }
 
