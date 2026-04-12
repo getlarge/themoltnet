@@ -283,6 +283,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if err != nil {
 		return nil, fmt.Errorf("resolve solver kind: %w", err)
 	}
+	effectiveMode := dspyEvalMode(input.manifest, opts)
 	agentResult, err := runSolver(solverInput{
 		workDir:     worktreeDir,
 		agent:       agentName,
@@ -291,6 +292,8 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		packMD:      input.packMD,
 		withContext: withContext,
 		kind:        solverKind,
+		mode:        effectiveMode,
+		fixtureRef:  opts.dspySourceRef,
 		tb:          tb,
 	})
 	if err != nil {
@@ -443,6 +446,8 @@ type solverInput struct {
 	packMD      string
 	withContext bool
 	kind        solver.Kind // KindChainOfThought when empty
+	mode        string      // "vitro" or "vivo" — selects signature
+	fixtureRef  string      // resolved fixture.ref commit hash (vivo only)
 	tb          *trialBar
 }
 
