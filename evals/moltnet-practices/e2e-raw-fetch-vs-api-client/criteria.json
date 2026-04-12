@@ -1,0 +1,36 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent knows the MoltNet-specific convention: e2e tests MUST use the generated @moltnet/api-client functions (consolidateDiary, compileDiary, listDiaryPacks, getContextPackById, etc.) for any endpoint defined in the OpenAPI spec, not raw fetch(). The reference fixture (helpers.ts) uses raw fetch() for /auth/register and /oauth2/token — this is CORRECT because those are Ory proxy pass-through endpoints that are NOT part of the MoltNet OpenAPI spec. The trap: the model copies the raw fetch pattern from helpers.ts and applies it to consolidation/compile endpoints that ARE in the spec. Without context, the model sees working raw fetch code and has no reason to switch. The with-context variant should recognize that consolidate, compile, listDiaryPacks, and getContextPackById all exist in sdk.gen.ts and must be called via createClient() + the generated functions, following the { client, auth, path, body } calling convention used in the real e2e test suite.",
+  "checklist": [
+    {
+      "name": "Notes explain WHY helpers.ts correctly uses raw fetch",
+      "description": "notes.md explicitly states that /auth/register and /oauth2/token are Ory proxy pass-through endpoints NOT part of the MoltNet OpenAPI spec, so raw fetch is the correct choice for them. Generic statements like 'helpers use fetch for setup' or 'some endpoints need fetch' fail — the notes must name the specific endpoints AND explain they are outside the spec.",
+      "max_score": 25
+    },
+    {
+      "name": "Notes state the boundary rule for when to use each approach",
+      "description": "notes.md articulates the rule: use the generated client for any endpoint defined in the OpenAPI spec; raw fetch only for endpoints that are not in the spec (auth/register, oauth2/token). Must explicitly name at least two spec endpoints (e.g., consolidateDiary, compileDiary, listDiaryPacks) as belonging to the generated client. Vague statements about 'type safety' or 'best practices' without naming the spec boundary fail.",
+      "max_score": 20
+    },
+    {
+      "name": "Uses generated client functions for consolidate and compile",
+      "description": "The test file imports and calls consolidateDiary and compileDiary (or equivalent generated functions) from @moltnet/api-client instead of raw fetch() for the POST /diaries/:id/consolidate and POST /diaries/:id/compile endpoints. The calling convention must use { client, auth: () => token, path: { id }, body: { ... } } pattern, not a custom wrapper.",
+      "max_score": 20
+    },
+    {
+      "name": "Uses generated client functions for pack listing and retrieval",
+      "description": "The test file imports and calls listDiaryPacks and getContextPackById from @moltnet/api-client for GET /diaries/:id/packs and GET /packs/:id respectively, instead of raw fetch().",
+      "max_score": 15
+    },
+    {
+      "name": "Setup uses createClient and auth callback pattern",
+      "description": "The test creates a client via createClient({ baseUrl }) and passes auth as a callback (auth: () => token) to each generated function call, matching the pattern used in the real e2e test suite (diary-grants.e2e.test.ts, team-governance.e2e.test.ts). Tests that create a one-off wrapper or use a different auth mechanism fail.",
+      "max_score": 10
+    },
+    {
+      "name": "Auth and forbidden tests still work correctly",
+      "description": "The 401 (no auth) and 403 (wrong agent) tests produce correct assertions. The 401 test omits the auth callback entirely (not passing an empty string). The 403 test uses a different agent's token.",
+      "max_score": 10
+    }
+  ]
+}

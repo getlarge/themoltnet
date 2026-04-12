@@ -1,0 +1,26 @@
+{
+  "checklist": [
+    {
+      "description": "notes.md explicitly describes the security risk: calling list({ ids }) without diaryId returns entries from ANY diary because the ids branch in list() skips the diaryId condition. Notes that only say 'I passed diaryId for safety' without explaining the if/else-if branching and its consequences fail this criterion.",
+      "max_score": 35,
+      "name": "Notes identify the cross-tenant risk of list with ids only"
+    },
+    {
+      "description": "When entryIds are provided, the implementation passes BOTH ids AND diaryId to the repository, ensuring the query applies both filters. Calling list({ ids: entryIds }) without diaryId fails this criterion even if the code otherwise works.",
+      "max_score": 30,
+      "name": "Passes diaryId in the selective (ids) branch"
+    },
+    {
+      "description": "notes.md explains that verifying diary ownership in step 1 does NOT protect step 2 — an attacker can pass their own diaryId (passes ownership) plus another agent's entryIds (fetched without tenant scope). Generic security notes without naming the specific gap fail.",
+      "max_score": 25,
+      "name": "Notes explain why step 1 ownership check is insufficient"
+    },
+    {
+      "description": "When entryIds are not provided, fetches the 50 most recent entries scoped to the diary using list({ diaryId, limit: 50 }).",
+      "max_score": 10,
+      "name": "Implements the latest-entries fallback correctly"
+    }
+  ],
+  "context": "Tests whether the agent notices that the repository's list() uses if/else-if branching where the ids path drops the diaryId filter. The task actively encourages using list({ ids }) for selective mode and list({ diaryId }) for latest mode — which is exactly the vulnerable pattern. The diary ownership check in step 1 does not protect against cross-tenant reads in step 2, because list({ ids }) fetches by UUID alone. The correct implementation must pass diaryId alongside ids, which requires recognizing that the if/else-if branching drops the tenant scope.",
+  "type": "weighted_checklist"
+}

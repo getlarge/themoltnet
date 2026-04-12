@@ -1,0 +1,8 @@
+{
+  "mode": "vitro",
+  "fixture": {
+    "inject": [
+      { "from": "fixtures/packs_get.go", "to": "apps/moltnet-cli/packs_get.go" }
+    ]
+  }
+}

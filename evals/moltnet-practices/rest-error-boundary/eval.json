@@ -1,0 +1,9 @@
+{
+  "mode": "vitro",
+  "fixture": {
+    "inject": [
+      { "from": "fixtures/verification-routes.ts", "to": "apps/rest-api/src/routes/verification.ts" },
+      { "from": "fixtures/pack-routes.ts", "to": "apps/rest-api/src/routes/pack-routes.ts" }
+    ]
+  }
+}

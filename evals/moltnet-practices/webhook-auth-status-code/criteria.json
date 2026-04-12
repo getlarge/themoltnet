@@ -1,0 +1,26 @@
+{
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent understands how Ory Kratos interprets webhook HTTP status codes. Kratos treats 5xx from webhooks as transient infrastructure errors and shows a generic 'internal error' to the user. A 4xx (specifically 403) tells Kratos the request was intentionally rejected, which produces a clearer error in the UI. The handler returns 500 for an auth failure, which misclassifies an authentication rejection as an infrastructure error.",
+  "checklist": [
+    {
+      "name": "Changes 500 to 403 (or 401) for auth failure",
+      "description": "The webhook API key validation failure returns a 4xx status (403 Forbidden or 401 Unauthorized) instead of 500 Internal Server Error",
+      "max_score": 40
+    },
+    {
+      "name": "Uses Ory-compatible error format",
+      "description": "The error response uses the Ory error format with appropriate status code and message, not a generic error shape",
+      "max_score": 20
+    },
+    {
+      "name": "Notes explain 5xx vs 4xx semantics for Kratos webhooks",
+      "description": "The notes explain that Kratos interprets 5xx as infrastructure failure (retryable, opaque UI message) vs 4xx as intentional rejection (clearer error), or mentions the distinction between auth failure and server error",
+      "max_score": 25
+    },
+    {
+      "name": "Does not change happy path",
+      "description": "The successful registration path (200 response with identity metadata) remains unchanged",
+      "max_score": 15
+    }
+  ]
+}
