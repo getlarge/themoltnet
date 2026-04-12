@@ -27,6 +27,7 @@ export function TeamSelector() {
 
   return (
     <select
+      aria-label="Select team"
       value={selectedTeam?.id ?? ''}
       onChange={(e) => selectTeam(e.target.value)}
       style={{

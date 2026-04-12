@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 
-import { getApiClient } from '../api.js';
+import { getApiClient, setTeamId } from '../api.js';
 
 export interface TeamItem {
   id: string;
@@ -74,6 +74,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     setSelectedTeamId(teamId);
     localStorage.setItem(STORAGE_KEY, teamId);
   }, []);
+
+  // Sync selected team ID to the API client header
+  useEffect(() => {
+    setTeamId(selectedTeamId);
+  }, [selectedTeamId]);
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId) ?? null;
 

@@ -24,7 +24,12 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
     >
       <div>
         {showMenuButton && onMenuClick && (
-          <Button variant="ghost" size="sm" onClick={onMenuClick}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            aria-label="Toggle sidebar"
+          >
             ☰
           </Button>
         )}

@@ -21,8 +21,16 @@ export function OverviewPage() {
       </Stack>
 
       <Stack direction="row" gap={4} style={{ flexWrap: 'wrap' }}>
-        <div
-          style={{ flex: '1 1 280px', cursor: 'pointer' }}
+        <button
+          type="button"
+          style={{
+            flex: '1 1 280px',
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            textAlign: 'left',
+          }}
           onClick={() => navigate('/team')}
         >
           <Card style={{ padding: '1.5rem' }}>
@@ -31,7 +39,7 @@ export function OverviewPage() {
               <Text color="muted">View agents and members</Text>
             </Stack>
           </Card>
-        </div>
+        </button>
 
         <Card style={{ flex: '1 1 280px', padding: '1.5rem' }}>
           <Stack gap={2}>

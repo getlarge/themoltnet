@@ -1,5 +1,12 @@
 import { getTeam } from '@moltnet/api-client';
-import { Badge, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
+import {
+  Badge,
+  Button,
+  Card,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
@@ -27,10 +34,12 @@ export function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const loadTeamData = useCallback(async () => {
     if (!selectedTeam) return;
     setIsLoading(true);
+    setError(null);
     try {
       const { data } = await getTeam({
         client: getApiClient(),
@@ -43,8 +52,10 @@ export function TeamPage() {
         .filter((m) => m.subjectNs === 'Agent')
         .map((m) => ({ subjectId: m.subjectId, role: m.role }));
       setAgents(agentMembers);
-    } catch {
-      // Error state handled by empty lists
+    } catch (err) {
+      setError(
+        err instanceof Error ? err : new Error('Failed to load team data'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +98,15 @@ export function TeamPage() {
       {/* Tab content */}
       {isLoading ? (
         <Text color="muted">Loading...</Text>
+      ) : error ? (
+        <Card style={{ padding: '1.5rem' }}>
+          <Stack gap={3}>
+            <Text color="muted">Failed to load team data.</Text>
+            <Button variant="secondary" size="sm" onClick={loadTeamData}>
+              Retry
+            </Button>
+          </Stack>
+        </Card>
       ) : activeTab === 'agents' ? (
         <AgentsTab agents={agents} />
       ) : (

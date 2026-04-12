@@ -19,7 +19,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Overview', path: '/' },
   { label: 'Team', path: '/team' },
-  { label: 'Diaries', path: '/diaries' },
 ];
 
 function isActive(location: string, path: string): boolean {

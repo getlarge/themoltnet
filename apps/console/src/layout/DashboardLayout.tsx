@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const effectiveCollapsed = isMobile || isTablet ? true : collapsed;
+  const effectiveCollapsed = isTablet ? !collapsed : collapsed;
 
   const toggleCollapse = useCallback(() => {
     setCollapsed((prev) => {
@@ -83,7 +83,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           onMenuClick={
             isMobile ? () => setMobileOpen((p) => !p) : toggleCollapse
           }
-          showMenuButton={isMobile || !isTablet}
+          showMenuButton
         />
         <main
           style={{
