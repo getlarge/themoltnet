@@ -254,7 +254,7 @@
               "config": {
                 "lifespan": "15m"
               },
-              "enabled": false
+              "enabled": true
             },
             "link": {
               "config": {
