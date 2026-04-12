@@ -1,5 +1,59 @@
 # Changelog
 
+## [1.15.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.14.0...moltnet-api-client-v1.15.0) (2026-04-12)
+
+
+### Features
+
+* add dashboard app with Kratos session auth support ([#652](https://github.com/getlarge/themoltnet/issues/652)) ([7c0aab4](https://github.com/getlarge/themoltnet/commit/7c0aab43e63cca749495c7b74f1014b787422af0))
+* add rendered pack update endpoint across the stack ([7394985](https://github.com/getlarge/themoltnet/commit/73949853c76fe04623b6529e53b7681225d387c3))
+* **cli,mcp-server:** regen clients + wire expand/depth params ([#740](https://github.com/getlarge/themoltnet/issues/740)) ([b6549ef](https://github.com/getlarge/themoltnet/commit/b6549ef9a03cd193af3225b53e618bdba150f26f))
+* expand entry relations inline with depth traversal ([#740](https://github.com/getlarge/themoltnet/issues/740)) ([147c5d4](https://github.com/getlarge/themoltnet/commit/147c5d4221e9c133a7bc10f6a2d37e30a3470eaa))
+* **governance:** team founding workflow, diary transfer, personal team limits ([9df1e74](https://github.com/getlarge/themoltnet/commit/9df1e746f54768bc989c8afbe3c81fb7f0a9ff54))
+* Kratos cookie auth + OpenAPI declarations + self-service UI ([38bec91](https://github.com/getlarge/themoltnet/commit/38bec9165480b9d5203e751a381c81ac1678ce3a))
+* **legreffier:** support GitHub org account in onboarding ([d2194d5](https://github.com/getlarge/themoltnet/commit/d2194d555e14aa119b08a3c3d73300e438199a63))
+* **monitoring:** add deep readiness probes for REST API and MCP server ([3a9ce21](https://github.com/getlarge/themoltnet/commit/3a9ce21ce810a378b64c98bb5ac210c49fc51d1e))
+* **rest-api,mcp,cli,sdk:** add rendered pack update endpoint ([098363b](https://github.com/getlarge/themoltnet/commit/098363b6843eb79501706efc8c6bdd4b379aaece)), closes [#752](https://github.com/getlarge/themoltnet/issues/752)
+
+
+### Bug Fixes
+
+* **go-client:** regenerate API client from updated OpenAPI spec ([cd6341f](https://github.com/getlarge/themoltnet/commit/cd6341f2bb22f47766483f114d778c60f2bbfd76))
+* **governance:** address code review — idempotency, compensation, race conditions ([38253db](https://github.com/getlarge/themoltnet/commit/38253db6d8fd449844e87dd77b8f08a61a34763c))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+* **rest-api:** add expiresAt to RenderedPackWithContentSchema ([8804ad8](https://github.com/getlarge/themoltnet/commit/8804ad816c88b57315226d99af3fa5b030cb6dd7))
+* **rest-api:** block unknown-property bodies on PATCH endpoints ([aa38cc3](https://github.com/getlarge/themoltnet/commit/aa38cc34c76d7f2fec7895a7134ca2e5f0a035e5))
+* **rest-api:** minProperties on PATCH bodies + 409 on concurrent pin ([c16a8c4](https://github.com/getlarge/themoltnet/commit/c16a8c4c196294cc362c56dba55b2647755bdc8f))
+* update normalized OpenAPI spec for Go client generation ([531ea8b](https://github.com/getlarge/themoltnet/commit/531ea8bd73fff93b114bf4dc170cf6e53e56f59f))
+
+
+### Codegen
+
+* **api-client:** regenerate clients for PATCH schema fixes ([b360503](https://github.com/getlarge/themoltnet/commit/b3605039705c1b058def2b32e06b10937a38c888))
+* **api-client:** regenerate TS + Go clients with cookieAuth ([cc7982d](https://github.com/getlarge/themoltnet/commit/cc7982dc8bcdc6ff46595241308535baf6067897))
+* **codegen:** regenerate OpenAPI spec and API clients ([452f00f](https://github.com/getlarge/themoltnet/commit/452f00f7aa2573667dfb3d765ba45555ec08499b))
+* include missed Go client generated files ([dfc0bcb](https://github.com/getlarge/themoltnet/commit/dfc0bcbf853712acc47fae2b3713d1a84865a4d1))
+* regenerate Go API client after rebase onto main ([5c03340](https://github.com/getlarge/themoltnet/commit/5c0334047f0823dad8e377eea5a2f86d31ce37e1))
+* regenerate OpenAPI spec and TS/Go clients with org field ([a65d284](https://github.com/getlarge/themoltnet/commit/a65d284cfb094a78ee91a44f05eb9c944c5fbbc4))
+* release main ([15ac92d](https://github.com/getlarge/themoltnet/commit/15ac92dd2b46ef8dccb0ec9820da94d76796ad3c))
+* release main ([7b8a605](https://github.com/getlarge/themoltnet/commit/7b8a6058e55dcf6546a31bca4cff167be5fa448d))
+* release main ([f604464](https://github.com/getlarge/themoltnet/commit/f6044642b432e9870ac64706709429cf43685307))
+* release main ([522d66d](https://github.com/getlarge/themoltnet/commit/522d66d7b5500a4de8f422b4fd2960312e601ca5))
+* release main ([f4046bc](https://github.com/getlarge/themoltnet/commit/f4046bc864a89033fd47692bfd0abde51304e1a3))
+* release main ([b5a3515](https://github.com/getlarge/themoltnet/commit/b5a3515afd55d240e9b33f5bdedbf9c198ac2984))
+* release main ([c2097d1](https://github.com/getlarge/themoltnet/commit/c2097d1ea56bc49bde61dfb479500322a445433a))
+* release main ([aa38a37](https://github.com/getlarge/themoltnet/commit/aa38a37c83a99a2abaff95e65f0968f92f6b90a8))
+* release main ([600bfe8](https://github.com/getlarge/themoltnet/commit/600bfe8c623850d9d613dd6a0b50040d856cf629))
+* release main ([dd4a688](https://github.com/getlarge/themoltnet/commit/dd4a688063ab98df8d70a4611b4afd40fde47f13))
+* release main ([f70c30e](https://github.com/getlarge/themoltnet/commit/f70c30ef4a11e2ba70f0886c7134963b3a5c29dc))
+* release main ([3ee905f](https://github.com/getlarge/themoltnet/commit/3ee905f61633a5ef88b9f73489d605e241b5a48a))
+* release main ([a0ef510](https://github.com/getlarge/themoltnet/commit/a0ef5103bf95e154fedd9647c754eb9c8ece5191))
+* release main ([38f9993](https://github.com/getlarge/themoltnet/commit/38f9993c5c926a1ec0bdc4dddea582af74a73bcb))
+* release main ([67c8ccb](https://github.com/getlarge/themoltnet/commit/67c8ccb17b5731f0877199d1c20f93ae40e95a61))
+* release main ([35b000a](https://github.com/getlarge/themoltnet/commit/35b000aaf7821331878987ca6db6aa137adf2bd4))
+* release main ([2174363](https://github.com/getlarge/themoltnet/commit/21743638faf1eaf4ce1960285f58ef8bd601e333))
+* release main ([c5b27c0](https://github.com/getlarge/themoltnet/commit/c5b27c030c5e912e71c4e4f6e4cf560e5f056437))
+
 ## [1.14.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.13.0...moltnet-api-client-v1.14.0) (2026-04-12)
 
 

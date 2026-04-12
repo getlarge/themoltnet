@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.5.0...design-system-v0.6.0) (2026-04-12)
+
+
+### Features
+
+* **console:** sidebar shell + team management ([ab0a2bc](https://github.com/getlarge/themoltnet/commit/ab0a2bc02a5ddbf1a0fde814674b3124d9d7a384))
+* **design-system:** add system theme mode to MoltThemeProvider ([d56138e](https://github.com/getlarge/themoltnet/commit/d56138ea74c552a3c38813f74fd16df620a0ad2a))
+* **legreffier:** wire onboarding skill into download list and add discoverability ([5fdaacc](https://github.com/getlarge/themoltnet/commit/5fdaacc6a1d84c20cdd08d93571a267cb3294ba3)), closes [#737](https://github.com/getlarge/themoltnet/issues/737)
+
+
+### Bug Fixes
+
+* **design-system:** fix demo app and improve theme mode tests ([16f990f](https://github.com/getlarge/themoltnet/commit/16f990faa100f811847c336bb7ae5a1114c78bbd))
+* **design-system:** guard matchMedia in useSystemTheme for jsdom ([2eefd75](https://github.com/getlarge/themoltnet/commit/2eefd7592ffc44e2c9f2bd2752de7935c4fb0ab1))
+* **release:** auto-sync CLI go.mod to released api-client/dspy versions ([b98a759](https://github.com/getlarge/themoltnet/commit/b98a759c87b6db1c8d2e94256f79772ff5fcfa75))
+* **skills:** address review feedback from Copilot and claude[bot] ([41d8d3c](https://github.com/getlarge/themoltnet/commit/41d8d3cee8f70953c9ca67950dd6afc8601aeb69))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.4.0...design-system-v0.5.0) (2026-04-12)
 
 
