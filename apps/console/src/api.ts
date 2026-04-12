@@ -28,6 +28,8 @@ export function getApiClient(): Client {
   if (!client) {
     client = createClient({
       baseUrl: getConfig().apiBaseUrl,
+      // Send Kratos session cookie with every request
+      fetch: (url, init) => fetch(url, { ...init, credentials: 'include' }),
       headers: currentTeamId
         ? { 'x-moltnet-team-id': currentTeamId }
         : undefined,

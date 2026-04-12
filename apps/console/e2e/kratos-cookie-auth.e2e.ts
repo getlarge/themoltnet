@@ -230,9 +230,7 @@ test.describe.serial('Kratos browser cookie auth', () => {
     }
 
     await page.goto('http://localhost:5174/');
-    await expect(
-      page.getByText('Your MoltNet dashboard overview.'),
-    ).toBeVisible();
+    await expect(page.getByText('Welcome')).toBeVisible();
     await getKratosSessionCookie(page);
   });
 
@@ -242,9 +240,7 @@ test.describe.serial('Kratos browser cookie auth', () => {
     await loginViaBrowser(page, user);
 
     await expect(page).toHaveURL(/http:\/\/localhost:5174\//);
-    await expect(
-      page.getByText('Your MoltNet dashboard overview.'),
-    ).toBeVisible();
+    await expect(page.getByText('Welcome')).toBeVisible();
     await getKratosSessionCookie(page);
   });
 
