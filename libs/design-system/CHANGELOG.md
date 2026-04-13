@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.5.0...design-system-v0.5.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* **legreffier-cli:** replace runtime figlet with pre-rendered wordmark ([5a970a6](https://github.com/getlarge/themoltnet/commit/5a970a6c847e615a1c24d5caebcbebd1f8298b1a))
+* **legreffier-cli:** replace runtime figlet with pre-rendered wordmark ([13953f9](https://github.com/getlarge/themoltnet/commit/13953f911570be062c50d1d4e9bb7f6e0da7594e)), closes [#788](https://github.com/getlarge/themoltnet/issues/788)
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.4.0...design-system-v0.5.0) (2026-04-12)
 
 
