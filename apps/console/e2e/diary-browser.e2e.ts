@@ -13,7 +13,7 @@ import { expect, test } from '@playwright/test';
 
 const KRATOS_PUBLIC_URL =
   process.env['KRATOS_PUBLIC_URL'] ?? 'http://localhost:4433';
-const REST_API_URL = process.env['REST_API_URL'] ?? 'http://localhost:8000';
+const REST_API_URL = process.env['REST_API_URL'] ?? 'http://localhost:8080';
 const MAILSLURPER_API_URL =
   process.env['MAILSLURPER_API_URL'] ?? 'http://localhost:4437';
 const CONSOLE_URL = process.env['CONSOLE_BASE_URL'] ?? 'http://localhost:5174';
@@ -198,7 +198,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
     });
     if (!createdTeam.data) {
       throw new Error(
-        `Failed to create a team for seeded diary fixtures: ${createdTeam.response.status} ${JSON.stringify(createdTeam.error)}`,
+        `Failed to create a team for seeded diary fixtures: ${createdTeam.response?.status} ${JSON.stringify(createdTeam.error)}`,
       );
     }
 
@@ -280,7 +280,9 @@ test.describe.serial('Diary browser', () => {
     if (await codeInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       const verification = await waitForVerificationData(user.email);
       if (!verification.code) {
-        throw new Error('Registration flow did not produce a verification code');
+        throw new Error(
+          'Registration flow did not produce a verification code',
+        );
       }
       await codeInput.fill(verification.code);
       await submitKratosForm(page);
@@ -309,7 +311,7 @@ test.describe.serial('Diary browser', () => {
     await expect(
       page.getByRole('heading', { name: seeded.populatedDiaryName }),
     ).toBeVisible();
-    await expect(page.getByText('Tags')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tags' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Grid' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timeline' })).toBeVisible();
     await expect(page.getByText(seeded.entryTitle)).toBeVisible();
@@ -319,16 +321,20 @@ test.describe.serial('Diary browser', () => {
     await loginViaBrowser(page, user);
     await page.goto(`${CONSOLE_URL}/diaries/${seeded.populatedDiaryId}`);
 
-    await page.getByText(seeded.entryTag).click();
-    await expect(page).toHaveURL(new RegExp(`tag=${seeded.entryTag}`));
+    await page.getByText(seeded.entryTag).first().click();
+    await expect(page).toHaveURL(
+      new RegExp(`tag=${encodeURIComponent(seeded.entryTag)}`),
+    );
     await expect(page.getByText(seeded.entryTitle)).toBeVisible();
 
     await page.getByText(seeded.entryTitle).click();
-    await expect(page.getByRole('heading', { name: seeded.entryTitle })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: seeded.entryTitle }),
+    ).toBeVisible();
     await expect(page.getByText('CID')).toBeVisible();
-    await expect(page.getByText('Signed')).toBeVisible();
+    await expect(page.getByText('Signed', { exact: true })).toBeVisible();
     await expect(page.getByText('Tokens')).toBeVisible();
-    await expect(page.getByText(seeded.entryTag)).toBeVisible();
+    await expect(page.getByText(seeded.entryTag).first()).toBeVisible();
   });
 
   test('renders the empty diary state', async ({ page }) => {
@@ -338,7 +344,9 @@ test.describe.serial('Diary browser', () => {
     await expect(
       page.getByRole('heading', { name: seeded.emptyDiaryName }),
     ).toBeVisible();
-    await expect(page.getByText('No entries yet')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'No entries yet' }),
+    ).toBeVisible();
     await expect(
       page.getByText('This diary has no entries yet.'),
     ).toBeVisible();
