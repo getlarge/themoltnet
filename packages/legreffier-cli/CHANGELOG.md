@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.32.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.0...legreffier-v0.32.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* address review feedback — stale PEM path, dynamic imports, regex ([4506627](https://github.com/getlarge/themoltnet/commit/4506627a4f74fea4305d26495b54ad70e6fcba4f))
+* auto-resolve GitHub App installation_id during port ([de5c38b](https://github.com/getlarge/themoltnet/commit/de5c38b0a3b571a403bf249866b3c00159c69008))
+* auto-resolve GitHub App installation_id during port ([08e3c3e](https://github.com/getlarge/themoltnet/commit/08e3c3e94d04cf6b8f1170fc5b1458bdbfa2eca0)), closes [#793](https://github.com/getlarge/themoltnet/issues/793)
+
 ## [0.32.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.31.0...legreffier-v0.32.0) (2026-04-13)
 
 

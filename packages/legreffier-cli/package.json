@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "description": "LeGreffier — attribution and measured memory for AI coding agents.",
   "license": "AGPL-3.0-only",
   "type": "module",
