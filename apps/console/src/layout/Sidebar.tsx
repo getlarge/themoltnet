@@ -18,6 +18,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Overview', path: '/' },
+  { label: 'Diaries', path: '/diaries' },
   { label: 'Team', path: '/team' },
 ];
 

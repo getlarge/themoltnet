@@ -119,8 +119,15 @@ The loop uses an AUTHOR subagent for writing and the ORCHESTRATOR
 │                  Orchestrator                    │
 │  (this conversation — coordinates, gates, logs)  │
 │                                                  │
+│  0. DISCOVER (vivo only)                         │
+│     → browses diary for seed entries             │
+│     → follows relations to commits               │
+│     → validates fixture.ref                      │
+│     → gathers context for AUTHOR                 │
+│                                                  │
 │  1. Spawns AUTHOR subagent(s)                    │
 │     → receives scenario files + rewrite-log      │
+│     → for vivo: also receives discovery output   │
 │     → writes files, does NOT run evals           │
 │     → multiple authors can run in parallel       │
 │                                                  │
@@ -147,6 +154,20 @@ so the orchestrator's measurement is not self-graded.
 themselves and paste the scores back. This is the cleanest separation
 but slower. Use when you want maximum confidence in baselines.
 ```
+
+#### Step 0: Discover fixture.ref (vivo scenarios only)
+
+Skip this step for vitro scenarios. For vivo scenarios, the orchestrator
+discovers the `fixture.ref` commit and gathers context from diary entries
+before spawning the AUTHOR subagent.
+
+Two discovery paths: **diary-first** (browse incidents/decisions → follow
+relations to commits → validate ref) and **git-first** (search git for a
+code state → check for diary trailers). Both converge at a validated ref
++ scenario seed content.
+
+See [references/fixture-ref-discovery.md](references/fixture-ref-discovery.md)
+for the full procedure with bash examples.
 
 #### Step 1: Spawn AUTHOR subagent
 
@@ -245,7 +266,8 @@ AUTHOR (subagent):                 ORCHESTRATOR (main session):
 ✓ Gap-test principles              ✓ Gate rules + rewrite-log (after scoring)
 ✓ Gold standard scenario           ✓ Scenario files (reads after author writes)
 ✓ Previous score (aggregate only)  ✓ Per-criteria breakdown (from eval output)
-✗ Per-criteria breakdown           ✓ Eval command + bash access
+✓ Discovery output (vivo only)     ✓ Eval command + bash access
+✗ Per-criteria breakdown           ✓ Discovery (diary + git, vivo only)
 ✗ Eval commands                    ✗ Author's intent (until after scoring)
 ```
 

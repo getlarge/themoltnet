@@ -919,9 +919,6 @@ importers:
       '@testing-library/react':
         specifier: 'catalog:'
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@types/figlet':
-        specifier: ^1.7.0
-        version: 1.7.0
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.10
@@ -931,9 +928,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.2.0(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
-      figlet:
-        specifier: 'catalog:'
-        version: 1.10.0
       ink:
         specifier: 'catalog:'
         version: 6.8.0(@types/react@19.2.10)(react@19.2.4)
@@ -1176,9 +1170,6 @@ importers:
       citty:
         specifier: 'catalog:'
         version: 0.2.2
-      figlet:
-        specifier: 'catalog:'
-        version: 1.10.0
       ink:
         specifier: 'catalog:'
         version: 6.8.0(@types/react@19.2.10)(react@19.2.4)
@@ -1207,9 +1198,6 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
-      '@types/figlet':
-        specifier: ^1.7.0
-        version: 1.7.0
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30
@@ -1276,6 +1264,9 @@ importers:
       fastq:
         specifier: 'catalog:'
         version: 1.20.1
+      figlet:
+        specifier: 'catalog:'
+        version: 1.10.0
       smol-toml:
         specifier: '>=1.6.1'
         version: 1.6.1
@@ -1283,6 +1274,9 @@ importers:
         specifier: '>=7.24.0'
         version: 7.24.7
     devDependencies:
+      '@types/figlet':
+        specifier: ^1.7.0
+        version: 1.7.0
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30

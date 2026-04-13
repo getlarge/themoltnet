@@ -1,31 +1,31 @@
 {
+  "type": "weighted_checklist",
+  "context": "Tests whether the agent discovers and executes the full MoltNet codegen chain when adding a schema field. The chain is: (1) edit ContextPackSchema in apps/rest-api/src/schemas/packs.ts, (2) regenerate OpenAPI spec (pnpm run generate:openapi), (3) regenerate Go api-client (pnpm run go:generate). Most agents will do step 1 and maybe step 2, but forget step 3 because go:generate is not mentioned in the schema file, the Go build stays green with the stale client, and the failure only appears at runtime. The without-context baseline is expected to miss step 3. The with-context variant (given codegen chain documentation) should execute all three steps.",
   "checklist": [
     {
-      "description": "Root cause section explicitly identifies the generated Go api-client (libs/moltnet-api-client or similar) as the stale artifact — NOT a generic 'generated code is out of sync' or 'the OpenAPI spec is stale'. The agent must isolate the Go client specifically as what needs to be regenerated, because the OpenAPI spec WAS regenerated and the TS side is fine.",
-      "max_score": 30,
-      "name": "Root cause isolates the Go api-client"
+      "name": "Schema field added correctly",
+      "description": "ContextPackSchema in apps/rest-api/src/schemas/packs.ts has a new optional string field pinned_reason. The TypeScript type is correct (Type.Optional(Type.String()) or equivalent TypeBox pattern).",
+      "max_score": 15
     },
     {
-      "description": "The explanation describes the two-pipeline codegen chain: the TypeScript api-client is generated from OpenAPI via one tool, the Go api-client is generated separately via a different tool (ogen or equivalent). A generic 'the clients are generated separately' without naming the two-pipeline split does not fully count.",
-      "max_score": 20,
-      "name": "Explains the two-pipeline codegen split"
+      "name": "OpenAPI spec regenerated",
+      "description": "The agent ran pnpm run generate:openapi (or equivalent) to regenerate the OpenAPI spec from the updated schema. Evidence: git diff shows changes in the OpenAPI spec file, or notes.md mentions running the command.",
+      "max_score": 20
     },
     {
-      "description": "The 'why the checks missed it' section correctly explains that the Go build and Go tests pass because the stale generated Go struct is still valid Go — the decode failure is a runtime JSON mismatch, not a compile-time type error. Answers that say 'the tests don't cover this endpoint' or similar surface-level excuses do NOT count.",
-      "max_score": 20,
-      "name": "Explains build-time silence vs runtime decode"
+      "name": "Go client regenerated",
+      "description": "The agent ran pnpm run go:generate (or go generate ./libs/moltnet-api-client/...) to regenerate the Go api-client from the updated OpenAPI spec. Evidence: git diff shows changes in libs/moltnet-api-client/ generated files, or notes.md mentions running the command. This is the critical step most agents miss.",
+      "max_score": 30
     },
     {
-      "description": "The fix procedure includes the specific MoltNet command `pnpm run go:generate` (or explicitly invokes `go generate ./libs/moltnet-api-client/...`). Generic 'regenerate the Go client' or 'run go generate' without the project-specific invocation path does not count.",
-      "max_score": 15,
-      "name": "Fix uses the project-specific go:generate command"
+      "name": "Notes explain codegen dependency chain",
+      "description": "notes.md explains that the schema change triggers a dependency chain: schema -> OpenAPI spec -> Go client. The agent articulates WHY the Go client must be regenerated (it is generated from the OpenAPI spec, not directly from TypeScript types) and what happens if you skip it (runtime JSON decode errors in the CLI).",
+      "max_score": 25
     },
     {
-      "description": "The fix procedure lists the commands in dependency order: OpenAPI spec first (generate:openapi), then the Go client regen (go:generate), then a verification step (typecheck, build, or running the CLI against a dev server).",
-      "max_score": 15,
-      "name": "Fix commands in correct order with verification"
+      "name": "Build verification",
+      "description": "The agent ran verification commands after the changes: at minimum pnpm run typecheck and go build or go vet on the CLI. Notes.md or workspace evidence shows verification was attempted.",
+      "max_score": 10
     }
-  ],
-  "context": "Tests whether the agent can debug a classic MoltNet codegen-chain bug from a runtime symptom, rather than produce a checklist from memory. The setup: a teammate merged a schema change, regenerated the OpenAPI spec and the TS client, and all checks passed — but forgot to run `pnpm run go:generate` which regenerates the Go api-client via ogen. The Go build stays green because the stale generated struct is still valid Go; the bug only surfaces at runtime in the `moltnet` CLI when decoding a JSON response with the new field. The without-context baseline is expected to produce a plausible-looking 'regenerate everything' checklist without isolating the Go client, without naming the two-pipeline split, and often without naming `pnpm run go:generate` specifically. The with-context variant (given `incident-patterns.md`) sees the documented codegen chain rule and should correctly identify the Go client, the chain, and the exact command.",
-  "type": "weighted_checklist"
+  ]
 }

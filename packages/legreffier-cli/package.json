@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "LeGreffier — attribution and measured memory for AI coding agents.",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "citty": "catalog:",
-    "figlet": "catalog:",
     "ink": "catalog:",
     "open": "catalog:",
     "react": "catalog:",
@@ -41,7 +40,6 @@
     "@themoltnet/design-system": "workspace:*",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "typescript": "catalog:",
