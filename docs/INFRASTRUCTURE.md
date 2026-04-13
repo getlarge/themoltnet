@@ -102,14 +102,14 @@ injecting both into the child process environment.
 
 **`env.public`** (plain, no key needed):
 
-| Variable          | Value                                                    |
-| ----------------- | -------------------------------------------------------- |
-| `BASE_DOMAIN`      | `themolt.net`                                            |
-| `LANDING_BASE_URL` | `https://themolt.net`                                    |
-| `CONSOLE_BASE_URL` | `https://console.themolt.net`                            |
-| `API_BASE_URL`     | `https://api.themolt.net`                                |
-| `ORY_PROJECT_ID`   | `7219f256-464a-4511-874c-bde7724f6897`                   |
-| `ORY_PROJECT_URL`  | `https://auth.themolt.net`                               |
+| Variable           | Value                                  |
+| ------------------ | -------------------------------------- |
+| `BASE_DOMAIN`      | `themolt.net`                          |
+| `LANDING_BASE_URL` | `https://themolt.net`                  |
+| `CONSOLE_BASE_URL` | `https://console.themolt.net`          |
+| `API_BASE_URL`     | `https://api.themolt.net`              |
+| `ORY_PROJECT_ID`   | `7219f256-464a-4511-874c-bde7724f6897` |
+| `ORY_PROJECT_URL`  | `https://auth.themolt.net`             |
 
 **`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
 
@@ -117,7 +117,7 @@ injecting both into the child process environment.
 | -------------------- | ---------------------- |
 | `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt |
 
-**Computed at runtime** (in `deploy.sh`):
+**Computed at runtime** (in `deploy.mjs`):
 
 | Variable                 | Source                                      |
 | ------------------------ | ------------------------------------------- |
@@ -450,22 +450,37 @@ pnpm run package:skill
 
 ## Ory Project Deployment
 
-```bash
-# Dry run — writes infra/ory/project.resolved.json
-pnpm exec dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh
+The Ory project config lives in `infra/ory/project.json` (source of truth). The deploy script handles three things:
 
-# Apply to Ory Network (requires ory CLI)
-pnpm exec dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
+1. **Project config** — substitutes env vars into `project.json` and pushes via `ory update project`
+2. **Account Experience branding** — syncs `theme_variables_dark` / `theme_variables_light` via the console normalized API (the Ory CLI ignores these fields)
+3. **OPL permissions** — pushes `infra/ory/permissions.ts` via `ory update opl`
+
+```bash
+# Dry run — writes infra/ory/project.resolved.json, shows theme key counts
+npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs
+
+# Apply all (project config + branding + OPL)
+npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
+
+# Apply all (project config + branding + OPL)
+npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
 ```
 
-> **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. After editing it, push the updated OPL with:
->
-> ```bash
-> cd /tmp && ory update opl --project tender-satoshi-rtd7nibdhq \
->   --file /path/to/themoltnet/infra/ory/permissions.ts -y
-> ```
->
-> Run from outside the repo directory to avoid the Ory CLI loading the encrypted `.env` file. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
+### Account Experience (AX)
+
+MoltNet uses the Ory-hosted Account Experience (not custom UI). Key config:
+
+- **Custom domain**: `auth.themolt.net` — configured in Ory console under Branding > Custom domains
+- **UI URLs**: Kratos `ui_url` fields use relative paths (`/login`, `/registration`, etc.) to let the AX render instead of redirecting to a custom UI. **Do not** set full URLs — Ory will treat them as custom UI overrides.
+- **OAuth2 URLs**: Hydra URLs use `${ORY_PROJECT_URL}/login` (no `/ui/` prefix) for the same reason.
+- **Branding**: Theme variables in `project.json` define the brand color scale (`brand_50`–`brand_950`) and interface tokens. The deploy script base64-encodes them and PATCHes the console normalized API (`/normalized/projects/{id}/revision/{revId}`) since `ory update project` ignores these fields.
+
+### Editing branding via the console
+
+The Ory console UI (Branding > Theming > Customize UI) is the only way to **preview** theme changes visually. Changes made there are persisted but may be overwritten on the next `deploy.mjs --apply`. Always update `project.json` to keep it as the source of truth.
+
+> **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. It's deployed automatically by `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
 
 ## Observability
 
