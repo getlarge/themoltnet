@@ -15,6 +15,7 @@ import {
   readSourceDiaryId,
   runPortDiaryPhase,
 } from './phases/portDiary.js';
+import { runPortResolveInstallationPhase } from './phases/portResolveInstallation.js';
 import { runPortRewritePhase } from './phases/portRewrite.js';
 import {
   type PortValidateResult,
@@ -37,6 +38,7 @@ type PortPhase =
   | 'validating'
   | 'copying'
   | 'rewriting'
+  | 'resolving_installation'
   | 'diary'
   | 'agent_setup'
   | 'verifying'
@@ -134,6 +136,26 @@ export function PortApp({
         filesWritten.push(rewriteResult.gitConfigPath);
         filesWritten.push(join(targetDir, 'env'));
 
+        // P3b — resolve installation_id for the target owner.
+        // Read the rewritten config from disk so private_key_path points
+        // to the copied PEM in targetDir, not the source machine path.
+        setPhase('resolving_installation');
+        const currentRepo = detectCurrentRepo(targetRepoDir);
+        const prefix = toEnvPrefix(name);
+        const rewrittenConfig = (await readConfig(targetDir)) ?? config;
+        const resolveResult = await runPortResolveInstallationPhase({
+          targetDir,
+          config: rewrittenConfig,
+          currentRepo: currentRepo ?? undefined,
+          envPrefix: prefix,
+        });
+        if (
+          resolveResult.status === 'not-installed' ||
+          resolveResult.status === 'skipped'
+        ) {
+          warnings.push(resolveResult.message);
+        }
+
         // P4
         setPhase('diary');
         const sourceDiaryId = await readSourceDiaryId(sourceDir);
@@ -146,7 +168,6 @@ export function PortApp({
         // Per-agent tool files (claude/codex): skills, settings, rules.
         // Mirror what SetupApp does — reuse adapters directly.
         setPhase('agent_setup');
-        const prefix = toEnvPrefix(name);
         const mcpUrl =
           config.endpoints?.mcp ??
           apiUrl.replace('://api.', '://mcp.') + '/mcp';
@@ -163,7 +184,7 @@ export function PortApp({
             targetDir,
             basename(config.github?.private_key_path ?? ''),
           ),
-          installationId: config.github?.installation_id ?? '',
+          installationId: resolveResult.installationId,
         };
         for (const agentType of agents) {
           const adapter = adapters[agentType];
@@ -178,13 +199,12 @@ export function PortApp({
         }
 
         // P5 — warning-only. Use the rewritten target config so token
-        // minting reads the *copied* PEM (the source may have been on a
-        // different machine / become unreadable). Fall back to the source
-        // config only if the target read somehow fails.
+        // minting reads the *copied* PEM and the (possibly updated)
+        // installation_id. Fall back to the source config only if the
+        // target read somehow fails.
         setPhase('verifying');
         const targetConfig = await readConfig(targetDir);
         const verifyConfig = targetConfig ?? config;
-        const currentRepo = detectCurrentRepo(targetRepoDir);
         const verifyResult = await runPortVerifyInstallationPhase({
           config: verifyConfig,
           currentRepo: currentRepo ?? undefined,
@@ -236,6 +256,7 @@ export function PortApp({
       validating: `Validating source .moltnet/${name}...`,
       copying: `Copying private material...`,
       rewriting: `Rewriting paths in moltnet.json...`,
+      resolving_installation: `Resolving GitHub App installation for target org...`,
       diary: `Configuring diary (${diaryMode})...`,
       agent_setup: `Installing agent files for ${agents.join(', ')}...`,
       verifying: `Verifying GitHub App installation scope...`,

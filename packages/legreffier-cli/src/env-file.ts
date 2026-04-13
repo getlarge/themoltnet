@@ -90,6 +90,40 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
 }
 
 /**
+ * Update a single managed key in an existing env file.
+ * If the key exists, its value is replaced; otherwise appended.
+ */
+export async function updateEnvVar(
+  envDir: string,
+  key: string,
+  value: string,
+): Promise<void> {
+  const envPath = join(envDir, 'env');
+  let content: string;
+  try {
+    content = await readFile(envPath, 'utf-8');
+  } catch {
+    content = '';
+  }
+
+  const line = `${key}=${q(value)}`;
+  const keyPrefix = `${key}=`;
+  const lines = content === '' ? [] : content.split('\n');
+  const index = lines.findIndex((l) => l.startsWith(keyPrefix));
+
+  if (index !== -1) {
+    lines[index] = line;
+    content = lines.join('\n');
+  } else {
+    content = content.endsWith('\n')
+      ? content + line + '\n'
+      : content + '\n' + line + '\n';
+  }
+
+  await writeFile(envPath, content, 'utf-8');
+}
+
+/**
  * Resolve the human operator's git identity from global git config.
  * Must be called BEFORE GIT_CONFIG_GLOBAL is set (so it reads the
  * human's config, not the agent's).
