@@ -6,7 +6,7 @@ import { useTeam } from '../team/useTeam.js';
 
 export function OverviewPage() {
   const { username } = useAuth();
-  const { selectedTeam } = useTeam();
+  const { selectedTeam, error } = useTeam();
   const [, navigate] = useLocation();
 
   return (
@@ -14,7 +14,9 @@ export function OverviewPage() {
       <Stack gap={1}>
         <Text variant="h2">Welcome{username ? `, ${username}` : ''}</Text>
         <Text color="muted">
-          {selectedTeam
+          {error
+            ? 'Team scope failed to load. Check console-to-API connectivity.'
+            : selectedTeam
             ? `Team: ${selectedTeam.name}`
             : 'Your MoltNet dashboard overview.'}
         </Text>

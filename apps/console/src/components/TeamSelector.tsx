@@ -4,13 +4,29 @@ import { useTeam } from '../team/useTeam.js';
 
 export function TeamSelector() {
   const theme = useTheme();
-  const { teams, selectedTeam, selectTeam, isLoading } = useTeam();
+  const { teams, selectedTeam, selectTeam, isLoading, error } = useTeam();
 
   if (isLoading) {
     return (
       <Text variant="caption" color="muted">
         Loading teams...
       </Text>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        title={error.message}
+        style={{
+          padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+          color: theme.color.error.DEFAULT,
+        }}
+      >
+        <Text variant="caption" color="muted">
+          Failed to load teams
+        </Text>
+      </div>
     );
   }
 
