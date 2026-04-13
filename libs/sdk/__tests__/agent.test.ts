@@ -10,6 +10,8 @@ import {
   createTeamInvite,
   deleteDiary,
   deleteDiaryEntryById,
+  deleteTeam,
+  deleteTeamInvite,
   getAgentProfile,
   getCryptoIdentity,
   getDiary,
@@ -37,6 +39,7 @@ import {
   listTeamMembers,
   listTeams,
   reflectDiary,
+  removeTeamMember,
   requestRecoveryChallenge,
   revokeDiaryGrant,
   rotateClientSecret,
@@ -107,8 +110,11 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     listTeamMembers: vi.fn(),
     createTeam: vi.fn(),
     joinTeam: vi.fn(),
+    deleteTeam: vi.fn(),
+    removeTeamMember: vi.fn(),
     createTeamInvite: vi.fn(),
     listTeamInvites: vi.fn(),
+    deleteTeamInvite: vi.fn(),
     updateContextPack: vi.fn(),
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
@@ -1124,6 +1130,58 @@ describe('Agent facade', () => {
       expect(result).toEqual(invites);
       expect(listTeamInvites).toHaveBeenCalledWith(
         expect.objectContaining({ path: { id: 'team-1' } }),
+      );
+    });
+
+    it('teams.delete calls deleteTeam with correct path', async () => {
+      const deleted = { deleted: true };
+      vi.mocked(deleteTeam).mockResolvedValueOnce({
+        data: deleted,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.delete('team-1');
+
+      expect(result).toEqual(deleted);
+      expect(deleteTeam).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'team-1' } }),
+      );
+    });
+
+    it('teams.removeMember calls removeTeamMember with correct path params', async () => {
+      const removed = { removed: true };
+      vi.mocked(removeTeamMember).mockResolvedValueOnce({
+        data: removed,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.removeMember('team-1', 'subject-1');
+
+      expect(result).toEqual(removed);
+      expect(removeTeamMember).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'team-1', subjectId: 'subject-1' },
+        }),
+      );
+    });
+
+    it('teams.invites.delete calls deleteTeamInvite with correct path params', async () => {
+      const deleted = { deleted: true };
+      vi.mocked(deleteTeamInvite).mockResolvedValueOnce({
+        data: deleted,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.invites.delete('team-1', 'invite-1');
+
+      expect(result).toEqual(deleted);
+      expect(deleteTeamInvite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'team-1', inviteId: 'invite-1' },
+        }),
       );
     });
   });
