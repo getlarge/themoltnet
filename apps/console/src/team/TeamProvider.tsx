@@ -23,6 +23,7 @@ export interface TeamContextValue {
   selectTeam: (teamId: string) => void;
   isLoading: boolean;
   error: Error | null;
+  refreshTeams: () => Promise<void>;
 }
 
 export const TeamContext = createContext<TeamContextValue | null>(null);
@@ -37,38 +38,48 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const loadTeams = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { data } = await listTeams({ client: getApiClient() });
+      const items = data?.items ?? [];
+      setTeams(items);
+
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const valid = items.find((t) => t.id === stored);
+      if (valid) {
+        setSelectedTeamId(valid.id);
+        return;
+      }
+
+      if (items.length > 0) {
+        setSelectedTeamId(items[0].id);
+        localStorage.setItem(STORAGE_KEY, items[0].id);
+      } else {
+        setSelectedTeamId(null);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch (err) {
+      setTeams([]);
+      setSelectedTeamId(null);
+      setError(err instanceof Error ? err : new Error('Failed to load teams'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { data } = await listTeams({ client: getApiClient() });
-        if (cancelled || !data) return;
-        const items = data.items;
-        setTeams(items);
 
-        const stored = localStorage.getItem(STORAGE_KEY);
-        const valid = items.find((t) => t.id === stored);
-        if (!valid && items.length > 0) {
-          setSelectedTeamId(items[0].id);
-          localStorage.setItem(STORAGE_KEY, items[0].id);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err : new Error('Failed to load teams'),
-          );
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-    void load();
+    void loadTeams().then(() => {
+      if (cancelled) return;
+    });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadTeams]);
 
   const selectTeam = useCallback((teamId: string) => {
     setSelectedTeamId(teamId);
@@ -88,6 +99,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     selectTeam,
     isLoading,
     error,
+    refreshTeams: loadTeams,
   };
 
   return <TeamContext.Provider value={value}>{children}</TeamContext.Provider>;
