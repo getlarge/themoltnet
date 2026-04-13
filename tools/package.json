@@ -17,6 +17,7 @@
     "tasksmith:triage-fixture-green": "tsx src/tasksmith/triage-fixture-green.ts",
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
+    "smtp:test": "tsx src/test-smtp.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
@@ -38,10 +39,12 @@
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "fastq": "catalog:",
+    "figlet": "catalog:",
     "smol-toml": "catalog:",
     "undici": "catalog:"
   },
   "devDependencies": {
+    "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

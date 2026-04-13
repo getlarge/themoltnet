@@ -1,10 +1,8 @@
-import figlet from 'figlet';
 import { Box, Text } from 'ink';
 
 import { cliTheme } from './theme.js';
-
-// Pre-render at module load time — figlet is sync
-const WORDMARK = figlet.textSync('MOLTNET', { font: 'slant' });
+// Pre-rendered by `pnpm generate:wordmark` — no runtime figlet/fs dependency.
+import { WORDMARK } from './wordmark.js';
 
 export function CliLogo() {
   return (

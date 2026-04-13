@@ -23,7 +23,6 @@ export default defineConfig({
         'react/jsx-runtime',
         'react-dom',
         'ink',
-        'figlet',
         'prism-react-renderer',
       ],
     },
