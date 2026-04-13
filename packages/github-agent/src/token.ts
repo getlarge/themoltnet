@@ -68,6 +68,73 @@ async function writeTokenCache(
  * Uses a file-based cache next to the private key to avoid
  * hitting the GitHub API on every call.
  */
+interface AppInstallation {
+  id: number;
+  account: { login: string } | null;
+  target_type: string;
+}
+
+/**
+ * List all installations of this GitHub App and return the one whose
+ * `account.login` matches the given owner (case-insensitive).
+ *
+ * Uses the App JWT (not an installation token), so it works even when
+ * `installation_id` is missing or stale.
+ */
+export async function findInstallationForOwner(opts: {
+  appId: string;
+  privateKeyPath: string;
+  owner: string;
+}): Promise<{ installationId: string } | null> {
+  const privateKeyPem = await readFile(opts.privateKeyPath, 'utf-8');
+  const jwt = createAppJWT(opts.appId, privateKeyPem);
+  const ownerLower = opts.owner.toLowerCase();
+
+  let nextUrl: string | null =
+    'https://api.github.com/app/installations?per_page=100';
+  let pageCount = 0;
+  const MAX_PAGES = 10;
+
+  while (nextUrl && pageCount < MAX_PAGES) {
+    pageCount++;
+    const res: Response = await fetch(nextUrl, {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `GitHub API error listing installations (${res.status}): ${await res.text()}`,
+      );
+    }
+
+    const installations = (await res.json()) as AppInstallation[];
+    const match = installations.find(
+      (i) => i.account?.login.toLowerCase() === ownerLower,
+    );
+    if (match) {
+      return { installationId: String(match.id) };
+    }
+
+    // Follow pagination
+    const linkHeader: string | null = res.headers.get('link');
+    nextUrl = linkHeader ? parseNextLinkHeader(linkHeader) : null;
+  }
+
+  return null;
+}
+
+function parseNextLinkHeader(header: string): string | null {
+  for (const part of header.split(',')) {
+    const match = part.match(/<([^>]+)>\s*;\s*rel="next"/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 export async function getInstallationToken(opts: {
   appId: string;
   privateKeyPath: string;
