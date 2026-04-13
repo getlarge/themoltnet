@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -78,12 +79,85 @@ func TestWriteDSPYEvalPackToDisk(t *testing.T) {
 func TestBuildWorkspaceSnapshotFallsBackToFinalResponse(t *testing.T) {
 	dir := t.TempDir()
 
-	got, err := buildWorkspaceSnapshot(dir, "final output")
+	got, err := buildWorkspaceSnapshot(dir, "final output", "vitro")
 	if err != nil {
 		t.Fatalf("buildWorkspaceSnapshot: %v", err)
 	}
 	if !strings.Contains(got, "final-response.txt") {
 		t.Fatalf("expected fallback response file, got %q", got)
+	}
+}
+
+func TestBuildVivoWorkspaceSnapshot(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Create a small file that should be included inline.
+	notesPath := filepath.Join(dir, "notes.md")
+	if err := os.WriteFile(notesPath, []byte("# Notes\nAgent ran codegen."), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a large file that should NOT be included inline.
+	bigPath := filepath.Join(dir, "big-generated.go")
+	bigContent := strings.Repeat("x", int(vivoSnapshotDiffCap)+1)
+	if err := os.WriteFile(bigPath, []byte(bigContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Not a git repo so git commands will fail gracefully.
+	got, err := buildWorkspaceSnapshot(dir, "", "vivo")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot vivo: %v", err)
+	}
+
+	// Should contain the git status/diff --stat section headers.
+	if !strings.Contains(got, "## git status") {
+		t.Error("vivo snapshot missing git status section")
+	}
+	if !strings.Contains(got, "## git diff --stat") {
+		t.Error("vivo snapshot missing git diff --stat section")
+	}
+
+	// Should NOT contain the large file contents (no git status = no paths parsed).
+	if strings.Contains(got, bigContent[:100]) {
+		t.Error("vivo snapshot should not include large file contents")
+	}
+}
+
+func TestBuildWorkspaceSnapshotVitroReadsFullContents(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Init a git repo so git status works.
+	if err := exec.Command("git", "-C", dir, "init").Run(); err != nil {
+		t.Skipf("git init failed: %v", err)
+	}
+	if err := exec.Command("git", "-C", dir, "config", "user.email", "test@test.com").Run(); err != nil {
+		t.Skipf("git config failed: %v", err)
+	}
+	if err := exec.Command("git", "-C", dir, "config", "user.name", "Test").Run(); err != nil {
+		t.Skipf("git config failed: %v", err)
+	}
+	// Initial commit so HEAD exists.
+	if err := exec.Command("git", "-C", dir, "commit", "--allow-empty", "-m", "init").Run(); err != nil {
+		t.Skipf("git commit failed: %v", err)
+	}
+
+	testFile := filepath.Join(dir, "result.md")
+	content := "# Result\nThe answer is 42."
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := buildWorkspaceSnapshot(dir, "", "vitro")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot vitro: %v", err)
+	}
+
+	// Vitro should read the full file content.
+	if !strings.Contains(got, content) {
+		t.Errorf("vitro snapshot should contain full file content, got:\n%s", got)
 	}
 }
 

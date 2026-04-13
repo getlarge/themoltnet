@@ -300,7 +300,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		return nil, err
 	}
 
-	filesSnapshot, err := buildWorkspaceSnapshot(worktreeDir, agentResult.output)
+	filesSnapshot, err := buildWorkspaceSnapshot(worktreeDir, agentResult.output, effectiveMode)
 	if err != nil {
 		return nil, fmt.Errorf("snapshot workspace: %w", err)
 	}
@@ -602,7 +602,16 @@ func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
 	}
 }
 
-func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
+func buildWorkspaceSnapshot(workDir, fallbackOutput, mode string) (string, error) {
+	if mode == "vivo" {
+		return buildVivoWorkspaceSnapshot(workDir, fallbackOutput)
+	}
+	return buildVitroWorkspaceSnapshot(workDir, fallbackOutput)
+}
+
+// buildVitroWorkspaceSnapshot reads full file contents of changed files.
+// Safe for vitro worktrees which contain only injected fixture files.
+func buildVitroWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 	paths, err := listChangedSnapshotPaths(workDir)
 	if err != nil {
 		return "", err
@@ -638,6 +647,70 @@ func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 	}
 	return b.String(), nil
 }
+
+// buildVivoWorkspaceSnapshot produces a lightweight summary suitable for the
+// judge when the worktree is a full repo checkout. Instead of reading every
+// changed file (which can overflow the judge's context window), it captures:
+//   - git status --short (what changed)
+//   - git diff --stat    (change magnitudes)
+//   - git diff for small files only (notes.md and files under vivoSnapshotDiffCap bytes)
+//
+// The judge gets enough signal to evaluate criteria without a multi-megabyte
+// text dump.
+func buildVivoWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
+	var b strings.Builder
+
+	statusOut, err := gitOutput(workDir, "status", "--short")
+	if err != nil {
+		statusOut = "(git status unavailable)"
+	}
+	b.WriteString("## git status\n```\n")
+	b.WriteString(strings.TrimSpace(statusOut))
+	b.WriteString("\n```\n\n")
+
+	diffStatOut, err := gitOutput(workDir, "diff", "--stat")
+	if err != nil {
+		diffStatOut = "(git diff --stat unavailable)"
+	}
+	b.WriteString("## git diff --stat\n```\n")
+	b.WriteString(strings.TrimSpace(diffStatOut))
+	b.WriteString("\n```\n\n")
+
+	// Include full content for small files that are likely to contain
+	// judge-relevant evidence (notes.md, config files, etc.).
+	paths := parseGitStatusPaths(statusOut)
+	sort.Strings(paths)
+	for _, rel := range paths {
+		fullPath := filepath.Join(workDir, rel)
+		info, statErr := os.Stat(fullPath)
+		if statErr != nil || info.IsDir() {
+			continue
+		}
+		if info.Size() > vivoSnapshotDiffCap {
+			continue
+		}
+		data, readErr := os.ReadFile(fullPath)
+		if readErr != nil {
+			continue
+		}
+		b.WriteString("## ")
+		b.WriteString(rel)
+		b.WriteString("\n")
+		b.WriteString(string(data))
+		b.WriteString("\n\n")
+	}
+
+	if b.Len() == 0 && strings.TrimSpace(fallbackOutput) != "" {
+		b.WriteString("## final-response.txt\n")
+		b.WriteString(fallbackOutput)
+		b.WriteString("\n")
+	}
+	return b.String(), nil
+}
+
+// vivoSnapshotDiffCap is the max file size (bytes) to include inline in a vivo
+// snapshot. Files larger than this are represented only in git status/diff --stat.
+const vivoSnapshotDiffCap = 8192
 
 func listChangedSnapshotPaths(workDir string) ([]string, error) {
 	statusOut, err := gitOutput(workDir, "status", "--short")
