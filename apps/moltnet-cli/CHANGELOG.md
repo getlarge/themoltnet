@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.24.0](https://github.com/getlarge/themoltnet/compare/cli-v1.23.0...cli-v1.24.0) (2026-04-13)
+
+
+### Features
+
+* **cli,skill:** add env-driven commit authorship modes ([5e5cb11](https://github.com/getlarge/themoltnet/commit/5e5cb11f5b9509f2fc4eb3be349a9a478ec58614))
+* **cli,skill:** add env-driven commit authorship modes ([#786](https://github.com/getlarge/themoltnet/issues/786)) ([61b643e](https://github.com/getlarge/themoltnet/commit/61b643e53e9c42fd4a5e9531ed80fe201dd09a8b))
+* **eval:** dispatch VitroSignature vs VivoSignature based on mode ([b429cf6](https://github.com/getlarge/themoltnet/commit/b429cf62acbc2b47eb2dbd36554ece7cf83a4954)), closes [#734](https://github.com/getlarge/themoltnet/issues/734)
+* **eval:** pass repo_ref to solver for vivo runs ([029f384](https://github.com/getlarge/themoltnet/commit/029f3847d5e95ce04005740ce774adade9957e79)), closes [#734](https://github.com/getlarge/themoltnet/issues/734)
+* **eval:** thread mode and fixtureRef through solverInput ([359dc78](https://github.com/getlarge/themoltnet/commit/359dc785dc9fe653e096fbb8d0672ff60814a36e)), closes [#734](https://github.com/getlarge/themoltnet/issues/734)
+* **eval:** vivo mode + CoT signature dispatch ([20da98d](https://github.com/getlarge/themoltnet/commit/20da98dacea02c15fc369a4b61e668ffea2dc3ab))
+
+
+### Bug Fixes
+
+* **cli,skill:** address PR [#792](https://github.com/getlarge/themoltnet/issues/792) review feedback ([4c4970c](https://github.com/getlarge/themoltnet/commit/4c4970ce6d3de622c27aee255ed06fc28e0f5f63))
+* **evals:** address PR [#785](https://github.com/getlarge/themoltnet/issues/785) review feedback ([cee3c62](https://github.com/getlarge/themoltnet/commit/cee3c62de1abd2fad162acee5a04c47f8f8b909f))
+* **evals:** lightweight workspace snapshot for vivo mode ([54851b3](https://github.com/getlarge/themoltnet/commit/54851b3a9984371fb830b549ff419b0fe93c9ad2))
+
 ## [1.23.0](https://github.com/getlarge/themoltnet/compare/cli-v1.22.0...cli-v1.23.0) (2026-04-12)
 
 

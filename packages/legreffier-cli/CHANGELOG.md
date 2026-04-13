@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.32.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.31.0...legreffier-v0.32.0) (2026-04-13)
+
+
+### Features
+
+* **cli,skill:** add env-driven commit authorship modes ([5e5cb11](https://github.com/getlarge/themoltnet/commit/5e5cb11f5b9509f2fc4eb3be349a9a478ec58614))
+* **cli,skill:** add env-driven commit authorship modes ([#786](https://github.com/getlarge/themoltnet/issues/786)) ([61b643e](https://github.com/getlarge/themoltnet/commit/61b643e53e9c42fd4a5e9531ed80fe201dd09a8b))
+
+
+### Bug Fixes
+
+* **cli,skill:** address PR [#792](https://github.com/getlarge/themoltnet/issues/792) review feedback ([4c4970c](https://github.com/getlarge/themoltnet/commit/4c4970ce6d3de622c27aee255ed06fc28e0f5f63))
+* **legreffier-cli:** replace runtime figlet with pre-rendered wordmark ([5a970a6](https://github.com/getlarge/themoltnet/commit/5a970a6c847e615a1c24d5caebcbebd1f8298b1a))
+* **legreffier-cli:** replace runtime figlet with pre-rendered wordmark ([13953f9](https://github.com/getlarge/themoltnet/commit/13953f911570be062c50d1d4e9bb7f6e0da7594e)), closes [#788](https://github.com/getlarge/themoltnet/issues/788)
+
 ## [0.31.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.30.0...legreffier-v0.31.0) (2026-04-11)
 
 
