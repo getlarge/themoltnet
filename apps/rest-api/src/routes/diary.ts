@@ -316,6 +316,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           201: DiaryGrantResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -340,6 +341,20 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const { subjectId, subjectNs, role } = request.body;
       const ketoNs = mapSubjectNs(subjectNs);
+
+      // Enforce one grant per diary per subject
+      const existingGrants =
+        await fastify.relationshipReader.listDiaryGrants(id);
+      const ketoNsStr: string = ketoNs;
+      const existing = existingGrants.find(
+        (g) => g.subjectId === subjectId && g.subjectNs === ketoNsStr,
+      );
+      if (existing && existing.role !== role) {
+        throw createProblem(
+          'conflict',
+          `Subject already has '${existing.role}' access on this diary. Revoke it first.`,
+        );
+      }
 
       if (role === 'writer') {
         await fastify.relationshipWriter.grantDiaryWriters(

@@ -236,6 +236,23 @@ describe('Diary Grants E2E', () => {
       expect(res2.status).toBe(201);
     });
 
+    it('conflicting grant returns 409', async () => {
+      // agentC already has writer grant from the first test
+      const { error, response } = await createDiaryGrant({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamDiaryId },
+        body: {
+          subjectId: agentC.identityId,
+          subjectNs: 'Agent',
+          role: 'manager',
+        },
+      });
+
+      expect(response.status).toBe(409);
+      expect(error).toBeDefined();
+    });
+
     it('non-manager gets 403', async () => {
       const { error, response } = await createDiaryGrant({
         client,
