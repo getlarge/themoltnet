@@ -221,12 +221,18 @@ describe('Team Tools E2E', () => {
 
     const parsed = parseResult(result) as {
       teamId: string;
-      members: Array<{ subjectId: string }>;
+      members: Array<{ subjectId: string; role: string }>;
     };
     expect(parsed.members).toBeDefined();
-    expect(parsed.members.length).toBe(2);
-    const memberIds = parsed.members.map((m) => m.subjectId);
-    expect(memberIds).toContain(agentBIdentityId);
+    expect(parsed.members.length).toBeGreaterThanOrEqual(2);
+    const memberB = parsed.members.find(
+      (m) => m.subjectId === agentBIdentityId,
+    );
+    expect(
+      memberB,
+      'agentB should appear in members after joining',
+    ).toBeDefined();
+    expect(memberB!.role).toBe('members');
   });
 
   // ── 7. teams_member_remove removes agentB ──

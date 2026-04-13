@@ -502,7 +502,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
 
       return reply
         .status(201)
-        .send({ code: invite.code, expiresAt: invite.expiresAt });
+        .send({
+          id: invite.id,
+          code: invite.code,
+          expiresAt: invite.expiresAt,
+        });
     },
   );
 

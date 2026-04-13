@@ -5588,6 +5588,16 @@
             },
             "description": "Default Response"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -10628,9 +10638,14 @@
                           "expiresAt": {
                             "format": "date-time",
                             "type": "string"
+                          },
+                          "id": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
                           }
                         },
-                        "required": ["code", "expiresAt"],
+                        "required": ["id", "code", "expiresAt"],
                         "type": "object"
                       },
                       "type": "array"
@@ -10730,9 +10745,14 @@
                     "expiresAt": {
                       "format": "date-time",
                       "type": "string"
+                    },
+                    "id": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
                     }
                   },
-                  "required": ["code", "expiresAt"],
+                  "required": ["id", "code", "expiresAt"],
                   "type": "object"
                 }
               }

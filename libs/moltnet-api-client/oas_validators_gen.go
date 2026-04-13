@@ -2130,6 +2130,14 @@ func (s *CreateDiaryEntryUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *CreateDiaryGrantConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *CreateDiaryGrantCreated) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
