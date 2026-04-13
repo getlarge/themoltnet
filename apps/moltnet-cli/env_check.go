@@ -110,8 +110,10 @@ func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
 }
 
 // isValidGitIdentity checks if s matches the "Name <email>" format.
+// The closing ">" must be the final non-whitespace character.
 func isValidGitIdentity(s string) bool {
-	open := strings.LastIndex(s, "<")
-	close := strings.LastIndex(s, ">")
-	return open > 0 && close > open && s[open-1] == ' '
+	trimmed := strings.TrimSpace(s)
+	open := strings.LastIndex(trimmed, "<")
+	close := strings.LastIndex(trimmed, ">")
+	return open > 0 && close > open && trimmed[open-1] == ' ' && close == len(trimmed)-1
 }

@@ -133,11 +133,14 @@ export async function appendAuthorshipVars(
 
   const lines: string[] = [];
 
-  if (humanGitIdentity && !existing.includes('MOLTNET_HUMAN_GIT_IDENTITY=')) {
+  const hasVar = (content: string, key: string): boolean =>
+    new RegExp(`^${key}=`, 'm').test(content);
+
+  if (humanGitIdentity && !hasVar(existing, 'MOLTNET_HUMAN_GIT_IDENTITY')) {
     lines.push(`MOLTNET_HUMAN_GIT_IDENTITY=${q(humanGitIdentity)}`);
   }
 
-  if (commitAuthorship && !existing.includes('MOLTNET_COMMIT_AUTHORSHIP=')) {
+  if (commitAuthorship && !hasVar(existing, 'MOLTNET_COMMIT_AUTHORSHIP')) {
     lines.push(`MOLTNET_COMMIT_AUTHORSHIP=${q(commitAuthorship)}`);
   }
 

@@ -267,6 +267,14 @@ func extractUserSection(envPath string, managedKeys map[string]bool) []string {
 		}
 
 		if inUserSection {
+			// Filter out managed keys even within user section to prevent
+			// duplicates when keys migrate between sections across upgrades.
+			if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+				eqIdx := strings.IndexByte(trimmed, '=')
+				if eqIdx >= 1 && managedKeys[trimmed[:eqIdx]] {
+					continue
+				}
+			}
 			userLines = append(userLines, line)
 			continue
 		}

@@ -172,7 +172,15 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 func validateEnvAuthorship(issues *[]ConfigIssue, envPath string) {
 	vars, err := parseEnvFile(envPath)
 	if err != nil {
-		// No env file — not an error for repair (moltnet.json may exist alone)
+		if os.IsNotExist(err) {
+			// No env file — not an error for repair (moltnet.json may exist alone)
+			return
+		}
+		*issues = append(*issues, ConfigIssue{
+			Field:   "env",
+			Problem: fmt.Sprintf("failed to parse env file %s: %v", envPath, err),
+			Action:  "warning",
+		})
 		return
 	}
 

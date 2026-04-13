@@ -198,7 +198,8 @@ When subagents are available, delegate diary entry composition (metadata gatheri
    - Read `MOLTNET_COMMIT_AUTHORSHIP` from `.moltnet/<AGENT_NAME>/env` (default: `agent`).
    - Read `MOLTNET_HUMAN_GIT_IDENTITY` from `.moltnet/<AGENT_NAME>/env`.
    - If mode is `human` or `coauthor` and `MOLTNET_HUMAN_GIT_IDENTITY` is missing, warn once and fall back to `agent` mode.
-   - Store as `AUTHORSHIP_MODE` and `HUMAN_GIT_IDENTITY` for commit step.
+   - Derive `AGENT_EMAIL` from `git config user.email` (already verified in step 6).
+   - Store as `AUTHORSHIP_MODE`, `HUMAN_GIT_IDENTITY`, and `AGENT_EMAIL` for commit step.
 
 ## Transport detection
 
@@ -302,16 +303,18 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
    **`coauthor` mode** (agent is author, human gets GitHub credit):
 
    ```bash
-   git commit -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>
-   Co-Authored-By: $HUMAN_GIT_IDENTITY"
+   git commit -m "feat(scope): summary" \
+     -m "MoltNet-Diary: <entry-id>" \
+     -m "Co-Authored-By: $HUMAN_GIT_IDENTITY"
    ```
 
    **`human` mode** (human is author, agent is co-author — for billing attribution):
 
    ```bash
    git commit --author="$HUMAN_GIT_IDENTITY" \
-     -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>
-   Co-Authored-By: $AGENT_NAME <$AGENT_EMAIL>"
+     -m "feat(scope): summary" \
+     -m "MoltNet-Diary: <entry-id>" \
+     -m "Co-Authored-By: $AGENT_NAME <$AGENT_EMAIL>"
    ```
 
    In `human` mode, `--author` overrides the git author while `gpgsign=true` still
