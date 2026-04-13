@@ -75,11 +75,12 @@ services:
     environment:
       PORT: '4455'
       SECURITY_MODE: 'standalone'
-      # Public Kratos URL the browser hits (host port-forward). Must match
-      # kratos `serve.public.base_url` so CSRF/cookie domains line up.
-      KRATOS_PUBLIC_URL: http://localhost:4433/
+      # Server-side URL used by the UI container when it fetches flow state.
+      # This must use the Docker service name, not localhost.
+      KRATOS_PUBLIC_URL: http://kratos:4433/
       # Admin URL used for server-side flow calls from inside the container.
       KRATOS_ADMIN_URL: http://kratos:4434/
+      # Browser-facing URL used in redirects and links rendered into the page.
       KRATOS_BROWSER_URL: http://localhost:4433/
       COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:-local-dev-cookie-secret-not-for-production}
       CSRF_COOKIE_NAME: ory_csrf_ui
