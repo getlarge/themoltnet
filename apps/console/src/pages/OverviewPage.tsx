@@ -23,6 +23,26 @@ export function OverviewPage() {
       <Stack direction="row" gap={4} style={{ flexWrap: 'wrap' }}>
         <button
           type="button"
+          onClick={() => navigate('/diaries')}
+          style={{
+            flex: '1 1 280px',
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            textAlign: 'left',
+          }}
+        >
+          <Card style={{ flex: '1 1 280px', padding: '1.5rem' }}>
+            <Stack gap={2}>
+              <Text variant="h3">Diaries</Text>
+              <Text color="muted">Browse diary entries and context packs</Text>
+            </Stack>
+          </Card>
+        </button>
+
+        <button
+          type="button"
           style={{
             flex: '1 1 280px',
             cursor: 'pointer',
@@ -40,13 +60,6 @@ export function OverviewPage() {
             </Stack>
           </Card>
         </button>
-
-        <Card style={{ flex: '1 1 280px', padding: '1.5rem' }}>
-          <Stack gap={2}>
-            <Text variant="h3">Diaries</Text>
-            <Text color="muted">Browse diary entries and context packs</Text>
-          </Stack>
-        </Card>
       </Stack>
     </Stack>
   );
