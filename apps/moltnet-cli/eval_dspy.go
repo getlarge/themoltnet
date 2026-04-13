@@ -452,8 +452,9 @@ type solverInput struct {
 }
 
 // buildSolverInputs constructs the named input map for module.Process.
-// Vivo mode adds repo_ref; baseline variants get an empty context_pack.
-func buildSolverInputs(in solverInput) map[string]any {
+// Vivo mode adds repo_ref (must be non-empty); baseline variants get an
+// empty context_pack.
+func buildSolverInputs(in solverInput) (map[string]any, error) {
 	contextPack := ""
 	if in.withContext && strings.TrimSpace(in.packMD) != "" {
 		contextPack = in.packMD
@@ -463,19 +464,26 @@ func buildSolverInputs(in solverInput) map[string]any {
 		"context_pack":  contextPack,
 	}
 	if in.mode == "vivo" {
+		if in.fixtureRef == "" {
+			return nil, fmt.Errorf("vivo mode requires fixture.ref; pass --fixture-ref or set fixture.ref in eval.json")
+		}
 		inputs["repo_ref"] = in.fixtureRef
 	}
-	return inputs
+	return inputs, nil
 }
 
 // dspyEvalSignature selects the dspy-go signature based on eval mode.
 // Vivo gets the VivoSignature (extra repo_ref input, tool_trace output);
-// everything else gets VitroSignature.
-func dspyEvalSignature(mode string) core.Signature {
-	if mode == "vivo" {
-		return solver.VivoSignature()
+// vitro (or empty, the default) gets VitroSignature. Unknown modes error.
+func dspyEvalSignature(mode string) (core.Signature, error) {
+	switch mode {
+	case "vivo":
+		return solver.VivoSignature(), nil
+	case "vitro", "":
+		return solver.VitroSignature(), nil
+	default:
+		return core.Signature{}, fmt.Errorf("unknown eval mode %q: must be vitro or vivo", mode)
 	}
-	return solver.VitroSignature()
 }
 
 // runSolver executes one eval trial via a dspy-go solver module and
@@ -532,16 +540,24 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		kind = solver.KindChainOfThought
 	}
 
+	sig, err := dspyEvalSignature(in.mode)
+	if err != nil {
+		return nil, err
+	}
+
 	module, err := solver.New(solver.Config{
 		Kind:      kind,
-		Signature: dspyEvalSignature(in.mode),
+		Signature: sig,
 		LLM:       llm,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init solver module: %w", err)
 	}
 
-	inputs := buildSolverInputs(in)
+	inputs, err := buildSolverInputs(in)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx := context.Background()
 	// TODO(#714): capture module.Process outputs (reasoning,
@@ -603,10 +619,14 @@ func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
 }
 
 func buildWorkspaceSnapshot(workDir, fallbackOutput, mode string) (string, error) {
-	if mode == "vivo" {
+	switch mode {
+	case "vivo":
 		return buildVivoWorkspaceSnapshot(workDir, fallbackOutput)
+	case "vitro", "":
+		return buildVitroWorkspaceSnapshot(workDir, fallbackOutput)
+	default:
+		return "", fmt.Errorf("unknown eval mode %q for workspace snapshot", mode)
 	}
-	return buildVitroWorkspaceSnapshot(workDir, fallbackOutput)
 }
 
 // buildVitroWorkspaceSnapshot reads full file contents of changed files.
@@ -659,53 +679,88 @@ func buildVitroWorkspaceSnapshot(workDir, fallbackOutput string) (string, error)
 // text dump.
 func buildVivoWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 	var b strings.Builder
+	hasEvidence := false
 
-	statusOut, err := gitOutput(workDir, "status", "--short")
-	if err != nil {
-		statusOut = "(git status unavailable)"
-	}
-	b.WriteString("## git status\n```\n")
-	b.WriteString(strings.TrimSpace(statusOut))
-	b.WriteString("\n```\n\n")
-
-	diffStatOut, err := gitOutput(workDir, "diff", "--stat")
-	if err != nil {
-		diffStatOut = "(git diff --stat unavailable)"
-	}
-	b.WriteString("## git diff --stat\n```\n")
-	b.WriteString(strings.TrimSpace(diffStatOut))
-	b.WriteString("\n```\n\n")
-
-	// Include full content for small files that are likely to contain
-	// judge-relevant evidence (notes.md, config files, etc.).
-	paths := parseGitStatusPaths(statusOut)
-	sort.Strings(paths)
-	for _, rel := range paths {
-		fullPath := filepath.Join(workDir, rel)
-		info, statErr := os.Stat(fullPath)
-		if statErr != nil || info.IsDir() {
-			continue
-		}
-		if info.Size() > vivoSnapshotDiffCap {
-			continue
-		}
-		data, readErr := os.ReadFile(fullPath)
-		if readErr != nil {
-			continue
-		}
-		b.WriteString("## ")
-		b.WriteString(rel)
-		b.WriteString("\n")
-		b.WriteString(string(data))
-		b.WriteString("\n\n")
+	statusOut, statusErr := gitOutput(workDir, "status", "--short")
+	if statusErr != nil {
+		b.WriteString("## git status\n```\n(unavailable)\n```\n\n")
+	} else {
+		b.WriteString("## git status\n```\n")
+		b.WriteString(strings.TrimSpace(statusOut))
+		b.WriteString("\n```\n\n")
+		hasEvidence = strings.TrimSpace(statusOut) != ""
 	}
 
-	if b.Len() == 0 && strings.TrimSpace(fallbackOutput) != "" {
+	diffStatOut, diffErr := gitOutput(workDir, "diff", "--stat")
+	if diffErr != nil {
+		b.WriteString("## git diff --stat\n```\n(unavailable)\n```\n\n")
+	} else {
+		b.WriteString("## git diff --stat\n```\n")
+		b.WriteString(strings.TrimSpace(diffStatOut))
+		b.WriteString("\n```\n\n")
+	}
+
+	// Include full content for small changed files. Only parse paths when
+	// git status succeeded — never parse a placeholder error string.
+	if statusErr == nil {
+		paths := parseGitStatusPaths(statusOut)
+		sort.Strings(paths)
+		var skipped []string
+		for _, rel := range paths {
+			if vivoSnapshotDenyPath(rel) {
+				continue
+			}
+			fullPath := filepath.Join(workDir, rel)
+			info, statErr := os.Stat(fullPath)
+			if statErr != nil || info.IsDir() {
+				continue
+			}
+			if info.Size() > vivoSnapshotDiffCap {
+				continue
+			}
+			data, readErr := os.ReadFile(fullPath)
+			if readErr != nil {
+				skipped = append(skipped, fmt.Sprintf("%s: %v", rel, readErr))
+				continue
+			}
+			b.WriteString("## ")
+			b.WriteString(rel)
+			b.WriteString("\n")
+			b.WriteString(string(data))
+			b.WriteString("\n\n")
+			hasEvidence = true
+		}
+		if len(skipped) > 0 {
+			b.WriteString("<!-- skipped files:\n")
+			for _, s := range skipped {
+				b.WriteString("  - ")
+				b.WriteString(s)
+				b.WriteString("\n")
+			}
+			b.WriteString("-->\n\n")
+		}
+	}
+
+	if !hasEvidence && strings.TrimSpace(fallbackOutput) != "" {
 		b.WriteString("## final-response.txt\n")
 		b.WriteString(fallbackOutput)
 		b.WriteString("\n")
 	}
 	return b.String(), nil
+}
+
+// vivoSnapshotDenyPath returns true for paths that must never be inlined
+// in a vivo snapshot (secrets, credentials, env files).
+func vivoSnapshotDenyPath(rel string) bool {
+	base := filepath.Base(rel)
+	if strings.HasPrefix(base, ".env") {
+		return true
+	}
+	switch base {
+	case "moltnet.json", "credentials.json", "id_ed25519", "id_ed25519.pub":
+		return true
+	}
+	return false
 }
 
 // vivoSnapshotDiffCap is the max file size (bytes) to include inline in a vivo

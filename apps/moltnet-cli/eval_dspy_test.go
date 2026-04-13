@@ -90,38 +90,101 @@ func TestBuildWorkspaceSnapshotFallsBackToFinalResponse(t *testing.T) {
 
 func TestBuildVivoWorkspaceSnapshot(t *testing.T) {
 	t.Parallel()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
 	dir := t.TempDir()
-
-	// Create a small file that should be included inline.
-	notesPath := filepath.Join(dir, "notes.md")
-	if err := os.WriteFile(notesPath, []byte("# Notes\nAgent ran codegen."), 0644); err != nil {
-		t.Fatal(err)
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
 	}
 
-	// Create a large file that should NOT be included inline.
-	bigPath := filepath.Join(dir, "big-generated.go")
+	runGit("init")
+	runGit("config", "user.email", "test@example.com")
+	runGit("config", "user.name", "Test User")
+
+	// Seed files and create initial commit.
+	if err := os.WriteFile(filepath.Join(dir, "notes.md"), []byte("initial"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "big.go"), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("SECRET=hunter2"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGit("add", "notes.md", "big.go", ".env")
+	runGit("commit", "-m", "init")
+
+	// Modify: notes.md (small), big.go (over cap), .env (denied).
+	changedNotes := "# Notes\nAgent ran codegen.\n"
+	if err := os.WriteFile(filepath.Join(dir, "notes.md"), []byte(changedNotes), 0644); err != nil {
+		t.Fatal(err)
+	}
 	bigContent := strings.Repeat("x", int(vivoSnapshotDiffCap)+1)
-	if err := os.WriteFile(bigPath, []byte(bigContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "big.go"), []byte(bigContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("SECRET=changed"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Not a git repo so git commands will fail gracefully.
 	got, err := buildWorkspaceSnapshot(dir, "", "vivo")
 	if err != nil {
 		t.Fatalf("buildWorkspaceSnapshot vivo: %v", err)
 	}
 
-	// Should contain the git status/diff --stat section headers.
 	if !strings.Contains(got, "## git status") {
 		t.Error("vivo snapshot missing git status section")
 	}
 	if !strings.Contains(got, "## git diff --stat") {
 		t.Error("vivo snapshot missing git diff --stat section")
 	}
-
-	// Should NOT contain the large file contents (no git status = no paths parsed).
+	// Small changed file should be inlined.
+	if !strings.Contains(got, changedNotes) {
+		t.Error("vivo snapshot should include small changed file (notes.md)")
+	}
+	// Large file should NOT be inlined.
 	if strings.Contains(got, bigContent[:100]) {
 		t.Error("vivo snapshot should not include large file contents")
+	}
+	// .env should NOT be inlined (deny list).
+	if strings.Contains(got, "SECRET=") {
+		t.Error("vivo snapshot should not include .env contents")
+	}
+}
+
+func TestBuildVivoWorkspaceSnapshotNoGit(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Not a git repo — git commands fail. Snapshot should still succeed
+	// with "(unavailable)" markers and the fallback output.
+	got, err := buildWorkspaceSnapshot(dir, "fallback text", "vivo")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot vivo (no git): %v", err)
+	}
+	if !strings.Contains(got, "(unavailable)") {
+		t.Error("expected (unavailable) marker when git is not available")
+	}
+	if !strings.Contains(got, "fallback text") {
+		t.Error("expected fallback output when no evidence is available")
+	}
+}
+
+func TestBuildWorkspaceSnapshotRejectsUnknownMode(t *testing.T) {
+	_, err := buildWorkspaceSnapshot(t.TempDir(), "", "bogus")
+	if err == nil {
+		t.Fatal("expected error for unknown mode")
+	}
+	if !strings.Contains(err.Error(), "unknown eval mode") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -432,14 +495,25 @@ func TestDspyEvalSignature(t *testing.T) {
 		name       string
 		mode       string
 		wantInputs []string
+		wantErr    bool
 	}{
-		{"vitro uses VitroSignature", "vitro", []string{"task_markdown", "context_pack"}},
-		{"vivo uses VivoSignature", "vivo", []string{"task_markdown", "context_pack", "repo_ref"}},
-		{"empty mode defaults to vitro", "", []string{"task_markdown", "context_pack"}},
+		{"vitro uses VitroSignature", "vitro", []string{"task_markdown", "context_pack"}, false},
+		{"vivo uses VivoSignature", "vivo", []string{"task_markdown", "context_pack", "repo_ref"}, false},
+		{"empty mode defaults to vitro", "", []string{"task_markdown", "context_pack"}, false},
+		{"unknown mode errors", "bogus", nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sig := dspyEvalSignature(tt.mode)
+			sig, err := dspyEvalSignature(tt.mode)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error for unknown mode")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			gotNames := make([]string, len(sig.Inputs))
 			for i, inp := range sig.Inputs {
 				gotNames[i] = inp.Field.Name
@@ -466,6 +540,7 @@ func TestBuildSolverInputs(t *testing.T) {
 		wantKeys   []string
 		wantRef    string
 		wantPack   string
+		wantErr    bool
 	}{
 		{
 			name:     "vitro omits repo_ref",
@@ -486,13 +561,11 @@ func TestBuildSolverInputs(t *testing.T) {
 			wantPack:   "pack",
 		},
 		{
-			name:     "vivo without fixtureRef passes empty",
-			mode:     "vivo",
-			packMD:   "pack",
-			withCtx:  true,
-			wantKeys: []string{"task_markdown", "context_pack", "repo_ref"},
-			wantRef:  "",
-			wantPack: "pack",
+			name:    "vivo without fixtureRef errors",
+			mode:    "vivo",
+			packMD:  "pack",
+			withCtx: true,
+			wantErr: true,
 		},
 		{
 			name:     "baseline omits pack content",
@@ -505,13 +578,22 @@ func TestBuildSolverInputs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			inputs := buildSolverInputs(solverInput{
+			inputs, err := buildSolverInputs(solverInput{
 				taskMD:      "# task",
 				packMD:      tt.packMD,
 				withContext: tt.withCtx,
 				mode:        tt.mode,
 				fixtureRef:  tt.fixtureRef,
 			})
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			for _, key := range tt.wantKeys {
 				if _, ok := inputs[key]; !ok {
 					t.Errorf("missing key %q in inputs %v", key, inputs)
