@@ -2,11 +2,11 @@
  * Diary container CRUD and sharing routes
  */
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
-import { DBOS } from '@moltnet/database';
+import { DBOS, getDatabase, getExecutor } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   CreateDiaryGrantSchema,
@@ -25,6 +25,7 @@ import {
   visibilityLiterals,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
+import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
@@ -37,6 +38,16 @@ import {
   diaryTransferWorkflow,
   TRANSFER_DECISION_EVENT,
 } from '../workflows/diary-transfer-workflow.js';
+
+/**
+ * Derive a stable bigint key for pg_advisory_xact_lock from two UUIDs.
+ * Truncates a SHA-256 hash to 8 bytes → signed int64.
+ */
+function advisoryLockKey(a: string, b: string): bigint {
+  const hash = createHash('sha256').update(`${a}:${b}`).digest();
+  // Read first 8 bytes as signed big-endian int64
+  return hash.readBigInt64BE(0);
+}
 
 function translateServiceError(err: DiaryServiceError): never {
   switch (err.code) {
@@ -342,33 +353,45 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { subjectId, subjectNs, role } = request.body;
       const ketoNs = mapSubjectNs(subjectNs);
 
-      // Enforce one grant per diary per subject
-      const existingGrants =
-        await fastify.relationshipReader.listDiaryGrants(id);
-      const ketoNsStr: string = ketoNs;
-      const existing = existingGrants.find(
-        (g) => g.subjectId === subjectId && g.subjectNs === ketoNsStr,
-      );
-      if (existing && existing.role !== role) {
-        throw createProblem(
-          'conflict',
-          `Subject already has '${existing.role}' access on this diary. Revoke it first.`,
-        );
-      }
+      // Enforce one grant per diary per subject.
+      // Advisory lock serializes concurrent requests for the same
+      // (diary, subject) pair so the check-then-write is atomic.
+      await fastify.transactionRunner.runInTransaction(
+        async () => {
+          const db = getExecutor(getDatabase());
+          const lockKey = advisoryLockKey(id, subjectId);
+          await db.execute(sql`SELECT pg_advisory_xact_lock(${lockKey})`);
 
-      if (role === 'writer') {
-        await fastify.relationshipWriter.grantDiaryWriters(
-          id,
-          subjectId,
-          ketoNs,
-        );
-      } else {
-        await fastify.relationshipWriter.grantDiaryManagers(
-          id,
-          subjectId,
-          ketoNs,
-        );
-      }
+          const existingGrants =
+            await fastify.relationshipReader.listDiaryGrants(id);
+          const ketoNsStr: string = ketoNs;
+          const existing = existingGrants.find(
+            (g) => g.subjectId === subjectId && g.subjectNs === ketoNsStr,
+          );
+          if (existing && existing.role !== role) {
+            throw createProblem(
+              'conflict',
+              `Subject already has '${existing.role}' access on this diary. Revoke it first.`,
+            );
+          }
+          // Same-role re-grant is idempotent (Keto write is a no-op)
+
+          if (role === 'writer') {
+            await fastify.relationshipWriter.grantDiaryWriters(
+              id,
+              subjectId,
+              ketoNs,
+            );
+          } else {
+            await fastify.relationshipWriter.grantDiaryManagers(
+              id,
+              subjectId,
+              ketoNs,
+            );
+          }
+        },
+        { name: 'diary-grant-uniqueness' },
+      );
 
       return reply.status(201).send({ subjectId, subjectNs, role });
     },
