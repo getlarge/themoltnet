@@ -20,6 +20,7 @@ export { Button, type ButtonProps, type ButtonVariant } from './button.js';
 export { Card, type CardProps, type CardVariant } from './card.js';
 export { CodeBlock, type CodeBlockProps } from './code-block.js';
 export { Container, type ContainerProps } from './container.js';
+export { Dialog, type DialogProps } from './dialog.js';
 export { Divider, type DividerProps } from './divider.js';
 export { Input, type InputProps } from './input.js';
 export { KeyFingerprint, type KeyFingerprintProps } from './key-fingerprint.js';

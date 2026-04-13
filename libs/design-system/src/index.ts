@@ -54,6 +54,8 @@ export {
   type ContainerProps,
   deriveFingerprintColor,
   deriveIdentityParams,
+  Dialog,
+  type DialogProps,
   Divider,
   type DividerProps,
   type FingerprintColor,
