@@ -161,7 +161,45 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		checkFilePath(&issues, "github.private_key_path", creds.GitHub.PrivateKeyPath)
 	}
 
+	// Validate sibling env file authorship vars
+	envPath := filepath.Join(filepath.Dir(configPath), "env")
+	validateEnvAuthorship(&issues, envPath)
+
 	return configPath, creds, issues, nil
+}
+
+// validateEnvAuthorship checks authorship-related vars in the env file.
+func validateEnvAuthorship(issues *[]ConfigIssue, envPath string) {
+	vars, err := parseEnvFile(envPath)
+	if err != nil {
+		// No env file — not an error for repair (moltnet.json may exist alone)
+		return
+	}
+
+	authorship := vars["MOLTNET_COMMIT_AUTHORSHIP"]
+	if authorship != "" && authorship != "agent" && authorship != "human" && authorship != "coauthor" {
+		*issues = append(*issues, ConfigIssue{
+			Field:   "env.MOLTNET_COMMIT_AUTHORSHIP",
+			Problem: fmt.Sprintf("invalid value %q — must be agent, human, or coauthor", authorship),
+			Action:  "warning",
+		})
+	}
+
+	humanID := vars["MOLTNET_HUMAN_GIT_IDENTITY"]
+	if (authorship == "human" || authorship == "coauthor") && humanID == "" {
+		*issues = append(*issues, ConfigIssue{
+			Field:   "env.MOLTNET_HUMAN_GIT_IDENTITY",
+			Problem: fmt.Sprintf("missing — required for %s authorship mode", authorship),
+			Action:  "warning",
+		})
+	}
+	if humanID != "" && !isValidGitIdentity(humanID) {
+		*issues = append(*issues, ConfigIssue{
+			Field:   "env.MOLTNET_HUMAN_GIT_IDENTITY",
+			Problem: fmt.Sprintf("invalid format %q — expected: Name <email>", humanID),
+			Action:  "warning",
+		})
+	}
 }
 
 func checkFilePath(issues *[]ConfigIssue, field, path string) {

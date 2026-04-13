@@ -2,7 +2,11 @@ import { basename, join } from 'node:path';
 
 import { type MoltNetConfig, updateConfigSection } from '@themoltnet/sdk';
 
-import { writeEnvFile } from '../env-file.js';
+import {
+  appendAuthorshipVars,
+  resolveHumanGitIdentity,
+  writeEnvFile,
+} from '../env-file.js';
 import { writeGitConfig } from '../github.js';
 import { toEnvPrefix } from '../setup.js';
 
@@ -113,6 +117,10 @@ export async function runPortRewritePhase(opts: {
     pemPath: newPem,
     installationId: config.github.installation_id,
   });
+
+  // Auto-populate human git identity if not already present in env file.
+  const humanId = resolveHumanGitIdentity();
+  await appendAuthorshipVars(targetDir, humanId);
 
   return {
     configPath: join(targetDir, 'moltnet.json'),

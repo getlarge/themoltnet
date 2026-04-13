@@ -404,6 +404,138 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	}
 }
 
+func TestWriteAgentEnvFilePreservesUserSection(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	agentDir := filepath.Join(tmpDir, "test-agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pre-create an env file with user-section vars
+	existingEnv := strings.Join([]string{
+		"# Managed by moltnet config init-from-env — do not edit above the user section",
+		"TEST_AGENT_CLIENT_ID='old-client-id'",
+		"TEST_AGENT_CLIENT_SECRET='old-secret'",
+		"GIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'",
+		"",
+		"# User section — add custom variables below",
+		"MOLTNET_DIARY_ID='some-diary-uuid'",
+		"MOLTNET_COMMIT_AUTHORSHIP='coauthor'",
+		"MOLTNET_HUMAN_GIT_IDENTITY='Human Name <human@example.com>'",
+		"",
+	}, "\n")
+	envPath := filepath.Join(agentDir, "env")
+	if err := os.WriteFile(envPath, []byte(existingEnv), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write with new managed values
+	config := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{
+			ClientID:     "new-client-id",
+			ClientSecret: "new-secret",
+		},
+	}
+	if err := writeAgentEnvFile(agentDir, "test-agent", config); err != nil {
+		t.Fatalf("writeAgentEnvFile failed: %v", err)
+	}
+
+	// Read back and verify
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatalf("failed to read env file: %v", err)
+	}
+	content := string(data)
+
+	// Managed vars should be updated
+	if !strings.Contains(content, "TEST_AGENT_CLIENT_ID='new-client-id'") {
+		t.Errorf("expected updated CLIENT_ID, got:\n%s", content)
+	}
+	// User vars should be preserved
+	if !strings.Contains(content, "MOLTNET_DIARY_ID='some-diary-uuid'") {
+		t.Errorf("expected preserved MOLTNET_DIARY_ID, got:\n%s", content)
+	}
+	if !strings.Contains(content, "MOLTNET_COMMIT_AUTHORSHIP='coauthor'") {
+		t.Errorf("expected preserved MOLTNET_COMMIT_AUTHORSHIP, got:\n%s", content)
+	}
+	if !strings.Contains(content, "MOLTNET_HUMAN_GIT_IDENTITY='Human Name <human@example.com>'") {
+		t.Errorf("expected preserved MOLTNET_HUMAN_GIT_IDENTITY, got:\n%s", content)
+	}
+}
+
+func TestWriteAgentEnvFileNoExistingFile(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	agentDir := filepath.Join(tmpDir, "fresh-agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	config := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{
+			ClientID:     "client-id",
+			ClientSecret: "secret",
+		},
+	}
+	if err := writeAgentEnvFile(agentDir, "fresh-agent", config); err != nil {
+		t.Fatalf("writeAgentEnvFile failed: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(agentDir, "env"))
+	if err != nil {
+		t.Fatalf("failed to read env file: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "FRESH_AGENT_CLIENT_ID='client-id'") {
+		t.Errorf("expected CLIENT_ID, got:\n%s", content)
+	}
+	if !strings.Contains(content, "# User section") {
+		t.Errorf("expected user section marker, got:\n%s", content)
+	}
+}
+
+func TestWriteAgentEnvFilePreservesNonManagedKeysOutsideUserSection(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	agentDir := filepath.Join(tmpDir, "test-agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	// Env file with a non-managed var outside the user section (no user section marker)
+	existingEnv := strings.Join([]string{
+		"TEST_AGENT_CLIENT_ID='old'",
+		"MOLTNET_DIARY_ID='diary-uuid'",
+		"CUSTOM_VAR='keep-me'",
+		"",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(existingEnv), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	config := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "new", ClientSecret: "new-secret"},
+	}
+	if err := writeAgentEnvFile(agentDir, "test-agent", config); err != nil {
+		t.Fatalf("writeAgentEnvFile failed: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(agentDir, "env"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "MOLTNET_DIARY_ID='diary-uuid'") {
+		t.Errorf("expected preserved MOLTNET_DIARY_ID, got:\n%s", content)
+	}
+	if !strings.Contains(content, "CUSTOM_VAR='keep-me'") {
+		t.Errorf("expected preserved CUSTOM_VAR, got:\n%s", content)
+	}
+}
+
 func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 	tmpDir := t.TempDir()
 

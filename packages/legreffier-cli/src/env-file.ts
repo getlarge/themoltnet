@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseEnv } from 'node:util';
@@ -86,4 +87,65 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
   }
 
   await writeFile(envPath, outputLines.join('\n') + '\n', 'utf-8');
+}
+
+/**
+ * Resolve the human operator's git identity from global git config.
+ * Must be called BEFORE GIT_CONFIG_GLOBAL is set (so it reads the
+ * human's config, not the agent's).
+ *
+ * Returns `"Name <email>"` or `null` if either is missing.
+ */
+export function resolveHumanGitIdentity(): string | null {
+  try {
+    const name = execFileSync('git', ['config', '--global', 'user.name'], {
+      encoding: 'utf-8',
+      env: { ...process.env, GIT_CONFIG_GLOBAL: undefined },
+    }).trim();
+    const email = execFileSync('git', ['config', '--global', 'user.email'], {
+      encoding: 'utf-8',
+      env: { ...process.env, GIT_CONFIG_GLOBAL: undefined },
+    }).trim();
+    return name && email ? `${name} <${email}>` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Append MOLTNET_HUMAN_GIT_IDENTITY and optionally MOLTNET_COMMIT_AUTHORSHIP
+ * to an existing env file if not already present.
+ * Preserves existing content — only appends new vars.
+ */
+export async function appendAuthorshipVars(
+  envDir: string,
+  humanGitIdentity?: string | null,
+  commitAuthorship?: string,
+): Promise<void> {
+  const envPath = join(envDir, 'env');
+
+  let existing = '';
+  try {
+    existing = await readFile(envPath, 'utf-8');
+  } catch {
+    return; // No env file to append to
+  }
+
+  const lines: string[] = [];
+
+  if (humanGitIdentity && !existing.includes('MOLTNET_HUMAN_GIT_IDENTITY=')) {
+    lines.push(`MOLTNET_HUMAN_GIT_IDENTITY=${q(humanGitIdentity)}`);
+  }
+
+  if (commitAuthorship && !existing.includes('MOLTNET_COMMIT_AUTHORSHIP=')) {
+    lines.push(`MOLTNET_COMMIT_AUTHORSHIP=${q(commitAuthorship)}`);
+  }
+
+  if (lines.length === 0) return;
+
+  const suffix = lines.join('\n') + '\n';
+  const content = existing.endsWith('\n')
+    ? existing + suffix
+    : existing + '\n' + suffix;
+  await writeFile(envPath, content, 'utf-8');
 }
