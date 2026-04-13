@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -225,6 +226,118 @@ func TestRunConfigRepair_AppliesFixes(t *testing.T) {
 	}
 	if updated.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
 		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://mcp.themolt.net/mcp")
+	}
+}
+
+func TestLoadAndValidate_EnvAuthorshipInvalid(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys: CredentialsKeys{
+			PublicKey:  "ed25519:abc=",
+			PrivateKey: "abc=",
+		},
+		Endpoints: CredentialsEndpoints{
+			API: "https://api.themolt.net",
+			MCP: "https://mcp.themolt.net/mcp",
+		},
+	}
+	writeTestConfig(t, tmpDir, "moltnet.json", creds)
+
+	// Write env file with invalid authorship mode
+	envContent := "MOLTNET_COMMIT_AUTHORSHIP='invalid'\n"
+	if err := os.WriteFile(filepath.Join(tmpDir, "env"), []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, issues, err := loadAndValidate(filepath.Join(tmpDir, "moltnet.json"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var found bool
+	for _, iss := range issues {
+		if iss.Field == "env.MOLTNET_COMMIT_AUTHORSHIP" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected warning for invalid MOLTNET_COMMIT_AUTHORSHIP")
+	}
+}
+
+func TestLoadAndValidate_EnvMissingHumanIdentity(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys: CredentialsKeys{
+			PublicKey:  "ed25519:abc=",
+			PrivateKey: "abc=",
+		},
+		Endpoints: CredentialsEndpoints{
+			API: "https://api.themolt.net",
+			MCP: "https://mcp.themolt.net/mcp",
+		},
+	}
+	writeTestConfig(t, tmpDir, "moltnet.json", creds)
+
+	// coauthor mode but no human identity
+	envContent := "MOLTNET_COMMIT_AUTHORSHIP='coauthor'\n"
+	if err := os.WriteFile(filepath.Join(tmpDir, "env"), []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, issues, err := loadAndValidate(filepath.Join(tmpDir, "moltnet.json"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var found bool
+	for _, iss := range issues {
+		if iss.Field == "env.MOLTNET_HUMAN_GIT_IDENTITY" && strings.Contains(iss.Problem, "missing") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected warning for missing MOLTNET_HUMAN_GIT_IDENTITY in coauthor mode")
+	}
+}
+
+func TestLoadAndValidate_EnvValidAuthorship(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys: CredentialsKeys{
+			PublicKey:  "ed25519:abc=",
+			PrivateKey: "abc=",
+		},
+		Endpoints: CredentialsEndpoints{
+			API: "https://api.themolt.net",
+			MCP: "https://mcp.themolt.net/mcp",
+		},
+	}
+	writeTestConfig(t, tmpDir, "moltnet.json", creds)
+
+	envContent := strings.Join([]string{
+		"MOLTNET_COMMIT_AUTHORSHIP='coauthor'",
+		"MOLTNET_HUMAN_GIT_IDENTITY='Jane Doe <jane@example.com>'",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(tmpDir, "env"), []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, issues, err := loadAndValidate(filepath.Join(tmpDir, "moltnet.json"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, iss := range issues {
+		if strings.HasPrefix(iss.Field, "env.") {
+			t.Errorf("unexpected env issue: [%s] %s: %s", iss.Action, iss.Field, iss.Problem)
+		}
 	}
 }
 

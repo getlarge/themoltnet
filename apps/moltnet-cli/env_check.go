@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -75,10 +76,44 @@ func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
 		}
 	}
 
+	// Authorship vars
+	authorship := vars["MOLTNET_COMMIT_AUTHORSHIP"]
+	if authorship == "" {
+		fmt.Fprintf(cmd.OutOrStdout(), "⚠ MOLTNET_COMMIT_AUTHORSHIP not set (default: agent)\n")
+	} else if authorship != "agent" && authorship != "human" && authorship != "coauthor" {
+		fmt.Fprintf(cmd.OutOrStdout(), "✗ MOLTNET_COMMIT_AUTHORSHIP=%q — must be agent, human, or coauthor\n", authorship)
+		failed = true
+	} else {
+		fmt.Fprintf(cmd.OutOrStdout(), "✓ MOLTNET_COMMIT_AUTHORSHIP=%s\n", authorship)
+	}
+
+	humanID := vars["MOLTNET_HUMAN_GIT_IDENTITY"]
+	if authorship == "human" || authorship == "coauthor" {
+		if humanID == "" {
+			fmt.Fprintf(cmd.OutOrStdout(), "✗ MOLTNET_HUMAN_GIT_IDENTITY not set — required for %s mode\n", authorship)
+			failed = true
+		} else if !isValidGitIdentity(humanID) {
+			fmt.Fprintf(cmd.OutOrStdout(), "⚠ MOLTNET_HUMAN_GIT_IDENTITY=%q — expected format: Name <email>\n", humanID)
+		} else {
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ MOLTNET_HUMAN_GIT_IDENTITY=%s\n", humanID)
+		}
+	} else if humanID != "" {
+		fmt.Fprintf(cmd.OutOrStdout(), "✓ MOLTNET_HUMAN_GIT_IDENTITY=%s\n", humanID)
+	}
+
 	fmt.Fprintln(cmd.OutOrStdout())
 	if failed {
 		return fmt.Errorf("some required checks failed")
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "All required checks passed.")
 	return nil
+}
+
+// isValidGitIdentity checks if s matches the "Name <email>" format.
+// The closing ">" must be the final non-whitespace character.
+func isValidGitIdentity(s string) bool {
+	trimmed := strings.TrimSpace(s)
+	open := strings.LastIndex(trimmed, "<")
+	close := strings.LastIndex(trimmed, ">")
+	return open > 0 && close > open && trimmed[open-1] == ' ' && close == len(trimmed)-1
 }

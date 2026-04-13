@@ -193,9 +193,22 @@ func shellQuote(v string) string {
 }
 
 // writeAgentEnvFile writes a shell-sourceable env file for the agent.
+// If the file already exists, user-section content (lines after the
+// "# User section" marker, plus any non-managed keys) is preserved.
 func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) error {
 	prefix := toEnvPrefix(agentName)
 	moltnetRelDir := filepath.Join(".moltnet", agentName)
+
+	// Build managed keys set for deduplication.
+	managedKeys := map[string]bool{
+		prefix + "_CLIENT_ID":                   true,
+		prefix + "_CLIENT_SECRET":               true,
+		prefix + "_GITHUB_APP_ID":               true,
+		prefix + "_GITHUB_APP_PRIVATE_KEY_PATH": true,
+		prefix + "_GITHUB_APP_INSTALLATION_ID":  true,
+		"GIT_CONFIG_GLOBAL":                     true,
+		"MOLTNET_AGENT_NAME":                    true,
+	}
 
 	var lines []string
 	lines = append(lines, "# Managed by moltnet config init-from-env — do not edit above the user section")
@@ -213,15 +226,72 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 		lines = append(lines, fmt.Sprintf("GIT_CONFIG_GLOBAL='%s'", shellQuote(moltnetRelDir+"/gitconfig")))
 	}
 
+	// Preserve user-section content from existing env file.
+	envPath := filepath.Join(agentDir, "env")
+	userLines := extractUserSection(envPath, managedKeys)
+
 	lines = append(lines, "")
 	lines = append(lines, "# User section — add custom variables below")
-	lines = append(lines, "")
+	lines = append(lines, userLines...)
+	if len(userLines) == 0 {
+		lines = append(lines, "")
+	}
 
 	content := strings.Join(lines, "\n")
-	envPath := filepath.Join(agentDir, "env")
 	if err := os.WriteFile(envPath, []byte(content), 0o600); err != nil {
 		return fmt.Errorf("write env file: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "Env file written to %s\n", envPath)
 	return nil
+}
+
+// extractUserSection reads an existing env file and returns lines that
+// belong to the user section: everything after "# User section", plus
+// any non-managed key=value lines found anywhere in the file.
+func extractUserSection(envPath string, managedKeys map[string]bool) []string {
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		return nil
+	}
+
+	existing := strings.Split(string(data), "\n")
+	var userLines []string
+	inUserSection := false
+
+	for _, line := range existing {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "# User section") {
+			inUserSection = true
+			continue
+		}
+
+		if inUserSection {
+			// Filter out managed keys even within user section to prevent
+			// duplicates when keys migrate between sections across upgrades.
+			if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+				eqIdx := strings.IndexByte(trimmed, '=')
+				if eqIdx >= 1 && managedKeys[trimmed[:eqIdx]] {
+					continue
+				}
+			}
+			userLines = append(userLines, line)
+			continue
+		}
+
+		// Outside user section: capture non-managed key=value lines.
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		eqIdx := strings.IndexByte(trimmed, '=')
+		if eqIdx < 1 {
+			continue
+		}
+		key := trimmed[:eqIdx]
+		if !managedKeys[key] {
+			userLines = append(userLines, line)
+		}
+	}
+
+	return userLines
 }

@@ -194,6 +194,12 @@ When subagents are available, delegate diary entry composition (metadata gatheri
    - **Onboarding nudge** (at most once per session): if `MOLTNET_DIARY_ID` was NOT set in `.moltnet/<AGENT_NAME>/env` and few or no entries exist in the resolved diary, mention: "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex) to check your setup and start capturing knowledge."
 6. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
 7. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
+8. Resolve commit authorship mode:
+   - Read `MOLTNET_COMMIT_AUTHORSHIP` from `.moltnet/<AGENT_NAME>/env` (default: `agent`).
+   - Read `MOLTNET_HUMAN_GIT_IDENTITY` from `.moltnet/<AGENT_NAME>/env`.
+   - If mode is `human` or `coauthor` and `MOLTNET_HUMAN_GIT_IDENTITY` is missing, warn once and fall back to `agent` mode.
+   - Derive `AGENT_EMAIL` from `git config user.email` (already verified in step 6).
+   - Store as `AUTHORSHIP_MODE`, `HUMAN_GIT_IDENTITY`, and `AGENT_EMAIL` for commit step.
 
 ## Transport detection
 
@@ -286,13 +292,35 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
    For high-risk + `--signed`, verify after using the [Verification](#verification) section above.
    **Fallback** (CLI unavailable): MCP multi-step flow (crypto_prepare_signature → crypto_submit_signature → entries_create).
 
-7. Commit:
+7. Commit (depends on `AUTHORSHIP_MODE` from session activation step 8):
+
+   **`agent` mode** (default — agent is sole author):
 
    ```bash
-   git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
+   git commit -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>"
    ```
 
-   Signing enforced by gitconfig (`gpgsign=true`).
+   **`coauthor` mode** (agent is author, human gets GitHub credit):
+
+   ```bash
+   git commit -m "feat(scope): summary" \
+     -m "MoltNet-Diary: <entry-id>" \
+     -m "Co-Authored-By: $HUMAN_GIT_IDENTITY"
+   ```
+
+   **`human` mode** (human is author, agent is co-author — for billing attribution):
+
+   ```bash
+   git commit --author="$HUMAN_GIT_IDENTITY" \
+     -m "feat(scope): summary" \
+     -m "MoltNet-Diary: <entry-id>" \
+     -m "Co-Authored-By: $AGENT_NAME <$AGENT_EMAIL>"
+   ```
+
+   In `human` mode, `--author` overrides the git author while `gpgsign=true` still
+   signs with the agent's SSH key. The diary entry proves the agent did the work.
+
+   Signing enforced by gitconfig (`gpgsign=true`) in all modes.
 
 8. Tools unavailable → **do not offer skipping**. Stop, state what's missing, wait. Proceed without diary only if user explicitly says so unprompted.
 
@@ -389,10 +417,12 @@ If verification requires unavailable infrastructure, omit `Task-Completes`. Add 
 git commit -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>
 Task-Group: <slug>
 Task-Family: <family>
-Task-Completes: true"
+Task-Completes: true
+Co-Authored-By: ..."
 ```
 
 Omit `Task-Family` on non-first commits; omit `Task-Completes` on non-last.
+Omit `Co-Authored-By` in `agent` mode; see [Commit authorship modes](#commit-authorship-modes).
 
 **Stacked example:**
 
@@ -498,9 +528,25 @@ Token cached ~1 hour. On 401, delete `gh-token-cache.json` next to `moltnet.json
 
 Allowed: `gh pr`, `gh issue`, `gh api repos/{owner}/{repo}/contents/...`, `gh repo view/clone`. Do NOT use `GH_TOKEN` for releases, actions, packages, etc.
 
+## Commit authorship modes
+
+Configured via `MOLTNET_COMMIT_AUTHORSHIP` in `.moltnet/<AGENT_NAME>/env`.
+
+| Mode              | Git author | Trailer                           | Use case                                           |
+| ----------------- | ---------- | --------------------------------- | -------------------------------------------------- |
+| `agent` (default) | Agent      | none                              | Pure agent work                                    |
+| `human`           | Human      | `Co-Authored-By: Agent <bot@...>` | Human wants GitHub credit + billing attribution    |
+| `coauthor`        | Agent      | `Co-Authored-By: Human <email>`   | Agent primary, human gets GitHub contribution dots |
+
+Both `human` and `coauthor` require `MOLTNET_HUMAN_GIT_IDENTITY` to be set (e.g. `'Jane Doe <jane@example.com>'`).
+
+**Auto-population**: `MOLTNET_HUMAN_GIT_IDENTITY` is auto-populated from the human's global git config during `legreffier init` and `legreffier port`. Override with `--human-git-identity` flag.
+
+**Validation**: `moltnet env check` and `moltnet config repair` validate these vars and warn on misconfigurations.
+
 ## Reminders
 
-- No `Co-Authored-By` trailers; LeGreffier is sole author.
+- `Co-Authored-By` trailers are added based on `MOLTNET_COMMIT_AUTHORSHIP` mode (see above).
 - Hooks from `.claude/` won't run in Codex — follow this workflow manually.
 - Tag every entry with `branch:<branch>` and at least one `scope:<...>`.
 - Write `semantic` entries during the work, not after.

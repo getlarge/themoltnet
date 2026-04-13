@@ -2,7 +2,11 @@ import { readConfig, writeConfig } from '@themoltnet/sdk';
 
 import { adapters } from '../adapters/index.js';
 import type { AgentAdapterOptions } from '../adapters/types.js';
-import { writeEnvFile } from '../env-file.js';
+import {
+  appendAuthorshipVars,
+  resolveHumanGitIdentity,
+  writeEnvFile,
+} from '../env-file.js';
 import { toEnvPrefix } from '../setup.js';
 import { clearState } from '../state.js';
 import type { AgentType, UIAction } from '../ui/types.js';
@@ -23,6 +27,8 @@ export async function runAgentSetupPhase(opts: {
   clientId: string;
   clientSecret: string;
   org?: string;
+  humanGitIdentity?: string;
+  commitAuthorship?: string;
   dispatch: (a: UIAction) => void;
 }): Promise<void> {
   const {
@@ -115,6 +121,11 @@ export async function runAgentSetupPhase(opts: {
     pemPath,
     installationId,
   });
+
+  // Auto-populate human git identity for co-authorship support.
+  // Explicit opts take priority; otherwise resolve from global git config.
+  const humanId = opts.humanGitIdentity ?? resolveHumanGitIdentity();
+  await appendAuthorshipVars(configDir, humanId, opts.commitAuthorship);
 
   await clearState(configDir);
 }
