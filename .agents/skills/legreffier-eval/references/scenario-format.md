@@ -15,10 +15,41 @@ Declares isolation mode and fixture injection.
 }
 ```
 
+**Vivo mode** — full repo checkout at a specific commit:
+
+```json
+{
+  "mode": "vivo",
+  "fixture": {
+    "ref": "abc123def456",
+    "exclude": ["node_modules/**", ".env*"]
+  }
+}
+```
+
+Vivo scenarios operate on the real repository at `fixture.ref`. The agent
+sees the full file tree (minus excluded patterns). Use vivo when:
+- The scenario tests multi-step workflows where step ordering matters
+- The agent needs to discover project structure (codegen chains, build deps)
+- Vitro isolation can't reproduce the failure (frontier models ace the
+  isolated prompt from training data)
+
+`fixture.ref` can be a commit hash, tag, or branch name. It's resolved
+via `git rev-parse --verify` at runtime.
+
 **Modes:**
 - `vitro` — sparse worktree. Filesystem starts empty. Only injected
   fixtures are present. Agent receives task via prompt. Default.
 - `vivo` — real repo at a specific commit. Requires `fixture.ref`.
+
+**Choosing vitro vs vivo:**
+- **Vitro**: the knowledge being tested can be isolated to a few files.
+  The agent receives only injected fixtures. Faster, cheaper, more
+  deterministic.
+- **Vivo**: the knowledge being tested requires understanding project
+  structure or multi-step workflows. The agent operates on a real repo
+  checkout. Slower, more expensive, higher variance — but catches
+  failures that vitro can't reproduce.
 
 **Fixture injection:** `from` is relative to the scenario directory.
 `to` is the path in the eval worktree where the file appears. The agent
