@@ -136,13 +136,16 @@ export function PortApp({
         filesWritten.push(rewriteResult.gitConfigPath);
         filesWritten.push(join(targetDir, 'env'));
 
-        // P3b — resolve installation_id for the target owner
+        // P3b — resolve installation_id for the target owner.
+        // Read the rewritten config from disk so private_key_path points
+        // to the copied PEM in targetDir, not the source machine path.
         setPhase('resolving_installation');
         const currentRepo = detectCurrentRepo(targetRepoDir);
         const prefix = toEnvPrefix(name);
+        const rewrittenConfig = (await readConfig(targetDir)) ?? config;
         const resolveResult = await runPortResolveInstallationPhase({
           targetDir,
-          config,
+          config: rewrittenConfig,
           currentRepo: currentRepo ?? undefined,
           envPrefix: prefix,
         });

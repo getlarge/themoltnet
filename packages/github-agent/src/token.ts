@@ -93,6 +93,8 @@ export async function findInstallationForOwner(opts: {
   let nextUrl: string | null =
     'https://api.github.com/app/installations?per_page=100';
   let pageCount = 0;
+  // 10 × 100 = 1000 installations — generous for app installations
+  // (unlike repo pagination which uses 20 pages for per-installation repos).
   const MAX_PAGES = 10;
 
   while (nextUrl && pageCount < MAX_PAGES) {

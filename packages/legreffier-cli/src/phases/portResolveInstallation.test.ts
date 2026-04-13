@@ -1,10 +1,9 @@
-import { readFile } from 'node:fs/promises';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { findInstallationForOwner } from '@themoltnet/github-agent';
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import { type MoltNetConfig, readConfig, writeConfig } from '@themoltnet/sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { writeEnvFile } from '../env-file.js';
@@ -40,7 +39,6 @@ let targetDir: string;
 beforeEach(async () => {
   targetDir = await mkdtemp(join(tmpdir(), 'port-resolve-'));
   // Seed a moltnet.json so updateConfigSection can read it
-  const { writeConfig } = await import('@themoltnet/sdk');
   await writeConfig(baseConfig, targetDir);
 });
 
@@ -125,7 +123,6 @@ describe('runPortResolveInstallationPhase', () => {
     expect(result.message).toContain('999888777');
 
     // Verify moltnet.json was updated on disk
-    const { readConfig } = await import('@themoltnet/sdk');
     const updated = await readConfig(targetDir);
     expect(updated?.github?.installation_id).toBe('999888777');
   });

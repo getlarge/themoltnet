@@ -106,11 +106,14 @@ export async function updateEnvVar(
     content = '';
   }
 
-  const pattern = new RegExp(`^${key}=.*$`, 'm');
   const line = `${key}=${q(value)}`;
+  const keyPrefix = `${key}=`;
+  const lines = content === '' ? [] : content.split('\n');
+  const index = lines.findIndex((l) => l.startsWith(keyPrefix));
 
-  if (pattern.test(content)) {
-    content = content.replace(pattern, line);
+  if (index !== -1) {
+    lines[index] = line;
+    content = lines.join('\n');
   } else {
     content = content.endsWith('\n')
       ? content + line + '\n'
