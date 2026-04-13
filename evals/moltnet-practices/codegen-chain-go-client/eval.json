@@ -1,4 +1,6 @@
 {
-  "$comment": "PARKED: this scenario tests a multi-step workflow failure (agent forgets to regenerate the Go client during a busy schema-change flow). Vitro mode cannot reproduce it — frontier agents ace the isolated 'what commands do I run' prompt from training data (see runs: claude 93/95, codex 94/100, deltas 2-6%). The real failure only surfaces in a multi-file edit task where the Go regen is one step among many. Waiting for vivo mode (#714) — once ReAct + tool registry lands, this scenario should be rewritten as a real worktree task: 'add pinned_reason to ContextPackSchema and ship it', no hint about Go, and we observe whether the agent ran pnpm run go:generate in its tool trace. Until then, this scenario stays marked vivo and won't run in vitro eval sweeps.",
-  "mode": "vivo"
+  "mode": "vivo",
+  "fixture": {
+    "ref": "15afdcc1d23b9a950de9723250051744ce673772"
+  }
 }

@@ -283,6 +283,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 	if err != nil {
 		return nil, fmt.Errorf("resolve solver kind: %w", err)
 	}
+	effectiveMode := dspyEvalMode(input.manifest, opts)
 	agentResult, err := runSolver(solverInput{
 		workDir:     worktreeDir,
 		agent:       agentName,
@@ -291,13 +292,15 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		packMD:      input.packMD,
 		withContext: withContext,
 		kind:        solverKind,
+		mode:        effectiveMode,
+		fixtureRef:  opts.dspySourceRef,
 		tb:          tb,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	filesSnapshot, err := buildWorkspaceSnapshot(worktreeDir, agentResult.output)
+	filesSnapshot, err := buildWorkspaceSnapshot(worktreeDir, agentResult.output, effectiveMode)
 	if err != nil {
 		return nil, fmt.Errorf("snapshot workspace: %w", err)
 	}
@@ -443,7 +446,44 @@ type solverInput struct {
 	packMD      string
 	withContext bool
 	kind        solver.Kind // KindChainOfThought when empty
+	mode        string      // "vitro" or "vivo" — selects signature
+	fixtureRef  string      // resolved fixture.ref commit hash (vivo only)
 	tb          *trialBar
+}
+
+// buildSolverInputs constructs the named input map for module.Process.
+// Vivo mode adds repo_ref (must be non-empty); baseline variants get an
+// empty context_pack.
+func buildSolverInputs(in solverInput) (map[string]any, error) {
+	contextPack := ""
+	if in.withContext && strings.TrimSpace(in.packMD) != "" {
+		contextPack = in.packMD
+	}
+	inputs := map[string]any{
+		"task_markdown": in.taskMD,
+		"context_pack":  contextPack,
+	}
+	if in.mode == "vivo" {
+		if in.fixtureRef == "" {
+			return nil, fmt.Errorf("vivo mode requires fixture.ref; pass --fixture-ref or set fixture.ref in eval.json")
+		}
+		inputs["repo_ref"] = in.fixtureRef
+	}
+	return inputs, nil
+}
+
+// dspyEvalSignature selects the dspy-go signature based on eval mode.
+// Vivo gets the VivoSignature (extra repo_ref input, tool_trace output);
+// vitro (or empty, the default) gets VitroSignature. Unknown modes error.
+func dspyEvalSignature(mode string) (core.Signature, error) {
+	switch mode {
+	case "vivo":
+		return solver.VivoSignature(), nil
+	case "vitro", "":
+		return solver.VitroSignature(), nil
+	default:
+		return core.Signature{}, fmt.Errorf("unknown eval mode %q: must be vitro or vivo", mode)
+	}
 }
 
 // runSolver executes one eval trial via a dspy-go solver module and
@@ -500,35 +540,31 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		kind = solver.KindChainOfThought
 	}
 
+	sig, err := dspyEvalSignature(in.mode)
+	if err != nil {
+		return nil, err
+	}
+
 	module, err := solver.New(solver.Config{
 		Kind:      kind,
-		Signature: solver.VitroSignature(),
+		Signature: sig,
 		LLM:       llm,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init solver module: %w", err)
 	}
 
-	// Only feed the pack to the signature on "with-context" variants.
-	// The baseline variant must see an empty context_pack so with/without
-	// comparisons measure the effect of the pack. The on-disk
-	// context-pack.md (written by writeDSPYEvalPackToDisk) is already
-	// gated by withContext upstream; this gate keeps the signature input
-	// consistent with the filesystem state.
-	contextPack := ""
-	if in.withContext && strings.TrimSpace(in.packMD) != "" {
-		contextPack = in.packMD
+	inputs, err := buildSolverInputs(in)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()
 	// TODO(#714): capture module.Process outputs (reasoning,
 	// workspace_summary) for GEPA once the optimizer lands. Today the
-	// judge reads the filesystem as ground truth so these outputs are
-	// narrative-only and deliberately discarded.
-	_, procErr := module.Process(ctx, map[string]any{
-		"task_markdown": in.taskMD,
-		"context_pack":  contextPack,
-	})
+	// judge reads the filesystem via buildWorkspaceSnapshot as ground truth;
+	// these outputs are narrative-only and deliberately discarded.
+	_, procErr := module.Process(ctx, inputs)
 
 	// The module's returned map holds the dspy-go-parsed output fields
 	// (reasoning, workspace_summary) which are narrative/GEPA-facing and
@@ -582,7 +618,20 @@ func dspyJudgeProvider(judge, judgeModel string) (provider, model string) {
 	}
 }
 
-func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
+func buildWorkspaceSnapshot(workDir, fallbackOutput, mode string) (string, error) {
+	switch mode {
+	case "vivo":
+		return buildVivoWorkspaceSnapshot(workDir, fallbackOutput)
+	case "vitro", "":
+		return buildVitroWorkspaceSnapshot(workDir, fallbackOutput)
+	default:
+		return "", fmt.Errorf("unknown eval mode %q for workspace snapshot", mode)
+	}
+}
+
+// buildVitroWorkspaceSnapshot reads full file contents of changed files.
+// Safe for vitro worktrees which contain only injected fixture files.
+func buildVitroWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 	paths, err := listChangedSnapshotPaths(workDir)
 	if err != nil {
 		return "", err
@@ -618,6 +667,105 @@ func buildWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
 	}
 	return b.String(), nil
 }
+
+// buildVivoWorkspaceSnapshot produces a lightweight summary suitable for the
+// judge when the worktree is a full repo checkout. Instead of reading every
+// changed file (which can overflow the judge's context window), it captures:
+//   - git status --short (what changed)
+//   - git diff --stat    (change magnitudes)
+//   - git diff for small files only (notes.md and files under vivoSnapshotDiffCap bytes)
+//
+// The judge gets enough signal to evaluate criteria without a multi-megabyte
+// text dump.
+func buildVivoWorkspaceSnapshot(workDir, fallbackOutput string) (string, error) {
+	var b strings.Builder
+	hasEvidence := false
+
+	statusOut, statusErr := gitOutput(workDir, "status", "--short")
+	if statusErr != nil {
+		b.WriteString("## git status\n```\n(unavailable)\n```\n\n")
+	} else {
+		b.WriteString("## git status\n```\n")
+		b.WriteString(strings.TrimSpace(statusOut))
+		b.WriteString("\n```\n\n")
+		hasEvidence = strings.TrimSpace(statusOut) != ""
+	}
+
+	diffStatOut, diffErr := gitOutput(workDir, "diff", "--stat")
+	if diffErr != nil {
+		b.WriteString("## git diff --stat\n```\n(unavailable)\n```\n\n")
+	} else {
+		b.WriteString("## git diff --stat\n```\n")
+		b.WriteString(strings.TrimSpace(diffStatOut))
+		b.WriteString("\n```\n\n")
+	}
+
+	// Include full content for small changed files. Only parse paths when
+	// git status succeeded — never parse a placeholder error string.
+	if statusErr == nil {
+		paths := parseGitStatusPaths(statusOut)
+		sort.Strings(paths)
+		var skipped []string
+		for _, rel := range paths {
+			if vivoSnapshotDenyPath(rel) {
+				continue
+			}
+			fullPath := filepath.Join(workDir, rel)
+			info, statErr := os.Stat(fullPath)
+			if statErr != nil || info.IsDir() {
+				continue
+			}
+			if info.Size() > vivoSnapshotDiffCap {
+				continue
+			}
+			data, readErr := os.ReadFile(fullPath)
+			if readErr != nil {
+				skipped = append(skipped, fmt.Sprintf("%s: %v", rel, readErr))
+				continue
+			}
+			b.WriteString("## ")
+			b.WriteString(rel)
+			b.WriteString("\n")
+			b.WriteString(string(data))
+			b.WriteString("\n\n")
+			hasEvidence = true
+		}
+		if len(skipped) > 0 {
+			b.WriteString("<!-- skipped files:\n")
+			for _, s := range skipped {
+				b.WriteString("  - ")
+				b.WriteString(s)
+				b.WriteString("\n")
+			}
+			b.WriteString("-->\n\n")
+		}
+	}
+
+	if !hasEvidence && strings.TrimSpace(fallbackOutput) != "" {
+		b.WriteString("## final-response.txt\n")
+		b.WriteString(fallbackOutput)
+		b.WriteString("\n")
+	}
+	return b.String(), nil
+}
+
+// vivoSnapshotDenyPath returns true for paths that must never be inlined
+// in a vivo snapshot (secrets, credentials, env files).
+func vivoSnapshotDenyPath(rel string) bool {
+	base := filepath.Base(rel)
+	if strings.HasPrefix(base, ".env") {
+		return true
+	}
+	switch base {
+	case "moltnet.json", "credentials.json", "id_ed25519", "id_ed25519.pub":
+		return true
+	}
+	return false
+}
+
+// vivoSnapshotDiffCap is the max file size (bytes) to include inline in a vivo
+// snapshot. Files larger than this are represented only in git status/diff --stat.
+const vivoSnapshotDiffCap = 8192
 
 func listChangedSnapshotPaths(workDir string) ([]string, error) {
 	statusOut, err := gitOutput(workDir, "status", "--short")

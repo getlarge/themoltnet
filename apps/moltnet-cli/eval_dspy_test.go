@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -78,12 +79,148 @@ func TestWriteDSPYEvalPackToDisk(t *testing.T) {
 func TestBuildWorkspaceSnapshotFallsBackToFinalResponse(t *testing.T) {
 	dir := t.TempDir()
 
-	got, err := buildWorkspaceSnapshot(dir, "final output")
+	got, err := buildWorkspaceSnapshot(dir, "final output", "vitro")
 	if err != nil {
 		t.Fatalf("buildWorkspaceSnapshot: %v", err)
 	}
 	if !strings.Contains(got, "final-response.txt") {
 		t.Fatalf("expected fallback response file, got %q", got)
+	}
+}
+
+func TestBuildVivoWorkspaceSnapshot(t *testing.T) {
+	t.Parallel()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
+	dir := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+	}
+
+	runGit("init")
+	runGit("config", "user.email", "test@example.com")
+	runGit("config", "user.name", "Test User")
+
+	// Seed files and create initial commit.
+	if err := os.WriteFile(filepath.Join(dir, "notes.md"), []byte("initial"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "big.go"), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("SECRET=hunter2"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGit("add", "notes.md", "big.go", ".env")
+	runGit("commit", "-m", "init")
+
+	// Modify: notes.md (small), big.go (over cap), .env (denied).
+	changedNotes := "# Notes\nAgent ran codegen.\n"
+	if err := os.WriteFile(filepath.Join(dir, "notes.md"), []byte(changedNotes), 0644); err != nil {
+		t.Fatal(err)
+	}
+	bigContent := strings.Repeat("x", int(vivoSnapshotDiffCap)+1)
+	if err := os.WriteFile(filepath.Join(dir, "big.go"), []byte(bigContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("SECRET=changed"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := buildWorkspaceSnapshot(dir, "", "vivo")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot vivo: %v", err)
+	}
+
+	if !strings.Contains(got, "## git status") {
+		t.Error("vivo snapshot missing git status section")
+	}
+	if !strings.Contains(got, "## git diff --stat") {
+		t.Error("vivo snapshot missing git diff --stat section")
+	}
+	// Small changed file should be inlined.
+	if !strings.Contains(got, changedNotes) {
+		t.Error("vivo snapshot should include small changed file (notes.md)")
+	}
+	// Large file should NOT be inlined.
+	if strings.Contains(got, bigContent[:100]) {
+		t.Error("vivo snapshot should not include large file contents")
+	}
+	// .env should NOT be inlined (deny list).
+	if strings.Contains(got, "SECRET=") {
+		t.Error("vivo snapshot should not include .env contents")
+	}
+}
+
+func TestBuildVivoWorkspaceSnapshotNoGit(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Not a git repo — git commands fail. Snapshot should still succeed
+	// with "(unavailable)" markers and the fallback output.
+	got, err := buildWorkspaceSnapshot(dir, "fallback text", "vivo")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot vivo (no git): %v", err)
+	}
+	if !strings.Contains(got, "(unavailable)") {
+		t.Error("expected (unavailable) marker when git is not available")
+	}
+	if !strings.Contains(got, "fallback text") {
+		t.Error("expected fallback output when no evidence is available")
+	}
+}
+
+func TestBuildWorkspaceSnapshotRejectsUnknownMode(t *testing.T) {
+	_, err := buildWorkspaceSnapshot(t.TempDir(), "", "bogus")
+	if err == nil {
+		t.Fatal("expected error for unknown mode")
+	}
+	if !strings.Contains(err.Error(), "unknown eval mode") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuildWorkspaceSnapshotVitroReadsFullContents(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Init a git repo so git status works.
+	if err := exec.Command("git", "-C", dir, "init").Run(); err != nil {
+		t.Skipf("git init failed: %v", err)
+	}
+	if err := exec.Command("git", "-C", dir, "config", "user.email", "test@test.com").Run(); err != nil {
+		t.Skipf("git config failed: %v", err)
+	}
+	if err := exec.Command("git", "-C", dir, "config", "user.name", "Test").Run(); err != nil {
+		t.Skipf("git config failed: %v", err)
+	}
+	// Initial commit so HEAD exists.
+	if err := exec.Command("git", "-C", dir, "commit", "--allow-empty", "-m", "init").Run(); err != nil {
+		t.Skipf("git commit failed: %v", err)
+	}
+
+	testFile := filepath.Join(dir, "result.md")
+	content := "# Result\nThe answer is 42."
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := buildWorkspaceSnapshot(dir, "", "vitro")
+	if err != nil {
+		t.Fatalf("buildWorkspaceSnapshot vitro: %v", err)
+	}
+
+	// Vitro should read the full file content.
+	if !strings.Contains(got, content) {
+		t.Errorf("vitro snapshot should contain full file content, got:\n%s", got)
 	}
 }
 
@@ -350,5 +487,129 @@ func TestDspyJudgeProvider(t *testing.T) {
 			t.Errorf("dspyJudgeProvider(%q, %q) = (%q, %q), want (%q, %q)",
 				tt.judge, tt.judgeModel, prov, model, tt.wantProv, tt.wantModel)
 		}
+	}
+}
+
+func TestDspyEvalSignature(t *testing.T) {
+	tests := []struct {
+		name       string
+		mode       string
+		wantInputs []string
+		wantErr    bool
+	}{
+		{"vitro uses VitroSignature", "vitro", []string{"task_markdown", "context_pack"}, false},
+		{"vivo uses VivoSignature", "vivo", []string{"task_markdown", "context_pack", "repo_ref"}, false},
+		{"empty mode defaults to vitro", "", []string{"task_markdown", "context_pack"}, false},
+		{"unknown mode errors", "bogus", nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sig, err := dspyEvalSignature(tt.mode)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error for unknown mode")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			gotNames := make([]string, len(sig.Inputs))
+			for i, inp := range sig.Inputs {
+				gotNames[i] = inp.Field.Name
+			}
+			if len(gotNames) != len(tt.wantInputs) {
+				t.Fatalf("got %d inputs %v, want %d %v", len(gotNames), gotNames, len(tt.wantInputs), tt.wantInputs)
+			}
+			for i, want := range tt.wantInputs {
+				if gotNames[i] != want {
+					t.Errorf("input[%d] = %q, want %q", i, gotNames[i], want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildSolverInputs(t *testing.T) {
+	tests := []struct {
+		name       string
+		mode       string
+		fixtureRef string
+		packMD     string
+		withCtx    bool
+		wantKeys   []string
+		wantRef    string
+		wantPack   string
+		wantErr    bool
+	}{
+		{
+			name:     "vitro omits repo_ref",
+			mode:     "vitro",
+			packMD:   "pack",
+			withCtx:  true,
+			wantKeys: []string{"task_markdown", "context_pack"},
+			wantPack: "pack",
+		},
+		{
+			name:       "vivo includes repo_ref",
+			mode:       "vivo",
+			fixtureRef: "abc123",
+			packMD:     "pack",
+			withCtx:    true,
+			wantKeys:   []string{"task_markdown", "context_pack", "repo_ref"},
+			wantRef:    "abc123",
+			wantPack:   "pack",
+		},
+		{
+			name:    "vivo without fixtureRef errors",
+			mode:    "vivo",
+			packMD:  "pack",
+			withCtx: true,
+			wantErr: true,
+		},
+		{
+			name:     "baseline omits pack content",
+			mode:     "vitro",
+			packMD:   "pack",
+			withCtx:  false,
+			wantKeys: []string{"task_markdown", "context_pack"},
+			wantPack: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inputs, err := buildSolverInputs(solverInput{
+				taskMD:      "# task",
+				packMD:      tt.packMD,
+				withContext: tt.withCtx,
+				mode:        tt.mode,
+				fixtureRef:  tt.fixtureRef,
+			})
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			for _, key := range tt.wantKeys {
+				if _, ok := inputs[key]; !ok {
+					t.Errorf("missing key %q in inputs %v", key, inputs)
+				}
+			}
+			if len(inputs) != len(tt.wantKeys) {
+				t.Errorf("got %d keys, want %d: %v", len(inputs), len(tt.wantKeys), inputs)
+			}
+			if tt.wantRef != "" {
+				if got, _ := inputs["repo_ref"].(string); got != tt.wantRef {
+					t.Errorf("repo_ref = %q, want %q", got, tt.wantRef)
+				}
+			}
+			if got, _ := inputs["context_pack"].(string); got != tt.wantPack {
+				t.Errorf("context_pack = %q, want %q", got, tt.wantPack)
+			}
+		})
 	}
 }
