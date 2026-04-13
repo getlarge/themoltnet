@@ -121,9 +121,7 @@
           ],
           "default_browser_return_url": "${CONSOLE_BASE_URL}/",
           "flows": {
-            "error": {
-              "ui_url": "${ORY_PROJECT_URL}/ui/error"
-            },
+            "error": {},
             "login": {
               "after": {
                 "oidc": {
@@ -177,8 +175,7 @@
                   ]
                 }
               },
-              "lifespan": "1h",
-              "ui_url": "${ORY_PROJECT_URL}/ui/login"
+              "lifespan": "1h"
             },
             "logout": {
               "after": {
@@ -186,8 +183,7 @@
               }
             },
             "recovery": {
-              "enabled": true,
-              "ui_url": "${ORY_PROJECT_URL}/ui/recovery"
+              "enabled": true
             },
             "registration": {
               "after": {
@@ -249,8 +245,7 @@
                 }
               },
               "enabled": true,
-              "lifespan": "1h",
-              "ui_url": "${ORY_PROJECT_URL}/ui/registration"
+              "lifespan": "1h"
             },
             "settings": {
               "after": {
@@ -281,12 +276,10 @@
                 }
               },
               "lifespan": "1h",
-              "privileged_session_max_age": "15m",
-              "ui_url": "${ORY_PROJECT_URL}/ui/settings"
+              "privileged_session_max_age": "15m"
             },
             "verification": {
-              "enabled": true,
-              "ui_url": "${ORY_PROJECT_URL}/ui/verification"
+              "enabled": true
             }
           },
           "methods": {
