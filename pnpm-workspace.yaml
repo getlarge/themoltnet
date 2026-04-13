@@ -3,6 +3,13 @@ packages:
   - libs/*
   - tools
   - packages/*
+allowBuilds:
+  cpu-features: false
+  esbuild: true
+  onnxruntime-node: true
+  protobufjs: false
+  sharp: false
+  ssh2: false
 
 catalog:
   '@andersmyrmel/vard': ^1.2.0
@@ -50,6 +57,8 @@ catalog:
   '@scalar/fastify-api-reference': ^1.0.0
   '@sinclair/typebox': ^0.34.0
   '@testcontainers/postgresql': ^11.0.0
+  '@testing-library/jest-dom': ^6.0.0
+  '@testing-library/react': ^16.0.0
   '@types/node': ^20.11.0
   '@types/pg': ^8.11.0
   '@types/react': ^19.0.0
@@ -63,13 +72,14 @@ catalog:
   eslint-plugin-react-hooks: ^7.0.1
   eslint-plugin-simple-import-sort: ^12.1.1
   fast-jwt: ^6.1.0
-  figlet: ^1.10.0
   fastify: ^5.8.3
   fastify-plugin: ^5.1.0
   fastq: ^1.20.1
+  figlet: ^1.10.0
   get-jwks: ^11.0.3
   husky: ^9.1.0
   ink: ^6.8.0
+  jsdom: ^25.0.0
   knip: ^5.82.1
   lint-staged: ^16.0.0
   multiformats: ^13.3.0
@@ -87,14 +97,11 @@ catalog:
   thread-stream: ^3.1.0
   tsx: ^4.7.0
   typescript: ^5.3.3
-  undici: ^7.24.0
   typescript-eslint: ^8.58.0
+  undici: ^7.24.0
   update-ts-references: ^4.0.0
   vite: ^8.0.0
   vite-plugin-dts: ^4.5.4
-  '@testing-library/jest-dom': ^6.0.0
-  '@testing-library/react': ^16.0.0
-  jsdom: ^25.0.0
   vitest: ^3.0.0
   winston: 3.17.0
   winston-transport: 4.7.0
