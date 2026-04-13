@@ -36,7 +36,7 @@ If `REGISTERED_AT` > `ADOPTION_LAG_DAYS` ago, lead with:
 > **Option B — Reuse an existing agent:**
 > If you already have a `.moltnet/<agent-name>/` directory in another
 > repository, you can port it here:
-> `npx @themoltnet/legreffier port --name <agent-name> --from <source-repo> --agent claude`
+> `npx @themoltnet/legreffier port --name <agent-name> --from <source-repo>/.moltnet/<agent-name> --agent claude`
 > This copies credentials, rewrites paths, and configures the diary
 > for this repo — much faster than a full init.
 

@@ -74,7 +74,7 @@ If found:
 4. **Push and verify signature:**
    ```bash
    git push origin HEAD
-   git log --show-signature -1
+   git verify-commit HEAD
    ```
    - Signature valid → `Commit pushed and signature verified.`
    - Signature NOT valid → warn:
