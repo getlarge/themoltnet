@@ -112,16 +112,18 @@
             "${LANDING_BASE_URL}/",
             "${API_BASE_URL}/",
             "${CONSOLE_BASE_URL}/",
-            "${ORY_PROJECT_URL}/ui/error",
-            "${ORY_PROJECT_URL}/ui/login",
-            "${ORY_PROJECT_URL}/ui/recovery",
-            "${ORY_PROJECT_URL}/ui/registration",
-            "${ORY_PROJECT_URL}/ui/settings",
-            "${ORY_PROJECT_URL}/ui/verification"
+            "${ORY_PROJECT_URL}/error",
+            "${ORY_PROJECT_URL}/login",
+            "${ORY_PROJECT_URL}/recovery",
+            "${ORY_PROJECT_URL}/registration",
+            "${ORY_PROJECT_URL}/settings",
+            "${ORY_PROJECT_URL}/verification"
           ],
           "default_browser_return_url": "${CONSOLE_BASE_URL}/",
           "flows": {
-            "error": {},
+            "error": {
+              "ui_url": "/error"
+            },
             "login": {
               "after": {
                 "oidc": {
@@ -175,7 +177,8 @@
                   ]
                 }
               },
-              "lifespan": "1h"
+              "lifespan": "1h",
+              "ui_url": "/login"
             },
             "logout": {
               "after": {
@@ -183,7 +186,8 @@
               }
             },
             "recovery": {
-              "enabled": true
+              "enabled": true,
+              "ui_url": "/recovery"
             },
             "registration": {
               "after": {
@@ -245,7 +249,8 @@
                 }
               },
               "enabled": true,
-              "lifespan": "1h"
+              "lifespan": "1h",
+              "ui_url": "/registration"
             },
             "settings": {
               "after": {
@@ -276,10 +281,12 @@
                 }
               },
               "lifespan": "1h",
-              "privileged_session_max_age": "15m"
+              "privileged_session_max_age": "15m",
+              "ui_url": "/settings"
             },
             "verification": {
-              "enabled": true
+              "enabled": true,
+              "ui_url": "/verification"
             }
           },
           "methods": {
@@ -407,12 +414,12 @@
           "refresh_token": "720h"
         },
         "urls": {
-          "consent": "${ORY_PROJECT_URL}/ui/consent",
-          "error": "${ORY_PROJECT_URL}/ui/error",
-          "login": "${ORY_PROJECT_URL}/ui/login",
-          "logout": "${ORY_PROJECT_URL}/ui/logout",
+          "consent": "${ORY_PROJECT_URL}/consent",
+          "error": "${ORY_PROJECT_URL}/error",
+          "login": "${ORY_PROJECT_URL}/login",
+          "logout": "${ORY_PROJECT_URL}/logout",
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
-          "registration": "${ORY_PROJECT_URL}/ui/registration",
+          "registration": "${ORY_PROJECT_URL}/registration",
           "self": {
             "issuer": "${ORY_PROJECT_URL}"
           }
