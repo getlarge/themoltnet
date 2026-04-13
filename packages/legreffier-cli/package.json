@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "citty": "catalog:",
-    "figlet": "catalog:",
     "ink": "catalog:",
     "open": "catalog:",
     "react": "catalog:",
@@ -41,7 +40,6 @@
     "@themoltnet/design-system": "workspace:*",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "typescript": "catalog:",

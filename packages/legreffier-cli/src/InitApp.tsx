@@ -179,11 +179,21 @@ function ProgressPhase({
         {steps.githubApp === 'running' ? (
           <Box flexDirection="column">
             <CliSpinner label={githubAppSpinnerLabel} />
-            {showManifestFallback && manifestFormUrl ? (
-              <Text color={cliTheme.color.muted}>
-                {'  → '}
-                <Text color={cliTheme.color.accent}>{manifestFormUrl}</Text>
-              </Text>
+            {manifestFormUrl ? (
+              <Box flexDirection="column">
+                <Text color={cliTheme.color.text}>
+                  {'  '}Confirm the GitHub App creation in your browser:
+                </Text>
+                <Text color={cliTheme.color.accent}>
+                  {'  '}→ {manifestFormUrl}
+                </Text>
+                {showManifestFallback ? (
+                  <Text color={cliTheme.color.muted}>
+                    {'  '}
+                    Browser didn't open? Copy the link above.
+                  </Text>
+                ) : null}
+              </Box>
             ) : null}
           </Box>
         ) : (
@@ -206,11 +216,21 @@ function ProgressPhase({
         {steps.installation === 'running' ? (
           <Box flexDirection="column">
             <CliSpinner label={installationSpinnerLabel} />
-            {showInstallFallback && installationUrl ? (
-              <Text color={cliTheme.color.muted}>
-                {'  → '}
-                <Text color={cliTheme.color.accent}>{installationUrl}</Text>
-              </Text>
+            {installationUrl ? (
+              <Box flexDirection="column">
+                <Text color={cliTheme.color.text}>
+                  {'  '}Install the GitHub App on your account/org:
+                </Text>
+                <Text color={cliTheme.color.accent}>
+                  {'  '}→ {installationUrl}
+                </Text>
+                {showInstallFallback ? (
+                  <Text color={cliTheme.color.muted}>
+                    {'  '}
+                    Browser didn't open? Copy the link above.
+                  </Text>
+                ) : null}
+              </Box>
             ) : null}
           </Box>
         ) : (
