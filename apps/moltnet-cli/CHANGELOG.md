@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.25.0](https://github.com/getlarge/themoltnet/compare/cli-v1.24.1...cli-v1.25.0) (2026-04-14)
+
+
+### Features
+
+* **moltnet-cli, skill:** Phase 2 of team onboarding ([#797](https://github.com/getlarge/themoltnet/issues/797)) ([1318f0c](https://github.com/getlarge/themoltnet/commit/1318f0c17405d67968fad53eb4690f5434f0c8d3))
+* **moltnet-cli:** team management + diary grant commands ([#797](https://github.com/getlarge/themoltnet/issues/797)) ([9364c20](https://github.com/getlarge/themoltnet/commit/9364c208c24ab165d5eee8fe32e62831b616f9de))
+
+
+### Bug Fixes
+
+* **moltnet-cli:** address PR [#811](https://github.com/getlarge/themoltnet/issues/811) review feedback ([f65d117](https://github.com/getlarge/themoltnet/commit/f65d1175e374f433c9e3bea7a8b950206bbff274))
+
 ## [1.24.1](https://github.com/getlarge/themoltnet/compare/cli-v1.24.0...cli-v1.24.1) (2026-04-14)
 
 
