@@ -31,10 +31,15 @@ import type {
   DiariesListInput,
 } from './schemas/diary-schemas.js';
 import {
+  DiariesCompileOutputSchema,
   DiariesCompileSchema,
+  DiariesConsolidateOutputSchema,
   DiariesConsolidateSchema,
+  DiariesCreateOutputSchema,
   DiariesCreateSchema,
+  DiariesGetOutputSchema,
   DiariesGetSchema,
+  DiariesListOutputSchema,
   DiariesListSchema,
 } from './schemas/diary-schemas.js';
 import type {
@@ -49,14 +54,23 @@ import type {
   ReflectInput,
 } from './schemas/entry-schemas.js';
 import {
+  DiaryTagsOutputSchema,
   DiaryTagsSchema,
+  EntryCreateOutputSchema,
   EntryCreateSchema,
+  EntryDeleteOutputSchema,
   EntryDeleteSchema,
+  EntryGetOutputSchema,
   EntryGetSchema,
+  EntryListOutputSchema,
   EntryListSchema,
+  EntrySearchOutputSchema,
   EntrySearchSchema,
+  EntryUpdateOutputSchema,
   EntryUpdateSchema,
+  EntryVerifyOutputSchema,
   EntryVerifySchema,
+  ReflectOutputSchema,
   ReflectSchema,
 } from './schemas/entry-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -227,18 +241,18 @@ export async function handleEntryDelete(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { error } = await deleteDiaryEntryById({
+  const { data, error } = await deleteDiaryEntryById({
     client: deps.client,
     auth: () => token,
     path: { entryId: args.entry_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_delete', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to delete entry'));
   }
 
-  return structuredResult({ deleted: true });
+  return structuredResult(data);
 }
 
 export async function handleReflect(
@@ -487,6 +501,7 @@ export function registerDiaryTools(
       description:
         'List your diaries. Call this first to discover your diary IDs.',
       inputSchema: DiariesListSchema,
+      outputSchema: DiariesListOutputSchema,
     },
     async (args, ctx) => handleDiariesList(args, deps, ctx),
   );
@@ -497,6 +512,7 @@ export function registerDiaryTools(
       description:
         'Cluster semantically similar entries and return consolidation suggestions.',
       inputSchema: DiariesConsolidateSchema,
+      outputSchema: DiariesConsolidateOutputSchema,
     },
     async (args, ctx) => handleDiariesConsolidate(args, deps, ctx),
   );
@@ -507,6 +523,7 @@ export function registerDiaryTools(
       description:
         'Compile a token-budget-fitted context pack from diary entries.',
       inputSchema: DiariesCompileSchema,
+      outputSchema: DiariesCompileOutputSchema,
     },
     async (args, ctx) => handleDiariesCompile(args, deps, ctx),
   );
@@ -517,6 +534,7 @@ export function registerDiaryTools(
       description:
         'Create a new diary. Returns the diary ID needed for entry tools.',
       inputSchema: DiariesCreateSchema,
+      outputSchema: DiariesCreateOutputSchema,
     },
     async (args, ctx) => handleDiariesCreate(args, deps, ctx),
   );
@@ -526,6 +544,7 @@ export function registerDiaryTools(
       name: 'diaries_get',
       description: 'Get diary metadata by ID.',
       inputSchema: DiariesGetSchema,
+      outputSchema: DiariesGetOutputSchema,
     },
     async (args, ctx) => handleDiariesGet(args, deps, ctx),
   );
@@ -537,6 +556,7 @@ export function registerDiaryTools(
         'List distinct tags used in a diary with counts. ' +
         'Use this to discover available tags before compiling context packs with include_tags/exclude_tags.',
       inputSchema: DiaryTagsSchema,
+      outputSchema: DiaryTagsOutputSchema,
     },
     async (args, ctx) => handleDiaryTags(args, deps, ctx),
   );
@@ -551,6 +571,7 @@ export function registerDiaryTools(
         ' sign with crypto_submit_signature, then pass signing_request_id here.' +
         ' The server recomputes the CID to verify it matches.',
       inputSchema: EntryCreateSchema,
+      outputSchema: EntryCreateOutputSchema,
     },
     async (args, ctx) => handleEntryCreate(args, deps, ctx),
   );
@@ -563,6 +584,7 @@ export function registerDiaryTools(
         ' inline relation graph (supersedes, elaborates, etc.) up to `depth`' +
         ' hops. Relations include depth and parentRelationId for tree reconstruction.',
       inputSchema: EntryGetSchema,
+      outputSchema: EntryGetOutputSchema,
     },
     async (args, ctx) => handleEntryGet(args, deps, ctx),
   );
@@ -572,6 +594,7 @@ export function registerDiaryTools(
       name: 'entries_list',
       description: 'List your recent diary entries.',
       inputSchema: EntryListSchema,
+      outputSchema: EntryListOutputSchema,
     },
     async (args, ctx) => handleEntryList(args, deps, ctx),
   );
@@ -585,6 +608,7 @@ export function registerDiaryTools(
         '`deploy production` = OR match; `"npm audit"` = phrase match; ' +
         '`deploy -staging` = exclude term; `"security vulnerability" +audit` = phrase + required term.',
       inputSchema: EntrySearchSchema,
+      outputSchema: EntrySearchOutputSchema,
     },
     async (args, ctx) => handleEntrySearch(args, deps, ctx),
   );
@@ -594,6 +618,7 @@ export function registerDiaryTools(
       name: 'entries_update',
       description: 'Update a diary entry (tags, content, title).',
       inputSchema: EntryUpdateSchema,
+      outputSchema: EntryUpdateOutputSchema,
     },
     async (args, ctx) => handleEntryUpdate(args, deps, ctx),
   );
@@ -603,6 +628,7 @@ export function registerDiaryTools(
       name: 'entries_delete',
       description: 'Delete a diary entry.',
       inputSchema: EntryDeleteSchema,
+      outputSchema: EntryDeleteOutputSchema,
     },
     async (args, ctx) => handleEntryDelete(args, deps, ctx),
   );
@@ -615,6 +641,7 @@ export function registerDiaryTools(
         ' Checks that the content hash matches and the Ed25519 signature is valid.' +
         ' Returns signed status, hash match, signature validity, and agent fingerprint.',
       inputSchema: EntryVerifySchema,
+      outputSchema: EntryVerifyOutputSchema,
     },
     async (args, ctx) => handleEntryVerify(args, deps, ctx),
   );
@@ -625,6 +652,7 @@ export function registerDiaryTools(
       description:
         'Get a curated summary of your memories. Use this after context compression to rebuild your sense of self.',
       inputSchema: ReflectSchema,
+      outputSchema: ReflectOutputSchema,
     },
     async (args, ctx) => handleReflect(args, deps, ctx),
   );

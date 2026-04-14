@@ -7,20 +7,36 @@
 
 import type {
   CreateDiaryCustomPackData,
+  CreateDiaryCustomPackResponses,
   GetContextPackByIdData,
+  GetContextPackByIdResponses,
   GetContextPackProvenanceByCidData,
+  GetContextPackProvenanceByCidResponses,
   GetContextPackProvenanceByIdData,
+  GetContextPackProvenanceByIdResponses,
   ListDiaryPacksData,
+  ListDiaryPacksResponses,
   PreviewDiaryCustomPackData,
+  PreviewDiaryCustomPackResponses,
   PreviewRenderedPackData,
+  PreviewRenderedPackResponses,
   RenderContextPackData,
+  RenderContextPackResponses,
   UpdateContextPackData,
+  UpdateContextPackResponses,
   UpdateRenderedPackData,
+  UpdateRenderedPackResponses,
 } from '@moltnet/api-client';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
-import type { AssertSchemaToApi, BodyOf, PathOf } from './common.js';
+import type {
+  AssertOutputMatchesApi,
+  AssertSchemaToApi,
+  BodyOf,
+  PathOf,
+  ResponseOf,
+} from './common.js';
 
 export const PackGetSchema = Type.Object({
   pack_id: Type.String({
@@ -275,6 +291,257 @@ export type PackRenderPreviewInput = {
   render_method: NonNullable<BodyOf<PreviewRenderedPackData>>['renderMethod'];
 };
 
+// --- Output schemas ---
+
+const AgentIdentitySchema = Type.Object({
+  identityId: Type.String(),
+  fingerprint: Type.String(),
+  publicKey: Type.String(),
+});
+
+const PackTypeSchema = Type.Union([
+  Type.Literal('compile'),
+  Type.Literal('optimized'),
+  Type.Literal('custom'),
+]);
+
+const CompressionLevelSchema = Type.Union([
+  Type.Literal('full'),
+  Type.Literal('summary'),
+  Type.Literal('keywords'),
+]);
+
+const EntryTypeLiteralSchema = Type.Union([
+  Type.Literal('episodic'),
+  Type.Literal('semantic'),
+  Type.Literal('procedural'),
+  Type.Literal('reflection'),
+  Type.Literal('identity'),
+  Type.Literal('soul'),
+]);
+
+const DiaryEntryWithCreatorSchema = Type.Object({
+  id: Type.String(),
+  diaryId: Type.String(),
+  title: Type.Union([Type.String(), Type.Null()]),
+  content: Type.String(),
+  tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+  injectionRisk: Type.Boolean(),
+  importance: Type.Number(),
+  accessCount: Type.Number(),
+  lastAccessedAt: Type.Union([Type.String(), Type.Null()]),
+  entryType: EntryTypeLiteralSchema,
+  contentHash: Type.Union([Type.String(), Type.Null()]),
+  contentSignature: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+  creator: Type.Union([AgentIdentitySchema, Type.Null()]),
+});
+
+const ExpandedPackEntrySchema = Type.Object({
+  id: Type.String(),
+  packId: Type.String(),
+  entryId: Type.String(),
+  entryCidSnapshot: Type.String(),
+  compressionLevel: CompressionLevelSchema,
+  originalTokens: Type.Union([Type.Number(), Type.Null()]),
+  packedTokens: Type.Union([Type.Number(), Type.Null()]),
+  rank: Type.Union([Type.Number(), Type.Null()]),
+  createdAt: Type.String(),
+  entry: DiaryEntryWithCreatorSchema,
+});
+
+const ContextPackResponseSchema = Type.Object({
+  id: Type.String(),
+  diaryId: Type.String(),
+  packCid: Type.String(),
+  packCodec: Type.String(),
+  packType: PackTypeSchema,
+  params: Type.Unknown(),
+  payload: Type.Unknown(),
+  createdBy: Type.String(),
+  creator: Type.Union([AgentIdentitySchema, Type.Null()]),
+  supersedesPackId: Type.Union([Type.String(), Type.Null()]),
+  pinned: Type.Boolean(),
+  expiresAt: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+  entries: Type.Optional(Type.Array(ExpandedPackEntrySchema)),
+});
+
+export const PackGetOutputSchema = ContextPackResponseSchema;
+
+export const PackListOutputSchema = Type.Object({
+  items: Type.Array(ContextPackResponseSchema),
+  total: Type.Number(),
+  limit: Type.Number(),
+  offset: Type.Number(),
+});
+
+export const PackUpdateOutputSchema = ContextPackResponseSchema;
+
+const CompileStatsSchema = Type.Object({
+  totalTokens: Type.Number(),
+  entriesIncluded: Type.Number(),
+  entriesCompressed: Type.Number(),
+  compressionRatio: Type.Number(),
+  budgetUtilization: Type.Number(),
+  elapsedMs: Type.Number(),
+});
+
+const CustomPackEntryResultSchema = Type.Object({
+  entryId: Type.String(),
+  entryCidSnapshot: Type.String(),
+  rank: Type.Number(),
+  compressionLevel: CompressionLevelSchema,
+  originalTokens: Type.Number(),
+  packedTokens: Type.Number(),
+});
+
+const CustomPackResultSchema = Type.Object({
+  packCid: Type.String(),
+  packType: Type.Literal('custom'),
+  params: Type.Record(Type.String(), Type.Unknown()),
+  entries: Type.Array(CustomPackEntryResultSchema),
+  compileStats: CompileStatsSchema,
+});
+
+export const PackPreviewOutputSchema = CustomPackResultSchema;
+
+export const PackCreateOutputSchema = CustomPackResultSchema;
+
+export const PackRenderPreviewOutputSchema = Type.Object({
+  sourcePackId: Type.String(),
+  sourcePackCid: Type.String(),
+  renderMethod: Type.String(),
+  renderedMarkdown: Type.String(),
+  totalTokens: Type.Number(),
+});
+
+export const PackRenderOutputSchema = Type.Object({
+  id: Type.String(),
+  packCid: Type.String(),
+  sourcePackId: Type.String(),
+  sourcePackCid: Type.String(),
+  diaryId: Type.String(),
+  contentHash: Type.String(),
+  renderMethod: Type.String(),
+  renderedMarkdown: Type.String(),
+  totalTokens: Type.Number(),
+  pinned: Type.Boolean(),
+});
+
+export const RenderedPackUpdateOutputSchema = Type.Object({
+  id: Type.String(),
+  packCid: Type.String(),
+  sourcePackId: Type.String(),
+  diaryId: Type.String(),
+  content: Type.String(),
+  contentHash: Type.String(),
+  renderMethod: Type.String(),
+  totalTokens: Type.Number(),
+  pinned: Type.Boolean(),
+  expiresAt: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+});
+
+const ProvenanceEdgeSchema = Type.Object({
+  id: Type.String(),
+  from: Type.String(),
+  to: Type.String(),
+  kind: Type.Union([
+    Type.Literal('includes'),
+    Type.Literal('supersedes'),
+    Type.Literal('rendered_from'),
+  ]),
+  label: Type.Optional(Type.String()),
+  meta: Type.Optional(
+    Type.Record(
+      Type.String(),
+      Type.Union([Type.String(), Type.Number(), Type.Boolean(), Type.Null()]),
+    ),
+  ),
+});
+
+const ProvenanceCreatorSchema = Type.Object({
+  identityId: Type.String(),
+  fingerprint: Type.String(),
+  publicKey: Type.String(),
+});
+
+const ProvenancePackNodeSchema = Type.Object({
+  id: Type.String(),
+  kind: Type.Literal('pack'),
+  label: Type.String(),
+  cid: Type.Union([Type.String(), Type.Null()]),
+  meta: Type.Object({
+    packId: Type.String(),
+    diaryId: Type.String(),
+    packCid: Type.String(),
+    packType: Type.String(),
+    packCodec: Type.String(),
+    pinned: Type.Boolean(),
+    createdAt: Type.String(),
+    expiresAt: Type.Union([Type.String(), Type.Null()]),
+    supersedesPackId: Type.Union([Type.String(), Type.Null()]),
+    creator: Type.Optional(Type.Union([ProvenanceCreatorSchema, Type.Null()])),
+  }),
+});
+
+const ProvenanceEntryNodeSchema = Type.Object({
+  id: Type.String(),
+  kind: Type.Literal('entry'),
+  label: Type.String(),
+  cid: Type.Union([Type.String(), Type.Null()]),
+  meta: Type.Object({
+    entryId: Type.String(),
+    diaryId: Type.String(),
+    entryType: EntryTypeLiteralSchema,
+    contentHash: Type.Union([Type.String(), Type.Null()]),
+    createdAt: Type.String(),
+    updatedAt: Type.String(),
+    signed: Type.Boolean(),
+    title: Type.Union([Type.String(), Type.Null()]),
+    tags: Type.Array(Type.String()),
+    creator: Type.Optional(Type.Union([ProvenanceCreatorSchema, Type.Null()])),
+  }),
+});
+
+const ProvenanceRenderedPackNodeSchema = Type.Object({
+  id: Type.String(),
+  kind: Type.Literal('rendered_pack'),
+  label: Type.String(),
+  cid: Type.Union([Type.String(), Type.Null()]),
+  meta: Type.Object({
+    renderedPackId: Type.String(),
+    sourcePackId: Type.String(),
+    diaryId: Type.String(),
+    packCid: Type.String(),
+    renderMethod: Type.String(),
+    totalTokens: Type.Number(),
+    pinned: Type.Boolean(),
+    createdAt: Type.String(),
+    expiresAt: Type.Union([Type.String(), Type.Null()]),
+  }),
+});
+
+export const PackProvenanceOutputSchema = Type.Object({
+  metadata: Type.Object({
+    format: Type.Literal('moltnet.provenance-graph/v1'),
+    generatedAt: Type.String(),
+    rootNodeId: Type.String(),
+    rootPackId: Type.String(),
+    depth: Type.Number(),
+  }),
+  nodes: Type.Array(
+    Type.Union([
+      ProvenancePackNodeSchema,
+      ProvenanceEntryNodeSchema,
+      ProvenanceRenderedPackNodeSchema,
+    ]),
+  ),
+  edges: Type.Array(ProvenanceEdgeSchema),
+});
+
 // --- Compile-time drift checks ---
 
 type _PackGetInputMatchesSchema = AssertSchemaToApi<
@@ -308,4 +575,45 @@ type _PackRenderInputMatchesSchema = AssertSchemaToApi<
 type _PackRenderPreviewInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackRenderPreviewSchema>,
   PackRenderPreviewInput
+>;
+
+type _PackGetOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackGetOutputSchema>,
+  ResponseOf<GetContextPackByIdResponses>
+>;
+type _PackListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackListOutputSchema>,
+  ResponseOf<ListDiaryPacksResponses>
+>;
+type _PackUpdateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackUpdateOutputSchema>,
+  ResponseOf<UpdateContextPackResponses>
+>;
+type _PackPreviewOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackPreviewOutputSchema>,
+  ResponseOf<PreviewDiaryCustomPackResponses>
+>;
+type _PackCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackCreateOutputSchema>,
+  ResponseOf<CreateDiaryCustomPackResponses>
+>;
+type _PackRenderPreviewOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackRenderPreviewOutputSchema>,
+  ResponseOf<PreviewRenderedPackResponses>
+>;
+type _PackRenderOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackRenderOutputSchema>,
+  ResponseOf<RenderContextPackResponses>
+>;
+type _RenderedPackUpdateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof RenderedPackUpdateOutputSchema>,
+  ResponseOf<UpdateRenderedPackResponses>
+>;
+type _PackProvenanceByIdOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackProvenanceOutputSchema>,
+  ResponseOf<GetContextPackProvenanceByIdResponses>
+>;
+type _PackProvenanceByCidOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackProvenanceOutputSchema>,
+  ResponseOf<GetContextPackProvenanceByCidResponses>
 >;

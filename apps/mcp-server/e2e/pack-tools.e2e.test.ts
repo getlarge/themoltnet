@@ -107,9 +107,8 @@ describe('Pack Tools E2E', () => {
       `packs_get error: ${getContent[0].text}`,
     ).toBeUndefined();
     const getParsed = JSON.parse(getContent[0].text);
-    expect(getParsed.pack).toBeDefined();
-    expect(getParsed.pack.id).toBe(packId);
-    expect(getParsed.pack.packCid).toBeDefined();
+    expect(getParsed.id).toBe(packId);
+    expect(getParsed.packCid).toBeDefined();
   });
 
   it('packs_provenance returns provenance graph with nodes and edges', async () => {
@@ -188,8 +187,8 @@ describe('Pack Tools E2E', () => {
       `packs_update (pin) error: ${pinContent[0].text}`,
     ).toBeUndefined();
     const pinParsed = JSON.parse(pinContent[0].text);
-    expect(pinParsed.pack.pinned).toBe(true);
-    expect(pinParsed.pack.expiresAt).toBeNull();
+    expect(pinParsed.pinned).toBe(true);
+    expect(pinParsed.expiresAt).toBeNull();
 
     // Unpin with new expiresAt
     const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -210,8 +209,8 @@ describe('Pack Tools E2E', () => {
       `packs_update (unpin) error: ${unpinContent[0].text}`,
     ).toBeUndefined();
     const unpinParsed = JSON.parse(unpinContent[0].text);
-    expect(unpinParsed.pack.pinned).toBe(false);
-    expect(unpinParsed.pack.expiresAt).toBeDefined();
+    expect(unpinParsed.pinned).toBe(false);
+    expect(unpinParsed.expiresAt).toBeDefined();
   });
 
   it('packs_update_rendered pins and unpins a rendered pack', async () => {
@@ -269,7 +268,7 @@ describe('Pack Tools E2E', () => {
       `packs_update_rendered (pin) error: ${pinContent[0].text}`,
     ).toBeUndefined();
     const pinParsed = JSON.parse(pinContent[0].text);
-    expect(pinParsed.renderedPack.pinned).toBe(true);
+    expect(pinParsed.pinned).toBe(true);
 
     // Unpin with new expiresAt
     const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -290,7 +289,7 @@ describe('Pack Tools E2E', () => {
       `packs_update_rendered (unpin) error: ${unpinContent2[0].text}`,
     ).toBeUndefined();
     const unpinParsed2 = JSON.parse(unpinContent2[0].text);
-    expect(unpinParsed2.renderedPack.pinned).toBe(false);
-    expect(unpinParsed2.renderedPack.expiresAt).toBeDefined();
+    expect(unpinParsed2.pinned).toBe(false);
+    expect(unpinParsed2.expiresAt).toBeDefined();
   });
 });

@@ -6,18 +6,25 @@
 
 import type {
   CompileDiaryData,
+  CompileDiaryResponses,
   ConsolidateDiaryData,
+  ConsolidateDiaryResponses,
   CreateDiaryData,
+  CreateDiaryResponses,
   GetDiaryData,
+  GetDiaryResponses,
+  ListDiariesResponses,
 } from '@moltnet/api-client';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
 import type {
+  AssertOutputMatchesApi,
   AssertSchemaToApi,
   BodyOf,
   EmptyInput,
   PathOf,
+  ResponseOf,
   SnakeCasedProperties,
 } from './common.js';
 
@@ -119,6 +126,136 @@ export const DiariesGetSchema = Type.Object({
 });
 export type DiariesGetInput = { diary_id: PathOf<GetDiaryData>['id'] };
 
+// --- Output schemas ---
+
+const VisibilitySchema = Type.Union([
+  Type.Literal('private'),
+  Type.Literal('moltnet'),
+  Type.Literal('public'),
+]);
+
+const DiaryCatalogSchema = Type.Object({
+  id: Type.String(),
+  createdBy: Type.String(),
+  teamId: Type.String(),
+  name: Type.String(),
+  visibility: VisibilitySchema,
+  signed: Type.Boolean(),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+});
+
+export const DiariesListOutputSchema = Type.Object({
+  items: Type.Array(DiaryCatalogSchema),
+});
+
+export const DiariesCreateOutputSchema = DiaryCatalogSchema;
+
+export const DiariesGetOutputSchema = DiaryCatalogSchema;
+
+const ConsolidateClusterMemberSchema = Type.Object({
+  id: Type.String(),
+  content: Type.String(),
+  tokens: Type.Number(),
+  importance: Type.Number(),
+  createdAt: Type.String(),
+});
+
+const ConsolidateClusterSchema = Type.Object({
+  representative: ConsolidateClusterMemberSchema,
+  representativeReason: Type.String(),
+  members: Type.Array(ConsolidateClusterMemberSchema),
+  similarity: Type.Number(),
+  confidence: Type.Number(),
+  suggestedAction: Type.Union([
+    Type.Literal('merge'),
+    Type.Literal('keep_separate'),
+    Type.Literal('review'),
+  ]),
+});
+
+export const DiariesConsolidateOutputSchema = Type.Object({
+  workflowId: Type.String(),
+  clusters: Type.Array(ConsolidateClusterSchema),
+  stats: Type.Object({
+    inputCount: Type.Number(),
+    clusterCount: Type.Number(),
+    singletonRate: Type.Number(),
+    clusterSizeDistribution: Type.Tuple([
+      Type.Unknown(),
+      Type.Unknown(),
+      Type.Unknown(),
+      Type.Unknown(),
+      Type.Unknown(),
+    ]),
+    elapsedMs: Type.Number(),
+  }),
+  trace: Type.Object({
+    thresholdUsed: Type.Number(),
+    strategyUsed: Type.Union([
+      Type.Literal('score'),
+      Type.Literal('centroid'),
+      Type.Literal('hybrid'),
+    ]),
+    embeddingDim: Type.Number(),
+  }),
+});
+
+const PackTypeSchema = Type.Union([
+  Type.Literal('compile'),
+  Type.Literal('optimized'),
+  Type.Literal('custom'),
+]);
+
+const CompressionLevelSchema = Type.Union([
+  Type.Literal('full'),
+  Type.Literal('summary'),
+  Type.Literal('keywords'),
+]);
+
+const CompileStatsSchema = Type.Object({
+  totalTokens: Type.Number(),
+  entriesIncluded: Type.Number(),
+  entriesCompressed: Type.Number(),
+  compressionRatio: Type.Number(),
+  budgetUtilization: Type.Number(),
+  elapsedMs: Type.Number(),
+});
+
+export const DiariesCompileOutputSchema = Type.Object({
+  id: Type.String(),
+  diaryId: Type.String(),
+  packCid: Type.String(),
+  packCodec: Type.String(),
+  packType: PackTypeSchema,
+  params: Type.Unknown(),
+  payload: Type.Unknown(),
+  createdBy: Type.String(),
+  supersedesPackId: Type.Union([Type.String(), Type.Null()]),
+  pinned: Type.Boolean(),
+  expiresAt: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+  entries: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      packId: Type.String(),
+      entryId: Type.String(),
+      entryCidSnapshot: Type.String(),
+      compressionLevel: CompressionLevelSchema,
+      originalTokens: Type.Union([Type.Number(), Type.Null()]),
+      packedTokens: Type.Union([Type.Number(), Type.Null()]),
+      rank: Type.Union([Type.Number(), Type.Null()]),
+      createdAt: Type.String(),
+    }),
+  ),
+  compileStats: CompileStatsSchema,
+  compileTrace: Type.Object({
+    lambdaUsed: Type.Number(),
+    embeddingDim: Type.Number(),
+    taskPromptHash: Type.Optional(Type.String()),
+  }),
+});
+
 // --- Compile-time drift checks ---
 
 type _DiariesConsolidateInputMatchesSchema = AssertSchemaToApi<
@@ -136,4 +273,25 @@ type _DiariesCreateInputMatchesSchema = AssertSchemaToApi<
 type _DiariesGetInputMatchesSchema = AssertSchemaToApi<
   Static<typeof DiariesGetSchema>,
   DiariesGetInput
+>;
+
+type _DiariesListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof DiariesListOutputSchema>,
+  ResponseOf<ListDiariesResponses>
+>;
+type _DiariesCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof DiariesCreateOutputSchema>,
+  ResponseOf<CreateDiaryResponses>
+>;
+type _DiariesGetOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof DiariesGetOutputSchema>,
+  ResponseOf<GetDiaryResponses>
+>;
+type _DiariesConsolidateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof DiariesConsolidateOutputSchema>,
+  ResponseOf<ConsolidateDiaryResponses>
+>;
+type _DiariesCompileOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof DiariesCompileOutputSchema>,
+  ResponseOf<CompileDiaryResponses>
 >;

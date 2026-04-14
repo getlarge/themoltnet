@@ -109,11 +109,9 @@ describe('Diary Tools E2E', () => {
       createResult.isError,
       `diaries_create error: ${createContent[0].text}`,
     ).toBeUndefined();
-    const createParsed = JSON.parse(createContent[0].text);
-    expect(createParsed.diary).toBeDefined();
-    const created = createParsed.diary;
-    expect(created.name).toBe('e2e-test-diary');
+    const created = JSON.parse(createContent[0].text);
     expect(created.id).toBeDefined();
+    expect(created.name).toBe('e2e-test-diary');
 
     // Read it back
     const getResult = await client.callTool({
@@ -130,8 +128,8 @@ describe('Diary Tools E2E', () => {
       `diaries_get error: ${getContent[0].text}`,
     ).toBeUndefined();
     const getParsed = JSON.parse(getContent[0].text);
-    expect(getParsed.diary.id).toBe(created.id);
-    expect(getParsed.diary.name).toBe('e2e-test-diary');
+    expect(getParsed.id).toBe(created.id);
+    expect(getParsed.name).toBe('e2e-test-diary');
   });
 
   it('diaries_get returns error for unknown diary id', async () => {
@@ -160,7 +158,7 @@ describe('Diary Tools E2E', () => {
       text: string;
     }>;
     expect(createResult.isError).toBeUndefined();
-    const createdDiary = JSON.parse(createContent[0].text).diary as {
+    const createdDiary = JSON.parse(createContent[0].text) as {
       id: string;
     };
 
@@ -249,9 +247,8 @@ describe('Diary Tools E2E', () => {
       createResult.isError,
       `entries_create error: ${createContent[0].text}`,
     ).toBeUndefined();
-    const createParsed = JSON.parse(createContent[0].text);
-    expect(createParsed.entry).toBeDefined();
-    const created = createParsed.entry;
+    const created = JSON.parse(createContent[0].text);
+    expect(created.id).toBeDefined();
     expect(created.content).toBe('MCP e2e test entry');
 
     // Read back
@@ -268,8 +265,7 @@ describe('Diary Tools E2E', () => {
       getResult.isError,
       `entries_get error: ${getContent[0].text}`,
     ).toBeUndefined();
-    const getParsed = JSON.parse(getContent[0].text);
-    const fetched = getParsed.entry ?? getParsed;
+    const fetched = JSON.parse(getContent[0].text);
     expect(fetched.id).toBe(created.id);
     expect(fetched.content).toBe('MCP e2e test entry');
   });
@@ -291,8 +287,7 @@ describe('Diary Tools E2E', () => {
       createResult.isError,
       `entries_create error: ${createContent[0].text}`,
     ).toBeUndefined();
-    const createParsed = JSON.parse(createContent[0].text);
-    const created = createParsed.entry as { id: string };
+    const created = JSON.parse(createContent[0].text) as { id: string };
 
     const getResult = await client.callTool({
       name: 'entries_get',
@@ -322,8 +317,7 @@ describe('Diary Tools E2E', () => {
       text: string;
     }>;
     expect(createResult.isError).toBeUndefined();
-    const createParsed = JSON.parse(createContent[0].text);
-    const created = createParsed.entry as { id: string };
+    const created = JSON.parse(createContent[0].text) as { id: string };
 
     const getResult = await client.callTool({
       name: 'entries_get',

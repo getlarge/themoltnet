@@ -67,7 +67,7 @@ describe('Relation Tools E2E', () => {
       createA.isError,
       `entries_create A error: ${contentA[0].text}`,
     ).toBeUndefined();
-    const entryA = JSON.parse(contentA[0].text).entry as { id: string };
+    const entryA = JSON.parse(contentA[0].text) as { id: string };
 
     const createB = await client.callTool({
       name: 'entries_create',
@@ -81,7 +81,7 @@ describe('Relation Tools E2E', () => {
       createB.isError,
       `entries_create B error: ${contentB[0].text}`,
     ).toBeUndefined();
-    const entryB = JSON.parse(contentB[0].text).entry as { id: string };
+    const entryB = JSON.parse(contentB[0].text) as { id: string };
 
     // Create relation
     const createRelResult = await client.callTool({
@@ -150,7 +150,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryA = JSON.parse(
       (createA.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     const createB = await client.callTool({
       name: 'entries_create',
@@ -161,7 +161,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryB = JSON.parse(
       (createB.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     // Create a proposed relation
     const createRelResult = await client.callTool({
@@ -208,7 +208,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryA = JSON.parse(
       (createA.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     const createB = await client.callTool({
       name: 'entries_create',
@@ -219,7 +219,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryB = JSON.parse(
       (createB.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     // Create relation
     const createRelResult = await client.callTool({

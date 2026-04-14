@@ -124,10 +124,10 @@ describe('Custom pack tools E2E', () => {
     }
 
     agentAEntryIds = seededEntries.map((result) => {
-      const parsed = parseToolJson<{ entry: { id: string } }>(
+      const parsed = parseToolJson<{ id: string }>(
         result.content as ToolTextContent,
       );
-      return parsed.entry.id;
+      return parsed.id;
     });
 
     const foreignEntryResult = await clientB.callTool({
@@ -330,10 +330,11 @@ describe('Custom pack tools E2E', () => {
       `packs_get failed: ${getContent[0].text}`,
     ).toBeUndefined();
     const getParsed = parseToolJson<{
-      pack: { id: string; entries?: Array<{ entryId: string }> };
+      id: string;
+      entries?: Array<{ entryId: string }>;
     }>(getContent);
-    expect(getParsed.pack.id).toBe(persistedPack!.id);
-    expect(getParsed.pack.entries?.every((entry) => entry.entryId)).toBe(true);
+    expect(getParsed.id).toBe(persistedPack!.id);
+    expect(getParsed.entries?.every((entry) => entry.entryId)).toBe(true);
   });
 
   it('blocks cross-agent preview and pack retrieval', async () => {

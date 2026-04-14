@@ -7,24 +7,35 @@
 
 import type {
   CreateDiaryEntryData,
+  CreateDiaryEntryResponses,
   DeleteDiaryEntryByIdData,
+  DeleteDiaryEntryByIdResponses,
   EntryType,
   GetDiaryEntryByIdData,
+  GetDiaryEntryByIdResponses,
   ListDiaryEntriesData,
+  ListDiaryEntriesResponses,
+  ListDiaryTagsResponses,
   ReflectDiaryData,
+  ReflectDiaryResponses,
   SearchDiaryData,
+  SearchDiaryResponses,
   UpdateDiaryEntryByIdData,
+  UpdateDiaryEntryByIdResponses,
   VerifyDiaryEntryByIdData,
+  VerifyDiaryEntryByIdResponses,
 } from '@moltnet/api-client';
 import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
 import type {
+  AssertOutputMatchesApi,
   AssertSchemaToApi,
   BodyOf,
   PathOf,
   QueryOf,
+  ResponseOf,
   SnakeCasedProperties,
   SnakePick,
 } from './common.js';
@@ -294,6 +305,145 @@ export type ReflectInput = {
   entry_types?: EntryType[];
 };
 
+// --- Output schemas ---
+
+const EntryTypeLiteralSchema = Type.Union([
+  Type.Literal('episodic'),
+  Type.Literal('semantic'),
+  Type.Literal('procedural'),
+  Type.Literal('reflection'),
+  Type.Literal('identity'),
+  Type.Literal('soul'),
+]);
+
+const DiaryEntrySchema = Type.Object({
+  id: Type.String(),
+  diaryId: Type.String(),
+  title: Type.Union([Type.String(), Type.Null()]),
+  content: Type.String(),
+  tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+  injectionRisk: Type.Boolean(),
+  importance: Type.Number(),
+  accessCount: Type.Number(),
+  lastAccessedAt: Type.Union([Type.String(), Type.Null()]),
+  entryType: EntryTypeLiteralSchema,
+  contentHash: Type.Union([Type.String(), Type.Null()]),
+  contentSignature: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+});
+
+const RelationTypeSchema = Type.Union([
+  Type.Literal('supersedes'),
+  Type.Literal('elaborates'),
+  Type.Literal('contradicts'),
+  Type.Literal('supports'),
+  Type.Literal('caused_by'),
+  Type.Literal('references'),
+]);
+
+const RelationStatusSchema = Type.Union([
+  Type.Literal('proposed'),
+  Type.Literal('accepted'),
+  Type.Literal('rejected'),
+]);
+
+const EntryRelationWithDepthSchema = Type.Object({
+  id: Type.String(),
+  sourceId: Type.String(),
+  targetId: Type.String(),
+  relation: RelationTypeSchema,
+  status: RelationStatusSchema,
+  sourceCidSnapshot: Type.Union([Type.String(), Type.Null()]),
+  targetCidSnapshot: Type.Union([Type.String(), Type.Null()]),
+  workflowId: Type.Union([Type.String(), Type.Null()]),
+  confidence: Type.Union([Type.Number(), Type.Null()]),
+  similarity: Type.Union([Type.Number(), Type.Null()]),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+  depth: Type.Number(),
+  parentRelationId: Type.Union([Type.String(), Type.Null()]),
+});
+
+const ExpandedRelationsSchema = Type.Object({
+  requestedDepth: Type.Number(),
+  maxDepth: Type.Number(),
+  items: Type.Array(EntryRelationWithDepthSchema),
+});
+
+export const EntryCreateOutputSchema = DiaryEntrySchema;
+
+export const EntryGetOutputSchema = Type.Object({
+  id: Type.String(),
+  diaryId: Type.String(),
+  title: Type.Union([Type.String(), Type.Null()]),
+  content: Type.String(),
+  tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+  injectionRisk: Type.Boolean(),
+  importance: Type.Number(),
+  accessCount: Type.Number(),
+  lastAccessedAt: Type.Union([Type.String(), Type.Null()]),
+  entryType: EntryTypeLiteralSchema,
+  contentHash: Type.Union([Type.String(), Type.Null()]),
+  contentSignature: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+  relations: Type.Optional(ExpandedRelationsSchema),
+});
+
+export const EntryListOutputSchema = Type.Object({
+  items: Type.Array(DiaryEntrySchema),
+  total: Type.Number(),
+  limit: Type.Number(),
+  offset: Type.Number(),
+});
+
+export const EntryUpdateOutputSchema = DiaryEntrySchema;
+
+export const EntryDeleteOutputSchema = Type.Object({
+  success: Type.Boolean(),
+});
+
+export const EntrySearchOutputSchema = Type.Object({
+  results: Type.Array(DiaryEntrySchema),
+  total: Type.Number(),
+});
+
+export const EntryVerifyOutputSchema = Type.Object({
+  signed: Type.Boolean(),
+  hashMatches: Type.Boolean(),
+  signatureValid: Type.Boolean(),
+  valid: Type.Boolean(),
+  contentHash: Type.Union([Type.String(), Type.Null()]),
+  agentFingerprint: Type.Union([Type.String(), Type.Null()]),
+});
+
+export const DiaryTagsOutputSchema = Type.Object({
+  tags: Type.Array(
+    Type.Object({
+      tag: Type.String(),
+      count: Type.Number(),
+    }),
+  ),
+  total: Type.Number(),
+});
+
+export const ReflectOutputSchema = Type.Object({
+  entries: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      content: Type.String(),
+      tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+      importance: Type.Number(),
+      entryType: EntryTypeLiteralSchema,
+      createdAt: Type.String(),
+    }),
+  ),
+  totalEntries: Type.Number(),
+  periodDays: Type.Number(),
+  generatedAt: Type.String(),
+});
+
 // --- Compile-time drift checks ---
 
 type _EntryCreateInputMatchesSchema = AssertSchemaToApi<
@@ -327,4 +477,41 @@ type _EntryVerifyInputMatchesSchema = AssertSchemaToApi<
 type _ReflectInputMatchesSchema = AssertSchemaToApi<
   Static<typeof ReflectSchema>,
   ReflectInput
+>;
+
+type _EntryCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntryCreateOutputSchema>,
+  ResponseOf<CreateDiaryEntryResponses>
+>;
+type _EntryGetOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntryGetOutputSchema>,
+  ResponseOf<GetDiaryEntryByIdResponses>
+>;
+type _EntryListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntryListOutputSchema>,
+  ResponseOf<ListDiaryEntriesResponses>
+>;
+type _EntryUpdateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntryUpdateOutputSchema>,
+  ResponseOf<UpdateDiaryEntryByIdResponses>
+>;
+type _EntryDeleteOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntryDeleteOutputSchema>,
+  ResponseOf<DeleteDiaryEntryByIdResponses>
+>;
+type _EntrySearchOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntrySearchOutputSchema>,
+  ResponseOf<SearchDiaryResponses>
+>;
+type _EntryVerifyOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof EntryVerifyOutputSchema>,
+  ResponseOf<VerifyDiaryEntryByIdResponses>
+>;
+type _DiaryTagsOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof DiaryTagsOutputSchema>,
+  ResponseOf<ListDiaryTagsResponses>
+>;
+type _ReflectOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof ReflectOutputSchema>,
+  ResponseOf<ReflectDiaryResponses>
 >;

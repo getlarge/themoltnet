@@ -521,7 +521,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('deleted', true);
+      expect(parsed).toHaveProperty('success', true);
     });
 
     it('returns error when entry not found', async () => {
