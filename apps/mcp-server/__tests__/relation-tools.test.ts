@@ -70,8 +70,13 @@ describe('Relation tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('success', true);
-      expect(parsed).toHaveProperty('relation');
+      expect(parsed).toMatchObject({
+        id: RELATION_ID,
+        sourceId: ENTRY_ID,
+        targetId: TARGET_ID,
+        relation: 'supports',
+      });
+      expect(result.structuredContent).toEqual(relation);
     });
 
     it('returns error when not authenticated', async () => {
@@ -134,9 +139,9 @@ describe('Relation tools', () => {
           query: {},
         }),
       );
-      const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('items');
+      const parsed = parseResult<{ items: unknown[] }>(result);
       expect(parsed.items).toHaveLength(1);
+      expect(result.structuredContent).toEqual(data);
     });
 
     it('returns error when not authenticated', async () => {
@@ -197,8 +202,11 @@ describe('Relation tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('success', true);
-      expect(parsed).toHaveProperty('relation');
+      expect(parsed).toMatchObject({
+        id: RELATION_ID,
+        status: 'accepted',
+      });
+      expect(result.structuredContent).toEqual(updated);
     });
 
     it('returns error when not authenticated', async () => {

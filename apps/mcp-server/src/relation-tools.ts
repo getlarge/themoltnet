@@ -20,9 +20,12 @@ import type {
   RelationUpdateInput,
 } from './schemas/relation-schemas.js';
 import {
+  RelationCreateOutputSchema,
   RelationCreateSchema,
   RelationDeleteSchema,
+  RelationListOutputSchema,
   RelationListSchema,
+  RelationUpdateOutputSchema,
   RelationUpdateSchema,
 } from './schemas/relation-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -30,6 +33,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
+  structuredResult,
   textResult,
 } from './utils.js';
 
@@ -62,7 +66,7 @@ export async function handleRelationsCreate(
     );
   }
 
-  return textResult({ success: true, relation: data });
+  return structuredResult(data as unknown as Record<string, unknown>);
 }
 
 export async function handleRelationsList(
@@ -93,7 +97,7 @@ export async function handleRelationsList(
     );
   }
 
-  return textResult(data);
+  return structuredResult(data as unknown as Record<string, unknown>);
 }
 
 export async function handleRelationsUpdate(
@@ -119,7 +123,7 @@ export async function handleRelationsUpdate(
     );
   }
 
-  return textResult({ success: true, relation: data });
+  return structuredResult(data as unknown as Record<string, unknown>);
 }
 
 export async function handleRelationsDelete(
@@ -161,6 +165,7 @@ export function registerRelationTools(
         'Supported relation types: supersedes, elaborates, contradicts, supports, caused_by, references. ' +
         'Status can be proposed (default) or accepted.',
       inputSchema: RelationCreateSchema,
+      outputSchema: RelationCreateOutputSchema,
     },
     async (args, ctx) => handleRelationsCreate(args, deps, ctx),
   );
@@ -171,6 +176,7 @@ export function registerRelationTools(
       description:
         'List relations for a diary entry. Filter by relation type, status, or direction (as_source, as_target, both).',
       inputSchema: RelationListSchema,
+      outputSchema: RelationListOutputSchema,
     },
     async (args, ctx) => handleRelationsList(args, deps, ctx),
   );
@@ -181,6 +187,7 @@ export function registerRelationTools(
       description:
         'Update the status of a relation (proposed → accepted or rejected).',
       inputSchema: RelationUpdateSchema,
+      outputSchema: RelationUpdateOutputSchema,
     },
     async (args, ctx) => handleRelationsUpdate(args, deps, ctx),
   );

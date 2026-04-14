@@ -37,3 +37,31 @@ export type SnakePick<T, K extends keyof T> = SnakeCasedProperties<Pick<T, K>>;
 export type EmptyInput = {};
 
 export type AssertSchemaToApi<_TSchema extends TApi, TApi> = true;
+
+/**
+ * Extract the successful response body from an api-client `*Responses` map
+ * (e.g. `{ 200: Foo; 201: Foo }` → `Foo`). Works like
+ * `Responses[keyof Responses]`, which is what the generated `*Response`
+ * aliases already do.
+ */
+export type ResponseOf<TResponses> = TResponses[keyof TResponses];
+
+/**
+ * Bidirectional structural equality check used to verify that an output
+ * TypeBox schema's `Static<>` shape matches the api-client response type
+ * exactly — neither side silently gains or loses fields when the REST API
+ * evolves.
+ *
+ * Both constraints (`TSchema extends TApi` and `TApi extends TSchema`) must
+ * hold, otherwise the drift-check alias fails to compile:
+ *
+ *   type _FooOutputMatchesApi = AssertOutputMatchesApi<
+ *     Static<typeof FooOutputSchema>,
+ *     FooApiResponse
+ *   >;
+ */
+export type AssertOutputMatchesApi<TSchema, TApi> = [TSchema] extends [TApi]
+  ? [TApi] extends [TSchema]
+    ? true
+    : never
+  : never;

@@ -6,14 +6,23 @@
 
 import type {
   CreateEntryRelationData,
+  CreateEntryRelationResponses,
   DeleteEntryRelationData,
   ListEntryRelationsData,
+  ListEntryRelationsResponses,
   UpdateEntryRelationStatusData,
+  UpdateEntryRelationStatusResponses,
 } from '@moltnet/api-client';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
-import type { AssertSchemaToApi, BodyOf, PathOf } from './common.js';
+import type {
+  AssertOutputMatchesApi,
+  AssertSchemaToApi,
+  BodyOf,
+  PathOf,
+  ResponseOf,
+} from './common.js';
 
 export const RelationCreateSchema = Type.Object({
   entry_id: Type.String({
@@ -125,6 +134,48 @@ export type RelationDeleteInput = {
   relation_id: PathOf<DeleteEntryRelationData>['id'];
 };
 
+// --- Output schemas ---
+
+const RelationTypeSchema = Type.Union([
+  Type.Literal('supersedes'),
+  Type.Literal('elaborates'),
+  Type.Literal('contradicts'),
+  Type.Literal('supports'),
+  Type.Literal('caused_by'),
+  Type.Literal('references'),
+]);
+
+const RelationStatusSchema = Type.Union([
+  Type.Literal('proposed'),
+  Type.Literal('accepted'),
+  Type.Literal('rejected'),
+]);
+
+const EntryRelationSchema = Type.Object({
+  id: Type.String(),
+  sourceId: Type.String(),
+  targetId: Type.String(),
+  relation: RelationTypeSchema,
+  status: RelationStatusSchema,
+  sourceCidSnapshot: Type.Union([Type.String(), Type.Null()]),
+  targetCidSnapshot: Type.Union([Type.String(), Type.Null()]),
+  workflowId: Type.Union([Type.String(), Type.Null()]),
+  confidence: Type.Union([Type.Number(), Type.Null()]),
+  similarity: Type.Union([Type.Number(), Type.Null()]),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+});
+
+export const RelationCreateOutputSchema = EntryRelationSchema;
+export const RelationUpdateOutputSchema = EntryRelationSchema;
+
+export const RelationListOutputSchema = Type.Object({
+  items: Type.Array(EntryRelationSchema),
+  total: Type.Number(),
+  limit: Type.Number(),
+  offset: Type.Number(),
+});
+
 // --- Compile-time drift checks ---
 
 type _RelationCreateInputMatchesSchema = AssertSchemaToApi<
@@ -142,4 +193,17 @@ type _RelationUpdateInputMatchesSchema = AssertSchemaToApi<
 type _RelationDeleteInputMatchesSchema = AssertSchemaToApi<
   Static<typeof RelationDeleteSchema>,
   RelationDeleteInput
+>;
+
+type _RelationCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof RelationCreateOutputSchema>,
+  ResponseOf<CreateEntryRelationResponses>
+>;
+type _RelationListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof RelationListOutputSchema>,
+  ResponseOf<ListEntryRelationsResponses>
+>;
+type _RelationUpdateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof RelationUpdateOutputSchema>,
+  ResponseOf<UpdateEntryRelationStatusResponses>
 >;
