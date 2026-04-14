@@ -17,6 +17,8 @@ import type {
   CreateTeamResponse,
   CryptoIdentity,
   CryptoVerifyResult,
+  DeleteTeamInviteResponse,
+  DeleteTeamResponse,
   DiaryCatalog,
   DiaryCatalogList,
   DiaryEntry,
@@ -52,6 +54,7 @@ import type {
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
   ReflectDiaryData,
+  RemoveTeamMemberResponse,
   RenderedPackWithContent,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
@@ -291,12 +294,18 @@ export interface TeamsNamespace {
   listMembers(id: string): Promise<ListTeamMembersResponse>;
   create(body: CreateTeamData['body']): Promise<CreateTeamResponse>;
   join(code: string): Promise<JoinTeamResponse>;
+  delete(id: string): Promise<DeleteTeamResponse>;
+  removeMember(
+    teamId: string,
+    subjectId: string,
+  ): Promise<RemoveTeamMemberResponse>;
   invites: {
     create(
       teamId: string,
       body?: CreateTeamInviteData['body'],
     ): Promise<CreateTeamInviteResponse>;
     list(teamId: string): Promise<ListTeamInvitesResponse>;
+    delete(teamId: string, inviteId: string): Promise<DeleteTeamInviteResponse>;
   };
 }
 

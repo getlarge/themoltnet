@@ -1,11 +1,14 @@
 import {
   createTeam,
   createTeamInvite,
+  deleteTeam,
+  deleteTeamInvite,
   getTeam,
   joinTeam,
   listTeamInvites,
   listTeamMembers,
   listTeams,
+  removeTeamMember,
 } from '@moltnet/api-client';
 
 import type { TeamsNamespace } from '../agent.js';
@@ -38,6 +41,20 @@ export function createTeamsNamespace(context: AgentContext): TeamsNamespace {
       return unwrapResult(await joinTeam({ client, auth, body: { code } }));
     },
 
+    async delete(id) {
+      return unwrapResult(await deleteTeam({ client, auth, path: { id } }));
+    },
+
+    async removeMember(teamId, subjectId) {
+      return unwrapResult(
+        await removeTeamMember({
+          client,
+          auth,
+          path: { id: teamId, subjectId },
+        }),
+      );
+    },
+
     invites: {
       async create(teamId, body) {
         return unwrapResult(
@@ -56,6 +73,16 @@ export function createTeamsNamespace(context: AgentContext): TeamsNamespace {
             client,
             auth,
             path: { id: teamId },
+          }),
+        );
+      },
+
+      async delete(teamId, inviteId) {
+        return unwrapResult(
+          await deleteTeamInvite({
+            client,
+            auth,
+            path: { id: teamId, inviteId },
           }),
         );
       },

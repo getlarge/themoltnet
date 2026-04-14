@@ -2367,6 +2367,10 @@ type CreateDiaryEntryUnauthorized ProblemDetails
 
 func (*CreateDiaryEntryUnauthorized) createDiaryEntryRes() {}
 
+type CreateDiaryGrantConflict ProblemDetails
+
+func (*CreateDiaryGrantConflict) createDiaryGrantRes() {}
+
 type CreateDiaryGrantCreated struct {
 	Role CreateDiaryGrantCreatedRole `json:"role"`
 	// UUID v4 identifier.
@@ -3004,6 +3008,8 @@ func (*CreateTeamInviteBadRequest) createTeamInviteRes() {}
 type CreateTeamInviteCreated struct {
 	Code      string    `json:"code"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	// UUID v4 identifier.
+	ID uuid.UUID `json:"id"`
 }
 
 // GetCode returns the value of Code.
@@ -3016,6 +3022,11 @@ func (s *CreateTeamInviteCreated) GetExpiresAt() time.Time {
 	return s.ExpiresAt
 }
 
+// GetID returns the value of ID.
+func (s *CreateTeamInviteCreated) GetID() uuid.UUID {
+	return s.ID
+}
+
 // SetCode sets the value of Code.
 func (s *CreateTeamInviteCreated) SetCode(val string) {
 	s.Code = val
@@ -3024,6 +3035,11 @@ func (s *CreateTeamInviteCreated) SetCode(val string) {
 // SetExpiresAt sets the value of ExpiresAt.
 func (s *CreateTeamInviteCreated) SetExpiresAt(val time.Time) {
 	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *CreateTeamInviteCreated) SetID(val uuid.UUID) {
+	s.ID = val
 }
 
 func (*CreateTeamInviteCreated) createTeamInviteRes() {}
@@ -7877,6 +7893,8 @@ func (*ListTeamInvitesOK) listTeamInvitesRes() {}
 type ListTeamInvitesOKItemsItem struct {
 	Code      string    `json:"code"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	// UUID v4 identifier.
+	ID uuid.UUID `json:"id"`
 }
 
 // GetCode returns the value of Code.
@@ -7889,6 +7907,11 @@ func (s *ListTeamInvitesOKItemsItem) GetExpiresAt() time.Time {
 	return s.ExpiresAt
 }
 
+// GetID returns the value of ID.
+func (s *ListTeamInvitesOKItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
 // SetCode sets the value of Code.
 func (s *ListTeamInvitesOKItemsItem) SetCode(val string) {
 	s.Code = val
@@ -7897,6 +7920,11 @@ func (s *ListTeamInvitesOKItemsItem) SetCode(val string) {
 // SetExpiresAt sets the value of ExpiresAt.
 func (s *ListTeamInvitesOKItemsItem) SetExpiresAt(val time.Time) {
 	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *ListTeamInvitesOKItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
 }
 
 type ListTeamInvitesUnauthorized ProblemDetails

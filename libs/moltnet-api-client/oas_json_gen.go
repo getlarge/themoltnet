@@ -6423,6 +6423,44 @@ func (s *CreateDiaryEntryUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateDiaryGrantConflict as json.
+func (s *CreateDiaryGrantConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDiaryGrantConflict from json.
+func (s *CreateDiaryGrantConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDiaryGrantConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDiaryGrantConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDiaryGrantConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDiaryGrantConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *CreateDiaryGrantCreated) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -8559,11 +8597,16 @@ func (s *CreateTeamInviteCreated) encodeFields(e *jx.Encoder) {
 		e.FieldStart("expiresAt")
 		json.EncodeDateTime(e, s.ExpiresAt)
 	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
 }
 
-var jsonFieldsNameOfCreateTeamInviteCreated = [2]string{
+var jsonFieldsNameOfCreateTeamInviteCreated = [3]string{
 	0: "code",
 	1: "expiresAt",
+	2: "id",
 }
 
 // Decode decodes CreateTeamInviteCreated from json.
@@ -8599,6 +8642,18 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
+		case "id":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -8609,7 +8664,7 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -23049,11 +23104,16 @@ func (s *ListTeamInvitesOKItemsItem) encodeFields(e *jx.Encoder) {
 		e.FieldStart("expiresAt")
 		json.EncodeDateTime(e, s.ExpiresAt)
 	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
 }
 
-var jsonFieldsNameOfListTeamInvitesOKItemsItem = [2]string{
+var jsonFieldsNameOfListTeamInvitesOKItemsItem = [3]string{
 	0: "code",
 	1: "expiresAt",
+	2: "id",
 }
 
 // Decode decodes ListTeamInvitesOKItemsItem from json.
@@ -23089,6 +23149,18 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
+		case "id":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -23099,7 +23171,7 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

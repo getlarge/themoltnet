@@ -1478,6 +1478,10 @@ export type CreateDiaryGrantErrors = {
   /**
    * Default Response
    */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
 };
 
@@ -4290,6 +4294,10 @@ export type ListTeamInvitesResponses = {
    */
   200: {
     items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      id: string;
       code: string;
       expiresAt: string;
     }>;
@@ -4342,6 +4350,10 @@ export type CreateTeamInviteResponses = {
    * Default Response
    */
   201: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
     code: string;
     expiresAt: string;
   };

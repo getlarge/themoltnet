@@ -325,6 +325,7 @@ export const TeamResponseSchema = Type.Object({
 });
 
 export const TeamInviteResponseSchema = Type.Object({
+  id: UuidSchema,
   code: Type.String(),
   expiresAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
 });

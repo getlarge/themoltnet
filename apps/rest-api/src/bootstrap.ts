@@ -40,6 +40,7 @@ import {
   createVerificationRepository,
   createVoucherRepository,
   type DatabaseConnection,
+  getDatabase,
   getDataSource,
   initSigningWorkflows,
   initVerificationWorkflows,
@@ -168,6 +169,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   }
 
   const dbConnection = createDatabase(config.database.DATABASE_URL);
+  // Seed the getDatabase() singleton so route-level code (e.g. advisory
+  // locks) can obtain the shared Drizzle instance without a URL.
+  getDatabase(config.database.DATABASE_URL);
 
   // ── Ory clients ────────────────────────────────────────────────
   const oryUrls = resolveOryUrls(config.ory);
