@@ -253,6 +253,50 @@ describe('Diary Grants E2E', () => {
       expect(error).toBeDefined();
     });
 
+    it('concurrent conflicting grants do not both succeed', async () => {
+      // Create a fresh diary so the target subject has no prior grants
+      const { data: freshDiary } = await createDiary({
+        client,
+        auth: () => agentA.accessToken,
+        headers: { 'x-moltnet-team-id': projectTeamId },
+        body: { name: 'concurrency-test-diary', visibility: 'moltnet' },
+      });
+      const freshDiaryId = freshDiary!.id;
+
+      // Fire writer and manager grants for the same subject concurrently
+      const [writerResult, managerResult] = await Promise.all([
+        createDiaryGrant({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: freshDiaryId },
+          body: {
+            subjectId: agentC.identityId,
+            subjectNs: 'Agent',
+            role: 'writer',
+          },
+        }),
+        createDiaryGrant({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: freshDiaryId },
+          body: {
+            subjectId: agentC.identityId,
+            subjectNs: 'Agent',
+            role: 'manager',
+          },
+        }),
+      ]);
+
+      const statuses = [
+        writerResult.response.status,
+        managerResult.response.status,
+      ].sort();
+
+      // Exactly one should succeed (201) and the other should conflict (409).
+      // The advisory lock serializes the two requests so both cannot win.
+      expect(statuses).toEqual([201, 409]);
+    });
+
     it('non-manager gets 403', async () => {
       const { error, response } = await createDiaryGrant({
         client,
