@@ -27,7 +27,8 @@ type evalManifest struct {
 	// Solver selects the dspy-go solver module (cot | react). Optional;
 	// omitted or empty means "fall back to built-in default (cot)".
 	// Validated by validateEvalManifest against solver.ParseKind.
-	Solver string `json:"solver,omitempty"`
+	Solver string             `json:"solver,omitempty"`
+	React  *evalManifestReact `json:"react,omitempty"`
 }
 
 type evalManifestFixture struct {
@@ -47,6 +48,17 @@ type evalManifestInject struct {
 
 type evalManifestPack struct {
 	Path string `json:"path"`
+}
+
+// evalManifestReact configures the ReAct solver for vivo eval scenarios.
+// All fields are optional; zero values use built-in defaults.
+// Ignored when solver is "cot". See
+// docs/superpowers/specs/2026-04-13-react-solver-tool-registry-design.md.
+type evalManifestReact struct {
+	MaxIterations  int               `json:"max_iterations,omitempty"`
+	BashTimeoutSec int               `json:"bash_timeout_sec,omitempty"`
+	PassthroughEnv []string          `json:"passthrough_env,omitempty"`
+	ExtraEnv       map[string]string `json:"extra_env,omitempty"`
 }
 
 // loadEvalManifest reads and JSON-parses eval.json from a scenario directory.
@@ -186,6 +198,24 @@ func validateEvalManifest(m *evalManifest) error {
 	if m.Solver != "" {
 		if _, err := solver.ParseKind(m.Solver); err != nil {
 			return fmt.Errorf("solver: %w", err)
+		}
+	}
+	if m.React != nil {
+		if m.React.MaxIterations < 0 {
+			return fmt.Errorf("react.max_iterations must be non-negative, got %d", m.React.MaxIterations)
+		}
+		if m.React.BashTimeoutSec < 0 {
+			return fmt.Errorf("react.bash_timeout_sec must be non-negative, got %d", m.React.BashTimeoutSec)
+		}
+		for i, key := range m.React.PassthroughEnv {
+			if strings.TrimSpace(key) == "" {
+				return fmt.Errorf("react.passthrough_env[%d]: must be non-empty", i)
+			}
+		}
+		for key := range m.React.ExtraEnv {
+			if strings.TrimSpace(key) == "" {
+				return fmt.Errorf("react.extra_env: keys must be non-empty")
+			}
 		}
 	}
 	return nil
