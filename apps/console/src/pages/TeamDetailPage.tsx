@@ -1,7 +1,9 @@
 import {
   deleteTeamInvite,
   getTeam,
+  type GetTeamResponses,
   listTeamInvites,
+  type ListTeamInvitesResponses,
   removeTeamMember,
 } from '@moltnet/api-client';
 import {
@@ -22,44 +24,22 @@ import { InviteCard } from '../components/teams/InviteCard.js';
 import { MemberRow } from '../components/teams/MemberRow.js';
 import { useTeam } from '../team/useTeam.js';
 
-interface TeamMember {
-  subjectId: string;
-  subjectType: 'agent' | 'human';
-  role: string;
-  displayName: string;
-  fingerprint?: string;
-  email?: string;
-}
-
-interface TeamInvite {
-  id: string;
-  code: string;
-  role: string;
-  maxUses: number;
-  useCount: number;
-  expiresAt: string;
-  createdAt: string;
-}
-
-interface TeamDetail {
-  id: string;
-  name: string;
-  status: string;
-  personal: boolean;
-  members: TeamMember[];
-}
+type TeamDetail = GetTeamResponses[200];
+type TeamMember = TeamDetail['members'][number];
+type TeamInvite = ListTeamInvitesResponses[200]['items'][number];
 
 export function TeamDetailPage({ id }: { id: string }) {
   const { teams } = useTeam();
   const [, navigate] = useLocation();
   const search = useSearch();
+  const theme = useTheme();
   const params = new URLSearchParams(search);
-  const activeTab = params.get('tab') === 'invites' ? 'invites' : 'members';
 
   const [team, setTeam] = useState<TeamDetail | null>(null);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [showCreateInvite, setShowCreateInvite] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<TeamMember | null>(null);
@@ -71,6 +51,10 @@ export function TeamDetailPage({ id }: { id: string }) {
   const callerRole = callerTeam?.role ?? 'member';
   const canManage = callerRole === 'owners' || callerRole === 'managers';
 
+  const requestedTab = params.get('tab');
+  const activeTab: 'members' | 'invites' =
+    requestedTab === 'invites' && canManage ? 'invites' : 'members';
+
   const loadTeam = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -80,7 +64,7 @@ export function TeamDetailPage({ id }: { id: string }) {
         path: { id },
       });
       if (data) {
-        setTeam(data as unknown as TeamDetail);
+        setTeam(data);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to load team'));
@@ -97,7 +81,7 @@ export function TeamDetailPage({ id }: { id: string }) {
         path: { id },
       });
       if (data) {
-        setInvites(data.items as unknown as TeamInvite[]);
+        setInvites(data.items);
       }
     } catch {
       // Non-critical — invites tab just won't show data
@@ -110,27 +94,33 @@ export function TeamDetailPage({ id }: { id: string }) {
   }, [loadTeam, loadInvites]);
 
   const handleRemoveMember = async (member: TeamMember) => {
+    setActionError(null);
     try {
       await removeTeamMember({
         client: getApiClient(),
         path: { id, subjectId: member.subjectId },
       });
       void loadTeam();
-    } catch {
-      // TODO: show error feedback
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to remove member',
+      );
     }
     setConfirmRemove(null);
   };
 
   const handleDeleteInvite = async (inviteId: string) => {
+    setActionError(null);
     try {
       await deleteTeamInvite({
         client: getApiClient(),
         path: { id, inviteId },
       });
       void loadInvites();
-    } catch {
-      // TODO: show error feedback
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to delete invite',
+      );
     }
     setConfirmDeleteInvite(null);
   };
@@ -188,12 +178,41 @@ export function TeamDetailPage({ id }: { id: string }) {
 
       <Divider />
 
+      {actionError && (
+        <Card
+          variant="outlined"
+          padding="sm"
+          style={{ borderColor: theme.color.error.DEFAULT }}
+        >
+          <Stack direction="row" gap={2} justify="space-between" align="center">
+            <Text
+              variant="caption"
+              style={{ color: theme.color.error.DEFAULT }}
+            >
+              {actionError}
+            </Text>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActionError(null)}
+            >
+              Dismiss
+            </Button>
+          </Stack>
+        </Card>
+      )}
+
       {activeTab === 'members' ? (
         <Stack gap={3}>
           {team.members.map((member) => (
             <MemberRow
               key={member.subjectId}
-              {...member}
+              subjectId={member.subjectId}
+              subjectType={member.subjectType}
+              role={member.role}
+              displayName={member.displayName}
+              fingerprint={member.fingerprint}
+              email={member.email}
               canRemove={canRemoveMember(member)}
               onRemove={() => setConfirmRemove(member)}
             />
@@ -214,7 +233,12 @@ export function TeamDetailPage({ id }: { id: string }) {
               {invites.map((inv) => (
                 <InviteCard
                   key={inv.id}
-                  {...inv}
+                  id={inv.id}
+                  code={inv.code}
+                  role={inv.role ?? 'member'}
+                  maxUses={inv.maxUses}
+                  useCount={inv.useCount ?? 0}
+                  expiresAt={inv.expiresAt}
                   onDelete={(invId) => setConfirmDeleteInvite(invId)}
                 />
               ))}

@@ -1,5 +1,12 @@
 import { createTeam } from '@moltnet/api-client';
-import { Button, Dialog, Input, Stack, Text } from '@themoltnet/design-system';
+import {
+  Button,
+  Dialog,
+  Input,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
 import { useState } from 'react';
 
 import { getApiClient } from '../../api.js';
@@ -15,6 +22,7 @@ export function CreateTeamDialog({
   onClose,
   onCreated,
 }: CreateTeamDialogProps) {
+  const theme = useTheme();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,7 +60,7 @@ export function CreateTeamDialog({
           }}
         />
         {error && (
-          <Text variant="caption" color="muted">
+          <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>
             {error}
           </Text>
         )}

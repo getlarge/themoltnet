@@ -1,12 +1,24 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { Dialog, MoltThemeProvider } from '../src/index.js';
 
 // jsdom does not implement HTMLDialogElement.showModal/close, which leaves
 // <dialog> elements in a closed (inert) state, making their contents
 // inaccessible to role-based queries. Stub both methods so the dialog is
-// treated as open when showModal() has been called.
+// treated as open when showModal() has been called. Restore originals after
+// the suite so other test files see real jsdom behavior.
+const originalShowModal = HTMLDialogElement.prototype.showModal;
+const originalClose = HTMLDialogElement.prototype.close;
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = vi.fn(function (
     this: HTMLDialogElement,
@@ -16,6 +28,11 @@ beforeAll(() => {
   HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
     this.removeAttribute('open');
   });
+});
+
+afterAll(() => {
+  HTMLDialogElement.prototype.showModal = originalShowModal;
+  HTMLDialogElement.prototype.close = originalClose;
 });
 
 function renderWithTheme(ui: React.ReactElement) {

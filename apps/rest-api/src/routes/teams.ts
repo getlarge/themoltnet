@@ -33,6 +33,12 @@ import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import { createProblem } from '../problems/index.js';
+import {
+  FOUNDING_ACCEPT_EVENT,
+  teamFoundingWorkflow,
+} from '../workflows/team-founding-workflow.js';
+
 // ── Member enrichment ───────────────────────────────────────────
 
 interface KetoMember {
@@ -95,14 +101,12 @@ async function resolveMembers(
       };
     }
 
-    const isHuman = identity.schemaId.includes('human');
-
-    if (isHuman) {
+    if (subjectType === 'human') {
       const username = identity.traits.username as string | undefined;
       const email = identity.traits.email as string | undefined;
       return {
         subjectId: m.subjectId,
-        subjectType: 'human' as const,
+        subjectType,
         role: m.relation,
         displayName: username ?? m.subjectId.slice(0, 8),
         email,
@@ -113,19 +117,13 @@ async function resolveMembers(
       (identity.metadataPublic?.fingerprint as string | undefined) ?? undefined;
     return {
       subjectId: m.subjectId,
-      subjectType: 'agent' as const,
+      subjectType,
       role: m.relation,
       displayName: fingerprint ?? m.subjectId.slice(0, 8),
       fingerprint,
     };
   });
 }
-
-import { createProblem } from '../problems/index.js';
-import {
-  FOUNDING_ACCEPT_EVENT,
-  teamFoundingWorkflow,
-} from '../workflows/team-founding-workflow.js';
 
 // ── Routes ─────────────────────────────────────────────────────
 

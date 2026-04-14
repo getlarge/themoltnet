@@ -16,7 +16,6 @@ interface InviteCardProps {
   maxUses: number;
   useCount: number;
   expiresAt: string;
-  createdAt: string;
   onDelete: (id: string) => void;
 }
 

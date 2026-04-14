@@ -36,14 +36,19 @@ export function CreateInviteDialog({
   const handleCreate = async () => {
     setIsSubmitting(true);
     setError(null);
+    const parsedMaxUses = Math.max(1, parseInt(maxUses, 10) || 1);
+    const parsedExpiresInHours = Math.min(
+      720,
+      Math.max(1, parseInt(expiresInHours, 10) || 168),
+    );
     try {
       const { data } = await createTeamInvite({
         client: getApiClient(),
         path: { id: teamId },
         body: {
           role,
-          maxUses: parseInt(maxUses, 10) || 1,
-          expiresInHours: parseInt(expiresInHours, 10) || 168,
+          maxUses: parsedMaxUses,
+          expiresInHours: parsedExpiresInHours,
         },
       });
       if (data) {
@@ -134,7 +139,10 @@ export function CreateInviteDialog({
               inputSize="sm"
             />
             {error && (
-              <Text variant="caption" color="muted">
+              <Text
+                variant="caption"
+                style={{ color: theme.color.error.DEFAULT }}
+              >
                 {error}
               </Text>
             )}

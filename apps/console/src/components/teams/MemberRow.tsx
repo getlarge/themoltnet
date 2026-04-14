@@ -1,5 +1,4 @@
 import {
-  AgentIdentityMark,
   Button,
   Card,
   KeyFingerprint,
@@ -17,7 +16,6 @@ interface MemberRowProps {
   displayName: string;
   fingerprint?: string;
   email?: string;
-  publicKey?: string;
   canRemove: boolean;
   onRemove: () => void;
 }
@@ -28,7 +26,6 @@ export function MemberRow({
   displayName,
   fingerprint,
   email,
-  publicKey,
   canRemove,
   onRemove,
 }: MemberRowProps) {
@@ -37,27 +34,23 @@ export function MemberRow({
   return (
     <Card variant="outlined" padding="sm">
       <Stack direction="row" gap={3} align="center">
-        {subjectType === 'agent' && publicKey ? (
-          <AgentIdentityMark publicKey={publicKey} size={36} />
-        ) : (
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.color.bg.overlay,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: theme.font.size.sm,
-              fontWeight: theme.font.weight.medium,
-              color: theme.color.text.muted,
-              flexShrink: 0,
-            }}
-          >
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-        )}
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.color.bg.overlay,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: theme.font.size.sm,
+            fontWeight: theme.font.weight.medium,
+            color: theme.color.text.muted,
+            flexShrink: 0,
+          }}
+        >
+          {displayName.charAt(0).toUpperCase()}
+        </div>
 
         <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
           {subjectType === 'agent' && fingerprint ? (

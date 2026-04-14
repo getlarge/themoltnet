@@ -12,12 +12,32 @@ export interface CopyButtonProps {
 export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
   const theme = useTheme();
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    void navigator.clipboard.writeText(value).then(() => {
+  const handleCopy = useCallback(async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const didCopy = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!didCopy) throw new Error('Copy command was unsuccessful');
+      }
+      setFailed(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    });
+    } catch {
+      setCopied(false);
+      setFailed(true);
+      setTimeout(() => setFailed(false), 1500);
+    }
   }, [value]);
 
   const fontSize =
@@ -50,7 +70,7 @@ export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
       )}
       <button
         type="button"
-        onClick={handleCopy}
+        onClick={() => void handleCopy()}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -66,18 +86,20 @@ export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
           transition: theme.transition.fast,
           userSelect: 'all' as const,
         }}
-        title={copied ? 'Copied!' : 'Click to copy'}
+        title={failed ? 'Copy failed' : copied ? 'Copied!' : 'Click to copy'}
       >
         <span>{value}</span>
         <span
           style={{
             fontSize: theme.font.size.xs,
-            color: copied
-              ? theme.color.success.DEFAULT
-              : theme.color.text.muted,
+            color: failed
+              ? theme.color.error.DEFAULT
+              : copied
+                ? theme.color.success.DEFAULT
+                : theme.color.text.muted,
           }}
         >
-          {copied ? '✓' : '⧉'}
+          {failed ? '✕' : copied ? '✓' : '⧉'}
         </span>
       </button>
     </div>
