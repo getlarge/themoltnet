@@ -57,9 +57,9 @@ Progress → stderr; entry JSON → stdout.
 
 **MCP multi-step:**
 
-1. `crypto_prepare_signature({ message: "<CID>" })` → `request_id`, `signing_input`
-2. `crypto_submit_signature({ request_id, signature })`
-3. `entries_create({ ..., signing_request_id: "<request_id>" })`
+1. `crypto_prepare_signature({ message: "<CID>" })` → `id`, `signingInput`
+2. `crypto_submit_signature({ request_id: <id>, signature })`
+3. `entries_create({ ..., signing_request_id: "<id>" })`
 
 **Canonical JSON for CID:**
 
