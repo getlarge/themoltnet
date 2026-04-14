@@ -4163,8 +4163,11 @@ export type GetTeamResponses = {
        * UUID v4 identifier
        */
       subjectId: string;
-      subjectNs: string;
+      subjectType: 'agent' | 'human';
       role: string;
+      displayName: string;
+      fingerprint?: string;
+      email?: string;
     }>;
   };
 };
@@ -4207,8 +4210,11 @@ export type ListTeamMembersResponses = {
        * UUID v4 identifier
        */
       subjectId: string;
-      subjectNs: string;
+      subjectType: 'agent' | 'human';
       role: string;
+      displayName: string;
+      fingerprint?: string;
+      email?: string;
     }>;
   };
 };
@@ -4299,7 +4305,11 @@ export type ListTeamInvitesResponses = {
        */
       id: string;
       code: string;
+      role: string;
+      maxUses: number;
+      useCount: number;
       expiresAt: string;
+      createdAt: string;
     }>;
   };
 };
@@ -4355,7 +4365,11 @@ export type CreateTeamInviteResponses = {
      */
     id: string;
     code: string;
+    role: string;
+    maxUses: number;
+    useCount: number;
     expiresAt: string;
+    createdAt: string;
   };
 };
 

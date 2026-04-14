@@ -5588,16 +5588,6 @@
             },
             "description": "Default Response"
           },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
           "500": {
             "content": {
               "application/json": {
@@ -10203,6 +10193,15 @@
                     "members": {
                       "items": {
                         "properties": {
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "fingerprint": {
+                            "type": "string"
+                          },
                           "role": {
                             "type": "string"
                           },
@@ -10211,11 +10210,17 @@
                             "format": "uuid",
                             "type": "string"
                           },
-                          "subjectNs": {
+                          "subjectType": {
+                            "enum": ["agent", "human"],
                             "type": "string"
                           }
                         },
-                        "required": ["subjectId", "subjectNs", "role"],
+                        "required": [
+                          "subjectId",
+                          "subjectType",
+                          "role",
+                          "displayName"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
@@ -10635,6 +10640,10 @@
                           "code": {
                             "type": "string"
                           },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
                           "expiresAt": {
                             "format": "date-time",
                             "type": "string"
@@ -10643,9 +10652,26 @@
                             "description": "UUID v4 identifier",
                             "format": "uuid",
                             "type": "string"
+                          },
+                          "maxUses": {
+                            "type": "integer"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "useCount": {
+                            "type": "integer"
                           }
                         },
-                        "required": ["id", "code", "expiresAt"],
+                        "required": [
+                          "id",
+                          "code",
+                          "role",
+                          "maxUses",
+                          "useCount",
+                          "expiresAt",
+                          "createdAt"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
@@ -10742,6 +10768,10 @@
                     "code": {
                       "type": "string"
                     },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
                     "expiresAt": {
                       "format": "date-time",
                       "type": "string"
@@ -10750,9 +10780,26 @@
                       "description": "UUID v4 identifier",
                       "format": "uuid",
                       "type": "string"
+                    },
+                    "maxUses": {
+                      "type": "integer"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "useCount": {
+                      "type": "integer"
                     }
                   },
-                  "required": ["id", "code", "expiresAt"],
+                  "required": [
+                    "id",
+                    "code",
+                    "role",
+                    "maxUses",
+                    "useCount",
+                    "expiresAt",
+                    "createdAt"
+                  ],
                   "type": "object"
                 }
               }
@@ -10927,6 +10974,15 @@
                     "items": {
                       "items": {
                         "properties": {
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "fingerprint": {
+                            "type": "string"
+                          },
                           "role": {
                             "type": "string"
                           },
@@ -10935,11 +10991,17 @@
                             "format": "uuid",
                             "type": "string"
                           },
-                          "subjectNs": {
+                          "subjectType": {
+                            "enum": ["agent", "human"],
                             "type": "string"
                           }
                         },
-                        "required": ["subjectId", "subjectNs", "role"],
+                        "required": [
+                          "subjectId",
+                          "subjectType",
+                          "role",
+                          "displayName"
+                        ],
                         "type": "object"
                       },
                       "type": "array"

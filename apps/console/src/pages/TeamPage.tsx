@@ -15,8 +15,11 @@ import { useTeam } from '../team/useTeam.js';
 
 interface TeamMember {
   subjectId: string;
-  subjectNs: string;
+  subjectType: 'agent' | 'human';
   role: string;
+  displayName: string;
+  fingerprint?: string;
+  email?: string;
 }
 
 interface AgentInfo {
@@ -49,7 +52,7 @@ export function TeamPage() {
       setMembers(data.members);
 
       const agentMembers = data.members
-        .filter((m) => m.subjectNs === 'Agent')
+        .filter((m) => m.subjectType === 'agent')
         .map((m) => ({ subjectId: m.subjectId, role: m.role }));
       setAgents(agentMembers);
     } catch (err) {
@@ -65,7 +68,7 @@ export function TeamPage() {
     void loadTeamData();
   }, [loadTeamData]);
 
-  const humanMembers = members.filter((m) => m.subjectNs === 'Human');
+  const humanMembers = members.filter((m) => m.subjectType === 'human');
 
   if (!selectedTeam) {
     return <Text color="muted">No team selected</Text>;
