@@ -1,7 +1,12 @@
 import {
+  deleteGroup,
   deleteTeamInvite,
+  type DiaryCatalog,
   getTeam,
   type GetTeamResponses,
+  listDiaries,
+  listGroups,
+  type ListGroupsResponses,
   listTeamInvites,
   type ListTeamInvitesResponses,
   removeTeamMember,
@@ -11,22 +16,33 @@ import {
   Card,
   ConfirmDialog,
   Divider,
+  Input,
   Stack,
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { CreateGroupDialog } from '../components/teams/CreateGroupDialog.js';
 import { CreateInviteDialog } from '../components/teams/CreateInviteDialog.js';
+import {
+  GrantDiaryAccessDialog,
+  type GrantTarget,
+} from '../components/teams/GrantDiaryAccessDialog.js';
+import { GroupCard } from '../components/teams/GroupCard.js';
 import { InviteCard } from '../components/teams/InviteCard.js';
 import { MemberRow } from '../components/teams/MemberRow.js';
+import { TeamDiaryCard } from '../components/teams/TeamDiaryCard.js';
 import { useTeam } from '../team/useTeam.js';
 
 type TeamDetail = GetTeamResponses[200];
 type TeamMember = TeamDetail['members'][number];
 type TeamInvite = ListTeamInvitesResponses[200]['items'][number];
+type TeamGroup = ListGroupsResponses[200]['items'][number];
+
+type Tab = 'members' | 'invites' | 'groups' | 'diaries';
 
 export function TeamDetailPage({ id }: { id: string }) {
   const { teams } = useTeam();
@@ -37,23 +53,38 @@ export function TeamDetailPage({ id }: { id: string }) {
 
   const [team, setTeam] = useState<TeamDetail | null>(null);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
+  const [groups, setGroups] = useState<TeamGroup[]>([]);
+  const [diaries, setDiaries] = useState<DiaryCatalog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [memberQuery, setMemberQuery] = useState('');
 
   const [showCreateInvite, setShowCreateInvite] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [grantDialogDiary, setGrantDialogDiary] = useState<DiaryCatalog | null>(
+    null,
+  );
+  const [grantsRefresh, setGrantsRefresh] = useState(0);
   const [confirmRemove, setConfirmRemove] = useState<TeamMember | null>(null);
   const [confirmDeleteInvite, setConfirmDeleteInvite] = useState<string | null>(
     null,
   );
+  const [confirmDeleteGroup, setConfirmDeleteGroup] =
+    useState<TeamGroup | null>(null);
 
   const callerTeam = teams.find((t) => t.id === id);
   const callerRole = callerTeam?.role ?? 'member';
   const canManage = callerRole === 'owners' || callerRole === 'managers';
 
-  const requestedTab = params.get('tab');
-  const activeTab: 'members' | 'invites' =
-    requestedTab === 'invites' && canManage ? 'invites' : 'members';
+  const requestedTab = params.get('tab') as Tab | null;
+  const allowedManageTabs: Tab[] = canManage
+    ? ['members', 'invites', 'groups', 'diaries']
+    : ['members', 'groups', 'diaries'];
+  const activeTab: Tab =
+    requestedTab && allowedManageTabs.includes(requestedTab)
+      ? requestedTab
+      : 'members';
 
   const loadTeam = useCallback(async () => {
     setIsLoading(true);
@@ -80,18 +111,42 @@ export function TeamDetailPage({ id }: { id: string }) {
         client: getApiClient(),
         path: { id },
       });
-      if (data) {
-        setInvites(data.items);
-      }
+      if (data) setInvites(data.items);
     } catch {
-      // Non-critical — invites tab just won't show data
+      // Non-critical
     }
   }, [id, canManage]);
+
+  const loadGroups = useCallback(async () => {
+    try {
+      const { data } = await listGroups({
+        client: getApiClient(),
+        path: { id },
+      });
+      if (data) setGroups(data.items);
+    } catch {
+      // Non-critical
+    }
+  }, [id]);
+
+  const loadDiaries = useCallback(async () => {
+    try {
+      const { data } = await listDiaries({
+        client: getApiClient(),
+        headers: { 'x-moltnet-team-id': id },
+      });
+      if (data) setDiaries(data.items);
+    } catch {
+      // Non-critical
+    }
+  }, [id]);
 
   useEffect(() => {
     void loadTeam();
     void loadInvites();
-  }, [loadTeam, loadInvites]);
+    void loadGroups();
+    void loadDiaries();
+  }, [loadTeam, loadInvites, loadGroups, loadDiaries]);
 
   const handleRemoveMember = async (member: TeamMember) => {
     setActionError(null);
@@ -125,6 +180,78 @@ export function TeamDetailPage({ id }: { id: string }) {
     setConfirmDeleteInvite(null);
   };
 
+  const handleDeleteGroup = async (group: TeamGroup) => {
+    setActionError(null);
+    try {
+      await deleteGroup({
+        client: getApiClient(),
+        path: { groupId: group.id },
+      });
+      void loadGroups();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to delete group',
+      );
+    }
+    setConfirmDeleteGroup(null);
+  };
+
+  const filteredMembers = useMemo(() => {
+    if (!team) return [];
+    const q = memberQuery.trim().toLowerCase();
+    if (!q) return team.members;
+    return team.members.filter((m) =>
+      [m.displayName, m.email ?? '', m.fingerprint ?? '', m.subjectId].some(
+        (v) => v.toLowerCase().includes(q),
+      ),
+    );
+  }, [team, memberQuery]);
+
+  const resolveSubject = useCallback(
+    (subjectId: string, subjectNs: 'Agent' | 'Human' | 'Group') => {
+      if (subjectNs === 'Group') {
+        const grp = groups.find((g) => g.id === subjectId);
+        return {
+          id: subjectId,
+          type: subjectNs,
+          label: grp?.name ?? subjectId.slice(0, 8),
+        };
+      }
+      const member = team?.members.find((m) => m.subjectId === subjectId);
+      return {
+        id: subjectId,
+        type: subjectNs,
+        label: member?.displayName ?? subjectId.slice(0, 8),
+        fingerprint: member?.fingerprint,
+      };
+    },
+    [groups, team],
+  );
+
+  const grantCandidates = useCallback(
+    (diary: DiaryCatalog, existing: Set<string>): GrantTarget[] => {
+      const targets: GrantTarget[] = [];
+      if (team) {
+        for (const m of team.members) {
+          const key = `${m.subjectType === 'human' ? 'Human' : 'Agent'}:${m.subjectId}`;
+          if (existing.has(key)) continue;
+          targets.push({
+            id: m.subjectId,
+            type: m.subjectType === 'human' ? 'Human' : 'Agent',
+            label: m.displayName,
+          });
+        }
+      }
+      for (const g of groups) {
+        const key = `Group:${g.id}`;
+        if (existing.has(key)) continue;
+        targets.push({ id: g.id, type: 'Group', label: g.name });
+      }
+      return targets;
+    },
+    [team, groups],
+  );
+
   if (isLoading) return <Text color="muted">Loading...</Text>;
   if (error || !team) {
     return (
@@ -147,6 +274,9 @@ export function TeamDetailPage({ id }: { id: string }) {
     return true;
   };
 
+  // Personal teams cannot host groups, invites, or grants management beyond owner
+  const isPersonal = team.personal === true;
+
   return (
     <Stack gap={6}>
       <Stack gap={1}>
@@ -167,7 +297,19 @@ export function TeamDetailPage({ id }: { id: string }) {
           active={activeTab === 'members'}
           onClick={() => navigate(`/teams/${id}`)}
         />
-        {canManage && (
+        {!isPersonal && (
+          <TabButton
+            label="Groups"
+            active={activeTab === 'groups'}
+            onClick={() => navigate(`/teams/${id}?tab=groups`)}
+          />
+        )}
+        <TabButton
+          label="Diaries"
+          active={activeTab === 'diaries'}
+          onClick={() => navigate(`/teams/${id}?tab=diaries`)}
+        />
+        {canManage && !isPersonal && (
           <TabButton
             label="Invites"
             active={activeTab === 'invites'}
@@ -202,23 +344,91 @@ export function TeamDetailPage({ id }: { id: string }) {
         </Card>
       )}
 
-      {activeTab === 'members' ? (
-        <Stack gap={3}>
-          {team.members.map((member) => (
-            <MemberRow
-              key={member.subjectId}
-              subjectId={member.subjectId}
-              subjectType={member.subjectType}
-              role={member.role}
-              displayName={member.displayName}
-              fingerprint={member.fingerprint}
-              email={member.email}
-              canRemove={canRemoveMember(member)}
-              onRemove={() => setConfirmRemove(member)}
+      {activeTab === 'members' && (
+        <Stack gap={4}>
+          {team.members.length > 5 && (
+            <Input
+              placeholder="Search members by name, email, or fingerprint"
+              value={memberQuery}
+              onChange={(e) => setMemberQuery(e.target.value)}
+              inputSize="sm"
             />
-          ))}
+          )}
+          {filteredMembers.length === 0 ? (
+            <Text color="muted">No members match your search.</Text>
+          ) : (
+            <Stack gap={3}>
+              {filteredMembers.map((member) => (
+                <MemberRow
+                  key={member.subjectId}
+                  subjectId={member.subjectId}
+                  subjectType={member.subjectType}
+                  role={member.role}
+                  displayName={member.displayName}
+                  fingerprint={member.fingerprint}
+                  email={member.email}
+                  canRemove={canRemoveMember(member)}
+                  onRemove={() => setConfirmRemove(member)}
+                />
+              ))}
+            </Stack>
+          )}
         </Stack>
-      ) : (
+      )}
+
+      {activeTab === 'groups' && (
+        <Stack gap={4}>
+          <Stack direction="row" justify="space-between" align="center">
+            <Text variant="h4">Groups ({groups.length})</Text>
+            {canManage && (
+              <Button size="sm" onClick={() => setShowCreateGroup(true)}>
+                Create group
+              </Button>
+            )}
+          </Stack>
+          {groups.length === 0 ? (
+            <Text color="muted">
+              No groups yet. Groups let you bundle members for diary grants.
+            </Text>
+          ) : (
+            <Stack gap={3}>
+              {groups.map((g) => (
+                <GroupCard
+                  key={g.id}
+                  id={g.id}
+                  name={g.name}
+                  canDelete={canManage}
+                  onDelete={() => setConfirmDeleteGroup(g)}
+                />
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      )}
+
+      {activeTab === 'diaries' && (
+        <Stack gap={4}>
+          <Text variant="h4">Diaries ({diaries.length})</Text>
+          {diaries.length === 0 ? (
+            <Text color="muted">No diaries scoped to this team yet.</Text>
+          ) : (
+            <Stack gap={3}>
+              {diaries.map((d) => (
+                <TeamDiaryCard
+                  key={d.id}
+                  diary={d}
+                  resolveSubject={resolveSubject}
+                  canManage={canManage}
+                  onGrantClick={(diary) => setGrantDialogDiary(diary)}
+                  refreshKey={grantsRefresh}
+                />
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      )}
+
+      {activeTab === 'invites' && canManage && !isPersonal && (
         <Stack gap={4}>
           <Stack direction="row" justify="space-between" align="center">
             <Text variant="h4">Invites ({invites.length})</Text>
@@ -254,6 +464,27 @@ export function TeamDetailPage({ id }: { id: string }) {
         onCreated={() => void loadInvites()}
       />
 
+      <CreateGroupDialog
+        open={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+        teamId={id}
+        onCreated={(groupId) => {
+          setShowCreateGroup(false);
+          void loadGroups().then(() => navigate(`/groups/${groupId}`));
+        }}
+      />
+
+      {grantDialogDiary && (
+        <GrantDiaryAccessDialog
+          open={grantDialogDiary !== null}
+          onClose={() => setGrantDialogDiary(null)}
+          diaryId={grantDialogDiary.id}
+          diaryName={grantDialogDiary.name}
+          candidates={grantCandidates(grantDialogDiary, new Set())}
+          onGranted={() => setGrantsRefresh((v) => v + 1)}
+        />
+      )}
+
       <ConfirmDialog
         open={confirmRemove !== null}
         title="Remove member"
@@ -276,6 +507,18 @@ export function TeamDetailPage({ id }: { id: string }) {
           if (confirmDeleteInvite) void handleDeleteInvite(confirmDeleteInvite);
         }}
         onCancel={() => setConfirmDeleteInvite(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteGroup !== null}
+        title="Delete group"
+        message={`Delete group "${confirmDeleteGroup?.name ?? ''}"? Diary grants targeting this group will stop applying.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (confirmDeleteGroup) void handleDeleteGroup(confirmDeleteGroup);
+        }}
+        onCancel={() => setConfirmDeleteGroup(null)}
       />
     </Stack>
   );

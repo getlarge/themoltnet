@@ -382,6 +382,26 @@ describe('DiaryService', () => {
       expect(diaryRepo.listByTeamIds).toHaveBeenCalledWith([]);
       expect(result).toEqual([]);
     });
+
+    it('filters by teamId when provided and agent is a member', async () => {
+      const OTHER_TEAM_ID = 'team-other';
+      reader.listTeamIdsBySubject.mockResolvedValue([TEAM_ID, OTHER_TEAM_ID]);
+      diaryRepo.listByTeamIds.mockResolvedValue([MOCK_DIARY]);
+
+      const result = await service.listDiaries(OWNER_ID, TEAM_ID);
+
+      expect(diaryRepo.listByTeamIds).toHaveBeenCalledWith([TEAM_ID]);
+      expect(result).toEqual([MOCK_DIARY]);
+    });
+
+    it('returns empty array when teamId is provided but agent is not a member', async () => {
+      reader.listTeamIdsBySubject.mockResolvedValue([TEAM_ID]);
+
+      const result = await service.listDiaries(OWNER_ID, 'team-not-mine');
+
+      expect(diaryRepo.listByTeamIds).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
   });
 
   describe('getById', () => {

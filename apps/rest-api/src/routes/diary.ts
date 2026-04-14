@@ -152,6 +152,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const items = await fastify.diaryService.listDiaries(
         request.authContext!.identityId,
+        request.authContext!.currentTeamId ?? undefined,
       );
       return { items };
     },

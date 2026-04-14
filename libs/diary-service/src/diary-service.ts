@@ -57,7 +57,7 @@ export interface DiaryService {
     input: CreateDiaryInput,
     opts?: { withinTransaction?: boolean },
   ): Promise<Diary>;
-  listDiaries(agentId: string): Promise<Diary[]>;
+  listDiaries(agentId: string, teamId?: string): Promise<Diary[]>;
   findDiary(
     id: string,
     agentId: string,
@@ -218,8 +218,12 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       });
     },
 
-    async listDiaries(agentId: string): Promise<Diary[]> {
+    async listDiaries(agentId: string, teamId?: string): Promise<Diary[]> {
       const teamIds = await relationshipReader.listTeamIdsBySubject(agentId);
+      if (teamId) {
+        if (!teamIds.includes(teamId)) return [];
+        return diaryRepository.listByTeamIds([teamId]);
+      }
       return diaryRepository.listByTeamIds(teamIds);
     },
 
