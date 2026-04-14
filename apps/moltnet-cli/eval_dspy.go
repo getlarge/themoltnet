@@ -443,9 +443,9 @@ type dspyAgentRunResult struct {
 }
 
 // solverInput bundles everything one eval trial needs to drive the agent.
-// It exists as the stable seam the dspy-go solver module (ChainOfThought
-// for vitro, ReAct for vivo — see docs/superpowers/specs/2026-04-08-eval-solver-dspy-module.md
-// and issue #714) will hook into.
+// The dspy-go solver module hooks in here: ChainOfThought for vitro,
+// ReAct for vivo (default, see #774). reactCfg is threaded through when
+// the effective kind is ReAct.
 type solverInput struct {
 	workDir     string
 	agent       string
@@ -498,13 +498,19 @@ func dspyEvalSignature(mode string) (core.Signature, error) {
 // runSolver executes one eval trial via a dspy-go solver module and
 // returns the captured agent result.
 //
-// The solver module (ChainOfThought for vitro today, ReAct once the tool
-// registry lands for vivo — see
-// docs/superpowers/specs/2026-04-08-eval-solver-dspy-module.md and issue
-// #714) owns the signature and prompt construction. The underlying LLM
-// is one of the CLI adapters (claudecode or codex), which internally
-// stream CLI events and expose them via dspytypes.TrajectoryProvider so
-// we still get rich per-trial artifacts (turn count, cost, trajectory).
+// The solver module (ChainOfThought for vitro, ReAct for vivo — see
+// docs/superpowers/specs/2026-04-13-react-solver-tool-registry-design.md
+// and #774) owns the signature and prompt construction. When the kind
+// is ReAct, the eval tool registry (evaltools.NewRegistry) is built
+// against the worktree dir and passed into solver.Config so the agent
+// can ls/read/write/edit/bash inside the sandbox. After Process, any
+// captured trace is serialized to OTel gen_ai JSON and stored in
+// dspyAgentRunResult.toolTrace for artifact persistence.
+//
+// The underlying LLM is one of the CLI adapters (claudecode or codex),
+// which internally stream CLI events and expose them via
+// dspytypes.TrajectoryProvider so we still get rich per-trial artifacts
+// (turn count, cost, trajectory).
 func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 	var heartbeat dspytypes.HeartbeatFunc
 	if in.tb != nil {

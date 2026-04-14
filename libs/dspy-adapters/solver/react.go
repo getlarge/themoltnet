@@ -34,8 +34,16 @@ func (r *reactModule) Process(ctx context.Context, inputs map[string]any, opts .
 	return outputs, err
 }
 
+// LastTraces returns a shallow copy of the captured traces so callers
+// can't mutate internal state. The *modules.ReActTrace values themselves
+// are shared — treat them as read-only.
 func (r *reactModule) LastTraces() []*modules.ReActTrace {
-	return r.lastTraces
+	if r.lastTraces == nil {
+		return nil
+	}
+	out := make([]*modules.ReActTrace, len(r.lastTraces))
+	copy(out, r.lastTraces)
+	return out
 }
 
 // Compile-time assertions: reactModule must satisfy Module and TraceProvider.

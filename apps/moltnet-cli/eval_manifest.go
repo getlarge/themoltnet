@@ -25,8 +25,9 @@ type evalManifest struct {
 	Fixture evalManifestFixture `json:"fixture"`
 	Pack    *evalManifestPack   `json:"pack,omitempty"`
 	// Solver selects the dspy-go solver module (cot | react). Optional;
-	// omitted or empty means "fall back to built-in default (cot)".
-	// Validated by validateEvalManifest against solver.ParseKind.
+	// omitted or empty falls back to the mode-based default: vivo → react,
+	// vitro (or empty mode) → cot. Validated by validateEvalManifest
+	// against solver.ParseKind.
 	Solver string             `json:"solver,omitempty"`
 	React  *evalManifestReact `json:"react,omitempty"`
 }
@@ -50,9 +51,11 @@ type evalManifestPack struct {
 	Path string `json:"path"`
 }
 
-// evalManifestReact configures the ReAct solver for vivo eval scenarios.
-// All fields are optional; zero values use built-in defaults.
-// Ignored when solver is "cot". See
+// evalManifestReact configures the ReAct solver. All fields are
+// optional; zero values use built-in defaults. The block is only read
+// when the effective solver is ReAct (resolved via dspyEvalSolver);
+// it is silently ignored for ChainOfThought runs. Typical use is vivo
+// mode, but a vitro scenario with solver=react is also valid. See
 // docs/superpowers/specs/2026-04-13-react-solver-tool-registry-design.md.
 type evalManifestReact struct {
 	MaxIterations  int               `json:"max_iterations,omitempty"`
