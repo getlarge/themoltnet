@@ -334,8 +334,11 @@ Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` 
 **Mode-dependent behavior:**
 
 - **`agent` and `coauthor` modes**: use the agent's GitHub App token for all `gh` calls.
-- **`human` mode**: skip `GH_TOKEN` for user-visible actions (`gh pr ...`, `gh issue ...`)
-  so they appear as the human. Use the agent token only for `git push` and content API calls
+- **`human` mode**: skip `GH_TOKEN` only for user-visible **write** actions
+  (`gh pr create`, `gh pr comment`, `gh pr edit`, `gh pr close`, `gh pr merge`, `gh pr ready`,
+  `gh issue create`, `gh issue comment`, `gh issue edit`, `gh issue close`) so they appear as
+  the human. Use the agent token for read-only `gh` calls (`gh pr view`, `gh pr list`,
+  `gh issue view`, etc.), for `git push`, and for content API calls
   (`gh api repos/{owner}/{repo}/contents/...`). The human must have `gh auth login` configured.
 
 When using the agent token:

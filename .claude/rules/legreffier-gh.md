@@ -51,7 +51,8 @@ is the only reliable way to get an absolute path that works across worktrees.
 
 ## Forbidden patterns
 
-- `gh <command>` — bare, no `GH_TOKEN`. **Never.**
+- `gh <command>` — bare, no `GH_TOKEN`. **Never** (except the `human` mode
+  write-op carve-out for `gh pr` / `gh issue` described in the header above).
 - `GH_TOKEN=$(... --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh ...`
   — uses the raw relative path. Breaks in worktrees.
 - `GH_TOKEN=$(... --credentials "./moltnet.json") gh ...` — relative. Breaks.
