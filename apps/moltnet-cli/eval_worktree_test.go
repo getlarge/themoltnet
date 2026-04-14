@@ -293,6 +293,18 @@ func TestDspyEvalSolver(t *testing.T) {
 			want:     solver.KindChainOfThought,
 		},
 		{
+			name:     "vivo mode, no solver, no opts → default react",
+			manifest: &evalManifest{Mode: "vivo"},
+			opts:     evalRunOpts{},
+			want:     solver.KindReAct,
+		},
+		{
+			name:     "vivo mode, explicit cot overrides default",
+			manifest: &evalManifest{Mode: "vivo", Solver: "cot"},
+			opts:     evalRunOpts{},
+			want:     solver.KindChainOfThought,
+		},
+		{
 			name:     "manifest react, no opts → react",
 			manifest: &evalManifest{Mode: "vivo", Solver: "react"},
 			opts:     evalRunOpts{},
