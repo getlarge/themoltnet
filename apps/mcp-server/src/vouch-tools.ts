@@ -46,7 +46,7 @@ export async function handleIssueVoucher(
     auth: () => token,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'moltnet_vouch', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to issue voucher'),
