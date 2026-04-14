@@ -5,6 +5,7 @@ import { DashboardLayout } from './layout/DashboardLayout.js';
 import { DiariesPage } from './pages/DiariesPage.js';
 import { DiaryDetailPage } from './pages/DiaryDetailPage.js';
 import { EntryDetailPage } from './pages/EntryDetailPage.js';
+import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
 import { TeamDetailPage } from './pages/TeamDetailPage.js';
@@ -31,6 +32,11 @@ export function App() {
           <Route path="/teams" component={TeamsPage} />
           <Route path="/teams/:id">
             {(params: { id: string }) => <TeamDetailPage id={params.id} />}
+          </Route>
+          <Route path="/groups/:groupId">
+            {(params: { groupId: string }) => (
+              <GroupDetailPage groupId={params.groupId} />
+            )}
           </Route>
           <Route component={NotFoundPage} />
         </Switch>

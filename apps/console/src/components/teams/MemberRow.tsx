@@ -12,7 +12,7 @@ import { RoleBadge } from './RoleBadge.js';
 interface MemberRowProps {
   subjectId: string;
   subjectType: 'agent' | 'human';
-  role: string;
+  role?: string;
   displayName: string;
   fingerprint?: string;
   email?: string;
@@ -66,7 +66,7 @@ export function MemberRow({
         </Stack>
 
         <Stack direction="row" gap={2} align="center">
-          <RoleBadge role={role} />
+          {role && <RoleBadge role={role} />}
           {canRemove && (
             <Button variant="ghost" size="sm" onClick={onRemove}>
               Remove

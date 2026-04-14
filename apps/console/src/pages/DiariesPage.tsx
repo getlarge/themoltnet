@@ -1,10 +1,4 @@
-import {
-  Button,
-  Card,
-  Stack,
-  Text,
-  useTheme,
-} from '@themoltnet/design-system';
+import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { DiaryCard } from '../components/diaries/DiaryCard.js';
@@ -14,7 +8,7 @@ import { useTeam } from '../team/useTeam.js';
 
 export function DiariesPage() {
   const theme = useTheme();
-  const { error: teamError, refreshTeams } = useTeam();
+  const { error: teamError, refreshTeams, selectedTeam } = useTeam();
   const [diaries, setDiaries] = useState<Array<DiarySummary>>([]);
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -28,7 +22,7 @@ export function DiariesPage() {
       setError(null);
 
       try {
-        const items = await fetchDiarySummaries();
+        const items = await fetchDiarySummaries(selectedTeam?.id ?? null);
         if (!cancelled) setDiaries(items);
       } catch (err) {
         if (!cancelled) {
@@ -45,7 +39,7 @@ export function DiariesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedTeam?.id]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -103,7 +97,11 @@ export function DiariesPage() {
               The console could not load your teams, so diary queries have no
               valid scope. Check API connectivity and retry.
             </Text>
-            <Button variant="secondary" size="sm" onClick={() => void refreshTeams()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void refreshTeams()}
+            >
               Retry team load
             </Button>
           </Stack>
@@ -114,7 +112,11 @@ export function DiariesPage() {
         <Card style={{ padding: '1.5rem' }}>
           <Stack gap={3}>
             <Text color="muted">Failed to load diaries.</Text>
-            <Button variant="secondary" size="sm" onClick={() => window.location.reload()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
               Retry
             </Button>
           </Stack>

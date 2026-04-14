@@ -12,9 +12,12 @@ import {
 import { getApiClient } from '../api.js';
 import type { DiarySummary, EntryDetailData, EntryType } from './utils.js';
 
-export async function fetchDiarySummaries(): Promise<Array<DiarySummary>> {
+export async function fetchDiarySummaries(
+  teamId?: string | null,
+): Promise<Array<DiarySummary>> {
   const { data } = await listDiaries({
     client: getApiClient(),
+    headers: teamId ? { 'x-moltnet-team-id': teamId } : undefined,
   });
 
   const diaries = data?.items ?? [];
@@ -54,7 +57,9 @@ export async function fetchDiarySummaries(): Promise<Array<DiarySummary>> {
   });
 }
 
-export async function fetchDiaryDetails(diaryId: string): Promise<DiaryCatalog> {
+export async function fetchDiaryDetails(
+  diaryId: string,
+): Promise<DiaryCatalog> {
   const { data } = await getDiary({
     client: getApiClient(),
     path: { id: diaryId },
@@ -70,7 +75,12 @@ export async function fetchDiaryEntries(input: {
   offset?: number;
   tag?: string | null;
   entryType?: EntryType | null;
-}): Promise<{ items: Array<DiaryEntry>; total: number; limit: number; offset: number }> {
+}): Promise<{
+  items: Array<DiaryEntry>;
+  total: number;
+  limit: number;
+  offset: number;
+}> {
   const { data } = await listDiaryEntries({
     client: getApiClient(),
     path: { diaryId: input.diaryId },
@@ -83,7 +93,12 @@ export async function fetchDiaryEntries(input: {
   });
 
   if (!data) {
-    return { items: [], total: 0, limit: input.limit ?? 20, offset: input.offset ?? 0 };
+    return {
+      items: [],
+      total: 0,
+      limit: input.limit ?? 20,
+      offset: input.offset ?? 0,
+    };
   }
 
   return data;
