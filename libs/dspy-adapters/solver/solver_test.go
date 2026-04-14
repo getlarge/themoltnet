@@ -126,7 +126,10 @@ func TestNew_ReActRequiresRegistry(t *testing.T) {
 	}
 }
 
-func TestNew_ReActMaxIterationsDefault(t *testing.T) {
+// TestNew_ReActAcceptsZeroMaxIterations verifies that passing zero
+// MaxIterations constructs successfully (the default is applied internally
+// by New; the value cannot be observed via the public API).
+func TestNew_ReActAcceptsZeroMaxIterations(t *testing.T) {
 	registry := tools.NewInMemoryToolRegistry()
 	m, err := New(Config{
 		Kind:      KindReAct,
