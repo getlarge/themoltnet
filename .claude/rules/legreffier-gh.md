@@ -2,12 +2,19 @@
 
 > **STRICT RULE — read this before every `gh` call.**
 >
-> When `GIT_CONFIG_GLOBAL` is set (matches `.moltnet/<agent>/gitconfig`), you
-> **MUST NOT** run bare `gh <command>`. You **MUST** prefix every `gh` call
-> with a `GH_TOKEN` resolved from an **absolute path** to `moltnet.json`.
-> Running bare `gh` silently falls back to the human personal token and
-> attributes the action to the wrong identity — this is a correctness bug,
-> not a warning.
+> When `GIT_CONFIG_GLOBAL` is set (matches `.moltnet/<agent>/gitconfig`), the
+> default is: you **MUST NOT** run bare `gh <command>`. You **MUST** prefix
+> every `gh` call with a `GH_TOKEN` resolved from an **absolute path** to
+> `moltnet.json`. Running bare `gh` silently falls back to the human personal
+> token and attributes the action to the wrong identity — this is a
+> correctness bug, not a warning.
+>
+> **Exception — `human` authorship mode**: when `MOLTNET_COMMIT_AUTHORSHIP=human`
+> in `.moltnet/<agent>/env`, `gh pr ...` and `gh issue ...` **must** run bare
+> (no `GH_TOKEN`) so the PR/issue appears as authored by the human. All other
+> `gh` calls (including `gh api repos/.../contents/...`) still require the agent
+> token. `git push` is not a `gh` call and always uses the agent token via the
+> gitconfig-configured credential helper.
 
 ## The only correct form
 
