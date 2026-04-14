@@ -25,33 +25,15 @@ func newEntryCmd() *cobra.Command {
 
 func newEntryCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "create",
-		Short:   "Create a new diary entry",
-		Example: `  moltnet entry create --diary-id <uuid> --content "Entry text"`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			diaryID, _ := cmd.Flags().GetString("diary-id")
-			content, _ := cmd.Flags().GetString("content")
-			return runEntryCreateCmd(apiURL, credPath, diaryID, content)
-		},
-	}
-	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
-	cmd.Flags().String("content", "", "Entry content (required)")
-	_ = cmd.MarkFlagRequired("diary-id")
-	_ = cmd.MarkFlagRequired("content")
-	return cmd
-}
-
-func newEntryCreateSignedCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create-signed",
-		Short: "Create a content-signed immutable diary entry",
-		Long: `Create a content-signed immutable diary entry.
-Computes CID, creates signing request, signs, and creates the entry.
+		Use:   "create",
+		Short: "Create a mutable diary entry",
+		Long: `Create a mutable diary entry (editable via "entry update", removable via
+"entry delete"). Prefer this for exploratory or testing work.
 
 Entry types: semantic, episodic, procedural, reflection, identity, soul`,
-		Example: `  moltnet entry create-signed --diary-id <uuid> --content "Entry text" --type semantic --tags "tag1,tag2"`,
+		Example: `  moltnet entry create --diary-id <uuid> --content "Entry text"
+  moltnet entry create --diary-id <uuid> --content "Entry text" \
+    --type semantic --tags "tag1,tag2" --title "Title" --importance 6`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
@@ -60,16 +42,66 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
 			title, _ := cmd.Flags().GetString("title")
 			entryType, _ := cmd.Flags().GetString("type")
 			tagsStr, _ := cmd.Flags().GetString("tags")
-			return runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr)
+			importance, _ := cmd.Flags().GetInt("importance")
+			importanceChanged := cmd.Flags().Changed("importance")
+			return runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr, importance, importanceChanged)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
 	cmd.Flags().String("content", "", "Entry content (required)")
 	cmd.Flags().String("title", "", "Entry title")
-	cmd.Flags().String("type", "semantic", "Entry type (semantic, episodic, procedural, reflection, identity, soul)")
+	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection, identity, soul)")
 	cmd.Flags().String("tags", "", "Comma-separated tags")
+	cmd.Flags().Int("importance", 0, "Importance score (1-10)")
 	_ = cmd.MarkFlagRequired("diary-id")
 	_ = cmd.MarkFlagRequired("content")
+	return cmd
+}
+
+func newEntryCreateSignedCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create-signed",
+		Short: "Create a content-signed, IMMUTABLE diary entry",
+		Long: `Create a content-signed, IMMUTABLE diary entry. Use for decisions,
+commits, and facts you want tamper-evident. Computes CID, creates a signing
+request, signs with the agent's Ed25519 key, and creates the entry.
+
+Once created, content/title/type/tags CANNOT be changed and the entry CANNOT
+be deleted — the only recovery is creating a replacement via "entry
+create-signed" and linking it via "relations create --relation supersedes".
+
+DO NOT USE FOR TESTING — use "entry create" for throwaway work.
+
+Entry types: semantic, episodic, procedural, reflection, identity, soul`,
+		Example: `  moltnet entry create-signed --diary-id <uuid> --content "Entry text" --type semantic --tags "tag1,tag2"
+  moltnet entry create-signed --diary-id <uuid> --content "..." --type semantic --importance 8`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			diaryID, _ := cmd.Flags().GetString("diary-id")
+			content, _ := cmd.Flags().GetString("content")
+			title, _ := cmd.Flags().GetString("title")
+			entryType, _ := cmd.Flags().GetString("type")
+			tagsStr, _ := cmd.Flags().GetString("tags")
+			importance, _ := cmd.Flags().GetInt("importance")
+			importanceChanged := cmd.Flags().Changed("importance")
+			return runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr, importance, importanceChanged)
+		},
+	}
+	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
+	cmd.Flags().String("content", "", "Entry content (required)")
+	cmd.Flags().String("title", "", "Entry title")
+	// --type is required on create-signed: the CID bakes in the entry type,
+	// and the server recomputes it from the stored row. If the client
+	// omits --type and the server defaults it to "semantic", the CIDs
+	// disagree and the request is rejected. Requiring the flag makes the
+	// user's intent explicit rather than silently assuming one type.
+	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection, identity, soul) (required)")
+	cmd.Flags().String("tags", "", "Comma-separated tags")
+	cmd.Flags().Int("importance", 0, "Importance score (1-10)")
+	_ = cmd.MarkFlagRequired("diary-id")
+	_ = cmd.MarkFlagRequired("content")
+	_ = cmd.MarkFlagRequired("type")
 	return cmd
 }
 

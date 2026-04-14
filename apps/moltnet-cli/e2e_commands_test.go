@@ -109,6 +109,54 @@ func TestE2E_CLI_EntryCreateSigned(t *testing.T) {
 	}
 }
 
+// TestE2E_CLI_EntryCreate_AllFlags exercises the non-signed `entry create`
+// command with --type, --tags, --title, --importance to confirm every flag
+// is wired through to the API request (regression for #803).
+func TestE2E_CLI_EntryCreate_AllFlags(t *testing.T) {
+	h := newCLIHarness(t)
+
+	content := fmt.Sprintf(
+		"E2E CLI entry create all-flags %s",
+		uuid.NewString(),
+	)
+	uniqueTag := "e2e-cli-create-" + uuid.NewString()[:8]
+
+	stdout, _ := h.run(t,
+		"entry", "create",
+		"--diary-id", e2eDiaryID.String(),
+		"--content", content,
+		"--title", "E2E CLI create all-flags",
+		"--type", "semantic",
+		"--tags", "e2e-cli,"+uniqueTag,
+		"--importance", "7",
+	)
+
+	var entry moltnetapi.DiaryEntry
+	decodeJSON(t, stdout, &entry)
+	if entry.ID == uuid.Nil {
+		t.Fatalf("expected non-nil entry ID, got: %s", stdout)
+	}
+	if entry.Title.Value != "E2E CLI create all-flags" {
+		t.Errorf("expected title wired through, got %q", entry.Title.Value)
+	}
+	if entry.EntryType != moltnetapi.DiaryEntryEntryTypeSemantic {
+		t.Errorf("expected entryType=semantic, got %q", entry.EntryType)
+	}
+	if entry.Importance != 7 {
+		t.Errorf("expected importance=7, got %v", entry.Importance)
+	}
+	hasUnique := false
+	for _, tag := range entry.Tags {
+		if tag == uniqueTag {
+			hasUnique = true
+			break
+		}
+	}
+	if !hasUnique {
+		t.Errorf("expected tag %q in entry.Tags, got %v", uniqueTag, entry.Tags)
+	}
+}
+
 func TestE2E_CLI_EntryList_ByTag(t *testing.T) {
 	h := newCLIHarness(t)
 
