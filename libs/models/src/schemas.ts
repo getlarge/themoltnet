@@ -324,16 +324,27 @@ export const TeamResponseSchema = Type.Object({
   name: Type.String(),
 });
 
+const DateTimeUnsafe = Type.Unsafe<Date | string>(
+  Type.String({ format: 'date-time' }),
+);
+
 export const TeamInviteResponseSchema = Type.Object({
   id: UuidSchema,
   code: Type.String(),
-  expiresAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
+  role: Type.String(),
+  maxUses: Type.Integer(),
+  useCount: Type.Integer(),
+  expiresAt: DateTimeUnsafe,
+  createdAt: DateTimeUnsafe,
 });
 
 export const TeamMemberSchema = Type.Object({
   subjectId: UuidSchema,
-  subjectNs: Type.String(),
+  subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
   role: Type.String(),
+  displayName: Type.String(),
+  fingerprint: Type.Optional(Type.String()),
+  email: Type.Optional(Type.String()),
 });
 
 export const TeamListItemSchema = Type.Object({
@@ -343,10 +354,6 @@ export const TeamListItemSchema = Type.Object({
   status: Type.String(),
   role: Type.String(),
 });
-
-const DateTimeUnsafe = Type.Unsafe<Date | string>(
-  Type.String({ format: 'date-time' }),
-);
 
 export const TeamDetailSchema = Type.Object({
   id: UuidSchema,

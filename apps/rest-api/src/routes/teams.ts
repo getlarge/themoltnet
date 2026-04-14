@@ -29,6 +29,7 @@ import {
   TeamParamsSchema,
   TeamResponseSchema,
 } from '@moltnet/models';
+import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -37,6 +38,92 @@ import {
   FOUNDING_ACCEPT_EVENT,
   teamFoundingWorkflow,
 } from '../workflows/team-founding-workflow.js';
+
+// ── Member enrichment ───────────────────────────────────────────
+
+interface KetoMember {
+  subjectId: string;
+  subjectNs: string;
+  relation: string;
+}
+
+interface EnrichedMember {
+  subjectId: string;
+  subjectType: 'agent' | 'human';
+  role: string;
+  displayName: string;
+  fingerprint?: string;
+  email?: string;
+}
+
+async function resolveMembers(
+  identityApi: IdentityApi,
+  members: KetoMember[],
+  log: FastifyInstance['log'],
+): Promise<EnrichedMember[]> {
+  if (members.length === 0) return [];
+
+  const subjectIds = members.map((m) => m.subjectId);
+
+  const identityMap = new Map<
+    string,
+    {
+      schemaId: string;
+      traits: Record<string, unknown>;
+      metadataPublic: Record<string, unknown> | null;
+    }
+  >();
+
+  try {
+    const identities = await identityApi.listIdentities({ ids: subjectIds });
+    for (const identity of identities) {
+      identityMap.set(identity.id, {
+        schemaId: identity.schema_id,
+        traits: (identity.traits as Record<string, unknown>) ?? {},
+        metadataPublic:
+          (identity.metadata_public as Record<string, unknown>) ?? null,
+      });
+    }
+  } catch (err) {
+    log.warn({ err, subjectIds }, 'team.resolve_members_kratos_failed');
+  }
+
+  return members.map((m) => {
+    const identity = identityMap.get(m.subjectId);
+    const subjectType = m.subjectNs === 'Human' ? 'human' : 'agent';
+
+    if (!identity) {
+      return {
+        subjectId: m.subjectId,
+        subjectType,
+        role: m.relation,
+        displayName: m.subjectId.slice(0, 8),
+      };
+    }
+
+    if (subjectType === 'human') {
+      const username = identity.traits.username as string | undefined;
+      const email = identity.traits.email as string | undefined;
+      return {
+        subjectId: m.subjectId,
+        subjectType,
+        role: m.relation,
+        displayName: username ?? m.subjectId.slice(0, 8),
+        email,
+      };
+    }
+
+    const fingerprint =
+      (identity.metadataPublic?.fingerprint as string | undefined) ?? undefined;
+    return {
+      subjectId: m.subjectId,
+      subjectType,
+      role: m.relation,
+      displayName: fingerprint ?? m.subjectId.slice(0, 8),
+      fingerprint,
+    };
+  });
+}
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -247,14 +334,15 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!team) throw createProblem('not-found');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
+      const enrichedMembers = await resolveMembers(
+        fastify.identityApi,
+        members,
+        request.log,
+      );
 
       return {
         ...team,
-        members: members.map((m) => ({
-          subjectId: m.subjectId,
-          subjectNs: m.subjectNs,
-          role: m.relation,
-        })),
+        members: enrichedMembers,
       };
     },
   );
@@ -357,14 +445,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!canAccess) throw createProblem('not-found');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
+      const enrichedMembers = await resolveMembers(
+        fastify.identityApi,
+        members,
+        request.log,
+      );
 
-      return {
-        items: members.map((m) => ({
-          subjectId: m.subjectId,
-          subjectNs: m.subjectNs,
-          role: m.relation,
-        })),
-      };
+      return { items: enrichedMembers };
     },
   );
 
@@ -500,13 +587,15 @@ export async function teamRoutes(fastify: FastifyInstance) {
         createdBy: identityId,
       });
 
-      return reply
-        .status(201)
-        .send({
-          id: invite.id,
-          code: invite.code,
-          expiresAt: invite.expiresAt,
-        });
+      return reply.status(201).send({
+        id: invite.id,
+        code: invite.code,
+        role: invite.role ?? 'member',
+        maxUses: invite.maxUses,
+        useCount: invite.useCount ?? 0,
+        expiresAt: invite.expiresAt,
+        createdAt: invite.createdAt,
+      });
     },
   );
 
@@ -542,7 +631,17 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!canManageMembers) throw createProblem('forbidden');
 
       const invites = await fastify.teamRepository.listInvites(id);
-      return { items: invites };
+      return {
+        items: invites.map((inv) => ({
+          id: inv.id,
+          code: inv.code,
+          role: inv.role,
+          maxUses: inv.maxUses,
+          useCount: inv.useCount,
+          expiresAt: inv.expiresAt,
+          createdAt: inv.createdAt,
+        })),
+      };
     },
   );
 

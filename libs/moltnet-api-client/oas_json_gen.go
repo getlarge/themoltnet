@@ -8594,6 +8594,10 @@ func (s *CreateTeamInviteCreated) encodeFields(e *jx.Encoder) {
 		e.Str(s.Code)
 	}
 	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
 		e.FieldStart("expiresAt")
 		json.EncodeDateTime(e, s.ExpiresAt)
 	}
@@ -8601,12 +8605,28 @@ func (s *CreateTeamInviteCreated) encodeFields(e *jx.Encoder) {
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
+	{
+		e.FieldStart("maxUses")
+		e.Int(s.MaxUses)
+	}
+	{
+		e.FieldStart("role")
+		e.Str(s.Role)
+	}
+	{
+		e.FieldStart("useCount")
+		e.Int(s.UseCount)
+	}
 }
 
-var jsonFieldsNameOfCreateTeamInviteCreated = [3]string{
+var jsonFieldsNameOfCreateTeamInviteCreated = [7]string{
 	0: "code",
-	1: "expiresAt",
-	2: "id",
+	1: "createdAt",
+	2: "expiresAt",
+	3: "id",
+	4: "maxUses",
+	5: "role",
+	6: "useCount",
 }
 
 // Decode decodes CreateTeamInviteCreated from json.
@@ -8630,8 +8650,20 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"code\"")
 			}
-		case "expiresAt":
+		case "createdAt":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "expiresAt":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.ExpiresAt = v
@@ -8643,7 +8675,7 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -8653,6 +8685,42 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "maxUses":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxUses = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxUses\"")
+			}
+		case "role":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Role = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"role\"")
+			}
+		case "useCount":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.UseCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"useCount\"")
 			}
 		default:
 			return d.Skip()
@@ -8664,7 +8732,7 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -18773,6 +18841,22 @@ func (s *GetTeamOKMembersItem) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *GetTeamOKMembersItem) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("displayName")
+		e.Str(s.DisplayName)
+	}
+	{
+		if s.Email.Set {
+			e.FieldStart("email")
+			s.Email.Encode(e)
+		}
+	}
+	{
+		if s.Fingerprint.Set {
+			e.FieldStart("fingerprint")
+			s.Fingerprint.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("role")
 		e.Str(s.Role)
 	}
@@ -18781,15 +18865,18 @@ func (s *GetTeamOKMembersItem) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.SubjectId)
 	}
 	{
-		e.FieldStart("subjectNs")
-		e.Str(s.SubjectNs)
+		e.FieldStart("subjectType")
+		s.SubjectType.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfGetTeamOKMembersItem = [3]string{
-	0: "role",
-	1: "subjectId",
-	2: "subjectNs",
+var jsonFieldsNameOfGetTeamOKMembersItem = [6]string{
+	0: "displayName",
+	1: "email",
+	2: "fingerprint",
+	3: "role",
+	4: "subjectId",
+	5: "subjectType",
 }
 
 // Decode decodes GetTeamOKMembersItem from json.
@@ -18801,8 +18888,40 @@ func (s *GetTeamOKMembersItem) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "role":
+		case "displayName":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.DisplayName = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"displayName\"")
+			}
+		case "email":
+			if err := func() error {
+				s.Email.Reset()
+				if err := s.Email.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"email\"")
+			}
+		case "fingerprint":
+			if err := func() error {
+				s.Fingerprint.Reset()
+				if err := s.Fingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"fingerprint\"")
+			}
+		case "role":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Role = string(v)
@@ -18814,7 +18933,7 @@ func (s *GetTeamOKMembersItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
 		case "subjectId":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SubjectId = v
@@ -18825,17 +18944,15 @@ func (s *GetTeamOKMembersItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"subjectId\"")
 			}
-		case "subjectNs":
-			requiredBitSet[0] |= 1 << 2
+		case "subjectType":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.SubjectNs = string(v)
-				if err != nil {
+				if err := s.SubjectType.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"subjectNs\"")
+				return errors.Wrap(err, "decode field \"subjectType\"")
 			}
 		default:
 			return d.Skip()
@@ -18847,7 +18964,7 @@ func (s *GetTeamOKMembersItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00111001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -18889,6 +19006,46 @@ func (s *GetTeamOKMembersItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *GetTeamOKMembersItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetTeamOKMembersItemSubjectType as json.
+func (s GetTeamOKMembersItemSubjectType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetTeamOKMembersItemSubjectType from json.
+func (s *GetTeamOKMembersItemSubjectType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetTeamOKMembersItemSubjectType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetTeamOKMembersItemSubjectType(v) {
+	case GetTeamOKMembersItemSubjectTypeAgent:
+		*s = GetTeamOKMembersItemSubjectTypeAgent
+	case GetTeamOKMembersItemSubjectTypeHuman:
+		*s = GetTeamOKMembersItemSubjectTypeHuman
+	default:
+		*s = GetTeamOKMembersItemSubjectType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetTeamOKMembersItemSubjectType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetTeamOKMembersItemSubjectType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -23101,6 +23258,10 @@ func (s *ListTeamInvitesOKItemsItem) encodeFields(e *jx.Encoder) {
 		e.Str(s.Code)
 	}
 	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
 		e.FieldStart("expiresAt")
 		json.EncodeDateTime(e, s.ExpiresAt)
 	}
@@ -23108,12 +23269,28 @@ func (s *ListTeamInvitesOKItemsItem) encodeFields(e *jx.Encoder) {
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
+	{
+		e.FieldStart("maxUses")
+		e.Int(s.MaxUses)
+	}
+	{
+		e.FieldStart("role")
+		e.Str(s.Role)
+	}
+	{
+		e.FieldStart("useCount")
+		e.Int(s.UseCount)
+	}
 }
 
-var jsonFieldsNameOfListTeamInvitesOKItemsItem = [3]string{
+var jsonFieldsNameOfListTeamInvitesOKItemsItem = [7]string{
 	0: "code",
-	1: "expiresAt",
-	2: "id",
+	1: "createdAt",
+	2: "expiresAt",
+	3: "id",
+	4: "maxUses",
+	5: "role",
+	6: "useCount",
 }
 
 // Decode decodes ListTeamInvitesOKItemsItem from json.
@@ -23137,8 +23314,20 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"code\"")
 			}
-		case "expiresAt":
+		case "createdAt":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "expiresAt":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.ExpiresAt = v
@@ -23150,7 +23339,7 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -23160,6 +23349,42 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "maxUses":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxUses = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxUses\"")
+			}
+		case "role":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Role = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"role\"")
+			}
+		case "useCount":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.UseCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"useCount\"")
 			}
 		default:
 			return d.Skip()
@@ -23171,7 +23396,7 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -23409,6 +23634,22 @@ func (s *ListTeamMembersOKItemsItem) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *ListTeamMembersOKItemsItem) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("displayName")
+		e.Str(s.DisplayName)
+	}
+	{
+		if s.Email.Set {
+			e.FieldStart("email")
+			s.Email.Encode(e)
+		}
+	}
+	{
+		if s.Fingerprint.Set {
+			e.FieldStart("fingerprint")
+			s.Fingerprint.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("role")
 		e.Str(s.Role)
 	}
@@ -23417,15 +23658,18 @@ func (s *ListTeamMembersOKItemsItem) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.SubjectId)
 	}
 	{
-		e.FieldStart("subjectNs")
-		e.Str(s.SubjectNs)
+		e.FieldStart("subjectType")
+		s.SubjectType.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfListTeamMembersOKItemsItem = [3]string{
-	0: "role",
-	1: "subjectId",
-	2: "subjectNs",
+var jsonFieldsNameOfListTeamMembersOKItemsItem = [6]string{
+	0: "displayName",
+	1: "email",
+	2: "fingerprint",
+	3: "role",
+	4: "subjectId",
+	5: "subjectType",
 }
 
 // Decode decodes ListTeamMembersOKItemsItem from json.
@@ -23437,8 +23681,40 @@ func (s *ListTeamMembersOKItemsItem) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "role":
+		case "displayName":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.DisplayName = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"displayName\"")
+			}
+		case "email":
+			if err := func() error {
+				s.Email.Reset()
+				if err := s.Email.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"email\"")
+			}
+		case "fingerprint":
+			if err := func() error {
+				s.Fingerprint.Reset()
+				if err := s.Fingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"fingerprint\"")
+			}
+		case "role":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Role = string(v)
@@ -23450,7 +23726,7 @@ func (s *ListTeamMembersOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
 		case "subjectId":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SubjectId = v
@@ -23461,17 +23737,15 @@ func (s *ListTeamMembersOKItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"subjectId\"")
 			}
-		case "subjectNs":
-			requiredBitSet[0] |= 1 << 2
+		case "subjectType":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.SubjectNs = string(v)
-				if err != nil {
+				if err := s.SubjectType.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"subjectNs\"")
+				return errors.Wrap(err, "decode field \"subjectType\"")
 			}
 		default:
 			return d.Skip()
@@ -23483,7 +23757,7 @@ func (s *ListTeamMembersOKItemsItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00111001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -23525,6 +23799,46 @@ func (s *ListTeamMembersOKItemsItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListTeamMembersOKItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListTeamMembersOKItemsItemSubjectType as json.
+func (s ListTeamMembersOKItemsItemSubjectType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ListTeamMembersOKItemsItemSubjectType from json.
+func (s *ListTeamMembersOKItemsItemSubjectType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListTeamMembersOKItemsItemSubjectType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ListTeamMembersOKItemsItemSubjectType(v) {
+	case ListTeamMembersOKItemsItemSubjectTypeAgent:
+		*s = ListTeamMembersOKItemsItemSubjectTypeAgent
+	case ListTeamMembersOKItemsItemSubjectTypeHuman:
+		*s = ListTeamMembersOKItemsItemSubjectTypeHuman
+	default:
+		*s = ListTeamMembersOKItemsItemSubjectType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ListTeamMembersOKItemsItemSubjectType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListTeamMembersOKItemsItemSubjectType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

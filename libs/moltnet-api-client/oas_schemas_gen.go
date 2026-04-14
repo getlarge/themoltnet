@@ -3007,14 +3007,23 @@ func (*CreateTeamInviteBadRequest) createTeamInviteRes() {}
 
 type CreateTeamInviteCreated struct {
 	Code      string    `json:"code"`
+	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	// UUID v4 identifier.
-	ID uuid.UUID `json:"id"`
+	ID       uuid.UUID `json:"id"`
+	MaxUses  int       `json:"maxUses"`
+	Role     string    `json:"role"`
+	UseCount int       `json:"useCount"`
 }
 
 // GetCode returns the value of Code.
 func (s *CreateTeamInviteCreated) GetCode() string {
 	return s.Code
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *CreateTeamInviteCreated) GetCreatedAt() time.Time {
+	return s.CreatedAt
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -3027,9 +3036,29 @@ func (s *CreateTeamInviteCreated) GetID() uuid.UUID {
 	return s.ID
 }
 
+// GetMaxUses returns the value of MaxUses.
+func (s *CreateTeamInviteCreated) GetMaxUses() int {
+	return s.MaxUses
+}
+
+// GetRole returns the value of Role.
+func (s *CreateTeamInviteCreated) GetRole() string {
+	return s.Role
+}
+
+// GetUseCount returns the value of UseCount.
+func (s *CreateTeamInviteCreated) GetUseCount() int {
+	return s.UseCount
+}
+
 // SetCode sets the value of Code.
 func (s *CreateTeamInviteCreated) SetCode(val string) {
 	s.Code = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *CreateTeamInviteCreated) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
 }
 
 // SetExpiresAt sets the value of ExpiresAt.
@@ -3040,6 +3069,21 @@ func (s *CreateTeamInviteCreated) SetExpiresAt(val time.Time) {
 // SetID sets the value of ID.
 func (s *CreateTeamInviteCreated) SetID(val uuid.UUID) {
 	s.ID = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *CreateTeamInviteCreated) SetMaxUses(val int) {
+	s.MaxUses = val
+}
+
+// SetRole sets the value of Role.
+func (s *CreateTeamInviteCreated) SetRole(val string) {
+	s.Role = val
+}
+
+// SetUseCount sets the value of UseCount.
+func (s *CreateTeamInviteCreated) SetUseCount(val int) {
+	s.UseCount = val
 }
 
 func (*CreateTeamInviteCreated) createTeamInviteRes() {}
@@ -6890,10 +6934,28 @@ func (s *GetTeamOK) SetUpdatedAt(val time.Time) {
 func (*GetTeamOK) getTeamRes() {}
 
 type GetTeamOKMembersItem struct {
-	Role string `json:"role"`
+	DisplayName string    `json:"displayName"`
+	Email       OptString `json:"email"`
+	Fingerprint OptString `json:"fingerprint"`
+	Role        string    `json:"role"`
 	// UUID v4 identifier.
-	SubjectId uuid.UUID `json:"subjectId"`
-	SubjectNs string    `json:"subjectNs"`
+	SubjectId   uuid.UUID                       `json:"subjectId"`
+	SubjectType GetTeamOKMembersItemSubjectType `json:"subjectType"`
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *GetTeamOKMembersItem) GetDisplayName() string {
+	return s.DisplayName
+}
+
+// GetEmail returns the value of Email.
+func (s *GetTeamOKMembersItem) GetEmail() OptString {
+	return s.Email
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *GetTeamOKMembersItem) GetFingerprint() OptString {
+	return s.Fingerprint
 }
 
 // GetRole returns the value of Role.
@@ -6906,9 +6968,24 @@ func (s *GetTeamOKMembersItem) GetSubjectId() uuid.UUID {
 	return s.SubjectId
 }
 
-// GetSubjectNs returns the value of SubjectNs.
-func (s *GetTeamOKMembersItem) GetSubjectNs() string {
-	return s.SubjectNs
+// GetSubjectType returns the value of SubjectType.
+func (s *GetTeamOKMembersItem) GetSubjectType() GetTeamOKMembersItemSubjectType {
+	return s.SubjectType
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *GetTeamOKMembersItem) SetDisplayName(val string) {
+	s.DisplayName = val
+}
+
+// SetEmail sets the value of Email.
+func (s *GetTeamOKMembersItem) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *GetTeamOKMembersItem) SetFingerprint(val OptString) {
+	s.Fingerprint = val
 }
 
 // SetRole sets the value of Role.
@@ -6921,9 +6998,50 @@ func (s *GetTeamOKMembersItem) SetSubjectId(val uuid.UUID) {
 	s.SubjectId = val
 }
 
-// SetSubjectNs sets the value of SubjectNs.
-func (s *GetTeamOKMembersItem) SetSubjectNs(val string) {
-	s.SubjectNs = val
+// SetSubjectType sets the value of SubjectType.
+func (s *GetTeamOKMembersItem) SetSubjectType(val GetTeamOKMembersItemSubjectType) {
+	s.SubjectType = val
+}
+
+type GetTeamOKMembersItemSubjectType string
+
+const (
+	GetTeamOKMembersItemSubjectTypeAgent GetTeamOKMembersItemSubjectType = "agent"
+	GetTeamOKMembersItemSubjectTypeHuman GetTeamOKMembersItemSubjectType = "human"
+)
+
+// AllValues returns all GetTeamOKMembersItemSubjectType values.
+func (GetTeamOKMembersItemSubjectType) AllValues() []GetTeamOKMembersItemSubjectType {
+	return []GetTeamOKMembersItemSubjectType{
+		GetTeamOKMembersItemSubjectTypeAgent,
+		GetTeamOKMembersItemSubjectTypeHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetTeamOKMembersItemSubjectType) MarshalText() ([]byte, error) {
+	switch s {
+	case GetTeamOKMembersItemSubjectTypeAgent:
+		return []byte(s), nil
+	case GetTeamOKMembersItemSubjectTypeHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetTeamOKMembersItemSubjectType) UnmarshalText(data []byte) error {
+	switch GetTeamOKMembersItemSubjectType(data) {
+	case GetTeamOKMembersItemSubjectTypeAgent:
+		*s = GetTeamOKMembersItemSubjectTypeAgent
+		return nil
+	case GetTeamOKMembersItemSubjectTypeHuman:
+		*s = GetTeamOKMembersItemSubjectTypeHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type GetTeamUnauthorized ProblemDetails
@@ -7892,14 +8010,23 @@ func (*ListTeamInvitesOK) listTeamInvitesRes() {}
 
 type ListTeamInvitesOKItemsItem struct {
 	Code      string    `json:"code"`
+	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	// UUID v4 identifier.
-	ID uuid.UUID `json:"id"`
+	ID       uuid.UUID `json:"id"`
+	MaxUses  int       `json:"maxUses"`
+	Role     string    `json:"role"`
+	UseCount int       `json:"useCount"`
 }
 
 // GetCode returns the value of Code.
 func (s *ListTeamInvitesOKItemsItem) GetCode() string {
 	return s.Code
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ListTeamInvitesOKItemsItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -7912,9 +8039,29 @@ func (s *ListTeamInvitesOKItemsItem) GetID() uuid.UUID {
 	return s.ID
 }
 
+// GetMaxUses returns the value of MaxUses.
+func (s *ListTeamInvitesOKItemsItem) GetMaxUses() int {
+	return s.MaxUses
+}
+
+// GetRole returns the value of Role.
+func (s *ListTeamInvitesOKItemsItem) GetRole() string {
+	return s.Role
+}
+
+// GetUseCount returns the value of UseCount.
+func (s *ListTeamInvitesOKItemsItem) GetUseCount() int {
+	return s.UseCount
+}
+
 // SetCode sets the value of Code.
 func (s *ListTeamInvitesOKItemsItem) SetCode(val string) {
 	s.Code = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ListTeamInvitesOKItemsItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
 }
 
 // SetExpiresAt sets the value of ExpiresAt.
@@ -7925,6 +8072,21 @@ func (s *ListTeamInvitesOKItemsItem) SetExpiresAt(val time.Time) {
 // SetID sets the value of ID.
 func (s *ListTeamInvitesOKItemsItem) SetID(val uuid.UUID) {
 	s.ID = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *ListTeamInvitesOKItemsItem) SetMaxUses(val int) {
+	s.MaxUses = val
+}
+
+// SetRole sets the value of Role.
+func (s *ListTeamInvitesOKItemsItem) SetRole(val string) {
+	s.Role = val
+}
+
+// SetUseCount sets the value of UseCount.
+func (s *ListTeamInvitesOKItemsItem) SetUseCount(val int) {
+	s.UseCount = val
 }
 
 type ListTeamInvitesUnauthorized ProblemDetails
@@ -7952,10 +8114,28 @@ func (s *ListTeamMembersOK) SetItems(val []ListTeamMembersOKItemsItem) {
 func (*ListTeamMembersOK) listTeamMembersRes() {}
 
 type ListTeamMembersOKItemsItem struct {
-	Role string `json:"role"`
+	DisplayName string    `json:"displayName"`
+	Email       OptString `json:"email"`
+	Fingerprint OptString `json:"fingerprint"`
+	Role        string    `json:"role"`
 	// UUID v4 identifier.
-	SubjectId uuid.UUID `json:"subjectId"`
-	SubjectNs string    `json:"subjectNs"`
+	SubjectId   uuid.UUID                             `json:"subjectId"`
+	SubjectType ListTeamMembersOKItemsItemSubjectType `json:"subjectType"`
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *ListTeamMembersOKItemsItem) GetDisplayName() string {
+	return s.DisplayName
+}
+
+// GetEmail returns the value of Email.
+func (s *ListTeamMembersOKItemsItem) GetEmail() OptString {
+	return s.Email
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *ListTeamMembersOKItemsItem) GetFingerprint() OptString {
+	return s.Fingerprint
 }
 
 // GetRole returns the value of Role.
@@ -7968,9 +8148,24 @@ func (s *ListTeamMembersOKItemsItem) GetSubjectId() uuid.UUID {
 	return s.SubjectId
 }
 
-// GetSubjectNs returns the value of SubjectNs.
-func (s *ListTeamMembersOKItemsItem) GetSubjectNs() string {
-	return s.SubjectNs
+// GetSubjectType returns the value of SubjectType.
+func (s *ListTeamMembersOKItemsItem) GetSubjectType() ListTeamMembersOKItemsItemSubjectType {
+	return s.SubjectType
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *ListTeamMembersOKItemsItem) SetDisplayName(val string) {
+	s.DisplayName = val
+}
+
+// SetEmail sets the value of Email.
+func (s *ListTeamMembersOKItemsItem) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *ListTeamMembersOKItemsItem) SetFingerprint(val OptString) {
+	s.Fingerprint = val
 }
 
 // SetRole sets the value of Role.
@@ -7983,9 +8178,50 @@ func (s *ListTeamMembersOKItemsItem) SetSubjectId(val uuid.UUID) {
 	s.SubjectId = val
 }
 
-// SetSubjectNs sets the value of SubjectNs.
-func (s *ListTeamMembersOKItemsItem) SetSubjectNs(val string) {
-	s.SubjectNs = val
+// SetSubjectType sets the value of SubjectType.
+func (s *ListTeamMembersOKItemsItem) SetSubjectType(val ListTeamMembersOKItemsItemSubjectType) {
+	s.SubjectType = val
+}
+
+type ListTeamMembersOKItemsItemSubjectType string
+
+const (
+	ListTeamMembersOKItemsItemSubjectTypeAgent ListTeamMembersOKItemsItemSubjectType = "agent"
+	ListTeamMembersOKItemsItemSubjectTypeHuman ListTeamMembersOKItemsItemSubjectType = "human"
+)
+
+// AllValues returns all ListTeamMembersOKItemsItemSubjectType values.
+func (ListTeamMembersOKItemsItemSubjectType) AllValues() []ListTeamMembersOKItemsItemSubjectType {
+	return []ListTeamMembersOKItemsItemSubjectType{
+		ListTeamMembersOKItemsItemSubjectTypeAgent,
+		ListTeamMembersOKItemsItemSubjectTypeHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTeamMembersOKItemsItemSubjectType) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTeamMembersOKItemsItemSubjectTypeAgent:
+		return []byte(s), nil
+	case ListTeamMembersOKItemsItemSubjectTypeHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTeamMembersOKItemsItemSubjectType) UnmarshalText(data []byte) error {
+	switch ListTeamMembersOKItemsItemSubjectType(data) {
+	case ListTeamMembersOKItemsItemSubjectTypeAgent:
+		*s = ListTeamMembersOKItemsItemSubjectTypeAgent
+		return nil
+	case ListTeamMembersOKItemsItemSubjectTypeHuman:
+		*s = ListTeamMembersOKItemsItemSubjectTypeHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type ListTeamMembersUnauthorized ProblemDetails
