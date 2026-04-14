@@ -2367,6 +2367,10 @@ type CreateDiaryEntryUnauthorized ProblemDetails
 
 func (*CreateDiaryEntryUnauthorized) createDiaryEntryRes() {}
 
+type CreateDiaryGrantConflict ProblemDetails
+
+func (*CreateDiaryGrantConflict) createDiaryGrantRes() {}
+
 type CreateDiaryGrantCreated struct {
 	Role CreateDiaryGrantCreatedRole `json:"role"`
 	// UUID v4 identifier.

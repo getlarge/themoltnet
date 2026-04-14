@@ -6634,6 +6634,16 @@
             },
             "description": "Default Response"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
           "500": {
             "content": {
               "application/json": {
