@@ -183,7 +183,7 @@ func runTeamsMemberRemoveCmd(apiURL, credPath, teamID, subjectID string) error {
 		SubjectId: subjectUUID,
 	})
 	if err != nil {
-		return fmt.Errorf("teams member remove: %w", err)
+		return fmt.Errorf("teams members remove: %w", err)
 	}
 	ok, okRes := res.(*moltnetapi.RemoveTeamMemberOK)
 	if !okRes {

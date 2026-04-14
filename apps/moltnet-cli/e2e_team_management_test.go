@@ -85,9 +85,18 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 		t.Errorf("joined role: want member got %s", joined.Role)
 	}
 
-	// Look up the invitee's Agent subject ID by listing team members —
-	// SubjectId here is the internal agent row ID keto uses for grants,
-	// not the invitee's Kratos identity ID.
+	// The grant subject ID is the invitee's Kratos identity ID — Keto uses
+	// identity_id directly as the subject for both team membership and diary
+	// grants. We parse it from the bootstrap output; no ListTeamMembers round
+	// trip is needed (and fingerprint isn't reliably populated there for
+	// bootstrap agents anyway — metadata_public is only set by auth flow
+	// webhooks, which genesis bootstrap bypasses).
+	inviteeAgentID, err := uuid.Parse(inviteeAgent.IdentityID)
+	if err != nil {
+		t.Fatalf("parse invitee identity ID %q: %v", inviteeAgent.IdentityID, err)
+	}
+
+	// Sanity-check that the invitee is actually a member now.
 	membersRes, err := e2eClient.ListTeamMembers(context.Background(),
 		moltnetapi.ListTeamMembersParams{ID: teamID})
 	if err != nil {
@@ -97,16 +106,15 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected team members response: %T", membersRes)
 	}
-	var inviteeAgentID uuid.UUID
+	var foundInvitee bool
 	for _, m := range members.Items {
-		if m.Fingerprint.Set && m.Fingerprint.Value == inviteeAgent.Fingerprint {
-			inviteeAgentID = m.SubjectId
+		if m.SubjectId == inviteeAgentID {
+			foundInvitee = true
 			break
 		}
 	}
-	if inviteeAgentID == uuid.Nil {
-		t.Fatalf("invitee agent not found in team members (fingerprint=%s)",
-			inviteeAgent.Fingerprint)
+	if !foundInvitee {
+		t.Fatalf("invitee agent %s not found in team members", inviteeAgentID)
 	}
 
 	// 5. owner grants writer on the shared e2e diary to the invitee

@@ -106,50 +106,38 @@ func runDiaryGrantsRevokeCmd(apiURL, credPath, diaryID, subjectID, subjectNs, ro
 	return printJSON(ok)
 }
 
+// Delegates to ogen-generated UnmarshalText so the CLI stays in sync with the
+// API if new roles/namespaces are added. UnmarshalText is case-sensitive, which
+// is intentional — Keto namespaces are PascalCase.
+
 func parseCreateGrantRole(role string) (moltnetapi.CreateDiaryGrantReqRole, error) {
-	switch role {
-	case string(moltnetapi.CreateDiaryGrantReqRoleWriter):
-		return moltnetapi.CreateDiaryGrantReqRoleWriter, nil
-	case string(moltnetapi.CreateDiaryGrantReqRoleManager):
-		return moltnetapi.CreateDiaryGrantReqRoleManager, nil
-	default:
-		return "", fmt.Errorf("invalid role %q: must be writer or manager", role)
+	var parsed moltnetapi.CreateDiaryGrantReqRole
+	if err := parsed.UnmarshalText([]byte(role)); err != nil {
+		return "", fmt.Errorf("invalid role %q: %w", role, err)
 	}
+	return parsed, nil
 }
 
 func parseCreateGrantSubjectNs(ns string) (moltnetapi.CreateDiaryGrantReqSubjectNs, error) {
-	switch ns {
-	case string(moltnetapi.CreateDiaryGrantReqSubjectNsAgent):
-		return moltnetapi.CreateDiaryGrantReqSubjectNsAgent, nil
-	case string(moltnetapi.CreateDiaryGrantReqSubjectNsHuman):
-		return moltnetapi.CreateDiaryGrantReqSubjectNsHuman, nil
-	case string(moltnetapi.CreateDiaryGrantReqSubjectNsGroup):
-		return moltnetapi.CreateDiaryGrantReqSubjectNsGroup, nil
-	default:
-		return "", fmt.Errorf("invalid subject-ns %q: must be Agent, Human, or Group", ns)
+	var parsed moltnetapi.CreateDiaryGrantReqSubjectNs
+	if err := parsed.UnmarshalText([]byte(ns)); err != nil {
+		return "", fmt.Errorf("invalid subject-ns %q: %w", ns, err)
 	}
+	return parsed, nil
 }
 
 func parseRevokeGrantRole(role string) (moltnetapi.RevokeDiaryGrantReqRole, error) {
-	switch role {
-	case string(moltnetapi.RevokeDiaryGrantReqRoleWriter):
-		return moltnetapi.RevokeDiaryGrantReqRoleWriter, nil
-	case string(moltnetapi.RevokeDiaryGrantReqRoleManager):
-		return moltnetapi.RevokeDiaryGrantReqRoleManager, nil
-	default:
-		return "", fmt.Errorf("invalid role %q: must be writer or manager", role)
+	var parsed moltnetapi.RevokeDiaryGrantReqRole
+	if err := parsed.UnmarshalText([]byte(role)); err != nil {
+		return "", fmt.Errorf("invalid role %q: %w", role, err)
 	}
+	return parsed, nil
 }
 
 func parseRevokeGrantSubjectNs(ns string) (moltnetapi.RevokeDiaryGrantReqSubjectNs, error) {
-	switch ns {
-	case string(moltnetapi.RevokeDiaryGrantReqSubjectNsAgent):
-		return moltnetapi.RevokeDiaryGrantReqSubjectNsAgent, nil
-	case string(moltnetapi.RevokeDiaryGrantReqSubjectNsHuman):
-		return moltnetapi.RevokeDiaryGrantReqSubjectNsHuman, nil
-	case string(moltnetapi.RevokeDiaryGrantReqSubjectNsGroup):
-		return moltnetapi.RevokeDiaryGrantReqSubjectNsGroup, nil
-	default:
-		return "", fmt.Errorf("invalid subject-ns %q: must be Agent, Human, or Group", ns)
+	var parsed moltnetapi.RevokeDiaryGrantReqSubjectNs
+	if err := parsed.UnmarshalText([]byte(ns)); err != nil {
+		return "", fmt.Errorf("invalid subject-ns %q: %w", ns, err)
 	}
+	return parsed, nil
 }
