@@ -61,7 +61,8 @@ type Config struct {
 	LLM       core.LLM
 
 	// MaxIterations caps the ReAct outer loop. Ignored for
-	// KindChainOfThought. Defaults to 10 when ≤0.
+	// KindChainOfThought. Defaults to 3 when ≤0 — eval scenarios are
+	// scoped and each iteration is a full CLI subprocess round trip.
 	MaxIterations int
 
 	// Registry is the tool registry for ReAct. Required for KindReAct,
@@ -114,9 +115,14 @@ func New(cfg Config) (Module, error) {
 		if cfg.Registry == nil {
 			return nil, fmt.Errorf("solver: Config.Registry is required for ReAct")
 		}
+		// Default 3 iterations: eval scenarios are scoped and each
+		// iteration is a full CLI-adapter subprocess (no prompt-cache
+		// reuse across iterations), so every round adds real latency.
+		// Scenarios that need more can set react.max_iterations in
+		// eval.json.
 		maxIters := cfg.MaxIterations
 		if maxIters <= 0 {
-			maxIters = 10
+			maxIters = 3
 		}
 		react := modules.NewReAct(cfg.Signature, cfg.Registry, maxIters)
 		react.SetLLM(cfg.LLM)
