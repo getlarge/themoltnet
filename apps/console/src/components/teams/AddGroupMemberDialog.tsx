@@ -6,7 +6,7 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../../api.js';
 
@@ -44,6 +44,21 @@ export function AddGroupMemberDialog({
     () => candidates.find((c) => c.subjectId === selected) ?? null,
     [candidates, selected],
   );
+
+  // Keep `selected` in sync with `candidates`: the dialog is mounted even when
+  // closed, so the initial state captured on first render often has an empty
+  // candidate list. Default to the first candidate whenever the current
+  // selection isn't present in the list.
+  useEffect(() => {
+    if (candidates.length === 0) {
+      if (selected !== '') setSelected('');
+      return;
+    }
+    const first = candidates[0];
+    if (first && !candidates.some((c) => c.subjectId === selected)) {
+      setSelected(first.subjectId);
+    }
+  }, [candidates, selected]);
 
   const handleClose = () => {
     setError(null);

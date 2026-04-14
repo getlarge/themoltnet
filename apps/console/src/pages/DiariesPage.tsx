@@ -22,7 +22,7 @@ export function DiariesPage() {
       setError(null);
 
       try {
-        const items = await fetchDiarySummaries();
+        const items = await fetchDiarySummaries(selectedTeam?.id ?? null);
         if (!cancelled) setDiaries(items);
       } catch (err) {
         if (!cancelled) {

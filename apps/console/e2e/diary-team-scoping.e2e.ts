@@ -8,6 +8,7 @@ const KRATOS_PUBLIC_URL =
 const REST_API_URL = process.env['REST_API_URL'] ?? 'http://localhost:8080';
 const MAILSLURPER_API_URL =
   process.env['MAILSLURPER_API_URL'] ?? 'http://localhost:4437';
+const CONSOLE_URL = process.env['CONSOLE_BASE_URL'] ?? 'http://localhost:5174';
 
 interface TestUser {
   email: string;
@@ -29,7 +30,7 @@ async function submitKratosForm(page: Page): Promise<void> {
 }
 
 async function registerViaBrowser(page: Page, user: TestUser): Promise<void> {
-  const returnTo = encodeURIComponent('http://localhost:5174/');
+  const returnTo = encodeURIComponent(`${CONSOLE_URL}/`);
   await page.goto(
     `${KRATOS_PUBLIC_URL}/self-service/registration/browser?return_to=${returnTo}`,
   );
@@ -54,7 +55,7 @@ async function registerViaBrowser(page: Page, user: TestUser): Promise<void> {
 }
 
 async function loginViaBrowser(page: Page, user: TestUser): Promise<void> {
-  const returnTo = encodeURIComponent('http://localhost:5174/');
+  const returnTo = encodeURIComponent(`${CONSOLE_URL}/`);
   await page.goto(
     `${KRATOS_PUBLIC_URL}/self-service/login/browser?return_to=${returnTo}`,
   );
@@ -64,12 +65,17 @@ async function loginViaBrowser(page: Page, user: TestUser): Promise<void> {
     await passwordField.fill(user.password);
     await submitKratosForm(page);
   } else {
+    const sinceIso = new Date().toISOString();
     await submitKratosForm(page);
-    const code = await waitForVerificationCode(user.email);
+    const code = await waitForVerificationCode(user.email, { sinceIso });
     await page.locator('input[name="code"]').fill(code);
     await submitKratosForm(page);
   }
-  await expect(page).toHaveURL(/localhost:5174/);
+  await expect(page).toHaveURL(new RegExp(escapeRegExp(CONSOLE_URL)));
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function getSessionCookie(page: Page): Promise<string> {
@@ -83,8 +89,12 @@ async function getSessionCookie(page: Page): Promise<string> {
 
 async function waitForVerificationCode(
   email: string,
-  maxAttempts = 30,
+  {
+    sinceIso,
+    maxAttempts = 30,
+  }: { sinceIso?: string; maxAttempts?: number } = {},
 ): Promise<string> {
+  const sinceMs = sinceIso ? Date.parse(sinceIso) : 0;
   for (let i = 0; i < maxAttempts; i++) {
     const response = await fetch(`${MAILSLURPER_API_URL}/mail?pageNumber=1`);
     if (!response.ok) throw new Error(`Mailslurper: ${response.status}`);
@@ -104,6 +114,14 @@ async function waitForVerificationCode(
         );
       });
       if (!matchesEmail) continue;
+      // Filter out emails older than the baseline to avoid picking up
+      // verification codes from a previous registration step.
+      if (sinceMs > 0) {
+        const dateSent =
+          typeof item['dateSent'] === 'string' ? item['dateSent'] : null;
+        const itemMs = dateSent ? Date.parse(dateSent) : Number.NaN;
+        if (!Number.isFinite(itemMs) || itemMs < sinceMs) continue;
+      }
       const body = typeof item['body'] === 'string' ? item['body'] : '';
       const match = body.match(/\b\d{6}\b/);
       if (match) return match[0];
@@ -163,7 +181,7 @@ test.describe.serial('Diary team scoping', () => {
       await submitKratosForm(page);
     }
 
-    await page.goto('http://localhost:5174/');
+    await page.goto(`${CONSOLE_URL}/`);
     await expect(page.getByText('Welcome')).toBeVisible();
     cookieHeader = await getSessionCookie(page);
 
@@ -191,7 +209,7 @@ test.describe.serial('Diary team scoping', () => {
 
     // Select alpha — only the alpha diary should be visible
     await teamSelect.selectOption({ label: 'alpha-scoping' });
-    await page.goto('http://localhost:5174/diaries');
+    await page.goto(`${CONSOLE_URL}/diaries`);
     await expect(page.getByText(alphaDiaryName)).toBeVisible();
     await expect(page.getByText(betaDiaryName)).toHaveCount(0);
 
@@ -215,7 +233,7 @@ test.describe.serial('Diary team scoping', () => {
     if (!personalLabel) throw new Error('No personal team option found');
 
     await teamSelect.selectOption({ label: personalLabel });
-    await page.goto('http://localhost:5174/diaries');
+    await page.goto(`${CONSOLE_URL}/diaries`);
 
     // Neither team-scoped diary should leak into the personal scope
     await expect(page.getByText(alphaDiaryName)).toHaveCount(0);

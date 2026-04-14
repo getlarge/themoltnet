@@ -40,6 +40,7 @@ interface DiaryGrantsPanelProps {
 
 export function DiaryGrantsPanel({
   diaryId,
+  diaryName,
   grants,
   resolveSubject,
   canManage,
@@ -115,7 +116,7 @@ export function DiaryGrantsPanel({
       <ConfirmDialog
         open={confirmRevoke !== null}
         title="Revoke grant"
-        message="The subject will lose this access immediately. Implicit access (via team role or group) is not affected."
+        message={`Revoke access to "${diaryName}"? The subject will lose this access immediately. Implicit access (via team role or group) is not affected.`}
         confirmLabel="Revoke"
         destructive
         onConfirm={() => {

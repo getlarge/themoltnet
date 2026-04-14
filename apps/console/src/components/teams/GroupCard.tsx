@@ -1,5 +1,5 @@
 import { Button, Card, Stack, Text } from '@themoltnet/design-system';
-import { Link } from 'wouter';
+import { useLocation } from 'wouter';
 
 interface GroupCardProps {
   id: string;
@@ -16,6 +16,7 @@ export function GroupCard({
   canDelete,
   onDelete,
 }: GroupCardProps) {
+  const [, navigate] = useLocation();
   return (
     <Card variant="outlined" padding="sm">
       <Stack direction="row" gap={3} align="center" justify="space-between">
@@ -28,11 +29,13 @@ export function GroupCard({
           )}
         </Stack>
         <Stack direction="row" gap={2} align="center">
-          <Link href={`/groups/${id}`} style={{ textDecoration: 'none' }}>
-            <Button variant="ghost" size="sm">
-              View →
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/groups/${id}`)}
+          >
+            View →
+          </Button>
           {canDelete && (
             <Button variant="ghost" size="sm" onClick={onDelete}>
               Delete

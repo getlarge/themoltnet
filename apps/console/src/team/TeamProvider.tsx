@@ -83,11 +83,18 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [loadTeams]);
 
   const selectTeam = useCallback((teamId: string) => {
+    // Set the API client header synchronously BEFORE triggering the
+    // re-render. React runs child effects before parent effects, so deferring
+    // this to a useEffect causes any child that fetches on selectedTeam.id
+    // change to hit the API with the previous team header.
+    setTeamId(teamId);
     setSelectedTeamId(teamId);
     localStorage.setItem(STORAGE_KEY, teamId);
   }, []);
 
-  // Sync selected team ID to the API client header
+  // Keep the API client header in sync with programmatic changes to
+  // selectedTeamId that don't go through selectTeam (e.g. initial load
+  // from localStorage, refreshTeams clearing the selection).
   useEffect(() => {
     setTeamId(selectedTeamId);
   }, [selectedTeamId]);

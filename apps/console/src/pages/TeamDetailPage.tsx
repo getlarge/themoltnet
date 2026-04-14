@@ -77,12 +77,17 @@ export function TeamDetailPage({ id }: { id: string }) {
   const callerRole = callerTeam?.role ?? 'member';
   const canManage = callerRole === 'owners' || callerRole === 'managers';
 
+  // Personal teams don't host groups or invites — exclude from allowed tabs so
+  // direct links like `?tab=groups` on a personal team fall back to 'members'.
+  const isPersonal = team?.personal === true;
   const requestedTab = params.get('tab') as Tab | null;
-  const allowedManageTabs: Tab[] = canManage
-    ? ['members', 'invites', 'groups', 'diaries']
-    : ['members', 'groups', 'diaries'];
+  const allowedTabs: Tab[] = isPersonal
+    ? ['members', 'diaries']
+    : canManage
+      ? ['members', 'invites', 'groups', 'diaries']
+      : ['members', 'groups', 'diaries'];
   const activeTab: Tab =
-    requestedTab && allowedManageTabs.includes(requestedTab)
+    requestedTab && allowedTabs.includes(requestedTab)
       ? requestedTab
       : 'members';
 
@@ -228,29 +233,22 @@ export function TeamDetailPage({ id }: { id: string }) {
     [groups, team],
   );
 
-  const grantCandidates = useCallback(
-    (diary: DiaryCatalog, existing: Set<string>): GrantTarget[] => {
-      const targets: GrantTarget[] = [];
-      if (team) {
-        for (const m of team.members) {
-          const key = `${m.subjectType === 'human' ? 'Human' : 'Agent'}:${m.subjectId}`;
-          if (existing.has(key)) continue;
-          targets.push({
-            id: m.subjectId,
-            type: m.subjectType === 'human' ? 'Human' : 'Agent',
-            label: m.displayName,
-          });
-        }
+  const grantCandidates = useMemo((): GrantTarget[] => {
+    const targets: GrantTarget[] = [];
+    if (team) {
+      for (const m of team.members) {
+        targets.push({
+          id: m.subjectId,
+          type: m.subjectType === 'human' ? 'Human' : 'Agent',
+          label: m.displayName,
+        });
       }
-      for (const g of groups) {
-        const key = `Group:${g.id}`;
-        if (existing.has(key)) continue;
-        targets.push({ id: g.id, type: 'Group', label: g.name });
-      }
-      return targets;
-    },
-    [team, groups],
-  );
+    }
+    for (const g of groups) {
+      targets.push({ id: g.id, type: 'Group', label: g.name });
+    }
+    return targets;
+  }, [team, groups]);
 
   if (isLoading) return <Text color="muted">Loading...</Text>;
   if (error || !team) {
@@ -273,9 +271,6 @@ export function TeamDetailPage({ id }: { id: string }) {
     if (member.role === 'owners' && owners.length <= 1) return false;
     return true;
   };
-
-  // Personal teams cannot host groups, invites, or grants management beyond owner
-  const isPersonal = team.personal === true;
 
   return (
     <Stack gap={6}>
@@ -480,7 +475,7 @@ export function TeamDetailPage({ id }: { id: string }) {
           onClose={() => setGrantDialogDiary(null)}
           diaryId={grantDialogDiary.id}
           diaryName={grantDialogDiary.name}
-          candidates={grantCandidates(grantDialogDiary, new Set())}
+          candidates={grantCandidates}
           onGranted={() => setGrantsRefresh((v) => v + 1)}
         />
       )}

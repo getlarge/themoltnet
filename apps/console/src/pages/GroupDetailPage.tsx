@@ -48,37 +48,55 @@ export function GroupDetailPage({ groupId }: { groupId: string }) {
   const canManage = callerRole === 'owners' || callerRole === 'managers';
 
   const loadGroup = useCallback(async () => {
-    setIsLoading(true);
     setError(null);
     try {
       const { data } = await getGroup({
         client: getApiClient(),
         path: { groupId },
       });
-      if (data) {
-        setGroup(data);
-        const { data: teamData } = await getTeam({
-          client: getApiClient(),
-          path: { id: data.teamId },
-        });
-        if (teamData) setTeam(teamData);
-      }
+      if (data) setGroup(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to load group'));
-    } finally {
-      setIsLoading(false);
     }
   }, [groupId]);
 
+  // Team enrichment is best-effort: if it fails, we still render the group
+  // with fallback labels derived from group members.
+  const loadTeam = useCallback(async (teamId: string) => {
+    try {
+      const { data } = await getTeam({
+        client: getApiClient(),
+        path: { id: teamId },
+      });
+      if (data) setTeam(data);
+    } catch {
+      // Swallow — group detail remains usable without team enrichment
+    }
+  }, []);
+
   useEffect(() => {
-    void loadGroup();
+    let cancelled = false;
+    void (async () => {
+      setIsLoading(true);
+      await loadGroup();
+      if (!cancelled) setIsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [loadGroup]);
 
+  // Fetch the team once we know which team the group belongs to. Only re-runs
+  // when the teamId itself changes, not on every group refresh.
+  useEffect(() => {
+    if (group?.teamId) void loadTeam(group.teamId);
+  }, [group?.teamId, loadTeam]);
+
   const enrichedMembers = useMemo(() => {
-    if (!group || !team) return [];
-    const byId = new Map<string, TeamMember>(
-      team.members.map((m) => [m.subjectId, m]),
-    );
+    if (!group) return [];
+    const byId = team
+      ? new Map<string, TeamMember>(team.members.map((m) => [m.subjectId, m]))
+      : new Map<string, TeamMember>();
     return group.members.map((gm) => {
       const teamMember = byId.get(gm.subjectId);
       return {

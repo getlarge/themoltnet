@@ -390,6 +390,7 @@ describe('DiaryService', () => {
 
       const result = await service.listDiaries(OWNER_ID, TEAM_ID);
 
+      expect(reader.listTeamIdsBySubject).toHaveBeenCalledWith(OWNER_ID);
       expect(diaryRepo.listByTeamIds).toHaveBeenCalledWith([TEAM_ID]);
       expect(result).toEqual([MOCK_DIARY]);
     });
@@ -399,6 +400,7 @@ describe('DiaryService', () => {
 
       const result = await service.listDiaries(OWNER_ID, 'team-not-mine');
 
+      expect(reader.listTeamIdsBySubject).toHaveBeenCalledWith(OWNER_ID);
       expect(diaryRepo.listByTeamIds).not.toHaveBeenCalled();
       expect(result).toEqual([]);
     });

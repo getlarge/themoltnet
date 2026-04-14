@@ -1,4 +1,4 @@
-import { createDiaryGrant } from '@moltnet/api-client';
+import { createDiaryGrant, listDiaryGrants } from '@moltnet/api-client';
 import {
   Button,
   Dialog,
@@ -6,7 +6,7 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../../api.js';
 
@@ -38,12 +38,45 @@ export function GrantDiaryAccessDialog({
   const [role, setRole] = useState<'writer' | 'manager'>('writer');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingKeys, setExistingKeys] = useState<Set<string>>(new Set());
+
+  // Load current grants when dialog opens so we can filter out already-granted
+  // targets for the selected role.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data } = await listDiaryGrants({
+          client: getApiClient(),
+          path: { id: diaryId },
+        });
+        if (cancelled) return;
+        const keys = new Set<string>(
+          (data?.grants ?? [])
+            .filter((g) => g.role === role)
+            .map((g) => `${g.subjectNs}:${g.subjectId}`),
+        );
+        setExistingKeys(keys);
+      } catch {
+        if (!cancelled) setExistingKeys(new Set());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, diaryId, role]);
+
+  const filteredCandidates = useMemo(
+    () => candidates.filter((c) => !existingKeys.has(`${c.type}:${c.id}`)),
+    [candidates, existingKeys],
+  );
 
   const targetByKey = useMemo(() => {
     const map = new Map<string, GrantTarget>();
-    candidates.forEach((c) => map.set(`${c.type}:${c.id}`, c));
+    filteredCandidates.forEach((c) => map.set(`${c.type}:${c.id}`, c));
     return map;
-  }, [candidates]);
+  }, [filteredCandidates]);
 
   const selected = targetByKey.get(targetKey) ?? null;
 
@@ -78,11 +111,11 @@ export function GrantDiaryAccessDialog({
   };
 
   const groupedOptions = useMemo(() => {
-    const agents = candidates.filter((c) => c.type === 'Agent');
-    const humans = candidates.filter((c) => c.type === 'Human');
-    const groups = candidates.filter((c) => c.type === 'Group');
+    const agents = filteredCandidates.filter((c) => c.type === 'Agent');
+    const humans = filteredCandidates.filter((c) => c.type === 'Human');
+    const groups = filteredCandidates.filter((c) => c.type === 'Group');
     return { agents, humans, groups };
-  }, [candidates]);
+  }, [filteredCandidates]);
 
   return (
     <Dialog
@@ -96,10 +129,10 @@ export function GrantDiaryAccessDialog({
           Diary: {diaryName}
         </Text>
 
-        {candidates.length === 0 ? (
+        {filteredCandidates.length === 0 ? (
           <Text color="muted">
-            All team members and groups already have access, or the team has no
-            other eligible targets.
+            All team members and groups already have {role} access, or the team
+            has no other eligible targets.
           </Text>
         ) : (
           <>
@@ -120,6 +153,7 @@ export function GrantDiaryAccessDialog({
               <select
                 value={targetKey}
                 onChange={(e) => setTargetKey(e.target.value)}
+                aria-label="Grant target"
                 style={{
                   width: '100%',
                   padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
@@ -192,6 +226,7 @@ export function GrantDiaryAccessDialog({
                 onChange={(e) =>
                   setRole(e.target.value as 'writer' | 'manager')
                 }
+                aria-label="Grant role"
                 style={{
                   width: '100%',
                   padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
