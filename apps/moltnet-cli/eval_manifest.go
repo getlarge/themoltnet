@@ -212,9 +212,12 @@ func validateEvalManifest(m *evalManifest) error {
 				return fmt.Errorf("react.passthrough_env[%d]: must be non-empty", i)
 			}
 		}
-		for key := range m.React.ExtraEnv {
+		for key, val := range m.React.ExtraEnv {
 			if strings.TrimSpace(key) == "" {
 				return fmt.Errorf("react.extra_env: keys must be non-empty")
+			}
+			if strings.TrimSpace(val) == "" {
+				return fmt.Errorf("react.extra_env: values must be non-empty")
 			}
 		}
 	}

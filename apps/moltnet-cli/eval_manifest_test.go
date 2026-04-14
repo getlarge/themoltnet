@@ -625,6 +625,21 @@ func TestValidateEvalManifest_ReactExtraEnvEmptyKey(t *testing.T) {
 	}
 }
 
+func TestValidateEvalManifest_ReactExtraEnvEmptyValue(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{ExtraEnv: map[string]string{"NODE_ENV": ""}},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for empty extra_env value")
+	}
+	if !strings.Contains(err.Error(), "extra_env") {
+		t.Errorf("expected 'extra_env' in error, got: %v", err)
+	}
+}
+
 func TestValidateEvalManifest_ReactValidDefaults(t *testing.T) {
 	m := &evalManifest{
 		Mode:    "vivo",
