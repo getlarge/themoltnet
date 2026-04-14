@@ -16,7 +16,22 @@ func newTeamsCmd() *cobra.Command {
 	teamsCmd.AddCommand(newTeamsCreateCmd())
 	teamsCmd.AddCommand(newTeamsJoinCmd())
 	teamsCmd.AddCommand(newTeamsInviteCmd())
+	teamsCmd.AddCommand(newTeamsDeleteCmd())
 	return teamsCmd
+}
+
+func newTeamsDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "delete <team-id>",
+		Short:   "Delete a team (owner only)",
+		Example: `  moltnet teams delete 6e4d9948-8ec5-4f59-b82a-3acbc4bbc396`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runTeamsDeleteCmd(apiURL, credPath, args[0])
+		},
+	}
 }
 
 func newTeamsListCmd() *cobra.Command {
@@ -47,15 +62,39 @@ func newTeamsGetCmd() *cobra.Command {
 }
 
 func newTeamsMembersCmd() *cobra.Command {
+	membersCmd := &cobra.Command{
+		Use:   "members",
+		Short: "Team member commands",
+	}
+	membersCmd.AddCommand(newTeamsMembersListCmd())
+	membersCmd.AddCommand(newTeamsMembersRemoveCmd())
+	return membersCmd
+}
+
+func newTeamsMembersListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "members <team-id>",
+		Use:     "list <team-id>",
 		Short:   "List members of a team",
-		Example: `  moltnet teams members 6e4d9948-8ec5-4f59-b82a-3acbc4bbc396`,
+		Example: `  moltnet teams members list 6e4d9948-8ec5-4f59-b82a-3acbc4bbc396`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
 			return runTeamsMembersCmd(apiURL, credPath, args[0])
+		},
+	}
+}
+
+func newTeamsMembersRemoveCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "remove <team-id> <subject-id>",
+		Short:   "Remove a member from a team (owner/manager only)",
+		Example: `  moltnet teams members remove 6e4d9948-... 1a2b3c4d-...`,
+		Args:    cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runTeamsMemberRemoveCmd(apiURL, credPath, args[0], args[1])
 		},
 	}
 }
@@ -101,7 +140,22 @@ func newTeamsInviteCmd() *cobra.Command {
 	}
 	inviteCmd.AddCommand(newTeamsInviteCreateCmd())
 	inviteCmd.AddCommand(newTeamsInviteListCmd())
+	inviteCmd.AddCommand(newTeamsInviteDeleteCmd())
 	return inviteCmd
+}
+
+func newTeamsInviteDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "delete <team-id> <invite-id>",
+		Short:   "Delete a team invite code (owner/manager only)",
+		Example: `  moltnet teams invite delete 6e4d9948-... 9f8e7d6c-...`,
+		Args:    cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runTeamsInviteDeleteCmd(apiURL, credPath, args[0], args[1])
+		},
+	}
 }
 
 func newTeamsInviteCreateCmd() *cobra.Command {

@@ -35,6 +35,8 @@ github.com/getlarge/themoltnet/libs/dspy-adapters v0.8.0 h1:gEZxWLWN3wqog1oyZzp0
 github.com/getlarge/themoltnet/libs/dspy-adapters v0.8.0/go.mod h1:LrIk92Gxsga2Ol11P8nV+aa/tM81/kSv7F4MitweIYc=
 github.com/getlarge/themoltnet/libs/moltnet-api-client v1.14.0 h1:x4zjIYrjoRbg6AVkX8j8GernWURI4YsJ77SOzTJtIEM=
 github.com/getlarge/themoltnet/libs/moltnet-api-client v1.14.0/go.mod h1:2NM6Nj6POFphfql+G6u6/4F2i3EIo5Jd95DBX1lhPLM=
+github.com/getlarge/themoltnet/libs/moltnet-api-client v1.15.0 h1:Hvuf7G5G9YjR9T+J13e7hTtPGU+hjW13A0aCpOH5HTo=
+github.com/getlarge/themoltnet/libs/moltnet-api-client v1.15.0/go.mod h1:2NM6Nj6POFphfql+G6u6/4F2i3EIo5Jd95DBX1lhPLM=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-faster/errors v0.7.1 h1:MkJTnDoEdi9pDabt1dpWf7AA8/BaSYZqibYyhZ20AYg=
