@@ -152,8 +152,7 @@ follow-up.`,
 	cmd.Flags().String("judge", "claude", "Judge SDK to use: claude or codex")
 	cmd.Flags().String("judge-model", "", "Model for the judge (default depends on --judge)")
 	cmd.Flags().StringSlice("worktree-exclude", nil, "Glob patterns for worktree-relative paths to remove from the eval worktree before task execution")
-	// TODO(#714): drop "— not yet implemented" once the ReAct tool registry lands.
-	cmd.Flags().String("solver", "", "Solver module override: cot (ChainOfThought) or react (ReAct — not yet implemented). Overrides eval.json solver. Default: cot (via eval.json or built-in fallback).")
+	cmd.Flags().String("solver", "", "Solver module override: cot (ChainOfThought) or react (ReAct). Overrides eval.json solver. Default: vivo mode → react, vitro → cot.")
 	cmd.Flags().String("mode", "", "Isolation mode override: vitro (sparse, task inputs only) or vivo (real repo at fixture-ref). Overrides eval.json mode.")
 	cmd.Flags().String("fixture-ref", "", "Git commit ref for vivo mode. Overrides eval.json fixture.ref.")
 	return cmd

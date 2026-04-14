@@ -81,10 +81,11 @@ func dspyEvalMode(manifest *evalManifest, opts evalRunOpts) string {
 
 // dspyEvalSolver resolves the effective solver kind for a variant run.
 // Precedence: CLI/preset override (opts.solverKind) > eval.json solver >
-// built-in default (solver.KindChainOfThought). Manifest values have
-// already been validated by validateEvalManifest, so ParseKind on a
-// non-empty value should not fail here in normal flows; any error is
-// surfaced to the caller for defensive safety.
+// mode-based default. Vivo mode defaults to ReAct (agent needs tools in
+// its sandbox worktree); vitro and unset default to ChainOfThought.
+// Manifest values have already been validated by validateEvalManifest,
+// so ParseKind on a non-empty value should not fail in normal flows;
+// any error is surfaced to the caller for defensive safety.
 func dspyEvalSolver(manifest *evalManifest, opts evalRunOpts) (solver.Kind, error) {
 	if opts.solverKind != "" {
 		return opts.solverKind, nil
@@ -95,6 +96,9 @@ func dspyEvalSolver(manifest *evalManifest, opts evalRunOpts) (solver.Kind, erro
 			return "", fmt.Errorf("eval.json solver field: %w", err)
 		}
 		return k, nil
+	}
+	if manifest != nil && manifest.Mode == "vivo" {
+		return solver.KindReAct, nil
 	}
 	return solver.KindChainOfThought, nil
 }

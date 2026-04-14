@@ -537,6 +537,130 @@ func TestValidateScenario_InjectValidation(t *testing.T) {
 	}
 }
 
+func TestLoadEvalManifest_WithReact(t *testing.T) {
+	dir := t.TempDir()
+	data := `{"mode":"vivo","fixture":{"ref":"abc1234"},"react":{"max_iterations":15,"bash_timeout_sec":180,"passthrough_env":["GOMODCACHE"],"extra_env":{"NODE_ENV":"test"}}}`
+	if err := os.WriteFile(filepath.Join(dir, "eval.json"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := loadEvalManifest(dir)
+	if err != nil {
+		t.Fatalf("loadEvalManifest: %v", err)
+	}
+	if m.React == nil {
+		t.Fatal("expected non-nil react block")
+	}
+	if m.React.MaxIterations != 15 {
+		t.Errorf("max_iterations: got %d, want 15", m.React.MaxIterations)
+	}
+	if m.React.BashTimeoutSec != 180 {
+		t.Errorf("bash_timeout_sec: got %d, want 180", m.React.BashTimeoutSec)
+	}
+	if len(m.React.PassthroughEnv) != 1 || m.React.PassthroughEnv[0] != "GOMODCACHE" {
+		t.Errorf("passthrough_env: got %v, want [GOMODCACHE]", m.React.PassthroughEnv)
+	}
+	if m.React.ExtraEnv["NODE_ENV"] != "test" {
+		t.Errorf("extra_env: got %v, want map[NODE_ENV:test]", m.React.ExtraEnv)
+	}
+}
+
+func TestValidateEvalManifest_ReactMaxIterationsInvalid(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{MaxIterations: -1},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for negative max_iterations")
+	}
+	if !strings.Contains(err.Error(), "max_iterations") {
+		t.Errorf("expected 'max_iterations' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_ReactBashTimeoutInvalid(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{BashTimeoutSec: -5},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for negative bash_timeout_sec")
+	}
+	if !strings.Contains(err.Error(), "bash_timeout_sec") {
+		t.Errorf("expected 'bash_timeout_sec' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_ReactPassthroughEnvEmpty(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{PassthroughEnv: []string{"GOPATH", ""}},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for empty passthrough_env entry")
+	}
+	if !strings.Contains(err.Error(), "passthrough_env") {
+		t.Errorf("expected 'passthrough_env' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_ReactExtraEnvEmptyKey(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{ExtraEnv: map[string]string{"": "val"}},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for empty extra_env key")
+	}
+	if !strings.Contains(err.Error(), "extra_env") {
+		t.Errorf("expected 'extra_env' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_ReactExtraEnvEmptyValue(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{ExtraEnv: map[string]string{"NODE_ENV": ""}},
+	}
+	err := validateEvalManifest(m)
+	if err == nil {
+		t.Fatal("expected error for empty extra_env value")
+	}
+	if !strings.Contains(err.Error(), `["NODE_ENV"]`) {
+		t.Errorf("expected '[\"NODE_ENV\"]' in error, got: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_ReactValidDefaults(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+		React:   &evalManifestReact{},
+	}
+	if err := validateEvalManifest(m); err != nil {
+		t.Fatalf("empty react block should be valid: %v", err)
+	}
+}
+
+func TestValidateEvalManifest_ReactNilIsValid(t *testing.T) {
+	m := &evalManifest{
+		Mode:    "vivo",
+		Fixture: evalManifestFixture{Ref: "abc123"},
+	}
+	if err := validateEvalManifest(m); err != nil {
+		t.Fatalf("nil react should be valid: %v", err)
+	}
+}
+
 func TestLoadEvalManifest_RejectsTrailingContent(t *testing.T) {
 	dir := t.TempDir()
 	body := []byte(`{"mode":"vitro","fixture":{}}{"mode":"vivo"}`)

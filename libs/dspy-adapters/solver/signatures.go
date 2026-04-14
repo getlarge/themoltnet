@@ -44,9 +44,9 @@ func VitroSignature() core.Signature {
 
 // VivoSignature returns the core.Signature used by vivo-mode eval runs.
 //
-// Not consumed this iteration — vivo will use ReAct which is gated behind
-// ErrReActNotImplemented. Keeping the constructor here so the follow-up PR
-// that lands the tool registry has a stable import path to wire up.
+// Used by vivo-mode eval runs with the ReAct solver (KindReAct). The
+// tool_trace output field captures dspy-go-observed tool calls from the
+// ReAct loop for the runner to extract via TraceProvider.
 func VivoSignature() core.Signature {
 	return core.NewSignature(
 		[]core.InputField{
