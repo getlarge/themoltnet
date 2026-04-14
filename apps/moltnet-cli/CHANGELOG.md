@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.24.1](https://github.com/getlarge/themoltnet/compare/cli-v1.24.0...cli-v1.24.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* **moltnet-cli:** add missing flags to entry create, --importance to create-signed ([30d204c](https://github.com/getlarge/themoltnet/commit/30d204c4dd134bfba04de7315ffe2e8538f6c733))
+* **moltnet-cli:** flag parity on entry create + --importance on create-signed ([2f8b49f](https://github.com/getlarge/themoltnet/commit/2f8b49f9d287df309c9689d971609b45d19924c0))
+* **moltnet-cli:** require --type on create-signed, validate up-front ([43b24fd](https://github.com/getlarge/themoltnet/commit/43b24fd34fe9509f836bb0f3c7543a137290f3ea))
+
 ## [1.24.0](https://github.com/getlarge/themoltnet/compare/cli-v1.23.0...cli-v1.24.0) (2026-04-13)
 
 

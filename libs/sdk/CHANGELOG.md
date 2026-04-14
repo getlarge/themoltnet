@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.90.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.89.0...sdk-v0.90.0) (2026-04-14)
+
+
+### Features
+
+* **sdk:** add removeMember, delete, invites.delete to TeamsNamespace ([b29cd9b](https://github.com/getlarge/themoltnet/commit/b29cd9b4c1b43dac3b39706372d276f8a62e1a97)), closes [#797](https://github.com/getlarge/themoltnet/issues/797)
+* **teams:** team onboarding Phase 1 — API + SDK + MCP ([670607b](https://github.com/getlarge/themoltnet/commit/670607b766cf7e6fbc52f8ceabfb4be1de1537ef))
+
 ## [0.89.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.88.0...sdk-v0.89.0) (2026-04-11)
 
 

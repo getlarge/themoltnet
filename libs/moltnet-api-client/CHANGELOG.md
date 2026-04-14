@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.15.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.14.0...moltnet-api-client-v1.15.0) (2026-04-14)
+
+
+### Features
+
+* **console:** team & group management UI — Phase 1 ([#659](https://github.com/getlarge/themoltnet/issues/659)) ([ac923b7](https://github.com/getlarge/themoltnet/commit/ac923b7be47695db32e625b00f3ab15e05a5d0c4))
+* **teams:** team onboarding Phase 1 — API + SDK + MCP ([670607b](https://github.com/getlarge/themoltnet/commit/670607b766cf7e6fbc52f8ceabfb4be1de1537ef))
+
+
+### Bug Fixes
+
+* **models,rest-api:** add id to TeamInviteResponseSchema + fix MCP e2e tests ([86a3d43](https://github.com/getlarge/themoltnet/commit/86a3d43d6372e572062072ef78aea04a352200a7))
+
+
+### Codegen
+
+* regenerate API clients after rebase on origin/main ([e26c60f](https://github.com/getlarge/themoltnet/commit/e26c60f24ee14bece5051529e675c070a9fe1a13))
+* regenerate API clients for enriched team schemas ([b923337](https://github.com/getlarge/themoltnet/commit/b923337b02db6176b3dabf020c648fc9c670f79d))
+
 ## [1.14.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.13.0...moltnet-api-client-v1.14.0) (2026-04-12)
 
 
