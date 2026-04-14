@@ -55,12 +55,17 @@ describe('Identity tools', () => {
 
       expect(getWhoami).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('authenticated', true);
-      expect(parsed.identity).toHaveProperty('identity_id', 'id-123');
-      expect(parsed.identity).toHaveProperty('client_id', 'client-abc');
-      expect(parsed.identity).toHaveProperty('public_key', 'pk-abc');
-      expect(parsed.identity).toHaveProperty('fingerprint', 'fp:abc123');
+      expect(parsed).toMatchObject({
+        authenticated: true,
+        identity: {
+          identityId: 'id-123',
+          clientId: 'client-abc',
+          publicKey: 'pk-abc',
+          fingerprint: 'fp:abc123',
+        },
+      });
       expect(parsed).toHaveProperty('profile');
+      expect(result.structuredContent).toEqual(parsed);
     });
 
     it('returns unauthenticated when no auth', async () => {
@@ -172,8 +177,11 @@ describe('Identity tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed.agent).toHaveProperty('public_key', 'pk-abc');
-      expect(parsed.agent).toHaveProperty('fingerprint', 'fp:abc123');
+      expect(parsed).toEqual({
+        publicKey: 'pk-abc',
+        fingerprint: 'fp:abc123',
+      });
+      expect(result.structuredContent).toEqual(parsed);
     });
 
     it('returns error when agent not found', async () => {
@@ -231,7 +239,7 @@ describe('Identity tools', () => {
 
       expect(result.isError).toBeUndefined();
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed.agent).toHaveProperty('public_key', 'pk-abc');
+      expect(parsed).toMatchObject({ publicKey: 'pk-abc' });
     });
   });
 });

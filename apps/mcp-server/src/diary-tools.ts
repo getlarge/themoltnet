@@ -29,6 +29,20 @@ import type {
   DiariesCreateInput,
   DiariesGetInput,
   DiariesListInput,
+} from './schemas/diary-schemas.js';
+import {
+  DiariesCompileOutputSchema,
+  DiariesCompileSchema,
+  DiariesConsolidateOutputSchema,
+  DiariesConsolidateSchema,
+  DiariesCreateOutputSchema,
+  DiariesCreateSchema,
+  DiariesGetOutputSchema,
+  DiariesGetSchema,
+  DiariesListOutputSchema,
+  DiariesListSchema,
+} from './schemas/diary-schemas.js';
+import type {
   DiaryTagsInput,
   EntryCreateInput,
   EntryDeleteInput,
@@ -38,29 +52,33 @@ import type {
   EntryUpdateInput,
   EntryVerifyInput,
   ReflectInput,
-} from './schemas.js';
+} from './schemas/entry-schemas.js';
 import {
-  DiariesCompileSchema,
-  DiariesConsolidateSchema,
-  DiariesCreateSchema,
-  DiariesGetSchema,
-  DiariesListSchema,
+  DiaryTagsOutputSchema,
   DiaryTagsSchema,
+  EntryCreateOutputSchema,
   EntryCreateSchema,
+  EntryDeleteOutputSchema,
   EntryDeleteSchema,
+  EntryGetOutputSchema,
   EntryGetSchema,
+  EntryListOutputSchema,
   EntryListSchema,
+  EntrySearchOutputSchema,
   EntrySearchSchema,
+  EntryUpdateOutputSchema,
   EntryUpdateSchema,
+  EntryVerifyOutputSchema,
   EntryVerifySchema,
+  ReflectOutputSchema,
   ReflectSchema,
-} from './schemas.js';
+} from './schemas/entry-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
@@ -88,16 +106,12 @@ export async function handleEntryCreate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_create', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to create entry'));
   }
 
-  return textResult({
-    success: true,
-    entry: data,
-    message: 'Memory saved',
-  });
+  return structuredResult(data);
 }
 
 export async function handleEntryGet(
@@ -118,12 +132,12 @@ export async function handleEntryGet(
       : undefined,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Entry not found'));
   }
 
-  return textResult({ entry: data });
+  return structuredResult(data);
 }
 
 export async function handleEntryList(
@@ -147,12 +161,12 @@ export async function handleEntryList(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list entries'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleEntrySearch(
@@ -181,12 +195,12 @@ export async function handleEntrySearch(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_search', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Search failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleEntryUpdate(
@@ -210,12 +224,12 @@ export async function handleEntryUpdate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_update', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to update entry'));
   }
 
-  return textResult({ success: true, entry: data });
+  return structuredResult(data);
 }
 
 export async function handleEntryDelete(
@@ -227,18 +241,18 @@ export async function handleEntryDelete(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { error } = await deleteDiaryEntryById({
+  const { data, error } = await deleteDiaryEntryById({
     client: deps.client,
     auth: () => token,
     path: { entryId: args.entry_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_delete', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to delete entry'));
   }
 
-  return textResult({ success: true, message: 'Entry deleted' });
+  return structuredResult(data);
 }
 
 export async function handleReflect(
@@ -261,12 +275,12 @@ export async function handleReflect(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'reflect', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Reflect failed'));
   }
 
-  return textResult({ digest: data });
+  return structuredResult(data);
 }
 
 export async function handleEntryVerify(
@@ -284,12 +298,12 @@ export async function handleEntryVerify(
     path: { entryId: args.entry_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_verify', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Verification failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleDiariesList(
@@ -306,12 +320,12 @@ export async function handleDiariesList(
     auth: () => token,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list diaries'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleDiariesCreate(
@@ -330,12 +344,12 @@ export async function handleDiariesCreate(
     headers: { 'x-moltnet-team-id': args.team_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_create', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to create diary'));
   }
 
-  return textResult({ success: true, diary: data });
+  return structuredResult(data);
 }
 
 export async function handleDiariesGet(
@@ -353,12 +367,12 @@ export async function handleDiariesGet(
     path: { id: args.diary_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Diary not found'));
   }
 
-  return textResult({ diary: data });
+  return structuredResult(data);
 }
 
 export async function handleDiariesConsolidate(
@@ -384,7 +398,7 @@ export async function handleDiariesConsolidate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error(
       { tool: 'diaries_consolidate', err: error },
       'tool.error',
@@ -392,7 +406,7 @@ export async function handleDiariesConsolidate(
     return errorResult(extractApiErrorMessage(error, 'Consolidation failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleDiariesCompile(
@@ -435,12 +449,12 @@ export async function handleDiariesCompile(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_compile', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Compile failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -467,14 +481,14 @@ export async function handleDiaryTags(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diary_tags', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to list diary tags'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export function registerDiaryTools(
@@ -487,6 +501,7 @@ export function registerDiaryTools(
       description:
         'List your diaries. Call this first to discover your diary IDs.',
       inputSchema: DiariesListSchema,
+      outputSchema: DiariesListOutputSchema,
     },
     async (args, ctx) => handleDiariesList(args, deps, ctx),
   );
@@ -497,6 +512,7 @@ export function registerDiaryTools(
       description:
         'Cluster semantically similar entries and return consolidation suggestions.',
       inputSchema: DiariesConsolidateSchema,
+      outputSchema: DiariesConsolidateOutputSchema,
     },
     async (args, ctx) => handleDiariesConsolidate(args, deps, ctx),
   );
@@ -507,6 +523,7 @@ export function registerDiaryTools(
       description:
         'Compile a token-budget-fitted context pack from diary entries.',
       inputSchema: DiariesCompileSchema,
+      outputSchema: DiariesCompileOutputSchema,
     },
     async (args, ctx) => handleDiariesCompile(args, deps, ctx),
   );
@@ -517,6 +534,7 @@ export function registerDiaryTools(
       description:
         'Create a new diary. Returns the diary ID needed for entry tools.',
       inputSchema: DiariesCreateSchema,
+      outputSchema: DiariesCreateOutputSchema,
     },
     async (args, ctx) => handleDiariesCreate(args, deps, ctx),
   );
@@ -526,6 +544,7 @@ export function registerDiaryTools(
       name: 'diaries_get',
       description: 'Get diary metadata by ID.',
       inputSchema: DiariesGetSchema,
+      outputSchema: DiariesGetOutputSchema,
     },
     async (args, ctx) => handleDiariesGet(args, deps, ctx),
   );
@@ -537,6 +556,7 @@ export function registerDiaryTools(
         'List distinct tags used in a diary with counts. ' +
         'Use this to discover available tags before compiling context packs with include_tags/exclude_tags.',
       inputSchema: DiaryTagsSchema,
+      outputSchema: DiaryTagsOutputSchema,
     },
     async (args, ctx) => handleDiaryTags(args, deps, ctx),
   );
@@ -551,6 +571,7 @@ export function registerDiaryTools(
         ' sign with crypto_submit_signature, then pass signing_request_id here.' +
         ' The server recomputes the CID to verify it matches.',
       inputSchema: EntryCreateSchema,
+      outputSchema: EntryCreateOutputSchema,
     },
     async (args, ctx) => handleEntryCreate(args, deps, ctx),
   );
@@ -563,6 +584,7 @@ export function registerDiaryTools(
         ' inline relation graph (supersedes, elaborates, etc.) up to `depth`' +
         ' hops. Relations include depth and parentRelationId for tree reconstruction.',
       inputSchema: EntryGetSchema,
+      outputSchema: EntryGetOutputSchema,
     },
     async (args, ctx) => handleEntryGet(args, deps, ctx),
   );
@@ -572,6 +594,7 @@ export function registerDiaryTools(
       name: 'entries_list',
       description: 'List your recent diary entries.',
       inputSchema: EntryListSchema,
+      outputSchema: EntryListOutputSchema,
     },
     async (args, ctx) => handleEntryList(args, deps, ctx),
   );
@@ -585,6 +608,7 @@ export function registerDiaryTools(
         '`deploy production` = OR match; `"npm audit"` = phrase match; ' +
         '`deploy -staging` = exclude term; `"security vulnerability" +audit` = phrase + required term.',
       inputSchema: EntrySearchSchema,
+      outputSchema: EntrySearchOutputSchema,
     },
     async (args, ctx) => handleEntrySearch(args, deps, ctx),
   );
@@ -594,6 +618,7 @@ export function registerDiaryTools(
       name: 'entries_update',
       description: 'Update a diary entry (tags, content, title).',
       inputSchema: EntryUpdateSchema,
+      outputSchema: EntryUpdateOutputSchema,
     },
     async (args, ctx) => handleEntryUpdate(args, deps, ctx),
   );
@@ -603,6 +628,7 @@ export function registerDiaryTools(
       name: 'entries_delete',
       description: 'Delete a diary entry.',
       inputSchema: EntryDeleteSchema,
+      outputSchema: EntryDeleteOutputSchema,
     },
     async (args, ctx) => handleEntryDelete(args, deps, ctx),
   );
@@ -615,6 +641,7 @@ export function registerDiaryTools(
         ' Checks that the content hash matches and the Ed25519 signature is valid.' +
         ' Returns signed status, hash match, signature validity, and agent fingerprint.',
       inputSchema: EntryVerifySchema,
+      outputSchema: EntryVerifyOutputSchema,
     },
     async (args, ctx) => handleEntryVerify(args, deps, ctx),
   );
@@ -625,6 +652,7 @@ export function registerDiaryTools(
       description:
         'Get a curated summary of your memories. Use this after context compression to rebuild your sense of self.',
       inputSchema: ReflectSchema,
+      outputSchema: ReflectOutputSchema,
     },
     async (args, ctx) => handleReflect(args, deps, ctx),
   );

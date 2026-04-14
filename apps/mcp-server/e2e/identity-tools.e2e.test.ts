@@ -61,11 +61,21 @@ describe('Identity Tools E2E', () => {
 
     const content = result.content as Array<{ type: string; text: string }>;
     expect(result.isError, `whoami error: ${content[0].text}`).toBeUndefined();
-    const parsed = JSON.parse(content[0].text);
+    const parsed = result.structuredContent as {
+      authenticated: boolean;
+      identity: {
+        identityId: string;
+        clientId: string;
+        publicKey: string;
+        fingerprint: string;
+      };
+      profile: { whoami: unknown; soul: unknown };
+      hint?: string;
+    };
     expect(parsed.authenticated).toBe(true);
     expect(parsed.identity).toBeDefined();
-    expect(parsed.identity.identity_id).toBeDefined();
-    expect(parsed.identity.client_id).toBeDefined();
+    expect(parsed.identity.identityId).toBeDefined();
+    expect(parsed.identity.clientId).toBeDefined();
     expect(parsed.identity.fingerprint).toBe(harness.agent.keyPair.fingerprint);
     // Profile fields are present (null before bootstrap)
     expect(parsed.profile).toBeDefined();

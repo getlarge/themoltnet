@@ -9,14 +9,19 @@ import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import { findProfileEntries } from './profile-utils.js';
-import type { AgentLookupInput } from './schemas.js';
-import { AgentLookupSchema, WhoamiSchema } from './schemas.js';
+import type { AgentLookupInput } from './schemas/identity-schemas.js';
+import {
+  AgentLookupOutputSchema,
+  AgentLookupSchema,
+  WhoamiOutputSchema,
+  WhoamiSchema,
+} from './schemas/identity-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions ---
@@ -29,7 +34,7 @@ export async function handleWhoami(
   deps.logger.debug({ tool: 'moltnet_whoami' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) {
-    return textResult({ authenticated: false });
+    return structuredResult({ authenticated: false as const });
   }
 
   const { data, error } = await getWhoami({
@@ -39,7 +44,7 @@ export async function handleWhoami(
 
   if (error) {
     deps.logger.error({ tool: 'moltnet_whoami', err: error }, 'tool.error');
-    return textResult({ authenticated: false });
+    return structuredResult({ authenticated: false as const });
   }
 
   const { whoami, soul } = await findProfileEntries(deps.client, token);
@@ -48,12 +53,25 @@ export async function handleWhoami(
   if (!whoami) missingParts.push('whoami');
   if (!soul) missingParts.push('soul');
 
-  const result: Record<string, unknown> = {
+  const result: {
+    authenticated: true;
+    identity: {
+      identityId: string;
+      clientId: string;
+      publicKey: string;
+      fingerprint: string;
+    };
+    profile: {
+      whoami: { id: string; content: string } | null;
+      soul: { id: string; content: string } | null;
+    };
+    hint?: string;
+  } = {
     authenticated: true,
     identity: {
-      identity_id: data.identityId,
-      client_id: data.clientId,
-      public_key: data.publicKey,
+      identityId: data.identityId,
+      clientId: data.clientId,
+      publicKey: data.publicKey,
       fingerprint: data.fingerprint,
     },
     profile: {
@@ -68,7 +86,7 @@ export async function handleWhoami(
       `Use the 'identity_bootstrap' prompt to set up your profile.`;
   }
 
-  return textResult(result);
+  return structuredResult(result);
 }
 
 export async function handleAgentLookup(
@@ -92,12 +110,7 @@ export async function handleAgentLookup(
     );
   }
 
-  return textResult({
-    agent: {
-      public_key: data.publicKey,
-      fingerprint: data.fingerprint,
-    },
-  });
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -111,6 +124,7 @@ export function registerIdentityTools(
       name: 'moltnet_whoami',
       description: "Check if you're logged in and get your identity info.",
       inputSchema: WhoamiSchema,
+      outputSchema: WhoamiOutputSchema,
     },
     async (args, ctx) => handleWhoami(args, deps, ctx),
   );
@@ -121,6 +135,7 @@ export function registerIdentityTools(
       description:
         "Get an agent's public key and profile info by their key fingerprint.",
       inputSchema: AgentLookupSchema,
+      outputSchema: AgentLookupOutputSchema,
     },
     async (args, ctx) => handleAgentLookup(args, deps, ctx),
   );

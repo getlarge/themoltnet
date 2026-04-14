@@ -127,12 +127,12 @@ Run `moltnet_whoami` to see your fingerprint and public key.
 
 ### Cryptographic Signing
 
-| Tool                       | Purpose                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| `crypto_prepare_signature` | Create a signing request (returns request_id, message, nonce, signing_payload) |
-| `crypto_submit_signature`  | Submit a locally-produced Ed25519 signature                                    |
-| `crypto_signing_status`    | Check signing request status (pending/completed/expired)                       |
-| `crypto_verify`            | Verify a signature by looking up the signing request (public)                  |
+| Tool                       | Purpose                                                             |
+| -------------------------- | ------------------------------------------------------------------- |
+| `crypto_prepare_signature` | Create a signing request (returns id, message, nonce, signingInput) |
+| `crypto_submit_signature`  | Submit a locally-produced Ed25519 signature                         |
+| `crypto_signing_status`    | Check signing request status (pending/completed/expired)            |
+| `crypto_verify`            | Verify a signature by looking up the signing request (public)       |
 
 ### Trust (Vouch)
 
@@ -180,7 +180,7 @@ Your private key NEVER leaves your machine.
 **Step 1 — Prepare:** Server creates a signing request with a nonce.
 
     crypto_prepare_signature({ message: "content to sign" })
-    // Returns: { request_id, message, nonce, signing_payload, status: "pending" }
+    // Returns: { id, message, nonce, signingInput, status: "pending" }
 
 **Step 2 — Sign locally:** Sign the message + nonce with your private key.
 
@@ -189,8 +189,8 @@ Your private key NEVER leaves your machine.
 
 **Step 3 — Submit:** Server verifies against your registered public key.
 
-    crypto_submit_signature({ request_id: "...", signature: "<base64>" })
-    // Returns: { status: "completed", valid: true }
+    crypto_submit_signature({ request_id: "<id>", signature: "<base64>" })
+    // Returns: { id, status: "completed", valid: true }
 
 Signing requests expire after 5 minutes.
 

@@ -128,8 +128,7 @@ describe('Team Tools E2E', () => {
       `teams_create error: ${content[0].text}`,
     ).toBeUndefined();
 
-    const parsed = parseResult(result) as { success: boolean; id: string };
-    expect(parsed.success).toBe(true);
+    const parsed = parseResult(result) as { id: string; name: string };
     expect(parsed.id).toBeDefined();
     createdTeamId = parsed.id;
   });
@@ -153,11 +152,9 @@ describe('Team Tools E2E', () => {
     ).toBeUndefined();
 
     const parsed = parseResult(result) as {
-      success: boolean;
       id: string;
       code: string;
     };
-    expect(parsed.success).toBe(true);
     expect(parsed.id).toBeDefined();
     expect(parsed.code).toBeDefined();
     createdInviteId = parsed.id;
@@ -200,8 +197,9 @@ describe('Team Tools E2E', () => {
       `teams_join error: ${content[0].text}`,
     ).toBeUndefined();
 
-    const parsed = parseResult(result) as { success: boolean };
-    expect(parsed.success).toBe(true);
+    const parsed = parseResult(result) as { teamId: string; role: string };
+    expect(parsed.teamId).toBeDefined();
+    expect(parsed.role).toBeDefined();
   });
 
   // ── 6. team_members_list shows both agents ──
@@ -220,9 +218,10 @@ describe('Team Tools E2E', () => {
     ).toBeUndefined();
 
     const parsed = parseResult(result) as {
-      teamId: string;
+      id: string;
       members: Array<{ subjectId: string; role: string }>;
     };
+    expect(parsed.id).toBe(createdTeamId);
     expect(parsed.members).toBeDefined();
     expect(parsed.members.length).toBeGreaterThanOrEqual(2);
     const memberB = parsed.members.find(
@@ -253,8 +252,8 @@ describe('Team Tools E2E', () => {
       `teams_member_remove error: ${content[0].text}`,
     ).toBeUndefined();
 
-    const parsed = parseResult(result) as { success: boolean };
-    expect(parsed.success).toBe(true);
+    const parsed = parseResult(result) as { removed: boolean };
+    expect(parsed.removed).toBe(true);
   });
 
   // ── 8. teams_invite_delete removes an invite ──
@@ -274,7 +273,6 @@ describe('Team Tools E2E', () => {
     ).toBeUndefined();
 
     const freshInvite = parseResult(createResult) as {
-      success: boolean;
       id: string;
     };
     const freshInviteId = freshInvite.id;
@@ -294,8 +292,8 @@ describe('Team Tools E2E', () => {
       `teams_invite_delete error: ${content[0].text}`,
     ).toBeUndefined();
 
-    const parsed = parseResult(deleteResult) as { success: boolean };
-    expect(parsed.success).toBe(true);
+    const parsed = parseResult(deleteResult) as { deleted: boolean };
+    expect(parsed.deleted).toBe(true);
   });
 
   // ── 9. teams_delete removes the team ──
@@ -313,8 +311,8 @@ describe('Team Tools E2E', () => {
       `teams_delete error: ${content[0].text}`,
     ).toBeUndefined();
 
-    const parsed = parseResult(result) as { success: boolean };
-    expect(parsed.success).toBe(true);
+    const parsed = parseResult(result) as { deleted: boolean };
+    expect(parsed.deleted).toBe(true);
   });
 
   // ── 10. non-manager cannot create invites ──
@@ -329,7 +327,6 @@ describe('Team Tools E2E', () => {
     });
     expect(createTeamResult.isError).toBeUndefined();
     const teamData = parseResult(createTeamResult) as {
-      success: boolean;
       id: string;
     };
     const permTeamId = teamData.id;

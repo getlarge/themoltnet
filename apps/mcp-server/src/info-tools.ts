@@ -8,9 +8,16 @@
 import { getNetworkInfo } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
-import { MoltnetInfoSchema } from './schemas.js';
+import {
+  MoltnetInfoOutputSchema,
+  MoltnetInfoSchema,
+} from './schemas/info-schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
-import { errorResult, extractApiErrorMessage, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  structuredResult,
+} from './utils.js';
 
 // --- Handler function (testable without MCP transport) ---
 
@@ -22,14 +29,14 @@ export async function handleMoltnetInfo(
     client: deps.client,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'moltnet_info', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to fetch network info'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -46,6 +53,7 @@ export function registerInfoTools(
         'available endpoints, capabilities, and quickstart steps. ' +
         'No authentication required.',
       inputSchema: MoltnetInfoSchema,
+      outputSchema: MoltnetInfoOutputSchema,
     },
     async () => handleMoltnetInfo(deps),
   );

@@ -28,24 +28,33 @@ import type {
   TeamsJoinInput,
   TeamsListInput,
   TeamsMemberRemoveInput,
-} from './schemas.js';
+} from './schemas/team-schemas.js';
 import {
+  TeamMembersListOutputSchema,
   TeamMembersListSchema,
+  TeamsCreateOutputSchema,
   TeamsCreateSchema,
+  TeamsDeleteOutputSchema,
   TeamsDeleteSchema,
+  TeamsInviteCreateOutputSchema,
   TeamsInviteCreateSchema,
+  TeamsInviteDeleteOutputSchema,
   TeamsInviteDeleteSchema,
+  TeamsInviteListOutputSchema,
   TeamsInviteListSchema,
+  TeamsJoinOutputSchema,
   TeamsJoinSchema,
+  TeamsListOutputSchema,
   TeamsListSchema,
+  TeamsMemberRemoveOutputSchema,
   TeamsMemberRemoveSchema,
-} from './schemas.js';
+} from './schemas/team-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions ---
@@ -64,12 +73,12 @@ export async function handleTeamsList(
     auth: () => token,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'teams_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list teams'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleTeamMembersList(
@@ -87,18 +96,14 @@ export async function handleTeamMembersList(
     path: { id: args.team_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'team_members_list', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to get team details'),
     );
   }
 
-  return textResult({
-    teamId: data?.id,
-    name: data?.name,
-    members: data?.members,
-  });
+  return structuredResult(data);
 }
 
 export async function handleTeamsCreate(
@@ -121,7 +126,7 @@ export async function handleTeamsCreate(
     return errorResult(extractApiErrorMessage(error, 'Failed to create team'));
   }
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 export async function handleTeamsJoin(
@@ -144,7 +149,7 @@ export async function handleTeamsJoin(
     return errorResult(extractApiErrorMessage(error, 'Failed to join team'));
   }
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 export async function handleTeamsDelete(
@@ -167,7 +172,7 @@ export async function handleTeamsDelete(
     return errorResult(extractApiErrorMessage(error, 'Failed to delete team'));
   }
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 export async function handleTeamsInviteCreate(
@@ -200,7 +205,7 @@ export async function handleTeamsInviteCreate(
     );
   }
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 export async function handleTeamsInviteList(
@@ -218,14 +223,14 @@ export async function handleTeamsInviteList(
     path: { id: args.team_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'teams_invite_list', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to list team invites'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleTeamsInviteDelete(
@@ -253,7 +258,7 @@ export async function handleTeamsInviteDelete(
     );
   }
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 export async function handleTeamsMemberRemove(
@@ -281,7 +286,7 @@ export async function handleTeamsMemberRemove(
     );
   }
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -296,6 +301,7 @@ export function registerTeamTools(
       description:
         'List your teams and your role in each. Useful for discovering team IDs before granting diary access.',
       inputSchema: TeamsListSchema,
+      outputSchema: TeamsListOutputSchema,
     },
     async (args, ctx) => handleTeamsList(args, deps, ctx),
   );
@@ -306,6 +312,7 @@ export function registerTeamTools(
       description:
         'List all members of a team with their roles. Useful for discovering subject IDs to grant diary access to.',
       inputSchema: TeamMembersListSchema,
+      outputSchema: TeamMembersListOutputSchema,
     },
     async (args, ctx) => handleTeamMembersList(args, deps, ctx),
   );
@@ -315,6 +322,7 @@ export function registerTeamTools(
       name: 'teams_create',
       description: 'Create a new team. You become the owner.',
       inputSchema: TeamsCreateSchema,
+      outputSchema: TeamsCreateOutputSchema,
     },
     async (args, ctx) => handleTeamsCreate(args, deps, ctx),
   );
@@ -325,6 +333,7 @@ export function registerTeamTools(
       description:
         'Join a team using an invite code. Returns the team ID and your assigned role.',
       inputSchema: TeamsJoinSchema,
+      outputSchema: TeamsJoinOutputSchema,
     },
     async (args, ctx) => handleTeamsJoin(args, deps, ctx),
   );
@@ -335,6 +344,7 @@ export function registerTeamTools(
       description:
         'Delete a team. Only team owners can delete. All invites and memberships are removed.',
       inputSchema: TeamsDeleteSchema,
+      outputSchema: TeamsDeleteOutputSchema,
     },
     async (args, ctx) => handleTeamsDelete(args, deps, ctx),
   );
@@ -345,6 +355,7 @@ export function registerTeamTools(
       description:
         'Create an invite code for a team. Requires manager or owner role.',
       inputSchema: TeamsInviteCreateSchema,
+      outputSchema: TeamsInviteCreateOutputSchema,
     },
     async (args, ctx) => handleTeamsInviteCreate(args, deps, ctx),
   );
@@ -355,6 +366,7 @@ export function registerTeamTools(
       description:
         'List all invite codes for a team. Requires manager or owner role.',
       inputSchema: TeamsInviteListSchema,
+      outputSchema: TeamsInviteListOutputSchema,
     },
     async (args, ctx) => handleTeamsInviteList(args, deps, ctx),
   );
@@ -364,6 +376,7 @@ export function registerTeamTools(
       name: 'teams_invite_delete',
       description: 'Delete an invite code. Requires manager or owner role.',
       inputSchema: TeamsInviteDeleteSchema,
+      outputSchema: TeamsInviteDeleteOutputSchema,
     },
     async (args, ctx) => handleTeamsInviteDelete(args, deps, ctx),
   );
@@ -374,6 +387,7 @@ export function registerTeamTools(
       description:
         'Remove a member from a team. Requires manager or owner role. Cannot remove the last owner.',
       inputSchema: TeamsMemberRemoveSchema,
+      outputSchema: TeamsMemberRemoveOutputSchema,
     },
     async (args, ctx) => handleTeamsMemberRemove(args, deps, ctx),
   );

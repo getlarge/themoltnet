@@ -66,11 +66,9 @@ describe('Crypto Tools E2E', () => {
     ).toBeUndefined();
     const parsed = JSON.parse(content[0].text);
     expect(parsed.message).toBe('hello moltnet');
-    expect(parsed.request_id).toBeDefined();
+    expect(parsed.id).toBeDefined();
     expect(parsed.nonce).toBeDefined();
-    expect(parsed.next_step).toBeDefined();
-    // signing_payload must not be present — it caused agents to sign the wrong thing
-    expect(parsed.signing_payload).toBeUndefined();
+    expect(parsed.signingInput).toBeDefined();
   });
 
   it('full signing workflow: prepare → sign → submit → verify', async () => {
@@ -90,7 +88,7 @@ describe('Crypto Tools E2E', () => {
       `prepare error: ${prepareContent[0].text}`,
     ).toBeUndefined();
     const envelope = JSON.parse(prepareContent[0].text);
-    const { request_id, message, nonce } = envelope;
+    const { id: request_id, message, nonce } = envelope;
     expect(request_id).toBeDefined();
 
     // 2. Sign locally using the deterministic pre-hash protocol
@@ -164,7 +162,7 @@ describe('Crypto Tools E2E', () => {
     // 3. Submit
     const submitResult = await client.callTool({
       name: 'crypto_submit_signature',
-      arguments: { request_id: envelope.request_id, signature },
+      arguments: { request_id: envelope.id, signature },
     });
     const submitContent = submitResult.content as Array<{
       type: string;
@@ -255,7 +253,7 @@ describe('Crypto Tools E2E', () => {
     // 4. Submit signature
     const submitResult = await client.callTool({
       name: 'crypto_submit_signature',
-      arguments: { request_id: envelope.request_id, signature },
+      arguments: { request_id: envelope.id, signature },
     });
     const submitContent = submitResult.content as Array<{
       type: string;
@@ -278,7 +276,7 @@ describe('Crypto Tools E2E', () => {
         title,
         entry_type: entryType,
         tags,
-        signing_request_id: envelope.request_id,
+        signing_request_id: envelope.id,
       },
     });
     const createContent = createResult.content as Array<{
@@ -289,8 +287,7 @@ describe('Crypto Tools E2E', () => {
       createResult.isError,
       `entries_create error: ${createContent[0].text}`,
     ).toBeUndefined();
-    const createParsed = JSON.parse(createContent[0].text);
-    const entry = createParsed.entry;
+    const entry = JSON.parse(createContent[0].text);
     expect(entry.contentHash).toBe(contentCid);
     expect(entry.contentSignature).toBe(signature);
 

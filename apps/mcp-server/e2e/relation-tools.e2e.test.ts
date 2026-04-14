@@ -67,7 +67,7 @@ describe('Relation Tools E2E', () => {
       createA.isError,
       `entries_create A error: ${contentA[0].text}`,
     ).toBeUndefined();
-    const entryA = JSON.parse(contentA[0].text).entry as { id: string };
+    const entryA = JSON.parse(contentA[0].text) as { id: string };
 
     const createB = await client.callTool({
       name: 'entries_create',
@@ -81,7 +81,7 @@ describe('Relation Tools E2E', () => {
       createB.isError,
       `entries_create B error: ${contentB[0].text}`,
     ).toBeUndefined();
-    const entryB = JSON.parse(contentB[0].text).entry as { id: string };
+    const entryB = JSON.parse(contentB[0].text) as { id: string };
 
     // Create relation
     const createRelResult = await client.callTool({
@@ -100,21 +100,21 @@ describe('Relation Tools E2E', () => {
       createRelResult.isError,
       `relations_create error: ${createRelContent[0].text}`,
     ).toBeUndefined();
-    const createRelParsed = JSON.parse(createRelContent[0].text);
-    expect(createRelParsed.success).toBe(true);
-    expect(createRelParsed.relation).toBeDefined();
-    const relation = createRelParsed.relation as {
+    const relation = createRelResult.structuredContent as {
       id: string;
       sourceId: string;
       targetId: string;
       relation: string;
       status: string;
     };
+    expect(relation).toBeDefined();
     expect(relation.id).toBeDefined();
     expect(relation.sourceId).toBe(entryA.id);
     expect(relation.targetId).toBe(entryB.id);
     expect(relation.relation).toBe('elaborates');
     expect(relation.status).toBe('proposed');
+    // text mirror must also parse to the same shape for BC clients
+    expect(JSON.parse(createRelContent[0].text)).toEqual(relation);
 
     // List relations
     const listRelResult = await client.callTool({
@@ -129,11 +129,11 @@ describe('Relation Tools E2E', () => {
       listRelResult.isError,
       `relations_list error: ${listRelContent[0].text}`,
     ).toBeUndefined();
-    const listRelParsed = JSON.parse(listRelContent[0].text);
+    const listRelParsed = listRelResult.structuredContent as {
+      items: Array<{ id: string }>;
+    };
     expect(Array.isArray(listRelParsed.items)).toBe(true);
-    const found = listRelParsed.items.find(
-      (r: { id: string }) => r.id === relation.id,
-    );
+    const found = listRelParsed.items.find((r) => r.id === relation.id);
     expect(found, `Relation ${relation.id} not found in list`).toBeDefined();
   });
 
@@ -150,7 +150,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryA = JSON.parse(
       (createA.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     const createB = await client.callTool({
       name: 'entries_create',
@@ -161,7 +161,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryB = JSON.parse(
       (createB.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     // Create a proposed relation
     const createRelResult = await client.callTool({
@@ -172,10 +172,10 @@ describe('Relation Tools E2E', () => {
         relation: 'supports',
       },
     });
-    const relation = JSON.parse(
-      (createRelResult.content as Array<{ type: string; text: string }>)[0]
-        .text,
-    ).relation as { id: string; status: string };
+    const relation = createRelResult.structuredContent as {
+      id: string;
+      status: string;
+    };
     expect(relation.status).toBe('proposed');
 
     // Accept it
@@ -191,9 +191,8 @@ describe('Relation Tools E2E', () => {
       updateResult.isError,
       `relations_update error: ${updateContent[0].text}`,
     ).toBeUndefined();
-    const updateParsed = JSON.parse(updateContent[0].text);
-    expect(updateParsed.success).toBe(true);
-    expect(updateParsed.relation.status).toBe('accepted');
+    const updated = updateResult.structuredContent as { status: string };
+    expect(updated.status).toBe('accepted');
   });
 
   it('relations_delete removes a relation', async () => {
@@ -209,7 +208,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryA = JSON.parse(
       (createA.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     const createB = await client.callTool({
       name: 'entries_create',
@@ -220,7 +219,7 @@ describe('Relation Tools E2E', () => {
     });
     const entryB = JSON.parse(
       (createB.content as Array<{ type: string; text: string }>)[0].text,
-    ).entry as { id: string };
+    ) as { id: string };
 
     // Create relation
     const createRelResult = await client.callTool({
@@ -231,10 +230,7 @@ describe('Relation Tools E2E', () => {
         relation: 'references',
       },
     });
-    const relation = JSON.parse(
-      (createRelResult.content as Array<{ type: string; text: string }>)[0]
-        .text,
-    ).relation as { id: string };
+    const relation = createRelResult.structuredContent as { id: string };
 
     // Delete it
     const deleteResult = await client.callTool({
@@ -257,12 +253,10 @@ describe('Relation Tools E2E', () => {
       name: 'relations_list',
       arguments: { entry_id: entryA.id },
     });
-    const listParsed = JSON.parse(
-      (listResult.content as Array<{ type: string; text: string }>)[0].text,
-    );
-    const stillPresent = listParsed.items.find(
-      (r: { id: string }) => r.id === relation.id,
-    );
+    const listParsed = listResult.structuredContent as {
+      items: Array<{ id: string }>;
+    };
+    const stillPresent = listParsed.items.find((r) => r.id === relation.id);
     expect(stillPresent).toBeUndefined();
   });
 });

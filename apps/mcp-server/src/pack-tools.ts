@@ -29,24 +29,33 @@ import type {
   PackRenderPreviewInput,
   PackUpdateInput,
   RenderedPackUpdateInput,
-} from './schemas.js';
+} from './schemas/pack-schemas.js';
 import {
+  PackCreateOutputSchema,
   PackCreateSchema,
+  PackGetOutputSchema,
   PackGetSchema,
+  PackListOutputSchema,
   PackListSchema,
+  PackPreviewOutputSchema,
   PackPreviewSchema,
+  PackProvenanceOutputSchema,
   PackProvenanceSchema,
+  PackRenderOutputSchema,
+  PackRenderPreviewOutputSchema,
   PackRenderPreviewSchema,
   PackRenderSchema,
+  PackUpdateOutputSchema,
   PackUpdateSchema,
+  RenderedPackUpdateOutputSchema,
   RenderedPackUpdateSchema,
-} from './schemas.js';
+} from './schemas/pack-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
@@ -69,12 +78,12 @@ export async function handlePacksGet(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
-  return textResult({ pack: data });
+  return structuredResult(data);
 }
 
 export async function handlePacksList(
@@ -96,12 +105,12 @@ export async function handlePacksList(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list packs'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksPreview(
@@ -129,14 +138,14 @@ export async function handlePacksPreview(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_preview', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to preview custom pack'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksCreate(
@@ -164,14 +173,14 @@ export async function handlePacksCreate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_create', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to create custom pack'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksProvenance(
@@ -215,12 +224,12 @@ export async function handlePacksProvenance(
       },
     });
 
-    if (error) {
+    if (error || !data) {
       deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
       return errorResult(extractApiErrorMessage(error, 'Pack not found'));
     }
 
-    return textResult(data);
+    return structuredResult(data);
   }
 
   // pack_cid branch (args.pack_cid is guaranteed to be defined here)
@@ -233,12 +242,12 @@ export async function handlePacksProvenance(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksUpdate(
@@ -260,12 +269,12 @@ export async function handlePacksUpdate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_update', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to update pack'));
   }
 
-  return textResult({ pack: data });
+  return structuredResult(data);
 }
 
 export async function handleRenderedPacksUpdate(
@@ -287,7 +296,7 @@ export async function handleRenderedPacksUpdate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error(
       { tool: 'packs_update_rendered', err: error },
       'tool.error',
@@ -297,7 +306,7 @@ export async function handleRenderedPacksUpdate(
     );
   }
 
-  return textResult({ renderedPack: data });
+  return structuredResult(data);
 }
 
 export async function handlePacksRender(
@@ -322,12 +331,12 @@ export async function handlePacksRender(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_render', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to render pack'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksRenderPreview(
@@ -351,7 +360,7 @@ export async function handlePacksRenderPreview(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error(
       { tool: 'packs_render_preview', err: error },
       'tool.error',
@@ -361,7 +370,7 @@ export async function handlePacksRenderPreview(
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -376,6 +385,7 @@ export function registerPackTools(
       description:
         'Get a context pack by ID. Pass expand=entries to include the full entry list.',
       inputSchema: PackGetSchema,
+      outputSchema: PackGetOutputSchema,
     },
     async (args, ctx) => handlePacksGet(args, deps, ctx),
   );
@@ -385,6 +395,7 @@ export function registerPackTools(
       name: 'packs_list',
       description: 'List context packs for a diary.',
       inputSchema: PackListSchema,
+      outputSchema: PackListOutputSchema,
     },
     async (args, ctx) => handlePacksList(args, deps, ctx),
   );
@@ -395,6 +406,7 @@ export function registerPackTools(
       description:
         'Preview a custom context pack from an explicit entry selection without persisting it.',
       inputSchema: PackPreviewSchema,
+      outputSchema: PackPreviewOutputSchema,
     },
     async (args, ctx) => handlePacksPreview(args, deps, ctx),
   );
@@ -405,6 +417,7 @@ export function registerPackTools(
       description:
         'Create and persist a custom context pack from an explicit entry selection.',
       inputSchema: PackCreateSchema,
+      outputSchema: PackCreateOutputSchema,
     },
     async (args, ctx) => handlePacksCreate(args, deps, ctx),
   );
@@ -417,6 +430,7 @@ export function registerPackTools(
         'Pin a pack to protect it from garbage collection. ' +
         'When unpinning, expires_at is required.',
       inputSchema: PackUpdateSchema,
+      outputSchema: PackUpdateOutputSchema,
     },
     async (args, ctx) => handlePacksUpdate(args, deps, ctx),
   );
@@ -429,6 +443,7 @@ export function registerPackTools(
         'Pin a rendered pack to protect it from garbage collection. ' +
         'When unpinning, expires_at is required.',
       inputSchema: RenderedPackUpdateSchema,
+      outputSchema: RenderedPackUpdateOutputSchema,
     },
     async (args, ctx) => handleRenderedPacksUpdate(args, deps, ctx),
   );
@@ -439,6 +454,7 @@ export function registerPackTools(
       description:
         'Preview a rendered pack from a source context pack without persisting it.',
       inputSchema: PackRenderPreviewSchema,
+      outputSchema: PackRenderPreviewOutputSchema,
     },
     async (args, ctx) => handlePacksRenderPreview(args, deps, ctx),
   );
@@ -449,6 +465,7 @@ export function registerPackTools(
       description:
         'Render a source context pack to structured markdown and persist it as a new CID-addressed rendered pack.',
       inputSchema: PackRenderSchema,
+      outputSchema: PackRenderOutputSchema,
     },
     async (args, ctx) => handlePacksRender(args, deps, ctx),
   );
@@ -460,6 +477,7 @@ export function registerPackTools(
         'Get the provenance graph for a context pack. Provide exactly one of pack_id (UUID) or pack_cid (CID string). ' +
         'Use depth to control how many ancestor layers to traverse (default 1).',
       inputSchema: PackProvenanceSchema,
+      outputSchema: PackProvenanceOutputSchema,
     },
     async (args, ctx) => handlePacksProvenance(args, deps, ctx),
   );

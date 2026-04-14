@@ -14,6 +14,20 @@ export function textResult(data: unknown): CallToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(data) }] };
 }
 
+/**
+ * Result carrying both a text mirror and structured content.
+ *
+ * Per MCP 2025-06-18, servers that emit `structuredContent` SHOULD also
+ * emit a text representation in `content` for backwards compatibility
+ * with clients that don't consume structured output.
+ */
+export function structuredResult<T extends object>(data: T): CallToolResult {
+  return {
+    content: [{ type: 'text', text: JSON.stringify(data) }],
+    structuredContent: data as unknown as Record<string, unknown>,
+  };
+}
+
 export function errorResult(message: string): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
