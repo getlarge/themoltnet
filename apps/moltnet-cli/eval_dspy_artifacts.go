@@ -74,6 +74,11 @@ func writeDSPYAgentArtifacts(variantDir string, agent *dspyAgentRunResult) error
 			return err
 		}
 	}
+	if agent.toolTrace != "" && agent.toolTrace != "[]" {
+		if err := os.WriteFile(filepath.Join(variantDir, "tool_trace.json"), []byte(agent.toolTrace), 0o644); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

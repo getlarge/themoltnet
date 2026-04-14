@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	"github.com/XiaoConstantine/dspy-go/pkg/tools"
 	dspyadapters "github.com/getlarge/themoltnet/libs/dspy-adapters"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/checklist"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/claudecode"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/codex"
+	"github.com/getlarge/themoltnet/libs/dspy-adapters/evaltools"
 	"github.com/getlarge/themoltnet/libs/dspy-adapters/solver"
 	dspytypes "github.com/getlarge/themoltnet/libs/dspy-adapters/types"
 )
@@ -284,6 +286,10 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		return nil, fmt.Errorf("resolve solver kind: %w", err)
 	}
 	effectiveMode := dspyEvalMode(input.manifest, opts)
+	var reactCfg *evalManifestReact
+	if input.manifest != nil {
+		reactCfg = input.manifest.React
+	}
 	agentResult, err := runSolver(solverInput{
 		workDir:     worktreeDir,
 		agent:       agentName,
@@ -295,6 +301,7 @@ func runDSPYEvalVariant(runDir string, input evalRunInput, withContext bool, opt
 		mode:        effectiveMode,
 		fixtureRef:  opts.dspySourceRef,
 		tb:          tb,
+		reactCfg:    reactCfg,
 	})
 	if err != nil {
 		return nil, err
@@ -432,6 +439,7 @@ type dspyAgentRunResult struct {
 	cachedInputTokens int
 	outputTokens      int
 	trajectory        []json.RawMessage // raw stream-json events (assistant + result only)
+	toolTrace         string            // OTel gen_ai JSON trace from ReAct solver (empty for CoT)
 }
 
 // solverInput bundles everything one eval trial needs to drive the agent.
@@ -449,6 +457,7 @@ type solverInput struct {
 	mode        string      // "vitro" or "vivo" — selects signature
 	fixtureRef  string      // resolved fixture.ref commit hash (vivo only)
 	tb          *trialBar
+	reactCfg    *evalManifestReact // nil for CoT; from manifest for ReAct
 }
 
 // buildSolverInputs constructs the named input map for module.Process.
@@ -545,11 +554,31 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 		return nil, err
 	}
 
-	module, err := solver.New(solver.Config{
+	var registry *tools.InMemoryToolRegistry
+	if kind == solver.KindReAct {
+		etCfg := evaltools.Config{WorkDir: in.workDir}
+		if in.reactCfg != nil {
+			etCfg.BashTimeoutSec = in.reactCfg.BashTimeoutSec
+			etCfg.PassthroughEnv = in.reactCfg.PassthroughEnv
+			etCfg.ExtraEnv = in.reactCfg.ExtraEnv
+		}
+		registry, err = evaltools.NewRegistry(etCfg)
+		if err != nil {
+			return nil, fmt.Errorf("init eval tool registry: %w", err)
+		}
+	}
+
+	solverCfg := solver.Config{
 		Kind:      kind,
 		Signature: sig,
 		LLM:       llm,
-	})
+		Registry:  registry,
+	}
+	if in.reactCfg != nil && in.reactCfg.MaxIterations > 0 {
+		solverCfg.MaxIterations = in.reactCfg.MaxIterations
+	}
+
+	module, err := solver.New(solverCfg)
 	if err != nil {
 		return nil, fmt.Errorf("init solver module: %w", err)
 	}
@@ -574,6 +603,17 @@ func runSolver(in solverInput) (*dspyAgentRunResult, error) {
 	// events. That comes from trajProvider.LastTrajectory(), populated by
 	// the adapter's Generate call that dspy-go just made.
 	result := &dspyAgentRunResult{}
+	if tp, ok := module.(solver.TraceProvider); ok {
+		traces := tp.LastTraces()
+		if len(traces) > 0 {
+			traceJSON, traceErr := solver.SerializeTrace(traces[len(traces)-1])
+			if traceErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not serialize tool trace: %v\n", traceErr)
+			} else {
+				result.toolTrace = traceJSON
+			}
+		}
+	}
 	if resp := trajProvider.LastTrajectory(); resp != nil {
 		result.trajectory = resp.Trajectory
 		result.output = resp.Content
