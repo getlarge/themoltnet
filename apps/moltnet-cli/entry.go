@@ -13,7 +13,7 @@ import (
 // --- Entry-level business logic (moved from diary.go) ---
 
 // runEntryCreateCmd creates a diary entry.
-func runEntryCreateCmd(apiURL, credPath, diaryID, content string) error {
+func runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -25,6 +25,22 @@ func runEntryCreateCmd(apiURL, credPath, diaryID, content string) error {
 	}
 	req := &moltnetapi.CreateDiaryEntryReq{
 		Content: content,
+	}
+	if title != "" {
+		req.Title = moltnetapi.OptString{Value: title, Set: true}
+	}
+	if entryType != "" {
+		et, err := parseEntryType(entryType)
+		if err != nil {
+			return err
+		}
+		req.EntryType = moltnetapi.OptCreateDiaryEntryReqEntryType{Value: et, Set: true}
+	}
+	if tagsStr != "" {
+		req.Tags = splitAndTrim(tagsStr, ",")
+	}
+	if importanceChanged {
+		req.Importance = moltnetapi.OptInt{Value: importance, Set: true}
 	}
 	res, err := client.CreateDiaryEntry(context.Background(), req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
 	if err != nil {
@@ -38,7 +54,7 @@ func runEntryCreateCmd(apiURL, credPath, diaryID, content string) error {
 }
 
 // runEntryCreateSignedCmd creates a content-signed immutable diary entry.
-func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string) error {
+func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -106,6 +122,9 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 			return err
 		}
 		req.EntryType = moltnetapi.OptCreateDiaryEntryReqEntryType{Value: et, Set: true}
+	}
+	if importanceChanged {
+		req.Importance = moltnetapi.OptInt{Value: importance, Set: true}
 	}
 
 	res, err := client.CreateDiaryEntry(context.Background(), req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
