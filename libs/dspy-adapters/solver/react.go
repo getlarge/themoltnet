@@ -37,3 +37,9 @@ func (r *reactModule) Process(ctx context.Context, inputs map[string]any, opts .
 func (r *reactModule) LastTraces() []*modules.ReActTrace {
 	return r.lastTraces
 }
+
+// Compile-time assertions: reactModule must satisfy Module and TraceProvider.
+var (
+	_ Module        = (*reactModule)(nil)
+	_ TraceProvider = (*reactModule)(nil)
+)

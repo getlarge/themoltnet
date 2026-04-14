@@ -7,28 +7,6 @@ import (
 	"github.com/XiaoConstantine/dspy-go/pkg/tools"
 )
 
-func TestReactModuleImplementsModule(t *testing.T) {
-	registry := tools.NewInMemoryToolRegistry()
-	react := modules.NewReAct(VivoSignature(), registry, 5)
-	react.SetLLM(&stubLLM{})
-
-	rm := &reactModule{inner: react}
-
-	// Verify it satisfies Module interface
-	var _ Module = rm
-}
-
-func TestReactModuleImplementsTraceProvider(t *testing.T) {
-	registry := tools.NewInMemoryToolRegistry()
-	react := modules.NewReAct(VivoSignature(), registry, 5)
-	react.SetLLM(&stubLLM{})
-
-	rm := &reactModule{inner: react}
-
-	// Verify it satisfies TraceProvider interface
-	var _ TraceProvider = rm
-}
-
 func TestReactModuleLastTracesEmptyBeforeProcess(t *testing.T) {
 	registry := tools.NewInMemoryToolRegistry()
 	react := modules.NewReAct(VivoSignature(), registry, 5)
