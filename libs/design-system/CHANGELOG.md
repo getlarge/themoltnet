@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.5.1...design-system-v0.6.0) (2026-04-14)
+
+
+### Features
+
+* **console:** team & group management UI — Phase 1 ([#659](https://github.com/getlarge/themoltnet/issues/659)) ([ac923b7](https://github.com/getlarge/themoltnet/commit/ac923b7be47695db32e625b00f3ab15e05a5d0c4))
+* **design-system:** add CopyButton component ([882459a](https://github.com/getlarge/themoltnet/commit/882459aee84429a04b89bd425bb989bb255c18dd))
+* **design-system:** add Dialog component ([82c2013](https://github.com/getlarge/themoltnet/commit/82c2013f26720a9e4fec40eda17964f4e50a84fb))
+
+
+### Bug Fixes
+
+* **rest-api,console,design-system:** address PR [#807](https://github.com/getlarge/themoltnet/issues/807) review feedback ([27669ba](https://github.com/getlarge/themoltnet/commit/27669ba01b6d2cc9bffffa80e00ceab64d835197))
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.5.0...design-system-v0.5.1) (2026-04-13)
 
 
