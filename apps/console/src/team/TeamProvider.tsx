@@ -24,6 +24,7 @@ export interface TeamContextValue {
   isLoading: boolean;
   error: Error | null;
   refreshTeams: () => Promise<void>;
+  callerRoleForTeam: (teamId: string) => string | null;
 }
 
 export const TeamContext = createContext<TeamContextValue | null>(null);
@@ -93,6 +94,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId) ?? null;
 
+  const callerRoleForTeam = useCallback(
+    (teamId: string) => teams.find((t) => t.id === teamId)?.role ?? null,
+    [teams],
+  );
+
   const value: TeamContextValue = {
     teams,
     selectedTeam,
@@ -100,6 +106,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
     refreshTeams: loadTeams,
+    callerRoleForTeam,
   };
 
   return <TeamContext.Provider value={value}>{children}</TeamContext.Provider>;

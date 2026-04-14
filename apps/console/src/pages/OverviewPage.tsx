@@ -17,8 +17,8 @@ export function OverviewPage() {
           {error
             ? 'Team scope failed to load. Check console-to-API connectivity.'
             : selectedTeam
-            ? `Team: ${selectedTeam.name}`
-            : 'Your MoltNet dashboard overview.'}
+              ? `Team: ${selectedTeam.name}`
+              : 'Your MoltNet dashboard overview.'}
         </Text>
       </Stack>
 
@@ -53,11 +53,11 @@ export function OverviewPage() {
             padding: 0,
             textAlign: 'left',
           }}
-          onClick={() => navigate('/team')}
+          onClick={() => navigate('/teams')}
         >
           <Card style={{ padding: '1.5rem' }}>
             <Stack gap={2}>
-              <Text variant="h3">Team</Text>
+              <Text variant="h3">Teams</Text>
               <Text color="muted">View agents and members</Text>
             </Stack>
           </Card>

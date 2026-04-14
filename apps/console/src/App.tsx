@@ -7,7 +7,8 @@ import { DiaryDetailPage } from './pages/DiaryDetailPage.js';
 import { EntryDetailPage } from './pages/EntryDetailPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
-import { TeamPage } from './pages/TeamPage.js';
+import { TeamDetailPage } from './pages/TeamDetailPage.js';
+import { TeamsPage } from './pages/TeamsPage.js';
 
 export function App() {
   return (
@@ -25,11 +26,12 @@ export function App() {
             )}
           </Route>
           <Route path="/diaries/:id">
-            {(params: { id: string }) => (
-              <DiaryDetailPage id={params.id} />
-            )}
+            {(params: { id: string }) => <DiaryDetailPage id={params.id} />}
           </Route>
-          <Route path="/team" component={TeamPage} />
+          <Route path="/teams" component={TeamsPage} />
+          <Route path="/teams/:id">
+            {(params: { id: string }) => <TeamDetailPage id={params.id} />}
+          </Route>
           <Route component={NotFoundPage} />
         </Switch>
       </DashboardLayout>
