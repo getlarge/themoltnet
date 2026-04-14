@@ -635,8 +635,8 @@ func TestValidateEvalManifest_ReactExtraEnvEmptyValue(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty extra_env value")
 	}
-	if !strings.Contains(err.Error(), "extra_env") {
-		t.Errorf("expected 'extra_env' in error, got: %v", err)
+	if !strings.Contains(err.Error(), `["NODE_ENV"]`) {
+		t.Errorf("expected '[\"NODE_ENV\"]' in error, got: %v", err)
 	}
 }
 

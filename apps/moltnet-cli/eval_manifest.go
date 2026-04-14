@@ -217,7 +217,7 @@ func validateEvalManifest(m *evalManifest) error {
 				return fmt.Errorf("react.extra_env: keys must be non-empty")
 			}
 			if strings.TrimSpace(val) == "" {
-				return fmt.Errorf("react.extra_env: values must be non-empty")
+				return fmt.Errorf("react.extra_env[%q]: value must be non-empty", key)
 			}
 		}
 	}
