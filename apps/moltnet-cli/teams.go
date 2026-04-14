@@ -143,6 +143,83 @@ func runTeamsInviteCreateCmd(apiURL, credPath, teamID, role string, expiresInHou
 	return printJSON(invite)
 }
 
+// runTeamsDeleteCmd deletes a team (owner only).
+func runTeamsDeleteCmd(apiURL, credPath, teamID string) error {
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
+	}
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.DeleteTeam(context.Background(), moltnetapi.DeleteTeamParams{ID: teamUUID})
+	if err != nil {
+		return fmt.Errorf("teams delete: %w", err)
+	}
+	ok, okRes := res.(*moltnetapi.DeleteTeamOK)
+	if !okRes {
+		return formatAPIError(res)
+	}
+	return printJSON(ok)
+}
+
+// runTeamsMemberRemoveCmd removes a member from a team.
+func runTeamsMemberRemoveCmd(apiURL, credPath, teamID, subjectID string) error {
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
+	}
+	subjectUUID, err := uuid.Parse(subjectID)
+	if err != nil {
+		return fmt.Errorf("invalid subject ID %q: %w", subjectID, err)
+	}
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.RemoveTeamMember(context.Background(), moltnetapi.RemoveTeamMemberParams{
+		ID:        teamUUID,
+		SubjectId: subjectUUID,
+	})
+	if err != nil {
+		return fmt.Errorf("teams members remove: %w", err)
+	}
+	ok, okRes := res.(*moltnetapi.RemoveTeamMemberOK)
+	if !okRes {
+		return formatAPIError(res)
+	}
+	return printJSON(ok)
+}
+
+// runTeamsInviteDeleteCmd deletes a team invite code.
+func runTeamsInviteDeleteCmd(apiURL, credPath, teamID, inviteID string) error {
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
+	}
+	inviteUUID, err := uuid.Parse(inviteID)
+	if err != nil {
+		return fmt.Errorf("invalid invite ID %q: %w", inviteID, err)
+	}
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.DeleteTeamInvite(context.Background(), moltnetapi.DeleteTeamInviteParams{
+		ID:       teamUUID,
+		InviteId: inviteUUID,
+	})
+	if err != nil {
+		return fmt.Errorf("teams invite delete: %w", err)
+	}
+	ok, okRes := res.(*moltnetapi.DeleteTeamInviteOK)
+	if !okRes {
+		return formatAPIError(res)
+	}
+	return printJSON(ok)
+}
+
 // runTeamsInviteListCmd lists invite codes for a team.
 func runTeamsInviteListCmd(apiURL, credPath, teamID string) error {
 	teamUUID, err := uuid.Parse(teamID)

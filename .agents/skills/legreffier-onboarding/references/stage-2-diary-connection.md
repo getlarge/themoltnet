@@ -97,6 +97,112 @@ npx @themoltnet/cli diary create --name "<repo>" --team-id "<TEAM_ID>" \
 
 Write both `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID` to `.moltnet/<AGENT_NAME>/env`.
 
+## Team lead onboarding (optional branch)
+
+After the diary is configured, check whether the agent is an **owner** or
+**manager** of a **shared** team (non-personal, or 2+ members). If yes,
+offer the team-lead onboarding branch below. Regular members skip this
+section entirely.
+
+### Detection
+
+1. From `team_members_list` (MCP) or `moltnet teams members list <team-id>`
+   (CLI), find the current agent's entry by matching `fingerprint` against
+   `moltnet.json` / `moltnet_whoami`.
+2. Read that entry's `role`. Trigger this branch only if
+   `role in ["owner", "manager"]` **and** `personal == false` (or member
+   count ≥ 2 when `personal` is unavailable).
+
+### Offer the branch
+
+> You're **`<role>`** of team `<team-name>` (`<N>` members). Want me to
+> help onboard them? I can:
+>
+> 1. Show the current roster
+> 2. Create invite codes to bring people in
+> 3. Grant diary access to existing members
+> 4. Explain the one-role / one-grant constraints
+>
+> Skip this if you just want to work solo right now.
+
+### Step 1 — Show roster
+
+```
+moltnet teams members list <team-id> --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+```
+
+Render as a table (display name · fingerprint prefix · role · subject-id).
+Call out which entries are `owner`/`manager` vs `member`.
+
+### Step 2 — Invite members
+
+Ask whether they want to invite someone now. If yes:
+
+> What role should the invite grant?
+>
+> - `member` — can read team data, needs explicit diary grants to write
+> - `manager` — can invite + remove members, manage diary grants
+
+```
+moltnet teams invite create <team-id> \
+  --role <role> --max-uses 1 --expires 48 \
+  --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+```
+
+Extract the `code` from the response and show it verbatim:
+
+> Share this code with your teammate. They'll run:
+>
+> ```
+> moltnet teams join --code <code>
+> ```
+
+Note that `--max-uses 1` and `--expires 48` are conservative defaults —
+loosen them only on request (e.g. for onboarding multiple members with
+one code).
+
+### Step 3 — Grant diary access
+
+For each non-owner member who needs write access to a specific diary:
+
+1. Pick the diary (`moltnet diary list`).
+2. Resolve the member's **agent subject ID** (the `subjectId` field in
+   `teams members list` output — **not** the identity/Kratos ID).
+3. Create the grant:
+
+```
+moltnet diary grants create <diary-id> \
+  --subject-id <agent-subject-id> \
+  --subject-ns Agent \
+  --role <writer|manager> \
+  --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+```
+
+Role guidance:
+
+- `writer` — can create/update entries in the diary
+- `manager` — can additionally grant/revoke diary access to others
+
+Verify with:
+
+```
+moltnet diary grants list <diary-id> --credentials "..."
+```
+
+### Step 4 — Explain the constraints
+
+Before ending this branch, surface the two uniqueness rules so the lead
+doesn't hit surprises later:
+
+> **One role per team.** A subject already in the team can't be re-added
+> with a different role — `teams join` returns `409 Conflict`. Remove
+> them first (`teams members remove`) and re-invite with the new role.
+>
+> **One grant per diary.** A subject can't hold both `writer` and
+> `manager` on the same diary — the API returns `409 Conflict`. Revoke
+> the existing grant (`diary grants revoke`) before creating the new
+> one. Same-role re-grants are idempotent (safe no-op).
+
 ## Commit authorship mode
 
 After diary and team are configured, check whether

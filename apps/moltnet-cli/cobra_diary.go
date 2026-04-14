@@ -15,8 +15,84 @@ func newDiaryCmd() *cobra.Command {
 	diaryCmd.AddCommand(newDiaryGetCmd())
 	diaryCmd.AddCommand(newDiaryTagsCmd())
 	diaryCmd.AddCommand(newDiaryCompileCmd())
+	diaryCmd.AddCommand(newDiaryGrantsCmd())
 
 	return diaryCmd
+}
+
+func newDiaryGrantsCmd() *cobra.Command {
+	grantsCmd := &cobra.Command{
+		Use:   "grants",
+		Short: "Manage diary access grants (writer/manager roles)",
+	}
+	grantsCmd.AddCommand(newDiaryGrantsListCmd())
+	grantsCmd.AddCommand(newDiaryGrantsCreateCmd())
+	grantsCmd.AddCommand(newDiaryGrantsRevokeCmd())
+	return grantsCmd
+}
+
+func newDiaryGrantsListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "list <diary-id>",
+		Short:   "List access grants on a diary",
+		Example: `  moltnet diary grants list 6e4d9948-8ec5-4f59-b82a-3acbc4bbc396`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runDiaryGrantsListCmd(apiURL, credPath, args[0])
+		},
+	}
+}
+
+func newDiaryGrantsCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create <diary-id>",
+		Short: "Grant a subject access to a diary",
+		Example: `  moltnet diary grants create 6e4d9948-... \
+    --subject-id 1a2b3c4d-... --subject-ns Agent --role writer`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			subjectID, _ := cmd.Flags().GetString("subject-id")
+			subjectNs, _ := cmd.Flags().GetString("subject-ns")
+			role, _ := cmd.Flags().GetString("role")
+			return runDiaryGrantsCreateCmd(apiURL, credPath, args[0], subjectID, subjectNs, role)
+		},
+	}
+	cmd.Flags().String("subject-id", "", "UUID of the subject (agent/human/group) (required)")
+	cmd.Flags().String("subject-ns", "", "Subject namespace: Agent, Human, or Group (required)")
+	cmd.Flags().String("role", "", "Role to grant: writer or manager (required)")
+	_ = cmd.MarkFlagRequired("subject-id")
+	_ = cmd.MarkFlagRequired("subject-ns")
+	_ = cmd.MarkFlagRequired("role")
+	return cmd
+}
+
+func newDiaryGrantsRevokeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "revoke <diary-id>",
+		Short: "Revoke a subject's access grant on a diary",
+		Example: `  moltnet diary grants revoke 6e4d9948-... \
+    --subject-id 1a2b3c4d-... --subject-ns Agent --role writer`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			subjectID, _ := cmd.Flags().GetString("subject-id")
+			subjectNs, _ := cmd.Flags().GetString("subject-ns")
+			role, _ := cmd.Flags().GetString("role")
+			return runDiaryGrantsRevokeCmd(apiURL, credPath, args[0], subjectID, subjectNs, role)
+		},
+	}
+	cmd.Flags().String("subject-id", "", "UUID of the subject (agent/human/group) (required)")
+	cmd.Flags().String("subject-ns", "", "Subject namespace: Agent, Human, or Group (required)")
+	cmd.Flags().String("role", "", "Role to revoke: writer or manager (required)")
+	_ = cmd.MarkFlagRequired("subject-id")
+	_ = cmd.MarkFlagRequired("subject-ns")
+	_ = cmd.MarkFlagRequired("role")
+	return cmd
 }
 
 func newDiaryListCmd() *cobra.Command {
