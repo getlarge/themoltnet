@@ -60,14 +60,18 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	var tags []string
-	if tagsStr != "" {
-		for _, t := range splitAndTrim(tagsStr, ",") {
-			if t != "" {
-				tags = append(tags, t)
-			}
+	// Validate entryType before any server-side side effects (signing
+	// request creation is non-reversible — a bad --type should fail
+	// fast rather than leave an orphaned completed signing request).
+	var parsedEntryType moltnetapi.CreateDiaryEntryReqEntryType
+	if entryType != "" {
+		parsedEntryType, err = parseEntryType(entryType)
+		if err != nil {
+			return err
 		}
 	}
+
+	tags := splitAndTrim(tagsStr, ",")
 
 	// Step 1: Compute CID locally
 	cid, err := computeContentCid(entryType, title, content, tags)
@@ -117,11 +121,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 		req.Title = moltnetapi.OptString{Value: title, Set: true}
 	}
 	if entryType != "" {
-		et, err := parseEntryType(entryType)
-		if err != nil {
-			return err
-		}
-		req.EntryType = moltnetapi.OptCreateDiaryEntryReqEntryType{Value: et, Set: true}
+		req.EntryType = moltnetapi.OptCreateDiaryEntryReqEntryType{Value: parsedEntryType, Set: true}
 	}
 	if importanceChanged {
 		req.Importance = moltnetapi.OptInt{Value: importance, Set: true}

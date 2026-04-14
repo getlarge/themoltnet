@@ -91,11 +91,17 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
 	cmd.Flags().String("content", "", "Entry content (required)")
 	cmd.Flags().String("title", "", "Entry title")
-	cmd.Flags().String("type", "semantic", "Entry type (semantic, episodic, procedural, reflection, identity, soul)")
+	// --type is required on create-signed: the CID bakes in the entry type,
+	// and the server recomputes it from the stored row. If the client
+	// omits --type and the server defaults it to "semantic", the CIDs
+	// disagree and the request is rejected. Requiring the flag makes the
+	// user's intent explicit rather than silently assuming one type.
+	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection, identity, soul) (required)")
 	cmd.Flags().String("tags", "", "Comma-separated tags")
 	cmd.Flags().Int("importance", 0, "Importance score (1-10)")
 	_ = cmd.MarkFlagRequired("diary-id")
 	_ = cmd.MarkFlagRequired("content")
+	_ = cmd.MarkFlagRequired("type")
 	return cmd
 }
 
