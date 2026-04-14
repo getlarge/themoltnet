@@ -21,12 +21,10 @@ export function textResult(data: unknown): CallToolResult {
  * emit a text representation in `content` for backwards compatibility
  * with clients that don't consume structured output.
  */
-export function structuredResult(
-  data: Record<string, unknown>,
-): CallToolResult {
+export function structuredResult<T extends object>(data: T): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(data) }],
-    structuredContent: data,
+    structuredContent: data as unknown as Record<string, unknown>,
   };
 }
 

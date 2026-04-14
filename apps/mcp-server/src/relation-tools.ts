@@ -66,7 +66,7 @@ export async function handleRelationsCreate(
     );
   }
 
-  return structuredResult(data as unknown as Record<string, unknown>);
+  return structuredResult(data);
 }
 
 export async function handleRelationsList(
@@ -97,7 +97,7 @@ export async function handleRelationsList(
     );
   }
 
-  return structuredResult(data as unknown as Record<string, unknown>);
+  return structuredResult(data);
 }
 
 export async function handleRelationsUpdate(
@@ -123,7 +123,7 @@ export async function handleRelationsUpdate(
     );
   }
 
-  return structuredResult(data as unknown as Record<string, unknown>);
+  return structuredResult(data);
 }
 
 export async function handleRelationsDelete(
