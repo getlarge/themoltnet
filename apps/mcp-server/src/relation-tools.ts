@@ -18,13 +18,13 @@ import type {
   RelationDeleteInput,
   RelationListInput,
   RelationUpdateInput,
-} from './schemas.js';
+} from './schemas/relation-schemas.js';
 import {
   RelationCreateSchema,
   RelationDeleteSchema,
   RelationListSchema,
   RelationUpdateSchema,
-} from './schemas.js';
+} from './schemas/relation-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

@@ -16,7 +16,7 @@ import {
   IssueVoucherSchema,
   ListVouchersSchema,
   TrustGraphSchema,
-} from './schemas.js';
+} from './schemas/vouch-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

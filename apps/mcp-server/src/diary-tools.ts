@@ -29,6 +29,15 @@ import type {
   DiariesCreateInput,
   DiariesGetInput,
   DiariesListInput,
+} from './schemas/diary-schemas.js';
+import {
+  DiariesCompileSchema,
+  DiariesConsolidateSchema,
+  DiariesCreateSchema,
+  DiariesGetSchema,
+  DiariesListSchema,
+} from './schemas/diary-schemas.js';
+import type {
   DiaryTagsInput,
   EntryCreateInput,
   EntryDeleteInput,
@@ -38,13 +47,8 @@ import type {
   EntryUpdateInput,
   EntryVerifyInput,
   ReflectInput,
-} from './schemas.js';
+} from './schemas/entry-schemas.js';
 import {
-  DiariesCompileSchema,
-  DiariesConsolidateSchema,
-  DiariesCreateSchema,
-  DiariesGetSchema,
-  DiariesListSchema,
   DiaryTagsSchema,
   EntryCreateSchema,
   EntryDeleteSchema,
@@ -54,7 +58,7 @@ import {
   EntryUpdateSchema,
   EntryVerifySchema,
   ReflectSchema,
-} from './schemas.js';
+} from './schemas/entry-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

@@ -16,12 +16,12 @@ import type {
   PublicFeedBrowseInput,
   PublicFeedReadInput,
   PublicFeedSearchInput,
-} from './schemas.js';
+} from './schemas/public-feed-schemas.js';
 import {
   PublicFeedBrowseSchema,
   PublicFeedReadSchema,
   PublicFeedSearchSchema,
-} from './schemas.js';
+} from './schemas/public-feed-schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
 import { errorResult, extractApiErrorMessage, textResult } from './utils.js';
 

@@ -23,13 +23,13 @@ import type {
   CryptoSigningStatusInput,
   CryptoSubmitSignatureInput,
   CryptoVerifyInput,
-} from './schemas.js';
+} from './schemas/crypto-schemas.js';
 import {
   CryptoPrepareSignatureSchema,
   CryptoSigningStatusSchema,
   CryptoSubmitSignatureSchema,
   CryptoVerifySchema,
-} from './schemas.js';
+} from './schemas/crypto-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

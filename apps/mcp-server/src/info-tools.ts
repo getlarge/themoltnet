@@ -8,7 +8,7 @@
 import { getNetworkInfo } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
-import { MoltnetInfoSchema } from './schemas.js';
+import { MoltnetInfoSchema } from './schemas/info-schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
 import { errorResult, extractApiErrorMessage, textResult } from './utils.js';
 

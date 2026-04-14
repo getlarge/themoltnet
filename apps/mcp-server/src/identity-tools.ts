@@ -9,8 +9,8 @@ import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import { findProfileEntries } from './profile-utils.js';
-import type { AgentLookupInput } from './schemas.js';
-import { AgentLookupSchema, WhoamiSchema } from './schemas.js';
+import type { AgentLookupInput } from './schemas/identity-schemas.js';
+import { AgentLookupSchema, WhoamiSchema } from './schemas/identity-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

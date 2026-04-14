@@ -29,7 +29,7 @@ import type {
   PackRenderPreviewInput,
   PackUpdateInput,
   RenderedPackUpdateInput,
-} from './schemas.js';
+} from './schemas/pack-schemas.js';
 import {
   PackCreateSchema,
   PackGetSchema,
@@ -40,7 +40,7 @@ import {
   PackRenderSchema,
   PackUpdateSchema,
   RenderedPackUpdateSchema,
-} from './schemas.js';
+} from './schemas/pack-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

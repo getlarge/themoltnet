@@ -16,12 +16,12 @@ import type {
   GrantCreateInput,
   GrantListInput,
   GrantRevokeInput,
-} from './schemas.js';
+} from './schemas/grant-schemas.js';
 import {
   GrantCreateSchema,
   GrantListSchema,
   GrantRevokeSchema,
-} from './schemas.js';
+} from './schemas/grant-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,

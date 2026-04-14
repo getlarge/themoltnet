@@ -28,7 +28,7 @@ import type {
   TeamsJoinInput,
   TeamsListInput,
   TeamsMemberRemoveInput,
-} from './schemas.js';
+} from './schemas/team-schemas.js';
 import {
   TeamMembersListSchema,
   TeamsCreateSchema,
@@ -39,7 +39,7 @@ import {
   TeamsJoinSchema,
   TeamsListSchema,
   TeamsMemberRemoveSchema,
-} from './schemas.js';
+} from './schemas/team-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
