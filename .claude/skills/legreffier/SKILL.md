@@ -311,16 +311,18 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
    **`human` mode** (human is author, agent is co-author — for billing attribution):
 
    ```bash
-   git commit --author="$HUMAN_GIT_IDENTITY" \
+   git commit --author="$HUMAN_GIT_IDENTITY" --no-gpg-sign \
      -m "feat(scope): summary" \
      -m "MoltNet-Diary: <entry-id>" \
      -m "Co-Authored-By: $AGENT_NAME <$AGENT_EMAIL>"
    ```
 
-   In `human` mode, `--author` overrides the git author while `gpgsign=true` still
-   signs with the agent's SSH key. The diary entry proves the agent did the work.
+   In `human` mode, `--no-gpg-sign` is required because the agent's gitconfig
+   overrides the human's signing configuration. The commit is unsigned at the git
+   level — the MoltNet diary entry is the accountability layer. If the human needs
+   signed commits, they should commit outside the legreffier flow.
 
-   Signing enforced by gitconfig (`gpgsign=true`) in all modes.
+   Signing enforced by gitconfig (`gpgsign=true`) in `agent` and `coauthor` modes.
 
 8. Tools unavailable → **do not offer skipping**. Stop, state what's missing, wait. Proceed without diary only if user explicitly says so unprompted.
 
@@ -329,7 +331,17 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` contains a
 `github.appId` field. Skip this section entirely if `moltnet.json` has no `github` block.
 
-When active, authenticate `gh` commands as the GitHub App:
+**Mode-dependent behavior:**
+
+- **`agent` and `coauthor` modes**: use the agent's GitHub App token for all `gh` calls.
+- **`human` mode**: skip `GH_TOKEN` only for user-visible **write** actions
+  (`gh pr create`, `gh pr comment`, `gh pr edit`, `gh pr close`, `gh pr merge`, `gh pr ready`,
+  `gh issue create`, `gh issue comment`, `gh issue edit`, `gh issue close`) so they appear as
+  the human. Use the agent token for read-only `gh` calls (`gh pr view`, `gh pr list`,
+  `gh issue view`, etc.), for `git push`, and for content API calls
+  (`gh api repos/{owner}/{repo}/contents/...`). The human must have `gh auth login` configured.
+
+When using the agent token:
 
 ```bash
 CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"
@@ -516,29 +528,24 @@ After creating, link with `relations_create` when meaningful:
 
 4. **Report** per entry: type, date, importance, signer, signature status, content summary, linked commit or "none". Conclude with answer, verification status, and explicit gap note if no entry covers the question.
 
-## GitHub CLI authentication
-
-When `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`, prefix `gh` commands:
-
-```bash
-GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh <command>
-```
-
-Token cached ~1 hour. On 401, delete `gh-token-cache.json` next to `moltnet.json` and retry.
-
-Allowed: `gh pr`, `gh issue`, `gh api repos/{owner}/{repo}/contents/...`, `gh repo view/clone`. Do NOT use `GH_TOKEN` for releases, actions, packages, etc.
-
 ## Commit authorship modes
 
 Configured via `MOLTNET_COMMIT_AUTHORSHIP` in `.moltnet/<AGENT_NAME>/env`.
 
-| Mode              | Git author | Trailer                           | Use case                                           |
-| ----------------- | ---------- | --------------------------------- | -------------------------------------------------- |
-| `agent` (default) | Agent      | none                              | Pure agent work                                    |
-| `human`           | Human      | `Co-Authored-By: Agent <bot@...>` | Human wants GitHub credit + billing attribution    |
-| `coauthor`        | Agent      | `Co-Authored-By: Human <email>`   | Agent primary, human gets GitHub contribution dots |
+| Mode              | Git author | Signature    | PR author via `gh pr` | Trailer                           | Use case                                           |
+| ----------------- | ---------- | ------------ | --------------------- | --------------------------------- | -------------------------------------------------- |
+| `agent` (default) | Agent      | Agent SSH    | Agent (GH App)        | none                              | Pure agent work                                    |
+| `human`           | Human      | **Unsigned** | Human (personal gh)   | `Co-Authored-By: Agent <bot@...>` | Human wants GitHub credit + billing attribution    |
+| `coauthor`        | Agent      | Agent SSH    | Agent (GH App)        | `Co-Authored-By: Human <email>`   | Agent primary, human gets GitHub contribution dots |
 
 Both `human` and `coauthor` require `MOLTNET_HUMAN_GIT_IDENTITY` to be set (e.g. `'Jane Doe <jane@example.com>'`).
+
+**`human` mode caveats:**
+
+- Commits are **unsigned** because the agent's gitconfig overrides the human's signing setup. The diary entry is the accountability layer.
+- `gh pr` and `gh issue` must NOT use `GH_TOKEN` — use the human's `gh auth` so the PR shows as authored by the human.
+- `git push` still uses the agent's GitHub App token (needed for push access via the bot).
+- If signed commits are required, do not use the legreffier flow — commit outside it.
 
 **Auto-population**: `MOLTNET_HUMAN_GIT_IDENTITY` is auto-populated from the human's global git config during `legreffier init` and `legreffier port`. Override with `--human-git-identity` flag.
 
