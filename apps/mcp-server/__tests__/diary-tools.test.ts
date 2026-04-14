@@ -91,8 +91,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('success', true);
-      expect(parsed).toHaveProperty('entry');
+      expect(parsed).toHaveProperty('id', ENTRY_ID);
     });
 
     it('creates an entry with all optional fields', async () => {
@@ -178,8 +177,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('entry');
-      expect(parsed.entry).toHaveProperty('id', ENTRY_ID);
+      expect(parsed).toHaveProperty('id', ENTRY_ID);
     });
 
     it('returns error when entry not found', async () => {
@@ -455,8 +453,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('success', true);
-      expect(parsed).toHaveProperty('entry');
+      expect(parsed).toHaveProperty('id', ENTRY_ID);
     });
 
     it('returns error when entry not found', async () => {
@@ -524,7 +521,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('success', true);
+      expect(parsed).toHaveProperty('deleted', true);
     });
 
     it('returns error when entry not found', async () => {
@@ -587,7 +584,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('digest');
+      expect(parsed).toHaveProperty('entries');
     });
 
     it('passes custom days and max_entries', async () => {
@@ -719,8 +716,7 @@ describe('Diary tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('success', true);
-      expect(parsed).toHaveProperty('diary');
+      expect(parsed).toHaveProperty('id', DIARY_ID);
     });
 
     it('creates a diary with name and visibility', async () => {
@@ -760,8 +756,8 @@ describe('Diary tools', () => {
         context,
       );
 
-      const parsed = parseResult<{ diary: { id: string } }>(result);
-      expect(parsed.diary).toHaveProperty('id', DIARY_ID);
+      const parsed = parseResult<{ id: string }>(result);
+      expect(parsed).toHaveProperty('id', DIARY_ID);
     });
 
     it('returns error when not authenticated', async () => {
@@ -802,9 +798,8 @@ describe('Diary tools', () => {
           path: { id: DIARY_ID },
         }),
       );
-      const parsed = parseResult<{ diary: { id: string } }>(result);
-      expect(parsed).toHaveProperty('diary');
-      expect(parsed.diary).toHaveProperty('id', DIARY_ID);
+      const parsed = parseResult<{ id: string }>(result);
+      expect(parsed).toHaveProperty('id', DIARY_ID);
     });
 
     it('returns error when diary not found', async () => {

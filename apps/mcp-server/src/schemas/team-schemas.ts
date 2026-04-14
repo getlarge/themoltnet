@@ -6,7 +6,20 @@
  * teams_member_remove.
  */
 
+import type {
+  CreateTeamInviteResponses,
+  DeleteTeamInviteResponses,
+  DeleteTeamResponses,
+  GetTeamResponses,
+  JoinTeamResponses,
+  ListTeamInvitesResponses,
+  ListTeamsResponses,
+  RemoveTeamMemberResponses,
+} from '@moltnet/api-client';
+import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
+
+import type { AssertOutputMatchesApi, ResponseOf } from './common.js';
 
 // --- Team read-only schemas ---
 
@@ -116,3 +129,124 @@ export type TeamsMemberRemoveInput = {
   team_id: string;
   subject_id: string;
 };
+
+// --- Output schemas ---
+
+export const TeamsListOutputSchema = Type.Object({
+  items: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      name: Type.String(),
+      personal: Type.Boolean(),
+      status: Type.String(),
+      role: Type.String(),
+    }),
+  ),
+});
+
+const TeamMemberSchema = Type.Object({
+  subjectId: Type.String(),
+  subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
+  role: Type.String(),
+  displayName: Type.String(),
+  fingerprint: Type.Optional(Type.String()),
+  email: Type.Optional(Type.String()),
+});
+
+export const TeamMembersListOutputSchema = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  status: Type.String(),
+  personal: Type.Boolean(),
+  createdBy: Type.String(),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+  members: Type.Array(TeamMemberSchema),
+});
+
+/**
+ * Flattened union of CreateTeamResponses 201 (sync create) and 202 (async via
+ * workflow). MCP outputSchema must be a single object — optional fields cover
+ * the workflow path.
+ */
+export const TeamsCreateOutputSchema = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  status: Type.Optional(Type.String()),
+  workflowId: Type.Optional(Type.String()),
+});
+
+export const TeamsJoinOutputSchema = Type.Object({
+  teamId: Type.String(),
+  role: Type.String(),
+});
+
+export const TeamsDeleteOutputSchema = Type.Object({
+  deleted: Type.Boolean(),
+});
+
+const TeamInviteSchema = Type.Object({
+  id: Type.String(),
+  code: Type.String(),
+  role: Type.String(),
+  maxUses: Type.Number(),
+  useCount: Type.Number(),
+  expiresAt: Type.String(),
+  createdAt: Type.String(),
+});
+
+export const TeamsInviteCreateOutputSchema = TeamInviteSchema;
+
+export const TeamsInviteListOutputSchema = Type.Object({
+  items: Type.Array(TeamInviteSchema),
+});
+
+export const TeamsInviteDeleteOutputSchema = Type.Object({
+  deleted: Type.Boolean(),
+});
+
+export const TeamsMemberRemoveOutputSchema = Type.Object({
+  removed: Type.Boolean(),
+});
+
+// --- Compile-time drift checks ---
+
+type _TeamsListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsListOutputSchema>,
+  ResponseOf<ListTeamsResponses>
+>;
+type _TeamMembersListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamMembersListOutputSchema>,
+  ResponseOf<GetTeamResponses>
+>;
+type _TeamsJoinOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsJoinOutputSchema>,
+  ResponseOf<JoinTeamResponses>
+>;
+type _TeamsDeleteOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsDeleteOutputSchema>,
+  ResponseOf<DeleteTeamResponses>
+>;
+type _TeamsInviteCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsInviteCreateOutputSchema>,
+  ResponseOf<CreateTeamInviteResponses>
+>;
+type _TeamsInviteListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsInviteListOutputSchema>,
+  ResponseOf<ListTeamInvitesResponses>
+>;
+type _TeamsInviteDeleteOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsInviteDeleteOutputSchema>,
+  ResponseOf<DeleteTeamInviteResponses>
+>;
+type _TeamsMemberRemoveOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof TeamsMemberRemoveOutputSchema>,
+  ResponseOf<RemoveTeamMemberResponses>
+>;
+
+// teams_create has 2 response codes (201 sync, 202 async workflow); the
+// flattened schema unions both — no direct drift check possible.
+type _TeamsCreateOutputCovers201 = AssertOutputMatchesApi<
+  Static<typeof TeamsCreateOutputSchema> | { id: string; name: string },
+  Static<typeof TeamsCreateOutputSchema>
+>;

@@ -64,7 +64,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
@@ -92,16 +92,12 @@ export async function handleEntryCreate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_create', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to create entry'));
   }
 
-  return textResult({
-    success: true,
-    entry: data,
-    message: 'Memory saved',
-  });
+  return structuredResult(data);
 }
 
 export async function handleEntryGet(
@@ -122,12 +118,12 @@ export async function handleEntryGet(
       : undefined,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Entry not found'));
   }
 
-  return textResult({ entry: data });
+  return structuredResult(data);
 }
 
 export async function handleEntryList(
@@ -151,12 +147,12 @@ export async function handleEntryList(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list entries'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleEntrySearch(
@@ -185,12 +181,12 @@ export async function handleEntrySearch(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_search', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Search failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleEntryUpdate(
@@ -214,12 +210,12 @@ export async function handleEntryUpdate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_update', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to update entry'));
   }
 
-  return textResult({ success: true, entry: data });
+  return structuredResult(data);
 }
 
 export async function handleEntryDelete(
@@ -242,7 +238,7 @@ export async function handleEntryDelete(
     return errorResult(extractApiErrorMessage(error, 'Failed to delete entry'));
   }
 
-  return textResult({ success: true, message: 'Entry deleted' });
+  return structuredResult({ deleted: true });
 }
 
 export async function handleReflect(
@@ -265,12 +261,12 @@ export async function handleReflect(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'reflect', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Reflect failed'));
   }
 
-  return textResult({ digest: data });
+  return structuredResult(data);
 }
 
 export async function handleEntryVerify(
@@ -288,12 +284,12 @@ export async function handleEntryVerify(
     path: { entryId: args.entry_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'entries_verify', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Verification failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleDiariesList(
@@ -310,12 +306,12 @@ export async function handleDiariesList(
     auth: () => token,
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list diaries'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleDiariesCreate(
@@ -334,12 +330,12 @@ export async function handleDiariesCreate(
     headers: { 'x-moltnet-team-id': args.team_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_create', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to create diary'));
   }
 
-  return textResult({ success: true, diary: data });
+  return structuredResult(data);
 }
 
 export async function handleDiariesGet(
@@ -357,12 +353,12 @@ export async function handleDiariesGet(
     path: { id: args.diary_id },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Diary not found'));
   }
 
-  return textResult({ diary: data });
+  return structuredResult(data);
 }
 
 export async function handleDiariesConsolidate(
@@ -388,7 +384,7 @@ export async function handleDiariesConsolidate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error(
       { tool: 'diaries_consolidate', err: error },
       'tool.error',
@@ -396,7 +392,7 @@ export async function handleDiariesConsolidate(
     return errorResult(extractApiErrorMessage(error, 'Consolidation failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleDiariesCompile(
@@ -439,12 +435,12 @@ export async function handleDiariesCompile(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diaries_compile', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Compile failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -471,14 +467,14 @@ export async function handleDiaryTags(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'diary_tags', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to list diary tags'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export function registerDiaryTools(

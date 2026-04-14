@@ -25,9 +25,13 @@ import type {
   CryptoVerifyInput,
 } from './schemas/crypto-schemas.js';
 import {
+  CryptoPrepareSignatureOutputSchema,
   CryptoPrepareSignatureSchema,
+  CryptoSigningStatusOutputSchema,
   CryptoSigningStatusSchema,
+  CryptoSubmitSignatureOutputSchema,
   CryptoSubmitSignatureSchema,
+  CryptoVerifyOutputSchema,
   CryptoVerifySchema,
 } from './schemas/crypto-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -35,7 +39,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions ---
@@ -60,7 +64,7 @@ export async function handleCryptoPrepareSignature(
       body: { message: args.message },
     });
 
-    if (error) {
+    if (error || !data) {
       deps.logger.error(
         { tool: 'crypto_prepare_signature', err: error },
         'tool.error',
@@ -70,17 +74,7 @@ export async function handleCryptoPrepareSignature(
       );
     }
 
-    return textResult({
-      request_id: data.id,
-      message: data.message,
-      nonce: data.nonce,
-      signing_input: data.signingInput,
-      status: data.status,
-      expires_at: data.expiresAt,
-      next_step:
-        'Call signBytes(signing_input) from @themoltnet/sdk to produce the signature, ' +
-        'then call crypto_submit_signature with request_id and the returned signature.',
-    });
+    return structuredResult(data);
   } catch (err) {
     deps.logger.error({ tool: 'crypto_prepare_signature', err }, 'tool.error');
     const message =
@@ -110,7 +104,7 @@ export async function handleCryptoSubmitSignature(
       body: { signature: args.signature },
     });
 
-    if (error) {
+    if (error || !data) {
       deps.logger.error(
         { tool: 'crypto_submit_signature', err: error },
         'tool.error',
@@ -120,16 +114,7 @@ export async function handleCryptoSubmitSignature(
       );
     }
 
-    return textResult({
-      request_id: data.id,
-      status: data.status,
-      valid: data.valid,
-      message: data.valid
-        ? 'Signature verified successfully.'
-        : data.status === 'expired'
-          ? 'Signing request expired before signature was submitted.'
-          : 'Signature verification failed.',
-    });
+    return structuredResult(data);
   } catch (err) {
     deps.logger.error({ tool: 'crypto_submit_signature', err }, 'tool.error');
     const message =
@@ -157,7 +142,7 @@ export async function handleCryptoSigningStatus(
       path: { id: args.request_id },
     });
 
-    if (error) {
+    if (error || !data) {
       deps.logger.error(
         { tool: 'crypto_signing_status', err: error },
         'tool.error',
@@ -172,13 +157,7 @@ export async function handleCryptoSigningStatus(
       );
     }
 
-    return textResult({
-      request_id: data.id,
-      status: data.status,
-      valid: data.valid,
-      message: data.message,
-      expires_at: data.expiresAt,
-    });
+    return structuredResult(data);
   } catch (err) {
     deps.logger.error({ tool: 'crypto_signing_status', err }, 'tool.error');
     const message =
@@ -204,17 +183,12 @@ export async function handleCryptoVerify(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'crypto_verify', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Verification failed'));
   }
 
-  return textResult({
-    valid: data.valid,
-    message: data.valid
-      ? 'Signature is valid.'
-      : 'Signature is invalid or unknown.',
-  });
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -227,10 +201,11 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Create a signing request. Returns request_id and signing_input. ' +
-        'Pass signing_input directly to signBytes() from @themoltnet/sdk, ' +
+        'Create a signing request. Returns id (request id) and signingInput. ' +
+        'Pass signingInput directly to signBytes() from @themoltnet/sdk, ' +
         'then submit the result with crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
+      outputSchema: CryptoPrepareSignatureOutputSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
   );
@@ -242,6 +217,7 @@ export function registerCryptoTools(
         'Submit a locally-produced Ed25519 signature for a signing request. ' +
         'The server verifies it against your registered public key via a DBOS workflow.',
       inputSchema: CryptoSubmitSignatureSchema,
+      outputSchema: CryptoSubmitSignatureOutputSchema,
     },
     async (args, ctx) => handleCryptoSubmitSignature(args, deps, ctx),
   );
@@ -252,6 +228,7 @@ export function registerCryptoTools(
       description:
         'Check the status of a signing request (pending, completed, or expired).',
       inputSchema: CryptoSigningStatusSchema,
+      outputSchema: CryptoSigningStatusOutputSchema,
     },
     async (args, ctx) => handleCryptoSigningStatus(args, deps, ctx),
   );
@@ -261,6 +238,7 @@ export function registerCryptoTools(
       name: 'crypto_verify',
       description: 'Verify a signature by looking up the signing request.',
       inputSchema: CryptoVerifySchema,
+      outputSchema: CryptoVerifyOutputSchema,
     },
     async (args, ctx) => handleCryptoVerify(args, deps, ctx),
   );

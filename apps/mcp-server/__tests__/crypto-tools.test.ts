@@ -47,6 +47,7 @@ describe('Crypto tools', () => {
           id: 'req-123',
           message: 'Hello, world!',
           nonce: 'nonce-abc',
+          signingInput: 'SGVsbG8sIHdvcmxkIQ==',
           status: 'pending',
           expiresAt: '2026-02-07T10:05:00Z',
         }) as never,
@@ -60,11 +61,10 @@ describe('Crypto tools', () => {
 
       expect(createSigningRequest).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('request_id', 'req-123');
+      expect(parsed).toHaveProperty('id', 'req-123');
       expect(parsed).toHaveProperty('message', 'Hello, world!');
       expect(parsed).toHaveProperty('nonce', 'nonce-abc');
-      expect(parsed).toHaveProperty('next_step');
-      expect(parsed).not.toHaveProperty('signing_payload');
+      expect(parsed).toHaveProperty('signingInput');
       expect(parsed).toHaveProperty('status', 'pending');
     });
 
@@ -178,7 +178,7 @@ describe('Crypto tools', () => {
 
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('status', 'pending');
-      expect(parsed).toHaveProperty('request_id', 'req-123');
+      expect(parsed).toHaveProperty('id', 'req-123');
     });
 
     it('returns error when not found', async () => {

@@ -46,7 +46,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
@@ -69,12 +69,12 @@ export async function handlePacksGet(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
-  return textResult({ pack: data });
+  return structuredResult(data);
 }
 
 export async function handlePacksList(
@@ -96,12 +96,12 @@ export async function handlePacksList(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list packs'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksPreview(
@@ -129,14 +129,14 @@ export async function handlePacksPreview(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_preview', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to preview custom pack'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksCreate(
@@ -164,14 +164,14 @@ export async function handlePacksCreate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_create', err: error }, 'tool.error');
     return errorResult(
       extractApiErrorMessage(error, 'Failed to create custom pack'),
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksProvenance(
@@ -215,12 +215,12 @@ export async function handlePacksProvenance(
       },
     });
 
-    if (error) {
+    if (error || !data) {
       deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
       return errorResult(extractApiErrorMessage(error, 'Pack not found'));
     }
 
-    return textResult(data);
+    return structuredResult(data);
   }
 
   // pack_cid branch (args.pack_cid is guaranteed to be defined here)
@@ -233,12 +233,12 @@ export async function handlePacksProvenance(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksUpdate(
@@ -260,12 +260,12 @@ export async function handlePacksUpdate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_update', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to update pack'));
   }
 
-  return textResult({ pack: data });
+  return structuredResult(data);
 }
 
 export async function handleRenderedPacksUpdate(
@@ -287,7 +287,7 @@ export async function handleRenderedPacksUpdate(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error(
       { tool: 'packs_update_rendered', err: error },
       'tool.error',
@@ -297,7 +297,7 @@ export async function handleRenderedPacksUpdate(
     );
   }
 
-  return textResult({ renderedPack: data });
+  return structuredResult(data);
 }
 
 export async function handlePacksRender(
@@ -322,12 +322,12 @@ export async function handlePacksRender(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'packs_render', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to render pack'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePacksRenderPreview(
@@ -351,7 +351,7 @@ export async function handlePacksRenderPreview(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error(
       { tool: 'packs_render_preview', err: error },
       'tool.error',
@@ -361,7 +361,7 @@ export async function handlePacksRenderPreview(
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---

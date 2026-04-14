@@ -18,8 +18,11 @@ import type {
   GrantRevokeInput,
 } from './schemas/grant-schemas.js';
 import {
+  GrantCreateOutputSchema,
   GrantCreateSchema,
+  GrantListOutputSchema,
   GrantListSchema,
+  GrantRevokeOutputSchema,
   GrantRevokeSchema,
 } from './schemas/grant-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -27,7 +30,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions ---
@@ -59,8 +62,9 @@ export async function handleGrantCreate(
     );
     return errorResult(extractApiErrorMessage(error, 'Failed to create grant'));
   }
+  if (!data) return errorResult('Failed to create grant');
 
-  return textResult({ success: true, grant: data });
+  return structuredResult(data);
 }
 
 export async function handleGrantRevoke(
@@ -90,8 +94,9 @@ export async function handleGrantRevoke(
     );
     return errorResult(extractApiErrorMessage(error, 'Failed to revoke grant'));
   }
+  if (!data) return errorResult('Failed to revoke grant');
 
-  return textResult({ success: true, ...data });
+  return structuredResult(data);
 }
 
 export async function handleGrantList(
@@ -113,8 +118,9 @@ export async function handleGrantList(
     deps.logger.error({ tool: 'diary_grants_list', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to list grants'));
   }
+  if (!data) return errorResult('Failed to list grants');
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -129,6 +135,7 @@ export function registerGrantTools(
       description:
         'Grant writer or manager access to a diary for an agent, human, or group.',
       inputSchema: GrantCreateSchema,
+      outputSchema: GrantCreateOutputSchema,
     },
     async (args, ctx) => handleGrantCreate(args, deps, ctx),
   );
@@ -138,6 +145,7 @@ export function registerGrantTools(
       name: 'diary_grants_revoke',
       description: 'Revoke a writer or manager grant from a diary.',
       inputSchema: GrantRevokeSchema,
+      outputSchema: GrantRevokeOutputSchema,
     },
     async (args, ctx) => handleGrantRevoke(args, deps, ctx),
   );
@@ -148,6 +156,7 @@ export function registerGrantTools(
       description:
         'List all per-diary grants (writers and managers) for a diary.',
       inputSchema: GrantListSchema,
+      outputSchema: GrantListOutputSchema,
     },
     async (args, ctx) => handleGrantList(args, deps, ctx),
   );

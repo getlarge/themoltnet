@@ -4,7 +4,15 @@
  * Covers: diary_grants_create/revoke/list.
  */
 
+import type {
+  CreateDiaryGrantResponses,
+  ListDiaryGrantsResponses,
+  RevokeDiaryGrantResponses,
+} from '@moltnet/api-client';
+import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
+
+import type { AssertOutputMatchesApi, ResponseOf } from './common.js';
 
 export const GrantCreateSchema = Type.Object({
   diary_id: Type.String({
@@ -59,3 +67,47 @@ export const GrantListSchema = Type.Object({
 export type GrantListInput = {
   diary_id: string;
 };
+
+// --- Output schemas ---
+
+const SubjectNsSchema = Type.Union([
+  Type.Literal('Agent'),
+  Type.Literal('Human'),
+  Type.Literal('Group'),
+]);
+
+const RoleSchema = Type.Union([
+  Type.Literal('writer'),
+  Type.Literal('manager'),
+]);
+
+const GrantSchema = Type.Object({
+  subjectId: Type.String(),
+  subjectNs: SubjectNsSchema,
+  role: RoleSchema,
+});
+
+export const GrantCreateOutputSchema = GrantSchema;
+
+export const GrantRevokeOutputSchema = Type.Object({
+  revoked: Type.Boolean(),
+});
+
+export const GrantListOutputSchema = Type.Object({
+  grants: Type.Array(GrantSchema),
+});
+
+// --- Compile-time drift checks ---
+
+type _GrantCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof GrantCreateOutputSchema>,
+  ResponseOf<CreateDiaryGrantResponses>
+>;
+type _GrantRevokeOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof GrantRevokeOutputSchema>,
+  ResponseOf<RevokeDiaryGrantResponses>
+>;
+type _GrantListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof GrantListOutputSchema>,
+  ResponseOf<ListDiaryGrantsResponses>
+>;

@@ -13,8 +13,11 @@ import {
 import type { FastifyInstance } from 'fastify';
 
 import {
+  IssueVoucherOutputSchema,
   IssueVoucherSchema,
+  ListVouchersOutputSchema,
   ListVouchersSchema,
+  TrustGraphOutputSchema,
   TrustGraphSchema,
 } from './schemas/vouch-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -22,7 +25,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
-  textResult,
+  structuredResult,
 } from './utils.js';
 
 // --- Handler functions ---
@@ -50,7 +53,7 @@ export async function handleIssueVoucher(
     );
   }
 
-  return textResult({
+  return structuredResult({
     voucher: data,
     instructions:
       'Give this voucher code to the agent you want to invite. ' +
@@ -82,7 +85,7 @@ export async function handleListVouchers(
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handleTrustGraph(
@@ -105,7 +108,7 @@ export async function handleTrustGraph(
     );
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -122,6 +125,7 @@ export function registerVouchTools(
         'The new agent must submit this code during registration. ' +
         'Max 5 active vouchers at a time. Codes expire after 24 hours.',
       inputSchema: IssueVoucherSchema,
+      outputSchema: IssueVoucherOutputSchema,
     },
     async (args, ctx) => handleIssueVoucher(args, deps, ctx),
   );
@@ -131,6 +135,7 @@ export function registerVouchTools(
       name: 'moltnet_vouchers',
       description: 'List your active (unredeemed, unexpired) voucher codes.',
       inputSchema: ListVouchersSchema,
+      outputSchema: ListVouchersOutputSchema,
     },
     async (args, ctx) => handleListVouchers(args, deps, ctx),
   );
@@ -142,6 +147,7 @@ export function registerVouchTools(
         'View the public web-of-trust graph showing which agents vouched for which. ' +
         'Each edge represents a redeemed voucher invitation.',
       inputSchema: TrustGraphSchema,
+      outputSchema: TrustGraphOutputSchema,
     },
     async (args: Record<string, never>, ctx: HandlerContext) =>
       handleTrustGraph(args, deps, ctx),

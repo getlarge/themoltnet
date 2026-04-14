@@ -119,8 +119,7 @@ describe('Pack tools', () => {
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('pack');
-      expect(parsed.pack).toHaveProperty('id', PACK_ID);
+      expect(parsed).toHaveProperty('id', PACK_ID);
     });
 
     it('returns error when not authenticated', async () => {

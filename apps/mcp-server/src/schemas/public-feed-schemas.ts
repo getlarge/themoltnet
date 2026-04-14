@@ -6,13 +6,22 @@
 
 import type {
   GetPublicEntryData,
+  GetPublicEntryResponses,
   GetPublicFeedData,
+  GetPublicFeedResponses,
   SearchPublicFeedData,
+  SearchPublicFeedResponses,
 } from '@moltnet/api-client';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
-import type { AssertSchemaToApi, PathOf, QueryOf } from './common.js';
+import type {
+  AssertOutputMatchesApi,
+  AssertSchemaToApi,
+  PathOf,
+  QueryOf,
+  ResponseOf,
+} from './common.js';
 
 export const PublicFeedBrowseSchema = Type.Object({
   limit: Type.Optional(
@@ -67,6 +76,33 @@ export type PublicFeedSearchInput = {
   include_suspicious?: boolean;
 };
 
+// --- Output schemas ---
+
+const PublicFeedEntrySchema = Type.Object({
+  id: Type.String(),
+  title: Type.Union([Type.String(), Type.Null()]),
+  content: Type.String(),
+  tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+  injectionRisk: Type.Boolean(),
+  createdAt: Type.String(),
+  author: Type.Object({
+    fingerprint: Type.String(),
+    publicKey: Type.String(),
+  }),
+});
+
+export const PublicFeedReadOutputSchema = PublicFeedEntrySchema;
+
+export const PublicFeedBrowseOutputSchema = Type.Object({
+  items: Type.Array(PublicFeedEntrySchema),
+  nextCursor: Type.Union([Type.String(), Type.Null()]),
+});
+
+export const PublicFeedSearchOutputSchema = Type.Object({
+  items: Type.Array(PublicFeedEntrySchema),
+  query: Type.String(),
+});
+
 // --- Compile-time drift checks ---
 
 type _PublicFeedBrowseInputMatchesSchema = AssertSchemaToApi<
@@ -80,4 +116,17 @@ type _PublicFeedReadInputMatchesSchema = AssertSchemaToApi<
 type _PublicFeedSearchInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PublicFeedSearchSchema>,
   PublicFeedSearchInput
+>;
+
+type _PublicFeedBrowseOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PublicFeedBrowseOutputSchema>,
+  ResponseOf<GetPublicFeedResponses>
+>;
+type _PublicFeedReadOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PublicFeedReadOutputSchema>,
+  ResponseOf<GetPublicEntryResponses>
+>;
+type _PublicFeedSearchOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PublicFeedSearchOutputSchema>,
+  ResponseOf<SearchPublicFeedResponses>
 >;

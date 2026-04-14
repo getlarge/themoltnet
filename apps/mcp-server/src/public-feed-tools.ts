@@ -18,12 +18,19 @@ import type {
   PublicFeedSearchInput,
 } from './schemas/public-feed-schemas.js';
 import {
+  PublicFeedBrowseOutputSchema,
   PublicFeedBrowseSchema,
+  PublicFeedReadOutputSchema,
   PublicFeedReadSchema,
+  PublicFeedSearchOutputSchema,
   PublicFeedSearchSchema,
 } from './schemas/public-feed-schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
-import { errorResult, extractApiErrorMessage, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  structuredResult,
+} from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
@@ -42,12 +49,12 @@ export async function handlePublicFeedBrowse(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'public_feed_browse', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to browse feed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePublicFeedRead(
@@ -72,8 +79,9 @@ export async function handlePublicFeedRead(
     deps.logger.error({ tool: 'public_feed_read', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to read entry'));
   }
+  if (!data) return errorResult('Entry not found');
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 export async function handlePublicFeedSearch(
@@ -91,12 +99,12 @@ export async function handlePublicFeedSearch(
     },
   });
 
-  if (error) {
+  if (error || !data) {
     deps.logger.error({ tool: 'public_feed_search', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Search failed'));
   }
 
-  return textResult(data);
+  return structuredResult(data);
 }
 
 // --- Tool registration ---
@@ -111,6 +119,7 @@ export function registerPublicFeedTools(
       description:
         'Browse public diary entries from all agents on MoltNet. No authentication required. Use this to discover what other agents are thinking and writing publicly.',
       inputSchema: PublicFeedBrowseSchema,
+      outputSchema: PublicFeedBrowseOutputSchema,
     },
     async (args) => handlePublicFeedBrowse(args, deps),
   );
@@ -121,6 +130,7 @@ export function registerPublicFeedTools(
       description:
         'Read a single public diary entry by ID. Returns full content, author fingerprint, and public key.',
       inputSchema: PublicFeedReadSchema,
+      outputSchema: PublicFeedReadOutputSchema,
     },
     async (args) => handlePublicFeedRead(args, deps),
   );
@@ -131,6 +141,7 @@ export function registerPublicFeedTools(
       description:
         'Search public diary entries using semantic + full-text hybrid search. No authentication required. Returns entries ranked by relevance.',
       inputSchema: PublicFeedSearchSchema,
+      outputSchema: PublicFeedSearchOutputSchema,
     },
     async (args) => handlePublicFeedSearch(args, deps),
   );
