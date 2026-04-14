@@ -2,10 +2,11 @@ package solver
 
 import (
 	"context"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
+	"github.com/XiaoConstantine/dspy-go/pkg/tools"
 )
 
 func TestParseKind(t *testing.T) {
@@ -92,14 +93,52 @@ func TestNew_ChainOfThoughtReturnsModule(t *testing.T) {
 	}
 }
 
-func TestNew_ReActReturnsSentinel(t *testing.T) {
+func TestNew_ReActReturnsModule(t *testing.T) {
+	registry := tools.NewInMemoryToolRegistry()
+	m, err := New(Config{
+		Kind:      KindReAct,
+		Signature: VivoSignature(),
+		LLM:       &stubLLM{},
+		Registry:  registry,
+	})
+	if err != nil {
+		t.Fatalf("New(react) unexpected error: %v", err)
+	}
+	if m == nil {
+		t.Fatal("New(react) returned nil module")
+	}
+	if _, ok := m.(TraceProvider); !ok {
+		t.Fatal("react module does not implement TraceProvider")
+	}
+}
+
+func TestNew_ReActRequiresRegistry(t *testing.T) {
 	_, err := New(Config{
 		Kind:      KindReAct,
 		Signature: VivoSignature(),
 		LLM:       &stubLLM{},
 	})
-	if !errors.Is(err, ErrReActNotImplemented) {
-		t.Fatalf("New(react) expected ErrReActNotImplemented, got %v", err)
+	if err == nil {
+		t.Fatal("New(react) without registry must error")
+	}
+	if !strings.Contains(err.Error(), "Registry") {
+		t.Errorf("expected 'Registry' in error, got: %v", err)
+	}
+}
+
+func TestNew_ReActMaxIterationsDefault(t *testing.T) {
+	registry := tools.NewInMemoryToolRegistry()
+	m, err := New(Config{
+		Kind:      KindReAct,
+		Signature: VivoSignature(),
+		LLM:       &stubLLM{},
+		Registry:  registry,
+	})
+	if err != nil {
+		t.Fatalf("New(react) unexpected error: %v", err)
+	}
+	if m == nil {
+		t.Fatal("New(react) returned nil module")
 	}
 }
 

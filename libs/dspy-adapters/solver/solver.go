@@ -16,11 +16,11 @@ package solver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/XiaoConstantine/dspy-go/pkg/core"
 	"github.com/XiaoConstantine/dspy-go/pkg/modules"
+	"github.com/XiaoConstantine/dspy-go/pkg/tools"
 )
 
 // Kind identifies which dspy-go module drives the solver.
@@ -32,17 +32,10 @@ const (
 	// inputs, no runtime tool use driven by dspy-go).
 	KindChainOfThought Kind = "cot"
 
-	// KindReAct uses modules.ReAct. The kind is wired end-to-end through
-	// config and CLI flags but New() currently returns
-	// ErrReActNotImplemented — a follow-up issue adds the tool registry
-	// and makes this functional for vivo scenarios.
+	// KindReAct uses modules.ReAct with a tool registry for vivo
+	// eval scenarios. Requires Config.Registry to be set.
 	KindReAct Kind = "react"
 )
-
-// ErrReActNotImplemented is returned by New when Kind is KindReAct.
-// The plumbing is in place so a follow-up PR can implement the tool
-// registry without touching call sites or CLI flags.
-var ErrReActNotImplemented = errors.New("solver: ReAct kind is not yet implemented (tracked in issue #714 follow-up)")
 
 // ParseKind parses a CLI/config string into a Kind.
 // Unknown values return a descriptive error rather than silently
@@ -68,8 +61,12 @@ type Config struct {
 	LLM       core.LLM
 
 	// MaxIterations caps the ReAct outer loop. Ignored for
-	// KindChainOfThought. Zero uses the dspy-go default.
+	// KindChainOfThought. Defaults to 10 when ≤0.
 	MaxIterations int
+
+	// Registry is the tool registry for ReAct. Required for KindReAct,
+	// ignored for KindChainOfThought.
+	Registry *tools.InMemoryToolRegistry
 }
 
 // Module is the narrow interface eval code actually needs. Keeping it
@@ -90,7 +87,9 @@ type Module interface {
 // (no reliance on dspy-go's global default LLM — that matters because
 // eval runs can execute in parallel with different LLMs per trial).
 //
-// KindReAct currently returns ErrReActNotImplemented.
+// For KindReAct, Config.Registry must be non-nil and MaxIterations
+// defaults to 10 when ≤0. Returns a *reactModule that implements
+// both Module and TraceProvider.
 func New(cfg Config) (Module, error) {
 	if cfg.LLM == nil {
 		return nil, fmt.Errorf("solver: Config.LLM is required")
@@ -112,7 +111,16 @@ func New(cfg Config) (Module, error) {
 		cot.SetLLM(cfg.LLM)
 		return cot, nil
 	case KindReAct:
-		return nil, ErrReActNotImplemented
+		if cfg.Registry == nil {
+			return nil, fmt.Errorf("solver: Config.Registry is required for ReAct")
+		}
+		maxIters := cfg.MaxIterations
+		if maxIters <= 0 {
+			maxIters = 10
+		}
+		react := modules.NewReAct(cfg.Signature, cfg.Registry, maxIters)
+		react.SetLLM(cfg.LLM)
+		return &reactModule{inner: react}, nil
 	default:
 		return nil, fmt.Errorf("solver: unknown Kind %q", cfg.Kind)
 	}
