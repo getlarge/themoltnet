@@ -18,8 +18,6 @@ import { randomBytes } from 'node:crypto';
 
 import { agentVouchers, type Database } from '@moltnet/database';
 
-const BASE_URL = process.env.SERVER_BASE_URL ?? 'http://localhost:8080';
-
 export interface TestAgent {
   identityId: string;
   clientId: string;
@@ -81,7 +79,9 @@ export async function createAgent(opts: {
   });
 
   if (!regRes.ok) {
-    throw new Error(`Registration failed: ${regRes.status} ${await regRes.text()}`);
+    throw new Error(
+      `Registration failed: ${regRes.status} ${await regRes.text()}`,
+    );
   }
 
   const creds = (await regRes.json()) as {
@@ -103,7 +103,9 @@ export async function createAgent(opts: {
   });
 
   if (!tokenRes.ok) {
-    throw new Error(`Token acquisition failed: ${tokenRes.status} ${await tokenRes.text()}`);
+    throw new Error(
+      `Token acquisition failed: ${tokenRes.status} ${await tokenRes.text()}`,
+    );
   }
 
   const { access_token } = (await tokenRes.json()) as { access_token: string };

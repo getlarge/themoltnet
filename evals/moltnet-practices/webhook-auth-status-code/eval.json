@@ -1,8 +1,8 @@
 {
-  "mode": "vitro",
   "fixture": {
     "inject": [
       { "from": "fixtures/hooks.ts", "to": "apps/rest-api/src/routes/hooks.ts" }
     ]
-  }
+  },
+  "mode": "vitro"
 }

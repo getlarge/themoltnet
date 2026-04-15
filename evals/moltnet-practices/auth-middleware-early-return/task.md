@@ -22,10 +22,10 @@ Add an `auditLog` preHandler hook to the auth plugin that:
    ```typescript
    {
      identityId: string;
-     teamId: string;      // required — compliance needs this
-     method: string;       // request.method
-     url: string;          // request.url
-     timestamp: number;    // Date.now()
+     teamId: string; // required — compliance needs this
+     method: string; // request.method
+     url: string; // request.url
+     timestamp: number; // Date.now()
    }
    ```
 3. Skips unauthenticated requests (no `authContext`)

@@ -19,8 +19,7 @@ export function getConfig(): AppConfig {
     };
   }
 
-  const isProd =
-    import.meta.env.PROD || import.meta.env.MODE === 'production';
+  const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
 
   if (isProd) {
     throw new Error(

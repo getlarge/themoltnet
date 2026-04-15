@@ -12,7 +12,7 @@ and **author** (write + validate gap-test scenarios).
 ## Why subagent isolation matters
 
 An agent that writes a scenario knows the trap it designed. When it
-estimates baselines, it projects what it *thinks* the model will miss —
+estimates baselines, it projects what it _thinks_ the model will miss —
 not what actually happens. This produces fabricated baselines that
 collapse when measured.
 
@@ -81,6 +81,7 @@ file format details and examples.
 ### Steps
 
 1. If given a pack ID instead of a file, render it locally:
+
    ```bash
    npx @themoltnet/cli pack render --preview <pack-id> --out /tmp/pack.md
    ```
@@ -91,10 +92,10 @@ file format details and examples.
 
 3. Collect results into a delta report:
 
-   | Scenario | Baseline | With pack | Delta |
-   |----------|----------|-----------|-------|
-   | scenario-a | 20% | 75% | +55% |
-   | scenario-b | 90% | 95% | +5% |
+   | Scenario   | Baseline | With pack | Delta |
+   | ---------- | -------- | --------- | ----- |
+   | scenario-a | 20%      | 75%       | +55%  |
+   | scenario-b | 90%      | 95%       | +5%   |
 
 4. Record results as a diary entry if `DIARY_ID` is available:
    - `episodic` for surprising results (large delta, regression, 0% with-context)
@@ -164,7 +165,8 @@ before spawning the AUTHOR subagent.
 Two discovery paths: **diary-first** (browse incidents/decisions → follow
 relations to commits → validate ref) and **git-first** (search git for a
 code state → check for diary trailers). Both converge at a validated ref
-+ scenario seed content.
+
+- scenario seed content.
 
 See [references/fixture-ref-discovery.md](references/fixture-ref-discovery.md)
 for the full procedure with bash examples.
@@ -172,6 +174,7 @@ for the full procedure with bash examples.
 #### Step 1: Spawn AUTHOR subagent
 
 The author subagent receives:
+
 - Full project context (diary entries, rendered pack, codebase)
 - The gap-test design principles (from references/)
 - The gold standard scenario (`evals/moltnet-practices/dbos-after-commit/`)
@@ -179,6 +182,7 @@ The author subagent receives:
   (score only, NOT which criteria passed/failed)
 
 The author subagent produces:
+
 - `task.md`, `criteria.json`, `eval.json`, `fixtures/*`
 - An intent declaration in `rewrite-log.md`:
 
@@ -186,6 +190,7 @@ The author subagent produces:
 ## Iteration N
 
 ### Intent
+
 - **Trap**: what incorrect pattern am I tempting the model toward?
 - **Leak closed** (if rewrite): what hint did I remove vs previous iteration?
 - **Expected failure**: which criteria should the model fail, and why?
@@ -194,6 +199,7 @@ The author subagent produces:
 ```
 
 The author subagent does NOT:
+
 - Run any eval commands
 - Estimate or project baseline scores
 - Access previous iteration's criteria breakdown
@@ -227,30 +233,34 @@ the gate check (Step 3).
 
 The orchestrator (this conversation) applies the gate:
 
-| Mean baseline | Action |
-|--------------|--------|
-| ≤ 60% | **PASS** — scenario is a valid gap-test. Proceed to with-context validation. |
-| 61-80% | **MARGINAL** — compare author's expected failures vs actual. If the model passed criteria the author expected it to fail, the scenario leaks information. Rewrite. |
-| > 80% | **FAIL** — the model already knows the answer. Rewrite. |
+| Mean baseline | Action                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ≤ 60%         | **PASS** — scenario is a valid gap-test. Proceed to with-context validation.                                                                                       |
+| 61-80%        | **MARGINAL** — compare author's expected failures vs actual. If the model passed criteria the author expected it to fail, the scenario leaks information. Rewrite. |
+| > 80%         | **FAIL** — the model already knows the answer. Rewrite.                                                                                                            |
 
 #### Step 4: Iterate or accept
 
 If the gate fails, spawn a new AUTHOR subagent with:
+
 - The iteration number
 - The aggregate score (e.g., "mean 75% across 2 runs")
 - NOT the per-criteria breakdown (to prevent reverse-engineering the judge)
 - The previous rewrite-log (so the author can see its own intent history)
 
 If the gate passes, optionally run with-context validation:
+
 ```bash
 npx @themoltnet/cli eval run --scenario <path> --pack <rendered-pack.md>
 ```
+
 - A positive delta (baseline → with-pack improvement ≥ 15 points) confirms
   the pack contains knowledge the scenario tests
 
 #### Step 5: Finalize
 
 When a scenario passes the gate:
+
 1. Remove `rewrite-log.md` (process artifact, not committed)
 2. Commit the scenario files
 3. Record the measured baseline + delta in a diary entry
@@ -277,6 +287,7 @@ AUTHOR (subagent):                 ORCHESTRATOR (main session):
 
 See [references/author-subagent-prompt.md](references/author-subagent-prompt.md)
 for the full template. Key constraints:
+
 - Must produce an intent declaration before writing files
 - Must NOT run eval commands or estimate scores
 - Must follow gap-test design principles from references/
@@ -286,6 +297,7 @@ for the full template. Key constraints:
 `evals/moltnet-practices/dbos-after-commit/` — scores 20% baseline.
 
 Properties that make it work:
+
 - TODOs placed inside the transaction callback (the wrong location)
 - Task never mentions "separate connections" or "DBOS"
 - 60% of score requires naming specific systems and failure modes
@@ -300,6 +312,7 @@ Study this before writing new scenarios.
 When `DIARY_ID` is available, record eval results as diary entries:
 
 **After pack evaluation (run mode):**
+
 ```
 entry_type: episodic (if delta > 20% or delta < 0)
 entry_type: semantic (if stable, expected results)
@@ -308,6 +321,7 @@ importance: 7 (surprising results) or 5 (expected results)
 ```
 
 **After scenario authoring:**
+
 ```
 entry_type: procedural
 tags: [scope:evals, eval:gap-test-design, branch:<current-branch>]

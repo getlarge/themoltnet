@@ -6,12 +6,10 @@ Declares isolation mode and fixture injection.
 
 ```json
 {
-  "mode": "vitro",
   "fixture": {
-    "inject": [
-      { "from": "fixtures/some-file.ts", "to": "path/in/worktree.ts" }
-    ]
-  }
+    "inject": [{ "from": "fixtures/some-file.ts", "to": "path/in/worktree.ts" }]
+  },
+  "mode": "vitro"
 }
 ```
 
@@ -19,16 +17,17 @@ Declares isolation mode and fixture injection.
 
 ```json
 {
-  "mode": "vivo",
   "fixture": {
-    "ref": "abc123def456",
-    "exclude": ["node_modules/**", ".env*"]
-  }
+    "exclude": ["node_modules/**", ".env*"],
+    "ref": "abc123def456"
+  },
+  "mode": "vivo"
 }
 ```
 
 Vivo scenarios operate on the real repository at `fixture.ref`. The agent
 sees the full file tree (minus excluded patterns). Use vivo when:
+
 - The scenario tests multi-step workflows where step ordering matters
 - The agent needs to discover project structure (codegen chains, build deps)
 - Vitro isolation can't reproduce the failure (frontier models ace the
@@ -38,11 +37,13 @@ sees the full file tree (minus excluded patterns). Use vivo when:
 via `git rev-parse --verify` at runtime.
 
 **Modes:**
+
 - `vitro` — sparse worktree. Filesystem starts empty. Only injected
   fixtures are present. Agent receives task via prompt. Default.
 - `vivo` — real repo at a specific commit. Requires `fixture.ref`.
 
 **Choosing vitro vs vivo:**
+
 - **Vitro**: the knowledge being tested can be isolated to a few files.
   The agent receives only injected fixtures. Faster, cheaper, more
   deterministic.
@@ -64,6 +65,7 @@ What the agent under test receives. This is the entire prompt — the
 agent sees nothing else except the injected fixtures.
 
 Structure:
+
 ```markdown
 # <imperative title>
 
@@ -112,6 +114,7 @@ Weighted checklist scored by the judge. Scores must sum to 100.
 ```
 
 **The `context` field** is critical. It tells the judge:
+
 - What the scenario is actually testing
 - What the correct answer looks like
 - Why the intuitive/wrong answer fails
@@ -120,6 +123,7 @@ Weighted checklist scored by the judge. Scores must sum to 100.
 This context is visible to the judge but NOT to the agent under test.
 
 **Score distribution guidelines:**
+
 - ≥ 40% on articulation criteria (notes.md explains the WHY)
 - ≤ 60% on code-correctness criteria (code alone shouldn't pass)
 - Each criterion should be independently scorable (pass/fail)
@@ -143,18 +147,21 @@ Tracks the author's intent across iterations. Format:
 ## Iteration 1
 
 ### Intent
+
 - **Trap**: <what incorrect pattern am I tempting the model toward?>
 - **Leak closed**: <what hint did I remove vs previous iteration?>
 - **Expected failure**: <which criteria should the model fail, and why?>
 - **Knowledge required**: <what specific knowledge isn't in the fixtures?>
 
 ### Baseline result
+
 - **Score**: <measured, not estimated>
 - **Criteria passed**: [list]
 - **Criteria failed**: [list]
 - **Verdict**: PASS / MARGINAL / FAIL
 
 ### Intent vs reality
+
 - <Did the model fail where expected? If not, why?>
 ```
 
@@ -166,11 +173,11 @@ The eval runner writes results to a temp directory. Key fields:
 {
   "scenario": { "name": "...", "variant": "without-context" },
   "scores": {
-    "normalized_reward": 0.6,
     "criteria": {
-      "criterion_name_snake_case": 1,
-      "another_criterion": 0
-    }
+      "another_criterion": 0,
+      "criterion_name_snake_case": 1
+    },
+    "normalized_reward": 0.6
   },
   "usage": { "total_cost_usd": 0.128 }
 }

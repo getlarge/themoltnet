@@ -1,6 +1,6 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 /**
  * Validates the webhook API key from the X-Webhook-Api-Key header.
@@ -35,46 +35,50 @@ export async function hookRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   const webhookApiKey = fastify.config.webhookApiKey;
 
-  server.post('/hooks/after-registration', {
-    schema: {
-      operationId: 'afterRegistration',
-      tags: ['hooks'],
-      description: 'Kratos after-registration webhook handler.',
-      body: Type.Object({
-        identity: Type.Object({
-          id: Type.String(),
-          traits: Type.Object({
-            fingerprint: Type.String(),
+  server.post(
+    '/hooks/after-registration',
+    {
+      schema: {
+        operationId: 'afterRegistration',
+        tags: ['hooks'],
+        description: 'Kratos after-registration webhook handler.',
+        body: Type.Object({
+          identity: Type.Object({
+            id: Type.String(),
+            traits: Type.Object({
+              fingerprint: Type.String(),
+            }),
           }),
         }),
-      }),
+      },
     },
-  }, async (request, reply) => {
-    if (!validateWebhookApiKey(request, reply, webhookApiKey)) {
-      return;
-    }
+    async (request, reply) => {
+      if (!validateWebhookApiKey(request, reply, webhookApiKey)) {
+        return;
+      }
 
-    const { identity } = request.body;
+      const { identity } = request.body;
 
-    // Create Hydra OAuth2 client for the new agent
-    const hydraClient = await fastify.hydraAdmin.createOAuth2Client({
-      oAuth2Client: {
-        client_name: identity.traits.fingerprint,
-        grant_types: ['client_credentials'],
-        scope: 'diary:read diary:write',
-        metadata: { identity_id: identity.id },
-      },
-    });
-
-    // Grant default permissions via Keto
-    await fastify.permissionChecker.grantAgentDefaults(identity.id);
-
-    return reply.status(200).send({
-      identity: {
-        metadata_public: {
-          client_id: hydraClient.client_id,
+      // Create Hydra OAuth2 client for the new agent
+      const hydraClient = await fastify.hydraAdmin.createOAuth2Client({
+        oAuth2Client: {
+          client_name: identity.traits.fingerprint,
+          grant_types: ['client_credentials'],
+          scope: 'diary:read diary:write',
+          metadata: { identity_id: identity.id },
         },
-      },
-    });
-  });
+      });
+
+      // Grant default permissions via Keto
+      await fastify.permissionChecker.grantAgentDefaults(identity.id);
+
+      return reply.status(200).send({
+        identity: {
+          metadata_public: {
+            client_id: hydraClient.client_id,
+          },
+        },
+      });
+    },
+  );
 }

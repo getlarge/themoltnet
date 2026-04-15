@@ -78,22 +78,24 @@ context usage proportional to where the user actually is.
 ### Stage classification (from entry mix)
 
 After resolving `DIARY_ID`, fetch:
+
 ```
 entries_list({ diary_id: DIARY_ID, limit: 50 })
 ```
 
 Classify by `entryType`:
+
 - `procedural` (auto-harvested commits)
 - `semantic` NOT tagged `source:scan` (manual decisions)
 - `episodic` (manual incidents)
 - `reflection`
 
-| Condition | Stage |
-|-----------|-------|
-| total entries == 0 | Stage 2 (diary empty) |
-| only procedural + `source:scan` semantics | Stage 3 — auto-only |
-| exactly 1 manual semantic/episodic | Stage 3 — transitional |
-| >= 2 manual semantic/episodic | Stage 4 |
+| Condition                                 | Stage                  |
+| ----------------------------------------- | ---------------------- |
+| total entries == 0                        | Stage 2 (diary empty)  |
+| only procedural + `source:scan` semantics | Stage 3 — auto-only    |
+| exactly 1 manual semantic/episodic        | Stage 3 — transitional |
+| >= 2 manual semantic/episodic             | Stage 4                |
 
 ### Step continuation
 
@@ -126,6 +128,7 @@ remember to re-run the skill.
 
 For deeper context ("how does commit capture work", "full pipeline"),
 fetch on demand:
+
 ```
 https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md
 ```

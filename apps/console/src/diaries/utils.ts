@@ -67,9 +67,7 @@ export function estimateTokenCount(content: string): number {
   return Math.max(1, Math.round(content.length / 4));
 }
 
-export function getEntryTypeQuery(
-  value: string | null,
-): EntryType | null {
+export function getEntryTypeQuery(value: string | null): EntryType | null {
   if (!value) return null;
   return ENTRY_TYPE_OPTIONS.includes(value as EntryType)
     ? (value as EntryType)

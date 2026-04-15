@@ -30,8 +30,7 @@ export function getConfig(): AppConfig {
     };
   }
 
-  const isProd =
-    import.meta.env.PROD || import.meta.env.MODE === 'production';
+  const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
 
   if (isProd) {
     throw new Error(
@@ -40,9 +39,11 @@ export function getConfig(): AppConfig {
   }
 
   return {
-    kratosUrl: normalizeUrl(import.meta.env.VITE_KRATOS_URL) || 'http://localhost:4433',
+    kratosUrl:
+      normalizeUrl(import.meta.env.VITE_KRATOS_URL) || 'http://localhost:4433',
     apiBaseUrl:
-      normalizeUrl(import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8000',
+      normalizeUrl(import.meta.env.VITE_API_BASE_URL) ||
+      'http://localhost:8000',
     consoleUrl:
       normalizeUrl(import.meta.env.VITE_CONSOLE_URL) || 'http://localhost:5174',
   };

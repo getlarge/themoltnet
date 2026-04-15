@@ -1,9 +1,15 @@
 {
-  "mode": "vitro",
   "fixture": {
     "inject": [
-      { "from": "fixtures/governance.e2e.test.ts", "to": "apps/rest-api/e2e/helpers.ts" },
-      { "from": "fixtures/sdk.gen.ts", "to": "libs/api-client/src/generated/sdk.gen.ts" }
+      {
+        "from": "fixtures/governance.e2e.test.ts",
+        "to": "apps/rest-api/e2e/helpers.ts"
+      },
+      {
+        "from": "fixtures/sdk.gen.ts",
+        "to": "libs/api-client/src/generated/sdk.gen.ts"
+      }
     ]
-  }
+  },
+  "mode": "vitro"
 }

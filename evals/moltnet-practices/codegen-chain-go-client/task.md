@@ -20,6 +20,7 @@ packs should include this field in its response.
 ## Output
 
 Produce `notes.md` explaining:
+
 - What you changed and why
 - Which artifacts you regenerated and in what order
 - Any concerns about the change

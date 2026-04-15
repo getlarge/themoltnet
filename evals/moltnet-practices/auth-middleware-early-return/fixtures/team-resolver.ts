@@ -1,4 +1,4 @@
-import { FastifyRequest } from 'fastify';
+import type { FastifyRequest } from 'fastify';
 
 interface AuthContext {
   identityId: string;
@@ -37,11 +37,10 @@ export async function resolveTeamContext(
       );
     }
 
-    const isMember =
-      await request.server.permissionChecker.checkTeamMembership(
-        authContext.identityId,
-        teamHeader,
-      );
+    const isMember = await request.server.permissionChecker.checkTeamMembership(
+      authContext.identityId,
+      teamHeader,
+    );
     if (!isMember) {
       throw request.server.httpErrors.forbidden(
         'Not a member of the specified team',
