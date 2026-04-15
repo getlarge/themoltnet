@@ -3926,6 +3926,7 @@ type DiaryEntry struct {
 	ContentHash      NilString           `json:"contentHash"`
 	ContentSignature NilString           `json:"contentSignature"`
 	CreatedAt        time.Time           `json:"createdAt"`
+	CreatedBy        uuid.UUID           `json:"createdBy"`
 	DiaryId          uuid.UUID           `json:"diaryId"`
 	EntryType        DiaryEntryEntryType `json:"entryType"`
 	ID               uuid.UUID           `json:"id"`
@@ -3960,6 +3961,11 @@ func (s *DiaryEntry) GetContentSignature() NilString {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *DiaryEntry) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *DiaryEntry) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -4030,6 +4036,11 @@ func (s *DiaryEntry) SetContentSignature(val NilString) {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *DiaryEntry) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *DiaryEntry) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -4394,6 +4405,7 @@ type DiaryEntryWithRelations struct {
 	ContentHash      NilString                        `json:"contentHash"`
 	ContentSignature NilString                        `json:"contentSignature"`
 	CreatedAt        time.Time                        `json:"createdAt"`
+	CreatedBy        uuid.UUID                        `json:"createdBy"`
 	DiaryId          uuid.UUID                        `json:"diaryId"`
 	EntryType        DiaryEntryWithRelationsEntryType `json:"entryType"`
 	ID               uuid.UUID                        `json:"id"`
@@ -4429,6 +4441,11 @@ func (s *DiaryEntryWithRelations) GetContentSignature() NilString {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *DiaryEntryWithRelations) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *DiaryEntryWithRelations) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -4504,6 +4521,11 @@ func (s *DiaryEntryWithRelations) SetContentSignature(val NilString) {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *DiaryEntryWithRelations) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *DiaryEntryWithRelations) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
 }
 
 // SetDiaryId sets the value of DiaryId.

@@ -53,6 +53,7 @@ describe('Diary entry routes', () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json().content).toBe('Test diary entry content');
+      expect(response.json().createdBy).toBe(OWNER_ID);
       expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
         {
           diaryId: DIARY_ID,
@@ -146,6 +147,7 @@ describe('Diary entry routes', () => {
       const body = response.json();
       expect(body.items).toHaveLength(2);
       expect(body.total).toBe(5);
+      expect(body.items[0].createdBy).toBe(OWNER_ID);
     });
 
     it('passes query parameters through', async () => {
@@ -462,6 +464,7 @@ describe('Diary entry routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().id).toBe(ENTRY_ID);
+      expect(response.json().createdBy).toBe(OWNER_ID);
     });
 
     it('returns 404 when not found', async () => {
@@ -535,6 +538,7 @@ describe('Diary entry routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().results).toHaveLength(1);
+      expect(response.json().results[0].createdBy).toBe(OWNER_ID);
     });
 
     it('searches without query (lists all)', async () => {
