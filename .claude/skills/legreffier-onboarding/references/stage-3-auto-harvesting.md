@@ -36,7 +36,7 @@ Classify by `entryType`:
 - total == 0 → still Stage 2
 - only procedural (+ `source:scan` semantics) → **Stage 3 — auto-only**
 - exactly 1 manual semantic/episodic → **Stage 3 — transitional**
-- > = 2 manual semantic/episodic → **Stage 4**
+- 2+ manual semantic/episodic → **Stage 4**
 
 ## Actions (in order, one at a time)
 

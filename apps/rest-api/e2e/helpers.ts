@@ -16,6 +16,79 @@ import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
 import type { FrontendApi } from '@ory/client-fetch';
 
+// ── Polling Helpers ───────────────────────────────────────────────────────────
+
+export interface PollOptions {
+  /** Maximum number of attempts before giving up. Default: 20. */
+  maxAttempts?: number;
+  /** Delay between attempts in milliseconds. Default: 250. */
+  intervalMs?: number;
+  /**
+   * If true (default), throw a descriptive Error on timeout.
+   * If false, resolve with the last produced value instead.
+   */
+  throwOnTimeout?: boolean;
+  /** Label used in the timeout error message. */
+  label?: string;
+}
+
+/**
+ * Poll an async producer until its result satisfies `predicate`.
+ *
+ * Returns the first value matching the predicate. On timeout, throws by default
+ * (or returns the last produced value when `throwOnTimeout: false`).
+ *
+ * Use this for any e2e readiness check that depends on async/eventually-consistent
+ * state (DBOS workflows, Keto tuple propagation, search indexing, etc.).
+ */
+export async function pollUntil<T>(
+  produce: () => Promise<T>,
+  predicate: (value: T) => boolean,
+  options: PollOptions = {},
+): Promise<T> {
+  const {
+    maxAttempts = 20,
+    intervalMs = 250,
+    throwOnTimeout = true,
+    label = 'pollUntil',
+  } = options;
+
+  let last: T | undefined;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    last = await produce();
+    if (predicate(last)) return last;
+    await new Promise<void>((r) => {
+      setTimeout(r, intervalMs);
+    });
+  }
+
+  if (throwOnTimeout) {
+    throw new Error(
+      `${label}: condition not met after ${maxAttempts} attempts (${maxAttempts * intervalMs}ms)`,
+    );
+  }
+  return last as T;
+}
+
+/**
+ * Specialization of `pollUntil` for api-client calls: polls a request until
+ * `response.status` matches `targetStatus` (or any of the provided statuses).
+ *
+ * Returns the matching `{ data, response, error }` envelope. Throws on timeout
+ * unless `throwOnTimeout: false` is passed.
+ */
+export function pollUntilStatus<R extends { response: { status: number } }>(
+  request: () => Promise<R>,
+  targetStatus: number | readonly number[],
+  options: PollOptions = {},
+): Promise<R> {
+  const targets = Array.isArray(targetStatus) ? targetStatus : [targetStatus];
+  return pollUntil(request, (r) => targets.includes(r.response.status), {
+    label: `pollUntilStatus(${targets.join('|')})`,
+    ...options,
+  });
+}
+
 export interface TestAgent {
   identityId: string;
   keyPair: KeyPair;
