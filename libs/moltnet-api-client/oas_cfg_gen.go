@@ -18,11 +18,11 @@ import (
 )
 
 var regexMap = map[string]ogenregex.Regexp{
-	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$":                ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"),
-	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$":            ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"),
-	"^(pending|completed|expired)(,(pending|completed|expired))*$":                                                                        ogenregex.MustCompile("^(pending|completed|expired)(,(pending|completed|expired))*$"),
-	"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(,[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}){0,49}$": ogenregex.MustCompile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(,[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}){0,49}$"),
-	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$":                                                                       ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
+	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$":                                              ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"),
+	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$":                                          ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"),
+	"^(pending|completed|expired)(,(pending|completed|expired))*$":                                                                                                      ogenregex.MustCompile("^(pending|completed|expired)(,(pending|completed|expired))*$"),
+	"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$": ogenregex.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$"),
+	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$":                                                                                                     ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
 	"^[^,]{1,50}(,[^,]{1,50}){0,19}$": ogenregex.MustCompile("^[^,]{1,50}(,[^,]{1,50}){0,19}$"),
 	"^[a-f0-9]{64}$":                  ogenregex.MustCompile("^[a-f0-9]{64}$"),
 	"^[a-z0-9-]+$":                    ogenregex.MustCompile("^[a-z0-9-]+$"),

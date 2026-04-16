@@ -3581,7 +3581,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,
-							Regex:         regexMap["^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(,[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}){0,49}$"],
+							Regex:         regexMap["^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$"],
 							MinNumeric:    0,
 							MinNumericSet: false,
 							MaxNumeric:    0,
