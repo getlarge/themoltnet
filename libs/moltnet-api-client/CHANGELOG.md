@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.16.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.15.0...moltnet-api-client-v1.16.0) (2026-04-16)
+
+
+### Features
+
+* **entries:** expose ids filter end-to-end on list entries ([254a1dc](https://github.com/getlarge/themoltnet/commit/254a1dcd27b0a452b332b033fb57beec35e409e5))
+
+
+### Bug Fixes
+
+* add missing diary entry createdBy in API response ([c4573ea](https://github.com/getlarge/themoltnet/commit/c4573eae3dbc6196fe78cf77c2864245ff643c50))
+* **rest-api:** expose diary entry createdBy in API responses ([810888f](https://github.com/getlarge/themoltnet/commit/810888fe274f43d06c214e6bcba2250da1f6215a))
+
+
+### Codegen
+
+* **moltnet-api-client:** regen Go client for case-insensitive ids regex ([3dd6710](https://github.com/getlarge/themoltnet/commit/3dd6710352c71c442aa1d8bbab8050da1eed8bab))
+* **moltnet-api-client:** regen Go client for ids filter ([b7ef8d7](https://github.com/getlarge/themoltnet/commit/b7ef8d7f226443c371cf12ce33fd37d82bb74bcb))
+
 ## [1.15.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.14.0...moltnet-api-client-v1.15.0) (2026-04-14)
 
 
