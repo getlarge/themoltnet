@@ -10351,6 +10351,10 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 					In:   "query",
 				}: params.Offset,
 				{
+					Name: "ids",
+					In:   "query",
+				}: params.Ids,
+				{
 					Name: "tags",
 					In:   "query",
 				}: params.Tags,
