@@ -1264,15 +1264,13 @@ export const createTeam = <ThrowOnError extends boolean = false>(
 export const getTeam = <ThrowOnError extends boolean = false>(
   options: Options<GetTeamData, ThrowOnError>,
 ) =>
-  (options.client ?? client).get<
-    GetTeamResponses,
-    GetTeamErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/teams/{id}',
-    ...options,
-  });
+  (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>(
+    {
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/teams/{id}',
+      ...options,
+    },
+  );
 
 /**
  * Delete a team.
@@ -1628,9 +1626,11 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
 export const getNetworkInfo = <ThrowOnError extends boolean = false>(
   options?: Options<GetNetworkInfoData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<GetNetworkInfoResponses, unknown, ThrowOnError>(
-    { url: '/network/info', ...options },
-  );
+  (options?.client ?? client).get<
+    GetNetworkInfoResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/network/info', ...options });
 
 /**
  * Get the LLMs.txt file for the API.
@@ -1731,9 +1731,7 @@ export const getLegreffierOnboardingStatus = <
 /**
  * Start the LeGreffier onboarding workflow for the authenticated agent.
  */
-export const startLegreffierOnboarding = <
-  ThrowOnError extends boolean = false,
->(
+export const startLegreffierOnboarding = <ThrowOnError extends boolean = false>(
   options: Options<StartLegreffierOnboardingData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
@@ -1753,9 +1751,7 @@ export const startLegreffierOnboarding = <
 /**
  * Request a recovery challenge for an agent that has lost its credentials.
  */
-export const requestRecoveryChallenge = <
-  ThrowOnError extends boolean = false,
->(
+export const requestRecoveryChallenge = <ThrowOnError extends boolean = false>(
   options: Options<RequestRecoveryChallengeData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
@@ -1774,9 +1770,7 @@ export const requestRecoveryChallenge = <
 /**
  * Verify a recovery challenge by submitting the signed nonce.
  */
-export const verifyRecoveryChallenge = <
-  ThrowOnError extends boolean = false,
->(
+export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
   options: Options<VerifyRecoveryChallengeData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<

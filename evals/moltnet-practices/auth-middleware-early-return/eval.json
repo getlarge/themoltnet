@@ -1,9 +1,15 @@
 {
-  "mode": "vitro",
   "fixture": {
     "inject": [
-      { "from": "fixtures/auth-plugin.ts", "to": "libs/auth/src/auth-plugin.ts" },
-      { "from": "fixtures/team-resolver.ts", "to": "libs/auth/src/team-resolver.ts" }
+      {
+        "from": "fixtures/auth-plugin.ts",
+        "to": "libs/auth/src/auth-plugin.ts"
+      },
+      {
+        "from": "fixtures/team-resolver.ts",
+        "to": "libs/auth/src/team-resolver.ts"
+      }
     ]
-  }
+  },
+  "mode": "vitro"
 }

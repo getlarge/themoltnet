@@ -18,6 +18,7 @@ import {
   createDiary,
   createTeam,
   getDiary,
+  getTeam,
   initiateTransfer,
   listPendingTransfers,
   listTeams,
@@ -25,7 +26,12 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import {
+  createAgent,
+  pollUntil,
+  pollUntilStatus,
+  type TestAgent,
+} from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 // ── Team Founding ─────────────────────────────────────────────────────────────
@@ -119,6 +125,26 @@ describe('Team Governance', () => {
       });
       expect(response.status).toBe(202);
       foundingTeamId = (data as { id: string }).id;
+
+      // The team-founding workflow runs async: a single step grants Keto roles
+      // AND seeds founding-acceptance rows. Until that step commits, agentB is
+      // invisible to the team and POST /teams/:id/accept returns 404 (the
+      // route's "no existence leak" guard). Wait until Keto sees agentB as a
+      // member — by then acceptance rows also exist.
+      await pollUntilStatus(
+        () =>
+          getTeam({
+            client,
+            auth: () => agentB.accessToken,
+            path: { id: foundingTeamId },
+          }),
+        200,
+        {
+          label: 'agentB sees founding team',
+          maxAttempts: 50,
+          intervalMs: 200,
+        },
+      );
     });
 
     it('outsider probing a founding team gets 404 — no existence leak', async () => {
@@ -164,22 +190,22 @@ describe('Team Governance', () => {
 
     it('accepting twice returns 409', async () => {
       // agentB already accepted above — poll until workflow has committed accepted status
-      for (let i = 0; i < 20; i++) {
-        const { response } = await acceptTeamFounding({
-          client,
-          auth: () => agentB.accessToken,
-          path: { id: foundingTeamId },
-          body: {},
-        });
-        if (response.status === 409) {
-          expect(response.status).toBe(409);
-          return;
-        }
-        await new Promise<void>((r) => {
-          setTimeout(r, 300);
-        });
-      }
-      throw new Error('Expected 409 after repeated accept but never got it');
+      const { response } = await pollUntilStatus(
+        () =>
+          acceptTeamFounding({
+            client,
+            auth: () => agentB.accessToken,
+            path: { id: foundingTeamId },
+            body: {},
+          }),
+        409,
+        {
+          label: 'repeated accept returns 409',
+          maxAttempts: 20,
+          intervalMs: 300,
+        },
+      );
+      expect(response.status).toBe(409);
     });
 
     it('unauthenticated gets 401', async () => {
@@ -421,21 +447,21 @@ describe('Team Governance', () => {
       });
 
       it('rejecting an already-resolved transfer returns 409', async () => {
-        for (let i = 0; i < 20; i++) {
-          const { response } = await rejectTransfer({
-            client,
-            auth: () => agentB.accessToken,
-            path: { transferId },
-          });
-          if (response.status === 409) {
-            expect(response.status).toBe(409);
-            return;
-          }
-          await new Promise<void>((r) => {
-            setTimeout(r, 500);
-          });
-        }
-        throw new Error('Transfer never reached rejected status after 10s');
+        const { response } = await pollUntilStatus(
+          () =>
+            rejectTransfer({
+              client,
+              auth: () => agentB.accessToken,
+              path: { transferId },
+            }),
+          409,
+          {
+            label: 'rejecting resolved transfer returns 409',
+            maxAttempts: 20,
+            intervalMs: 500,
+          },
+        );
+        expect(response.status).toBe(409);
       });
     });
 
@@ -489,41 +515,40 @@ describe('Team Governance', () => {
       });
 
       it('diary teamId is now destTeamId after acceptance', async () => {
-        // Poll briefly — the DBOS workflow swaps teamId asynchronously
-        let teamId: string | undefined;
-        for (let attempt = 0; attempt < 10; attempt++) {
-          const { data, response } = await getDiary({
-            client,
-            auth: () => agentB.accessToken,
-            path: { id: acceptDiaryId },
-          });
-          if (response.ok && data) {
-            teamId = data.teamId;
-            if (teamId === destTeamId) break;
-          }
-          await new Promise<void>((r) => {
-            setTimeout(r, 500);
-          });
-        }
-        expect(teamId).toBe(destTeamId);
+        // The DBOS workflow swaps teamId asynchronously
+        const { data } = await pollUntil(
+          () =>
+            getDiary({
+              client,
+              auth: () => agentB.accessToken,
+              path: { id: acceptDiaryId },
+            }),
+          (r) => r.response.ok && r.data?.teamId === destTeamId,
+          {
+            label: 'diary moved to destTeam',
+            maxAttempts: 10,
+            intervalMs: 500,
+          },
+        );
+        expect(data!.teamId).toBe(destTeamId);
       });
 
       it('accepting already-accepted transfer returns 409', async () => {
-        for (let i = 0; i < 20; i++) {
-          const { response } = await acceptTransfer({
-            client,
-            auth: () => agentB.accessToken,
-            path: { transferId },
-          });
-          if (response.status === 409) {
-            expect(response.status).toBe(409);
-            return;
-          }
-          await new Promise<void>((r) => {
-            setTimeout(r, 500);
-          });
-        }
-        throw new Error('Transfer never reached accepted status after 10s');
+        const { response } = await pollUntilStatus(
+          () =>
+            acceptTransfer({
+              client,
+              auth: () => agentB.accessToken,
+              path: { transferId },
+            }),
+          409,
+          {
+            label: 'accepting accepted transfer returns 409',
+            maxAttempts: 20,
+            intervalMs: 500,
+          },
+        );
+        expect(response.status).toBe(409);
       });
     });
   });

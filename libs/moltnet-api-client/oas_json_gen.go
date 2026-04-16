@@ -11664,6 +11664,10 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("createdBy")
+		json.EncodeUUID(e, s.CreatedBy)
+	}
+	{
 		e.FieldStart("diaryId")
 		json.EncodeUUID(e, s.DiaryId)
 	}
@@ -11709,21 +11713,22 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiaryEntry = [14]string{
+var jsonFieldsNameOfDiaryEntry = [15]string{
 	0:  "accessCount",
 	1:  "content",
 	2:  "contentHash",
 	3:  "contentSignature",
 	4:  "createdAt",
-	5:  "diaryId",
-	6:  "entryType",
-	7:  "id",
-	8:  "importance",
-	9:  "injectionRisk",
-	10: "lastAccessedAt",
-	11: "tags",
-	12: "title",
-	13: "updatedAt",
+	5:  "createdBy",
+	6:  "diaryId",
+	7:  "entryType",
+	8:  "id",
+	9:  "importance",
+	10: "injectionRisk",
+	11: "lastAccessedAt",
+	12: "tags",
+	13: "title",
+	14: "updatedAt",
 }
 
 // Decode decodes DiaryEntry from json.
@@ -11791,8 +11796,20 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "diaryId":
+		case "createdBy":
 			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.CreatedBy = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdBy\"")
+			}
+		case "diaryId":
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -11804,7 +11821,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "entryType":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.EntryType.Decode(d); err != nil {
 					return err
@@ -11814,7 +11831,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"entryType\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -11826,7 +11843,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "importance":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Float64()
 				s.Importance = float64(v)
@@ -11838,7 +11855,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"importance\"")
 			}
 		case "injectionRisk":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Bool()
 				s.InjectionRisk = bool(v)
@@ -11850,7 +11867,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"injectionRisk\"")
 			}
 		case "lastAccessedAt":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.LastAccessedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -11860,7 +11877,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
 			}
 		case "tags":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -11887,7 +11904,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -11897,7 +11914,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -11919,7 +11936,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -12437,6 +12454,10 @@ func (s *DiaryEntryWithRelations) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("createdBy")
+		json.EncodeUUID(e, s.CreatedBy)
+	}
+	{
 		e.FieldStart("diaryId")
 		json.EncodeUUID(e, s.DiaryId)
 	}
@@ -12488,22 +12509,23 @@ func (s *DiaryEntryWithRelations) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiaryEntryWithRelations = [15]string{
+var jsonFieldsNameOfDiaryEntryWithRelations = [16]string{
 	0:  "accessCount",
 	1:  "content",
 	2:  "contentHash",
 	3:  "contentSignature",
 	4:  "createdAt",
-	5:  "diaryId",
-	6:  "entryType",
-	7:  "id",
-	8:  "importance",
-	9:  "injectionRisk",
-	10: "lastAccessedAt",
-	11: "relations",
-	12: "tags",
-	13: "title",
-	14: "updatedAt",
+	5:  "createdBy",
+	6:  "diaryId",
+	7:  "entryType",
+	8:  "id",
+	9:  "importance",
+	10: "injectionRisk",
+	11: "lastAccessedAt",
+	12: "relations",
+	13: "tags",
+	14: "title",
+	15: "updatedAt",
 }
 
 // Decode decodes DiaryEntryWithRelations from json.
@@ -12571,8 +12593,20 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "diaryId":
+		case "createdBy":
 			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.CreatedBy = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdBy\"")
+			}
+		case "diaryId":
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -12584,7 +12618,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "entryType":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.EntryType.Decode(d); err != nil {
 					return err
@@ -12594,7 +12628,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"entryType\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -12606,7 +12640,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "importance":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Float64()
 				s.Importance = float64(v)
@@ -12618,7 +12652,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"importance\"")
 			}
 		case "injectionRisk":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Bool()
 				s.InjectionRisk = bool(v)
@@ -12630,7 +12664,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"injectionRisk\"")
 			}
 		case "lastAccessedAt":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.LastAccessedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -12650,7 +12684,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"relations\"")
 			}
 		case "tags":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -12677,7 +12711,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -12687,7 +12721,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -12709,7 +12743,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b01110111,
+		0b11101111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

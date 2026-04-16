@@ -9,9 +9,7 @@ export interface CommandResult {
   output: string;
 }
 
-function isExecException(
-  error: unknown,
-): error is ExecException & {
+function isExecException(error: unknown): error is ExecException & {
   stdout?: string | Buffer;
   stderr?: string | Buffer;
 } {

@@ -72,6 +72,7 @@ export function createMockEntry(
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
+    createdBy: OWNER_ID,
     title: null,
     content: 'Test diary entry content',
     embedding: null,

@@ -1,9 +1,15 @@
 {
-  "mode": "vitro",
   "fixture": {
     "inject": [
-      { "from": "fixtures/diary-entry.repository.ts", "to": "libs/database/src/repositories/diary-entry.repository.ts" },
-      { "from": "fixtures/consolidate-workflow.ts", "to": "apps/rest-api/src/workflows/consolidate-workflow.ts" }
+      {
+        "from": "fixtures/diary-entry.repository.ts",
+        "to": "libs/database/src/repositories/diary-entry.repository.ts"
+      },
+      {
+        "from": "fixtures/consolidate-workflow.ts",
+        "to": "apps/rest-api/src/workflows/consolidate-workflow.ts"
+      }
     ]
-  }
+  },
+  "mode": "vitro"
 }

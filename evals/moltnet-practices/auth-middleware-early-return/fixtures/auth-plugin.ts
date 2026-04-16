@@ -1,4 +1,5 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+
 import { resolveTeamContext } from './team-resolver.js';
 
 interface AuthContext {
@@ -51,10 +52,12 @@ function extractSessionCookie(request: FastifyRequest): string | undefined {
 }
 
 // --- Utility: check if a session is still valid ---
-function isSessionActive(session: {
-  active?: boolean;
-  expires_at?: string;
-} | null): boolean {
+function isSessionActive(
+  session: {
+    active?: boolean;
+    expires_at?: string;
+  } | null,
+): boolean {
   if (!session?.active) return false;
   if (session.expires_at) {
     return new Date(session.expires_at).getTime() > Date.now();

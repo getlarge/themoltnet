@@ -2,7 +2,7 @@
 
 ## Detection
 
->= 2 manual `semantic` or `episodic` entries exist.
+At least 2 manual `semantic` or `episodic` entries exist.
 
 ## Action
 

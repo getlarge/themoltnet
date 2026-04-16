@@ -26,17 +26,18 @@ Run both Harbor and DSPy eval engines on the same scenario set and compare resul
 
 Override via environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CANARY_MAX_SCORE_DRIFT` | `0.10` | Max absolute per-scenario reward difference |
-| `CANARY_MIN_COMPLETION_RATE` | `0.90` | DSPy must achieve at least this |
-| `CANARY_MAX_INFRA_FAILURE_RATE` | `0.05` | DSPy infra failures must be below this |
+| Variable                        | Default | Description                                 |
+| ------------------------------- | ------- | ------------------------------------------- |
+| `CANARY_MAX_SCORE_DRIFT`        | `0.10`  | Max absolute per-scenario reward difference |
+| `CANARY_MIN_COMPLETION_RATE`    | `0.90`  | DSPy must achieve at least this             |
+| `CANARY_MAX_INFRA_FAILURE_RATE` | `0.05`  | DSPy infra failures must be below this      |
 
 ## Verdict
 
 Exit code 0 = PASS (all criteria met), exit code 1 = FAIL.
 
 Pass criteria:
+
 - DSPy completion rate >= threshold
 - DSPy completion rate >= Harbor completion rate
 - DSPy infra-failure rate <= threshold

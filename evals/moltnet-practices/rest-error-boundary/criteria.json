@@ -1,26 +1,26 @@
 {
-  "type": "weighted_checklist",
-  "context": "Tests whether the agent identifies that plain `throw new Error()` in REST route handlers bypasses the structured error handler and produces generic 500s. This codebase uses RFC 9457 Problem Details via createProblem() — every error thrown from a route must use the problem factory, not plain Error. The fixture file has 4 plain Error throws that each need a different problem type (conflict, not-found, forbidden, validation-failed).",
   "checklist": [
     {
-      "name": "Replaces all plain Error throws with createProblem",
       "description": "All 4 `throw new Error(...)` calls are replaced with `throw createProblem(type, message)` or equivalent structured error creation",
-      "max_score": 35
+      "max_score": 35,
+      "name": "Replaces all plain Error throws with createProblem"
     },
     {
-      "name": "Correct problem types for each case",
       "description": "Uses appropriate problem types: 'conflict' for duplicate nonce, 'not-found' for missing pack, 'forbidden' for authorization failure, 'validation-failed' for wrong status",
-      "max_score": 30
+      "max_score": 30,
+      "name": "Correct problem types for each case"
     },
     {
-      "name": "Imports createProblem",
       "description": "The fixed file imports createProblem from the problems module (../problems/index.js or equivalent)",
-      "max_score": 15
+      "max_score": 15,
+      "name": "Imports createProblem"
     },
     {
-      "name": "Notes explain RFC 9457 boundary",
       "description": "The notes explain that plain Error produces generic 500 responses while createProblem produces structured RFC 9457 Problem Details, or mentions the error handler plugin convention",
-      "max_score": 20
+      "max_score": 20,
+      "name": "Notes explain RFC 9457 boundary"
     }
-  ]
+  ],
+  "context": "Tests whether the agent identifies that plain `throw new Error()` in REST route handlers bypasses the structured error handler and produces generic 500s. This codebase uses RFC 9457 Problem Details via createProblem() — every error thrown from a route must use the problem factory, not plain Error. The fixture file has 4 plain Error throws that each need a different problem type (conflict, not-found, forbidden, validation-failed).",
+  "type": "weighted_checklist"
 }

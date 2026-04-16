@@ -1101,6 +1101,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -1187,6 +1191,7 @@
         "required": [
           "id",
           "diaryId",
+          "createdBy",
           "title",
           "content",
           "tags",
@@ -1378,6 +1383,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -1467,6 +1476,7 @@
         "required": [
           "id",
           "diaryId",
+          "createdBy",
           "title",
           "content",
           "tags",

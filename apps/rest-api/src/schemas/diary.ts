@@ -15,6 +15,7 @@ export const DiaryEntrySchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     diaryId: Type.String({ format: 'uuid' }),
+    createdBy: Type.String({ format: 'uuid' }),
     title: Type.Union([Type.String(), Type.Null()]),
     content: Type.String(),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),

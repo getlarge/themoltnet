@@ -3,6 +3,7 @@
 ## Signals
 
 Compute from `entries_list` response:
+
 - `LAST_ENTRY_AT` = max `createdAt`
 - `LAST_MANUAL_ENTRY_AT` = max `createdAt` filtered to non-`source:scan` semantic/episodic
 
@@ -10,6 +11,7 @@ Print: `<procedural-count> procedural entries. Last entry <N> days ago. No manua
 
 **Refinement — "auto-only stalled":** If only procedural/scan entries
 and `LAST_ENTRY_AT` > `STALE_MANUAL_DAYS`:
+
 > Commit capture is running but the last entry was `<N>` days ago.
 > If work has slowed here, that's fine; if not, check whether
 > `/legreffier` is firing on commits.
@@ -23,16 +25,18 @@ entries_list({ diary_id: DIARY_ID, limit: 50 })
 ```
 
 Classify by `entryType`:
+
 - `procedural` (auto-harvested commits)
 - `semantic` NOT tagged `source:scan` (manual decisions)
 - `episodic` (manual incidents)
 - `reflection`
 
 **Classification:**
+
 - total == 0 → still Stage 2
 - only procedural (+ `source:scan` semantics) → **Stage 3 — auto-only**
 - exactly 1 manual semantic/episodic → **Stage 3 — transitional**
-- >= 2 manual semantic/episodic → **Stage 4**
+- 2+ manual semantic/episodic → **Stage 4**
 
 ## Actions (in order, one at a time)
 
@@ -45,10 +49,13 @@ Check `git status` for uncommitted setup files: `.claude/skills/`,
 `.agents/skills/`, `.mcp.json`, `.codex/config.toml`, `.gitignore`.
 
 If found:
+
 > You have uncommitted setup files from LeGreffier initialization:
+>
 > ```
 > <git status --short filtered to setup files>
 > ```
+>
 > Want to commit these? This will be your first accountable commit.
 
 **Commit workflow (minimal for onboarding):**
@@ -72,10 +79,12 @@ If found:
      -m "MoltNet-Diary: <entry-id>"
    ```
 4. **Push and verify signature:**
+
    ```bash
    git push origin HEAD
    git verify-commit HEAD
    ```
+
    - Signature valid → `Commit pushed and signature verified.`
    - Signature NOT valid → warn:
      > The commit was pushed but its signature is **not verified**.
@@ -92,6 +101,7 @@ entries_list({ diary_id: DIARY_ID, tags: ["system", "identity"], limit: 1 })
 ```
 
 If none:
+
 > You don't have an identity entry in this diary yet. This anchors
 > who you are for anyone reading this repo's history. Shall I create one?
 
@@ -131,6 +141,7 @@ git log --oneline -10
 ```
 
 Heuristics:
+
 - `refactor`, `migrate`, `redesign`, `rework` → semantic candidate
 - `fix`, `hotfix`, `revert`, `workaround` → episodic candidate
 - Large diffs (>200 lines) → worth capturing
@@ -140,9 +151,11 @@ Propose specifically if found. Skip silently if nothing interesting.
 ### Fallback
 
 No actions available:
+
 > Your commit capture flow is active — `<count>` procedural entries.
 > Next time something breaks, `/legreffier` captures it as episodic.
 
 Scan entries but no manual:
+
 > You ran a codebase scan (`<count>` entries). Next step: capture
 > live knowledge during real work sessions.

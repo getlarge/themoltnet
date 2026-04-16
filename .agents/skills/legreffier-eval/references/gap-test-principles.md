@@ -40,7 +40,8 @@ from the provided code. If reading the fixtures reveals both the problem
 and the solution, you've given away the answer.
 
 **Test:** Have someone read only task.md + fixtures. If they can score
->70% without domain knowledge, the scenario leaks.
+
+> 70% without domain knowledge, the scenario leaks.
 
 ### 4. Criteria require articulation, not just correct code
 
@@ -98,7 +99,7 @@ answer. The former requires diagnosis; the latter is copy-paste.
 The `context` field in criteria.json is judge-only, but it shapes how
 the author designs criteria. If the context says "the correct timestamp
 is 1774560400011", the criteria will test for that exact value — and the
-fixture's _journal.json already shows the sequence. The scenario becomes
+fixture's \_journal.json already shows the sequence. The scenario becomes
 a lookup.
 
 ### Showing both patterns in fixtures

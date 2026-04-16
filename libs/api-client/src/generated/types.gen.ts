@@ -114,6 +114,7 @@ export type DiaryCatalogList = {
 export type DiaryEntry = {
   id: string;
   diaryId: string;
+  createdBy: string;
   title: string | null;
   content: string;
   tags: Array<string> | null;
@@ -1004,6 +1005,7 @@ export type ExpandedRelations = {
 export type DiaryEntryWithRelations = {
   id: string;
   diaryId: string;
+  createdBy: string;
   title: string | null;
   content: string;
   tags: Array<string> | null;
