@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.8.0...dspy-adapters-v0.9.0) (2026-04-16)
+
+
+### Features
+
+* **evaltools:** add NewRegistry for ReAct eval tool construction ([5aab1cb](https://github.com/getlarge/themoltnet/commit/5aab1cba997e50a2383a789a87058645436a201a))
+* **solver:** add reactModule wrapper and TraceProvider interface ([9d810f3](https://github.com/getlarge/themoltnet/commit/9d810f39a823e549c92131f1ee093ae77105f974))
+* **solver:** implement KindReAct branch with tool registry ([044328c](https://github.com/getlarge/themoltnet/commit/044328c4c3a792b25a24ffbd253fa38c5d7384f6))
+* **solver:** ReAct solver + tool registry (Phase 1 of [#774](https://github.com/getlarge/themoltnet/issues/774)) ([b503747](https://github.com/getlarge/themoltnet/commit/b5037470594c6d01f7d6e16b2b4cdfc8f1d93f3f))
+* **solver:** serialize ReActTrace to OTel gen_ai span JSON ([5008fc7](https://github.com/getlarge/themoltnet/commit/5008fc7410d42a866879424f03bf8c7280b60aa7))
+
+
+### Bug Fixes
+
+* **solver:** address Copilot review feedback on PR [#812](https://github.com/getlarge/themoltnet/issues/812) ([23acad1](https://github.com/getlarge/themoltnet/commit/23acad189ce7b90eef6212095aa7c50b533c1ef0))
+* **solver:** lower default ReAct max iterations to 3 ([a7db192](https://github.com/getlarge/themoltnet/commit/a7db192bee3b1021ec7f324caadb291b4b1318fe))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.7.0...dspy-adapters-v0.8.0) (2026-04-09)
 
 
