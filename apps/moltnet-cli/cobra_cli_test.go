@@ -635,7 +635,7 @@ func TestEntryListHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, flag := range []string{"--diary-id", "--tags", "--exclude-tags", "--entry-type", "--limit", "--offset"} {
+	for _, flag := range []string{"--diary-id", "--ids", "--tags", "--exclude-tags", "--entry-type", "--limit", "--offset"} {
 		if !strings.Contains(stdout, flag) {
 			t.Errorf("expected entry list help to contain %q, got: %s", flag, stdout)
 		}

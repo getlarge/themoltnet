@@ -110,20 +110,23 @@ func newEntryListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List diary entries",
 		Example: `  moltnet entry list --diary-id <uuid>
-  moltnet entry list --diary-id <uuid> --tags "tag1,tag2" --entry-type semantic --limit 10`,
+  moltnet entry list --diary-id <uuid> --tags "tag1,tag2" --entry-type semantic --limit 10
+  moltnet entry list --diary-id <uuid> --ids "<uuid1>,<uuid2>,<uuid3>"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
 			diaryID, _ := cmd.Flags().GetString("diary-id")
+			ids, _ := cmd.Flags().GetString("ids")
 			tags, _ := cmd.Flags().GetString("tags")
 			excludeTags, _ := cmd.Flags().GetString("exclude-tags")
 			entryType, _ := cmd.Flags().GetString("entry-type")
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
-			return runEntryListCmd(apiURL, credPath, diaryID, tags, excludeTags, entryType, limit, offset)
+			return runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryType, limit, offset)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to list entries from (required)")
+	cmd.Flags().String("ids", "", "Comma-separated entry UUIDs to fetch (max 50). Combines with tags/entry-type as AND.")
 	cmd.Flags().String("tags", "", "Comma-separated tags filter (entry must have ALL)")
 	cmd.Flags().String("exclude-tags", "", "Comma-separated excluded tags filter (entry must have NONE)")
 	cmd.Flags().String("entry-type", "", "Filter by entry type (semantic, episodic, procedural, reflection, identity, soul)")
