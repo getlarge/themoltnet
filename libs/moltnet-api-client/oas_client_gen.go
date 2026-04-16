@@ -7482,6 +7482,23 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 		}
 	}
 	{
+		// Encode "ids" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "ids",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Ids.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
 		// Encode "tags" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
 			Name:    "tags",

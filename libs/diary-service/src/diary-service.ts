@@ -404,6 +404,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     ): Promise<{ items: DiaryEntry[]; total: number }> {
       return diaryEntryRepository.list({
         diaryId: input.diaryId,
+        ids: input.ids,
         tags: input.tags,
         excludeTags: input.excludeTags,
         limit: input.limit,

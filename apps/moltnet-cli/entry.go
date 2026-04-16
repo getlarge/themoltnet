@@ -140,7 +140,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 }
 
 // runEntryListCmd lists diary entries with optional filters.
-func runEntryListCmd(apiURL, credPath, diaryID, tags, excludeTags, entryType string, limit, offset int) error {
+func runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryType string, limit, offset int) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -151,6 +151,9 @@ func runEntryListCmd(apiURL, credPath, diaryID, tags, excludeTags, entryType str
 		return err
 	}
 	params := moltnetapi.ListDiaryEntriesParams{DiaryId: diaryUUID}
+	if ids != "" {
+		params.Ids = moltnetapi.OptString{Value: ids, Set: true}
+	}
 	if tags != "" {
 		params.Tags = moltnetapi.OptString{Value: tags, Set: true}
 	}

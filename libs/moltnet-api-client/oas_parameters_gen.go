@@ -3326,6 +3326,9 @@ func decodeListDiariesParams(args [0]string, argsEscaped bool, r *http.Request) 
 type ListDiaryEntriesParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
 	Offset OptFloat64 `json:",omitempty,omitzero"`
+	// Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary.
+	// Combines with tags/excludeTags/entryType as AND conditions.
+	Ids OptString `json:",omitempty,omitzero"`
 	// Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each).
 	Tags OptString `json:",omitempty,omitzero"`
 	// Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars
@@ -3354,6 +3357,15 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 		}
 		if v, ok := packed[key]; ok {
 			params.Offset = v.(OptFloat64)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "ids",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Ids = v.(OptString)
 		}
 	}
 	{
@@ -3523,6 +3535,74 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "offset",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: ids.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "ids",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotIdsVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotIdsVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Ids.SetTo(paramsDotIdsVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Ids.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     1850,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "ids",
 			In:   "query",
 			Err:  err,
 		}

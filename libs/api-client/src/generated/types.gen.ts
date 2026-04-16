@@ -1785,6 +1785,10 @@ export type ListDiaryEntriesData = {
     limit?: number;
     offset?: number;
     /**
+     * Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.
+     */
+    ids?: string;
+    /**
      * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
     tags?: string;

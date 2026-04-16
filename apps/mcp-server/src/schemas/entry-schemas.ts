@@ -115,6 +115,15 @@ export const EntryListSchema = Type.Object({
     Type.Number({ description: 'Max results (default 20)' }),
   ),
   offset: Type.Optional(Type.Number({ description: 'Offset for pagination' })),
+  ids: Type.Optional(
+    Type.Array(Type.String(), {
+      minItems: 1,
+      maxItems: 50,
+      uniqueItems: true,
+      description:
+        'Batch fetch by entry UUIDs (1-50, unique). Returns only matching entries scoped to the diary. Combines with tags/exclude_tags as AND conditions.',
+    }),
+  ),
   tags: Type.Optional(
     Type.Array(Type.String(), {
       description: 'Filter by tags (entry must have ALL specified tags)',
@@ -129,6 +138,7 @@ export const EntryListSchema = Type.Object({
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type EntryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
   diary_id: PathOf<ListDiaryEntriesData>['diaryId'];
+  ids?: string[];
   tags?: string[];
   exclude_tags?: string[];
 };

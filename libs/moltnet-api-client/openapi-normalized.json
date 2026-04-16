@@ -4373,6 +4373,17 @@
             }
           },
           {
+            "description": "Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.",
+            "in": "query",
+            "name": "ids",
+            "required": false,
+            "schema": {
+              "maxLength": 1850,
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$",
+              "type": "string"
+            }
+          },
+          {
             "description": "Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)",
             "in": "query",
             "name": "tags",

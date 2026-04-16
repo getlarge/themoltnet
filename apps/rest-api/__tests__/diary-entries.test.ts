@@ -227,6 +227,58 @@ describe('Diary entry routes', () => {
       );
     });
 
+    it('passes ids filter from query string', async () => {
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
+
+      const idA = '11111111-1111-1111-1111-111111111111';
+      const idB = '22222222-2222-2222-2222-222222222222';
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?ids=${idA},${idB}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diaryId: DIARY_ID,
+          ids: [idA, idB],
+        }),
+      );
+    });
+
+    it('rejects invalid uuid in ids filter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?ids=not-a-uuid`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.diaryService.listEntries).not.toHaveBeenCalled();
+    });
+
+    it('rejects more than 50 ids', async () => {
+      const tooMany = Array.from(
+        { length: 51 },
+        (_, i) =>
+          `${i.toString(16).padStart(8, '0')}-0000-0000-0000-000000000000`,
+      ).join(',');
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?ids=${tooMany}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.diaryService.listEntries).not.toHaveBeenCalled();
+    });
+
     it('rejects empty tag in comma-separated list', async () => {
       const response = await app.inject({
         method: 'GET',

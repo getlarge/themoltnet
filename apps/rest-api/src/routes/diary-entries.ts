@@ -243,6 +243,15 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
+          ids: Type.Optional(
+            Type.String({
+              pattern:
+                '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$',
+              maxLength: 1850,
+              description:
+                'Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.',
+            }),
+          ),
           tags: Type.Optional(
             Type.String({
               pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
@@ -278,7 +287,8 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { diaryId } = request.params;
-      const { limit, offset, tags, excludeTags, entryType } = request.query;
+      const { limit, offset, ids, tags, excludeTags, entryType } =
+        request.query;
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
@@ -295,6 +305,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         throw err;
       }
 
+      const idsFilter = ids ? ids.split(',') : undefined;
       const tagsFilter = tags
         ? tags.split(',').map((t) => t.trim())
         : undefined;
@@ -307,6 +318,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
 
       const { items, total } = await fastify.diaryService.listEntries({
         diaryId: diary.id,
+        ids: idsFilter,
         tags: tagsFilter,
         excludeTags: excludedTagsFilter,
         limit,

@@ -156,6 +156,7 @@ export async function handleEntryList(
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
+      ...(args.ids?.length ? { ids: args.ids.join(',') } : {}),
       ...(args.tags && { tags: args.tags.join(',') }),
       ...(args.exclude_tags && { excludeTags: args.exclude_tags.join(',') }),
     },
@@ -592,7 +593,8 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_list',
-      description: 'List your recent diary entries.',
+      description:
+        'List your recent diary entries. Pass `ids` (array of up to 50 UUIDs) to batch-fetch a specific set of entries scoped to the diary.',
       inputSchema: EntryListSchema,
       outputSchema: EntryListOutputSchema,
     },
