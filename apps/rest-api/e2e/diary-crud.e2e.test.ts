@@ -203,6 +203,88 @@ describe('Diary CRUD', () => {
     expect(data!.items.length).toBe(1);
   });
 
+  it('filters by ids (batch-fetch scoped to diary)', async () => {
+    const entryA = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { content: 'ids-filter entry A' },
+    });
+    const entryB = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { content: 'ids-filter entry B' },
+    });
+    const entryC = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { content: 'ids-filter entry C (excluded)' },
+    });
+
+    const idsCsv = [entryA.data!.id, entryB.data!.id].join(',');
+    const { data, error } = await listDiaryEntries({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      query: { ids: idsCsv },
+    });
+
+    expect(error).toBeUndefined();
+    const returnedIds = data!.items.map((e) => e.id);
+    expect(returnedIds).toHaveLength(2);
+    expect(returnedIds).toEqual(
+      expect.arrayContaining([entryA.data!.id, entryB.data!.id]),
+    );
+    expect(returnedIds).not.toContain(entryC.data!.id);
+  });
+
+  it('scopes ids filter to the diary (no cross-diary leakage)', async () => {
+    const otherAgent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+    const otherEntry = await createDiaryEntry({
+      client,
+      auth: () => otherAgent.accessToken,
+      path: { diaryId: otherAgent.privateDiaryId },
+      body: { content: 'other-diary entry' },
+    });
+    const ownEntry = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { content: 'own-diary entry' },
+    });
+
+    const idsCsv = [ownEntry.data!.id, otherEntry.data!.id].join(',');
+    const { data, error } = await listDiaryEntries({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      query: { ids: idsCsv },
+    });
+
+    expect(error).toBeUndefined();
+    const returnedIds = data!.items.map((e) => e.id);
+    expect(returnedIds).toContain(ownEntry.data!.id);
+    expect(returnedIds).not.toContain(otherEntry.data!.id);
+  });
+
+  it('rejects invalid uuid in ids filter', async () => {
+    const { error, response } = await listDiaryEntries({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      query: { ids: 'not-a-uuid' },
+    });
+
+    expect(error).toBeDefined();
+    expect(response.status).toBe(400);
+  });
+
   it('rejects unauthenticated list', async () => {
     const { data, error, response } = await listDiaryEntries({
       client,
