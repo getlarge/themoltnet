@@ -116,10 +116,12 @@ export const EntryListSchema = Type.Object({
   ),
   offset: Type.Optional(Type.Number({ description: 'Offset for pagination' })),
   ids: Type.Optional(
-    Type.Array(Type.String({ format: 'uuid' }), {
+    Type.Array(Type.String(), {
+      minItems: 1,
       maxItems: 50,
+      uniqueItems: true,
       description:
-        'Batch fetch by entry UUIDs (max 50). Returns only matching entries scoped to the diary. Combines with tags/exclude_tags as AND conditions.',
+        'Batch fetch by entry UUIDs (1-50, unique). Returns only matching entries scoped to the diary. Combines with tags/exclude_tags as AND conditions.',
     }),
   ),
   tags: Type.Optional(

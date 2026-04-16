@@ -156,7 +156,7 @@ export async function handleEntryList(
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
-      ...(args.ids && { ids: args.ids.join(',') }),
+      ...(args.ids?.length ? { ids: args.ids.join(',') } : {}),
       ...(args.tags && { tags: args.tags.join(',') }),
       ...(args.exclude_tags && { excludeTags: args.exclude_tags.join(',') }),
     },
