@@ -350,6 +350,58 @@ describe('Diary Tools E2E', () => {
     expect(parsed.items.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('batch-fetches entries by ids', async () => {
+    requireSetup();
+    const createA = await client.callTool({
+      name: 'entries_create',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        content: 'MCP ids-filter entry A',
+      },
+    });
+    const createB = await client.callTool({
+      name: 'entries_create',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        content: 'MCP ids-filter entry B',
+      },
+    });
+    const createC = await client.callTool({
+      name: 'entries_create',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        content: 'MCP ids-filter entry C (excluded)',
+      },
+    });
+
+    const parseId = (result: typeof createA) => {
+      const content = result.content as Array<{ type: string; text: string }>;
+      return JSON.parse(content[0].text).id as string;
+    };
+    const idA = parseId(createA);
+    const idB = parseId(createB);
+    const idC = parseId(createC);
+
+    const result = await client.callTool({
+      name: 'entries_list',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        ids: [idA, idB],
+      },
+    });
+
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(
+      result.isError,
+      `entries_list with ids error: ${content[0].text}`,
+    ).toBeUndefined();
+    const parsed = JSON.parse(content[0].text);
+    const returnedIds = parsed.items.map((e: { id: string }) => e.id);
+    expect(returnedIds).toHaveLength(2);
+    expect(returnedIds).toEqual(expect.arrayContaining([idA, idB]));
+    expect(returnedIds).not.toContain(idC);
+  });
+
   it('returns error when listing an unknown diary_id', async () => {
     requireSetup();
     const result = await client.callTool({
