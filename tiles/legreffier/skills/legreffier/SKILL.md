@@ -551,6 +551,34 @@ Both `human` and `coauthor` require `MOLTNET_HUMAN_GIT_IDENTITY` to be set (e.g.
 
 **Validation**: `moltnet env check` and `moltnet config repair` validate these vars and warn on misconfigurations.
 
+### Recovering from mis-authored commits (`human` mode)
+
+If commits on a branch ended up authored as the bot (e.g. the harness called `git commit` without `--author=...` and the agent gitconfig `[user]` block won), rewrite the author on every commit between `<base>` and `HEAD` in one pass:
+
+```bash
+git rebase <base> --exec '
+  git commit --amend --no-edit \
+    --author="<Human Name> <human@email>" \
+    --trailer="Co-authored-by: <AgentDisplayName> <agent-noreply-email>"
+'
+git push --force-with-lease origin <branch>
+```
+
+Notes:
+
+- `--author` on `git commit --amend` rewrites the **author** only. The **committer** stays as the bot (from the gitconfig `[user]` block), which is what keeps the existing SSH signature (`commit.gpgsign=true` with the bot key) valid and the "Verified" badge on GitHub.
+- `--trailer="Co-authored-by: ..."` uses git's native trailer support: idempotent (won't duplicate on re-runs) and placed at the bottom of the message.
+- `--no-edit` keeps existing messages; no interactive editor.
+- `--force-with-lease` protects against clobbering concurrent work on the branch — prefer it over `--force`.
+
+Verify after:
+
+```bash
+git log <base>..HEAD --pretty=format:'%h AUTHOR=%an <%ae>%nCOMMITTER=%cn <%ce>%nTRAILERS:%(trailers:only=true)%n---'
+```
+
+Author should be the human, committer the bot, trailer present. Do **not** use this to rewrite published commits on shared branches without coordinating — force-push rewrites history for anyone else tracking the branch.
+
 ## Reminders
 
 - `Co-Authored-By` trailers are added based on `MOLTNET_COMMIT_AUTHORSHIP` mode (see above).
