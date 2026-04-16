@@ -1,21 +1,5 @@
 # Changelog
 
-## [1.26.0](https://github.com/getlarge/themoltnet/compare/cli-v1.25.0...cli-v1.26.0) (2026-04-16)
-
-
-### Features
-
-* **entries:** expose ids filter end-to-end on list entries ([254a1dc](https://github.com/getlarge/themoltnet/commit/254a1dcd27b0a452b332b033fb57beec35e409e5))
-* **eval:** integrate ReAct tool registry and trace capture in runSolver ([28fa4a5](https://github.com/getlarge/themoltnet/commit/28fa4a5ab384aeab113628419c9cd6dcbe24d212))
-* **eval:** vivo mode defaults to ReAct solver ([6019037](https://github.com/getlarge/themoltnet/commit/60190377209a068493edfffe067a294369cf7332))
-* **moltnet-cli:** add --ids flag to entry list ([a75ec18](https://github.com/getlarge/themoltnet/commit/a75ec1887f7cbea0260ed3da649307b559b387e6))
-* **solver:** ReAct solver + tool registry (Phase 1 of [#774](https://github.com/getlarge/themoltnet/issues/774)) ([b503747](https://github.com/getlarge/themoltnet/commit/b5037470594c6d01f7d6e16b2b4cdfc8f1d93f3f))
-
-
-### Bug Fixes
-
-* **solver:** address Copilot review feedback on PR [#812](https://github.com/getlarge/themoltnet/issues/812) ([23acad1](https://github.com/getlarge/themoltnet/commit/23acad189ce7b90eef6212095aa7c50b533c1ef0))
-
 ## [1.25.0](https://github.com/getlarge/themoltnet/compare/cli-v1.24.1...cli-v1.25.0) (2026-04-14)
 
 
