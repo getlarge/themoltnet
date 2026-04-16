@@ -1,28 +1,23 @@
 import { randomBytes } from 'node:crypto';
 
 import {
-  createClient,
   createDiary,
   createDiaryEntry,
   createTeam,
   listTeams,
 } from '@moltnet/api-client';
-import { Configuration, FrontendApi } from '@ory/client-fetch';
-import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-const KRATOS_PUBLIC_URL =
-  process.env['KRATOS_PUBLIC_URL'] ?? 'http://localhost:4433';
-const REST_API_URL = process.env['REST_API_URL'] ?? 'http://localhost:8080';
-const MAILSLURPER_API_URL =
-  process.env['MAILSLURPER_API_URL'] ?? 'http://localhost:4437';
-const CONSOLE_URL = process.env['CONSOLE_BASE_URL'] ?? 'http://localhost:5174';
-
-interface TestUser {
-  email: string;
-  username: string;
-  password: string;
-}
+import {
+  CONSOLE_URL,
+  createNativeSessionToken,
+  createTestUser,
+  createTokenSessionApiClient,
+  loginViaBrowser,
+  registerViaBrowser,
+  submitKratosForm,
+  waitForVerificationData,
+} from './helpers/index.js';
 
 interface SeededDiary {
   populatedDiaryId: string;
@@ -33,172 +28,26 @@ interface SeededDiary {
   entryTag: string;
 }
 
-function createTestUser(): TestUser {
-  const nonce = randomBytes(4).toString('hex');
-  return {
-    email: `diary-e2e-${Date.now()}-${nonce}@example.com`,
-    username: `diary_${nonce}`,
-    password: `DiaryE2E!${nonce}abcd`,
-  };
-}
-
-async function submitKratosForm(page: Page): Promise<void> {
-  await page.locator('form button[type="submit"]').first().click();
-}
-
-async function waitForVerificationData(
-  email: string,
-  maxAttempts = 30,
-): Promise<{ code?: string; link?: string }> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(`${MAILSLURPER_API_URL}/mail?pageNumber=1`);
-    if (!response.ok) {
-      throw new Error(`Failed to query Mailslurper: ${response.status}`);
-    }
-
-    const payload = (await response.json()) as Record<string, unknown>;
-    const items = Array.isArray(payload['mailItems'])
-      ? (payload['mailItems'] as Record<string, unknown>[])
-      : [];
-
-    for (const item of items) {
-      const toAddresses = Array.isArray(item['toAddresses'])
-        ? (item['toAddresses'] as Record<string, unknown>[])
-        : [];
-      const matchesEmail = toAddresses.some((addr) => {
-        const address = addr['address'] ?? addr['Address'];
-        return (
-          typeof address === 'string' &&
-          address.toLowerCase() === email.toLowerCase()
-        );
-      });
-      if (!matchesEmail) continue;
-
-      const body = typeof item['body'] === 'string' ? item['body'] : '';
-      const html = typeof item['Body'] === 'string' ? item['Body'] : '';
-      const code = body.match(/\b\d{6}\b/)?.[0];
-      const link = `${body}\n${html}`
-        .match(/https?:\/\/[^\s"'<>)]*/g)
-        ?.find((candidate) => candidate.includes('/self-service/verification'));
-
-      if (code || link) {
-        return { code, link };
-      }
-    }
-
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 2000);
-    });
-  }
-
-  throw new Error(`Timed out waiting for verification data for ${email}`);
-}
-
-async function registerViaBrowser(page: Page, user: TestUser): Promise<void> {
-  const returnTo = encodeURIComponent(`${CONSOLE_URL}/`);
-  await page.goto(
-    `${KRATOS_PUBLIC_URL}/self-service/registration/browser?return_to=${returnTo}`,
-  );
-
-  await page.locator('input[name="traits.email"]').fill(user.email);
-  await page.locator('input[name="traits.username"]').fill(user.username);
-
-  const passwordField = page.locator('input[name="password"]');
-  if (await passwordField.isVisible({ timeout: 1500 }).catch(() => false)) {
-    await passwordField.fill(user.password);
-  }
-
-  await submitKratosForm(page);
-
-  const followupPasswordField = page.locator('input[name="password"]');
-  if (
-    await followupPasswordField.isVisible({ timeout: 3000 }).catch(() => false)
-  ) {
-    await followupPasswordField.fill(user.password);
-    await submitKratosForm(page);
-  }
-}
-
-async function loginViaBrowser(page: Page, user: TestUser): Promise<void> {
-  const returnTo = encodeURIComponent(`${CONSOLE_URL}/`);
-  await page.goto(
-    `${KRATOS_PUBLIC_URL}/self-service/login/browser?return_to=${returnTo}`,
-  );
-
-  await page.locator('input[name="identifier"]').fill(user.email);
-
-  const passwordField = page.locator('input[name="password"]');
-  if (await passwordField.isVisible({ timeout: 1500 }).catch(() => false)) {
-    await passwordField.fill(user.password);
-    await submitKratosForm(page);
-    return;
-  }
-
-  await submitKratosForm(page);
-
-  const verification = await waitForVerificationData(user.email);
-  if (!verification.code) {
-    throw new Error('Login flow did not produce a verification code');
-  }
-  await page.locator('input[name="code"]').fill(verification.code);
-  await submitKratosForm(page);
-}
-
-async function createNativeSessionToken(user: TestUser): Promise<string> {
-  const kratos = new FrontendApi(
-    new Configuration({ basePath: KRATOS_PUBLIC_URL }),
-  );
-  const loginFlow = await kratos.createNativeLoginFlow();
-  const loginResult = await kratos.updateLoginFlow({
-    flow: loginFlow.id,
-    updateLoginFlowBody: {
-      method: 'password',
-      identifier: user.email,
-      password: user.password,
-    },
-  });
-
-  if (!loginResult.session_token) {
-    throw new Error('Native login did not return a session token');
-  }
-
-  return loginResult.session_token;
-}
-
-function createSessionClient() {
-  return createClient({
-    baseUrl: REST_API_URL,
-  });
-}
-
 async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
   const nonce = randomBytes(3).toString('hex');
   const populatedDiaryName = `ui-seeded-diary-${nonce}`;
   const emptyDiaryName = `ui-empty-diary-${nonce}`;
   const entryTitle = `REST API route patterns ${nonce}`;
   const entryTag = `scope:api-${nonce}`;
-  const client = createSessionClient();
-  client.interceptors.request.use((request) => {
-    request.headers.set('X-Moltnet-Session-Token', sessionToken);
-    return request;
-  });
+  const client = createTokenSessionApiClient(sessionToken);
 
-  let teamsResponse = await listTeams({
-    client,
-  });
+  let teamsResponse = await listTeams({ client });
   let team =
     teamsResponse.data?.items.find((candidate) => candidate.personal) ??
     teamsResponse.data?.items[0];
   if (!team) {
     const createdTeam = await createTeam({
       client,
-      body: {
-        name: `Diary browser e2e team ${nonce}`,
-      },
+      body: { name: `Diary browser e2e team ${nonce}` },
     });
     if (!createdTeam.data) {
       throw new Error(
-        `Failed to create a team for seeded diary fixtures: ${createdTeam.response?.status} ${JSON.stringify(createdTeam.error)}`,
+        `Failed to create a team for seeded diary fixtures: ${createdTeam.response.status} ${JSON.stringify(createdTeam.error)}`,
       );
     }
 
@@ -215,18 +64,12 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
   const populatedDiaryResponse = await createDiary({
     client,
     headers: { 'x-moltnet-team-id': team.id },
-    body: {
-      name: populatedDiaryName,
-      visibility: 'private',
-    },
+    body: { name: populatedDiaryName, visibility: 'private' },
   });
   const emptyDiaryResponse = await createDiary({
     client,
     headers: { 'x-moltnet-team-id': team.id },
-    body: {
-      name: emptyDiaryName,
-      visibility: 'private',
-    },
+    body: { name: emptyDiaryName, visibility: 'private' },
   });
 
   if (!populatedDiaryResponse.data || !emptyDiaryResponse.data) {
@@ -270,7 +113,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
 }
 
 test.describe.serial('Diary browser', () => {
-  const user = createTestUser();
+  const user = createTestUser({ prefix: 'diary-e2e' });
   let seeded: SeededDiary;
 
   test('register and seed deterministic diary data', async ({ page }) => {
