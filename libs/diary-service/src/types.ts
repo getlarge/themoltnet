@@ -150,6 +150,7 @@ export interface SearchInput {
 
 export interface ListInput {
   diaryId: string;
+  ids?: string[];
   tags?: string[];
   excludeTags?: string[];
   limit?: number;
