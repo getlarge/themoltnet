@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/cli-win32-x64",
-  "version": "1.21.1",
+  "version": "1.26.0",
   "description": "MoltNet CLI binary for Windows x64",
   "license": "MIT",
   "repository": {

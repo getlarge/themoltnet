@@ -8,11 +8,6 @@ const { execFileSync } = require('child_process');
 const binaryName = process.platform === 'win32' ? 'moltnet.exe' : 'moltnet';
 
 function findBinary() {
-  const localPath = path.join(__dirname, binaryName);
-  if (fs.existsSync(localPath)) {
-    return localPath;
-  }
-
   const pkgName = `@themoltnet/cli-${process.platform}-${process.arch}`;
   try {
     const pkgDir = path.dirname(require.resolve(`${pkgName}/package.json`));
@@ -24,6 +19,11 @@ function findBinary() {
     // Platform package not installed
   }
 
+  const localPath = path.join(__dirname, binaryName);
+  if (fs.existsSync(localPath)) {
+    return localPath;
+  }
+
   return null;
 }
 
@@ -32,8 +32,9 @@ const binaryPath = findBinary();
 if (!binaryPath) {
   console.error(
     `moltnet binary not found for ${process.platform}-${process.arch}\n` +
-      'Run "node install.js" in the package directory, or download manually from:\n' +
-      '  https://github.com/getlarge/themoltnet/releases'
+      `Install the platform package manually:\n` +
+      `  npm install @themoltnet/cli-${process.platform}-${process.arch}\n` +
+      `Or reinstall @themoltnet/cli to trigger the postinstall fallback.`
   );
   process.exit(1);
 }
