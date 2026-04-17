@@ -1,7 +1,6 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { PackServiceError } from '@moltnet/context-pack-service';
-import { DiaryServiceError } from '@moltnet/diary-service';
 import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -18,6 +17,21 @@ import {
   RenderPackBodySchema,
   RenderPackPreviewBodySchema,
 } from '../schemas.js';
+
+function translatePackServiceError(err: PackServiceError): never {
+  switch (err.code) {
+    case 'not_found':
+      throw createProblem('not-found', err.message);
+    case 'forbidden':
+      throw createProblem('forbidden', err.message);
+    case 'validation':
+      throw createProblem('validation-failed', err.message);
+    case 'conflict':
+      throw createProblem('conflict', err.message);
+    default:
+      throw createProblem('internal', err.message);
+  }
+}
 
 export async function renderedPackRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -207,37 +221,19 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const sourcePack = await fastify.contextPackRepository.findById(
-        request.params.id,
-      );
-      if (!sourcePack) {
-        throw createProblem('not-found', 'Source pack not found');
-      }
-
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-      const allowed = await fastify.permissionChecker.canReadPack(
-        sourcePack.id,
-        identityId,
-        subjectNs,
-      );
-      if (!allowed) {
-        throw createProblem('forbidden', 'Not authorized to read this pack');
-      }
 
-      const rendered =
-        await fastify.renderedPackRepository.findLatestBySourcePackId(
-          sourcePack.id,
-        );
-      if (!rendered) {
-        throw createProblem(
-          'not-found',
-          'No rendered pack found for this source pack',
-        );
+      try {
+        return await fastify.contextPackService.getLatestRenderedPack({
+          sourcePackId: request.params.id,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError) translatePackServiceError(err);
+        throw err;
       }
-
-      return rendered;
     },
   );
 
@@ -278,63 +274,19 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
-      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
-        diary = await fastify.diaryService.findDiary(
-          request.params.id,
-          identityId,
-          subjectNs,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) {
-          switch (err.code) {
-            case 'not_found':
-              throw createProblem('not-found', err.message);
-            case 'forbidden':
-              throw createProblem('forbidden', err.message);
-            default:
-              throw createProblem('internal', err.message);
-          }
-        }
-        throw err;
-      }
-
-      const limit = request.query.limit ?? 20;
-      const offset = request.query.offset ?? 0;
-      const { items, total } = await fastify.renderedPackRepository.listByDiary(
-        diary.id,
-        limit,
-        offset,
-        {
+        return await fastify.contextPackService.listRenderedPacksByDiary({
+          diaryId: request.params.id,
+          actor: { identityId, subjectNs },
+          limit: request.query.limit ?? 20,
+          offset: request.query.offset ?? 0,
           sourcePackId: request.query.sourcePackId,
           renderMethod: request.query.renderMethod,
-        },
-      );
-
-      // Batch-check read permission via each rendered pack's source pack.
-      const sourcePackIds = [...new Set(items.map((rp) => rp.sourcePackId))];
-      let allowedSourcePacks: Map<string, boolean>;
-      try {
-        allowedSourcePacks = await fastify.permissionChecker.canReadPacks(
-          sourcePackIds,
-          identityId,
-          subjectNs,
-        );
-      } catch (error) {
-        request.log.error(
-          { err: error, diaryId: diary.id },
-          'Failed to batch-check rendered pack permissions',
-        );
-        throw createProblem('internal', 'Failed to verify pack permissions');
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError) translatePackServiceError(err);
+        throw err;
       }
-
-      const visibleItems = items.filter(
-        (rp) => allowedSourcePacks.get(rp.sourcePackId) ?? false,
-      );
-      const deniedOnPage = items.length - visibleItems.length;
-      const adjustedTotal = total - deniedOnPage;
-
-      return { items: visibleItems, total: adjustedTotal, limit, offset };
     },
   );
 
@@ -358,30 +310,19 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const rendered = await fastify.renderedPackRepository.findById(
-        request.params.id,
-      );
-      if (!rendered) {
-        throw createProblem('not-found', 'Rendered pack not found');
-      }
-
-      // Permission check via source pack
       const { identityId, subjectType } = request.authContext!;
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-      const allowed = await fastify.permissionChecker.canReadPack(
-        rendered.sourcePackId,
-        identityId,
-        subjectNs,
-      );
-      if (!allowed) {
-        throw createProblem(
-          'forbidden',
-          'Not authorized to read this rendered pack',
-        );
-      }
 
-      return rendered;
+      try {
+        return await fastify.contextPackService.getRenderedPackById({
+          renderedPackId: request.params.id,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError) translatePackServiceError(err);
+        throw err;
+      }
     },
   );
 

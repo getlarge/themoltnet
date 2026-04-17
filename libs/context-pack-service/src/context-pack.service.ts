@@ -20,8 +20,18 @@ import type {
   CreateCustomPackInput,
   CreateRenderedPackInput,
   FitResult,
+  GetLatestRenderedPackInput,
+  GetPackByIdInput,
+  GetPackForProvenanceInput,
+  GetRenderedPackByIdInput,
+  ListPacksByDiaryInput,
+  ListPacksByDiaryResult,
   ListPacksByEntryInput,
+  ListRenderedPacksByDiaryInput,
+  ListRenderedPacksByDiaryResult,
+  PackActor,
   PacksByEntryResult,
+  PackWithOptionalEntries,
   PreviewRenderedPackInput,
   RenderedPackPreview,
   RenderedPackResult,
@@ -37,18 +47,36 @@ export interface ContextPackServiceDeps {
     | 'findByEntryId'
     | 'listByDiary'
     | 'listEntriesExpanded'
+    | 'listEntriesExpandedByPackIds'
   >;
   renderedPackRepository: Pick<
     RenderedPackRepository,
-    'create' | 'findByCid' | 'findLatestBySourcePackId' | 'listBySourcePackIds'
+    | 'create'
+    | 'findById'
+    | 'findByCid'
+    | 'findLatestBySourcePackId'
+    | 'listByDiary'
+    | 'listBySourcePackIds'
   >;
   diaryEntryRepository: Pick<DiaryEntryRepository, 'findById'>;
-  permissionChecker: Pick<PermissionChecker, 'canViewEntry' | 'canReadPacks'>;
+  permissionChecker: Pick<
+    PermissionChecker,
+    'canViewEntry' | 'canReadPack' | 'canReadPacks'
+  >;
   entryFetcher: EntryFetcher;
   runTransaction: <T>(fn: () => Promise<T>) => Promise<T>;
   grantPackParent: (packId: string, diaryId: string) => Promise<void>;
   removePackRelations: (packId: string) => Promise<void>;
   deleteMany: (ids: string[]) => Promise<number>;
+  /**
+   * Verifies the actor can read the diary. Must throw on denied/not-found.
+   * Typically wired to `DiaryService.findDiary`.
+   */
+  assertDiaryReadable: (
+    diaryId: string,
+    identityId: string,
+    subjectNs: PackActor['subjectNs'],
+  ) => Promise<void>;
   logger?: { error: (obj: Record<string, unknown>, msg: string) => void };
   ttlDays: number;
 }
@@ -141,6 +169,162 @@ export class ContextPackService {
     }
 
     return response;
+  }
+
+  async getPackById(input: GetPackByIdInput) {
+    const pack = await this.deps.contextPackRepository.findById(input.packId);
+    if (!pack) {
+      throw new PackServiceError('Context pack not found', 'not_found');
+    }
+    await this.assertCanReadPack(pack.id, input.actor);
+
+    if (!input.expandEntries) {
+      return pack;
+    }
+    const entries = await this.deps.contextPackRepository.listEntriesExpanded(
+      pack.id,
+    );
+    return { ...pack, entries };
+  }
+
+  async getPackForProvenance(input: GetPackForProvenanceInput) {
+    if (!input.packId && !input.packCid) {
+      throw new PackServiceError('packId or packCid is required', 'validation');
+    }
+    const pack = input.packId
+      ? await this.deps.contextPackRepository.findById(input.packId)
+      : await this.deps.contextPackRepository.findByCid(input.packCid!);
+    if (!pack) {
+      throw new PackServiceError('Context pack not found', 'not_found');
+    }
+    await this.assertCanReadPack(pack.id, input.actor);
+    return pack;
+  }
+
+  async listPacksByDiary(
+    input: ListPacksByDiaryInput,
+  ): Promise<ListPacksByDiaryResult> {
+    const limit = input.limit ?? 20;
+    const offset = input.offset ?? 0;
+
+    await this.deps.assertDiaryReadable(
+      input.diaryId,
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+
+    const { items: packs, total } =
+      await this.deps.contextPackRepository.listByDiary(
+        input.diaryId,
+        limit,
+        offset,
+      );
+
+    const allowed = await this.deps.permissionChecker.canReadPacks(
+      packs.map((p) => p.id),
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+    const visible = packs.filter((p) => allowed.get(p.id) ?? false);
+    // Best-effort lower bound: packs on other pages may also be denied.
+    const adjustedTotal = total - (packs.length - visible.length);
+
+    if (!input.expandEntries) {
+      return { items: visible, total: adjustedTotal, limit, offset };
+    }
+
+    const entriesByPack =
+      await this.deps.contextPackRepository.listEntriesExpandedByPackIds(
+        visible.map((p) => p.id),
+      );
+    const items: PackWithOptionalEntries[] = visible.map((p) => ({
+      ...p,
+      entries: entriesByPack.get(p.id) ?? [],
+    }));
+    return { items, total: adjustedTotal, limit, offset };
+  }
+
+  async getLatestRenderedPack(input: GetLatestRenderedPackInput) {
+    const sourcePack = await this.deps.contextPackRepository.findById(
+      input.sourcePackId,
+    );
+    if (!sourcePack) {
+      throw new PackServiceError('Source pack not found', 'not_found');
+    }
+    await this.assertCanReadPack(sourcePack.id, input.actor);
+
+    const rendered =
+      await this.deps.renderedPackRepository.findLatestBySourcePackId(
+        sourcePack.id,
+      );
+    if (!rendered) {
+      throw new PackServiceError(
+        'No rendered pack found for this source pack',
+        'not_found',
+      );
+    }
+    return rendered;
+  }
+
+  async getRenderedPackById(input: GetRenderedPackByIdInput) {
+    const rendered = await this.deps.renderedPackRepository.findById(
+      input.renderedPackId,
+    );
+    if (!rendered) {
+      throw new PackServiceError('Rendered pack not found', 'not_found');
+    }
+    await this.assertCanReadPack(rendered.sourcePackId, input.actor);
+    return rendered;
+  }
+
+  async listRenderedPacksByDiary(
+    input: ListRenderedPacksByDiaryInput,
+  ): Promise<ListRenderedPacksByDiaryResult> {
+    const limit = input.limit ?? 20;
+    const offset = input.offset ?? 0;
+
+    await this.deps.assertDiaryReadable(
+      input.diaryId,
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+
+    const { items, total } = await this.deps.renderedPackRepository.listByDiary(
+      input.diaryId,
+      limit,
+      offset,
+      {
+        sourcePackId: input.sourcePackId,
+        renderMethod: input.renderMethod,
+      },
+    );
+
+    const sourcePackIds = [...new Set(items.map((rp) => rp.sourcePackId))];
+    const allowed = await this.deps.permissionChecker.canReadPacks(
+      sourcePackIds,
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+    const visible = items.filter((rp) => allowed.get(rp.sourcePackId) ?? false);
+    const adjustedTotal = total - (items.length - visible.length);
+    return { items: visible, total: adjustedTotal, limit, offset };
+  }
+
+  private async assertCanReadPack(
+    packId: string,
+    actor: PackActor,
+  ): Promise<void> {
+    const allowed = await this.deps.permissionChecker.canReadPack(
+      packId,
+      actor.identityId,
+      actor.subjectNs,
+    );
+    if (!allowed) {
+      throw new PackServiceError(
+        'Not authorized to read this pack',
+        'forbidden',
+      );
+    }
   }
 
   async createCustomPack(

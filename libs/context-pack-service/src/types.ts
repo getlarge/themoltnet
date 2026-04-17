@@ -1,6 +1,10 @@
 import type { KetoNamespace } from '@moltnet/auth';
 import type { CompressionLevel } from '@moltnet/crypto-service';
-import type { ContextPackWithCreator, RenderedPack } from '@moltnet/database';
+import type {
+  ContextPackWithCreator,
+  ExpandedPackEntry,
+  RenderedPack,
+} from '@moltnet/database';
 
 export interface SelectedEntry {
   entryId: string;
@@ -105,4 +109,61 @@ export interface PacksByEntryResult {
   items: ContextPackWithCreator[];
   total: number;
   renderedPacks?: RenderedPack[];
+}
+
+export interface GetPackByIdInput {
+  packId: string;
+  actor: PackActor;
+  expandEntries?: boolean;
+}
+
+export type PackWithOptionalEntries = ContextPackWithCreator & {
+  entries?: ExpandedPackEntry[];
+};
+
+export interface ListPacksByDiaryInput {
+  diaryId: string;
+  actor: PackActor;
+  limit?: number;
+  offset?: number;
+  expandEntries?: boolean;
+}
+
+export interface ListPacksByDiaryResult {
+  items: PackWithOptionalEntries[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface GetLatestRenderedPackInput {
+  sourcePackId: string;
+  actor: PackActor;
+}
+
+export interface GetRenderedPackByIdInput {
+  renderedPackId: string;
+  actor: PackActor;
+}
+
+export interface ListRenderedPacksByDiaryInput {
+  diaryId: string;
+  actor: PackActor;
+  limit?: number;
+  offset?: number;
+  sourcePackId?: string;
+  renderMethod?: string;
+}
+
+export interface ListRenderedPacksByDiaryResult {
+  items: RenderedPack[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface GetPackForProvenanceInput {
+  actor: PackActor;
+  packId?: string;
+  packCid?: string;
 }

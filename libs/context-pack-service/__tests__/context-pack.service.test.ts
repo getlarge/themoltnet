@@ -69,11 +69,14 @@ function makeDeps(
         .mockResolvedValue({ items: [createdPack], total: 1 }),
       listByDiary: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       listEntriesExpanded: vi.fn().mockResolvedValue([]),
+      listEntriesExpandedByPackIds: vi.fn().mockResolvedValue(new Map()),
     },
     renderedPackRepository: {
       create: vi.fn().mockResolvedValue(makeRenderedPackRow()),
+      findById: vi.fn().mockResolvedValue(makeRenderedPackRow()),
       findByCid: vi.fn().mockResolvedValue(null),
       findLatestBySourcePackId: vi.fn().mockResolvedValue(null),
+      listByDiary: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       listBySourcePackIds: vi.fn().mockResolvedValue([makeRenderedPackRow()]),
     },
     diaryEntryRepository: {
@@ -84,8 +87,10 @@ function makeDeps(
     },
     permissionChecker: {
       canViewEntry: vi.fn().mockResolvedValue(true),
+      canReadPack: vi.fn().mockResolvedValue(true),
       canReadPacks: vi.fn().mockResolvedValue(new Map([['pack-uuid', true]])),
     },
+    assertDiaryReadable: vi.fn().mockResolvedValue(undefined),
     entryFetcher: {
       fetchEntries: vi.fn().mockResolvedValue([
         {
@@ -410,7 +415,220 @@ describe('ContextPackService', () => {
       expect(createCall.pinned).toBe(true);
       expect(createCall.expiresAt).toBeNull();
     });
+  });
 
+  describe('read paths', () => {
+    it('getPackById returns the pack after permission check', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      const result = await service.getPackById({
+        packId: 'pack-uuid',
+        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+      });
+
+      expect(result.id).toBe('pack-uuid');
+      expect(deps.permissionChecker.canReadPack).toHaveBeenCalledWith(
+        'pack-uuid',
+        'me',
+        KetoNamespace.Agent,
+      );
+    });
+
+    it('getPackById throws forbidden when permission denied', async () => {
+      const deps = makeDeps({
+        permissionChecker: {
+          canViewEntry: vi.fn(),
+          canReadPack: vi.fn().mockResolvedValue(false),
+          canReadPacks: vi.fn(),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.getPackById({
+          packId: 'pack-uuid',
+          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        }),
+      ).rejects.toMatchObject({ code: 'forbidden' });
+    });
+
+    it('getPackById throws not_found when pack missing', async () => {
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...makeDeps().contextPackRepository,
+          findById: vi.fn().mockResolvedValue(null),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.getPackById({
+          packId: 'missing',
+          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('listPacksByDiary filters by permission and adjusts total', async () => {
+      const pack = (id: string) => ({
+        id,
+        diaryId: 'diary-uuid',
+        packCid: `cid-${id}`,
+        packCodec: 'dag-cbor',
+        packType: 'custom' as const,
+        params: {},
+        payload: {},
+        createdBy: 'me',
+        supersedesPackId: null,
+        pinned: false,
+        expiresAt: null,
+        createdAt: new Date(),
+        creator: null,
+      });
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...makeDeps().contextPackRepository,
+          listByDiary: vi
+            .fn()
+            .mockResolvedValue({ items: [pack('a'), pack('b')], total: 2 }),
+        },
+        permissionChecker: {
+          canViewEntry: vi.fn(),
+          canReadPack: vi.fn(),
+          canReadPacks: vi.fn().mockResolvedValue(
+            new Map([
+              ['a', true],
+              ['b', false],
+            ]),
+          ),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      const result = await service.listPacksByDiary({
+        diaryId: 'diary-uuid',
+        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+      });
+
+      expect(deps.assertDiaryReadable).toHaveBeenCalled();
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe('a');
+      expect(result.total).toBe(1);
+    });
+
+    it('listPacksByDiary propagates diary-readable rejection', async () => {
+      const deps = makeDeps({
+        assertDiaryReadable: vi
+          .fn()
+          .mockRejectedValue(
+            new PackServiceError('denied', 'forbidden' as const),
+          ),
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.listPacksByDiary({
+          diaryId: 'd',
+          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        }),
+      ).rejects.toMatchObject({ code: 'forbidden' });
+    });
+
+    it('getLatestRenderedPack checks source pack permission then returns latest', async () => {
+      const deps = makeDeps({
+        renderedPackRepository: {
+          ...makeDeps().renderedPackRepository,
+          findLatestBySourcePackId: vi
+            .fn()
+            .mockResolvedValue(makeRenderedPackRow()),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      const result = await service.getLatestRenderedPack({
+        sourcePackId: 'pack-uuid',
+        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+      });
+      expect(result.id).toBe('rendered-uuid');
+      expect(deps.permissionChecker.canReadPack).toHaveBeenCalled();
+    });
+
+    it('getLatestRenderedPack throws not_found when none exists', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.getLatestRenderedPack({
+          sourcePackId: 'pack-uuid',
+          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('getRenderedPackById authorizes via source pack', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      const result = await service.getRenderedPackById({
+        renderedPackId: 'rendered-uuid',
+        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+      });
+      expect(result.id).toBe('rendered-uuid');
+      expect(deps.permissionChecker.canReadPack).toHaveBeenCalledWith(
+        'pack-uuid',
+        'me',
+        KetoNamespace.Agent,
+      );
+    });
+
+    it('listRenderedPacksByDiary filters by source pack permission', async () => {
+      const rp = (id: string, sourcePackId: string) => ({
+        ...makeRenderedPackRow({ id, sourcePackId }),
+      });
+      const deps = makeDeps({
+        renderedPackRepository: {
+          ...makeDeps().renderedPackRepository,
+          listByDiary: vi.fn().mockResolvedValue({
+            items: [rp('r1', 'p1'), rp('r2', 'p2')],
+            total: 2,
+          }),
+        },
+        permissionChecker: {
+          canViewEntry: vi.fn(),
+          canReadPack: vi.fn(),
+          canReadPacks: vi.fn().mockResolvedValue(
+            new Map([
+              ['p1', true],
+              ['p2', false],
+            ]),
+          ),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      const result = await service.listRenderedPacksByDiary({
+        diaryId: 'diary-uuid',
+        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+      });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe('r1');
+      expect(result.total).toBe(1);
+    });
+
+    it('getPackForProvenance requires packId or packCid', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.getPackForProvenance({
+          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        }),
+      ).rejects.toMatchObject({ code: 'validation' });
+    });
+  });
+
+  describe('preview', () => {
     it('previews server-rendered markdown without persisting', async () => {
       const deps = makeDeps({
         contextPackRepository: {
