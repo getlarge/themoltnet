@@ -377,14 +377,94 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-cli-npm:
-    name: Publish CLI to npm
+  publish-cli-platforms:
+    name: Publish @themoltnet/cli-${{ matrix.npm_dir }} to npm
     needs: [resolve-publish, release-cli]
     if: >-
       ${{
         always() &&
         needs.resolve-publish.outputs.cli == 'true' &&
         needs.release-cli.result == 'success' &&
+        !failure() &&
+        !cancelled()
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - npm_dir: linux-x64
+            archive_suffix: linux_amd64.tar.gz
+            binary: moltnet
+          - npm_dir: linux-arm64
+            archive_suffix: linux_arm64.tar.gz
+            binary: moltnet
+          - npm_dir: darwin-x64
+            archive_suffix: darwin_amd64.tar.gz
+            binary: moltnet
+          - npm_dir: darwin-arm64
+            archive_suffix: darwin_arm64.tar.gz
+            binary: moltnet
+          - npm_dir: win32-x64
+            archive_suffix: windows_amd64.zip
+            binary: moltnet.exe
+          - npm_dir: win32-arm64
+            archive_suffix: windows_arm64.zip
+            binary: moltnet.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Download release binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
+          ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
+        run: |
+          SEMVER="${TAG#cli-v}"
+          ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
+          mkdir -p /tmp/cli-binaries
+          cd /tmp/cli-binaries
+          gh release download "$TAG" --pattern "$ARCHIVE"
+
+      - name: Extract binary
+        env:
+          TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
+          ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
+          NPM_DIR: ${{ matrix.npm_dir }}
+          BINARY: ${{ matrix.binary }}
+        run: |
+          SEMVER="${TAG#cli-v}"
+          ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
+          PKG_DIR="packages/cli/npm/${NPM_DIR}"
+
+          mkdir -p "${PKG_DIR}/bin"
+          if [[ "${ARCHIVE}" == *.zip ]]; then
+            unzip -o "/tmp/cli-binaries/${ARCHIVE}" "${BINARY}" -d "${PKG_DIR}/bin/"
+          else
+            tar xzf "/tmp/cli-binaries/${ARCHIVE}" -C "${PKG_DIR}/bin/" "${BINARY}"
+          fi
+          chmod +x "${PKG_DIR}/bin/${BINARY}" 2>/dev/null || true
+
+      - name: Publish platform package
+        working-directory: packages/cli/npm/${{ matrix.npm_dir }}
+        run: npm publish --access public --provenance
+
+  publish-cli-wrapper:
+    name: Publish @themoltnet/cli to npm
+    needs: [resolve-publish, publish-cli-platforms]
+    if: >-
+      ${{
+        always() &&
+        needs.resolve-publish.outputs.cli == 'true' &&
+        needs.publish-cli-platforms.result == 'success' &&
         !failure() &&
         !cancelled()
       }}
@@ -400,48 +480,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - name: Download release binaries
-        run: |
-          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
-          SEMVER="${TAG#cli-v}"
-          mkdir -p /tmp/cli-binaries
-          cd /tmp/cli-binaries
-          gh release download "$TAG" \
-            --pattern "moltnet_${SEMVER}_*.tar.gz" \
-            --pattern "moltnet_${SEMVER}_*.zip"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish platform-specific packages
-        run: |
-          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
-          SEMVER="${TAG#cli-v}"
-
-          publish_platform() {
-            local npm_dir="$1" archive="$2" binary="$3"
-            local pkg_dir="packages/cli/npm/${npm_dir}"
-
-            mkdir -p "${pkg_dir}/bin"
-            if [[ "$archive" == *.zip ]]; then
-              unzip -o "/tmp/cli-binaries/${archive}" "${binary}" -d "${pkg_dir}/bin/"
-            else
-              tar xzf "/tmp/cli-binaries/${archive}" -C "${pkg_dir}/bin/" "${binary}"
-            fi
-            chmod +x "${pkg_dir}/bin/${binary}" 2>/dev/null || true
-
-            cd "${pkg_dir}"
-            npm publish --access public --provenance
-            cd "$GITHUB_WORKSPACE"
-          }
-
-          publish_platform "linux-x64"     "moltnet_${SEMVER}_linux_amd64.tar.gz"   "moltnet"
-          publish_platform "linux-arm64"    "moltnet_${SEMVER}_linux_arm64.tar.gz"   "moltnet"
-          publish_platform "darwin-x64"     "moltnet_${SEMVER}_darwin_amd64.tar.gz"  "moltnet"
-          publish_platform "darwin-arm64"   "moltnet_${SEMVER}_darwin_arm64.tar.gz"  "moltnet"
-          publish_platform "win32-x64"      "moltnet_${SEMVER}_windows_amd64.zip"   "moltnet.exe"
-          publish_platform "win32-arm64"    "moltnet_${SEMVER}_windows_arm64.zip"    "moltnet.exe"
-
-      - name: Publish @themoltnet/cli
+      - name: Publish
         working-directory: packages/cli
         run: npm publish --access public --provenance
 
