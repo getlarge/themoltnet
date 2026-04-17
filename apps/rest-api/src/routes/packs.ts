@@ -72,21 +72,27 @@ function wantsExpandedEntries(expand?: 'entries'): boolean {
   return expand === 'entries';
 }
 
-function toListResponse<T>(
-  items: T[],
-  total: number,
-  limit: number,
-  offset: number,
-) {
-  return { items, total, limit, offset };
-}
-
 function translateFindDiaryError(err: DiaryServiceError): never {
   switch (err.code) {
     case 'not_found':
       throw createProblem('not-found', err.message);
     case 'forbidden':
       throw createProblem('forbidden', err.message);
+    default:
+      throw createProblem('internal', err.message);
+  }
+}
+
+function translatePackServiceError(err: PackServiceError): never {
+  switch (err.code) {
+    case 'not_found':
+      throw createProblem('not-found', err.message);
+    case 'forbidden':
+      throw createProblem('forbidden', err.message);
+    case 'validation':
+      throw createProblem('validation-failed', err.message);
+    case 'conflict':
+      throw createProblem('conflict', err.message);
     default:
       throw createProblem('internal', err.message);
   }
@@ -471,20 +477,16 @@ export async function packRoutes(fastify: FastifyInstance) {
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
-      const pack = await fastify.contextPackRepository.findById(
-        request.params.id,
-      );
-      if (!pack) {
-        throw createProblem('not-found', 'Context pack not found');
-      }
-
-      const allowed = await fastify.permissionChecker.canReadPack(
-        pack.id,
-        identityId,
-        subjectNs,
-      );
-      if (!allowed) {
-        throw createProblem('forbidden', 'Not authorized to read this pack');
+      let pack;
+      try {
+        pack = await fastify.contextPackService.getPackForProvenance({
+          packId: request.params.id,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
+        throw err;
       }
 
       try {
@@ -530,20 +532,16 @@ export async function packRoutes(fastify: FastifyInstance) {
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
-      const pack = await fastify.contextPackRepository.findByCid(
-        request.params.cid,
-      );
-      if (!pack) {
-        throw createProblem('not-found', 'Context pack not found');
-      }
-
-      const allowed = await fastify.permissionChecker.canReadPack(
-        pack.id,
-        identityId,
-        subjectNs,
-      );
-      if (!allowed) {
-        throw createProblem('forbidden', 'Not authorized to read this pack');
+      let pack;
+      try {
+        pack = await fastify.contextPackService.getPackForProvenance({
+          packCid: request.params.cid,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
+        throw err;
       }
 
       try {
@@ -703,32 +701,17 @@ export async function packRoutes(fastify: FastifyInstance) {
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
-      const pack = await fastify.contextPackRepository.findById(
-        request.params.id,
-      );
-      if (!pack) {
-        throw createProblem('not-found', 'Context pack not found');
+      try {
+        return await fastify.contextPackService.getPackById({
+          packId: request.params.id,
+          actor: { identityId, subjectNs },
+          expandEntries: wantsExpandedEntries(request.query.expand),
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
+        throw err;
       }
-
-      const allowed = await fastify.permissionChecker.canReadPack(
-        pack.id,
-        identityId,
-        subjectNs,
-      );
-      if (!allowed) {
-        throw createProblem('forbidden', 'Not authorized to read this pack');
-      }
-
-      if (!wantsExpandedEntries(request.query.expand)) {
-        return pack;
-      }
-
-      return {
-        ...pack,
-        entries: await fastify.contextPackRepository.listEntriesExpanded(
-          pack.id,
-        ),
-      };
     },
   );
 
@@ -824,63 +807,19 @@ export async function packRoutes(fastify: FastifyInstance) {
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
-      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
-        diary = await fastify.diaryService.findDiary(
-          request.params.id,
-          identityId,
-          subjectNs,
-        );
+        return await fastify.contextPackService.listPacksByDiary({
+          diaryId: request.params.id,
+          actor: { identityId, subjectNs },
+          limit: request.query.limit ?? 20,
+          offset: request.query.offset ?? 0,
+          expandEntries: wantsExpandedEntries(request.query.expand),
+        });
       } catch (err) {
-        if (err instanceof DiaryServiceError) translateFindDiaryError(err);
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
         throw err;
       }
-      const limit = request.query.limit ?? 20;
-      const offset = request.query.offset ?? 0;
-      const { items: packs, total } =
-        await fastify.contextPackRepository.listByDiary(
-          diary.id,
-          limit,
-          offset,
-        );
-      let allowedPackIds: Map<string, boolean>;
-      try {
-        allowedPackIds = await fastify.permissionChecker.canReadPacks(
-          packs.map((pack) => pack.id),
-          identityId,
-          subjectNs,
-        );
-      } catch (error) {
-        request.log.error(
-          { err: error, diaryId: diary.id },
-          'Failed to batch-check pack permissions',
-        );
-        throw createProblem('internal', 'Failed to verify pack permissions');
-      }
-      const visiblePacks = packs.filter(
-        (pack) => allowedPackIds.get(pack.id) ?? false,
-      );
-      // Adjust total to account for permission-filtered packs on this page.
-      // Packs on other pages may also be denied, so this is a best-effort
-      // lower bound — but far more useful than the raw DB count.
-      const deniedOnPage = packs.length - visiblePacks.length;
-      const adjustedTotal = total - deniedOnPage;
-
-      if (!wantsExpandedEntries(request.query.expand)) {
-        return toListResponse(visiblePacks, adjustedTotal, limit, offset);
-      }
-
-      const entriesByPack =
-        await fastify.contextPackRepository.listEntriesExpandedByPackIds(
-          visiblePacks.map((pack) => pack.id),
-        );
-
-      const items = visiblePacks.map((pack) => ({
-        ...pack,
-        entries: entriesByPack.get(pack.id) ?? [],
-      }));
-
-      return toListResponse(items, adjustedTotal, limit, offset);
     },
   );
 

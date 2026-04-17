@@ -10,11 +10,13 @@ import type {
   RelationshipWriter,
   TokenValidator,
 } from '@moltnet/auth';
+import { ContextPackService } from '@moltnet/context-pack-service';
 import type { AgentKey, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
+import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
   AttestationRepository,
@@ -201,6 +203,12 @@ export interface MockServices {
     createRenderedPack: ReturnType<typeof vi.fn>;
     previewRenderedPack: ReturnType<typeof vi.fn>;
     listPacksByEntry: ReturnType<typeof vi.fn>;
+    getPackById: ReturnType<typeof vi.fn>;
+    getPackForProvenance: ReturnType<typeof vi.fn>;
+    listPacksByDiary: ReturnType<typeof vi.fn>;
+    getLatestRenderedPack: ReturnType<typeof vi.fn>;
+    getRenderedPackById: ReturnType<typeof vi.fn>;
+    listRenderedPacksByDiary: ReturnType<typeof vi.fn>;
   };
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
@@ -303,6 +311,12 @@ export function createMockServices(): MockServices {
       createRenderedPack: vi.fn(),
       previewRenderedPack: vi.fn(),
       listPacksByEntry: vi.fn(),
+      getPackById: vi.fn(),
+      getPackForProvenance: vi.fn(),
+      listPacksByDiary: vi.fn(),
+      getLatestRenderedPack: vi.fn(),
+      getRenderedPackById: vi.fn(),
+      listRenderedPacksByDiary: vi.fn(),
     },
     entryRelationRepository: {
       create: vi.fn(),
@@ -500,6 +514,56 @@ export async function createTestApp(
     relationship: {} as OryClients['relationship'],
   };
 
+  const realContextPackService = new ContextPackService({
+    contextPackRepository: mocks.contextPackRepository as never,
+    renderedPackRepository: mocks.renderedPackRepository as never,
+    diaryEntryRepository:
+      mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
+    permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
+    entryFetcher: {
+      fetchEntries: async (diaryId: string, ids: string[]) => {
+        const { items } = await mocks.diaryEntryRepository.list({
+          diaryId,
+          ids,
+          limit: ids.length,
+        });
+        return items;
+      },
+    },
+    runTransaction: <T>(fn: () => Promise<T>) =>
+      mocks.dataSource.runTransaction(fn),
+    grantPackParent: (packId: string, diaryId: string) =>
+      mocks.relationshipWriter.grantPackParent(packId, diaryId),
+    removePackRelations: (packId: string) =>
+      mocks.relationshipWriter.removePackRelations(packId),
+    deleteMany: (ids: string[]) => mocks.contextPackRepository.deleteMany(ids),
+    assertDiaryReadable: createAssertDiaryReadable(
+      mocks.diaryService as unknown as DiaryService,
+    ),
+    ttlDays: 7,
+  });
+  // Allow individual tests to stub specific service methods via
+  // `mocks.contextPackService.<method>.mockResolvedValue(...)` while
+  // falling through to the real service for everything else.
+  //
+  // NOTE: only mockResolvedValue / mockRejectedValue / mockImplementation
+  // activate this intercept (they all install a mock implementation).
+  // mockReturnValue does NOT set getMockImplementation() and will silently
+  // fall through to the real service — use mockResolvedValue instead when
+  // stubbing these async methods.
+  const serviceProxy = new Proxy(realContextPackService, {
+    get(target, prop: string, receiver) {
+      const mock = (mocks.contextPackService as Record<string, unknown>)[prop];
+      if (typeof mock === 'function') {
+        const fn = mock as ReturnType<typeof vi.fn>;
+        if (fn.getMockImplementation()) {
+          return fn;
+        }
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
     diaryEntryRepository:
@@ -509,7 +573,7 @@ export async function createTestApp(
     attestationRepository:
       mocks.attestationRepository as unknown as AttestationRepository,
     entryRelationRepository: mocks.entryRelationRepository as never,
-    contextPackService: mocks.contextPackService as never,
+    contextPackService: serviceProxy as never,
     verificationService:
       mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,

@@ -68,6 +68,7 @@ import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
+import { createAssertDiaryReadable } from './services/diary-readable.js';
 import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
@@ -404,6 +405,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     removePackRelations: (packId: string) =>
       relationshipWriter.removePackRelations(packId),
     deleteMany: (ids: string[]) => contextPackRepository.deleteMany(ids),
+    assertDiaryReadable: createAssertDiaryReadable(diaryService, app.log),
     logger: app.log,
     ttlDays: config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
   });
