@@ -3,6 +3,7 @@
     "commit": "",
     "pr": ""
   },
+  "autoMemoryEnabled": false,
   "enabledPlugins": {
     "claude-md-management@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
@@ -69,5 +70,8 @@
       "Bash(pnpm --filter * run lint*)"
     ]
   },
-  "teammateMode": "tmux"
+  "teammateMode": "tmux",
+  "worktree": {
+    "symlinkDirectories": [".moltnet"]
+  }
 }
