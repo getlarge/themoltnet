@@ -93,7 +93,7 @@ func runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status
 
 	res, err := client.CreateEntryRelation(context.Background(), req, moltnetapi.CreateEntryRelationParams{EntryId: entryUUID})
 	if err != nil {
-		return fmt.Errorf("relations create: %w", err)
+		return fmt.Errorf("relations create: %w", formatTransportError(err))
 	}
 	switch r := res.(type) {
 	case *moltnetapi.CreateEntryRelationOK:
@@ -144,7 +144,7 @@ func runRelationsListCmd(apiURL, credPath, entryID, relation, status, direction 
 
 	res, err := client.ListEntryRelations(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("relations list: %w", err)
+		return fmt.Errorf("relations list: %w", formatTransportError(err))
 	}
 	list, ok := res.(*moltnetapi.EntryRelationList)
 	if !ok {
@@ -172,7 +172,7 @@ func runRelationsUpdateCmd(apiURL, credPath, relationID, status string) error {
 	req := &moltnetapi.UpdateEntryRelationStatusReq{Status: st}
 	res, err := client.UpdateEntryRelationStatus(context.Background(), req, moltnetapi.UpdateEntryRelationStatusParams{ID: relUUID})
 	if err != nil {
-		return fmt.Errorf("relations update: %w", err)
+		return fmt.Errorf("relations update: %w", formatTransportError(err))
 	}
 	result, ok := res.(*moltnetapi.EntryRelation)
 	if !ok {
@@ -194,7 +194,7 @@ func runRelationsDeleteCmd(apiURL, credPath, relationID string) error {
 	}
 
 	if _, err := client.DeleteEntryRelation(context.Background(), moltnetapi.DeleteEntryRelationParams{ID: relUUID}); err != nil {
-		return fmt.Errorf("relations delete: %w", err)
+		return fmt.Errorf("relations delete: %w", formatTransportError(err))
 	}
 	fmt.Fprintf(os.Stderr, "Relation %s deleted.\n", relationID)
 	return nil

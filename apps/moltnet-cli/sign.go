@@ -120,7 +120,7 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 	// Fetch the signing request
 	res, err := client.GetSigningRequest(context.Background(), moltnetapi.GetSigningRequestParams{ID: rid})
 	if err != nil {
-		return "", fmt.Errorf("fetch signing request: %w", err)
+		return "", fmt.Errorf("fetch signing request: %w", formatTransportError(err))
 	}
 	req, ok := res.(*moltnetapi.SigningRequest)
 	if !ok {
@@ -133,11 +133,11 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 	// Decode server-provided signing_input and sign the raw bytes directly.
 	rawBytes, err := base64.StdEncoding.DecodeString(req.SigningInput)
 	if err != nil {
-		return "", fmt.Errorf("decode signing_input: %w", err)
+		return "", fmt.Errorf("decode signing_input: %w", formatTransportError(err))
 	}
 	sig, err := signRawBytes(rawBytes, privateKey)
 	if err != nil {
-		return "", fmt.Errorf("sign: %w", err)
+		return "", fmt.Errorf("sign: %w", formatTransportError(err))
 	}
 
 	// Submit
@@ -146,7 +146,7 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 		moltnetapi.SubmitSignatureParams{ID: rid},
 	)
 	if err != nil {
-		return "", fmt.Errorf("submit signature: %w", err)
+		return "", fmt.Errorf("submit signature: %w", formatTransportError(err))
 	}
 	return sig, nil
 }

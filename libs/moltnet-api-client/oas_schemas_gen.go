@@ -61,6 +61,10 @@ type AcceptTeamFoundingUnauthorized ProblemDetails
 
 func (*AcceptTeamFoundingUnauthorized) acceptTeamFoundingRes() {}
 
+type AcceptTransferBadRequest ProblemDetails
+
+func (*AcceptTransferBadRequest) acceptTransferRes() {}
+
 type AcceptTransferConflict ProblemDetails
 
 func (*AcceptTransferConflict) acceptTransferRes() {}
@@ -1149,6 +1153,10 @@ func (s *CompileStats) SetEntriesIncluded(val float64) {
 func (s *CompileStats) SetTotalTokens(val float64) {
 	s.TotalTokens = val
 }
+
+type ConsolidateDiaryBadRequest ProblemDetails
+
+func (*ConsolidateDiaryBadRequest) consolidateDiaryRes() {}
 
 type ConsolidateDiaryForbidden ProblemDetails
 
@@ -2431,6 +2439,10 @@ type CreateDiaryEntryUnauthorized ProblemDetails
 
 func (*CreateDiaryEntryUnauthorized) createDiaryEntryRes() {}
 
+type CreateDiaryGrantBadRequest ProblemDetails
+
+func (*CreateDiaryGrantBadRequest) createDiaryGrantRes() {}
+
 type CreateDiaryGrantConflict ProblemDetails
 
 func (*CreateDiaryGrantConflict) createDiaryGrantRes() {}
@@ -2961,6 +2973,10 @@ type CreateGroupUnauthorized ProblemDetails
 
 func (*CreateGroupUnauthorized) createGroupRes() {}
 
+type CreateSigningRequestBadRequest ProblemDetails
+
+func (*CreateSigningRequestBadRequest) createSigningRequestRes() {}
+
 type CreateSigningRequestInternalServerError ProblemDetails
 
 func (*CreateSigningRequestInternalServerError) createSigningRequestRes() {}
@@ -3032,6 +3048,10 @@ func (s *CreateTeamAccepted) SetWorkflowId(val OptString) {
 }
 
 func (*CreateTeamAccepted) createTeamRes() {}
+
+type CreateTeamBadRequest ProblemDetails
+
+func (*CreateTeamBadRequest) createTeamRes() {}
 
 type CreateTeamCreated struct {
 	// UUID v4 identifier.
@@ -3681,6 +3701,10 @@ type DeleteDiaryBadRequest ProblemDetails
 
 func (*DeleteDiaryBadRequest) deleteDiaryRes() {}
 
+type DeleteDiaryEntryByIdBadRequest ProblemDetails
+
+func (*DeleteDiaryEntryByIdBadRequest) deleteDiaryEntryByIdRes() {}
+
 type DeleteDiaryEntryByIdForbidden ProblemDetails
 
 func (*DeleteDiaryEntryByIdForbidden) deleteDiaryEntryByIdRes() {}
@@ -3713,6 +3737,10 @@ type DeleteDiaryUnauthorized ProblemDetails
 
 func (*DeleteDiaryUnauthorized) deleteDiaryRes() {}
 
+type DeleteEntryRelationBadRequest ProblemDetails
+
+func (*DeleteEntryRelationBadRequest) deleteEntryRelationRes() {}
+
 type DeleteEntryRelationForbidden ProblemDetails
 
 func (*DeleteEntryRelationForbidden) deleteEntryRelationRes() {}
@@ -3733,6 +3761,10 @@ func (*DeleteEntryRelationNotFound) deleteEntryRelationRes() {}
 type DeleteEntryRelationUnauthorized ProblemDetails
 
 func (*DeleteEntryRelationUnauthorized) deleteEntryRelationRes() {}
+
+type DeleteGroupBadRequest ProblemDetails
+
+func (*DeleteGroupBadRequest) deleteGroupRes() {}
 
 type DeleteGroupForbidden ProblemDetails
 
@@ -3769,6 +3801,10 @@ func (*DeleteTeamBadRequest) deleteTeamRes() {}
 type DeleteTeamForbidden ProblemDetails
 
 func (*DeleteTeamForbidden) deleteTeamRes() {}
+
+type DeleteTeamInviteBadRequest ProblemDetails
+
+func (*DeleteTeamInviteBadRequest) deleteTeamInviteRes() {}
 
 type DeleteTeamInviteForbidden ProblemDetails
 
@@ -5655,6 +5691,10 @@ func (s *ExpandedRelations) SetRequestedDepth(val int) {
 	s.RequestedDepth = val
 }
 
+type GetAgentProfileBadRequest ProblemDetails
+
+func (*GetAgentProfileBadRequest) getAgentProfileRes() {}
+
 type GetAgentProfileInternalServerError ProblemDetails
 
 func (*GetAgentProfileInternalServerError) getAgentProfileRes() {}
@@ -5662,6 +5702,10 @@ func (*GetAgentProfileInternalServerError) getAgentProfileRes() {}
 type GetAgentProfileNotFound ProblemDetails
 
 func (*GetAgentProfileNotFound) getAgentProfileRes() {}
+
+type GetContextPackByIdBadRequest ProblemDetails
+
+func (*GetContextPackByIdBadRequest) getContextPackByIdRes() {}
 
 type GetContextPackByIdExpand string
 
@@ -5712,6 +5756,10 @@ func (*GetContextPackByIdNotFound) getContextPackByIdRes() {}
 type GetContextPackByIdUnauthorized ProblemDetails
 
 func (*GetContextPackByIdUnauthorized) getContextPackByIdRes() {}
+
+type GetContextPackProvenanceByCidBadRequest ProblemDetails
+
+func (*GetContextPackProvenanceByCidBadRequest) getContextPackProvenanceByCidRes() {}
 
 type GetContextPackProvenanceByCidForbidden ProblemDetails
 
@@ -6085,6 +6133,10 @@ type GetContextPackProvenanceByCidUnauthorized ProblemDetails
 
 func (*GetContextPackProvenanceByCidUnauthorized) getContextPackProvenanceByCidRes() {}
 
+type GetContextPackProvenanceByIdBadRequest ProblemDetails
+
+func (*GetContextPackProvenanceByIdBadRequest) getContextPackProvenanceByIdRes() {}
+
 type GetContextPackProvenanceByIdForbidden ProblemDetails
 
 func (*GetContextPackProvenanceByIdForbidden) getContextPackProvenanceByIdRes() {}
@@ -6101,6 +6153,10 @@ type GetContextPackProvenanceByIdUnauthorized ProblemDetails
 
 func (*GetContextPackProvenanceByIdUnauthorized) getContextPackProvenanceByIdRes() {}
 
+type GetCryptoIdentityBadRequest ProblemDetails
+
+func (*GetCryptoIdentityBadRequest) getCryptoIdentityRes() {}
+
 type GetCryptoIdentityInternalServerError ProblemDetails
 
 func (*GetCryptoIdentityInternalServerError) getCryptoIdentityRes() {}
@@ -6108,6 +6164,14 @@ func (*GetCryptoIdentityInternalServerError) getCryptoIdentityRes() {}
 type GetCryptoIdentityUnauthorized ProblemDetails
 
 func (*GetCryptoIdentityUnauthorized) getCryptoIdentityRes() {}
+
+type GetDiaryBadRequest ProblemDetails
+
+func (*GetDiaryBadRequest) getDiaryRes() {}
+
+type GetDiaryEntryByIdBadRequest ProblemDetails
+
+func (*GetDiaryEntryByIdBadRequest) getDiaryEntryByIdRes() {}
 
 type GetDiaryEntryByIdExpand string
 
@@ -6170,6 +6234,10 @@ func (*GetDiaryNotFound) getDiaryRes() {}
 type GetDiaryUnauthorized ProblemDetails
 
 func (*GetDiaryUnauthorized) getDiaryRes() {}
+
+type GetGroupBadRequest ProblemDetails
+
+func (*GetGroupBadRequest) getGroupRes() {}
 
 type GetGroupNotFound ProblemDetails
 
@@ -6278,6 +6346,10 @@ func (s *GetGroupOKMembersItem) SetSubjectNs(val string) {
 type GetGroupUnauthorized ProblemDetails
 
 func (*GetGroupUnauthorized) getGroupRes() {}
+
+type GetLatestRenderedPackBadRequest ProblemDetails
+
+func (*GetLatestRenderedPackBadRequest) getLatestRenderedPackRes() {}
 
 type GetLatestRenderedPackForbidden ProblemDetails
 
@@ -6892,6 +6964,10 @@ type GetReadinessServiceUnavailable Readiness
 
 func (*GetReadinessServiceUnavailable) getReadinessRes() {}
 
+type GetRenderedPackByIdBadRequest ProblemDetails
+
+func (*GetRenderedPackByIdBadRequest) getRenderedPackByIdRes() {}
+
 type GetRenderedPackByIdForbidden ProblemDetails
 
 func (*GetRenderedPackByIdForbidden) getRenderedPackByIdRes() {}
@@ -6908,6 +6984,10 @@ type GetRenderedPackByIdUnauthorized ProblemDetails
 
 func (*GetRenderedPackByIdUnauthorized) getRenderedPackByIdRes() {}
 
+type GetSigningRequestBadRequest ProblemDetails
+
+func (*GetSigningRequestBadRequest) getSigningRequestRes() {}
+
 type GetSigningRequestInternalServerError ProblemDetails
 
 func (*GetSigningRequestInternalServerError) getSigningRequestRes() {}
@@ -6919,6 +6999,10 @@ func (*GetSigningRequestNotFound) getSigningRequestRes() {}
 type GetSigningRequestUnauthorized ProblemDetails
 
 func (*GetSigningRequestUnauthorized) getSigningRequestRes() {}
+
+type GetTeamBadRequest ProblemDetails
+
+func (*GetTeamBadRequest) getTeamRes() {}
 
 type GetTeamNotFound ProblemDetails
 
@@ -7359,6 +7443,10 @@ type InitiateTransferUnauthorized ProblemDetails
 
 func (*InitiateTransferUnauthorized) initiateTransferRes() {}
 
+type IssueVoucherBadRequest ProblemDetails
+
+func (*IssueVoucherBadRequest) issueVoucherRes() {}
+
 type IssueVoucherInternalServerError ProblemDetails
 
 func (*IssueVoucherInternalServerError) issueVoucherRes() {}
@@ -7432,6 +7520,10 @@ func (s *JoinTeamReq) SetCode(val string) {
 type JoinTeamUnauthorized ProblemDetails
 
 func (*JoinTeamUnauthorized) joinTeamRes() {}
+
+type ListActiveVouchersBadRequest ProblemDetails
+
+func (*ListActiveVouchersBadRequest) listActiveVouchersRes() {}
 
 type ListActiveVouchersInternalServerError ProblemDetails
 
@@ -7511,6 +7603,10 @@ type ListContextPacksUnauthorized ProblemDetails
 
 func (*ListContextPacksUnauthorized) listContextPacksRes() {}
 
+type ListDiariesBadRequest ProblemDetails
+
+func (*ListDiariesBadRequest) listDiariesRes() {}
+
 type ListDiariesInternalServerError ProblemDetails
 
 func (*ListDiariesInternalServerError) listDiariesRes() {}
@@ -7518,6 +7614,10 @@ func (*ListDiariesInternalServerError) listDiariesRes() {}
 type ListDiariesUnauthorized ProblemDetails
 
 func (*ListDiariesUnauthorized) listDiariesRes() {}
+
+type ListDiaryEntriesBadRequest ProblemDetails
+
+func (*ListDiaryEntriesBadRequest) listDiaryEntriesRes() {}
 
 type ListDiaryEntriesInternalServerError ProblemDetails
 
@@ -7530,6 +7630,10 @@ func (*ListDiaryEntriesNotFound) listDiaryEntriesRes() {}
 type ListDiaryEntriesUnauthorized ProblemDetails
 
 func (*ListDiaryEntriesUnauthorized) listDiaryEntriesRes() {}
+
+type ListDiaryGrantsBadRequest ProblemDetails
+
+func (*ListDiaryGrantsBadRequest) listDiaryGrantsRes() {}
 
 type ListDiaryGrantsForbidden ProblemDetails
 
@@ -7685,6 +7789,10 @@ type ListDiaryGrantsUnauthorized ProblemDetails
 
 func (*ListDiaryGrantsUnauthorized) listDiaryGrantsRes() {}
 
+type ListDiaryPacksBadRequest ProblemDetails
+
+func (*ListDiaryPacksBadRequest) listDiaryPacksRes() {}
+
 type ListDiaryPacksExpand string
 
 const (
@@ -7735,6 +7843,10 @@ type ListDiaryPacksUnauthorized ProblemDetails
 
 func (*ListDiaryPacksUnauthorized) listDiaryPacksRes() {}
 
+type ListDiaryRenderedPacksBadRequest ProblemDetails
+
+func (*ListDiaryRenderedPacksBadRequest) listDiaryRenderedPacksRes() {}
+
 type ListDiaryRenderedPacksForbidden ProblemDetails
 
 func (*ListDiaryRenderedPacksForbidden) listDiaryRenderedPacksRes() {}
@@ -7751,6 +7863,10 @@ type ListDiaryRenderedPacksUnauthorized ProblemDetails
 
 func (*ListDiaryRenderedPacksUnauthorized) listDiaryRenderedPacksRes() {}
 
+type ListDiaryTagsBadRequest ProblemDetails
+
+func (*ListDiaryTagsBadRequest) listDiaryTagsRes() {}
+
 type ListDiaryTagsInternalServerError ProblemDetails
 
 func (*ListDiaryTagsInternalServerError) listDiaryTagsRes() {}
@@ -7762,6 +7878,10 @@ func (*ListDiaryTagsNotFound) listDiaryTagsRes() {}
 type ListDiaryTagsUnauthorized ProblemDetails
 
 func (*ListDiaryTagsUnauthorized) listDiaryTagsRes() {}
+
+type ListEntryRelationsBadRequest ProblemDetails
+
+func (*ListEntryRelationsBadRequest) listEntryRelationsRes() {}
 
 type ListEntryRelationsDirection string
 
@@ -7827,6 +7947,10 @@ type ListEntryRelationsUnauthorized ProblemDetails
 
 func (*ListEntryRelationsUnauthorized) listEntryRelationsRes() {}
 
+type ListGroupMembersBadRequest ProblemDetails
+
+func (*ListGroupMembersBadRequest) listGroupMembersRes() {}
+
 type ListGroupMembersNotFound ProblemDetails
 
 func (*ListGroupMembersNotFound) listGroupMembersRes() {}
@@ -7876,6 +8000,10 @@ func (s *ListGroupMembersOKItemsItem) SetSubjectNs(val string) {
 type ListGroupMembersUnauthorized ProblemDetails
 
 func (*ListGroupMembersUnauthorized) listGroupMembersRes() {}
+
+type ListGroupsBadRequest ProblemDetails
+
+func (*ListGroupsBadRequest) listGroupsRes() {}
 
 type ListGroupsNotFound ProblemDetails
 
@@ -7938,6 +8066,10 @@ func (s *ListGroupsOKItemsItem) SetTeamId(val uuid.UUID) {
 type ListGroupsUnauthorized ProblemDetails
 
 func (*ListGroupsUnauthorized) listGroupsRes() {}
+
+type ListPendingTransfersBadRequest ProblemDetails
+
+func (*ListPendingTransfersBadRequest) listPendingTransfersRes() {}
 
 type ListPendingTransfersOK struct {
 	Items []ListPendingTransfersOKItemsItem `json:"items"`
@@ -8051,6 +8183,10 @@ func (s *ListPendingTransfersOKItemsItem) SetStatus(val string) {
 	s.Status = val
 }
 
+type ListPendingTransfersUnauthorized ProblemDetails
+
+func (*ListPendingTransfersUnauthorized) listPendingTransfersRes() {}
+
 type ListProblemTypesOKItem struct {
 	Code         OptString `json:"code"`
 	CommonCauses []string  `json:"commonCauses"`
@@ -8120,6 +8256,10 @@ func (s *ListProblemTypesOKItem) SetType(val OptURI) {
 	s.Type = val
 }
 
+type ListSigningRequestsBadRequest ProblemDetails
+
+func (*ListSigningRequestsBadRequest) listSigningRequestsRes() {}
+
 type ListSigningRequestsInternalServerError ProblemDetails
 
 func (*ListSigningRequestsInternalServerError) listSigningRequestsRes() {}
@@ -8127,6 +8267,10 @@ func (*ListSigningRequestsInternalServerError) listSigningRequestsRes() {}
 type ListSigningRequestsUnauthorized ProblemDetails
 
 func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
+
+type ListTeamInvitesBadRequest ProblemDetails
+
+func (*ListTeamInvitesBadRequest) listTeamInvitesRes() {}
 
 type ListTeamInvitesForbidden ProblemDetails
 
@@ -8232,6 +8376,10 @@ func (s *ListTeamInvitesOKItemsItem) SetUseCount(val int) {
 type ListTeamInvitesUnauthorized ProblemDetails
 
 func (*ListTeamInvitesUnauthorized) listTeamInvitesRes() {}
+
+type ListTeamMembersBadRequest ProblemDetails
+
+func (*ListTeamMembersBadRequest) listTeamMembersRes() {}
 
 type ListTeamMembersNotFound ProblemDetails
 
@@ -8368,6 +8516,10 @@ type ListTeamMembersUnauthorized ProblemDetails
 
 func (*ListTeamMembersUnauthorized) listTeamMembersRes() {}
 
+type ListTeamsBadRequest ProblemDetails
+
+func (*ListTeamsBadRequest) listTeamsRes() {}
+
 type ListTeamsOK struct {
 	Items []ListTeamsOKItemsItem `json:"items"`
 }
@@ -8442,6 +8594,10 @@ func (s *ListTeamsOKItemsItem) SetRole(val string) {
 func (s *ListTeamsOKItemsItem) SetStatus(val string) {
 	s.Status = val
 }
+
+type ListTeamsUnauthorized ProblemDetails
+
+func (*ListTeamsUnauthorized) listTeamsRes() {}
 
 // Ref: #/components/schemas/NetworkInfo
 type NetworkInfo struct {
@@ -11826,9 +11982,6 @@ func (s *ProblemDetails) SetType(val url.URL) {
 
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
-func (*ProblemDetails) listPendingTransfersRes()          {}
-func (*ProblemDetails) listTeamsRes()                     {}
-func (*ProblemDetails) verifyCryptoSignatureRes()         {}
 
 type ProblemDetailsCode string
 
@@ -13654,6 +13807,10 @@ func (s *RecoveryVerifyResponse) SetRecoveryFlowUrl(val url.URL) {
 
 func (*RecoveryVerifyResponse) verifyRecoveryChallengeRes() {}
 
+type ReflectDiaryBadRequest ProblemDetails
+
+func (*ReflectDiaryBadRequest) reflectDiaryRes() {}
+
 type ReflectDiaryInternalServerError ProblemDetails
 
 func (*ReflectDiaryInternalServerError) reflectDiaryRes() {}
@@ -13769,6 +13926,10 @@ func (s *RegisterResponse) SetPublicKey(val string) {
 }
 
 func (*RegisterResponse) registerAgentRes() {}
+
+type RejectTransferBadRequest ProblemDetails
+
+func (*RejectTransferBadRequest) rejectTransferRes() {}
 
 type RejectTransferConflict ProblemDetails
 
@@ -14630,6 +14791,10 @@ func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
+type RevokeDiaryGrantBadRequest ProblemDetails
+
+func (*RevokeDiaryGrantBadRequest) revokeDiaryGrantRes() {}
+
 type RevokeDiaryGrantForbidden ProblemDetails
 
 func (*RevokeDiaryGrantForbidden) revokeDiaryGrantRes() {}
@@ -14788,6 +14953,10 @@ type RotateClientSecretBadGateway ProblemDetails
 
 func (*RotateClientSecretBadGateway) rotateClientSecretRes() {}
 
+type RotateClientSecretBadRequest ProblemDetails
+
+func (*RotateClientSecretBadRequest) rotateClientSecretRes() {}
+
 type RotateClientSecretInternalServerError ProblemDetails
 
 func (*RotateClientSecretInternalServerError) rotateClientSecretRes() {}
@@ -14823,6 +14992,10 @@ func (s *RotateSecretResponse) SetClientSecret(val string) {
 }
 
 func (*RotateSecretResponse) rotateClientSecretRes() {}
+
+type SearchDiaryBadRequest ProblemDetails
+
+func (*SearchDiaryBadRequest) searchDiaryRes() {}
 
 type SearchDiaryInternalServerError ProblemDetails
 
@@ -15377,6 +15550,10 @@ type StartLegreffierOnboardingServiceUnavailable ProblemDetails
 
 func (*StartLegreffierOnboardingServiceUnavailable) startLegreffierOnboardingRes() {}
 
+type SubmitSignatureBadRequest ProblemDetails
+
+func (*SubmitSignatureBadRequest) submitSignatureRes() {}
+
 type SubmitSignatureConflict ProblemDetails
 
 func (*SubmitSignatureConflict) submitSignatureRes() {}
@@ -15611,6 +15788,14 @@ func (s *UpdateContextPackReq) SetPinned(val OptBool) {
 type UpdateContextPackUnauthorized ProblemDetails
 
 func (*UpdateContextPackUnauthorized) updateContextPackRes() {}
+
+type UpdateDiaryBadRequest ProblemDetails
+
+func (*UpdateDiaryBadRequest) updateDiaryRes() {}
+
+type UpdateDiaryEntryByIdBadRequest ProblemDetails
+
+func (*UpdateDiaryEntryByIdBadRequest) updateDiaryEntryByIdRes() {}
 
 type UpdateDiaryEntryByIdConflict ProblemDetails
 
@@ -15850,6 +16035,10 @@ type UpdateDiaryUnauthorized ProblemDetails
 
 func (*UpdateDiaryUnauthorized) updateDiaryRes() {}
 
+type UpdateEntryRelationStatusBadRequest ProblemDetails
+
+func (*UpdateEntryRelationStatusBadRequest) updateEntryRelationStatusRes() {}
+
 type UpdateEntryRelationStatusForbidden ProblemDetails
 
 func (*UpdateEntryRelationStatusForbidden) updateEntryRelationStatusRes() {}
@@ -15931,6 +16120,10 @@ type UpdateRenderedPackUnauthorized ProblemDetails
 
 func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
 
+type VerifyAgentSignatureBadRequest ProblemDetails
+
+func (*VerifyAgentSignatureBadRequest) verifyAgentSignatureRes() {}
+
 type VerifyAgentSignatureInternalServerError ProblemDetails
 
 func (*VerifyAgentSignatureInternalServerError) verifyAgentSignatureRes() {}
@@ -15953,6 +16146,14 @@ func (s *VerifyAgentSignatureReq) SetSignature(val string) {
 	s.Signature = val
 }
 
+type VerifyCryptoSignatureBadRequest ProblemDetails
+
+func (*VerifyCryptoSignatureBadRequest) verifyCryptoSignatureRes() {}
+
+type VerifyCryptoSignatureInternalServerError ProblemDetails
+
+func (*VerifyCryptoSignatureInternalServerError) verifyCryptoSignatureRes() {}
+
 type VerifyCryptoSignatureReq struct {
 	Signature string `json:"signature"`
 }
@@ -15966,6 +16167,10 @@ func (s *VerifyCryptoSignatureReq) GetSignature() string {
 func (s *VerifyCryptoSignatureReq) SetSignature(val string) {
 	s.Signature = val
 }
+
+type VerifyDiaryEntryByIdBadRequest ProblemDetails
+
+func (*VerifyDiaryEntryByIdBadRequest) verifyDiaryEntryByIdRes() {}
 
 type VerifyDiaryEntryByIdInternalServerError ProblemDetails
 

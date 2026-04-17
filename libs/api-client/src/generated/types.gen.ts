@@ -1154,6 +1154,10 @@ export type ListDiariesErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -1291,6 +1295,10 @@ export type GetDiaryErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -1338,6 +1346,10 @@ export type UpdateDiaryData = {
 };
 
 export type UpdateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -1391,6 +1403,10 @@ export type RevokeDiaryGrantErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -1430,6 +1446,10 @@ export type ListDiaryGrantsData = {
 };
 
 export type ListDiaryGrantsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -1486,6 +1506,10 @@ export type CreateDiaryGrantData = {
 };
 
 export type CreateDiaryGrantErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -1612,6 +1636,10 @@ export type ListPendingTransfersErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
 };
 
@@ -1667,6 +1695,10 @@ export type AcceptTransferData = {
 };
 
 export type AcceptTransferErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -1735,6 +1767,10 @@ export type RejectTransferData = {
 };
 
 export type RejectTransferErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -1822,6 +1858,10 @@ export type ListDiaryEntriesData = {
 };
 
 export type ListDiaryEntriesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -1946,6 +1986,10 @@ export type ListDiaryTagsErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -1982,6 +2026,10 @@ export type DeleteDiaryEntryByIdData = {
 };
 
 export type DeleteDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -2029,6 +2077,10 @@ export type GetDiaryEntryByIdData = {
 };
 
 export type GetDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -2091,6 +2143,10 @@ export type UpdateDiaryEntryByIdErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -2136,6 +2192,10 @@ export type VerifyDiaryEntryByIdData = {
 };
 
 export type VerifyDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -2193,6 +2253,10 @@ export type SearchDiaryErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -2228,6 +2292,10 @@ export type ReflectDiaryData = {
 };
 
 export type ReflectDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -2273,6 +2341,10 @@ export type ConsolidateDiaryData = {
 };
 
 export type ConsolidateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -2384,6 +2456,10 @@ export type GetContextPackProvenanceByIdErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -2424,6 +2500,10 @@ export type GetContextPackProvenanceByCidData = {
 };
 
 export type GetContextPackProvenanceByCidErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -2667,6 +2747,10 @@ export type GetContextPackByIdErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -2826,6 +2910,10 @@ export type ListDiaryPacksData = {
 };
 
 export type ListDiaryPacksErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -3048,6 +3136,10 @@ export type GetLatestRenderedPackErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -3103,6 +3195,10 @@ export type ListDiaryRenderedPacksErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -3141,6 +3237,10 @@ export type GetRenderedPackByIdData = {
 };
 
 export type GetRenderedPackByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -3404,6 +3504,10 @@ export type ListEntryRelationsErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -3501,6 +3605,10 @@ export type DeleteEntryRelationErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -3541,6 +3649,10 @@ export type UpdateEntryRelationStatusData = {
 };
 
 export type UpdateEntryRelationStatusErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -3585,6 +3697,10 @@ export type GetAgentProfileErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   404: ProblemDetails;
   /**
    * Default Response
@@ -3617,6 +3733,10 @@ export type VerifyAgentSignatureData = {
 };
 
 export type VerifyAgentSignatureErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -3686,6 +3806,10 @@ export type VerifyCryptoSignatureErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
 };
 
@@ -3710,6 +3834,10 @@ export type GetCryptoIdentityData = {
 };
 
 export type GetCryptoIdentityErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -3751,6 +3879,10 @@ export type ListSigningRequestsErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -3784,6 +3916,10 @@ export type CreateSigningRequestErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -3814,6 +3950,10 @@ export type GetSigningRequestData = {
 };
 
 export type GetSigningRequestErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -3853,6 +3993,10 @@ export type SubmitSignatureData = {
 };
 
 export type SubmitSignatureErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4027,6 +4171,10 @@ export type RotateClientSecretErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -4059,6 +4207,10 @@ export type ListTeamsData = {
 };
 
 export type ListTeamsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4105,6 +4257,10 @@ export type CreateTeamData = {
 };
 
 export type CreateTeamErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4204,6 +4360,10 @@ export type GetTeamErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -4260,6 +4420,10 @@ export type ListTeamMembersData = {
 };
 
 export type ListTeamMembersErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4354,6 +4518,10 @@ export type ListTeamInvitesData = {
 };
 
 export type ListTeamInvitesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4466,6 +4634,10 @@ export type DeleteTeamInviteData = {
 };
 
 export type DeleteTeamInviteErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4613,6 +4785,10 @@ export type ListGroupsErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -4718,6 +4894,10 @@ export type DeleteGroupErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -4756,6 +4936,10 @@ export type GetGroupData = {
 };
 
 export type GetGroupErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4812,6 +4996,10 @@ export type ListGroupMembersData = {
 };
 
 export type ListGroupMembersErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */
@@ -4956,6 +5144,10 @@ export type IssueVoucherErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
@@ -4987,6 +5179,10 @@ export type ListActiveVouchersData = {
 };
 
 export type ListActiveVouchersErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
   /**
    * Default Response
    */

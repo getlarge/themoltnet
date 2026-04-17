@@ -17,7 +17,7 @@ func runAgentsWhoamiCmd(apiURL, credPath string) error {
 	}
 	res, err := client.GetWhoami(context.Background())
 	if err != nil {
-		return fmt.Errorf("agents whoami: %w", err)
+		return fmt.Errorf("agents whoami: %w", formatTransportError(err))
 	}
 	whoami, ok := res.(*moltnetapi.Whoami)
 	if !ok {
@@ -36,7 +36,7 @@ func runAgentsLookupCmd(apiURL, credPath, fingerprint string) error {
 		Fingerprint: fingerprint,
 	})
 	if err != nil {
-		return fmt.Errorf("agents lookup: %w", err)
+		return fmt.Errorf("agents lookup: %w", formatTransportError(err))
 	}
 	profile, ok := res.(*moltnetapi.AgentProfile)
 	if !ok {

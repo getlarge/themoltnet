@@ -132,7 +132,7 @@ func resolvePackRenderMarkdown(client *moltnetapi.Client, packUUID uuid.UUID, ma
 		},
 	)
 	if err != nil {
-		return "", fmt.Errorf("fetch pack: %w", err)
+		return "", fmt.Errorf("fetch pack: %w", formatTransportError(err))
 	}
 	pack, ok := res.(*moltnetapi.ContextPackResponse)
 	if !ok {
@@ -149,7 +149,7 @@ func executeRenderContextPack(client *moltnetapi.Client, packUUID uuid.UUID, req
 		moltnetapi.RenderContextPackParams{ID: packUUID},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("render pack: %w", err)
+		return nil, fmt.Errorf("render pack: %w", formatTransportError(err))
 	}
 
 	switch res.(type) {
@@ -167,7 +167,7 @@ func executePreviewRenderedPack(client *moltnetapi.Client, packUUID uuid.UUID, r
 		moltnetapi.PreviewRenderedPackParams{ID: packUUID},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("preview rendered pack: %w", err)
+		return nil, fmt.Errorf("preview rendered pack: %w", formatTransportError(err))
 	}
 
 	switch res.(type) {
@@ -266,7 +266,7 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 			Depth: depthOpt,
 		})
 		if err != nil {
-			return fmt.Errorf("pack provenance: %w", err)
+			return fmt.Errorf("pack provenance: %w", formatTransportError(err))
 		}
 		g, ok := res.(*moltnetapi.ProvenanceGraph)
 		if !ok {
@@ -279,7 +279,7 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 			Depth: depthOpt,
 		})
 		if err != nil {
-			return fmt.Errorf("pack provenance: %w", err)
+			return fmt.Errorf("pack provenance: %w", formatTransportError(err))
 		}
 		g, ok := res.(*moltnetapi.GetContextPackProvenanceByCidOK)
 		if !ok {
@@ -290,13 +290,13 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 
 	serialized, err := json.MarshalIndent(graph, "", "  ")
 	if err != nil {
-		return fmt.Errorf("marshal graph: %w", err)
+		return fmt.Errorf("marshal graph: %w", formatTransportError(err))
 	}
 
 	if shareURL != "" {
 		compact, err := json.Marshal(graph)
 		if err != nil {
-			return fmt.Errorf("compact JSON: %w", err)
+			return fmt.Errorf("compact JSON: %w", formatTransportError(err))
 		}
 		param, err := deflateBase64URL(compact)
 		if err != nil {
@@ -424,7 +424,7 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 		moltnetapi.CreateDiaryCustomPackParams{ID: diaryUUID},
 	)
 	if err != nil {
-		return fmt.Errorf("pack create: %w", err)
+		return fmt.Errorf("pack create: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.CustomPackResult)
@@ -465,7 +465,7 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 		moltnetapi.UpdateContextPackParams{ID: packUUID},
 	)
 	if err != nil {
-		return fmt.Errorf("pack update: %w", err)
+		return fmt.Errorf("pack update: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.ContextPackResponse)
@@ -506,7 +506,7 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRend
 
 		res, err := client.ListDiaryPacks(context.Background(), params)
 		if err != nil {
-			return fmt.Errorf("pack list: %w", err)
+			return fmt.Errorf("pack list: %w", formatTransportError(err))
 		}
 
 		list, ok := res.(*moltnetapi.ContextPackResponseList)
@@ -540,7 +540,7 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRend
 
 	res, err := client.ListContextPacks(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("pack list: %w", err)
+		return fmt.Errorf("pack list: %w", formatTransportError(err))
 	}
 
 	list, ok := res.(*moltnetapi.ContextPackResponseListWithRendered)
@@ -570,7 +570,7 @@ func runPackGetCmd(apiURL, credPath, packID, expand string) error {
 
 	res, err := client.GetContextPackById(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("pack get: %w", err)
+		return fmt.Errorf("pack get: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.ContextPackResponse)

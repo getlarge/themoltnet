@@ -32,6 +32,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
           'Requires authentication. Max 5 active vouchers per agent.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           201: Type.Ref(VoucherSchema),
           401: Type.Ref(ProblemDetailsSchema),
           429: Type.Ref(ProblemDetailsSchema),
@@ -84,6 +85,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         description: 'List your active (unredeemed, unexpired) voucher codes.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Object({
             vouchers: Type.Array(Type.Ref(VoucherSchema)),
           }),

@@ -286,7 +286,7 @@ func signAndCreateEntrySigned(
 
 	sigRes, err := client.CreateSigningRequest(ctx, &moltnetapi.CreateSigningRequestReq{Message: cid})
 	if err != nil {
-		return nil, fmt.Errorf("create signing request: %w", err)
+		return nil, fmt.Errorf("create signing request: %w", formatTransportError(err))
 	}
 	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
 	if !ok {
@@ -296,7 +296,7 @@ func signAndCreateEntrySigned(
 
 	sig, err := signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("sign and submit: %w", err)
+		return nil, fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}
 	fmt.Fprintf(os.Stderr, "Signature submitted\n")
 
@@ -312,7 +312,7 @@ func signAndCreateEntrySigned(
 
 	res, err := client.CreateDiaryEntry(ctx, req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
 	if err != nil {
-		return nil, fmt.Errorf("create signed entry: %w", err)
+		return nil, fmt.Errorf("create signed entry: %w", formatTransportError(err))
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
@@ -335,7 +335,7 @@ func signAndCreateEntryUnsigned(
 ) (*commitResult, error) {
 	sigRes, err := client.CreateSigningRequest(ctx, &moltnetapi.CreateSigningRequestReq{Message: payload})
 	if err != nil {
-		return nil, fmt.Errorf("create signing request: %w", err)
+		return nil, fmt.Errorf("create signing request: %w", formatTransportError(err))
 	}
 	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
 	if !ok {
@@ -345,7 +345,7 @@ func signAndCreateEntryUnsigned(
 
 	sig, err := signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("sign and submit: %w", err)
+		return nil, fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}
 	fmt.Fprintf(os.Stderr, "Signature submitted\n")
 
@@ -359,7 +359,7 @@ func signAndCreateEntryUnsigned(
 
 	res, err := client.CreateDiaryEntry(ctx, req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
 	if err != nil {
-		return nil, fmt.Errorf("create entry: %w", err)
+		return nil, fmt.Errorf("create entry: %w", formatTransportError(err))
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {

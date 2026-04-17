@@ -15,7 +15,7 @@ func runCryptoIdentityCmd(apiURL, credPath string) error {
 	}
 	res, err := client.GetCryptoIdentity(context.Background())
 	if err != nil {
-		return fmt.Errorf("crypto identity: %w", err)
+		return fmt.Errorf("crypto identity: %w", formatTransportError(err))
 	}
 	identity, ok := res.(*moltnetapi.CryptoIdentity)
 	if !ok {
@@ -34,7 +34,7 @@ func runCryptoVerifyCmd(apiURL, credPath, signature string) error {
 		Signature: signature,
 	})
 	if err != nil {
-		return fmt.Errorf("crypto verify: %w", err)
+		return fmt.Errorf("crypto verify: %w", formatTransportError(err))
 	}
 	result, ok := res.(*moltnetapi.CryptoVerifyResult)
 	if !ok {

@@ -16,7 +16,7 @@ func runTeamsListCmd(apiURL, credPath string) error {
 	}
 	res, err := client.ListTeams(context.Background())
 	if err != nil {
-		return fmt.Errorf("teams list: %w", err)
+		return fmt.Errorf("teams list: %w", formatTransportError(err))
 	}
 	list, ok := res.(*moltnetapi.ListTeamsOK)
 	if !ok {
@@ -37,7 +37,7 @@ func runTeamsGetCmd(apiURL, credPath, teamID string) error {
 	}
 	res, err := client.GetTeam(context.Background(), moltnetapi.GetTeamParams{ID: teamUUID})
 	if err != nil {
-		return fmt.Errorf("teams get: %w", err)
+		return fmt.Errorf("teams get: %w", formatTransportError(err))
 	}
 	team, ok := res.(*moltnetapi.GetTeamOK)
 	if !ok {
@@ -58,7 +58,7 @@ func runTeamsMembersCmd(apiURL, credPath, teamID string) error {
 	}
 	res, err := client.ListTeamMembers(context.Background(), moltnetapi.ListTeamMembersParams{ID: teamUUID})
 	if err != nil {
-		return fmt.Errorf("teams members: %w", err)
+		return fmt.Errorf("teams members: %w", formatTransportError(err))
 	}
 	members, ok := res.(*moltnetapi.ListTeamMembersOK)
 	if !ok {
@@ -78,7 +78,7 @@ func runTeamsCreateCmd(apiURL, credPath, name string) error {
 	}
 	res, err := client.CreateTeam(context.Background(), req)
 	if err != nil {
-		return fmt.Errorf("teams create: %w", err)
+		return fmt.Errorf("teams create: %w", formatTransportError(err))
 	}
 	team, ok := res.(*moltnetapi.CreateTeamCreated)
 	if !ok {
@@ -98,7 +98,7 @@ func runTeamsJoinCmd(apiURL, credPath, code string) error {
 	}
 	res, err := client.JoinTeam(context.Background(), req)
 	if err != nil {
-		return fmt.Errorf("teams join: %w", err)
+		return fmt.Errorf("teams join: %w", formatTransportError(err))
 	}
 	result, ok := res.(*moltnetapi.JoinTeamOK)
 	if !ok {
@@ -134,7 +134,7 @@ func runTeamsInviteCreateCmd(apiURL, credPath, teamID, role string, expiresInHou
 
 	res, err := client.CreateTeamInvite(context.Background(), req, moltnetapi.CreateTeamInviteParams{ID: teamUUID})
 	if err != nil {
-		return fmt.Errorf("teams invite create: %w", err)
+		return fmt.Errorf("teams invite create: %w", formatTransportError(err))
 	}
 	invite, ok := res.(*moltnetapi.CreateTeamInviteCreated)
 	if !ok {
@@ -155,7 +155,7 @@ func runTeamsDeleteCmd(apiURL, credPath, teamID string) error {
 	}
 	res, err := client.DeleteTeam(context.Background(), moltnetapi.DeleteTeamParams{ID: teamUUID})
 	if err != nil {
-		return fmt.Errorf("teams delete: %w", err)
+		return fmt.Errorf("teams delete: %w", formatTransportError(err))
 	}
 	ok, okRes := res.(*moltnetapi.DeleteTeamOK)
 	if !okRes {
@@ -183,7 +183,7 @@ func runTeamsMemberRemoveCmd(apiURL, credPath, teamID, subjectID string) error {
 		SubjectId: subjectUUID,
 	})
 	if err != nil {
-		return fmt.Errorf("teams members remove: %w", err)
+		return fmt.Errorf("teams members remove: %w", formatTransportError(err))
 	}
 	ok, okRes := res.(*moltnetapi.RemoveTeamMemberOK)
 	if !okRes {
@@ -211,7 +211,7 @@ func runTeamsInviteDeleteCmd(apiURL, credPath, teamID, inviteID string) error {
 		InviteId: inviteUUID,
 	})
 	if err != nil {
-		return fmt.Errorf("teams invite delete: %w", err)
+		return fmt.Errorf("teams invite delete: %w", formatTransportError(err))
 	}
 	ok, okRes := res.(*moltnetapi.DeleteTeamInviteOK)
 	if !okRes {
@@ -232,7 +232,7 @@ func runTeamsInviteListCmd(apiURL, credPath, teamID string) error {
 	}
 	res, err := client.ListTeamInvites(context.Background(), moltnetapi.ListTeamInvitesParams{ID: teamUUID})
 	if err != nil {
-		return fmt.Errorf("teams invite list: %w", err)
+		return fmt.Errorf("teams invite list: %w", formatTransportError(err))
 	}
 	invites, ok := res.(*moltnetapi.ListTeamInvitesOK)
 	if !ok {

@@ -44,7 +44,7 @@ func runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tag
 	}
 	res, err := client.CreateDiaryEntry(context.Background(), req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("entry create: %w", err)
+		return fmt.Errorf("entry create: %w", formatTransportError(err))
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
@@ -95,7 +95,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 		Message: cid,
 	})
 	if err != nil {
-		return fmt.Errorf("create signing request: %w", err)
+		return fmt.Errorf("create signing request: %w", formatTransportError(err))
 	}
 	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
 	if !ok {
@@ -106,7 +106,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	// Step 4: Sign and submit
 	_, err = signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
 	if err != nil {
-		return fmt.Errorf("sign and submit: %w", err)
+		return fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}
 	fmt.Fprintf(os.Stderr, "Signature submitted\n")
 
@@ -129,7 +129,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 
 	res, err := client.CreateDiaryEntry(context.Background(), req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("entry create-signed: %w", err)
+		return fmt.Errorf("entry create-signed: %w", formatTransportError(err))
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
@@ -171,7 +171,7 @@ func runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryTyp
 	}
 	res, err := client.ListDiaryEntries(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("entry list: %w", err)
+		return fmt.Errorf("entry list: %w", formatTransportError(err))
 	}
 	list, ok := res.(*moltnetapi.DiaryList)
 	if !ok {
@@ -207,7 +207,7 @@ func runEntryGetCmd(apiURL, credPath, entryID, expand string, depth int) error {
 
 	res, err := client.GetDiaryEntryById(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("entry get: %w", err)
+		return fmt.Errorf("entry get: %w", formatTransportError(err))
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntryWithRelations)
 	if !ok {
@@ -251,7 +251,7 @@ func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tag
 		moltnetapi.OptUpdateDiaryEntryByIdReq{Value: req, Set: true},
 		moltnetapi.UpdateDiaryEntryByIdParams{EntryId: entryUUID})
 	if err != nil {
-		return fmt.Errorf("entry update: %w", err)
+		return fmt.Errorf("entry update: %w", formatTransportError(err))
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
@@ -272,7 +272,7 @@ func runEntryDeleteCmd(apiURL, credPath, entryID string) error {
 		return err
 	}
 	if _, err := client.DeleteDiaryEntryById(context.Background(), moltnetapi.DeleteDiaryEntryByIdParams{EntryId: entryUUID}); err != nil {
-		return fmt.Errorf("entry delete: %w", err)
+		return fmt.Errorf("entry delete: %w", formatTransportError(err))
 	}
 	fmt.Fprintf(os.Stderr, "Entry %s deleted.\n", entryID)
 	return nil
@@ -291,7 +291,7 @@ func runEntrySearchCmd(apiURL, credPath, query string) error {
 		Set: true,
 	})
 	if err != nil {
-		return fmt.Errorf("entry search: %w", err)
+		return fmt.Errorf("entry search: %w", formatTransportError(err))
 	}
 	results, ok := res.(*moltnetapi.DiarySearchResult)
 	if !ok {
@@ -313,7 +313,7 @@ func runEntryVerifyCmd(apiURL, credPath, entryID string) error {
 	}
 	res, err := client.VerifyDiaryEntryById(context.Background(), moltnetapi.VerifyDiaryEntryByIdParams{EntryId: entryUUID})
 	if err != nil {
-		return fmt.Errorf("entry verify: %w", err)
+		return fmt.Errorf("entry verify: %w", formatTransportError(err))
 	}
 	result, ok := res.(*moltnetapi.EntryVerifyResult)
 	if !ok {

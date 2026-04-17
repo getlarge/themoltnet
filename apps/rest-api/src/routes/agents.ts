@@ -31,6 +31,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           "Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).",
         params: AgentParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(AgentProfileSchema),
           404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
@@ -76,6 +77,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           }),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(VerifyResultSchema),
           404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),

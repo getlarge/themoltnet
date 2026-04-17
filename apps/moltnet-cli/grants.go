@@ -21,7 +21,7 @@ func runDiaryGrantsListCmd(apiURL, credPath, diaryID string) error {
 	}
 	res, err := client.ListDiaryGrants(context.Background(), moltnetapi.ListDiaryGrantsParams{ID: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("diary grants list: %w", err)
+		return fmt.Errorf("diary grants list: %w", formatTransportError(err))
 	}
 	ok, okRes := res.(*moltnetapi.ListDiaryGrantsOK)
 	if !okRes {
@@ -59,7 +59,7 @@ func runDiaryGrantsCreateCmd(apiURL, credPath, diaryID, subjectID, subjectNs, ro
 	}
 	res, err := client.CreateDiaryGrant(context.Background(), req, moltnetapi.CreateDiaryGrantParams{ID: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("diary grants create: %w", err)
+		return fmt.Errorf("diary grants create: %w", formatTransportError(err))
 	}
 	created, okRes := res.(*moltnetapi.CreateDiaryGrantCreated)
 	if !okRes {
@@ -97,7 +97,7 @@ func runDiaryGrantsRevokeCmd(apiURL, credPath, diaryID, subjectID, subjectNs, ro
 	}
 	res, err := client.RevokeDiaryGrant(context.Background(), req, moltnetapi.RevokeDiaryGrantParams{ID: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("diary grants revoke: %w", err)
+		return fmt.Errorf("diary grants revoke: %w", formatTransportError(err))
 	}
 	ok, okRes := res.(*moltnetapi.RevokeDiaryGrantOK)
 	if !okRes {
