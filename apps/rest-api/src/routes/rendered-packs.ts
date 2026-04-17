@@ -231,7 +231,8 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           actor: { identityId, subjectNs },
         });
       } catch (err) {
-        if (err instanceof PackServiceError) translatePackServiceError(err);
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
         throw err;
       }
     },
@@ -284,7 +285,8 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           renderMethod: request.query.renderMethod,
         });
       } catch (err) {
-        if (err instanceof PackServiceError) translatePackServiceError(err);
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
         throw err;
       }
     },
@@ -320,7 +322,8 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           actor: { identityId, subjectNs },
         });
       } catch (err) {
-        if (err instanceof PackServiceError) translatePackServiceError(err);
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
         throw err;
       }
     },

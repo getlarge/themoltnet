@@ -10,16 +10,13 @@ import type {
   RelationshipWriter,
   TokenValidator,
 } from '@moltnet/auth';
-import {
-  ContextPackService,
-  PackServiceError,
-} from '@moltnet/context-pack-service';
+import { ContextPackService } from '@moltnet/context-pack-service';
 import type { AgentKey, AgentVoucher, DiaryEntry } from '@moltnet/database';
-import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
+import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
   AttestationRepository,
@@ -540,27 +537,20 @@ export async function createTestApp(
     removePackRelations: (packId: string) =>
       mocks.relationshipWriter.removePackRelations(packId),
     deleteMany: (ids: string[]) => mocks.contextPackRepository.deleteMany(ids),
-    assertDiaryReadable: async (diaryId, identityId, subjectNs) => {
-      try {
-        await mocks.diaryService.findDiary(diaryId, identityId, subjectNs);
-      } catch (err) {
-        if (err instanceof DiaryServiceError) {
-          const code =
-            err.code === 'not_found'
-              ? 'not_found'
-              : err.code === 'forbidden'
-                ? 'forbidden'
-                : 'internal';
-          throw new PackServiceError(err.message, code);
-        }
-        throw err;
-      }
-    },
+    assertDiaryReadable: createAssertDiaryReadable(
+      mocks.diaryService as unknown as DiaryService,
+    ),
     ttlDays: 7,
   });
   // Allow individual tests to stub specific service methods via
   // `mocks.contextPackService.<method>.mockResolvedValue(...)` while
   // falling through to the real service for everything else.
+  //
+  // NOTE: only mockResolvedValue / mockRejectedValue / mockImplementation
+  // activate this intercept (they all install a mock implementation).
+  // mockReturnValue does NOT set getMockImplementation() and will silently
+  // fall through to the real service — use mockResolvedValue instead when
+  // stubbing these async methods.
   const serviceProxy = new Proxy(realContextPackService, {
     get(target, prop: string, receiver) {
       const mock = (mocks.contextPackService as Record<string, unknown>)[prop];

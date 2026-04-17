@@ -19,10 +19,7 @@ import {
   createSessionResolver,
   createTokenValidator,
 } from '@moltnet/auth';
-import {
-  ContextPackService,
-  PackServiceError,
-} from '@moltnet/context-pack-service';
+import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
@@ -53,7 +50,7 @@ import {
   setSigningVerifier,
   setVerificationWorkflowDeps,
 } from '@moltnet/database';
-import { createDiaryService, DiaryServiceError } from '@moltnet/diary-service';
+import { createDiaryService } from '@moltnet/diary-service';
 import {
   initDiaryWorkflows,
   setDiaryWorkflowDeps,
@@ -71,6 +68,7 @@ import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
+import { createAssertDiaryReadable } from './services/diary-readable.js';
 import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
@@ -407,22 +405,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     removePackRelations: (packId: string) =>
       relationshipWriter.removePackRelations(packId),
     deleteMany: (ids: string[]) => contextPackRepository.deleteMany(ids),
-    assertDiaryReadable: async (diaryId, identityId, subjectNs) => {
-      try {
-        await diaryService.findDiary(diaryId, identityId, subjectNs);
-      } catch (err) {
-        if (err instanceof DiaryServiceError) {
-          const code =
-            err.code === 'not_found'
-              ? 'not_found'
-              : err.code === 'forbidden'
-                ? 'forbidden'
-                : 'internal';
-          throw new PackServiceError(err.message, code);
-        }
-        throw err;
-      }
-    },
+    assertDiaryReadable: createAssertDiaryReadable(diaryService, app.log),
     logger: app.log,
     ttlDays: config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
   });

@@ -220,11 +220,28 @@ export class ContextPackService {
         offset,
       );
 
-    const allowed = await this.deps.permissionChecker.canReadPacks(
-      packs.map((p) => p.id),
-      input.actor.identityId,
-      input.actor.subjectNs,
-    );
+    let allowed: Map<string, boolean>;
+    try {
+      allowed = await this.deps.permissionChecker.canReadPacks(
+        packs.map((p) => p.id),
+        input.actor.identityId,
+        input.actor.subjectNs,
+      );
+    } catch (error) {
+      this.deps.logger?.error(
+        {
+          err: error,
+          diaryId: input.diaryId,
+          identityId: input.actor.identityId,
+          packCount: packs.length,
+        },
+        'Failed to check pack read permissions',
+      );
+      throw new PackServiceError(
+        'Failed to check pack read permissions',
+        'internal',
+      );
+    }
     const visible = packs.filter((p) => allowed.get(p.id) ?? false);
     // Best-effort lower bound: packs on other pages may also be denied.
     const adjustedTotal = total - (packs.length - visible.length);
@@ -273,7 +290,17 @@ export class ContextPackService {
     if (!rendered) {
       throw new PackServiceError('Rendered pack not found', 'not_found');
     }
-    await this.assertCanReadPack(rendered.sourcePackId, input.actor);
+    try {
+      await this.assertCanReadPack(rendered.sourcePackId, input.actor);
+    } catch (error) {
+      if (error instanceof PackServiceError && error.code === 'forbidden') {
+        throw new PackServiceError(
+          'Not authorized to read this rendered pack',
+          'forbidden',
+        );
+      }
+      throw error;
+    }
     return rendered;
   }
 
@@ -300,11 +327,28 @@ export class ContextPackService {
     );
 
     const sourcePackIds = [...new Set(items.map((rp) => rp.sourcePackId))];
-    const allowed = await this.deps.permissionChecker.canReadPacks(
-      sourcePackIds,
-      input.actor.identityId,
-      input.actor.subjectNs,
-    );
+    let allowed: Map<string, boolean>;
+    try {
+      allowed = await this.deps.permissionChecker.canReadPacks(
+        sourcePackIds,
+        input.actor.identityId,
+        input.actor.subjectNs,
+      );
+    } catch (error) {
+      this.deps.logger?.error(
+        {
+          err: error,
+          diaryId: input.diaryId,
+          identityId: input.actor.identityId,
+          sourcePackIdCount: sourcePackIds.length,
+        },
+        'Failed to check rendered pack read permissions',
+      );
+      throw new PackServiceError(
+        'Failed to check rendered pack read permissions',
+        'internal',
+      );
+    }
     const visible = items.filter((rp) => allowed.get(rp.sourcePackId) ?? false);
     const adjustedTotal = total - (items.length - visible.length);
     return { items: visible, total: adjustedTotal, limit, offset };
