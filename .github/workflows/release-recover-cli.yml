@@ -19,6 +19,9 @@ name: Release Recover (moltnet-cli)
 #   3. Extract previous + stuck cli versions; collect bumped libs that the
 #      cli depends on (auto-discovered from apps/moltnet-cli/go.mod)
 #   4. Revert cli version in the manifest to the previous released version
+#      for every member of the linked cli group (apps/moltnet-cli,
+#      packages/cli, and the 6 packages/cli/npm/* platform packages) so the
+#      manifest stays consistent with the linked-versions invariant
 #   5. Drop the premature `## [x.y.z]` section from cli CHANGELOG
 #   6. `GOWORK=off go get <lib>@<version>` for each bumped lib + go mod tidy
 #   7. Commit on a branch, open PR (squash-merge it manually)
@@ -190,8 +193,21 @@ jobs:
         env:
           PREVIOUS_VERSION: ${{ steps.infer.outputs.previous-cli-version }}
         run: |
-          jq --arg v "$PREVIOUS_VERSION" \
-            '."apps/moltnet-cli" = $v' .release-please-manifest.json \
+          # The cli is part of an 8-component linked-versions group
+          # (apps/moltnet-cli + packages/cli + 6 platform packages). All
+          # members must move in lockstep, so the revert has to touch every
+          # path — otherwise the manifest contradicts the linked-versions
+          # invariant and release-please gets confused on the next run.
+          jq --arg v "$PREVIOUS_VERSION" '
+            ."apps/moltnet-cli"                  = $v
+            | ."packages/cli"                    = $v
+            | ."packages/cli/npm/darwin-arm64"   = $v
+            | ."packages/cli/npm/darwin-x64"     = $v
+            | ."packages/cli/npm/linux-arm64"    = $v
+            | ."packages/cli/npm/linux-x64"      = $v
+            | ."packages/cli/npm/win32-arm64"    = $v
+            | ."packages/cli/npm/win32-x64"      = $v
+          ' .release-please-manifest.json \
             > .release-please-manifest.json.tmp
           mv .release-please-manifest.json.tmp .release-please-manifest.json
           git diff --stat .release-please-manifest.json
@@ -282,7 +298,7 @@ jobs:
           **Triggered by:** ${SOURCE_PR_URL}
 
           **What this PR does:**
-          - Reverts \`apps/moltnet-cli\` in \`.release-please-manifest.json\` from \`${STUCK_VERSION}\` back to \`${PREVIOUS_VERSION}\`
+          - Reverts all 8 linked cli group entries in \`.release-please-manifest.json\` from \`${STUCK_VERSION}\` back to \`${PREVIOUS_VERSION}\` (\`apps/moltnet-cli\`, \`packages/cli\`, and the 6 platform packages — they must move in lockstep under \`linked-versions\`)
           - Drops the premature \`## [${STUCK_VERSION}]\` section from \`apps/moltnet-cli/CHANGELOG.md\`
           - Syncs \`apps/moltnet-cli/go.mod\` to: \`${BUMPED_LIBS}\`
 
