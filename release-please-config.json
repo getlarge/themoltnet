@@ -111,11 +111,6 @@
       ],
       "groupName": "cli",
       "type": "linked-versions"
-    },
-    {
-      "always-link-local": false,
-      "type": "node-workspace",
-      "updatePeerDependencies": false
     }
   ],
   "separate-pull-requests": false,
