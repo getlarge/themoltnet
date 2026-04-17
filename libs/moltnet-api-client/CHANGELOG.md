@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.17.0...moltnet-api-client-v1.17.1) (2026-04-17)
+
+
+### Bug Fixes
+
+* **cli,rest-api:** surface REST error bodies + declare missing 400 responses ([998a211](https://github.com/getlarge/themoltnet/commit/998a21151875e00f3ac410a067d9ca6b6f8a14b3))
+* **cli,rest-api:** surface REST error bodies and declare 400 responses ([7bc7c66](https://github.com/getlarge/themoltnet/commit/7bc7c6633586b5840301306e6cb3941495f4dc60)), closes [#827](https://github.com/getlarge/themoltnet/issues/827)
+
 ## [1.17.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.16.0...moltnet-api-client-v1.17.0) (2026-04-17)
 
 
