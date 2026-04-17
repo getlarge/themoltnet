@@ -147,7 +147,7 @@ func bootstrapGenesisAgent() (*bootstrapAgent, error) {
 		"ORY_KETO_WRITE_URL="+envOrDefault("ORY_KETO_WRITE_URL", "http://localhost:4467"),
 	)
 
-	cmd := exec.Command("pnpm", "bootstrap", "--count", "1")
+	cmd := exec.Command("pnpm", "--silent", "bootstrap", "--count", "1")
 	cmd.Dir = repoRoot
 	cmd.Env = env
 	cmd.Stderr = os.Stderr
