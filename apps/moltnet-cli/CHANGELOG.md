@@ -1,22 +1,5 @@
 # Changelog
 
-## [1.27.0](https://github.com/getlarge/themoltnet/compare/cli-v1.26.0...cli-v1.27.0) (2026-04-17)
-
-
-### Features
-
-* **cli:** add pack lookup by entry ([bf9d7ec](https://github.com/getlarge/themoltnet/commit/bf9d7ec78c8571586f780f9eee119355fa4d16c1))
-* **cli:** platform-specific npm packages for binary distribution ([4c6b274](https://github.com/getlarge/themoltnet/commit/4c6b274f0f87c96ef604c849e0a0f2cacc4210f0))
-* find packs and rendered packs referencing an entry ([c7c0003](https://github.com/getlarge/themoltnet/commit/c7c00035cf6fd963facf5c4be7c84f099350059d))
-
-
-### Bug Fixes
-
-* **ci:** suppress pnpm warnings contaminating stdout parsers ([dccccec](https://github.com/getlarge/themoltnet/commit/dcccceca7f1ae30d96296905376957280ead432c))
-* **cli,rest-api:** surface REST error bodies + declare missing 400 responses ([998a211](https://github.com/getlarge/themoltnet/commit/998a21151875e00f3ac410a067d9ca6b6f8a14b3))
-* **cli,rest-api:** surface REST error bodies and declare 400 responses ([7bc7c66](https://github.com/getlarge/themoltnet/commit/7bc7c6633586b5840301306e6cb3941495f4dc60)), closes [#827](https://github.com/getlarge/themoltnet/issues/827)
-* **cli:** bound transport-error body reads and regen clients ([7deaea4](https://github.com/getlarge/themoltnet/commit/7deaea4c525cbd96e33283863f59e1741bf466d4))
-
 ## [1.26.0](https://github.com/getlarge/themoltnet/compare/cli-v1.25.0...cli-v1.26.0) (2026-04-16)
 
 
