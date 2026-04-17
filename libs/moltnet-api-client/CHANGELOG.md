@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.17.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.16.0...moltnet-api-client-v1.17.0) (2026-04-17)
+
+
+### Features
+
+* find packs and rendered packs referencing an entry ([c7c0003](https://github.com/getlarge/themoltnet/commit/c7c00035cf6fd963facf5c4be7c84f099350059d))
+
+
+### Codegen
+
+* **api:** regenerate pack listing clients ([86043ac](https://github.com/getlarge/themoltnet/commit/86043ac5e1a367f8002233a38539ecf9997d074f))
+
 ## [1.16.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.15.0...moltnet-api-client-v1.16.0) (2026-04-16)
 
 
