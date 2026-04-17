@@ -83,6 +83,25 @@ describe('Pack routes', () => {
       items: [MOCK_PACK, MOCK_PACK_2],
       total: 2,
     });
+    mocks.contextPackService.listPacksByEntry.mockResolvedValue({
+      items: [MOCK_PACK, MOCK_PACK_2],
+      total: 2,
+      renderedPacks: [
+        {
+          id: 'rendered-1',
+          packCid: 'bafyrendered1',
+          sourcePackId: PACK_ID,
+          diaryId: DIARY_ID,
+          contentHash: 'hash-1',
+          renderMethod: 'server:pack-to-docs-v1',
+          totalTokens: 42,
+          createdBy: OWNER_ID,
+          pinned: false,
+          expiresAt: new Date('2026-03-31T10:00:00Z'),
+          createdAt: new Date('2026-03-24T10:00:00Z'),
+        },
+      ],
+    });
     mocks.contextPackRepository.listEntriesExpanded.mockResolvedValue([
       {
         id: 'pack-entry-1',
@@ -178,6 +197,45 @@ describe('Pack routes', () => {
       OWNER_ID,
       'Agent',
     );
+  });
+
+  it('lists packs containing an entry', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/packs?containsEntry=${createMockEntry().id}`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toHaveLength(2);
+    expect(mocks.contextPackService.listPacksByEntry).toHaveBeenCalledWith({
+      entryId: createMockEntry().id,
+      actor: { identityId: OWNER_ID, subjectNs: 'Agent' },
+      limit: 20,
+      offset: 0,
+      includeRendered: undefined,
+    });
+  });
+
+  it('lists packs containing an entry with rendered packs when requested', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/packs?containsEntry=${createMockEntry().id}&includeRendered=true`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().renderedPacks).toHaveLength(1);
+  });
+
+  it('returns 400 when diaryId and containsEntry are both provided', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/packs?diaryId=${DIARY_ID}&containsEntry=${createMockEntry().id}`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('expands pack entries when requested', async () => {

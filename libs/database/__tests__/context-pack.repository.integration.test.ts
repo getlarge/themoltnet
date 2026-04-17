@@ -18,6 +18,7 @@ import {
   contextPackEntries,
   contextPacks,
   diaries,
+  diaryEntries,
   teams,
 } from '../src/schema.js';
 
@@ -40,7 +41,10 @@ describe('ContextPackRepository (integration)', () => {
   let stopContainer: () => Promise<void>;
 
   const DIARY_ID = '110e8400-e29b-41d4-a716-446655440011';
+  const OTHER_DIARY_ID = '110e8400-e29b-41d4-a716-446655440013';
   const OWNER_ID = '120e8400-e29b-41d4-a716-446655440012';
+  const ENTRY_ID = '130e8400-e29b-41d4-a716-446655440014';
+  const OTHER_ENTRY_ID = '130e8400-e29b-41d4-a716-446655440015';
   const createPack = (
     input: Omit<
       Parameters<
@@ -78,13 +82,46 @@ describe('ContextPackRepository (integration)', () => {
 
     await db
       .insert(diaries)
-      .values({
-        id: DIARY_ID,
-        createdBy: OWNER_ID,
-        teamId: TEAM_ID,
-        name: 'Context Pack Test Diary',
-        visibility: 'private',
-      })
+      .values([
+        {
+          id: DIARY_ID,
+          createdBy: OWNER_ID,
+          teamId: TEAM_ID,
+          name: 'Context Pack Test Diary',
+          visibility: 'private',
+        },
+        {
+          id: OTHER_DIARY_ID,
+          createdBy: OWNER_ID,
+          teamId: TEAM_ID,
+          name: 'Other Context Pack Test Diary',
+          visibility: 'private',
+        },
+      ])
+      .onConflictDoNothing();
+
+    await db
+      .insert(diaryEntries)
+      .values([
+        {
+          id: ENTRY_ID,
+          diaryId: DIARY_ID,
+          createdBy: OWNER_ID,
+          content: 'Entry used for reverse pack lookup',
+          title: 'Entry lookup seed',
+          entryType: 'semantic',
+          contentHash: 'bafkreientrylookupseed',
+        },
+        {
+          id: OTHER_ENTRY_ID,
+          diaryId: OTHER_DIARY_ID,
+          createdBy: OWNER_ID,
+          content: 'Other entry',
+          title: 'Other entry seed',
+          entryType: 'semantic',
+          contentHash: 'bafkreiotherentryseed',
+        },
+      ])
       .onConflictDoNothing();
   }, 60_000);
 
@@ -98,7 +135,9 @@ describe('ContextPackRepository (integration)', () => {
     if (!db || !pool || !stopContainer) return;
     await db.delete(contextPackEntries);
     await db.delete(contextPacks);
+    await db.delete(diaryEntries);
     await db.delete(diaries).where(eq(diaries.id, DIARY_ID));
+    await db.delete(diaries).where(eq(diaries.id, OTHER_DIARY_ID));
     await pool.end();
     await stopContainer();
   });
@@ -185,6 +224,102 @@ describe('ContextPackRepository (integration)', () => {
           /Failed query: update "context_packs"|expires_at must be in the future/,
         );
       }
+    });
+  });
+
+  describe('findByEntryId', () => {
+    it('returns no packs when the entry is not referenced', async () => {
+      const result = await repo.findByEntryId(OTHER_ENTRY_ID);
+
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('returns packs containing the entry ordered by newest first', async () => {
+      const olderPack = await createPack({
+        packCid: 'bafy-pack-entry-older',
+        params: { tokenBudget: 4000 },
+        payload: {},
+        pinned: false,
+        expiresAt: new Date(Date.now() + 60_000),
+        createdAt: new Date('2026-03-01T00:00:00Z'),
+      });
+      const newerPack = await createPack({
+        packCid: 'bafy-pack-entry-newer',
+        params: { tokenBudget: 4000 },
+        payload: {},
+        pinned: false,
+        expiresAt: new Date(Date.now() + 60_000),
+        createdAt: new Date('2026-03-02T00:00:00Z'),
+      });
+
+      await repo.addEntries([
+        {
+          packId: olderPack.id,
+          entryId: ENTRY_ID,
+          entryCidSnapshot: 'bafkentryolder',
+          compressionLevel: 'full',
+          rank: 1,
+        },
+        {
+          packId: newerPack.id,
+          entryId: ENTRY_ID,
+          entryCidSnapshot: 'bafkentrynewer',
+          compressionLevel: 'summary',
+          rank: 1,
+        },
+      ]);
+
+      const result = await repo.findByEntryId(ENTRY_ID);
+
+      expect(result.total).toBe(2);
+      expect(result.items.map((item) => item.id)).toEqual([
+        newerPack.id,
+        olderPack.id,
+      ]);
+    });
+
+    it('isolates results with the diaryId filter', async () => {
+      const primaryPack = await createPack({
+        packCid: 'bafy-pack-entry-primary',
+        params: { tokenBudget: 4000 },
+        payload: {},
+        pinned: false,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      const otherPack = await repo.createPack({
+        diaryId: OTHER_DIARY_ID,
+        createdBy: OWNER_ID,
+        packCid: 'bafy-pack-entry-other',
+        params: { tokenBudget: 4000 },
+        payload: {},
+        pinned: false,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+
+      await repo.addEntries([
+        {
+          packId: primaryPack.id,
+          entryId: ENTRY_ID,
+          entryCidSnapshot: 'bafkentryprimary',
+          compressionLevel: 'full',
+          rank: 1,
+        },
+        {
+          packId: otherPack.id,
+          entryId: ENTRY_ID,
+          entryCidSnapshot: 'bafkentryother',
+          compressionLevel: 'full',
+          rank: 1,
+        },
+      ]);
+
+      const result = await repo.findByEntryId(ENTRY_ID, {
+        diaryId: DIARY_ID,
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.items.map((item) => item.id)).toEqual([primaryPack.id]);
     });
   });
 });

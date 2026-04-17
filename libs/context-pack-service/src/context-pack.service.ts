@@ -1,3 +1,4 @@
+import type { PermissionChecker } from '@moltnet/auth';
 import { estimateTokens } from '@moltnet/context-distill';
 import {
   computeContentHash,
@@ -7,6 +8,7 @@ import {
 } from '@moltnet/crypto-service';
 import type {
   ContextPackRepository,
+  DiaryEntryRepository,
   RenderedPackRepository,
 } from '@moltnet/database';
 
@@ -18,6 +20,8 @@ import type {
   CreateCustomPackInput,
   CreateRenderedPackInput,
   FitResult,
+  ListPacksByEntryInput,
+  PacksByEntryResult,
   PreviewRenderedPackInput,
   RenderedPackPreview,
   RenderedPackResult,
@@ -30,13 +34,16 @@ export interface ContextPackServiceDeps {
     | 'addEntries'
     | 'findById'
     | 'findByCid'
+    | 'findByEntryId'
     | 'listByDiary'
     | 'listEntriesExpanded'
   >;
   renderedPackRepository: Pick<
     RenderedPackRepository,
-    'create' | 'findByCid' | 'findLatestBySourcePackId'
+    'create' | 'findByCid' | 'findLatestBySourcePackId' | 'listBySourcePackIds'
   >;
+  diaryEntryRepository: Pick<DiaryEntryRepository, 'findById'>;
+  permissionChecker: Pick<PermissionChecker, 'canViewEntry' | 'canReadPacks'>;
   entryFetcher: EntryFetcher;
   runTransaction: <T>(fn: () => Promise<T>) => Promise<T>;
   grantPackParent: (packId: string, diaryId: string) => Promise<void>;
@@ -49,7 +56,12 @@ export interface ContextPackServiceDeps {
 export class PackServiceError extends Error {
   constructor(
     message: string,
-    public readonly code: 'not_found' | 'conflict' | 'validation' | 'internal',
+    public readonly code:
+      | 'not_found'
+      | 'forbidden'
+      | 'conflict'
+      | 'validation'
+      | 'internal',
   ) {
     super(message);
     this.name = 'PackServiceError';
@@ -67,6 +79,69 @@ export interface CustomPackResult {
 
 export class ContextPackService {
   constructor(private readonly deps: ContextPackServiceDeps) {}
+
+  async listPacksByEntry(
+    input: ListPacksByEntryInput,
+  ): Promise<PacksByEntryResult> {
+    const entry = await this.deps.diaryEntryRepository.findById(input.entryId);
+    if (!entry) {
+      throw new PackServiceError(
+        `Entry ${input.entryId} not found`,
+        'not_found',
+      );
+    }
+
+    const allowed = await this.deps.permissionChecker.canViewEntry(
+      input.entryId,
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+    if (!allowed) {
+      throw new PackServiceError(
+        `Not authorized to read entry ${input.entryId}`,
+        'forbidden',
+      );
+    }
+
+    const result = await this.deps.contextPackRepository.findByEntryId(
+      input.entryId,
+      {
+        diaryId: input.diaryId,
+        limit: input.limit,
+        offset: input.offset,
+      },
+    );
+
+    if (result.items.length === 0) {
+      return input.includeRendered
+        ? { items: [], total: result.total, renderedPacks: [] }
+        : { items: [], total: result.total };
+    }
+
+    const readablePacks = await this.deps.permissionChecker.canReadPacks(
+      result.items.map((pack) => pack.id),
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+    const visibleItems = result.items.filter(
+      (pack) => readablePacks.get(pack.id) ?? false,
+    );
+    const deniedOnPage = result.items.length - visibleItems.length;
+
+    const response: PacksByEntryResult = {
+      items: visibleItems,
+      total: result.total - deniedOnPage,
+    };
+
+    if (input.includeRendered && visibleItems.length > 0) {
+      response.renderedPacks =
+        await this.deps.renderedPackRepository.listBySourcePackIds(
+          visibleItems.map((pack) => pack.id),
+        );
+    }
+
+    return response;
+  }
 
   async createCustomPack(
     input: CreateCustomPackInput,

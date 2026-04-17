@@ -169,6 +169,7 @@ export interface MockServices {
     addEntries: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
     findByCid: ReturnType<typeof vi.fn>;
+    findByEntryId: ReturnType<typeof vi.fn>;
     listEntries: ReturnType<typeof vi.fn>;
     listEntriesExpanded: ReturnType<typeof vi.fn>;
     listEntriesExpandedByPackIds: ReturnType<typeof vi.fn>;
@@ -182,6 +183,7 @@ export interface MockServices {
   renderedPackRepository: {
     findById: ReturnType<typeof vi.fn>;
     findLatestBySourcePackId: ReturnType<typeof vi.fn>;
+    listBySourcePackIds: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     pin: ReturnType<typeof vi.fn>;
@@ -193,6 +195,12 @@ export interface MockServices {
   };
   verificationService: {
     [K in keyof VerificationService]: ReturnType<typeof vi.fn>;
+  };
+  contextPackService: {
+    createCustomPack: ReturnType<typeof vi.fn>;
+    createRenderedPack: ReturnType<typeof vi.fn>;
+    previewRenderedPack: ReturnType<typeof vi.fn>;
+    listPacksByEntry: ReturnType<typeof vi.fn>;
   };
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
@@ -259,6 +267,7 @@ export function createMockServices(): MockServices {
       addEntries: vi.fn(),
       findById: vi.fn(),
       findByCid: vi.fn(),
+      findByEntryId: vi.fn(),
       listEntries: vi.fn().mockResolvedValue([]),
       listEntriesExpanded: vi.fn().mockResolvedValue([]),
       listEntriesExpandedByPackIds: vi.fn().mockResolvedValue(new Map()),
@@ -272,6 +281,7 @@ export function createMockServices(): MockServices {
     renderedPackRepository: {
       findById: vi.fn(),
       findLatestBySourcePackId: vi.fn(),
+      listBySourcePackIds: vi.fn().mockResolvedValue([]),
       listByDiary: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       create: vi.fn(),
       pin: vi.fn(),
@@ -287,6 +297,12 @@ export function createMockServices(): MockServices {
       createVerification: vi.fn(),
       claim: vi.fn(),
       submit: vi.fn(),
+    },
+    contextPackService: {
+      createCustomPack: vi.fn(),
+      createRenderedPack: vi.fn(),
+      previewRenderedPack: vi.fn(),
+      listPacksByEntry: vi.fn(),
     },
     entryRelationRepository: {
       create: vi.fn(),
@@ -493,9 +509,7 @@ export async function createTestApp(
     attestationRepository:
       mocks.attestationRepository as unknown as AttestationRepository,
     entryRelationRepository: mocks.entryRelationRepository as never,
-    contextPackService: {
-      createRenderedPack: vi.fn(),
-    } as never,
+    contextPackService: mocks.contextPackService as never,
     verificationService:
       mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,

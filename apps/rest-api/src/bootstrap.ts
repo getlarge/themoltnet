@@ -386,6 +386,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const contextPackService = new ContextPackService({
     contextPackRepository,
     renderedPackRepository,
+    diaryEntryRepository,
+    permissionChecker,
     entryFetcher: {
       fetchEntries: async (diaryId: string, ids: string[]) => {
         const { items } = await diaryEntryRepository.list({

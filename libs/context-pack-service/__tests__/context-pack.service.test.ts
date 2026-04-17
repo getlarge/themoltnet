@@ -1,3 +1,4 @@
+import { KetoNamespace } from '@moltnet/auth';
 import { computeContentCid, computePackCid } from '@moltnet/crypto-service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -63,6 +64,9 @@ function makeDeps(
       addEntries: vi.fn().mockResolvedValue([]),
       findById: vi.fn().mockResolvedValue(createdPack),
       findByCid: vi.fn().mockResolvedValue(null),
+      findByEntryId: vi
+        .fn()
+        .mockResolvedValue({ items: [createdPack], total: 1 }),
       listByDiary: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       listEntriesExpanded: vi.fn().mockResolvedValue([]),
     },
@@ -70,6 +74,17 @@ function makeDeps(
       create: vi.fn().mockResolvedValue(makeRenderedPackRow()),
       findByCid: vi.fn().mockResolvedValue(null),
       findLatestBySourcePackId: vi.fn().mockResolvedValue(null),
+      listBySourcePackIds: vi.fn().mockResolvedValue([makeRenderedPackRow()]),
+    },
+    diaryEntryRepository: {
+      findById: vi.fn().mockResolvedValue({
+        id: 'entry-1',
+        diaryId: 'diary-uuid',
+      }),
+    },
+    permissionChecker: {
+      canViewEntry: vi.fn().mockResolvedValue(true),
+      canReadPacks: vi.fn().mockResolvedValue(new Map([['pack-uuid', true]])),
     },
     entryFetcher: {
       fetchEntries: vi.fn().mockResolvedValue([
@@ -92,6 +107,75 @@ function makeDeps(
 }
 
 describe('ContextPackService', () => {
+  describe('listPacksByEntry', () => {
+    it('returns visible packs and optional rendered packs', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      const result = await service.listPacksByEntry({
+        entryId: 'entry-1',
+        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        limit: 20,
+        offset: 0,
+        includeRendered: true,
+      });
+
+      expect(deps.diaryEntryRepository.findById).toHaveBeenCalledWith(
+        'entry-1',
+      );
+      expect(deps.permissionChecker.canViewEntry).toHaveBeenCalledWith(
+        'entry-1',
+        'identity-uuid',
+        KetoNamespace.Agent,
+      );
+      expect(deps.contextPackRepository.findByEntryId).toHaveBeenCalledWith(
+        'entry-1',
+        { diaryId: undefined, limit: 20, offset: 0 },
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.renderedPacks).toHaveLength(1);
+    });
+
+    it('throws not_found when the entry does not exist', async () => {
+      const deps = makeDeps({
+        diaryEntryRepository: {
+          findById: vi.fn().mockResolvedValue(null),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.listPacksByEntry({
+          entryId: 'missing-entry',
+          actor: {
+            identityId: 'identity-uuid',
+            subjectNs: KetoNamespace.Agent,
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('throws forbidden when the actor cannot view the entry', async () => {
+      const deps = makeDeps({
+        permissionChecker: {
+          canViewEntry: vi.fn().mockResolvedValue(false),
+          canReadPacks: vi.fn(),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.listPacksByEntry({
+          entryId: 'entry-1',
+          actor: {
+            identityId: 'identity-uuid',
+            subjectNs: KetoNamespace.Agent,
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'forbidden' });
+    });
+  });
+
   describe('createCustomPack', () => {
     it('creates a pack with entries in a transaction', async () => {
       const deps = makeDeps();
