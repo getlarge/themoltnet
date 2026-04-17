@@ -143,6 +143,9 @@ import type {
   ListActiveVouchersData,
   ListActiveVouchersErrors,
   ListActiveVouchersResponses,
+  ListContextPacksData,
+  ListContextPacksErrors,
+  ListContextPacksResponses,
   ListDiariesData,
   ListDiariesErrors,
   ListDiariesResponses,
@@ -960,6 +963,30 @@ export const getContextPackProvenanceByCid = <
       },
     ],
     url: '/packs/by-cid/{cid}/provenance',
+    ...options,
+  });
+
+/**
+ * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+ */
+export const listContextPacks = <ThrowOnError extends boolean = false>(
+  options?: Options<ListContextPacksData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListContextPacksResponses,
+    ListContextPacksErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/packs',
     ...options,
   });
 

@@ -54,6 +54,7 @@ const (
 	IssueVoucherOperation                  OperationName = "IssueVoucher"
 	JoinTeamOperation                      OperationName = "JoinTeam"
 	ListActiveVouchersOperation            OperationName = "ListActiveVouchers"
+	ListContextPacksOperation              OperationName = "ListContextPacks"
 	ListDiariesOperation                   OperationName = "ListDiaries"
 	ListDiaryEntriesOperation              OperationName = "ListDiaryEntries"
 	ListDiaryGrantsOperation               OperationName = "ListDiaryGrants"

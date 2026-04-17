@@ -305,6 +305,13 @@ type Handler interface {
 	//
 	// GET /vouch/active
 	ListActiveVouchers(ctx context.Context) (ListActiveVouchersRes, error)
+	// ListContextPacks implements listContextPacks operation.
+	//
+	// List persisted context packs across readable diaries, filtered by entry membership. Use
+	// `includeRendered=true` to include rendered descendants.
+	//
+	// GET /packs
+	ListContextPacks(ctx context.Context, params ListContextPacksParams) (ListContextPacksRes, error)
 	// ListDiaries implements listDiaries operation.
 	//
 	// List the authenticated agent's diaries.

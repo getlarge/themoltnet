@@ -1969,6 +1969,70 @@ func (s *ContextPackResponseList) SetTotal(val float64) {
 
 func (*ContextPackResponseList) listDiaryPacksRes() {}
 
+// Ref: #/components/schemas/ContextPackResponseListWithRendered
+type ContextPackResponseListWithRendered struct {
+	Items []ContextPackResponse `json:"items"`
+	// Maximum number of items requested for this response.
+	Limit float64 `json:"limit"`
+	// Number of items skipped before this page.
+	Offset        float64        `json:"offset"`
+	RenderedPacks []RenderedPack `json:"renderedPacks"`
+	// Total number of matching items in the database.
+	Total float64 `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *ContextPackResponseListWithRendered) GetItems() []ContextPackResponse {
+	return s.Items
+}
+
+// GetLimit returns the value of Limit.
+func (s *ContextPackResponseListWithRendered) GetLimit() float64 {
+	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *ContextPackResponseListWithRendered) GetOffset() float64 {
+	return s.Offset
+}
+
+// GetRenderedPacks returns the value of RenderedPacks.
+func (s *ContextPackResponseListWithRendered) GetRenderedPacks() []RenderedPack {
+	return s.RenderedPacks
+}
+
+// GetTotal returns the value of Total.
+func (s *ContextPackResponseListWithRendered) GetTotal() float64 {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *ContextPackResponseListWithRendered) SetItems(val []ContextPackResponse) {
+	s.Items = val
+}
+
+// SetLimit sets the value of Limit.
+func (s *ContextPackResponseListWithRendered) SetLimit(val float64) {
+	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *ContextPackResponseListWithRendered) SetOffset(val float64) {
+	s.Offset = val
+}
+
+// SetRenderedPacks sets the value of RenderedPacks.
+func (s *ContextPackResponseListWithRendered) SetRenderedPacks(val []RenderedPack) {
+	s.RenderedPacks = val
+}
+
+// SetTotal sets the value of Total.
+func (s *ContextPackResponseListWithRendered) SetTotal(val float64) {
+	s.Total = val
+}
+
+func (*ContextPackResponseListWithRendered) listContextPacksRes() {}
+
 type ContextPackResponsePackType string
 
 const (
@@ -7393,6 +7457,60 @@ type ListActiveVouchersUnauthorized ProblemDetails
 
 func (*ListActiveVouchersUnauthorized) listActiveVouchersRes() {}
 
+type ListContextPacksBadRequest ProblemDetails
+
+func (*ListContextPacksBadRequest) listContextPacksRes() {}
+
+type ListContextPacksExpand string
+
+const (
+	ListContextPacksExpandEntries ListContextPacksExpand = "entries"
+)
+
+// AllValues returns all ListContextPacksExpand values.
+func (ListContextPacksExpand) AllValues() []ListContextPacksExpand {
+	return []ListContextPacksExpand{
+		ListContextPacksExpandEntries,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListContextPacksExpand) MarshalText() ([]byte, error) {
+	switch s {
+	case ListContextPacksExpandEntries:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListContextPacksExpand) UnmarshalText(data []byte) error {
+	switch ListContextPacksExpand(data) {
+	case ListContextPacksExpandEntries:
+		*s = ListContextPacksExpandEntries
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListContextPacksForbidden ProblemDetails
+
+func (*ListContextPacksForbidden) listContextPacksRes() {}
+
+type ListContextPacksInternalServerError ProblemDetails
+
+func (*ListContextPacksInternalServerError) listContextPacksRes() {}
+
+type ListContextPacksNotFound ProblemDetails
+
+func (*ListContextPacksNotFound) listContextPacksRes() {}
+
+type ListContextPacksUnauthorized ProblemDetails
+
+func (*ListContextPacksUnauthorized) listContextPacksRes() {}
+
 type ListDiariesInternalServerError ProblemDetails
 
 func (*ListDiariesInternalServerError) listDiariesRes() {}
@@ -10524,6 +10642,52 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListContextPacksExpand returns new OptListContextPacksExpand with value set to v.
+func NewOptListContextPacksExpand(v ListContextPacksExpand) OptListContextPacksExpand {
+	return OptListContextPacksExpand{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListContextPacksExpand is optional ListContextPacksExpand.
+type OptListContextPacksExpand struct {
+	Value ListContextPacksExpand
+	Set   bool
+}
+
+// IsSet returns true if OptListContextPacksExpand was set.
+func (o OptListContextPacksExpand) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListContextPacksExpand) Reset() {
+	var v ListContextPacksExpand
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListContextPacksExpand) SetTo(v ListContextPacksExpand) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListContextPacksExpand) Get() (v ListContextPacksExpand, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListContextPacksExpand) Or(d ListContextPacksExpand) ListContextPacksExpand {
 	if v, ok := o.Get(); ok {
 		return v
 	}
