@@ -149,14 +149,14 @@ export const diaries = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    createdByIdx: index('diaries_created_by_idx').on(table.createdBy),
-    createdByVisibilityIdx: index('diaries_created_by_visibility_idx').on(
+  (table) => [
+    index('diaries_created_by_idx').on(table.createdBy),
+    index('diaries_created_by_visibility_idx').on(
       table.createdBy,
       table.visibility,
     ),
-    teamIdx: index('diaries_team_idx').on(table.teamId),
-  }),
+    index('diaries_team_idx').on(table.teamId),
+  ],
 );
 
 /**
@@ -210,22 +210,20 @@ export const diaryEntries = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    diaryIdx: index('diary_entries_diary_idx').on(table.diaryId),
-    createdByIdx: index('diary_entries_created_by_idx').on(table.createdBy),
+  (table) => [
+    index('diary_entries_diary_idx').on(table.diaryId),
+    index('diary_entries_created_by_idx').on(table.createdBy),
 
     // Index for entry type filtering (memory system)
-    entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),
+    index('diary_entries_entry_type_idx').on(table.entryType),
 
     // Each content signature can only be used once (prevents signing request reuse)
-    contentSignatureIdx: uniqueIndex(
-      'diary_entries_content_signature_unique_idx',
-    )
+    uniqueIndex('diary_entries_content_signature_unique_idx')
       .on(table.contentSignature)
       .where(sql`content_signature IS NOT NULL`),
 
     // Fast CID lookup for provenance and DAG materialization.
-    contentHashIdx: index('diary_entries_content_hash_idx')
+    index('diary_entries_content_hash_idx')
       .on(table.contentHash)
       .where(sql`content_hash IS NOT NULL`),
 
@@ -234,7 +232,7 @@ export const diaryEntries = pgTable(
 
     // HNSW index for vector similarity (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_embedding_idx ON diary_entries USING hnsw (embedding vector_cosine_ops);
-  }),
+  ],
 );
 
 /**
@@ -263,12 +261,10 @@ export const agentKeys = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // Unique fingerprint
-    fingerprintIdx: uniqueIndex('agent_keys_fingerprint_idx').on(
-      table.fingerprint,
-    ),
-  }),
+    uniqueIndex('agent_keys_fingerprint_idx').on(table.fingerprint),
+  ],
 );
 
 /**
@@ -326,13 +322,13 @@ export const agentVouchers = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // Fast lookup by code during registration
-    codeIdx: uniqueIndex('agent_vouchers_code_idx').on(table.code),
+    uniqueIndex('agent_vouchers_code_idx').on(table.code),
 
     // Find vouchers issued by an agent
-    issuerIdx: index('agent_vouchers_issuer_idx').on(table.issuerId),
-  }),
+    index('agent_vouchers_issuer_idx').on(table.issuerId),
+  ],
 );
 
 // Signing request status enum
@@ -382,21 +378,16 @@ export const signingRequests = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
-  (table) => ({
+  (table) => [
     // Find requests by agent and status (common query pattern)
-    agentStatusIdx: index('signing_requests_agent_status_idx').on(
-      table.agentId,
-      table.status,
-    ),
+    index('signing_requests_agent_status_idx').on(table.agentId, table.status),
 
     // Lookup by signature (public verification path)
-    signatureIdx: index('signing_requests_signature_idx').on(table.signature),
+    index('signing_requests_signature_idx').on(table.signature),
 
     // Lookup by DBOS workflow ID
-    workflowIdx: uniqueIndex('signing_requests_workflow_idx').on(
-      table.workflowId,
-    ),
-  }),
+    uniqueIndex('signing_requests_workflow_idx').on(table.workflowId),
+  ],
 );
 
 /**
@@ -411,11 +402,7 @@ export const usedRecoveryNonces = pgTable(
     nonce: text('nonce').primaryKey(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   },
-  (table) => ({
-    expiresAtIdx: index('used_recovery_nonces_expires_at_idx').on(
-      table.expiresAt,
-    ),
-  }),
+  (table) => [index('used_recovery_nonces_expires_at_idx').on(table.expiresAt)],
 );
 
 /**
@@ -451,17 +438,17 @@ export const entryRelations = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    uniqueRelation: uniqueIndex('entry_relations_unique_idx').on(
+  (table) => [
+    uniqueIndex('entry_relations_unique_idx').on(
       table.sourceId,
       table.targetId,
       table.relation,
     ),
-    sourceIdx: index('entry_relations_source_idx').on(table.sourceId),
-    targetIdx: index('entry_relations_target_idx').on(table.targetId),
-    relationIdx: index('entry_relations_type_idx').on(table.relation),
-    statusIdx: index('entry_relations_status_idx').on(table.status),
-  }),
+    index('entry_relations_source_idx').on(table.sourceId),
+    index('entry_relations_target_idx').on(table.targetId),
+    index('entry_relations_type_idx').on(table.relation),
+    index('entry_relations_status_idx').on(table.status),
+  ],
 );
 
 /**
@@ -509,17 +496,15 @@ export const contextPacks = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    packCidUniqueIdx: uniqueIndex('context_packs_pack_cid_unique_idx').on(
-      table.packCid,
-    ),
-    diaryIdx: index('context_packs_diary_idx').on(table.diaryId),
-    packTypeIdx: index('context_packs_pack_type_idx').on(table.packType),
-    expiresAtIdx: index('context_packs_expires_at_idx')
+  (table) => [
+    uniqueIndex('context_packs_pack_cid_unique_idx').on(table.packCid),
+    index('context_packs_diary_idx').on(table.diaryId),
+    index('context_packs_pack_type_idx').on(table.packType),
+    index('context_packs_expires_at_idx')
       .on(table.expiresAt)
       .where(sql`pinned = false`),
-    pinnedIdx: index('context_packs_pinned_idx').on(table.pinned),
-  }),
+    index('context_packs_pinned_idx').on(table.pinned),
+  ],
 );
 
 /**
@@ -549,14 +534,14 @@ export const contextPackEntries = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    uniquePackEntry: uniqueIndex('context_pack_entries_unique_idx').on(
+  (table) => [
+    uniqueIndex('context_pack_entries_unique_idx').on(
       table.packId,
       table.entryId,
     ),
-    packIdx: index('context_pack_entries_pack_idx').on(table.packId),
-    entryIdx: index('context_pack_entries_entry_idx').on(table.entryId),
-  }),
+    index('context_pack_entries_pack_idx').on(table.packId),
+    index('context_pack_entries_entry_idx').on(table.entryId),
+  ],
 );
 
 /**
@@ -588,9 +573,7 @@ export const teams = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    createdByIdx: index('teams_created_by_idx').on(table.createdBy),
-  }),
+  (table) => [index('teams_created_by_idx').on(table.createdBy)],
 );
 
 /**
@@ -616,13 +599,10 @@ export const groups = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    teamIdx: index('groups_team_idx').on(table.teamId),
-    nameTeamIdx: uniqueIndex('groups_name_team_idx').on(
-      table.name,
-      table.teamId,
-    ),
-  }),
+  (table) => [
+    index('groups_team_idx').on(table.teamId),
+    uniqueIndex('groups_name_team_idx').on(table.name, table.teamId),
+  ],
 );
 
 /**
@@ -656,10 +636,10 @@ export const teamInvites = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    codeIdx: uniqueIndex('team_invites_code_idx').on(table.code),
-    teamIdx: index('team_invites_team_idx').on(table.teamId),
-  }),
+  (table) => [
+    uniqueIndex('team_invites_code_idx').on(table.code),
+    index('team_invites_team_idx').on(table.teamId),
+  ],
 );
 
 /**
@@ -691,13 +671,13 @@ export const foundingAcceptances = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    teamIdx: index('founding_acceptances_team_idx').on(table.teamId),
-    uniqueMember: uniqueIndex('founding_acceptances_team_subject_idx').on(
+  (table) => [
+    index('founding_acceptances_team_idx').on(table.teamId),
+    uniqueIndex('founding_acceptances_team_subject_idx').on(
       table.teamId,
       table.subjectId,
     ),
-  }),
+  ],
 );
 
 /**
@@ -740,18 +720,12 @@ export const diaryTransfers = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    diaryIdx: index('diary_transfers_diary_idx').on(table.diaryId),
-    sourceTeamIdx: index('diary_transfers_source_team_idx').on(
-      table.sourceTeamId,
-    ),
-    destTeamIdx: index('diary_transfers_dest_team_idx').on(
-      table.destinationTeamId,
-    ),
-    workflowIdx: uniqueIndex('diary_transfers_workflow_idx').on(
-      table.workflowId,
-    ),
-  }),
+  (table) => [
+    index('diary_transfers_diary_idx').on(table.diaryId),
+    index('diary_transfers_source_team_idx').on(table.sourceTeamId),
+    index('diary_transfers_dest_team_idx').on(table.destinationTeamId),
+    uniqueIndex('diary_transfers_workflow_idx').on(table.workflowId),
+  ],
 );
 
 /**
@@ -788,18 +762,14 @@ export const renderedPacks = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    packCidUniqueIdx: uniqueIndex('rendered_packs_pack_cid_unique_idx').on(
-      table.packCid,
-    ),
-    sourcePackIdx: index('rendered_packs_source_pack_idx').on(
-      table.sourcePackId,
-    ),
-    diaryIdx: index('rendered_packs_diary_idx').on(table.diaryId),
-    expiresAtIdx: index('rendered_packs_expires_at_idx')
+  (table) => [
+    uniqueIndex('rendered_packs_pack_cid_unique_idx').on(table.packCid),
+    index('rendered_packs_source_pack_idx').on(table.sourcePackId),
+    index('rendered_packs_diary_idx').on(table.diaryId),
+    index('rendered_packs_expires_at_idx')
       .on(table.expiresAt)
       .where(sql`pinned = false`),
-  }),
+  ],
 );
 
 // Type exports for use in services
@@ -856,16 +826,12 @@ export const renderedPackVerifications = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    renderedPackIdx: index('verifications_rendered_pack_idx').on(
-      table.renderedPackId,
-    ),
-    statusIdx: index('verifications_status_idx').on(table.status),
-    expiresAtIdx: index('verifications_expires_at_idx').on(table.expiresAt),
-    nonceUniqueIdx: uniqueIndex('verifications_nonce_unique_idx').on(
-      table.nonce,
-    ),
-  }),
+  (table) => [
+    index('verifications_rendered_pack_idx').on(table.renderedPackId),
+    index('verifications_status_idx').on(table.status),
+    index('verifications_expires_at_idx').on(table.expiresAt),
+    uniqueIndex('verifications_nonce_unique_idx').on(table.nonce),
+  ],
 );
 
 export type RenderedPackVerification =
@@ -896,12 +862,10 @@ export const renderedPackAttestations = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    renderedPackIdx: index('attestations_rendered_pack_idx').on(
-      table.renderedPackId,
-    ),
-    compositeIdx: index('attestations_composite_idx').on(table.composite),
-  }),
+  (table) => [
+    index('attestations_rendered_pack_idx').on(table.renderedPackId),
+    index('attestations_composite_idx').on(table.composite),
+  ],
 );
 
 export type RenderedPackAttestation =
