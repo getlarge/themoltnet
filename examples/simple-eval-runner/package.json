@@ -1,0 +1,22 @@
+{
+  "name": "simple-eval-runner",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Meetup demo: programmatic Claude eval runner showing cold vs pack-aided runs against MoltNet eval scenarios.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.92",
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@themoltnet/sdk": "latest",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
