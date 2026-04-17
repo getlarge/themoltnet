@@ -2,6 +2,7 @@ import {
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  listContextPacks,
   listDiaryPacks,
   updateContextPack,
   updateRenderedPack,
@@ -26,13 +27,28 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
       );
     },
 
-    async list(diaryId, query) {
+    async list(selector) {
+      if ('diaryId' in selector) {
+        const { diaryId, ...query } = selector;
+        return unwrapResult(
+          await listDiaryPacks({
+            client,
+            auth,
+            path: { id: diaryId },
+            query,
+          }),
+        );
+      }
+
+      const { containsEntry, ...query } = selector;
       return unwrapResult(
-        await listDiaryPacks({
+        await listContextPacks({
           client,
           auth,
-          path: { id: diaryId },
-          query,
+          query: {
+            ...query,
+            containsEntry,
+          },
         }),
       );
     },
