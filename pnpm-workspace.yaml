@@ -3,6 +3,7 @@ packages:
   - libs/*
   - tools
   - packages/*
+  - packages/cli/npm/*
 allowBuilds:
   cpu-features: false
   esbuild: true

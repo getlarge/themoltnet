@@ -475,14 +475,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      - name: Publish
-        working-directory: packages/cli
-        run: npm publish --access public --provenance
+      - run: pnpm install --frozen-lockfile
+
+      # pnpm publish rewrites workspace:* in optionalDependencies to the
+      # concrete version so the published tarball resolves on npm.
+      - run: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
 
   release-skill:
     name: Release OpenClaw Skill

@@ -23,11 +23,11 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@themoltnet/cli-darwin-arm64": "1.26.0",
-    "@themoltnet/cli-darwin-x64": "1.26.0",
-    "@themoltnet/cli-linux-arm64": "1.26.0",
-    "@themoltnet/cli-linux-x64": "1.26.0",
-    "@themoltnet/cli-win32-arm64": "1.26.0",
-    "@themoltnet/cli-win32-x64": "1.26.0"
+    "@themoltnet/cli-darwin-arm64": "workspace:*",
+    "@themoltnet/cli-darwin-x64": "workspace:*",
+    "@themoltnet/cli-linux-arm64": "workspace:*",
+    "@themoltnet/cli-linux-x64": "workspace:*",
+    "@themoltnet/cli-win32-arm64": "workspace:*",
+    "@themoltnet/cli-win32-x64": "workspace:*"
   }
 }

@@ -8,73 +8,6 @@
     "apps/moltnet-cli": {
       "bump-minor-pre-major": true,
       "component": "cli",
-      "extra-files": [
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/npm/linux-x64/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/npm/linux-arm64/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/npm/darwin-x64/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/npm/darwin-arm64/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/npm/win32-x64/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.version",
-          "path": "/packages/cli/npm/win32-arm64/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.optionalDependencies['@themoltnet/cli-darwin-arm64']",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.optionalDependencies['@themoltnet/cli-darwin-x64']",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.optionalDependencies['@themoltnet/cli-linux-arm64']",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.optionalDependencies['@themoltnet/cli-linux-x64']",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.optionalDependencies['@themoltnet/cli-win32-arm64']",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        },
-        {
-          "jsonpath": "$.optionalDependencies['@themoltnet/cli-win32-x64']",
-          "path": "/packages/cli/package.json",
-          "type": "json"
-        }
-      ],
       "release-type": "go"
     },
     "libs/design-system": {
@@ -109,6 +42,48 @@
       "component": "sdk",
       "release-type": "node"
     },
+    "packages/cli": {
+      "component": "cli-wrapper",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
+    "packages/cli/npm/darwin-arm64": {
+      "component": "cli-darwin-arm64",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
+    "packages/cli/npm/darwin-x64": {
+      "component": "cli-darwin-x64",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
+    "packages/cli/npm/linux-arm64": {
+      "component": "cli-linux-arm64",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
+    "packages/cli/npm/linux-x64": {
+      "component": "cli-linux-x64",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
+    "packages/cli/npm/win32-arm64": {
+      "component": "cli-win32-arm64",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
+    "packages/cli/npm/win32-x64": {
+      "component": "cli-win32-x64",
+      "release-type": "node",
+      "skip-changelog": true,
+      "skip-github-release": true
+    },
     "packages/github-agent": {
       "component": "github-agent",
       "release-type": "node"
@@ -122,6 +97,27 @@
       "release-type": "simple"
     }
   },
+  "plugins": [
+    {
+      "components": [
+        "cli",
+        "cli-wrapper",
+        "cli-darwin-arm64",
+        "cli-darwin-x64",
+        "cli-linux-arm64",
+        "cli-linux-x64",
+        "cli-win32-arm64",
+        "cli-win32-x64"
+      ],
+      "groupName": "cli",
+      "type": "linked-versions"
+    },
+    {
+      "always-link-local": false,
+      "type": "node-workspace",
+      "updatePeerDependencies": false
+    }
+  ],
   "separate-pull-requests": false,
   "tag-separator": "-"
 }
