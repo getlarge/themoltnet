@@ -897,6 +897,36 @@
         "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
+      "ContextPackResponseListWithRendered": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContextPackResponse"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "Maximum number of items requested for this response.",
+            "type": "number"
+          },
+          "offset": {
+            "description": "Number of items skipped before this page.",
+            "type": "number"
+          },
+          "renderedPacks": {
+            "items": {
+              "$ref": "#/components/schemas/RenderedPack"
+            },
+            "type": "array"
+          },
+          "total": {
+            "description": "Total number of matching items in the database.",
+            "type": "number"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "type": "object"
+      },
       "CryptoIdentity": {
         "properties": {
           "fingerprint": {
@@ -8686,6 +8716,142 @@
           }
         },
         "tags": ["auth"]
+      }
+    },
+    "/packs": {
+      "get": {
+        "description": "List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.",
+        "operationId": "listContextPacks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "diaryId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "containsEntry",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeRendered",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expand",
+            "required": false,
+            "schema": {
+              "enum": ["entries"],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextPackResponseListWithRendered"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["diary"]
       }
     },
     "/packs/by-cid/{cid}/provenance": {

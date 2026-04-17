@@ -455,6 +455,16 @@ func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiv
 	return r, ht.ErrNotImplemented
 }
 
+// ListContextPacks implements listContextPacks operation.
+//
+// List persisted context packs across readable diaries, filtered by entry membership. Use
+// `includeRendered=true` to include rendered descendants.
+//
+// GET /packs
+func (UnimplementedHandler) ListContextPacks(ctx context.Context, params ListContextPacksParams) (r ListContextPacksRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListDiaries implements listDiaries operation.
 //
 // List the authenticated agent's diaries.

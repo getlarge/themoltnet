@@ -1,4 +1,6 @@
+import type { KetoNamespace } from '@moltnet/auth';
 import type { CompressionLevel } from '@moltnet/crypto-service';
+import type { ContextPackWithCreator, RenderedPack } from '@moltnet/database';
 
 export interface SelectedEntry {
   entryId: string;
@@ -83,4 +85,24 @@ export interface RenderedPackPreview {
   renderMethod: string;
   renderedMarkdown: string;
   totalTokens: number;
+}
+
+export interface PackActor {
+  identityId: string;
+  subjectNs: KetoNamespace;
+}
+
+export interface ListPacksByEntryInput {
+  entryId: string;
+  actor: PackActor;
+  diaryId?: string;
+  limit?: number;
+  offset?: number;
+  includeRendered?: boolean;
+}
+
+export interface PacksByEntryResult {
+  items: ContextPackWithCreator[];
+  total: number;
+  renderedPacks?: RenderedPack[];
 }

@@ -6,6 +6,7 @@ import {
   type DistillEntry,
   estimateTokens,
 } from '@moltnet/context-distill';
+import { PackServiceError } from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -19,10 +20,12 @@ import type { FastifyInstance } from 'fastify';
 import { createProblem } from '../problems/index.js';
 import {
   ContextPackResponseListSchema,
+  ContextPackResponseListWithRenderedSchema,
   ContextPackResponseSchema,
   CustomPackBodySchema,
   CustomPackResultSchema,
   PackCidParamsSchema,
+  PackCollectionQuerySchema,
   PackListQuerySchema,
   PackParamsSchema,
   PackProvenanceQuerySchema,
@@ -558,6 +561,120 @@ export async function packRoutes(fastify: FastifyInstance) {
         );
         throw createProblem('internal', 'Failed to build pack provenance');
       }
+    },
+  );
+
+  server.get(
+    '/packs',
+    {
+      schema: {
+        operationId: 'listContextPacks',
+        tags: ['diary'],
+        description:
+          'List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        querystring: PackCollectionQuerySchema,
+        response: {
+          200: Type.Ref(ContextPackResponseListWithRenderedSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      if (request.query.diaryId && request.query.containsEntry) {
+        throw createProblem(
+          'validation-failed',
+          'diaryId and containsEntry cannot be combined',
+        );
+      }
+      if (request.query.diaryId) {
+        throw createProblem(
+          'validation-failed',
+          'Use GET /diaries/:id/packs for diary-scoped listing',
+        );
+      }
+      if (!request.query.containsEntry) {
+        throw createProblem('validation-failed', 'containsEntry is required');
+      }
+
+      const limit = request.query.limit ?? 20;
+      const offset = request.query.offset ?? 0;
+
+      let packs: Awaited<
+        ReturnType<typeof fastify.contextPackService.listPacksByEntry>
+      >;
+      try {
+        packs = await fastify.contextPackService.listPacksByEntry({
+          entryId: request.query.containsEntry,
+          actor: { identityId, subjectNs },
+          limit,
+          offset,
+          includeRendered: request.query.includeRendered,
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError) {
+          switch (err.code) {
+            case 'not_found':
+              throw createProblem('not-found', err.message);
+            case 'forbidden':
+              throw createProblem('forbidden', err.message);
+            case 'validation':
+              throw createProblem('validation-failed', err.message);
+            default:
+              throw createProblem('internal', err.message);
+          }
+        }
+        throw err;
+      }
+
+      let items: Array<
+        Awaited<
+          ReturnType<typeof fastify.contextPackRepository.findById>
+        > extends infer T
+          ? NonNullable<T>
+          : never
+      > = packs.items;
+
+      if (wantsExpandedEntries(request.query.expand) && items.length > 0) {
+        const entriesByPack =
+          await fastify.contextPackRepository.listEntriesExpandedByPackIds(
+            items.map((pack) => pack.id),
+          );
+
+        items = items.map((pack) => ({
+          ...pack,
+          entries: entriesByPack.get(pack.id) ?? [],
+        }));
+      }
+
+      const response: {
+        items: typeof items;
+        total: number;
+        limit: number;
+        offset: number;
+        renderedPacks?: Awaited<
+          ReturnType<typeof fastify.renderedPackRepository.listBySourcePackIds>
+        >;
+      } = {
+        items,
+        total: packs.total,
+        limit,
+        offset,
+      };
+
+      if (packs.renderedPacks) {
+        response.renderedPacks = packs.renderedPacks;
+      }
+
+      return response;
     },
   );
 

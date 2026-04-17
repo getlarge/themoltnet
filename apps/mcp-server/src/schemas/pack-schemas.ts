@@ -14,8 +14,9 @@ import type {
   GetContextPackProvenanceByCidResponses,
   GetContextPackProvenanceByIdData,
   GetContextPackProvenanceByIdResponses,
+  ListContextPacksData,
+  ListContextPacksResponses,
   ListDiaryPacksData,
-  ListDiaryPacksResponses,
   PreviewDiaryCustomPackData,
   PreviewDiaryCustomPackResponses,
   PreviewRenderedPackData,
@@ -55,11 +56,29 @@ export type PackGetInput = {
 };
 
 export const PackListSchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary ID (UUID) to list packs for.',
-  }),
+  diary_id: Type.Optional(
+    Type.String({
+      description:
+        'Diary ID (UUID) to list packs for. Mutually exclusive with contains_entry.',
+    }),
+  ),
+  contains_entry: Type.Optional(
+    Type.String({
+      description:
+        'Entry identifier (UUID) to reverse-lookup packs for. Mutually exclusive with diary_id.',
+    }),
+  ),
+  include_rendered: Type.Optional(
+    Type.Boolean({
+      description:
+        'When using contains_entry, include rendered packs derived from the matching source packs.',
+    }),
+  ),
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 20)' }),
+  ),
+  offset: Type.Optional(
+    Type.Number({ description: 'Offset for pagination (default 0)' }),
   ),
   expand: Type.Optional(
     Type.Literal('entries', {
@@ -67,11 +86,15 @@ export const PackListSchema = Type.Object({
     }),
   ),
 });
-type ListPacksQuery = NonNullable<ListDiaryPacksData['query']>;
+type ListDiaryQuery = NonNullable<ListDiaryPacksData['query']>;
+type ListContextQuery = NonNullable<ListContextPacksData['query']>;
 export type PackListInput = {
-  diary_id: PathOf<ListDiaryPacksData>['id'];
-  limit?: ListPacksQuery['limit'];
-  expand?: ListPacksQuery['expand'];
+  diary_id?: PathOf<ListDiaryPacksData>['id'];
+  contains_entry?: ListContextQuery['containsEntry'];
+  include_rendered?: ListContextQuery['includeRendered'];
+  limit?: ListDiaryQuery['limit'];
+  offset?: ListDiaryQuery['offset'];
+  expand?: ListDiaryQuery['expand'];
 };
 
 export const CustomPackEntrySelectionSchema = Type.Object({
@@ -368,6 +391,20 @@ const ContextPackResponseSchema = Type.Object({
   entries: Type.Optional(Type.Array(ExpandedPackEntrySchema)),
 });
 
+const RenderedPackSchema = Type.Object({
+  id: Type.String(),
+  packCid: Type.String(),
+  sourcePackId: Type.String(),
+  diaryId: Type.String(),
+  contentHash: Type.String(),
+  renderMethod: Type.String(),
+  totalTokens: Type.Number(),
+  createdBy: Type.String(),
+  pinned: Type.Boolean(),
+  expiresAt: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+});
+
 export const PackGetOutputSchema = ContextPackResponseSchema;
 
 export const PackListOutputSchema = Type.Object({
@@ -375,6 +412,7 @@ export const PackListOutputSchema = Type.Object({
   total: Type.Number(),
   limit: Type.Number(),
   offset: Type.Number(),
+  renderedPacks: Type.Optional(Type.Array(RenderedPackSchema)),
 });
 
 export const PackUpdateOutputSchema = ContextPackResponseSchema;
@@ -583,7 +621,7 @@ type _PackGetOutputMatchesApi = AssertOutputMatchesApi<
 >;
 type _PackListOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof PackListOutputSchema>,
-  ResponseOf<ListDiaryPacksResponses>
+  ResponseOf<ListContextPacksResponses>
 >;
 type _PackUpdateOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof PackUpdateOutputSchema>,

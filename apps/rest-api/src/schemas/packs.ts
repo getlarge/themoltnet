@@ -211,6 +211,15 @@ export const PackListQuerySchema = Type.Object({
   expand: Type.Optional(Type.Literal('entries')),
 });
 
+export const PackCollectionQuerySchema = Type.Object({
+  diaryId: Type.Optional(Type.String({ format: 'uuid' })),
+  containsEntry: Type.Optional(Type.String({ format: 'uuid' })),
+  includeRendered: Type.Optional(Type.Boolean()),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0 })),
+  expand: Type.Optional(Type.Literal('entries')),
+});
+
 export const PackCidParamsSchema = Type.Object({
   cid: Type.String(),
 });
@@ -408,4 +417,14 @@ export const RenderedPackWithContentSchema = Type.Object(
     createdAt: DateTime,
   },
   { $id: 'RenderedPackWithContent' },
+);
+
+export const ContextPackResponseListWithRenderedSchema = Type.Composite(
+  [
+    ContextPackResponseListSchema,
+    Type.Object({
+      renderedPacks: Type.Optional(Type.Array(Type.Ref(RenderedPackSchema))),
+    }),
+  ],
+  { $id: 'ContextPackResponseListWithRendered' },
 );

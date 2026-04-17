@@ -5,8 +5,8 @@ import type {
   CompileResult,
   ConsolidateDiaryData,
   ConsolidateResult,
-  ContextPackList,
   ContextPackResponse,
+  ContextPackResponseListWithRendered,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryGrantData,
@@ -37,6 +37,7 @@ import type {
   GetTrustGraphData,
   Health,
   JoinTeamResponse,
+  ListContextPacksData,
   ListDiariesData,
   ListDiaryEntriesData,
   ListDiaryGrantsResponse,
@@ -174,9 +175,20 @@ export interface PacksNamespace {
   ): Promise<ContextPackResponse>;
 
   list(
-    diaryId: string,
-    query?: ListDiaryPacksData['query'],
-  ): Promise<ContextPackList>;
+    selector:
+      | ({
+          diaryId: string;
+        } & Omit<
+          NonNullable<ListDiaryPacksData['query']>,
+          'diaryId' | 'containsEntry' | 'includeRendered'
+        >)
+      | ({
+          containsEntry: string;
+        } & Omit<
+          NonNullable<ListContextPacksData['query']>,
+          'diaryId' | 'containsEntry'
+        >),
+  ): Promise<ContextPackResponseListWithRendered>;
 
   getProvenance(
     id: string,

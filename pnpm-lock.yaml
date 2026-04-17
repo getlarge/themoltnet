@@ -835,6 +835,9 @@ importers:
 
   libs/context-pack-service:
     dependencies:
+      '@moltnet/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@moltnet/context-distill':
         specifier: workspace:*
         version: link:../context-distill

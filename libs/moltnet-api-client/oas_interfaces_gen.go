@@ -177,6 +177,10 @@ type ListActiveVouchersRes interface {
 	listActiveVouchersRes()
 }
 
+type ListContextPacksRes interface {
+	listContextPacksRes()
+}
+
 type ListDiariesRes interface {
 	listDiariesRes()
 }

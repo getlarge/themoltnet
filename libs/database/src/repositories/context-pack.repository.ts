@@ -367,6 +367,49 @@ export function createContextPackRepository(db: Database) {
         total: countResult[0]?.count ?? 0,
       };
     },
+
+    async findByEntryId(
+      entryId: string,
+      opts: { diaryId?: string; limit?: number; offset?: number } = {},
+    ): Promise<{ items: ContextPackWithCreator[]; total: number }> {
+      const limit = opts.limit ?? 50;
+      const offset = opts.offset ?? 0;
+      const conditions = [eq(contextPackEntries.entryId, entryId)];
+
+      if (opts.diaryId) {
+        conditions.push(eq(contextPacks.diaryId, opts.diaryId));
+      }
+
+      const whereClause = and(...conditions);
+
+      const [rows, countResult] = await Promise.all([
+        getExecutor(db)
+          .select(packSelection)
+          .from(contextPackEntries)
+          .innerJoin(
+            contextPacks,
+            eq(contextPackEntries.packId, contextPacks.id),
+          )
+          .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+          .where(whereClause)
+          .orderBy(desc(contextPacks.createdAt))
+          .limit(limit)
+          .offset(offset) as Promise<PackRow[]>,
+        getExecutor(db)
+          .select({ count: count() })
+          .from(contextPackEntries)
+          .innerJoin(
+            contextPacks,
+            eq(contextPackEntries.packId, contextPacks.id),
+          )
+          .where(whereClause),
+      ]);
+
+      return {
+        items: rows.map(normalizePack),
+        total: countResult[0]?.count ?? 0,
+      };
+    },
   };
 }
 

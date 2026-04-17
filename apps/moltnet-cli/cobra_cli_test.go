@@ -1357,3 +1357,39 @@ func TestValidateCommitFlagsErrorFormat(t *testing.T) {
 		})
 	}
 }
+
+func TestPackListRequiresDiaryIDOrContainsEntry(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+
+	_, _, err := executeCommand(root, "pack", "list")
+	if err == nil {
+		t.Fatal("expected error when neither --diary-id nor --contains-entry is provided")
+	}
+	if !strings.Contains(err.Error(), "--diary-id") ||
+		!strings.Contains(err.Error(), "--contains-entry") {
+		t.Errorf("expected error to mention both selector flags, got: %v", err)
+	}
+}
+
+func TestPackListRejectsDiaryIDAndContainsEntryTogether(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+
+	_, _, err := executeCommand(
+		root,
+		"pack",
+		"list",
+		"--diary-id",
+		"00000000-0000-0000-0000-000000000001",
+		"--contains-entry",
+		"00000000-0000-0000-0000-000000000002",
+	)
+	if err == nil {
+		t.Fatal("expected error when both --diary-id and --contains-entry are provided")
+	}
+	if !strings.Contains(err.Error(), "--diary-id") ||
+		!strings.Contains(err.Error(), "--contains-entry") {
+		t.Errorf("expected error to mention both selector flags, got: %v", err)
+	}
+}

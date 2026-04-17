@@ -10,6 +10,7 @@ import {
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  listContextPacks,
   listDiaryPacks,
   previewDiaryCustomPack,
   previewRenderedPack,
@@ -95,15 +96,43 @@ export async function handlePacksList(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { data, error } = await listDiaryPacks({
-    client: deps.client,
-    auth: () => token,
-    path: { id: args.diary_id },
-    query: {
-      ...(args.limit !== undefined && { limit: args.limit }),
-      ...(args.expand !== undefined && { expand: args.expand }),
-    },
-  });
+  if (args.diary_id && args.contains_entry) {
+    return errorResult(
+      'Exactly one of diary_id or contains_entry must be provided',
+    );
+  }
+  if (!args.diary_id && !args.contains_entry) {
+    return errorResult(
+      'Exactly one of diary_id or contains_entry must be provided',
+    );
+  }
+
+  const query = {
+    ...(args.limit !== undefined && { limit: args.limit }),
+    ...(args.offset !== undefined && { offset: args.offset }),
+    ...(args.expand !== undefined && { expand: args.expand }),
+  };
+
+  const containsEntry = args.contains_entry;
+
+  const { data, error } = args.diary_id
+    ? await listDiaryPacks({
+        client: deps.client,
+        auth: () => token,
+        path: { id: args.diary_id },
+        query,
+      })
+    : await listContextPacks({
+        client: deps.client,
+        auth: () => token,
+        query: {
+          ...query,
+          containsEntry,
+          ...(args.include_rendered !== undefined && {
+            includeRendered: args.include_rendered,
+          }),
+        },
+      });
 
   if (error || !data) {
     deps.logger.error({ tool: 'packs_list', err: error }, 'tool.error');
@@ -393,7 +422,8 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_list',
-      description: 'List context packs for a diary.',
+      description:
+        'List context packs either by diary_id or by contains_entry. Pass include_rendered with contains_entry to include rendered descendants.',
       inputSchema: PackListSchema,
       outputSchema: PackListOutputSchema,
     },

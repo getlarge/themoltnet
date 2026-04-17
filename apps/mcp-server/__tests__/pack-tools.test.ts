@@ -23,6 +23,7 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   createDiaryCustomPack: vi.fn(),
   getContextPackById: vi.fn(),
+  listContextPacks: vi.fn(),
   listDiaryPacks: vi.fn(),
   previewDiaryCustomPack: vi.fn(),
   previewRenderedPack: vi.fn(),
@@ -36,6 +37,7 @@ import {
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  listContextPacks,
   listDiaryPacks,
   previewDiaryCustomPack,
   previewRenderedPack,
@@ -178,6 +180,80 @@ describe('Pack tools', () => {
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('items');
       expect(parsed.items).toHaveLength(1);
+    });
+
+    it('returns list of packs for an entry lookup', async () => {
+      const data = {
+        items: [mockPack],
+        total: 1,
+        renderedPacks: [
+          {
+            id: '220e8400-e29b-41d4-a716-446655440001',
+            packCid: 'bafy-rendered',
+            sourcePackId: PACK_ID,
+            diaryId: DIARY_ID,
+            contentHash: 'bafkrendered',
+            renderMethod: 'server:pack-to-docs-v1',
+            totalTokens: 42,
+            createdBy: 'agent-001',
+            pinned: false,
+            expiresAt: null,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+      vi.mocked(listContextPacks).mockResolvedValue(sdkOk(data) as never);
+
+      const result = await handlePacksList(
+        {
+          contains_entry: '330e8400-e29b-41d4-a716-446655440001',
+          include_rendered: true,
+          offset: 5,
+        },
+        deps,
+        context,
+      );
+
+      expect(listContextPacks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            containsEntry: '330e8400-e29b-41d4-a716-446655440001',
+            includeRendered: true,
+            offset: 5,
+          },
+        }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('renderedPacks');
+    });
+
+    it('returns error when diary_id and contains_entry are both provided', async () => {
+      const result = await handlePacksList(
+        {
+          diary_id: DIARY_ID,
+          contains_entry: '330e8400-e29b-41d4-a716-446655440001',
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Exactly one of diary_id or contains_entry must be provided',
+      );
+      expect(listDiaryPacks).not.toHaveBeenCalled();
+      expect(listContextPacks).not.toHaveBeenCalled();
+    });
+
+    it('returns error when neither diary_id nor contains_entry is provided', async () => {
+      const result = await handlePacksList({}, deps, context);
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Exactly one of diary_id or contains_entry must be provided',
+      );
+      expect(listDiaryPacks).not.toHaveBeenCalled();
+      expect(listContextPacks).not.toHaveBeenCalled();
     });
 
     it('returns error when not authenticated', async () => {

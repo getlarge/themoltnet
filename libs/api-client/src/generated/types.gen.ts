@@ -312,6 +312,23 @@ export type ContextPackResponseList = {
   offset: number;
 };
 
+export type ContextPackResponseListWithRendered = {
+  items: Array<ContextPackResponse>;
+  /**
+   * Total number of matching items in the database.
+   */
+  total: number;
+  /**
+   * Maximum number of items requested for this response.
+   */
+  limit: number;
+  /**
+   * Number of items skipped before this page.
+   */
+  offset: number;
+  renderedPacks?: Array<RenderedPack>;
+};
+
 export type CompileStats = {
   totalTokens: number;
   entriesIncluded: number;
@@ -2584,6 +2601,56 @@ export type GetContextPackProvenanceByCidResponses = {
 
 export type GetContextPackProvenanceByCidResponse =
   GetContextPackProvenanceByCidResponses[keyof GetContextPackProvenanceByCidResponses];
+
+export type ListContextPacksData = {
+  body?: never;
+  path?: never;
+  query?: {
+    diaryId?: string;
+    containsEntry?: string;
+    includeRendered?: boolean;
+    limit?: number;
+    offset?: number;
+    expand?: 'entries';
+  };
+  url: '/packs';
+};
+
+export type ListContextPacksErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListContextPacksError =
+  ListContextPacksErrors[keyof ListContextPacksErrors];
+
+export type ListContextPacksResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponseListWithRendered;
+};
+
+export type ListContextPacksResponse =
+  ListContextPacksResponses[keyof ListContextPacksResponses];
 
 export type GetContextPackByIdData = {
   body?: never;
