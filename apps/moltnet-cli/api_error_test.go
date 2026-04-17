@@ -221,6 +221,49 @@ func TestFormatTransportError_EmptyBodyPassthrough(t *testing.T) {
 	}
 }
 
+func TestFormatTransportError_TruncatedJSONFallsThroughToRaw(t *testing.T) {
+	// Arrange — a JSON body long enough to be truncated mid-field. The parser
+	// must not try to decode it: a half-parsed ProblemDetails could surface
+	// misleading values. The raw path with "…" marker is the honest signal.
+	padding := strings.Repeat("x", 1000)
+	body := `{"statusCode":400,"error":"Bad Request","message":"` + padding + `"}`
+	err := newUnexpectedStatusCodeError(400, "application/json", body)
+
+	// Act
+	got := formatTransportError(err)
+
+	// Assert
+	gotStr := got.Error()
+	if !strings.Contains(gotStr, "…") {
+		t.Errorf("expected truncation marker, got %q", gotStr)
+	}
+	// The structured parsers must not have run — if they had, we'd see
+	// "Bad Request" as the title. Truncated raw body surfaces the JSON source.
+	if strings.HasPrefix(gotStr, "API error (HTTP 400): Bad Request:") {
+		t.Errorf("structured parse should have been skipped on truncated body, got %q", gotStr)
+	}
+}
+
+func TestFormatTransportError_BoundedReadCapsMemory(t *testing.T) {
+	// Arrange — an intentionally huge body that would balloon io.ReadAll.
+	// With LimitReader in place, we should only ever read maxBodySnippet+1
+	// bytes, so this test serves as a regression guard against accidentally
+	// reintroducing unbounded reads.
+	body := strings.Repeat("A", 10*1024*1024) // 10 MiB
+	err := newUnexpectedStatusCodeError(500, "text/plain", body)
+
+	// Act
+	got := formatTransportError(err)
+
+	// Assert — output size must be bounded regardless of input size
+	if len(got.Error()) > 600 {
+		t.Errorf("expected bounded output (~500 chars), got %d chars", len(got.Error()))
+	}
+	if !strings.Contains(got.Error(), "…") {
+		t.Errorf("expected truncation marker, got %q", got.Error())
+	}
+}
+
 func TestFormatTransportError_WrappedError(t *testing.T) {
 	// Arrange — transport error wrapped by a caller (e.g. fmt.Errorf("entry list: %w", err))
 	inner := newUnexpectedStatusCodeError(400, "application/json",

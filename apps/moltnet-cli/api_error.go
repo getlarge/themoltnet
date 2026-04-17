@@ -60,22 +60,36 @@ func formatTransportError(err error) error {
 	if !errors.As(err, &usc) || usc.Payload == nil {
 		return err
 	}
+	defer usc.Payload.Body.Close()
 
-	body, readErr := io.ReadAll(usc.Payload.Body)
+	// Read at most maxBodySnippet+1 bytes: enough to distinguish "fits" from
+	// "needs truncation" while bounding memory against a hostile reverse proxy
+	// that streams a multi-megabyte HTML error page. The extra byte is how we
+	// detect truncation — if we got it, the body was longer than the cap.
+	body, readErr := io.ReadAll(io.LimitReader(usc.Payload.Body, maxBodySnippet+1))
 	if readErr != nil || len(body) == 0 {
 		return err
 	}
-
-	if pd, ok := parseProblemDetailsBody(body); ok {
-		return formatProblemDetails(pd.Status, pd.Title, pd.Detail.Value, pd.Detail.Set)
+	truncated := len(body) > maxBodySnippet
+	if truncated {
+		body = body[:maxBodySnippet]
 	}
-	if msg, ok := parseRestApiErrorBody(body); ok {
-		return formatProblemDetails(usc.StatusCode, msg.title, msg.detail, msg.detail != "")
+
+	// Structured-body parsers only run when the whole body was captured: a
+	// truncated JSON document won't parse, and pretending it did risks
+	// surfacing garbled values. Truncation falls through to the raw-body path.
+	if !truncated {
+		if pd, ok := parseProblemDetailsBody(body); ok {
+			return formatProblemDetails(pd.Status, pd.Title, pd.Detail.Value, pd.Detail.Set)
+		}
+		if msg, ok := parseRestApiErrorBody(body); ok {
+			return formatProblemDetails(usc.StatusCode, msg.title, msg.detail, msg.detail != "")
+		}
 	}
 
 	snippet := strings.TrimSpace(string(body))
-	if len(snippet) > maxBodySnippet {
-		snippet = snippet[:maxBodySnippet] + "…"
+	if truncated {
+		snippet += "…"
 	}
 	return fmt.Errorf("API error (HTTP %d): %s", usc.StatusCode, snippet)
 }
