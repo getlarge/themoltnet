@@ -400,6 +400,47 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - name: Download release binaries
+        run: |
+          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
+          SEMVER="${TAG#cli-v}"
+          mkdir -p /tmp/cli-binaries
+          cd /tmp/cli-binaries
+          gh release download "$TAG" \
+            --pattern "moltnet_${SEMVER}_*.tar.gz" \
+            --pattern "moltnet_${SEMVER}_*.zip"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish platform-specific packages
+        run: |
+          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
+          SEMVER="${TAG#cli-v}"
+
+          publish_platform() {
+            local npm_dir="$1" archive="$2" binary="$3"
+            local pkg_dir="packages/cli/npm/${npm_dir}"
+
+            mkdir -p "${pkg_dir}/bin"
+            if [[ "$archive" == *.zip ]]; then
+              unzip -o "/tmp/cli-binaries/${archive}" "${binary}" -d "${pkg_dir}/bin/"
+            else
+              tar xzf "/tmp/cli-binaries/${archive}" -C "${pkg_dir}/bin/" "${binary}"
+            fi
+            chmod +x "${pkg_dir}/bin/${binary}" 2>/dev/null || true
+
+            cd "${pkg_dir}"
+            npm publish --access public --provenance
+            cd "$GITHUB_WORKSPACE"
+          }
+
+          publish_platform "linux-x64"     "moltnet_${SEMVER}_linux_amd64.tar.gz"   "moltnet"
+          publish_platform "linux-arm64"    "moltnet_${SEMVER}_linux_arm64.tar.gz"   "moltnet"
+          publish_platform "darwin-x64"     "moltnet_${SEMVER}_darwin_amd64.tar.gz"  "moltnet"
+          publish_platform "darwin-arm64"   "moltnet_${SEMVER}_darwin_arm64.tar.gz"  "moltnet"
+          publish_platform "win32-x64"      "moltnet_${SEMVER}_windows_amd64.zip"   "moltnet.exe"
+          publish_platform "win32-arm64"    "moltnet_${SEMVER}_windows_arm64.zip"    "moltnet.exe"
+
       - name: Publish @themoltnet/cli
         working-directory: packages/cli
         run: npm publish --access public --provenance

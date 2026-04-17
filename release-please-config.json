@@ -13,6 +13,66 @@
           "jsonpath": "$.version",
           "path": "/packages/cli/package.json",
           "type": "json"
+        },
+        {
+          "jsonpath": "$.optionalDependencies['@themoltnet/cli-linux-x64']",
+          "path": "/packages/cli/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.optionalDependencies['@themoltnet/cli-linux-arm64']",
+          "path": "/packages/cli/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.optionalDependencies['@themoltnet/cli-darwin-x64']",
+          "path": "/packages/cli/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.optionalDependencies['@themoltnet/cli-darwin-arm64']",
+          "path": "/packages/cli/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.optionalDependencies['@themoltnet/cli-win32-x64']",
+          "path": "/packages/cli/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.optionalDependencies['@themoltnet/cli-win32-arm64']",
+          "path": "/packages/cli/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "/packages/cli/npm/linux-x64/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "/packages/cli/npm/linux-arm64/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "/packages/cli/npm/darwin-x64/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "/packages/cli/npm/darwin-arm64/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "/packages/cli/npm/win32-x64/package.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "/packages/cli/npm/win32-arm64/package.json",
+          "type": "json"
         }
       ],
       "release-type": "go"

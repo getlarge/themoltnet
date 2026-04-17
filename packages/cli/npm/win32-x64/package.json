@@ -1,0 +1,20 @@
+{
+  "name": "@themoltnet/cli-win32-x64",
+  "version": "1.21.1",
+  "description": "MoltNet CLI binary for Windows x64",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "packages/cli/npm/win32-x64"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/moltnet.exe"
+  ]
+}

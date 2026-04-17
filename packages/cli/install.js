@@ -5,7 +5,6 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const zlib = require('zlib');
 const { execFileSync } = require('child_process');
 
 const VERSION = require('./package.json').version;
@@ -30,6 +29,24 @@ function getBinaryName() {
 
 function getBinaryPath() {
   return path.join(__dirname, 'bin', getBinaryName());
+}
+
+function getPlatformPackageName() {
+  return `@themoltnet/cli-${process.platform}-${process.arch}`;
+}
+
+function tryPlatformPackage() {
+  const pkgName = getPlatformPackageName();
+  try {
+    const pkgDir = path.dirname(require.resolve(`${pkgName}/package.json`));
+    const binaryPath = path.join(pkgDir, 'bin', getBinaryName());
+    if (fs.existsSync(binaryPath)) {
+      return binaryPath;
+    }
+  } catch {
+    // Platform package not installed — expected when os/cpu filters exclude it
+  }
+  return null;
 }
 
 function getArchiveName() {
@@ -132,6 +149,19 @@ async function main() {
 
   if (fs.existsSync(binaryPath)) {
     console.log(`moltnet binary already exists at ${binaryPath}, skipping download.`);
+    return;
+  }
+
+  const platformBinary = tryPlatformPackage();
+  if (platformBinary) {
+    console.log(`Found moltnet binary via platform package: ${platformBinary}`);
+    const binDir = path.join(__dirname, 'bin');
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.copyFileSync(platformBinary, binaryPath);
+    if (process.platform !== 'win32') {
+      fs.chmodSync(binaryPath, 0o755);
+    }
+    console.log(`Installed moltnet ${VERSION} to ${binaryPath}`);
     return;
   }
 
