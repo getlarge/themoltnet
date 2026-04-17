@@ -178,10 +178,16 @@ export interface PacksNamespace {
     selector:
       | ({
           diaryId: string;
-        } & NonNullable<ListDiaryPacksData['query']>)
+        } & Omit<
+          NonNullable<ListDiaryPacksData['query']>,
+          'diaryId' | 'containsEntry' | 'includeRendered'
+        >)
       | ({
           containsEntry: string;
-        } & NonNullable<ListContextPacksData['query']>),
+        } & Omit<
+          NonNullable<ListContextPacksData['query']>,
+          'diaryId' | 'containsEntry'
+        >),
   ): Promise<ContextPackResponseListWithRendered>;
 
   getProvenance(
