@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.91.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.90.0...sdk-v0.91.0) (2026-04-17)
+
+
+### Features
+
+* find packs and rendered packs referencing an entry ([c7c0003](https://github.com/getlarge/themoltnet/commit/c7c00035cf6fd963facf5c4be7c84f099350059d))
+* **sdk:** expose pack lookup by entry ([ab7310f](https://github.com/getlarge/themoltnet/commit/ab7310f4b7a8bcc2056f0966f943bf744cdbace5))
+
+
+### Bug Fixes
+
+* **sdk:** tighten pack list selector typing ([5626d0a](https://github.com/getlarge/themoltnet/commit/5626d0ad0dce6857c733d3409c198c6d0f86088b))
+
 ## [0.90.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.89.0...sdk-v0.90.0) (2026-04-14)
 
 
