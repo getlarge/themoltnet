@@ -431,8 +431,9 @@ jobs:
           SEMVER="${TAG#cli-v}"
           ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
           mkdir -p /tmp/cli-binaries
-          cd /tmp/cli-binaries
-          gh release download "$TAG" --pattern "$ARCHIVE"
+          # Stay in the repo checkout so gh can infer the repo from git;
+          # --dir places the archive where the Extract step expects it.
+          gh release download "$TAG" --pattern "$ARCHIVE" --dir /tmp/cli-binaries
 
       - name: Extract binary
         env:
