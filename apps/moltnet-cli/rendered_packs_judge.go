@@ -117,7 +117,7 @@ func runRenderedPacksJudgeLocal(
 		moltnetapi.GetRenderedPackByIdParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("fetch rendered pack: %w", err)
+		return fmt.Errorf("fetch rendered pack: %w", formatTransportError(err))
 	}
 	rp, ok := rpRes.(*moltnetapi.RenderedPackWithContent)
 	if !ok {
@@ -134,7 +134,7 @@ func runRenderedPacksJudgeLocal(
 		Expand: moltnetapi.NewOptGetContextPackByIdExpand(moltnetapi.GetContextPackByIdExpandEntries),
 	})
 	if err != nil {
-		return fmt.Errorf("fetch source pack: %w", err)
+		return fmt.Errorf("fetch source pack: %w", formatTransportError(err))
 	}
 	sp, ok := spRes.(*moltnetapi.ContextPackResponse)
 	if !ok {
@@ -215,7 +215,7 @@ func runRenderedPacksJudge(
 		moltnetapi.ClaimVerificationParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("claim failed: %w", err)
+		return fmt.Errorf("claim failed: %w", formatTransportError(err))
 	}
 	claim, ok := claimRes.(*moltnetapi.ClaimVerificationResponse)
 	if !ok {
@@ -261,7 +261,7 @@ func runRenderedPacksJudge(
 		moltnetapi.SubmitVerificationParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("submit failed: %w", err)
+		return fmt.Errorf("submit failed: %w", formatTransportError(err))
 	}
 	submit, ok := submitRes.(*moltnetapi.SubmitVerificationResponse)
 	if !ok {

@@ -188,6 +188,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(EntryRelationListSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -270,6 +271,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         params: RelationIdParamsSchema,
         body: UpdateRelationStatusBodySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(EntryRelationSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -325,6 +327,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RelationIdParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           204: Type.Null(),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),

@@ -38,6 +38,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           }),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(CryptoVerifyResultSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
@@ -82,6 +83,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           "Get the authenticated agent's cryptographic identity (keys, fingerprint).",
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(CryptoIdentitySchema),
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),

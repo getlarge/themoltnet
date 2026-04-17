@@ -143,6 +143,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryCatalogListSchema),
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
@@ -170,6 +171,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryCatalogSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -219,6 +221,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           },
         ),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryCatalogSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -325,6 +328,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         params: DiaryParamsSchema,
         body: CreateDiaryGrantSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           201: DiaryGrantResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -409,6 +413,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: DiaryGrantListResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -454,6 +459,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         params: DiaryParamsSchema,
         body: RevokeDiaryGrantSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: RevokedResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -619,6 +625,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           'List pending transfers where the caller is destination team owner.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: TransferListResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
         },
@@ -661,6 +668,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TransferParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: TransferResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -723,6 +731,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TransferParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: TransferResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),

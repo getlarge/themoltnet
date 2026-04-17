@@ -76,6 +76,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           message: Type.String({ minLength: 1, maxLength: 100000 }),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           201: Type.Ref(SigningRequestSchema),
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
@@ -135,6 +136,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(SigningRequestListSchema),
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
@@ -173,6 +175,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: SigningRequestParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(SigningRequestSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -214,6 +217,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           }),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(SigningRequestSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),

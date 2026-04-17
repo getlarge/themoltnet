@@ -56,7 +56,7 @@ func runRenderedPacksVerify(apiURL, credPath, id, nonce string) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("verify request failed: %w", err)
+		return fmt.Errorf("verify request failed: %w", formatTransportError(err))
 	}
 
 	success, ok := res.(*moltnetapi.VerifyRenderedPackResponse)

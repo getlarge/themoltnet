@@ -61,13 +61,13 @@ func DoRegister(apiURL string, voucherCode string) (*RegisterResult, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Post(reqURL, "application/json", bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, fmt.Errorf("request failed: %w", formatTransportError(err))
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+		return nil, fmt.Errorf("read response: %w", formatTransportError(err))
 	}
 
 	if resp.StatusCode != http.StatusOK {

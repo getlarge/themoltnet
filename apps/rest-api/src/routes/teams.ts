@@ -143,6 +143,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: CreateTeamWithFoundingSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           201: TeamResponseSchema,
           202: TeamFoundingResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
@@ -255,6 +256,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'List teams the caller belongs to.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Object({
             items: Type.Array(TeamListItemSchema),
           }),
@@ -311,6 +313,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: TeamDetailSchema,
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -425,6 +428,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Object({ items: Type.Array(TeamMemberSchema) }),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -610,6 +614,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Object({ items: Type.Array(TeamInviteResponseSchema) }),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -657,6 +662,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamInviteParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: DeletedResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),

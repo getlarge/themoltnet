@@ -133,6 +133,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Object({ items: Type.Array(GroupResponseSchema) }),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -175,6 +176,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: GroupDetailSchema,
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -225,6 +227,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: DeletedResponseSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -342,6 +345,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Object({ items: Type.Array(GroupMemberResponseSchema) }),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),

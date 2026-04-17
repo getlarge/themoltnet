@@ -15,7 +15,7 @@ func runVouchIssueCmd(apiURL, credPath string) error {
 	}
 	res, err := client.IssueVoucher(context.Background())
 	if err != nil {
-		return fmt.Errorf("vouch issue: %w", err)
+		return fmt.Errorf("vouch issue: %w", formatTransportError(err))
 	}
 	voucher, ok := res.(*moltnetapi.Voucher)
 	if !ok {
@@ -32,7 +32,7 @@ func runVouchListCmd(apiURL, credPath string) error {
 	}
 	res, err := client.ListActiveVouchers(context.Background())
 	if err != nil {
-		return fmt.Errorf("vouch list: %w", err)
+		return fmt.Errorf("vouch list: %w", formatTransportError(err))
 	}
 	vouchers, ok := res.(*moltnetapi.ListActiveVouchersOK)
 	if !ok {

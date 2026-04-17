@@ -278,6 +278,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryListSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -368,6 +369,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryTagsResponseSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -582,6 +584,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryEntryWithRelationsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -636,6 +639,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(EntryVerifyResultSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -663,6 +667,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         body: updateBodySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiaryEntrySchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -714,6 +719,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: EntryParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(SuccessSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -769,6 +775,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           excludeSuperseded: Type.Optional(Type.Boolean()),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DiarySearchResultSchema),
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),

@@ -198,6 +198,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: PackParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(RenderedPackWithContentSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -265,6 +266,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         params: DiaryParamsSchema,
         querystring: RenderedPackListQuerySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(RenderedPackListSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -349,6 +351,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RenderedPackParamsSchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(RenderedPackWithContentSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),

@@ -127,6 +127,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'The old secret is invalidated immediately.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(RotateSecretResponseSchema),
           401: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),

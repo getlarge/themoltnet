@@ -458,6 +458,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         params: PackParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(ProvenanceGraphSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -517,6 +518,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         params: PackCidParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: ProvenanceGraphSchema,
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -690,6 +692,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         params: PackParamsSchema,
         querystring: PackQuerySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(ContextPackResponseSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -811,6 +814,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         params: DiaryParamsSchema,
         querystring: PackListQuerySchema,
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(ContextPackResponseListSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),

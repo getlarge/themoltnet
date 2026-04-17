@@ -19,7 +19,7 @@ func runDiaryListCmd(apiURL, credPath string) error {
 	}
 	res, err := client.ListDiaries(context.Background(), moltnetapi.ListDiariesParams{})
 	if err != nil {
-		return fmt.Errorf("diary list: %w", err)
+		return fmt.Errorf("diary list: %w", formatTransportError(err))
 	}
 	list, ok := res.(*moltnetapi.DiaryCatalogList)
 	if !ok {
@@ -47,7 +47,7 @@ func runDiaryCreateCmd(apiURL, credPath, name, visibility, teamID string) error 
 		XMoltnetTeamID: uuid.MustParse(teamID),
 	})
 	if err != nil {
-		return fmt.Errorf("diary create: %w", err)
+		return fmt.Errorf("diary create: %w", formatTransportError(err))
 	}
 	diary, ok := res.(*moltnetapi.DiaryCatalog)
 	if !ok {
@@ -69,7 +69,7 @@ func runDiaryGetCmd(apiURL, credPath, diaryID string) error {
 	}
 	res, err := client.GetDiary(context.Background(), moltnetapi.GetDiaryParams{ID: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("diary get: %w", err)
+		return fmt.Errorf("diary get: %w", formatTransportError(err))
 	}
 	diary, ok := res.(*moltnetapi.DiaryCatalog)
 	if !ok {
@@ -101,7 +101,7 @@ func runDiaryTagsCmd(apiURL, credPath, diaryID, prefix, entryTypes string, minCo
 	}
 	res, err := client.ListDiaryTags(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("diary tags: %w", err)
+		return fmt.Errorf("diary tags: %w", formatTransportError(err))
 	}
 	tagsRes, ok := res.(*moltnetapi.DiaryTagsResponse)
 	if !ok {
@@ -172,7 +172,7 @@ func runDiaryCompileCmd(
 
 	res, err := client.CompileDiary(context.Background(), req, moltnetapi.CompileDiaryParams{ID: diaryUUID})
 	if err != nil {
-		return fmt.Errorf("diary compile: %w", err)
+		return fmt.Errorf("diary compile: %w", formatTransportError(err))
 	}
 	result, ok := res.(*moltnetapi.CompileResult)
 	if !ok {

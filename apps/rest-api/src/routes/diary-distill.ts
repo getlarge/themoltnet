@@ -67,6 +67,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(DigestSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -143,6 +144,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
+          400: Type.Ref(ProblemDetailsSchema),
           200: Type.Ref(ConsolidateResultSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),

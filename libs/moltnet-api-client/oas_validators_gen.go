@@ -49,6 +49,14 @@ func (s *AcceptTeamFoundingUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *AcceptTransferBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *AcceptTransferConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -879,6 +887,14 @@ func (s *CompileStats) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ConsolidateDiaryBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -2203,6 +2219,14 @@ func (s *CreateDiaryEntryUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *CreateDiaryGrantBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *CreateDiaryGrantConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -2616,6 +2640,14 @@ func (s *CreateGroupUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *CreateSigningRequestBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *CreateSigningRequestInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -2660,6 +2692,14 @@ func (s *CreateSigningRequestReq) Validate() error {
 }
 
 func (s *CreateSigningRequestUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateTeamBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -3099,6 +3139,14 @@ func (s *DeleteDiaryBadRequest) Validate() error {
 	return nil
 }
 
+func (s *DeleteDiaryEntryByIdBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *DeleteDiaryEntryByIdForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -3163,6 +3211,14 @@ func (s *DeleteDiaryUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *DeleteEntryRelationBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *DeleteEntryRelationForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -3188,6 +3244,14 @@ func (s *DeleteEntryRelationNotFound) Validate() error {
 }
 
 func (s *DeleteEntryRelationUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *DeleteGroupBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -3228,6 +3292,14 @@ func (s *DeleteTeamBadRequest) Validate() error {
 }
 
 func (s *DeleteTeamForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *DeleteTeamInviteBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -4344,6 +4416,14 @@ func (s *ExpandedRelations) Validate() error {
 	return nil
 }
 
+func (s *GetAgentProfileBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetAgentProfileInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -4353,6 +4433,14 @@ func (s *GetAgentProfileInternalServerError) Validate() error {
 }
 
 func (s *GetAgentProfileNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetContextPackByIdBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -4394,6 +4482,14 @@ func (s *GetContextPackByIdNotFound) Validate() error {
 }
 
 func (s *GetContextPackByIdUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetContextPackProvenanceByCidBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -4623,6 +4719,14 @@ func (s *GetContextPackProvenanceByCidUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *GetContextPackProvenanceByIdBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetContextPackProvenanceByIdForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -4655,6 +4759,14 @@ func (s *GetContextPackProvenanceByIdUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *GetCryptoIdentityBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetCryptoIdentityInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -4664,6 +4776,22 @@ func (s *GetCryptoIdentityInternalServerError) Validate() error {
 }
 
 func (s *GetCryptoIdentityUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetDiaryBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetDiaryEntryByIdBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -4736,6 +4864,14 @@ func (s *GetDiaryUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *GetGroupBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetGroupNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -4768,6 +4904,14 @@ func (s *GetGroupOK) Validate() error {
 }
 
 func (s *GetGroupUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetLatestRenderedPackBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5047,6 +5191,14 @@ func (s *GetReadinessServiceUnavailable) Validate() error {
 	return nil
 }
 
+func (s *GetRenderedPackByIdBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetRenderedPackByIdForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5079,6 +5231,14 @@ func (s *GetRenderedPackByIdUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *GetSigningRequestBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetSigningRequestInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5096,6 +5256,14 @@ func (s *GetSigningRequestNotFound) Validate() error {
 }
 
 func (s *GetSigningRequestUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetTeamBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5280,6 +5448,14 @@ func (s *InitiateTransferUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *IssueVoucherBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *IssueVoucherInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5379,6 +5555,14 @@ func (s *JoinTeamUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListActiveVouchersBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListActiveVouchersInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5467,6 +5651,14 @@ func (s *ListContextPacksUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListDiariesBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListDiariesInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5476,6 +5668,14 @@ func (s *ListDiariesInternalServerError) Validate() error {
 }
 
 func (s *ListDiariesUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListDiaryEntriesBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5500,6 +5700,14 @@ func (s *ListDiaryEntriesNotFound) Validate() error {
 }
 
 func (s *ListDiaryEntriesUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListDiaryGrantsBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5629,6 +5837,14 @@ func (s *ListDiaryGrantsUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListDiaryPacksBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s ListDiaryPacksExpand) Validate() error {
 	switch s {
 	case "entries":
@@ -5670,6 +5886,14 @@ func (s *ListDiaryPacksUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListDiaryRenderedPacksBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListDiaryRenderedPacksForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5702,6 +5926,14 @@ func (s *ListDiaryRenderedPacksUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListDiaryTagsBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListDiaryTagsInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5719,6 +5951,14 @@ func (s *ListDiaryTagsNotFound) Validate() error {
 }
 
 func (s *ListDiaryTagsUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListEntryRelationsBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5771,6 +6011,14 @@ func (s *ListEntryRelationsUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListGroupMembersBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListGroupMembersNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5803,6 +6051,14 @@ func (s *ListGroupMembersOK) Validate() error {
 }
 
 func (s *ListGroupMembersUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListGroupsBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5849,6 +6105,14 @@ func (s *ListGroupsUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListPendingTransfersBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListPendingTransfersOK) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -5872,6 +6136,22 @@ func (s *ListPendingTransfersOK) Validate() error {
 	return nil
 }
 
+func (s *ListPendingTransfersUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListSigningRequestsBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListSigningRequestsInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5881,6 +6161,14 @@ func (s *ListSigningRequestsInternalServerError) Validate() error {
 }
 
 func (s *ListSigningRequestsUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListTeamInvitesBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -5920,6 +6208,14 @@ func (s *ListTeamInvitesOK) Validate() error {
 }
 
 func (s *ListTeamInvitesUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListTeamMembersBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -6017,6 +6313,14 @@ func (s *ListTeamMembersUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListTeamsBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListTeamsOK) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -6036,6 +6340,14 @@ func (s *ListTeamsOK) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ListTeamsUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -7624,6 +7936,14 @@ func (s ReadinessStatus) Validate() error {
 	}
 }
 
+func (s *ReflectDiaryBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ReflectDiaryInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -7734,6 +8054,14 @@ func (s *RegisterAgentReq) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RejectTransferBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -8070,6 +8398,14 @@ func (s *RequestRecoveryChallengeReq) Validate() error {
 	return nil
 }
 
+func (s *RevokeDiaryGrantBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *RevokeDiaryGrantForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -8160,6 +8496,14 @@ func (s *RotateClientSecretBadGateway) Validate() error {
 	return nil
 }
 
+func (s *RotateClientSecretBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *RotateClientSecretInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -8169,6 +8513,14 @@ func (s *RotateClientSecretInternalServerError) Validate() error {
 }
 
 func (s *RotateClientSecretUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *SearchDiaryBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -8785,6 +9137,14 @@ func (s *StartLegreffierOnboardingServiceUnavailable) Validate() error {
 	return nil
 }
 
+func (s *SubmitSignatureBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *SubmitSignatureConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9132,6 +9492,22 @@ func (s *UpdateContextPackUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *UpdateDiaryBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateDiaryEntryByIdBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *UpdateDiaryEntryByIdConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9462,6 +9838,14 @@ func (s *UpdateDiaryUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *UpdateEntryRelationStatusBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *UpdateEntryRelationStatusForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9565,6 +9949,14 @@ func (s *UpdateRenderedPackUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *VerifyAgentSignatureBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *VerifyAgentSignatureInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9616,6 +10008,22 @@ func (s *VerifyAgentSignatureReq) Validate() error {
 	return nil
 }
 
+func (s *VerifyCryptoSignatureBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *VerifyCryptoSignatureInternalServerError) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *VerifyCryptoSignatureReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -9647,6 +10055,14 @@ func (s *VerifyCryptoSignatureReq) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *VerifyDiaryEntryByIdBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
 	}
 	return nil
 }

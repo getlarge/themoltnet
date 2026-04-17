@@ -40,7 +40,7 @@ func runRenderedPacksList(apiURL, credPath, diaryID string, limit, offset int, s
 
 	res, err := client.ListDiaryRenderedPacks(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("rendered-packs list: %w", err)
+		return fmt.Errorf("rendered-packs list: %w", formatTransportError(err))
 	}
 
 	list, ok := res.(*moltnetapi.RenderedPackList)
@@ -67,7 +67,7 @@ func runRenderedPacksGet(apiURL, credPath, id string) error {
 		moltnetapi.GetRenderedPackByIdParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("rendered-packs get: %w", err)
+		return fmt.Errorf("rendered-packs get: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.RenderedPackWithContent)
@@ -107,7 +107,7 @@ func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt
 		moltnetapi.UpdateRenderedPackParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("rendered-packs update: %w", err)
+		return fmt.Errorf("rendered-packs update: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.RenderedPackWithContent)
