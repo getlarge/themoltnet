@@ -9,6 +9,11 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
+# Ensure openssh-client is available (needed for git SSH commit signing)
+if ! command -v ssh-keygen &>/dev/null; then
+  apt-get update -qq && apt-get install -y -qq openssh-client >/dev/null 2>&1 || true
+fi
+
 # Install Node.js dependencies (idempotent, cached between sessions)
 if [ ! -d "node_modules" ]; then
   pnpm install --frozen-lockfile
