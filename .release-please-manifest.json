@@ -4,6 +4,13 @@
   "libs/dspy-adapters": "0.9.0",
   "libs/moltnet-api-client": "1.16.0",
   "libs/sdk": "0.90.0",
+  "packages/cli": "1.26.0",
+  "packages/cli/npm/darwin-arm64": "1.26.0",
+  "packages/cli/npm/darwin-x64": "1.26.0",
+  "packages/cli/npm/linux-arm64": "1.26.0",
+  "packages/cli/npm/linux-x64": "1.26.0",
+  "packages/cli/npm/win32-arm64": "1.26.0",
+  "packages/cli/npm/win32-x64": "1.26.0",
   "packages/github-agent": "0.23.1",
   "packages/legreffier-cli": "0.32.1",
   "packages/openclaw-skill": "0.27.1"

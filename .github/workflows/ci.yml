@@ -500,7 +500,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Get Playwright version
         id: pw-version
-        run: echo "version=$(pnpm --filter @moltnet/console exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm --silent --filter @moltnet/console exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         id: pw-cache
         uses: actions/cache@v4
