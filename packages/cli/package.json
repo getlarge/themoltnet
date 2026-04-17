@@ -19,14 +19,6 @@
     "bin/moltnet.js",
     "install.js"
   ],
-  "optionalDependencies": {
-    "@themoltnet/cli-linux-x64": "1.21.1",
-    "@themoltnet/cli-linux-arm64": "1.21.1",
-    "@themoltnet/cli-darwin-x64": "1.21.1",
-    "@themoltnet/cli-darwin-arm64": "1.21.1",
-    "@themoltnet/cli-win32-x64": "1.21.1",
-    "@themoltnet/cli-win32-arm64": "1.21.1"
-  },
   "engines": {
     "node": ">=18"
   }
