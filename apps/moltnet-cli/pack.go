@@ -476,11 +476,10 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 	return printJSON(pack)
 }
 
-// runPackListCmd lists context packs for a diary.
-func runPackListCmd(apiURL, credPath, diaryID string, limit, offset int, expand string) error {
-	diaryUUID, err := uuid.Parse(diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
+// runPackListCmd lists context packs either by diary or by entry membership.
+func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRendered bool, limit, offset int, expand string) error {
+	if (diaryID == "") == (containsEntry == "") {
+		return fmt.Errorf("exactly one of --diary-id or --contains-entry must be provided")
 	}
 
 	client, err := newClientFromCreds(apiURL, credPath)
@@ -488,7 +487,47 @@ func runPackListCmd(apiURL, credPath, diaryID string, limit, offset int, expand 
 		return err
 	}
 
-	params := moltnetapi.ListDiaryPacksParams{ID: diaryUUID}
+	if diaryID != "" {
+		diaryUUID, err := uuid.Parse(diaryID)
+		if err != nil {
+			return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
+		}
+
+		params := moltnetapi.ListDiaryPacksParams{ID: diaryUUID}
+		if limit > 0 {
+			params.Limit = moltnetapi.NewOptInt(limit)
+		}
+		if offset > 0 {
+			params.Offset = moltnetapi.NewOptInt(offset)
+		}
+		if expand == "entries" {
+			params.Expand = moltnetapi.NewOptListDiaryPacksExpand(moltnetapi.ListDiaryPacksExpandEntries)
+		}
+
+		res, err := client.ListDiaryPacks(context.Background(), params)
+		if err != nil {
+			return fmt.Errorf("pack list: %w", err)
+		}
+
+		list, ok := res.(*moltnetapi.ContextPackResponseList)
+		if !ok {
+			return formatAPIError(res)
+		}
+
+		return printJSON(list)
+	}
+
+	entryUUID, err := uuid.Parse(containsEntry)
+	if err != nil {
+		return fmt.Errorf("invalid entry ID %q: %w", containsEntry, err)
+	}
+
+	params := moltnetapi.ListContextPacksParams{
+		ContainsEntry: moltnetapi.NewOptUUID(entryUUID),
+	}
+	if includeRendered {
+		params.IncludeRendered = moltnetapi.NewOptBool(true)
+	}
 	if limit > 0 {
 		params.Limit = moltnetapi.NewOptInt(limit)
 	}
@@ -496,15 +535,15 @@ func runPackListCmd(apiURL, credPath, diaryID string, limit, offset int, expand 
 		params.Offset = moltnetapi.NewOptInt(offset)
 	}
 	if expand == "entries" {
-		params.Expand = moltnetapi.NewOptListDiaryPacksExpand(moltnetapi.ListDiaryPacksExpandEntries)
+		params.Expand = moltnetapi.NewOptListContextPacksExpand(moltnetapi.ListContextPacksExpandEntries)
 	}
 
-	res, err := client.ListDiaryPacks(context.Background(), params)
+	res, err := client.ListContextPacks(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("pack list: %w", err)
 	}
 
-	list, ok := res.(*moltnetapi.ContextPackResponseList)
+	list, ok := res.(*moltnetapi.ContextPackResponseListWithRendered)
 	if !ok {
 		return formatAPIError(res)
 	}

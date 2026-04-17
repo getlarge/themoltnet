@@ -25,25 +25,38 @@ func newPackCmd() *cobra.Command {
 func newPackListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List context packs for a diary",
+		Short: "List context packs by diary or entry membership",
 		Example: `  moltnet pack list --diary-id <uuid>
   moltnet pack list --diary-id <uuid> --limit 20 --offset 0
-  moltnet pack list --diary-id <uuid> --expand entries`,
+  moltnet pack list --contains-entry <uuid> --include-rendered
+  moltnet pack list --contains-entry <uuid> --expand entries`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
 			diaryID, _ := cmd.Flags().GetString("diary-id")
+			containsEntry, _ := cmd.Flags().GetString("contains-entry")
+			includeRendered, _ := cmd.Flags().GetBool("include-rendered")
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
 			expand, _ := cmd.Flags().GetString("expand")
-			return runPackListCmd(apiURL, credPath, diaryID, limit, offset, expand)
+			return runPackListCmd(
+				apiURL,
+				credPath,
+				diaryID,
+				containsEntry,
+				includeRendered,
+				limit,
+				offset,
+				expand,
+			)
 		},
 	}
-	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
+	cmd.Flags().String("diary-id", "", "Diary UUID (mutually exclusive with --contains-entry)")
+	cmd.Flags().String("contains-entry", "", "Entry UUID to reverse-lookup packs for (mutually exclusive with --diary-id)")
+	cmd.Flags().Bool("include-rendered", false, "Include rendered packs when using --contains-entry")
 	cmd.Flags().Int("limit", 0, "Maximum number of packs to return")
 	cmd.Flags().Int("offset", 0, "Number of packs to skip")
 	cmd.Flags().String("expand", "", "Expand related resources (entries)")
-	_ = cmd.MarkFlagRequired("diary-id")
 	return cmd
 }
 
