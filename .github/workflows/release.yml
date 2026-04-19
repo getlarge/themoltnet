@@ -390,7 +390,7 @@ jobs:
       }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     strategy:
       fail-fast: false
@@ -458,6 +458,32 @@ jobs:
         working-directory: packages/cli/npm/${{ matrix.npm_dir }}
         run: npm publish --access public --provenance
 
+      # The cli is part of an 8-component linked-versions group. Only
+      # apps/moltnet-cli gets a real GitHub release (cli-v<x>); the other 7
+      # siblings have `skip-github-release: true`. release-please still
+      # needs a git tag per component to track state — without them its
+      # next run logs "Expected 15 releases, only found 8 / Missing 7 paths"
+      # and skips cutting the next release. Each matrix job owns its own
+      # sibling tag so creation is colocated with publication.
+      - name: Create sibling tag for linked-versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
+          NPM_DIR: ${{ matrix.npm_dir }}
+        run: |
+          set -euo pipefail
+          SEMVER="${CLI_TAG#cli-v}"
+          SIB_TAG="cli-${NPM_DIR}-v${SEMVER}"
+          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${CLI_TAG}" --jq '.sha')
+          if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+            echo "${SIB_TAG} already exists, skipping"
+            exit 0
+          fi
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${SIB_TAG}" \
+            -f sha="${COMMIT_SHA}"
+          echo "Created ${SIB_TAG} -> ${COMMIT_SHA}"
+
   publish-cli-wrapper:
     name: Publish @themoltnet/cli to npm
     needs: [resolve-publish, publish-cli-platforms]
@@ -471,7 +497,7 @@ jobs:
       }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -489,6 +515,26 @@ jobs:
       # pnpm publish rewrites workspace:* in optionalDependencies to the
       # concrete version so the published tarball resolves on npm.
       - run: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
+
+      # See matrix job comment above: cli-wrapper uses `skip-github-release`
+      # so release-please needs a bare git tag to track it.
+      - name: Create cli-wrapper sibling tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
+        run: |
+          set -euo pipefail
+          SEMVER="${CLI_TAG#cli-v}"
+          SIB_TAG="cli-wrapper-v${SEMVER}"
+          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${CLI_TAG}" --jq '.sha')
+          if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+            echo "${SIB_TAG} already exists, skipping"
+            exit 0
+          fi
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${SIB_TAG}" \
+            -f sha="${COMMIT_SHA}"
+          echo "Created ${SIB_TAG} -> ${COMMIT_SHA}"
 
   release-skill:
     name: Release OpenClaw Skill
