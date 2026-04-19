@@ -402,7 +402,7 @@ jobs:
       }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     strategy:
       fail-fast: false
@@ -481,32 +481,6 @@ jobs:
             cd "packages/cli/npm/${{ matrix.npm_dir }}"
             npm publish --access public --provenance
 
-      # The cli is part of an 8-component linked-versions group. Only
-      # apps/moltnet-cli gets a real GitHub release (cli-v<x>); the other 7
-      # siblings have `skip-github-release: true`. release-please still
-      # needs a git tag per component to track state — without them its
-      # next run logs "Expected 15 releases, only found 8 / Missing 7 paths"
-      # and skips cutting the next release. Each matrix job owns its own
-      # sibling tag so creation is colocated with publication.
-      - name: Create sibling tag for linked-versions
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
-          NPM_DIR: ${{ matrix.npm_dir }}
-        run: |
-          set -euo pipefail
-          SEMVER="${CLI_TAG#cli-v}"
-          SIB_TAG="cli-${NPM_DIR}-v${SEMVER}"
-          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${CLI_TAG}" --jq '.sha')
-          if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
-            echo "${SIB_TAG} already exists, skipping"
-            exit 0
-          fi
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-            -f ref="refs/tags/${SIB_TAG}" \
-            -f sha="${COMMIT_SHA}"
-          echo "Created ${SIB_TAG} -> ${COMMIT_SHA}"
-
   publish-cli-wrapper:
     name: Publish @themoltnet/cli to npm
     needs: [resolve-publish, publish-cli-platforms]
@@ -520,7 +494,7 @@ jobs:
       }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -545,25 +519,56 @@ jobs:
           retry_wait_seconds: 30
           command: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
 
-      # See matrix job comment above: cli-wrapper uses `skip-github-release`
-      # so release-please needs a bare git tag to track it.
-      - name: Create cli-wrapper sibling tag
+  # The cli is an 8-component linked-versions group. Only apps/moltnet-cli
+  # gets a real GitHub release (cli-v<x>); the other 7 siblings use
+  # `skip-github-release: true`. release-please still needs a git tag per
+  # component to track state — without them its next run logs "Expected
+  # 15 releases, only found 8 / Missing 7 paths" and skips cutting the
+  # next release.
+  #
+  # This job is decoupled from npm publishing so a transient tag-creation
+  # failure can be retried without hitting "version already exists" on
+  # npm. It only needs release-cli (which flips the cli-v<x> GitHub
+  # release to non-draft) to have succeeded.
+  tag-cli-siblings:
+    name: Create linked-versions sibling tags
+    needs: [resolve-publish, release-cli]
+    if: >-
+      ${{
+        always() &&
+        needs.resolve-publish.outputs.cli == 'true' &&
+        needs.release-cli.result == 'success' &&
+        !cancelled()
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create sibling tags
+        uses: nick-fields/retry@v4.0.0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
-        run: |
-          set -euo pipefail
-          SEMVER="${CLI_TAG#cli-v}"
-          SIB_TAG="cli-wrapper-v${SEMVER}"
-          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${CLI_TAG}" --jq '.sha')
-          if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
-            echo "${SIB_TAG} already exists, skipping"
-            exit 0
-          fi
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-            -f ref="refs/tags/${SIB_TAG}" \
-            -f sha="${COMMIT_SHA}"
-          echo "Created ${SIB_TAG} -> ${COMMIT_SHA}"
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 15
+          command: |
+            set -euo pipefail
+            SEMVER="${CLI_TAG#cli-v}"
+            COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${CLI_TAG}" --jq '.sha')
+            echo "${CLI_TAG} -> ${COMMIT_SHA}"
+            for COMPONENT in cli-wrapper cli-darwin-arm64 cli-darwin-x64 cli-linux-arm64 cli-linux-x64 cli-win32-arm64 cli-win32-x64; do
+              SIB_TAG="${COMPONENT}-v${SEMVER}"
+              if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+                echo "  = ${SIB_TAG} already exists"
+                continue
+              fi
+              gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+                -f ref="refs/tags/${SIB_TAG}" \
+                -f sha="${COMMIT_SHA}"
+              echo "  + ${SIB_TAG}"
+            done
 
   release-skill:
     name: Release OpenClaw Skill
