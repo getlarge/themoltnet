@@ -1,10 +1,23 @@
 name: Release Recover (moltnet-cli)
 
-# Recovers a stuck `apps/moltnet-cli` release cycle after release-cli's
-# goreleaser step failed because the cli was released in the same cycle as
-# one or more libs it depends on. release-please bumps the lib versions in
-# the manifest but does NOT sync `apps/moltnet-cli/go.mod`, so goreleaser
-# builds against a stale pin that doesn't yet contain the new symbols.
+# Recovers a stuck `apps/moltnet-cli` release cycle. Handles two scenarios:
+#
+#   A) goreleaser-failure: cli was released in the same cycle as one or
+#      more libs it depends on. release-please bumped the lib versions in
+#      the manifest but did NOT sync `apps/moltnet-cli/go.mod`, so
+#      goreleaser built against a stale pin. Needs manifest revert +
+#      CHANGELOG drop + go.mod sync.
+#
+#   B) downstream-publish-failure: goreleaser succeeded but one of the
+#      npm publish jobs (or a sibling tag creation) failed transiently.
+#      The cli tag + release exist as draft and/or the 7 linked-versions
+#      sibling tags are half-created, blocking the next release-please
+#      run. Needs manifest revert + CHANGELOG drop + draft/tag cleanup.
+#      No go.mod sync — no libs were bumped in this cycle.
+#
+# The workflow auto-detects which mode applies by diffing the cli's
+# direct libs/* dependencies in `apps/moltnet-cli/go.mod` against the
+# manifest before/after versions.
 #
 # Usage: trigger this workflow with the number of the merged release-please
 # PR that caused the failure (the "chore: release main" PR). Everything
@@ -137,40 +150,47 @@ jobs:
             }
           ' apps/moltnet-cli/go.mod)
 
-          if [ -z "$cli_libs" ]; then
-            echo "ERROR: no direct libs/* dependencies found in apps/moltnet-cli/go.mod" >&2
-            exit 1
-          fi
-
-          echo 'Cli libs/* deps:'
-          echo "$cli_libs" | sed 's/^/  - /'
-
-          # 5. For each cli lib dep, compare before/after manifest versions.
+          # It is legitimate for cli_libs to be empty (cli has no direct
+          # libs/* deps) or for none of them to be bumped in this PR. That
+          # corresponds to the "downstream-publish-failure" recovery path:
+          # goreleaser already succeeded but some npm publish job failed,
+          # so there's no go.mod to sync — we only need to revert the
+          # manifest + CHANGELOG + drop draft/tags so release-please can
+          # re-propose the same cli bump.
           pairs=()
-          while IFS= read -r lib; do
-            [ -n "$lib" ] || continue
-            before=$(jq -r --arg k "libs/${lib}" '.[$k] // empty' /tmp/manifest.before.json)
-            after=$(jq -r --arg k "libs/${lib}" '.[$k] // empty' /tmp/manifest.after.json)
-            if [ -z "$after" ]; then
-              echo "  libs/${lib}: not tracked in manifest (skipping)"
-              continue
-            fi
-            if [ "$before" = "$after" ]; then
-              echo "  libs/${lib}: unchanged (${after})"
-              continue
-            fi
-            echo "  libs/${lib}: ${before:-<none>} -> ${after}"
-            pairs+=("${lib}=${after}")
-          done <<< "$cli_libs"
+          if [ -n "$cli_libs" ]; then
+            echo 'Cli libs/* deps:'
+            echo "$cli_libs" | sed 's/^/  - /'
+
+            # 5. For each cli lib dep, compare before/after manifest versions.
+            while IFS= read -r lib; do
+              [ -n "$lib" ] || continue
+              before=$(jq -r --arg k "libs/${lib}" '.[$k] // empty' /tmp/manifest.before.json)
+              after=$(jq -r --arg k "libs/${lib}" '.[$k] // empty' /tmp/manifest.after.json)
+              if [ -z "$after" ]; then
+                echo "  libs/${lib}: not tracked in manifest (skipping)"
+                continue
+              fi
+              if [ "$before" = "$after" ]; then
+                echo "  libs/${lib}: unchanged (${after})"
+                continue
+              fi
+              echo "  libs/${lib}: ${before:-<none>} -> ${after}"
+              pairs+=("${lib}=${after}")
+            done <<< "$cli_libs"
+          else
+            echo 'No direct libs/* dependencies in apps/moltnet-cli/go.mod'
+          fi
 
           if [ ${#pairs[@]} -eq 0 ]; then
-            echo "ERROR: no cli lib dependencies were bumped in PR #$PR_NUMBER" >&2
-            echo "       If goreleaser still failed, the root cause is elsewhere." >&2
-            exit 1
+            echo 'No cli lib dependencies were bumped in this PR.'
+            echo 'Recovery mode: downstream-publish-failure (manifest + changelog only, no go.mod sync).'
+            bumped_libs=''
+          else
+            bumped_libs=$(IFS=,; echo "${pairs[*]}")
+            echo "Recovery mode: goreleaser-failure (go.mod sync required)."
+            echo "Bumped libs: $bumped_libs"
           fi
-
-          bumped_libs=$(IFS=,; echo "${pairs[*]}")
-          echo "Bumped libs: $bumped_libs"
 
           # Export outputs for downstream steps.
           {
@@ -179,6 +199,92 @@ jobs:
             echo "bumped-libs=${bumped_libs}"
             echo "pr-url=${pr_url}"
           } >> "$GITHUB_OUTPUT"
+
+      # Safety guard: confirm the cli-v<stuck> release is actually stuck
+      # before we revert anything. Previously this was covered implicitly
+      # by the "at least one lib must be bumped" check, but that check
+      # missed the downstream-publish-failure path. Now we check the
+      # release/tag/npm state directly.
+      #
+      # A release is stuck iff ANY of:
+      #   a) GitHub release cli-v<stuck> is a draft (goreleaser didn't
+      #      finalize it, or the workflow died before the release job
+      #      flipped it).
+      #   b) GitHub release is published but one or more of the 7
+      #      linked-versions sibling tags (cli-wrapper-v<x>,
+      #      cli-<platform>-v<x>) is missing.
+      #   c) GitHub release is published but one or more of the 7
+      #      @themoltnet/cli* npm versions is missing on the registry.
+      #
+      # If none hold, recovery would destroy a healthy release — refuse.
+      - name: Verify cli release is stuck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
+        run: |
+          set -euo pipefail
+          TAG="cli-v${STUCK_VERSION}"
+          reasons=()
+
+          # a) Draft release check.
+          release_state='missing'
+          if release_json=$(gh release view "$TAG" --json isDraft,isPrerelease 2>/dev/null); then
+            if [ "$(echo "$release_json" | jq -r '.isDraft')" = 'true' ]; then
+              release_state='draft'
+              reasons+=("GitHub release $TAG is a draft (goreleaser did not finalize)")
+            else
+              release_state='published'
+            fi
+          else
+            reasons+=("GitHub release $TAG does not exist (goreleaser never ran or failed early)")
+          fi
+          echo "Release state: $release_state"
+
+          # b) Sibling tag completeness check (only meaningful if release exists).
+          missing_tags=()
+          for COMPONENT in cli-wrapper cli-darwin-arm64 cli-darwin-x64 cli-linux-arm64 cli-linux-x64 cli-win32-arm64 cli-win32-x64; do
+            SIB_TAG="${COMPONENT}-v${STUCK_VERSION}"
+            if ! gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+              missing_tags+=("$SIB_TAG")
+            fi
+          done
+          if [ ${#missing_tags[@]} -gt 0 ]; then
+            reasons+=("Missing ${#missing_tags[@]} sibling tag(s): ${missing_tags[*]}")
+          fi
+
+          # c) npm publish completeness check. Registry lookup is public
+          #    and read-only, so no auth is needed. `npm view <pkg>@<ver>`
+          #    exits 0 if the version exists and prints E404 to stderr
+          #    otherwise.
+          missing_npm=()
+          for PKG in \
+            '@themoltnet/cli' \
+            '@themoltnet/cli-darwin-arm64' \
+            '@themoltnet/cli-darwin-x64' \
+            '@themoltnet/cli-linux-arm64' \
+            '@themoltnet/cli-linux-x64' \
+            '@themoltnet/cli-win32-arm64' \
+            '@themoltnet/cli-win32-x64'; do
+            if ! npm view "${PKG}@${STUCK_VERSION}" version >/dev/null 2>&1; then
+              missing_npm+=("${PKG}@${STUCK_VERSION}")
+            fi
+          done
+          if [ ${#missing_npm[@]} -gt 0 ]; then
+            reasons+=("Missing ${#missing_npm[@]} npm publish(es): ${missing_npm[*]}")
+          fi
+
+          if [ ${#reasons[@]} -eq 0 ]; then
+            echo "ERROR: cli-v${STUCK_VERSION} looks healthy — refusing to recover." >&2
+            echo "       Release is published, all 7 sibling tags exist, and all 7" >&2
+            echo "       npm packages are on the registry. If you believe this PR is" >&2
+            echo "       genuinely stuck, investigate manually before re-running." >&2
+            exit 1
+          fi
+
+          echo 'Stuckness evidence:'
+          for r in "${reasons[@]}"; do
+            echo "  - $r"
+          done
 
       - name: Create recovery branch
         id: branch
@@ -234,6 +340,7 @@ jobs:
           git diff --stat apps/moltnet-cli/CHANGELOG.md
 
       - name: Sync apps/moltnet-cli/go.mod to bumped libs
+        if: ${{ steps.infer.outputs.bumped-libs != '' }}
         working-directory: apps/moltnet-cli
         env:
           GOWORK: off
@@ -292,6 +399,11 @@ jobs:
           SOURCE_PR_URL: ${{ steps.infer.outputs.pr-url }}
           BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
+          if [ -n "$BUMPED_LIBS" ]; then
+            GOMOD_LINE="- Syncs \`apps/moltnet-cli/go.mod\` to: \`${BUMPED_LIBS}\`"
+          else
+            GOMOD_LINE="- No go.mod sync required (no libs bumped in source PR — downstream-publish-failure recovery)"
+          fi
           BODY=$(cat <<EOF
           Automated recovery for a stuck \`apps/moltnet-cli\` release cycle.
 
@@ -300,7 +412,7 @@ jobs:
           **What this PR does:**
           - Reverts all 8 linked cli group entries in \`.release-please-manifest.json\` from \`${STUCK_VERSION}\` back to \`${PREVIOUS_VERSION}\` (\`apps/moltnet-cli\`, \`packages/cli\`, and the 6 platform packages — they must move in lockstep under \`linked-versions\`)
           - Drops the premature \`## [${STUCK_VERSION}]\` section from \`apps/moltnet-cli/CHANGELOG.md\`
-          - Syncs \`apps/moltnet-cli/go.mod\` to: \`${BUMPED_LIBS}\`
+          ${GOMOD_LINE}
 
           **Next steps:**
           1. Squash-merge this PR
