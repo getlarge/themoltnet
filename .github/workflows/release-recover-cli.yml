@@ -358,3 +358,28 @@ jobs:
           else
             echo "Release $TAG exists but is not a draft; skipping deletion"
           fi
+
+      # The linked-versions cli group has 7 sibling tags
+      # (cli-wrapper-v<x>, cli-<platform>-v<x>) created by the
+      # `tag-cli-siblings` job in release.yml once `release-cli` succeeds.
+      # They exist independently of the cli-v<x> GitHub release state, so
+      # clean them up with the same toggle as the draft release — if
+      # release-cli never succeeded, they won't exist and delete is a no-op.
+      - name: Delete stuck sibling tags
+        if: ${{ inputs.delete-draft-release }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STUCK_VERSION: ${{ steps.infer.outputs.stuck-cli-version }}
+        run: |
+          for COMPONENT in cli-wrapper cli-darwin-arm64 cli-darwin-x64 cli-linux-arm64 cli-linux-x64 cli-win32-arm64 cli-win32-x64; do
+            SIB_TAG="${COMPONENT}-v${STUCK_VERSION}"
+            if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+              if gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+                echo "  - deleted ${SIB_TAG}"
+              else
+                echo "  ! WARN: failed to delete ${SIB_TAG} (continuing)" >&2
+              fi
+            else
+              echo "  = ${SIB_TAG} does not exist"
+            fi
+          done
