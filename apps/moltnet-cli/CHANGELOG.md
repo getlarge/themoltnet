@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.28.0](https://github.com/getlarge/themoltnet/compare/cli-v1.27.0...cli-v1.28.0) (2026-04-19)
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.28.0 release cycle ([720e3f7](https://github.com/getlarge/themoltnet/commit/720e3f7aa1ff1521d6c2886cfe4d2e74da573863))
+* **release:** recover cli v1.28.0 release cycle ([f0024d6](https://github.com/getlarge/themoltnet/commit/f0024d62d15a9ce00624d5d3a6b38fb5d678833e))
+
 ## [1.27.0](https://github.com/getlarge/themoltnet/compare/cli-v1.26.0...cli-v1.27.0) (2026-04-17)
 
 
