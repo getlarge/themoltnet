@@ -216,7 +216,13 @@ jobs:
       - name: Check SDK type isolation
         run: pnpm --filter @themoltnet/sdk check:types-isolation
 
-      - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
+      - name: Publish @themoltnet/sdk
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
 
       - name: Publish SDK release
         run: gh release edit "${{ needs.resolve-publish.outputs.sdk-tag }}" --draft=false
@@ -250,7 +256,13 @@ jobs:
 
       - run: pnpm --filter @themoltnet/github-agent run check:pack
 
-      - run: pnpm --filter @themoltnet/github-agent publish --no-git-checks --access public --provenance
+      - name: Publish @themoltnet/github-agent
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/github-agent publish --no-git-checks --access public --provenance
 
       - name: Publish GitHub Agent release
         run: gh release edit "${{ needs.resolve-publish.outputs.github-agent-tag }}" --draft=false
@@ -423,17 +435,22 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Download release binary
+        uses: nick-fields/retry@v4.0.0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
           ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
-        run: |
-          SEMVER="${TAG#cli-v}"
-          ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
-          mkdir -p /tmp/cli-binaries
-          # Stay in the repo checkout so gh can infer the repo from git;
-          # --dir places the archive where the Extract step expects it.
-          gh release download "$TAG" --pattern "$ARCHIVE" --dir /tmp/cli-binaries
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 15
+          command: |
+            SEMVER="${TAG#cli-v}"
+            ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
+            mkdir -p /tmp/cli-binaries
+            # Stay in the repo checkout so gh can infer the repo from git;
+            # --dir places the archive where the Extract step expects it.
+            gh release download "$TAG" --pattern "$ARCHIVE" --dir /tmp/cli-binaries
 
       - name: Extract binary
         env:
@@ -455,8 +472,14 @@ jobs:
           chmod +x "${PKG_DIR}/bin/${BINARY}" 2>/dev/null || true
 
       - name: Publish platform package
-        working-directory: packages/cli/npm/${{ matrix.npm_dir }}
-        run: npm publish --access public --provenance
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            cd "packages/cli/npm/${{ matrix.npm_dir }}"
+            npm publish --access public --provenance
 
       # The cli is part of an 8-component linked-versions group. Only
       # apps/moltnet-cli gets a real GitHub release (cli-v<x>); the other 7
@@ -514,7 +537,13 @@ jobs:
 
       # pnpm publish rewrites workspace:* in optionalDependencies to the
       # concrete version so the published tarball resolves on npm.
-      - run: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
+      - name: Publish @themoltnet/cli
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
 
       # See matrix job comment above: cli-wrapper uses `skip-github-release`
       # so release-please needs a bare git tag to track it.
@@ -622,7 +651,13 @@ jobs:
 
       - run: pnpm --filter @themoltnet/legreffier run check:pack
 
-      - run: pnpm --filter @themoltnet/legreffier publish --no-git-checks --access public --provenance
+      - name: Publish @themoltnet/legreffier
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/legreffier publish --no-git-checks --access public --provenance
 
       - name: Publish LeGreffier release
         run: gh release edit "${{ needs.resolve-publish.outputs.legreffier-tag }}" --draft=false
@@ -654,7 +689,13 @@ jobs:
 
       - run: pnpm --filter @themoltnet/design-system run check:pack
 
-      - run: pnpm --filter @themoltnet/design-system publish --no-git-checks --access public --provenance
+      - name: Publish @themoltnet/design-system
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/design-system publish --no-git-checks --access public --provenance
 
       - name: Publish Design System release
         run: gh release edit "${{ needs.resolve-publish.outputs.design-system-tag }}" --draft=false
