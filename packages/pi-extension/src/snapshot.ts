@@ -33,6 +33,7 @@ const DEFAULT_RECIPE: SnapshotRecipe = {
   packages: [
     '@mariozechner/pi-coding-agent',
     '@mariozechner/pi-ai',
+    '@themoltnet/cli',
     '@themoltnet/sdk',
   ],
   alpinePackages: [

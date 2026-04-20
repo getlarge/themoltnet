@@ -1282,6 +1282,12 @@ importers:
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
+      '@mariozechner/pi-ai':
+        specifier: ^0.67.68
+        version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-coding-agent':
+        specifier: ^0.67.68
+        version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../libs/auth
@@ -1315,6 +1321,9 @@ importers:
       '@themoltnet/github-agent':
         specifier: workspace:*
         version: link:../packages/github-agent
+      '@themoltnet/pi-extension':
+        specifier: workspace:*
+        version: link:../packages/pi-extension
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../libs/sdk

@@ -32,6 +32,10 @@ export interface VmCredentials {
   agentEnvRaw: string;
   piAuthJson: string;
   agentEnv: Record<string, string | undefined>;
+  gitconfig: string | null;
+  sshPrivateKey: string | null;
+  sshPublicKey: string | null;
+  allowedSigners: string | null;
 }
 
 export interface ManagedVm {
@@ -76,11 +80,32 @@ export function loadCredentials(agentDir: string): VmCredentials {
   }
   const piAuthJson = readFileSync(piAuthPath, 'utf8');
 
+  // Read gitconfig + SSH keys for VM-side git signing
+  const gitconfigPath = path.join(agentDir, 'gitconfig');
+  const gitconfig = existsSync(gitconfigPath)
+    ? readFileSync(gitconfigPath, 'utf8')
+    : null;
+
+  const sshDir = path.join(agentDir, 'ssh');
+  const sshPrivateKey = existsSync(path.join(sshDir, 'id_ed25519'))
+    ? readFileSync(path.join(sshDir, 'id_ed25519'), 'utf8')
+    : null;
+  const sshPublicKey = existsSync(path.join(sshDir, 'id_ed25519.pub'))
+    ? readFileSync(path.join(sshDir, 'id_ed25519.pub'), 'utf8')
+    : null;
+  const allowedSigners = existsSync(path.join(sshDir, 'allowed_signers'))
+    ? readFileSync(path.join(sshDir, 'allowed_signers'), 'utf8')
+    : null;
+
   return {
     moltnetJson,
     agentEnvRaw,
     piAuthJson,
     agentEnv: parseEnv(agentEnvRaw),
+    gitconfig,
+    sshPrivateKey,
+    sshPublicKey,
+    allowedSigners,
   };
 }
 
@@ -143,11 +168,29 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
 
   const { httpHooks, env: secretEnv } = createHttpHooks({ allowedHosts });
 
+  // Build VM-side agent env vars from credentials.
+  // GIT_CONFIG_GLOBAL must point to the VM-side path, not host-side.
+  const vmAgentEnv: Record<string, string> = {};
+  for (const [k, v] of Object.entries(creds.agentEnv)) {
+    if (v === undefined || v === '') continue;
+    if (k === 'GIT_CONFIG_GLOBAL') {
+      // Remap to VM-side credentials path
+      vmAgentEnv[k] = `/home/agent/.moltnet/${config.agentName}/gitconfig`;
+    } else if (k.endsWith('_PRIVATE_KEY_PATH')) {
+      // Remap key paths to VM-side
+      vmAgentEnv[k] =
+        `/home/agent/.moltnet/${config.agentName}/${path.basename(v)}`;
+    } else {
+      vmAgentEnv[k] = v;
+    }
+  }
+
   const cp = VmCheckpoint.load(config.checkpointPath);
   const vm = await cp.resume({
     httpHooks,
     env: {
       ...secretEnv,
+      ...vmAgentEnv,
       PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
       HOME: '/home/agent',
       NODE_NO_WARNINGS: '1',
@@ -169,18 +212,52 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
   '`);
 
-  // Inject credentials (never baked in snapshot)
+  // Inject credentials into VM-side agent directory structure:
+  //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
+  // Mirrors host layout so legreffier skill and CLI work identically.
+  const vmAgentDir = `/home/agent/.moltnet/${config.agentName}`;
+  const vmSshDir = `${vmAgentDir}/ssh`;
+  await vm.exec(`mkdir -p ${vmAgentDir}/ssh`);
+
   await vm.fs.writeFile('/home/agent/.pi/agent/auth.json', creds.piAuthJson, {
     mode: 0o600,
   });
-  await vm.fs.writeFile(
-    '/home/agent/.moltnet/moltnet.json',
-    creds.moltnetJson,
-    { mode: 0o600 },
-  );
-  await vm.fs.writeFile('/home/agent/.moltnet/env', creds.agentEnvRaw, {
+  await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, creds.moltnetJson, {
     mode: 0o600,
   });
+  await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
+    mode: 0o600,
+  });
+
+  // Inject gitconfig with VM-side signing key path
+  if (creds.gitconfig) {
+    const vmSigningKey = `${vmSshDir}/id_ed25519`;
+    const vmGitconfig = creds.gitconfig.replace(
+      /signingKey\s*=\s*.+/g,
+      `signingKey = ${vmSigningKey}`,
+    );
+    await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
+      mode: 0o644,
+    });
+  }
+
+  // Inject SSH keys for commit signing
+  if (creds.sshPrivateKey) {
+    await vm.fs.writeFile(`${vmSshDir}/id_ed25519`, creds.sshPrivateKey, {
+      mode: 0o600,
+    });
+  }
+  if (creds.sshPublicKey) {
+    await vm.fs.writeFile(`${vmSshDir}/id_ed25519.pub`, creds.sshPublicKey, {
+      mode: 0o644,
+    });
+  }
+  if (creds.allowedSigners) {
+    await vm.fs.writeFile(`${vmSshDir}/allowed_signers`, creds.allowedSigners, {
+      mode: 0o644,
+    });
+  }
+
   await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet');
 
   return {

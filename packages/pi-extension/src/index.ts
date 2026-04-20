@@ -99,9 +99,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       });
 
       // 2. Create worktree if requested
+      const mainRepo = findMainWorktree();
       let mountPath = localCwd;
       if (worktreeBranch) {
-        const mainRepo = findMainWorktree();
         const repoName = path.basename(mainRepo);
         const suffix = worktreeBranch.replace(/\//g, '-');
         worktreePath = path.resolve(mainRepo, '..', `${repoName}-${suffix}`);
@@ -134,7 +134,6 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       });
 
       // 4. Activate agent env on the host (mirrors `moltnet start`)
-      const mainRepo = findMainWorktree();
       activateAgentEnv(managed.credentials.agentEnv, mainRepo);
 
       // 5. Connect to MoltNet on the host side (for custom tools)
@@ -267,6 +266,27 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 
   const sessionErrors: TrackedError[] = [];
   const sessionStartTime = Date.now();
+
+  function getAgentGhToken(): string | null {
+    const gitConfigGlobal = process.env.GIT_CONFIG_GLOBAL;
+    if (!gitConfigGlobal) return null;
+    try {
+      const credsDir = path.dirname(gitConfigGlobal);
+      const credsPath = path.join(credsDir, 'moltnet.json');
+      if (!existsSync(credsPath)) return null;
+      return execFileSync(
+        'npx',
+        ['@themoltnet/cli', 'github', 'token', '--credentials', credsPath],
+        {
+          encoding: 'utf8',
+          cwd: worktreePath ?? localCwd,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        },
+      ).trim();
+    } catch {
+      return null;
+    }
+  }
 
   function getGitBranch(): string | null {
     try {
@@ -412,6 +432,97 @@ export default function moltnetExtension(pi: ExtensionAPI) {
           r.stdout?.trimEnd() ?? '',
         ].join('\n'),
         'info',
+      );
+    },
+  });
+
+  pi.registerCommand('resolve-issue', {
+    description:
+      'Pick up a GitHub issue and resolve it with accountable commits and a PR',
+    handler: async (args, ctx) => {
+      const issueRef = args.trim();
+      if (!issueRef) {
+        ctx.ui.notify('Usage: /resolve-issue <number|url>', 'error');
+        return;
+      }
+
+      await ensureVm(ctx);
+
+      // Fetch issue content on the host using the agent's GH token
+      let issueBody: string;
+      try {
+        const ghArgs = [
+          'issue',
+          'view',
+          issueRef,
+          '--json',
+          'number,title,body,labels,assignees,comments',
+        ];
+        const ghToken = getAgentGhToken();
+        const env = ghToken
+          ? { ...process.env, GH_TOKEN: ghToken }
+          : process.env;
+        issueBody = execFileSync('gh', ghArgs, {
+          encoding: 'utf8',
+          cwd: worktreePath ?? localCwd,
+          env,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        ctx.ui.notify(`Failed to fetch issue: ${msg}`, 'error');
+        return;
+      }
+
+      const issue = JSON.parse(issueBody) as {
+        number: number;
+        title: string;
+        body: string;
+        labels: { name: string }[];
+        comments: { body: string; author: { login: string } }[];
+      };
+
+      const meta = getSessionMeta(ctx);
+      const labelList = issue.labels.map((l) => l.name).join(', ');
+      const commentSummary = issue.comments
+        .slice(-5)
+        .map((c) => `**${c.author.login}**: ${c.body.slice(0, 300)}`)
+        .join('\n\n');
+
+      pi.sendUserMessage(
+        [
+          `**IMPORTANT**: Before doing anything else, read the file \`/workspace/.agents/skills/legreffier/SKILL.md\` and follow its workflow for all commits in this session. Every commit must have a diary entry.`,
+          '',
+          `## Task: Resolve Issue #${issue.number}`,
+          '',
+          `**Title:** ${issue.title}`,
+          labelList ? `**Labels:** ${labelList}` : '',
+          '',
+          '### Issue Description',
+          '',
+          issue.body ?? '_No description provided._',
+          '',
+          commentSummary ? `### Recent Comments\n\n${commentSummary}` : '',
+          '',
+          '### Instructions',
+          '',
+          `1. Create a feature branch: \`git checkout -b fix/${issue.number}-<slug>\``,
+          '2. Understand the problem — read relevant code, reproduce if possible',
+          '3. Implement the fix or feature',
+          '4. Write tests if applicable',
+          '5. Follow the legreffier accountable commit workflow for every commit (diary entry + signed commit)',
+          `6. Push the branch and create a PR referencing issue #${issue.number}`,
+          '',
+          '### Context',
+          '',
+          `- Agent: ${meta.agentName}`,
+          `- Diary: ${diaryId ?? 'unknown'}`,
+          `- Branch: ${meta.gitBranch ?? 'main'}`,
+          `- Workspace: ${GUEST_WORKSPACE}`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        { deliverAs: 'followUp' },
       );
     },
   });

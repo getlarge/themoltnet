@@ -40,6 +40,9 @@
     },
     {
       "path": "../packages/github-agent"
+    },
+    {
+      "path": "../packages/pi-extension"
     }
   ]
 }
