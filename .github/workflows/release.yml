@@ -12,7 +12,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system
+          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension
         required: false
         type: string
 
@@ -44,6 +44,8 @@ jobs:
       skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
       legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
+      pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
+      pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
     steps:
@@ -79,6 +81,8 @@ jobs:
       skill-version: ${{ steps.resolve.outputs.skill-version }}
       legreffier: ${{ steps.resolve.outputs.legreffier }}
       legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
+      pi-extension: ${{ steps.resolve.outputs.pi-extension }}
+      pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
       design-system: ${{ steps.resolve.outputs.design-system }}
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
     steps:
@@ -105,6 +109,8 @@ jobs:
           RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
           RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
           RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
+          RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
+          RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
           RP_DESIGN_SYSTEM_CREATED: ${{ needs.release-please.outputs.design-system-release-created }}
           RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
           REPUBLISH: ${{ github.event.inputs.republish || '' }}
@@ -159,6 +165,7 @@ jobs:
           resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
+          resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
 
           # Forward version outputs
           if [ -n "$RP_API_VERSION" ]; then
@@ -666,6 +673,52 @@ jobs:
 
       - name: Publish LeGreffier release
         run: gh release edit "${{ needs.resolve-publish.outputs.legreffier-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-pi-extension:
+    name: Publish Pi Extension to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.pi-extension == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @moltnet/api-client build
+
+      - run: pnpm --filter @moltnet/crypto-service build
+
+      - run: pnpm --filter @themoltnet/sdk build
+
+      - run: pnpm --filter @themoltnet/pi-extension build
+
+      - run: pnpm --filter @themoltnet/pi-extension test
+
+      - run: pnpm --filter @themoltnet/pi-extension run check:pack
+
+      - name: Publish @themoltnet/pi-extension
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/pi-extension publish --no-git-checks --access public --provenance
+
+      - name: Publish Pi Extension release
+        run: gh release edit "${{ needs.resolve-publish.outputs.pi-extension-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
