@@ -369,6 +369,33 @@ import type {
   VerifyRenderedPackResponse2,
 } from '../types.gen';
 
+/**
+ * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ */
+export const getOAuth2TokenMutation = (
+  options?: Partial<Options<GetOAuth2TokenData>>,
+): UseMutationOptions<
+  GetOAuth2TokenResponse,
+  GetOAuth2TokenError,
+  Options<GetOAuth2TokenData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    GetOAuth2TokenResponse,
+    GetOAuth2TokenError,
+    Options<GetOAuth2TokenData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await getOAuth2Token({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export type QueryKey<TOptions extends Options> = [
   Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
     _id: string;
@@ -409,21 +436,21 @@ const createQueryKey = <TOptions extends Options>(
   return [params];
 };
 
-export const getNetworkInfoQueryKey = (options?: Options<GetNetworkInfoData>) =>
-  createQueryKey('getNetworkInfo', options);
+export const getHealthQueryKey = (options?: Options<GetHealthData>) =>
+  createQueryKey('getHealth', options);
 
 /**
- * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
+ * Shallow liveness probe.
  */
-export const getNetworkInfoOptions = (options?: Options<GetNetworkInfoData>) =>
+export const getHealthOptions = (options?: Options<GetHealthData>) =>
   queryOptions<
-    GetNetworkInfoResponse,
+    GetHealthResponse,
     DefaultError,
-    GetNetworkInfoResponse,
-    ReturnType<typeof getNetworkInfoQueryKey>
+    GetHealthResponse,
+    ReturnType<typeof getHealthQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getNetworkInfo({
+      const { data } = await getHealth({
         ...options,
         ...queryKey[0],
         signal,
@@ -431,24 +458,24 @@ export const getNetworkInfoOptions = (options?: Options<GetNetworkInfoData>) =>
       });
       return data;
     },
-    queryKey: getNetworkInfoQueryKey(options),
+    queryKey: getHealthQueryKey(options),
   });
 
-export const getWhoamiQueryKey = (options?: Options<GetWhoamiData>) =>
-  createQueryKey('getWhoami', options);
+export const getReadinessQueryKey = (options?: Options<GetReadinessData>) =>
+  createQueryKey('getReadiness', options);
 
 /**
- * Get the authenticated agent identity (requires bearer token).
+ * Deep readiness probe. Checks database and Ory connectivity.
  */
-export const getWhoamiOptions = (options?: Options<GetWhoamiData>) =>
+export const getReadinessOptions = (options?: Options<GetReadinessData>) =>
   queryOptions<
-    GetWhoamiResponse,
-    GetWhoamiError,
-    GetWhoamiResponse,
-    ReturnType<typeof getWhoamiQueryKey>
+    GetReadinessResponse,
+    GetReadinessError,
+    GetReadinessResponse,
+    ReturnType<typeof getReadinessQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getWhoami({
+      const { data } = await getReadiness({
         ...options,
         ...queryKey[0],
         signal,
@@ -456,364 +483,8 @@ export const getWhoamiOptions = (options?: Options<GetWhoamiData>) =>
       });
       return data;
     },
-    queryKey: getWhoamiQueryKey(options),
+    queryKey: getReadinessQueryKey(options),
   });
-
-export const getAgentProfileQueryKey = (
-  options: Options<GetAgentProfileData>,
-) => createQueryKey('getAgentProfile', options);
-
-/**
- * Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
- */
-export const getAgentProfileOptions = (options: Options<GetAgentProfileData>) =>
-  queryOptions<
-    GetAgentProfileResponse,
-    GetAgentProfileError,
-    GetAgentProfileResponse,
-    ReturnType<typeof getAgentProfileQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getAgentProfile({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getAgentProfileQueryKey(options),
-  });
-
-/**
- * Verify a signature belongs to the specified agent.
- */
-export const verifyAgentSignatureMutation = (
-  options?: Partial<Options<VerifyAgentSignatureData>>,
-): UseMutationOptions<
-  VerifyAgentSignatureResponse,
-  VerifyAgentSignatureError,
-  Options<VerifyAgentSignatureData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    VerifyAgentSignatureResponse,
-    VerifyAgentSignatureError,
-    Options<VerifyAgentSignatureData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await verifyAgentSignature({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
- */
-export const registerAgentMutation = (
-  options?: Partial<Options<RegisterAgentData>>,
-): UseMutationOptions<
-  RegisterAgentResponse,
-  RegisterAgentError,
-  Options<RegisterAgentData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RegisterAgentResponse,
-    RegisterAgentError,
-    Options<RegisterAgentData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await registerAgent({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
- */
-export const rotateClientSecretMutation = (
-  options?: Partial<Options<RotateClientSecretData>>,
-): UseMutationOptions<
-  RotateClientSecretResponse,
-  RotateClientSecretError,
-  Options<RotateClientSecretData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RotateClientSecretResponse,
-    RotateClientSecretError,
-    Options<RotateClientSecretData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await rotateClientSecret({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getCryptoIdentityQueryKey = (
-  options?: Options<GetCryptoIdentityData>,
-) => createQueryKey('getCryptoIdentity', options);
-
-/**
- * Get the authenticated agent's cryptographic identity (keys, fingerprint).
- */
-export const getCryptoIdentityOptions = (
-  options?: Options<GetCryptoIdentityData>,
-) =>
-  queryOptions<
-    GetCryptoIdentityResponse,
-    GetCryptoIdentityError,
-    GetCryptoIdentityResponse,
-    ReturnType<typeof getCryptoIdentityQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getCryptoIdentity({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getCryptoIdentityQueryKey(options),
-  });
-
-export const listSigningRequestsQueryKey = (
-  options?: Options<ListSigningRequestsData>,
-) => createQueryKey('listSigningRequests', options);
-
-/**
- * List signing requests for the authenticated agent.
- */
-export const listSigningRequestsOptions = (
-  options?: Options<ListSigningRequestsData>,
-) =>
-  queryOptions<
-    ListSigningRequestsResponse,
-    ListSigningRequestsError,
-    ListSigningRequestsResponse,
-    ReturnType<typeof listSigningRequestsQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listSigningRequests({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listSigningRequestsQueryKey(options),
-  });
-
-const createInfiniteParams = <
-  K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>,
->(
-  queryKey: QueryKey<Options>,
-  page: K,
-) => {
-  const params = { ...queryKey[0] };
-  if (page.body) {
-    params.body = {
-      ...(queryKey[0].body as any),
-      ...(page.body as any),
-    };
-  }
-  if (page.headers) {
-    params.headers = {
-      ...queryKey[0].headers,
-      ...page.headers,
-    };
-  }
-  if (page.path) {
-    params.path = {
-      ...(queryKey[0].path as any),
-      ...(page.path as any),
-    };
-  }
-  if (page.query) {
-    params.query = {
-      ...(queryKey[0].query as any),
-      ...(page.query as any),
-    };
-  }
-  return params as unknown as typeof page;
-};
-
-export const listSigningRequestsInfiniteQueryKey = (
-  options?: Options<ListSigningRequestsData>,
-): QueryKey<Options<ListSigningRequestsData>> =>
-  createQueryKey('listSigningRequests', options, true);
-
-/**
- * List signing requests for the authenticated agent.
- */
-export const listSigningRequestsInfiniteOptions = (
-  options?: Options<ListSigningRequestsData>,
-) =>
-  infiniteQueryOptions<
-    ListSigningRequestsResponse,
-    ListSigningRequestsError,
-    InfiniteData<ListSigningRequestsResponse>,
-    QueryKey<Options<ListSigningRequestsData>>,
-    | number
-    | Pick<
-        QueryKey<Options<ListSigningRequestsData>>[0],
-        'body' | 'headers' | 'path' | 'query'
-      >
-  >(
-    // @ts-ignore
-    {
-      queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListSigningRequestsData>>[0],
-          'body' | 'headers' | 'path' | 'query'
-        > =
-          typeof pageParam === 'object'
-            ? pageParam
-            : {
-                query: {
-                  offset: pageParam,
-                },
-              };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await listSigningRequests({
-          ...options,
-          ...params,
-          signal,
-          throwOnError: true,
-        });
-        return data;
-      },
-      queryKey: listSigningRequestsInfiniteQueryKey(options),
-    },
-  );
-
-/**
- * Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
- */
-export const createSigningRequestMutation = (
-  options?: Partial<Options<CreateSigningRequestData>>,
-): UseMutationOptions<
-  CreateSigningRequestResponse,
-  CreateSigningRequestError,
-  Options<CreateSigningRequestData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CreateSigningRequestResponse,
-    CreateSigningRequestError,
-    Options<CreateSigningRequestData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await createSigningRequest({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getSigningRequestQueryKey = (
-  options: Options<GetSigningRequestData>,
-) => createQueryKey('getSigningRequest', options);
-
-/**
- * Get a specific signing request by ID.
- */
-export const getSigningRequestOptions = (
-  options: Options<GetSigningRequestData>,
-) =>
-  queryOptions<
-    GetSigningRequestResponse,
-    GetSigningRequestError,
-    GetSigningRequestResponse,
-    ReturnType<typeof getSigningRequestQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getSigningRequest({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getSigningRequestQueryKey(options),
-  });
-
-/**
- * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
- */
-export const submitSignatureMutation = (
-  options?: Partial<Options<SubmitSignatureData>>,
-): UseMutationOptions<
-  SubmitSignatureResponse,
-  SubmitSignatureError,
-  Options<SubmitSignatureData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    SubmitSignatureResponse,
-    SubmitSignatureError,
-    Options<SubmitSignatureData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await submitSignature({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Verify an Ed25519 signature by looking up the signing request.
- */
-export const verifyCryptoSignatureMutation = (
-  options?: Partial<Options<VerifyCryptoSignatureData>>,
-): UseMutationOptions<
-  VerifyCryptoSignatureResponse,
-  VerifyCryptoSignatureError,
-  Options<VerifyCryptoSignatureData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    VerifyCryptoSignatureResponse,
-    VerifyCryptoSignatureError,
-    Options<VerifyCryptoSignatureData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await verifyCryptoSignature({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
 
 export const listDiariesQueryKey = (options?: Options<ListDiariesData>) =>
   createQueryKey('listDiaries', options);
@@ -867,21 +538,48 @@ export const createDiaryMutation = (
   return mutationOptions;
 };
 
-export const reflectDiaryQueryKey = (options: Options<ReflectDiaryData>) =>
-  createQueryKey('reflectDiary', options);
+/**
+ * Delete a diary and cascade-delete its entries.
+ */
+export const deleteDiaryMutation = (
+  options?: Partial<Options<DeleteDiaryData>>,
+): UseMutationOptions<
+  DeleteDiaryResponse,
+  DeleteDiaryError,
+  Options<DeleteDiaryData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteDiaryResponse,
+    DeleteDiaryError,
+    Options<DeleteDiaryData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteDiary({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getDiaryQueryKey = (options: Options<GetDiaryData>) =>
+  createQueryKey('getDiary', options);
 
 /**
- * Get a digest of recent diary entries.
+ * Get a diary by ID.
  */
-export const reflectDiaryOptions = (options: Options<ReflectDiaryData>) =>
+export const getDiaryOptions = (options: Options<GetDiaryData>) =>
   queryOptions<
-    ReflectDiaryResponse,
-    ReflectDiaryError,
-    ReflectDiaryResponse,
-    ReturnType<typeof reflectDiaryQueryKey>
+    GetDiaryResponse,
+    GetDiaryError,
+    GetDiaryResponse,
+    ReturnType<typeof getDiaryQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await reflectDiary({
+      const { data } = await getDiary({
         ...options,
         ...queryKey[0],
         signal,
@@ -889,26 +587,215 @@ export const reflectDiaryOptions = (options: Options<ReflectDiaryData>) =>
       });
       return data;
     },
-    queryKey: reflectDiaryQueryKey(options),
+    queryKey: getDiaryQueryKey(options),
   });
 
 /**
- * Search diary entries using hybrid search.
+ * Update diary name or visibility.
  */
-export const searchDiaryMutation = (
-  options?: Partial<Options<SearchDiaryData>>,
+export const updateDiaryMutation = (
+  options?: Partial<Options<UpdateDiaryData>>,
 ): UseMutationOptions<
-  SearchDiaryResponse,
-  SearchDiaryError,
-  Options<SearchDiaryData>
+  UpdateDiaryResponse,
+  UpdateDiaryError,
+  Options<UpdateDiaryData>
 > => {
   const mutationOptions: UseMutationOptions<
-    SearchDiaryResponse,
-    SearchDiaryError,
-    Options<SearchDiaryData>
+    UpdateDiaryResponse,
+    UpdateDiaryError,
+    Options<UpdateDiaryData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await searchDiary({
+      const { data } = await updateDiary({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Revoke a writer or manager grant from a diary.
+ */
+export const revokeDiaryGrantMutation = (
+  options?: Partial<Options<RevokeDiaryGrantData>>,
+): UseMutationOptions<
+  RevokeDiaryGrantResponse,
+  RevokeDiaryGrantError,
+  Options<RevokeDiaryGrantData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RevokeDiaryGrantResponse,
+    RevokeDiaryGrantError,
+    Options<RevokeDiaryGrantData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await revokeDiaryGrant({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listDiaryGrantsQueryKey = (
+  options: Options<ListDiaryGrantsData>,
+) => createQueryKey('listDiaryGrants', options);
+
+/**
+ * List all per-diary grants (writers and managers).
+ */
+export const listDiaryGrantsOptions = (options: Options<ListDiaryGrantsData>) =>
+  queryOptions<
+    ListDiaryGrantsResponse,
+    ListDiaryGrantsError,
+    ListDiaryGrantsResponse,
+    ReturnType<typeof listDiaryGrantsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listDiaryGrants({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listDiaryGrantsQueryKey(options),
+  });
+
+/**
+ * Grant writer or manager access to a diary for an agent, human, or group.
+ */
+export const createDiaryGrantMutation = (
+  options?: Partial<Options<CreateDiaryGrantData>>,
+): UseMutationOptions<
+  CreateDiaryGrantResponse,
+  CreateDiaryGrantError,
+  Options<CreateDiaryGrantData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateDiaryGrantResponse,
+    CreateDiaryGrantError,
+    Options<CreateDiaryGrantData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createDiaryGrant({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Initiate a diary transfer to another team. Requires diary manage permission.
+ */
+export const initiateTransferMutation = (
+  options?: Partial<Options<InitiateTransferData>>,
+): UseMutationOptions<
+  InitiateTransferResponse,
+  InitiateTransferError,
+  Options<InitiateTransferData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    InitiateTransferResponse,
+    InitiateTransferError,
+    Options<InitiateTransferData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await initiateTransfer({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listPendingTransfersQueryKey = (
+  options?: Options<ListPendingTransfersData>,
+) => createQueryKey('listPendingTransfers', options);
+
+/**
+ * List pending transfers where the caller is destination team owner.
+ */
+export const listPendingTransfersOptions = (
+  options?: Options<ListPendingTransfersData>,
+) =>
+  queryOptions<
+    ListPendingTransfersResponse,
+    ListPendingTransfersError,
+    ListPendingTransfersResponse,
+    ReturnType<typeof listPendingTransfersQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listPendingTransfers({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listPendingTransfersQueryKey(options),
+  });
+
+/**
+ * Accept a pending diary transfer. Caller must be destination team owner.
+ */
+export const acceptTransferMutation = (
+  options?: Partial<Options<AcceptTransferData>>,
+): UseMutationOptions<
+  AcceptTransferResponse,
+  AcceptTransferError,
+  Options<AcceptTransferData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AcceptTransferResponse,
+    AcceptTransferError,
+    Options<AcceptTransferData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await acceptTransfer({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Reject a pending diary transfer.
+ */
+export const rejectTransferMutation = (
+  options?: Partial<Options<RejectTransferData>>,
+): UseMutationOptions<
+  RejectTransferResponse,
+  RejectTransferError,
+  Options<RejectTransferData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RejectTransferResponse,
+    RejectTransferError,
+    Options<RejectTransferData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rejectTransfer({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -946,6 +833,40 @@ export const listDiaryEntriesOptions = (
     },
     queryKey: listDiaryEntriesQueryKey(options),
   });
+
+const createInfiniteParams = <
+  K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>,
+>(
+  queryKey: QueryKey<Options>,
+  page: K,
+) => {
+  const params = { ...queryKey[0] };
+  if (page.body) {
+    params.body = {
+      ...(queryKey[0].body as any),
+      ...(page.body as any),
+    };
+  }
+  if (page.headers) {
+    params.headers = {
+      ...queryKey[0].headers,
+      ...page.headers,
+    };
+  }
+  if (page.path) {
+    params.path = {
+      ...(queryKey[0].path as any),
+      ...(page.path as any),
+    };
+  }
+  if (page.query) {
+    params.query = {
+      ...(queryKey[0].query as any),
+      ...(page.query as any),
+    };
+  }
+  return params as unknown as typeof page;
+};
 
 export const listDiaryEntriesInfiniteQueryKey = (
   options: Options<ListDiaryEntriesData>,
@@ -1050,22 +971,22 @@ export const listDiaryTagsOptions = (options: Options<ListDiaryTagsData>) =>
   });
 
 /**
- * Delete a diary and cascade-delete its entries.
+ * Delete a diary entry.
  */
-export const deleteDiaryMutation = (
-  options?: Partial<Options<DeleteDiaryData>>,
+export const deleteDiaryEntryByIdMutation = (
+  options?: Partial<Options<DeleteDiaryEntryByIdData>>,
 ): UseMutationOptions<
-  DeleteDiaryResponse,
-  DeleteDiaryError,
-  Options<DeleteDiaryData>
+  DeleteDiaryEntryByIdResponse,
+  DeleteDiaryEntryByIdError,
+  Options<DeleteDiaryEntryByIdData>
 > => {
   const mutationOptions: UseMutationOptions<
-    DeleteDiaryResponse,
-    DeleteDiaryError,
-    Options<DeleteDiaryData>
+    DeleteDiaryEntryByIdResponse,
+    DeleteDiaryEntryByIdError,
+    Options<DeleteDiaryEntryByIdData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await deleteDiary({
+      const { data } = await deleteDiaryEntryById({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1076,21 +997,24 @@ export const deleteDiaryMutation = (
   return mutationOptions;
 };
 
-export const getDiaryQueryKey = (options: Options<GetDiaryData>) =>
-  createQueryKey('getDiary', options);
+export const getDiaryEntryByIdQueryKey = (
+  options: Options<GetDiaryEntryByIdData>,
+) => createQueryKey('getDiaryEntryById', options);
 
 /**
- * Get a diary by ID.
+ * Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.
  */
-export const getDiaryOptions = (options: Options<GetDiaryData>) =>
+export const getDiaryEntryByIdOptions = (
+  options: Options<GetDiaryEntryByIdData>,
+) =>
   queryOptions<
-    GetDiaryResponse,
-    GetDiaryError,
-    GetDiaryResponse,
-    ReturnType<typeof getDiaryQueryKey>
+    GetDiaryEntryByIdResponse,
+    GetDiaryEntryByIdError,
+    GetDiaryEntryByIdResponse,
+    ReturnType<typeof getDiaryEntryByIdQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getDiary({
+      const { data } = await getDiaryEntryById({
         ...options,
         ...queryKey[0],
         signal,
@@ -1098,26 +1022,133 @@ export const getDiaryOptions = (options: Options<GetDiaryData>) =>
       });
       return data;
     },
-    queryKey: getDiaryQueryKey(options),
+    queryKey: getDiaryEntryByIdQueryKey(options),
   });
 
 /**
- * Update diary name or visibility.
+ * Update a diary entry (content, title, tags).
  */
-export const updateDiaryMutation = (
-  options?: Partial<Options<UpdateDiaryData>>,
+export const updateDiaryEntryByIdMutation = (
+  options?: Partial<Options<UpdateDiaryEntryByIdData>>,
 ): UseMutationOptions<
-  UpdateDiaryResponse,
-  UpdateDiaryError,
-  Options<UpdateDiaryData>
+  UpdateDiaryEntryByIdResponse,
+  UpdateDiaryEntryByIdError,
+  Options<UpdateDiaryEntryByIdData>
 > => {
   const mutationOptions: UseMutationOptions<
-    UpdateDiaryResponse,
-    UpdateDiaryError,
-    Options<UpdateDiaryData>
+    UpdateDiaryEntryByIdResponse,
+    UpdateDiaryEntryByIdError,
+    Options<UpdateDiaryEntryByIdData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await updateDiary({
+      const { data } = await updateDiaryEntryById({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const verifyDiaryEntryByIdQueryKey = (
+  options: Options<VerifyDiaryEntryByIdData>,
+) => createQueryKey('verifyDiaryEntryById', options);
+
+/**
+ * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
+ */
+export const verifyDiaryEntryByIdOptions = (
+  options: Options<VerifyDiaryEntryByIdData>,
+) =>
+  queryOptions<
+    VerifyDiaryEntryByIdResponse,
+    VerifyDiaryEntryByIdError,
+    VerifyDiaryEntryByIdResponse,
+    ReturnType<typeof verifyDiaryEntryByIdQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await verifyDiaryEntryById({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: verifyDiaryEntryByIdQueryKey(options),
+  });
+
+/**
+ * Search diary entries using hybrid search.
+ */
+export const searchDiaryMutation = (
+  options?: Partial<Options<SearchDiaryData>>,
+): UseMutationOptions<
+  SearchDiaryResponse,
+  SearchDiaryError,
+  Options<SearchDiaryData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    SearchDiaryResponse,
+    SearchDiaryError,
+    Options<SearchDiaryData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await searchDiary({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const reflectDiaryQueryKey = (options: Options<ReflectDiaryData>) =>
+  createQueryKey('reflectDiary', options);
+
+/**
+ * Get a digest of recent diary entries.
+ */
+export const reflectDiaryOptions = (options: Options<ReflectDiaryData>) =>
+  queryOptions<
+    ReflectDiaryResponse,
+    ReflectDiaryError,
+    ReflectDiaryResponse,
+    ReturnType<typeof reflectDiaryQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await reflectDiary({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: reflectDiaryQueryKey(options),
+  });
+
+/**
+ * Cluster semantically similar entries and return consolidation suggestions.
+ */
+export const consolidateDiaryMutation = (
+  options?: Partial<Options<ConsolidateDiaryData>>,
+): UseMutationOptions<
+  ConsolidateDiaryResponse,
+  ConsolidateDiaryError,
+  Options<ConsolidateDiaryData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ConsolidateDiaryResponse,
+    ConsolidateDiaryError,
+    Options<ConsolidateDiaryData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await consolidateDiary({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1155,76 +1186,24 @@ export const compileDiaryMutation = (
   return mutationOptions;
 };
 
-/**
- * Cluster semantically similar entries and return consolidation suggestions.
- */
-export const consolidateDiaryMutation = (
-  options?: Partial<Options<ConsolidateDiaryData>>,
-): UseMutationOptions<
-  ConsolidateDiaryResponse,
-  ConsolidateDiaryError,
-  Options<ConsolidateDiaryData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    ConsolidateDiaryResponse,
-    ConsolidateDiaryError,
-    Options<ConsolidateDiaryData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await consolidateDiary({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
+export const getContextPackProvenanceByIdQueryKey = (
+  options: Options<GetContextPackProvenanceByIdData>,
+) => createQueryKey('getContextPackProvenanceById', options);
 
 /**
- * Revoke a writer or manager grant from a diary.
+ * Export the provenance graph for a persisted context pack by ID.
  */
-export const revokeDiaryGrantMutation = (
-  options?: Partial<Options<RevokeDiaryGrantData>>,
-): UseMutationOptions<
-  RevokeDiaryGrantResponse,
-  RevokeDiaryGrantError,
-  Options<RevokeDiaryGrantData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RevokeDiaryGrantResponse,
-    RevokeDiaryGrantError,
-    Options<RevokeDiaryGrantData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await revokeDiaryGrant({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const listDiaryGrantsQueryKey = (
-  options: Options<ListDiaryGrantsData>,
-) => createQueryKey('listDiaryGrants', options);
-
-/**
- * List all per-diary grants (writers and managers).
- */
-export const listDiaryGrantsOptions = (options: Options<ListDiaryGrantsData>) =>
+export const getContextPackProvenanceByIdOptions = (
+  options: Options<GetContextPackProvenanceByIdData>,
+) =>
   queryOptions<
-    ListDiaryGrantsResponse,
-    ListDiaryGrantsError,
-    ListDiaryGrantsResponse,
-    ReturnType<typeof listDiaryGrantsQueryKey>
+    GetContextPackProvenanceByIdResponse,
+    GetContextPackProvenanceByIdError,
+    GetContextPackProvenanceByIdResponse,
+    ReturnType<typeof getContextPackProvenanceByIdQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listDiaryGrants({
+      const { data } = await getContextPackProvenanceById({
         ...options,
         ...queryKey[0],
         signal,
@@ -1232,26 +1211,187 @@ export const listDiaryGrantsOptions = (options: Options<ListDiaryGrantsData>) =>
       });
       return data;
     },
-    queryKey: listDiaryGrantsQueryKey(options),
+    queryKey: getContextPackProvenanceByIdQueryKey(options),
+  });
+
+export const getContextPackProvenanceByCidQueryKey = (
+  options: Options<GetContextPackProvenanceByCidData>,
+) => createQueryKey('getContextPackProvenanceByCid', options);
+
+/**
+ * Export the provenance graph for a persisted context pack by CID.
+ */
+export const getContextPackProvenanceByCidOptions = (
+  options: Options<GetContextPackProvenanceByCidData>,
+) =>
+  queryOptions<
+    GetContextPackProvenanceByCidResponse,
+    GetContextPackProvenanceByCidError,
+    GetContextPackProvenanceByCidResponse,
+    ReturnType<typeof getContextPackProvenanceByCidQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getContextPackProvenanceByCid({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getContextPackProvenanceByCidQueryKey(options),
+  });
+
+export const listContextPacksQueryKey = (
+  options?: Options<ListContextPacksData>,
+) => createQueryKey('listContextPacks', options);
+
+/**
+ * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+ */
+export const listContextPacksOptions = (
+  options?: Options<ListContextPacksData>,
+) =>
+  queryOptions<
+    ListContextPacksResponse,
+    ListContextPacksError,
+    ListContextPacksResponse,
+    ReturnType<typeof listContextPacksQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listContextPacks({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listContextPacksQueryKey(options),
+  });
+
+export const listContextPacksInfiniteQueryKey = (
+  options?: Options<ListContextPacksData>,
+): QueryKey<Options<ListContextPacksData>> =>
+  createQueryKey('listContextPacks', options, true);
+
+/**
+ * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+ */
+export const listContextPacksInfiniteOptions = (
+  options?: Options<ListContextPacksData>,
+) =>
+  infiniteQueryOptions<
+    ListContextPacksResponse,
+    ListContextPacksError,
+    InfiniteData<ListContextPacksResponse>,
+    QueryKey<Options<ListContextPacksData>>,
+    | number
+    | Pick<
+        QueryKey<Options<ListContextPacksData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListContextPacksData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listContextPacks({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listContextPacksInfiniteQueryKey(options),
+    },
+  );
+
+export const getContextPackByIdQueryKey = (
+  options: Options<GetContextPackByIdData>,
+) => createQueryKey('getContextPackById', options);
+
+/**
+ * Get a persisted context pack by ID. Use `expand=entries` to include entry content.
+ */
+export const getContextPackByIdOptions = (
+  options: Options<GetContextPackByIdData>,
+) =>
+  queryOptions<
+    GetContextPackByIdResponse,
+    GetContextPackByIdError,
+    GetContextPackByIdResponse,
+    ReturnType<typeof getContextPackByIdQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getContextPackById({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getContextPackByIdQueryKey(options),
   });
 
 /**
- * Grant writer or manager access to a diary for an agent, human, or group.
+ * Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
  */
-export const createDiaryGrantMutation = (
-  options?: Partial<Options<CreateDiaryGrantData>>,
+export const updateContextPackMutation = (
+  options?: Partial<Options<UpdateContextPackData>>,
 ): UseMutationOptions<
-  CreateDiaryGrantResponse,
-  CreateDiaryGrantError,
-  Options<CreateDiaryGrantData>
+  UpdateContextPackResponse,
+  UpdateContextPackError,
+  Options<UpdateContextPackData>
 > => {
   const mutationOptions: UseMutationOptions<
-    CreateDiaryGrantResponse,
-    CreateDiaryGrantError,
-    Options<CreateDiaryGrantData>
+    UpdateContextPackResponse,
+    UpdateContextPackError,
+    Options<UpdateContextPackData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await createDiaryGrant({
+      const { data } = await updateContextPack({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Preview a custom context pack from an explicit entry selection without persisting it.
+ */
+export const previewDiaryCustomPackMutation = (
+  options?: Partial<Options<PreviewDiaryCustomPackData>>,
+): UseMutationOptions<
+  PreviewDiaryCustomPackResponse,
+  PreviewDiaryCustomPackError,
+  Options<PreviewDiaryCustomPackData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PreviewDiaryCustomPackResponse,
+    PreviewDiaryCustomPackError,
+    Options<PreviewDiaryCustomPackData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await previewDiaryCustomPack({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1365,22 +1505,22 @@ export const createDiaryCustomPackMutation = (
 };
 
 /**
- * Preview a custom context pack from an explicit entry selection without persisting it.
+ * Preview a rendered pack from a source pack without persisting it.
  */
-export const previewDiaryCustomPackMutation = (
-  options?: Partial<Options<PreviewDiaryCustomPackData>>,
+export const previewRenderedPackMutation = (
+  options?: Partial<Options<PreviewRenderedPackData>>,
 ): UseMutationOptions<
-  PreviewDiaryCustomPackResponse,
-  PreviewDiaryCustomPackError,
-  Options<PreviewDiaryCustomPackData>
+  PreviewRenderedPackResponse,
+  PreviewRenderedPackError,
+  Options<PreviewRenderedPackData>
 > => {
   const mutationOptions: UseMutationOptions<
-    PreviewDiaryCustomPackResponse,
-    PreviewDiaryCustomPackError,
-    Options<PreviewDiaryCustomPackData>
+    PreviewRenderedPackResponse,
+    PreviewRenderedPackError,
+    Options<PreviewRenderedPackData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await previewDiaryCustomPack({
+      const { data } = await previewRenderedPack({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1390,6 +1530,61 @@ export const previewDiaryCustomPackMutation = (
   };
   return mutationOptions;
 };
+
+/**
+ * Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
+ */
+export const renderContextPackMutation = (
+  options?: Partial<Options<RenderContextPackData>>,
+): UseMutationOptions<
+  RenderContextPackResponse,
+  RenderContextPackError,
+  Options<RenderContextPackData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RenderContextPackResponse,
+    RenderContextPackError,
+    Options<RenderContextPackData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await renderContextPack({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getLatestRenderedPackQueryKey = (
+  options: Options<GetLatestRenderedPackData>,
+) => createQueryKey('getLatestRenderedPack', options);
+
+/**
+ * Get the latest rendered pack for a source context pack.
+ */
+export const getLatestRenderedPackOptions = (
+  options: Options<GetLatestRenderedPackData>,
+) =>
+  queryOptions<
+    GetLatestRenderedPackResponse,
+    GetLatestRenderedPackError,
+    GetLatestRenderedPackResponse,
+    ReturnType<typeof getLatestRenderedPackQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getLatestRenderedPack({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getLatestRenderedPackQueryKey(options),
+  });
 
 export const listDiaryRenderedPacksQueryKey = (
   options: Options<ListDiaryRenderedPacksData>,
@@ -1468,1099 +1663,6 @@ export const listDiaryRenderedPacksInfiniteOptions = (
       queryKey: listDiaryRenderedPacksInfiniteQueryKey(options),
     },
   );
-
-/**
- * Initiate a diary transfer to another team. Requires diary manage permission.
- */
-export const initiateTransferMutation = (
-  options?: Partial<Options<InitiateTransferData>>,
-): UseMutationOptions<
-  InitiateTransferResponse,
-  InitiateTransferError,
-  Options<InitiateTransferData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    InitiateTransferResponse,
-    InitiateTransferError,
-    Options<InitiateTransferData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await initiateTransfer({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Delete a diary entry.
- */
-export const deleteDiaryEntryByIdMutation = (
-  options?: Partial<Options<DeleteDiaryEntryByIdData>>,
-): UseMutationOptions<
-  DeleteDiaryEntryByIdResponse,
-  DeleteDiaryEntryByIdError,
-  Options<DeleteDiaryEntryByIdData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    DeleteDiaryEntryByIdResponse,
-    DeleteDiaryEntryByIdError,
-    Options<DeleteDiaryEntryByIdData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await deleteDiaryEntryById({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getDiaryEntryByIdQueryKey = (
-  options: Options<GetDiaryEntryByIdData>,
-) => createQueryKey('getDiaryEntryById', options);
-
-/**
- * Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.
- */
-export const getDiaryEntryByIdOptions = (
-  options: Options<GetDiaryEntryByIdData>,
-) =>
-  queryOptions<
-    GetDiaryEntryByIdResponse,
-    GetDiaryEntryByIdError,
-    GetDiaryEntryByIdResponse,
-    ReturnType<typeof getDiaryEntryByIdQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getDiaryEntryById({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getDiaryEntryByIdQueryKey(options),
-  });
-
-/**
- * Update a diary entry (content, title, tags).
- */
-export const updateDiaryEntryByIdMutation = (
-  options?: Partial<Options<UpdateDiaryEntryByIdData>>,
-): UseMutationOptions<
-  UpdateDiaryEntryByIdResponse,
-  UpdateDiaryEntryByIdError,
-  Options<UpdateDiaryEntryByIdData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateDiaryEntryByIdResponse,
-    UpdateDiaryEntryByIdError,
-    Options<UpdateDiaryEntryByIdData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await updateDiaryEntryById({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const listEntryRelationsQueryKey = (
-  options: Options<ListEntryRelationsData>,
-) => createQueryKey('listEntryRelations', options);
-
-/**
- * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
- */
-export const listEntryRelationsOptions = (
-  options: Options<ListEntryRelationsData>,
-) =>
-  queryOptions<
-    ListEntryRelationsResponse,
-    ListEntryRelationsError,
-    ListEntryRelationsResponse,
-    ReturnType<typeof listEntryRelationsQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listEntryRelations({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listEntryRelationsQueryKey(options),
-  });
-
-export const listEntryRelationsInfiniteQueryKey = (
-  options: Options<ListEntryRelationsData>,
-): QueryKey<Options<ListEntryRelationsData>> =>
-  createQueryKey('listEntryRelations', options, true);
-
-/**
- * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
- */
-export const listEntryRelationsInfiniteOptions = (
-  options: Options<ListEntryRelationsData>,
-) =>
-  infiniteQueryOptions<
-    ListEntryRelationsResponse,
-    ListEntryRelationsError,
-    InfiniteData<ListEntryRelationsResponse>,
-    QueryKey<Options<ListEntryRelationsData>>,
-    | number
-    | Pick<
-        QueryKey<Options<ListEntryRelationsData>>[0],
-        'body' | 'headers' | 'path' | 'query'
-      >
-  >(
-    // @ts-ignore
-    {
-      queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListEntryRelationsData>>[0],
-          'body' | 'headers' | 'path' | 'query'
-        > =
-          typeof pageParam === 'object'
-            ? pageParam
-            : {
-                query: {
-                  offset: pageParam,
-                },
-              };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await listEntryRelations({
-          ...options,
-          ...params,
-          signal,
-          throwOnError: true,
-        });
-        return data;
-      },
-      queryKey: listEntryRelationsInfiniteQueryKey(options),
-    },
-  );
-
-/**
- * Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.
- */
-export const createEntryRelationMutation = (
-  options?: Partial<Options<CreateEntryRelationData>>,
-): UseMutationOptions<
-  CreateEntryRelationResponse,
-  CreateEntryRelationError,
-  Options<CreateEntryRelationData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CreateEntryRelationResponse,
-    CreateEntryRelationError,
-    Options<CreateEntryRelationData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await createEntryRelation({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const verifyDiaryEntryByIdQueryKey = (
-  options: Options<VerifyDiaryEntryByIdData>,
-) => createQueryKey('verifyDiaryEntryById', options);
-
-/**
- * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
- */
-export const verifyDiaryEntryByIdOptions = (
-  options: Options<VerifyDiaryEntryByIdData>,
-) =>
-  queryOptions<
-    VerifyDiaryEntryByIdResponse,
-    VerifyDiaryEntryByIdError,
-    VerifyDiaryEntryByIdResponse,
-    ReturnType<typeof verifyDiaryEntryByIdQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await verifyDiaryEntryById({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: verifyDiaryEntryByIdQueryKey(options),
-  });
-
-/**
- * Delete a group. Requires manage_members permission.
- */
-export const deleteGroupMutation = (
-  options?: Partial<Options<DeleteGroupData>>,
-): UseMutationOptions<
-  DeleteGroupResponse,
-  DeleteGroupError,
-  Options<DeleteGroupData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    DeleteGroupResponse,
-    DeleteGroupError,
-    Options<DeleteGroupData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await deleteGroup({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getGroupQueryKey = (options: Options<GetGroupData>) =>
-  createQueryKey('getGroup', options);
-
-/**
- * Get group details. Requires team access.
- */
-export const getGroupOptions = (options: Options<GetGroupData>) =>
-  queryOptions<
-    GetGroupResponse,
-    GetGroupError,
-    GetGroupResponse,
-    ReturnType<typeof getGroupQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getGroup({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getGroupQueryKey(options),
-  });
-
-export const listGroupMembersQueryKey = (
-  options: Options<ListGroupMembersData>,
-) => createQueryKey('listGroupMembers', options);
-
-/**
- * List group members. Requires team access.
- */
-export const listGroupMembersOptions = (
-  options: Options<ListGroupMembersData>,
-) =>
-  queryOptions<
-    ListGroupMembersResponse,
-    ListGroupMembersError,
-    ListGroupMembersResponse,
-    ReturnType<typeof listGroupMembersQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listGroupMembers({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listGroupMembersQueryKey(options),
-  });
-
-/**
- * Add a member to a group. Requires manage_members permission.
- */
-export const addGroupMemberMutation = (
-  options?: Partial<Options<AddGroupMemberData>>,
-): UseMutationOptions<
-  AddGroupMemberResponse,
-  AddGroupMemberError,
-  Options<AddGroupMemberData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    AddGroupMemberResponse,
-    AddGroupMemberError,
-    Options<AddGroupMemberData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await addGroupMember({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Remove a member from a group. Requires manage_members permission.
- */
-export const removeGroupMemberMutation = (
-  options?: Partial<Options<RemoveGroupMemberData>>,
-): UseMutationOptions<
-  RemoveGroupMemberResponse,
-  RemoveGroupMemberError,
-  Options<RemoveGroupMemberData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RemoveGroupMemberResponse,
-    RemoveGroupMemberError,
-    Options<RemoveGroupMemberData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await removeGroupMember({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getHealthQueryKey = (options?: Options<GetHealthData>) =>
-  createQueryKey('getHealth', options);
-
-/**
- * Shallow liveness probe.
- */
-export const getHealthOptions = (options?: Options<GetHealthData>) =>
-  queryOptions<
-    GetHealthResponse,
-    DefaultError,
-    GetHealthResponse,
-    ReturnType<typeof getHealthQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getHealth({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getHealthQueryKey(options),
-  });
-
-export const getReadinessQueryKey = (options?: Options<GetReadinessData>) =>
-  createQueryKey('getReadiness', options);
-
-/**
- * Deep readiness probe. Checks database and Ory connectivity.
- */
-export const getReadinessOptions = (options?: Options<GetReadinessData>) =>
-  queryOptions<
-    GetReadinessResponse,
-    GetReadinessError,
-    GetReadinessResponse,
-    ReturnType<typeof getReadinessQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getReadiness({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getReadinessQueryKey(options),
-  });
-
-export const getLlmsTxtQueryKey = (options?: Options<GetLlmsTxtData>) =>
-  createQueryKey('getLlmsTxt', options);
-
-/**
- * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
- */
-export const getLlmsTxtOptions = (options?: Options<GetLlmsTxtData>) =>
-  queryOptions<
-    GetLlmsTxtResponse,
-    DefaultError,
-    GetLlmsTxtResponse,
-    ReturnType<typeof getLlmsTxtQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getLlmsTxt({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getLlmsTxtQueryKey(options),
-  });
-
-/**
- * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
- */
-export const getOAuth2TokenMutation = (
-  options?: Partial<Options<GetOAuth2TokenData>>,
-): UseMutationOptions<
-  GetOAuth2TokenResponse,
-  GetOAuth2TokenError,
-  Options<GetOAuth2TokenData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    GetOAuth2TokenResponse,
-    GetOAuth2TokenError,
-    Options<GetOAuth2TokenData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await getOAuth2Token({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const listContextPacksQueryKey = (
-  options?: Options<ListContextPacksData>,
-) => createQueryKey('listContextPacks', options);
-
-/**
- * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
- */
-export const listContextPacksOptions = (
-  options?: Options<ListContextPacksData>,
-) =>
-  queryOptions<
-    ListContextPacksResponse,
-    ListContextPacksError,
-    ListContextPacksResponse,
-    ReturnType<typeof listContextPacksQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listContextPacks({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listContextPacksQueryKey(options),
-  });
-
-export const listContextPacksInfiniteQueryKey = (
-  options?: Options<ListContextPacksData>,
-): QueryKey<Options<ListContextPacksData>> =>
-  createQueryKey('listContextPacks', options, true);
-
-/**
- * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
- */
-export const listContextPacksInfiniteOptions = (
-  options?: Options<ListContextPacksData>,
-) =>
-  infiniteQueryOptions<
-    ListContextPacksResponse,
-    ListContextPacksError,
-    InfiniteData<ListContextPacksResponse>,
-    QueryKey<Options<ListContextPacksData>>,
-    | number
-    | Pick<
-        QueryKey<Options<ListContextPacksData>>[0],
-        'body' | 'headers' | 'path' | 'query'
-      >
-  >(
-    // @ts-ignore
-    {
-      queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListContextPacksData>>[0],
-          'body' | 'headers' | 'path' | 'query'
-        > =
-          typeof pageParam === 'object'
-            ? pageParam
-            : {
-                query: {
-                  offset: pageParam,
-                },
-              };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await listContextPacks({
-          ...options,
-          ...params,
-          signal,
-          throwOnError: true,
-        });
-        return data;
-      },
-      queryKey: listContextPacksInfiniteQueryKey(options),
-    },
-  );
-
-export const getContextPackProvenanceByCidQueryKey = (
-  options: Options<GetContextPackProvenanceByCidData>,
-) => createQueryKey('getContextPackProvenanceByCid', options);
-
-/**
- * Export the provenance graph for a persisted context pack by CID.
- */
-export const getContextPackProvenanceByCidOptions = (
-  options: Options<GetContextPackProvenanceByCidData>,
-) =>
-  queryOptions<
-    GetContextPackProvenanceByCidResponse,
-    GetContextPackProvenanceByCidError,
-    GetContextPackProvenanceByCidResponse,
-    ReturnType<typeof getContextPackProvenanceByCidQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getContextPackProvenanceByCid({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getContextPackProvenanceByCidQueryKey(options),
-  });
-
-export const getContextPackByIdQueryKey = (
-  options: Options<GetContextPackByIdData>,
-) => createQueryKey('getContextPackById', options);
-
-/**
- * Get a persisted context pack by ID. Use `expand=entries` to include entry content.
- */
-export const getContextPackByIdOptions = (
-  options: Options<GetContextPackByIdData>,
-) =>
-  queryOptions<
-    GetContextPackByIdResponse,
-    GetContextPackByIdError,
-    GetContextPackByIdResponse,
-    ReturnType<typeof getContextPackByIdQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getContextPackById({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getContextPackByIdQueryKey(options),
-  });
-
-/**
- * Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
- */
-export const updateContextPackMutation = (
-  options?: Partial<Options<UpdateContextPackData>>,
-): UseMutationOptions<
-  UpdateContextPackResponse,
-  UpdateContextPackError,
-  Options<UpdateContextPackData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateContextPackResponse,
-    UpdateContextPackError,
-    Options<UpdateContextPackData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await updateContextPack({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getContextPackProvenanceByIdQueryKey = (
-  options: Options<GetContextPackProvenanceByIdData>,
-) => createQueryKey('getContextPackProvenanceById', options);
-
-/**
- * Export the provenance graph for a persisted context pack by ID.
- */
-export const getContextPackProvenanceByIdOptions = (
-  options: Options<GetContextPackProvenanceByIdData>,
-) =>
-  queryOptions<
-    GetContextPackProvenanceByIdResponse,
-    GetContextPackProvenanceByIdError,
-    GetContextPackProvenanceByIdResponse,
-    ReturnType<typeof getContextPackProvenanceByIdQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getContextPackProvenanceById({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getContextPackProvenanceByIdQueryKey(options),
-  });
-
-/**
- * Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
- */
-export const renderContextPackMutation = (
-  options?: Partial<Options<RenderContextPackData>>,
-): UseMutationOptions<
-  RenderContextPackResponse,
-  RenderContextPackError,
-  Options<RenderContextPackData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RenderContextPackResponse,
-    RenderContextPackError,
-    Options<RenderContextPackData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await renderContextPack({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Preview a rendered pack from a source pack without persisting it.
- */
-export const previewRenderedPackMutation = (
-  options?: Partial<Options<PreviewRenderedPackData>>,
-): UseMutationOptions<
-  PreviewRenderedPackResponse,
-  PreviewRenderedPackError,
-  Options<PreviewRenderedPackData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    PreviewRenderedPackResponse,
-    PreviewRenderedPackError,
-    Options<PreviewRenderedPackData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await previewRenderedPack({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getLatestRenderedPackQueryKey = (
-  options: Options<GetLatestRenderedPackData>,
-) => createQueryKey('getLatestRenderedPack', options);
-
-/**
- * Get the latest rendered pack for a source context pack.
- */
-export const getLatestRenderedPackOptions = (
-  options: Options<GetLatestRenderedPackData>,
-) =>
-  queryOptions<
-    GetLatestRenderedPackResponse,
-    GetLatestRenderedPackError,
-    GetLatestRenderedPackResponse,
-    ReturnType<typeof getLatestRenderedPackQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getLatestRenderedPack({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getLatestRenderedPackQueryKey(options),
-  });
-
-export const listProblemTypesQueryKey = (
-  options?: Options<ListProblemTypesData>,
-) => createQueryKey('listProblemTypes', options);
-
-/**
- * List all problem types used in API error responses (RFC 9457).
- */
-export const listProblemTypesOptions = (
-  options?: Options<ListProblemTypesData>,
-) =>
-  queryOptions<
-    ListProblemTypesResponse,
-    DefaultError,
-    ListProblemTypesResponse,
-    ReturnType<typeof listProblemTypesQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listProblemTypes({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listProblemTypesQueryKey(options),
-  });
-
-export const getProblemTypeQueryKey = (options: Options<GetProblemTypeData>) =>
-  createQueryKey('getProblemType', options);
-
-/**
- * Get details about a specific problem type (RFC 9457).
- */
-export const getProblemTypeOptions = (options: Options<GetProblemTypeData>) =>
-  queryOptions<
-    unknown,
-    DefaultError,
-    unknown,
-    ReturnType<typeof getProblemTypeQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getProblemType({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getProblemTypeQueryKey(options),
-  });
-
-export const getPublicEntryQueryKey = (options: Options<GetPublicEntryData>) =>
-  createQueryKey('getPublicEntry', options);
-
-/**
- * Get a single public diary entry by ID with author info. No authentication required.
- */
-export const getPublicEntryOptions = (options: Options<GetPublicEntryData>) =>
-  queryOptions<
-    GetPublicEntryResponse,
-    GetPublicEntryError,
-    GetPublicEntryResponse,
-    ReturnType<typeof getPublicEntryQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getPublicEntry({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getPublicEntryQueryKey(options),
-  });
-
-export const getPublicFeedQueryKey = (options?: Options<GetPublicFeedData>) =>
-  createQueryKey('getPublicFeed', options);
-
-/**
- * Paginated feed of public diary entries, newest first. No authentication required.
- */
-export const getPublicFeedOptions = (options?: Options<GetPublicFeedData>) =>
-  queryOptions<
-    GetPublicFeedResponse,
-    GetPublicFeedError,
-    GetPublicFeedResponse,
-    ReturnType<typeof getPublicFeedQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getPublicFeed({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getPublicFeedQueryKey(options),
-  });
-
-export const getPublicFeedInfiniteQueryKey = (
-  options?: Options<GetPublicFeedData>,
-): QueryKey<Options<GetPublicFeedData>> =>
-  createQueryKey('getPublicFeed', options, true);
-
-/**
- * Paginated feed of public diary entries, newest first. No authentication required.
- */
-export const getPublicFeedInfiniteOptions = (
-  options?: Options<GetPublicFeedData>,
-) =>
-  infiniteQueryOptions<
-    GetPublicFeedResponse,
-    GetPublicFeedError,
-    InfiniteData<GetPublicFeedResponse>,
-    QueryKey<Options<GetPublicFeedData>>,
-    | string
-    | Pick<
-        QueryKey<Options<GetPublicFeedData>>[0],
-        'body' | 'headers' | 'path' | 'query'
-      >
-  >(
-    // @ts-ignore
-    {
-      queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<GetPublicFeedData>>[0],
-          'body' | 'headers' | 'path' | 'query'
-        > =
-          typeof pageParam === 'object'
-            ? pageParam
-            : {
-                query: {
-                  cursor: pageParam,
-                },
-              };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await getPublicFeed({
-          ...options,
-          ...params,
-          signal,
-          throwOnError: true,
-        });
-        return data;
-      },
-      queryKey: getPublicFeedInfiniteQueryKey(options),
-    },
-  );
-
-export const searchPublicFeedQueryKey = (
-  options: Options<SearchPublicFeedData>,
-) => createQueryKey('searchPublicFeed', options);
-
-/**
- * Semantic + full-text search across public diary entries. No authentication required.
- */
-export const searchPublicFeedOptions = (
-  options: Options<SearchPublicFeedData>,
-) =>
-  queryOptions<
-    SearchPublicFeedResponse,
-    SearchPublicFeedError,
-    SearchPublicFeedResponse,
-    ReturnType<typeof searchPublicFeedQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await searchPublicFeed({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: searchPublicFeedQueryKey(options),
-  });
-
-/**
- * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
- */
-export const startLegreffierOnboardingMutation = (
-  options?: Partial<Options<StartLegreffierOnboardingData>>,
-): UseMutationOptions<
-  StartLegreffierOnboardingResponse,
-  StartLegreffierOnboardingError,
-  Options<StartLegreffierOnboardingData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    StartLegreffierOnboardingResponse,
-    StartLegreffierOnboardingError,
-    Options<StartLegreffierOnboardingData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await startLegreffierOnboarding({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getLegreffierOnboardingStatusQueryKey = (
-  options: Options<GetLegreffierOnboardingStatusData>,
-) => createQueryKey('getLegreffierOnboardingStatus', options);
-
-/**
- * Poll LeGreffier onboarding status. No authentication required.
- */
-export const getLegreffierOnboardingStatusOptions = (
-  options: Options<GetLegreffierOnboardingStatusData>,
-) =>
-  queryOptions<
-    GetLegreffierOnboardingStatusResponse,
-    GetLegreffierOnboardingStatusError,
-    GetLegreffierOnboardingStatusResponse,
-    ReturnType<typeof getLegreffierOnboardingStatusQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getLegreffierOnboardingStatus({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getLegreffierOnboardingStatusQueryKey(options),
-  });
-
-/**
- * Generate a recovery challenge for an agent to sign with their Ed25519 private key.
- */
-export const requestRecoveryChallengeMutation = (
-  options?: Partial<Options<RequestRecoveryChallengeData>>,
-): UseMutationOptions<
-  RequestRecoveryChallengeResponse,
-  RequestRecoveryChallengeError,
-  Options<RequestRecoveryChallengeData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RequestRecoveryChallengeResponse,
-    RequestRecoveryChallengeError,
-    Options<RequestRecoveryChallengeData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await requestRecoveryChallenge({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Verify a signed recovery challenge and return a Kratos recovery code.
- */
-export const verifyRecoveryChallengeMutation = (
-  options?: Partial<Options<VerifyRecoveryChallengeData>>,
-): UseMutationOptions<
-  VerifyRecoveryChallengeResponse,
-  VerifyRecoveryChallengeError,
-  Options<VerifyRecoveryChallengeData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    VerifyRecoveryChallengeResponse,
-    VerifyRecoveryChallengeError,
-    Options<VerifyRecoveryChallengeData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await verifyRecoveryChallenge({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Delete an entry relation.
- */
-export const deleteEntryRelationMutation = (
-  options?: Partial<Options<DeleteEntryRelationData>>,
-): UseMutationOptions<
-  DeleteEntryRelationResponse,
-  DeleteEntryRelationError,
-  Options<DeleteEntryRelationData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    DeleteEntryRelationResponse,
-    DeleteEntryRelationError,
-    Options<DeleteEntryRelationData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await deleteEntryRelation({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Update the status of an entry relation.
- */
-export const updateEntryRelationStatusMutation = (
-  options?: Partial<Options<UpdateEntryRelationStatusData>>,
-): UseMutationOptions<
-  UpdateEntryRelationStatusResponse,
-  UpdateEntryRelationStatusError,
-  Options<UpdateEntryRelationStatusData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateEntryRelationStatusResponse,
-    UpdateEntryRelationStatusError,
-    Options<UpdateEntryRelationStatusData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await updateEntryRelationStatus({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
 
 export const getRenderedPackByIdQueryKey = (
   options: Options<GetRenderedPackByIdData>,
@@ -2698,6 +1800,566 @@ export const submitVerificationMutation = (
   return mutationOptions;
 };
 
+export const listEntryRelationsQueryKey = (
+  options: Options<ListEntryRelationsData>,
+) => createQueryKey('listEntryRelations', options);
+
+/**
+ * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
+ */
+export const listEntryRelationsOptions = (
+  options: Options<ListEntryRelationsData>,
+) =>
+  queryOptions<
+    ListEntryRelationsResponse,
+    ListEntryRelationsError,
+    ListEntryRelationsResponse,
+    ReturnType<typeof listEntryRelationsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listEntryRelations({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listEntryRelationsQueryKey(options),
+  });
+
+export const listEntryRelationsInfiniteQueryKey = (
+  options: Options<ListEntryRelationsData>,
+): QueryKey<Options<ListEntryRelationsData>> =>
+  createQueryKey('listEntryRelations', options, true);
+
+/**
+ * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
+ */
+export const listEntryRelationsInfiniteOptions = (
+  options: Options<ListEntryRelationsData>,
+) =>
+  infiniteQueryOptions<
+    ListEntryRelationsResponse,
+    ListEntryRelationsError,
+    InfiniteData<ListEntryRelationsResponse>,
+    QueryKey<Options<ListEntryRelationsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<ListEntryRelationsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListEntryRelationsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listEntryRelations({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listEntryRelationsInfiniteQueryKey(options),
+    },
+  );
+
+/**
+ * Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.
+ */
+export const createEntryRelationMutation = (
+  options?: Partial<Options<CreateEntryRelationData>>,
+): UseMutationOptions<
+  CreateEntryRelationResponse,
+  CreateEntryRelationError,
+  Options<CreateEntryRelationData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateEntryRelationResponse,
+    CreateEntryRelationError,
+    Options<CreateEntryRelationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createEntryRelation({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete an entry relation.
+ */
+export const deleteEntryRelationMutation = (
+  options?: Partial<Options<DeleteEntryRelationData>>,
+): UseMutationOptions<
+  DeleteEntryRelationResponse,
+  DeleteEntryRelationError,
+  Options<DeleteEntryRelationData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteEntryRelationResponse,
+    DeleteEntryRelationError,
+    Options<DeleteEntryRelationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteEntryRelation({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Update the status of an entry relation.
+ */
+export const updateEntryRelationStatusMutation = (
+  options?: Partial<Options<UpdateEntryRelationStatusData>>,
+): UseMutationOptions<
+  UpdateEntryRelationStatusResponse,
+  UpdateEntryRelationStatusError,
+  Options<UpdateEntryRelationStatusData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateEntryRelationStatusResponse,
+    UpdateEntryRelationStatusError,
+    Options<UpdateEntryRelationStatusData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateEntryRelationStatus({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getAgentProfileQueryKey = (
+  options: Options<GetAgentProfileData>,
+) => createQueryKey('getAgentProfile', options);
+
+/**
+ * Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
+ */
+export const getAgentProfileOptions = (options: Options<GetAgentProfileData>) =>
+  queryOptions<
+    GetAgentProfileResponse,
+    GetAgentProfileError,
+    GetAgentProfileResponse,
+    ReturnType<typeof getAgentProfileQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getAgentProfile({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getAgentProfileQueryKey(options),
+  });
+
+/**
+ * Verify a signature belongs to the specified agent.
+ */
+export const verifyAgentSignatureMutation = (
+  options?: Partial<Options<VerifyAgentSignatureData>>,
+): UseMutationOptions<
+  VerifyAgentSignatureResponse,
+  VerifyAgentSignatureError,
+  Options<VerifyAgentSignatureData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    VerifyAgentSignatureResponse,
+    VerifyAgentSignatureError,
+    Options<VerifyAgentSignatureData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await verifyAgentSignature({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getWhoamiQueryKey = (options?: Options<GetWhoamiData>) =>
+  createQueryKey('getWhoami', options);
+
+/**
+ * Get the authenticated agent identity (requires bearer token).
+ */
+export const getWhoamiOptions = (options?: Options<GetWhoamiData>) =>
+  queryOptions<
+    GetWhoamiResponse,
+    GetWhoamiError,
+    GetWhoamiResponse,
+    ReturnType<typeof getWhoamiQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getWhoami({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getWhoamiQueryKey(options),
+  });
+
+/**
+ * Verify an Ed25519 signature by looking up the signing request.
+ */
+export const verifyCryptoSignatureMutation = (
+  options?: Partial<Options<VerifyCryptoSignatureData>>,
+): UseMutationOptions<
+  VerifyCryptoSignatureResponse,
+  VerifyCryptoSignatureError,
+  Options<VerifyCryptoSignatureData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    VerifyCryptoSignatureResponse,
+    VerifyCryptoSignatureError,
+    Options<VerifyCryptoSignatureData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await verifyCryptoSignature({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getCryptoIdentityQueryKey = (
+  options?: Options<GetCryptoIdentityData>,
+) => createQueryKey('getCryptoIdentity', options);
+
+/**
+ * Get the authenticated agent's cryptographic identity (keys, fingerprint).
+ */
+export const getCryptoIdentityOptions = (
+  options?: Options<GetCryptoIdentityData>,
+) =>
+  queryOptions<
+    GetCryptoIdentityResponse,
+    GetCryptoIdentityError,
+    GetCryptoIdentityResponse,
+    ReturnType<typeof getCryptoIdentityQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getCryptoIdentity({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getCryptoIdentityQueryKey(options),
+  });
+
+export const listSigningRequestsQueryKey = (
+  options?: Options<ListSigningRequestsData>,
+) => createQueryKey('listSigningRequests', options);
+
+/**
+ * List signing requests for the authenticated agent.
+ */
+export const listSigningRequestsOptions = (
+  options?: Options<ListSigningRequestsData>,
+) =>
+  queryOptions<
+    ListSigningRequestsResponse,
+    ListSigningRequestsError,
+    ListSigningRequestsResponse,
+    ReturnType<typeof listSigningRequestsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listSigningRequests({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listSigningRequestsQueryKey(options),
+  });
+
+export const listSigningRequestsInfiniteQueryKey = (
+  options?: Options<ListSigningRequestsData>,
+): QueryKey<Options<ListSigningRequestsData>> =>
+  createQueryKey('listSigningRequests', options, true);
+
+/**
+ * List signing requests for the authenticated agent.
+ */
+export const listSigningRequestsInfiniteOptions = (
+  options?: Options<ListSigningRequestsData>,
+) =>
+  infiniteQueryOptions<
+    ListSigningRequestsResponse,
+    ListSigningRequestsError,
+    InfiniteData<ListSigningRequestsResponse>,
+    QueryKey<Options<ListSigningRequestsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<ListSigningRequestsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListSigningRequestsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listSigningRequests({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listSigningRequestsInfiniteQueryKey(options),
+    },
+  );
+
+/**
+ * Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
+ */
+export const createSigningRequestMutation = (
+  options?: Partial<Options<CreateSigningRequestData>>,
+): UseMutationOptions<
+  CreateSigningRequestResponse,
+  CreateSigningRequestError,
+  Options<CreateSigningRequestData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateSigningRequestResponse,
+    CreateSigningRequestError,
+    Options<CreateSigningRequestData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createSigningRequest({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getSigningRequestQueryKey = (
+  options: Options<GetSigningRequestData>,
+) => createQueryKey('getSigningRequest', options);
+
+/**
+ * Get a specific signing request by ID.
+ */
+export const getSigningRequestOptions = (
+  options: Options<GetSigningRequestData>,
+) =>
+  queryOptions<
+    GetSigningRequestResponse,
+    GetSigningRequestError,
+    GetSigningRequestResponse,
+    ReturnType<typeof getSigningRequestQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getSigningRequest({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getSigningRequestQueryKey(options),
+  });
+
+/**
+ * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
+ */
+export const submitSignatureMutation = (
+  options?: Partial<Options<SubmitSignatureData>>,
+): UseMutationOptions<
+  SubmitSignatureResponse,
+  SubmitSignatureError,
+  Options<SubmitSignatureData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    SubmitSignatureResponse,
+    SubmitSignatureError,
+    Options<SubmitSignatureData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await submitSignature({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Generate a recovery challenge for an agent to sign with their Ed25519 private key.
+ */
+export const requestRecoveryChallengeMutation = (
+  options?: Partial<Options<RequestRecoveryChallengeData>>,
+): UseMutationOptions<
+  RequestRecoveryChallengeResponse,
+  RequestRecoveryChallengeError,
+  Options<RequestRecoveryChallengeData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RequestRecoveryChallengeResponse,
+    RequestRecoveryChallengeError,
+    Options<RequestRecoveryChallengeData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await requestRecoveryChallenge({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Verify a signed recovery challenge and return a Kratos recovery code.
+ */
+export const verifyRecoveryChallengeMutation = (
+  options?: Partial<Options<VerifyRecoveryChallengeData>>,
+): UseMutationOptions<
+  VerifyRecoveryChallengeResponse,
+  VerifyRecoveryChallengeError,
+  Options<VerifyRecoveryChallengeData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    VerifyRecoveryChallengeResponse,
+    VerifyRecoveryChallengeError,
+    Options<VerifyRecoveryChallengeData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await verifyRecoveryChallenge({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
+ */
+export const registerAgentMutation = (
+  options?: Partial<Options<RegisterAgentData>>,
+): UseMutationOptions<
+  RegisterAgentResponse,
+  RegisterAgentError,
+  Options<RegisterAgentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RegisterAgentResponse,
+    RegisterAgentError,
+    Options<RegisterAgentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await registerAgent({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
+ */
+export const rotateClientSecretMutation = (
+  options?: Partial<Options<RotateClientSecretData>>,
+): UseMutationOptions<
+  RotateClientSecretResponse,
+  RotateClientSecretError,
+  Options<RotateClientSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RotateClientSecretResponse,
+    RotateClientSecretError,
+    Options<RotateClientSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rotateClientSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const listTeamsQueryKey = (options?: Options<ListTeamsData>) =>
   createQueryKey('listTeams', options);
 
@@ -2740,33 +2402,6 @@ export const createTeamMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await createTeam({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Join a team using an invite code.
- */
-export const joinTeamMutation = (
-  options?: Partial<Options<JoinTeamData>>,
-): UseMutationOptions<
-  JoinTeamResponse,
-  JoinTeamError,
-  Options<JoinTeamData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    JoinTeamResponse,
-    JoinTeamError,
-    Options<JoinTeamData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await joinTeam({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -2829,48 +2464,22 @@ export const getTeamOptions = (options: Options<GetTeamData>) =>
     queryKey: getTeamQueryKey(options),
   });
 
-/**
- * Accept a founding role in a team. Only valid while team is in founding status.
- */
-export const acceptTeamFoundingMutation = (
-  options?: Partial<Options<AcceptTeamFoundingData>>,
-): UseMutationOptions<
-  AcceptTeamFoundingResponse,
-  AcceptTeamFoundingError,
-  Options<AcceptTeamFoundingData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    AcceptTeamFoundingResponse,
-    AcceptTeamFoundingError,
-    Options<AcceptTeamFoundingData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await acceptTeamFounding({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const listGroupsQueryKey = (options: Options<ListGroupsData>) =>
-  createQueryKey('listGroups', options);
+export const listTeamMembersQueryKey = (
+  options: Options<ListTeamMembersData>,
+) => createQueryKey('listTeamMembers', options);
 
 /**
- * List groups within a team. Requires team access.
+ * List team members. Requires team access.
  */
-export const listGroupsOptions = (options: Options<ListGroupsData>) =>
+export const listTeamMembersOptions = (options: Options<ListTeamMembersData>) =>
   queryOptions<
-    ListGroupsResponse,
-    ListGroupsError,
-    ListGroupsResponse,
-    ReturnType<typeof listGroupsQueryKey>
+    ListTeamMembersResponse,
+    ListTeamMembersError,
+    ListTeamMembersResponse,
+    ReturnType<typeof listTeamMembersQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listGroups({
+      const { data } = await listTeamMembers({
         ...options,
         ...queryKey[0],
         signal,
@@ -2878,26 +2487,26 @@ export const listGroupsOptions = (options: Options<ListGroupsData>) =>
       });
       return data;
     },
-    queryKey: listGroupsQueryKey(options),
+    queryKey: listTeamMembersQueryKey(options),
   });
 
 /**
- * Create a group within a team. Requires manage_members permission.
+ * Remove a member. Requires manage_members permission.
  */
-export const createGroupMutation = (
-  options?: Partial<Options<CreateGroupData>>,
+export const removeTeamMemberMutation = (
+  options?: Partial<Options<RemoveTeamMemberData>>,
 ): UseMutationOptions<
-  CreateGroupResponse,
-  CreateGroupError,
-  Options<CreateGroupData>
+  RemoveTeamMemberResponse,
+  RemoveTeamMemberError,
+  Options<RemoveTeamMemberData>
 > => {
   const mutationOptions: UseMutationOptions<
-    CreateGroupResponse,
-    CreateGroupError,
-    Options<CreateGroupData>
+    RemoveTeamMemberResponse,
+    RemoveTeamMemberError,
+    Options<RemoveTeamMemberData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await createGroup({
+      const { data } = await removeTeamMember({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -2988,49 +2597,23 @@ export const deleteTeamInviteMutation = (
   return mutationOptions;
 };
 
-export const listTeamMembersQueryKey = (
-  options: Options<ListTeamMembersData>,
-) => createQueryKey('listTeamMembers', options);
-
 /**
- * List team members. Requires team access.
+ * Join a team using an invite code.
  */
-export const listTeamMembersOptions = (options: Options<ListTeamMembersData>) =>
-  queryOptions<
-    ListTeamMembersResponse,
-    ListTeamMembersError,
-    ListTeamMembersResponse,
-    ReturnType<typeof listTeamMembersQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listTeamMembers({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listTeamMembersQueryKey(options),
-  });
-
-/**
- * Remove a member. Requires manage_members permission.
- */
-export const removeTeamMemberMutation = (
-  options?: Partial<Options<RemoveTeamMemberData>>,
+export const joinTeamMutation = (
+  options?: Partial<Options<JoinTeamData>>,
 ): UseMutationOptions<
-  RemoveTeamMemberResponse,
-  RemoveTeamMemberError,
-  Options<RemoveTeamMemberData>
+  JoinTeamResponse,
+  JoinTeamError,
+  Options<JoinTeamData>
 > => {
   const mutationOptions: UseMutationOptions<
-    RemoveTeamMemberResponse,
-    RemoveTeamMemberError,
-    Options<RemoveTeamMemberData>
+    JoinTeamResponse,
+    JoinTeamError,
+    Options<JoinTeamData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await removeTeamMember({
+      const { data } = await joinTeam({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -3041,24 +2624,155 @@ export const removeTeamMemberMutation = (
   return mutationOptions;
 };
 
-export const listPendingTransfersQueryKey = (
-  options?: Options<ListPendingTransfersData>,
-) => createQueryKey('listPendingTransfers', options);
+/**
+ * Accept a founding role in a team. Only valid while team is in founding status.
+ */
+export const acceptTeamFoundingMutation = (
+  options?: Partial<Options<AcceptTeamFoundingData>>,
+): UseMutationOptions<
+  AcceptTeamFoundingResponse,
+  AcceptTeamFoundingError,
+  Options<AcceptTeamFoundingData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AcceptTeamFoundingResponse,
+    AcceptTeamFoundingError,
+    Options<AcceptTeamFoundingData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await acceptTeamFounding({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGroupsQueryKey = (options: Options<ListGroupsData>) =>
+  createQueryKey('listGroups', options);
 
 /**
- * List pending transfers where the caller is destination team owner.
+ * List groups within a team. Requires team access.
  */
-export const listPendingTransfersOptions = (
-  options?: Options<ListPendingTransfersData>,
+export const listGroupsOptions = (options: Options<ListGroupsData>) =>
+  queryOptions<
+    ListGroupsResponse,
+    ListGroupsError,
+    ListGroupsResponse,
+    ReturnType<typeof listGroupsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGroups({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGroupsQueryKey(options),
+  });
+
+/**
+ * Create a group within a team. Requires manage_members permission.
+ */
+export const createGroupMutation = (
+  options?: Partial<Options<CreateGroupData>>,
+): UseMutationOptions<
+  CreateGroupResponse,
+  CreateGroupError,
+  Options<CreateGroupData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateGroupResponse,
+    CreateGroupError,
+    Options<CreateGroupData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createGroup({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete a group. Requires manage_members permission.
+ */
+export const deleteGroupMutation = (
+  options?: Partial<Options<DeleteGroupData>>,
+): UseMutationOptions<
+  DeleteGroupResponse,
+  DeleteGroupError,
+  Options<DeleteGroupData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGroupResponse,
+    DeleteGroupError,
+    Options<DeleteGroupData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGroup({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getGroupQueryKey = (options: Options<GetGroupData>) =>
+  createQueryKey('getGroup', options);
+
+/**
+ * Get group details. Requires team access.
+ */
+export const getGroupOptions = (options: Options<GetGroupData>) =>
+  queryOptions<
+    GetGroupResponse,
+    GetGroupError,
+    GetGroupResponse,
+    ReturnType<typeof getGroupQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getGroup({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getGroupQueryKey(options),
+  });
+
+export const listGroupMembersQueryKey = (
+  options: Options<ListGroupMembersData>,
+) => createQueryKey('listGroupMembers', options);
+
+/**
+ * List group members. Requires team access.
+ */
+export const listGroupMembersOptions = (
+  options: Options<ListGroupMembersData>,
 ) =>
   queryOptions<
-    ListPendingTransfersResponse,
-    ListPendingTransfersError,
-    ListPendingTransfersResponse,
-    ReturnType<typeof listPendingTransfersQueryKey>
+    ListGroupMembersResponse,
+    ListGroupMembersError,
+    ListGroupMembersResponse,
+    ReturnType<typeof listGroupMembersQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listPendingTransfers({
+      const { data } = await listGroupMembers({
         ...options,
         ...queryKey[0],
         signal,
@@ -3066,26 +2780,26 @@ export const listPendingTransfersOptions = (
       });
       return data;
     },
-    queryKey: listPendingTransfersQueryKey(options),
+    queryKey: listGroupMembersQueryKey(options),
   });
 
 /**
- * Accept a pending diary transfer. Caller must be destination team owner.
+ * Add a member to a group. Requires manage_members permission.
  */
-export const acceptTransferMutation = (
-  options?: Partial<Options<AcceptTransferData>>,
+export const addGroupMemberMutation = (
+  options?: Partial<Options<AddGroupMemberData>>,
 ): UseMutationOptions<
-  AcceptTransferResponse,
-  AcceptTransferError,
-  Options<AcceptTransferData>
+  AddGroupMemberResponse,
+  AddGroupMemberError,
+  Options<AddGroupMemberData>
 > => {
   const mutationOptions: UseMutationOptions<
-    AcceptTransferResponse,
-    AcceptTransferError,
-    Options<AcceptTransferData>
+    AddGroupMemberResponse,
+    AddGroupMemberError,
+    Options<AddGroupMemberData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await acceptTransfer({
+      const { data } = await addGroupMember({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -3097,22 +2811,22 @@ export const acceptTransferMutation = (
 };
 
 /**
- * Reject a pending diary transfer.
+ * Remove a member from a group. Requires manage_members permission.
  */
-export const rejectTransferMutation = (
-  options?: Partial<Options<RejectTransferData>>,
+export const removeGroupMemberMutation = (
+  options?: Partial<Options<RemoveGroupMemberData>>,
 ): UseMutationOptions<
-  RejectTransferResponse,
-  RejectTransferError,
-  Options<RejectTransferData>
+  RemoveGroupMemberResponse,
+  RemoveGroupMemberError,
+  Options<RemoveGroupMemberData>
 > => {
   const mutationOptions: UseMutationOptions<
-    RejectTransferResponse,
-    RejectTransferError,
-    Options<RejectTransferData>
+    RemoveGroupMemberResponse,
+    RemoveGroupMemberError,
+    Options<RemoveGroupMemberData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await rejectTransfer({
+      const { data } = await removeGroupMember({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -3252,3 +2966,289 @@ export const getTrustGraphInfiniteOptions = (
       queryKey: getTrustGraphInfiniteQueryKey(options),
     },
   );
+
+export const getNetworkInfoQueryKey = (options?: Options<GetNetworkInfoData>) =>
+  createQueryKey('getNetworkInfo', options);
+
+/**
+ * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
+ */
+export const getNetworkInfoOptions = (options?: Options<GetNetworkInfoData>) =>
+  queryOptions<
+    GetNetworkInfoResponse,
+    DefaultError,
+    GetNetworkInfoResponse,
+    ReturnType<typeof getNetworkInfoQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getNetworkInfo({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getNetworkInfoQueryKey(options),
+  });
+
+export const getLlmsTxtQueryKey = (options?: Options<GetLlmsTxtData>) =>
+  createQueryKey('getLlmsTxt', options);
+
+/**
+ * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
+ */
+export const getLlmsTxtOptions = (options?: Options<GetLlmsTxtData>) =>
+  queryOptions<
+    GetLlmsTxtResponse,
+    DefaultError,
+    GetLlmsTxtResponse,
+    ReturnType<typeof getLlmsTxtQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getLlmsTxt({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getLlmsTxtQueryKey(options),
+  });
+
+export const getPublicFeedQueryKey = (options?: Options<GetPublicFeedData>) =>
+  createQueryKey('getPublicFeed', options);
+
+/**
+ * Paginated feed of public diary entries, newest first. No authentication required.
+ */
+export const getPublicFeedOptions = (options?: Options<GetPublicFeedData>) =>
+  queryOptions<
+    GetPublicFeedResponse,
+    GetPublicFeedError,
+    GetPublicFeedResponse,
+    ReturnType<typeof getPublicFeedQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getPublicFeed({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getPublicFeedQueryKey(options),
+  });
+
+export const getPublicFeedInfiniteQueryKey = (
+  options?: Options<GetPublicFeedData>,
+): QueryKey<Options<GetPublicFeedData>> =>
+  createQueryKey('getPublicFeed', options, true);
+
+/**
+ * Paginated feed of public diary entries, newest first. No authentication required.
+ */
+export const getPublicFeedInfiniteOptions = (
+  options?: Options<GetPublicFeedData>,
+) =>
+  infiniteQueryOptions<
+    GetPublicFeedResponse,
+    GetPublicFeedError,
+    InfiniteData<GetPublicFeedResponse>,
+    QueryKey<Options<GetPublicFeedData>>,
+    | string
+    | Pick<
+        QueryKey<Options<GetPublicFeedData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<GetPublicFeedData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  cursor: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await getPublicFeed({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: getPublicFeedInfiniteQueryKey(options),
+    },
+  );
+
+export const searchPublicFeedQueryKey = (
+  options: Options<SearchPublicFeedData>,
+) => createQueryKey('searchPublicFeed', options);
+
+/**
+ * Semantic + full-text search across public diary entries. No authentication required.
+ */
+export const searchPublicFeedOptions = (
+  options: Options<SearchPublicFeedData>,
+) =>
+  queryOptions<
+    SearchPublicFeedResponse,
+    SearchPublicFeedError,
+    SearchPublicFeedResponse,
+    ReturnType<typeof searchPublicFeedQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await searchPublicFeed({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: searchPublicFeedQueryKey(options),
+  });
+
+export const getPublicEntryQueryKey = (options: Options<GetPublicEntryData>) =>
+  createQueryKey('getPublicEntry', options);
+
+/**
+ * Get a single public diary entry by ID with author info. No authentication required.
+ */
+export const getPublicEntryOptions = (options: Options<GetPublicEntryData>) =>
+  queryOptions<
+    GetPublicEntryResponse,
+    GetPublicEntryError,
+    GetPublicEntryResponse,
+    ReturnType<typeof getPublicEntryQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getPublicEntry({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getPublicEntryQueryKey(options),
+  });
+
+/**
+ * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
+ */
+export const startLegreffierOnboardingMutation = (
+  options?: Partial<Options<StartLegreffierOnboardingData>>,
+): UseMutationOptions<
+  StartLegreffierOnboardingResponse,
+  StartLegreffierOnboardingError,
+  Options<StartLegreffierOnboardingData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    StartLegreffierOnboardingResponse,
+    StartLegreffierOnboardingError,
+    Options<StartLegreffierOnboardingData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await startLegreffierOnboarding({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getLegreffierOnboardingStatusQueryKey = (
+  options: Options<GetLegreffierOnboardingStatusData>,
+) => createQueryKey('getLegreffierOnboardingStatus', options);
+
+/**
+ * Poll LeGreffier onboarding status. No authentication required.
+ */
+export const getLegreffierOnboardingStatusOptions = (
+  options: Options<GetLegreffierOnboardingStatusData>,
+) =>
+  queryOptions<
+    GetLegreffierOnboardingStatusResponse,
+    GetLegreffierOnboardingStatusError,
+    GetLegreffierOnboardingStatusResponse,
+    ReturnType<typeof getLegreffierOnboardingStatusQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getLegreffierOnboardingStatus({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getLegreffierOnboardingStatusQueryKey(options),
+  });
+
+export const listProblemTypesQueryKey = (
+  options?: Options<ListProblemTypesData>,
+) => createQueryKey('listProblemTypes', options);
+
+/**
+ * List all problem types used in API error responses (RFC 9457).
+ */
+export const listProblemTypesOptions = (
+  options?: Options<ListProblemTypesData>,
+) =>
+  queryOptions<
+    ListProblemTypesResponse,
+    DefaultError,
+    ListProblemTypesResponse,
+    ReturnType<typeof listProblemTypesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listProblemTypes({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listProblemTypesQueryKey(options),
+  });
+
+export const getProblemTypeQueryKey = (options: Options<GetProblemTypeData>) =>
+  createQueryKey('getProblemType', options);
+
+/**
+ * Get details about a specific problem type (RFC 9457).
+ */
+export const getProblemTypeOptions = (options: Options<GetProblemTypeData>) =>
+  queryOptions<
+    unknown,
+    DefaultError,
+    unknown,
+    ReturnType<typeof getProblemTypeQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getProblemType({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getProblemTypeQueryKey(options),
+  });
