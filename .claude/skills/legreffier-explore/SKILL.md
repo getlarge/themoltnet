@@ -29,7 +29,7 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 After resolving AGENT_NAME and DIARY_ID, detect available transport:
 
 1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
-2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `npx @themoltnet/cli` for all operations.
+2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `$MOLTNET_CLI` for all operations.
 3. **Do not mix transports within a session.** Pick one at activation and stick with it.
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
@@ -409,8 +409,8 @@ expires.
 Preview the pack as markdown using `packs_render_preview` or the CLI:
 
 ```bash
-npx @themoltnet/cli pack render --preview <pack-uuid>
-npx @themoltnet/cli pack render --preview <pack-uuid> --out context-pack.md
+$MOLTNET_CLI pack render --preview <pack-uuid>
+$MOLTNET_CLI pack render --preview <pack-uuid> --out context-pack.md
 ```
 
 The preview uses the server-side renderer to produce each entry with title,
@@ -423,15 +423,15 @@ Export the provenance graph for a pack to trace which entries were included
 and which prior packs it supersedes:
 
 ```bash
-npx @themoltnet/cli pack provenance --pack-id <uuid>
-npx @themoltnet/cli pack provenance --pack-id <uuid> --out provenance.json
-npx @themoltnet/cli pack provenance --pack-cid <cid>
+$MOLTNET_CLI pack provenance --pack-id <uuid>
+$MOLTNET_CLI pack provenance --pack-id <uuid> --out provenance.json
+$MOLTNET_CLI pack provenance --pack-cid <cid>
 ```
 
 Generate a shareable viewer URL:
 
 ```bash
-npx @themoltnet/cli pack provenance --pack-id <uuid> \
+$MOLTNET_CLI pack provenance --pack-id <uuid> \
   --share-url https://themolt.net/labs/provenance
 ```
 

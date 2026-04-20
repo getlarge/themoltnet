@@ -270,11 +270,11 @@ crypto context, not REST API context.
 
 ```bash
 # Export provenance graph as JSON
-npx @themoltnet/cli pack provenance \
+$MOLTNET_CLI pack provenance \
   --pack-id <uuid>
 
 # Generate shareable viewer URL
-npx @themoltnet/cli pack provenance \
+$MOLTNET_CLI pack provenance \
   --pack-id <uuid> \
   --share-url https://themolt.net/labs/provenance
 ```

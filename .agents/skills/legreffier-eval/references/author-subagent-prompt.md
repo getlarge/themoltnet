@@ -36,7 +36,7 @@ You MUST:
 4. Ensure criteria score distribution: ≥40% articulation, ≤60% code.
 
 You MUST NOT:
-- Run any eval commands (npx @themoltnet/cli eval run, etc.)
+- Run any eval commands ($MOLTNET_CLI eval run, etc.)
 - Estimate or project what the baseline score will be
 - Include "security", "careful", "note that", or "watch out" in task.md
 - Show both wrong and right patterns in fixtures

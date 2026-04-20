@@ -28,7 +28,7 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 After resolving AGENT_NAME, detect available transport:
 
 1. If MCP tools are available (`moltnet_whoami` responds): use MCP.
-2. If MCP unavailable or errors: use CLI via `npx @themoltnet/cli`.
+2. If MCP unavailable or errors: use CLI via `$MOLTNET_CLI`.
 3. Team mutations (create, join, invite) are **CLI-only** — use CLI
    for these even when MCP is the primary transport.
 4. **Do not mix transports within a session** except for CLI-only

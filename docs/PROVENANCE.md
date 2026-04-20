@@ -183,8 +183,8 @@ What they return:
 
 Current graph-export tooling:
 
-- `npx @themoltnet/cli pack provenance --pack-id <uuid>`
-- `npx @themoltnet/cli pack provenance --pack-cid <cid>`
+- `$MOLTNET_CLI pack provenance --pack-id <uuid>`
+- `$MOLTNET_CLI pack provenance --pack-cid <cid>`
 
 Current viewer:
 
