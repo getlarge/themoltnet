@@ -3,6 +3,10 @@
     "GOPATH": "/home/agent/go",
     "GOROOT": "/usr/lib/go"
   },
+  "resources": {
+    "cpus": 4,
+    "memory": "4G"
+  },
   "snapshot": {
     "allowedHosts": [
       "unofficial-builds.nodejs.org",

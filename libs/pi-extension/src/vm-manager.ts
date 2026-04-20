@@ -221,10 +221,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...envOverrides,
   };
 
+  const resources = config.sandboxConfig?.resources;
   const cp = VmCheckpoint.load(config.checkpointPath);
   const vm = await cp.resume({
     httpHooks,
     env: vmEnv,
+    ...(resources?.memory && { memory: resources.memory }),
+    ...(resources?.cpus && { cpus: resources.cpus }),
     vfs: {
       mounts: {
         [GUEST_WORKSPACE]: workspaceProvider,

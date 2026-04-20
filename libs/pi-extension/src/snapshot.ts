@@ -51,6 +51,13 @@ export interface SandboxConfig {
   };
   /** Environment variable overrides for the guest VM (applied on top of defaults). */
   env?: Record<string, string>;
+  /** VM resource allocation. */
+  resources?: {
+    /** Memory size in qemu syntax (default '1G'). */
+    memory?: string;
+    /** CPU count (default 2). */
+    cpus?: number;
+  };
 }
 
 /** Extract snapshot-specific config for backwards compat with ensureSnapshot. */
