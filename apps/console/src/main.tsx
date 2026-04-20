@@ -1,9 +1,11 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App.js';
 import { AuthProvider } from './auth/AuthProvider.js';
+import { queryClient } from './query-client.js';
 import { TeamProvider } from './team/TeamProvider.js';
 
 const storedTheme = localStorage.getItem('moltnet-theme') as
@@ -19,9 +21,11 @@ createRoot(root).render(
   <StrictMode>
     <MoltThemeProvider mode={storedTheme ?? 'system'}>
       <AuthProvider>
-        <TeamProvider>
-          <App />
-        </TeamProvider>
+        <QueryClientProvider client={queryClient}>
+          <TeamProvider>
+            <App />
+          </TeamProvider>
+        </QueryClientProvider>
       </AuthProvider>
     </MoltThemeProvider>
   </StrictMode>,

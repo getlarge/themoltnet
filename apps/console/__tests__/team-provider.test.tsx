@@ -1,22 +1,32 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TeamProvider } from '../src/team/TeamProvider.js';
 import { useTeam } from '../src/team/useTeam.js';
+import { createTestWrapper } from './test-query-client.js';
 
 const mockListTeams = vi.fn();
 const mockSetTeamId = vi.fn();
+const mockUseAuth = vi.fn();
 
-vi.mock('@moltnet/api-client', () => ({
-  listTeams: (...args: unknown[]) => mockListTeams(...args),
+vi.mock('@moltnet/api-client/query', () => ({
+  listTeamsOptions: (...args: unknown[]) => ({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const response = await mockListTeams(...args);
+      return response.data;
+    },
+  }),
   createClient: () => ({}),
 }));
 
 vi.mock('../src/api.js', () => ({
   getApiClient: () => ({}),
   setTeamId: (...args: unknown[]) => mockSetTeamId(...args),
+}));
+
+vi.mock('../src/auth/useAuth.js', () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
 vi.mock('../src/config.js', () => ({
@@ -35,14 +45,6 @@ function TeamDisplay() {
       <span data-testid="team-name">{selectedTeam?.name ?? 'none'}</span>
       <span data-testid="team-count">{teams.length}</span>
     </div>
-  );
-}
-
-function Wrapper({ children }: { children: ReactNode }) {
-  return (
-    <MoltThemeProvider mode="dark">
-      <TeamProvider>{children}</TeamProvider>
-    </MoltThemeProvider>
   );
 }
 
@@ -71,6 +73,17 @@ describe('TeamProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockUseAuth.mockReturnValue({
+      session: null,
+      identity: null,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      username: null,
+      email: null,
+    });
   });
 
   it('loads teams and selects the first one', async () => {
@@ -95,7 +108,13 @@ describe('TeamProvider', () => {
       },
     });
 
-    render(<TeamDisplay />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <TeamDisplay />
+      </TeamProvider>,
+      { wrapper },
+    );
     expect(screen.getByTestId('loading')).toBeDefined();
 
     await waitFor(() => {
@@ -127,7 +146,13 @@ describe('TeamProvider', () => {
       },
     });
 
-    render(<TeamDisplay />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <TeamDisplay />
+      </TeamProvider>,
+      { wrapper },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('team-name').textContent).toBe('personal');
     });
@@ -143,7 +168,13 @@ describe('TeamProvider', () => {
       return <span data-testid="current">{selectedTeam?.id ?? 'none'}</span>;
     }
 
-    render(<Capture />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <Capture />
+      </TeamProvider>,
+      { wrapper },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('current').textContent).toBe('team-1');
     });
@@ -169,12 +200,45 @@ describe('TeamProvider', () => {
       return null;
     }
 
-    render(<Capture />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <Capture />
+      </TeamProvider>,
+      { wrapper },
+    );
     await waitFor(() => expect(selectFn).not.toBeNull());
 
     act(() => {
       selectFn?.('team-2');
     });
     expect(localStorage.getItem('moltnet-selected-team')).toBe('team-2');
+  });
+
+  it('does not clear a stored team selection while auth is still loading', () => {
+    localStorage.setItem('moltnet-selected-team', 'team-2');
+    mockUseAuth.mockReturnValue({
+      session: null,
+      identity: null,
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      username: null,
+      email: null,
+    });
+
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <TeamDisplay />
+      </TeamProvider>,
+      { wrapper },
+    );
+
+    expect(localStorage.getItem('moltnet-selected-team')).toBe('team-2');
+    expect(screen.getByTestId('loading')).toBeDefined();
+    expect(mockListTeams).not.toHaveBeenCalled();
   });
 });
