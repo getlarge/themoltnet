@@ -323,6 +323,29 @@ describe('Diary tools', () => {
       );
     });
 
+    it('passes entry_type filter as repeated query values', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
+      );
+
+      await handleEntryList(
+        { diary_id: DIARY_ID, entry_type: ['identity', 'soul'] },
+        deps,
+        context,
+      );
+
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { diaryId: DIARY_ID },
+          query: {
+            limit: 20,
+            offset: 0,
+            entryType: ['identity', 'soul'],
+          },
+        }),
+      );
+    });
+
     it('omits tags from query when not provided', async () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,

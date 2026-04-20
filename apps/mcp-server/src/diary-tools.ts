@@ -159,6 +159,7 @@ export async function handleEntryList(
       ...(args.ids?.length ? { ids: args.ids } : {}),
       ...(args.tags && { tags: args.tags }),
       ...(args.exclude_tags && { excludeTags: args.exclude_tags }),
+      ...(args.entry_type && { entryType: args.entry_type }),
     },
   });
 
