@@ -1,0 +1,70 @@
+{
+  "name": "@themoltnet/pi-extension",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MoltNet pi extension — sandboxed tool execution in Gondolin VMs with MoltNet identity and persistent memory",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "packages/pi-extension"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src/",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+  },
+  "dependencies": {
+    "@earendil-works/gondolin": "0.7.0",
+    "@themoltnet/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": ">=0.67.0",
+    "@mariozechner/pi-ai": ">=0.67.0"
+  },
+  "peerDependenciesMeta": {
+    "@mariozechner/pi-coding-agent": {
+      "optional": false
+    },
+    "@mariozechner/pi-ai": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.67.68",
+    "@mariozechner/pi-ai": "^0.67.68",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

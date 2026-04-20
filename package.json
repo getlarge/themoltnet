@@ -12,6 +12,7 @@
   "scripts": {
     "claude": "npx @themoltnet/cli start claude",
     "codex": "npx @themoltnet/cli start codex",
+    "pi": "npx @themoltnet/cli start pi",
     "build": "pnpm -r run build",
     "build:cli": "go build -o dist/moltnet ./apps/moltnet-cli",
     "go:build": "go build -o dist/moltnet ./apps/moltnet-cli",

@@ -82,6 +82,9 @@
     },
     {
       "path": "packages/legreffier-cli"
+    },
+    {
+      "path": "packages/pi-extension"
     }
   ]
 }
