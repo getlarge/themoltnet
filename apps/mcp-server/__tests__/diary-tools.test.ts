@@ -277,7 +277,7 @@ describe('Diary tools', () => {
       );
     });
 
-    it('passes tags filter as comma-separated query param', async () => {
+    it('passes tags filter as repeated query values', async () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
       );
@@ -294,13 +294,13 @@ describe('Diary tools', () => {
           query: {
             limit: 20,
             offset: 0,
-            tags: 'accountable-commit,high-risk',
+            tags: ['accountable-commit', 'high-risk'],
           },
         }),
       );
     });
 
-    it('passes exclude_tags filter as comma-separated query param', async () => {
+    it('passes exclude_tags filter as repeated query values', async () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
       );
@@ -317,7 +317,7 @@ describe('Diary tools', () => {
           query: {
             limit: 20,
             offset: 0,
-            excludeTags: 'incident,staging',
+            excludeTags: ['incident', 'staging'],
           },
         }),
       );

@@ -88,13 +88,53 @@ describe('Signing requests', () => {
     const { data, error } = await listSigningRequests({
       client,
       auth: () => agent.accessToken,
-      query: { status: 'pending' },
+      query: { status: ['pending'] },
     });
 
     expect(error).toBeUndefined();
     for (const item of data!.items) {
       expect(item.status).toBe('pending');
     }
+  });
+
+  it('filters by multiple repeated status query params', async () => {
+    const { data: pending } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: 'Pending filter seed' },
+    });
+    const { data: completed } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: 'Completed filter seed' },
+    });
+    const signature = await cryptoService.signWithNonce(
+      completed!.message,
+      completed!.nonce,
+      agent.keyPair.privateKey,
+    );
+    await submitSignature({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: completed!.id },
+      body: { signature },
+    });
+
+    const { data, error } = await listSigningRequests({
+      client,
+      auth: () => agent.accessToken,
+      query: { status: ['pending', 'completed'] },
+    });
+
+    expect(error).toBeUndefined();
+    const returned = new Map(data!.items.map((item) => [item.id, item.status]));
+    expect(returned.get(pending!.id)).toBe('pending');
+    expect(returned.get(completed!.id)).toBe('completed');
+    expect(
+      data!.items.every(
+        (item) => item.status === 'pending' || item.status === 'completed',
+      ),
+    ).toBe(true);
   });
 
   // ── Get ─────────────────────────────────────────────────────

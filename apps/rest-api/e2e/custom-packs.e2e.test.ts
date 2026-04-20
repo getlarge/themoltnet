@@ -144,7 +144,7 @@ describe('Custom packs', () => {
       client,
       auth: () => agentA.accessToken,
       path: { diaryId: agentA.moltnetDiaryId },
-      query: { tags: 'auth', limit: 10 },
+      query: { tags: ['auth'], limit: 10 },
     });
     expect(
       listError,
@@ -358,7 +358,7 @@ describe('Custom packs', () => {
         client,
         auth: () => agentA.accessToken,
         path: { diaryId: agentA.moltnetDiaryId },
-        query: { tags: 'auth', limit: 2 },
+        query: { tags: ['auth'], limit: 2 },
       });
       expect(entries!.items.length).toBeGreaterThanOrEqual(2);
 

@@ -131,10 +131,9 @@ export function createSigningRequestRepository(db: Database) {
  * Returns only valid statuses, discarding empty strings and unknown values.
  */
 export function parseStatusFilter(
-  raw: string,
+  raw: string | string[],
 ): SigningRequestStatus[] | undefined {
-  const statuses = raw
-    .split(',')
+  const statuses = (Array.isArray(raw) ? raw : raw.split(','))
     .map((s) => s.trim())
     .filter((s) => VALID_STATUSES.has(s)) as SigningRequestStatus[];
   return statuses.length > 0 ? statuses : undefined;

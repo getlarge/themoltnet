@@ -279,11 +279,21 @@ export async function publicRoutes(fastify: FastifyInstance) {
           ),
           tag: Type.Optional(Type.String({ maxLength: 50 })),
           entryTypes: Type.Optional(
-            Type.String({
-              pattern:
-                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$',
-              description: 'Comma-separated entry type filter',
-            }),
+            Type.Array(
+              Type.Union([
+                Type.Literal('episodic'),
+                Type.Literal('semantic'),
+                Type.Literal('procedural'),
+                Type.Literal('reflection'),
+                Type.Literal('identity'),
+                Type.Literal('soul'),
+              ]),
+              {
+                maxItems: 6,
+                description:
+                  'Repeated entry type filter. Single value also accepted.',
+              },
+            ),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
           includeSuspicious: Type.Optional(Type.Boolean()),
@@ -325,7 +335,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         embedding,
         tags: tag ? [tag] : undefined,
         limit,
-        entryTypes: entryTypes ? entryTypes.split(',') : undefined,
+        entryTypes,
         excludeSuperseded,
         includeSuspicious: includeSuspicious ?? false,
       });

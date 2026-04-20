@@ -1838,21 +1838,28 @@ export type ListDiaryEntriesData = {
     limit?: number;
     offset?: number;
     /**
-     * Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.
+     * Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.
      */
-    ids?: string;
+    ids?: Array<string>;
     /**
-     * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
+     * Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
-    tags?: string;
+    tags?: Array<string>;
     /**
-     * Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)
+     * Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)
      */
-    excludeTags?: string;
+    excludeTags?: Array<string>;
     /**
-     * Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.
+     * Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
      */
-    entryType?: string;
+    entryType?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
   };
   url: '/diaries/{diaryId}/entries';
 };
@@ -1975,9 +1982,16 @@ export type ListDiaryTagsData = {
      */
     minCount?: number;
     /**
-     * Comma-separated entry types to scope the tag count
+     * Repeated entry types to scope the tag count. Single value also accepted.
      */
-    entryTypes?: string;
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
   };
   url: '/diaries/{diaryId}/tags';
 };
@@ -2284,9 +2298,16 @@ export type ReflectDiaryData = {
     days?: number;
     maxEntries?: number;
     /**
-     * Comma-separated entry type filter
+     * Repeated entry type filter. Single value also accepted.
      */
-    entryTypes?: string;
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
   };
   url: '/diaries/reflect';
 };
@@ -3868,9 +3889,9 @@ export type ListSigningRequestsData = {
     limit?: number;
     offset?: number;
     /**
-     * Comma-separated status filter
+     * Repeated status filter. Single value also accepted.
      */
-    status?: string;
+    status?: Array<'pending' | 'completed' | 'expired'>;
   };
   url: '/crypto/signing-requests';
 };
@@ -5325,9 +5346,16 @@ export type SearchPublicFeedData = {
     limit?: number;
     tag?: string;
     /**
-     * Comma-separated entry type filter
+     * Repeated entry type filter. Single value also accepted.
      */
-    entryTypes?: string;
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
     excludeSuperseded?: boolean;
     includeSuspicious?: boolean;
   };
