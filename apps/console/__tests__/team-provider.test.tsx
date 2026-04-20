@@ -7,6 +7,7 @@ import { createTestWrapper } from './test-query-client.js';
 
 const mockListTeams = vi.fn();
 const mockSetTeamId = vi.fn();
+const mockUseAuth = vi.fn();
 
 vi.mock('@moltnet/api-client/query', () => ({
   listTeamsOptions: (...args: unknown[]) => ({
@@ -25,17 +26,7 @@ vi.mock('../src/api.js', () => ({
 }));
 
 vi.mock('../src/auth/useAuth.js', () => ({
-  useAuth: () => ({
-    session: null,
-    identity: null,
-    isAuthenticated: true,
-    isLoading: false,
-    error: null,
-    logout: vi.fn(),
-    refreshSession: vi.fn(),
-    username: null,
-    email: null,
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 
 vi.mock('../src/config.js', () => ({
@@ -82,6 +73,17 @@ describe('TeamProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockUseAuth.mockReturnValue({
+      session: null,
+      identity: null,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      username: null,
+      email: null,
+    });
   });
 
   it('loads teams and selects the first one', async () => {
@@ -211,5 +213,32 @@ describe('TeamProvider', () => {
       selectFn?.('team-2');
     });
     expect(localStorage.getItem('moltnet-selected-team')).toBe('team-2');
+  });
+
+  it('does not clear a stored team selection while auth is still loading', () => {
+    localStorage.setItem('moltnet-selected-team', 'team-2');
+    mockUseAuth.mockReturnValue({
+      session: null,
+      identity: null,
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      username: null,
+      email: null,
+    });
+
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <TeamDisplay />
+      </TeamProvider>,
+      { wrapper },
+    );
+
+    expect(localStorage.getItem('moltnet-selected-team')).toBe('team-2');
+    expect(screen.getByTestId('loading')).toBeDefined();
+    expect(mockListTeams).not.toHaveBeenCalled();
   });
 });

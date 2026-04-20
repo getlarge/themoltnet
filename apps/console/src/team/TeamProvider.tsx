@@ -39,6 +39,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(() =>
     localStorage.getItem(STORAGE_KEY),
   );
+  const teamsQueryEnabled = !isAuthLoading && isAuthenticated;
 
   const {
     data: teamsResponse,
@@ -49,12 +50,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     ...listTeamsOptions({
       client: getApiClient(),
     }),
-    enabled: !isAuthLoading && isAuthenticated,
+    enabled: teamsQueryEnabled,
   });
   const teams = useMemo(() => teamsResponse?.items ?? [], [teamsResponse]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (!teamsQueryEnabled || isLoading) return;
 
     const stored = localStorage.getItem(STORAGE_KEY);
     const valid = teams.find((t) => t.id === stored);
@@ -76,7 +77,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
     setSelectedTeamId(null);
     localStorage.removeItem(STORAGE_KEY);
-  }, [isLoading, teams]);
+  }, [isLoading, teams, teamsQueryEnabled]);
 
   const selectTeam = useCallback((teamId: string) => {
     // Set the API client header synchronously BEFORE triggering the
@@ -106,7 +107,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     teams,
     selectedTeam,
     selectTeam,
-    isLoading,
+    isLoading: isAuthLoading || isLoading,
     error: error ? new Error('Failed to load teams', { cause: error }) : null,
     refreshTeams: async () => {
       await refetch();
