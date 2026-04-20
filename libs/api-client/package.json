@@ -11,13 +11,17 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
+    "./query": {
+      "import": "./src/query.ts",
+      "types": "./src/query.ts"
+    },
     "./retry": {
       "import": "./src/retry-fetch.ts",
       "types": "./src/retry-fetch.ts"
     }
   },
-  "dependencies": {
-    "@tanstack/react-query": "catalog:"
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0"
   },
   "scripts": {
     "generate": "openapi-ts",
@@ -28,6 +32,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "catalog:",
+    "@tanstack/react-query": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

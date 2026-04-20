@@ -1,4 +1,4 @@
-import { listTeamsOptions } from '@moltnet/api-client';
+import { listTeamsOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
   createContext,
@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import { getApiClient, setTeamId } from '../api.js';
+import { useAuth } from '../auth/useAuth.js';
 
 export interface TeamItem {
   id: string;
@@ -34,6 +35,7 @@ export const TeamContext = createContext<TeamContextValue | null>(null);
 const STORAGE_KEY = 'moltnet-selected-team';
 
 export function TeamProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(() =>
     localStorage.getItem(STORAGE_KEY),
   );
@@ -47,7 +49,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     ...listTeamsOptions({
       client: getApiClient(),
     }),
-    staleTime: 30_000,
+    enabled: !isAuthLoading && isAuthenticated,
   });
   const teams = useMemo(() => teamsResponse?.items ?? [], [teamsResponse]);
 
@@ -105,7 +107,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     selectedTeam,
     selectTeam,
     isLoading,
-    error: error ? new Error('Failed to load teams') : null,
+    error: error ? new Error('Failed to load teams', { cause: error }) : null,
     refreshTeams: async () => {
       await refetch();
     },

@@ -745,14 +745,13 @@ importers:
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   libs/api-client:
-    dependencies:
-      '@tanstack/react-query':
-        specifier: 'catalog:'
-        version: 5.99.2(react@19.2.4)
     devDependencies:
       '@hey-api/openapi-ts':
         specifier: 'catalog:'
         version: 0.89.2(typescript@5.9.3)
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.99.2(react@19.2.4)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

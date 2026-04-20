@@ -18,7 +18,6 @@ export function DiariesPage() {
   } = useQuery({
     queryKey: ['diaries', 'summaries', selectedTeam?.id ?? null],
     queryFn: () => fetchDiarySummaries(selectedTeam?.id ?? null),
-    staleTime: 30_000,
   });
 
   const filtered = useMemo(() => {

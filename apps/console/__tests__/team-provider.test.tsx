@@ -8,7 +8,7 @@ import { createTestWrapper } from './test-query-client.js';
 const mockListTeams = vi.fn();
 const mockSetTeamId = vi.fn();
 
-vi.mock('@moltnet/api-client', () => ({
+vi.mock('@moltnet/api-client/query', () => ({
   listTeamsOptions: (...args: unknown[]) => ({
     queryKey: ['teams'],
     queryFn: async () => {
@@ -22,6 +22,20 @@ vi.mock('@moltnet/api-client', () => ({
 vi.mock('../src/api.js', () => ({
   getApiClient: () => ({}),
   setTeamId: (...args: unknown[]) => mockSetTeamId(...args),
+}));
+
+vi.mock('../src/auth/useAuth.js', () => ({
+  useAuth: () => ({
+    session: null,
+    identity: null,
+    isAuthenticated: true,
+    isLoading: false,
+    error: null,
+    logout: vi.fn(),
+    refreshSession: vi.fn(),
+    username: null,
+    email: null,
+  }),
 }));
 
 vi.mock('../src/config.js', () => ({

@@ -20,13 +20,13 @@ if (!root) throw new Error('Root element not found');
 createRoot(root).render(
   <StrictMode>
     <MoltThemeProvider mode={storedTheme ?? 'system'}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
           <TeamProvider>
             <App />
           </TeamProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+        </QueryClientProvider>
+      </AuthProvider>
     </MoltThemeProvider>
   </StrictMode>,
 );
