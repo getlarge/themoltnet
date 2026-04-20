@@ -20,6 +20,14 @@ export const registerResolveIssueCommand: CommandRegistrar = (pi, state) => {
       // Fetch issue content on the host using the agent's GH token
       let issueBody: string;
       try {
+        const ghToken = state.getAgentGhToken();
+        if (!ghToken) {
+          ctx.ui.notify(
+            'Agent GH token unavailable — refusing to fall back to human auth. Check moltnet.json.',
+            'error',
+          );
+          return;
+        }
         const ghArgs = [
           'issue',
           'view',
@@ -27,14 +35,10 @@ export const registerResolveIssueCommand: CommandRegistrar = (pi, state) => {
           '--json',
           'number,title,body,labels,assignees,comments',
         ];
-        const ghToken = state.getAgentGhToken();
-        const env = ghToken
-          ? { ...process.env, GH_TOKEN: ghToken }
-          : process.env;
         issueBody = execFileSync('gh', ghArgs, {
           encoding: 'utf8',
           cwd: state.worktreePath ?? state.localCwd,
-          env,
+          env: { ...process.env, GH_TOKEN: ghToken },
           stdio: ['pipe', 'pipe', 'pipe'],
         });
       } catch (err) {

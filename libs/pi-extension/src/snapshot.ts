@@ -71,6 +71,7 @@ export type SnapshotConfig = NonNullable<SandboxConfig['snapshot']>;
 const BASE_ALPINE_PACKAGES = [
   'ca-certificates',
   'curl',
+  'file',
   'git',
   'jq',
   'ripgrep',

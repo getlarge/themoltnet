@@ -101,7 +101,7 @@ interface GhIssue {
   comments: { body: string; author: { login: string } }[];
 }
 
-function fetchIssue(cwd: string, ghToken: string | null): GhIssue {
+function fetchIssue(cwd: string, ghToken: string): GhIssue {
   const ghArgs = [
     'issue',
     'view',
@@ -109,11 +109,10 @@ function fetchIssue(cwd: string, ghToken: string | null): GhIssue {
     '--json',
     'number,title,body,labels,comments',
   ];
-  const env = ghToken ? { ...process.env, GH_TOKEN: ghToken } : process.env;
   const raw = execFileSync('gh', ghArgs, {
     encoding: 'utf8',
     cwd,
-    env,
+    env: { ...process.env, GH_TOKEN: ghToken },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   return JSON.parse(raw);
@@ -173,8 +172,9 @@ async function main() {
 
   // 1. Boot sandbox
   console.log('[sandbox] Ensuring snapshot...');
+  const sandboxConfig = loadSandboxConfig(cwd);
   const checkpointPath = await ensureSnapshot({
-    config: loadSandboxConfig(cwd).snapshot,
+    config: sandboxConfig.snapshot,
     onProgress: (msg) => console.log(`[sandbox] ${msg}`),
   });
 
@@ -183,6 +183,7 @@ async function main() {
     checkpointPath,
     agentName,
     mountPath: cwd,
+    sandboxConfig,
   });
 
   // 2. Activate agent env on host
@@ -197,6 +198,12 @@ async function main() {
   // 3. Fetch issue
   console.log(`[issue] Fetching #${issueRef}...`);
   const ghToken = getAgentGhToken(agentDir);
+  if (!ghToken) {
+    throw new Error(
+      `Failed to resolve agent GH token from ${agentDir}/moltnet.json. ` +
+        'Refusing to fall back to human auth context.',
+    );
+  }
   const issue = fetchIssue(cwd, ghToken);
   console.log(`[issue] #${issue.number}: ${issue.title}`);
 
