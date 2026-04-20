@@ -3,6 +3,7 @@
 package moltnetapi
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -3710,16 +3711,15 @@ func decodeListDiariesParams(args [0]string, argsEscaped bool, r *http.Request) 
 type ListDiaryEntriesParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
 	Offset OptFloat64 `json:",omitempty,omitzero"`
-	// Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary.
-	// Combines with tags/excludeTags/entryType as AND conditions.
-	Ids OptString `json:",omitempty,omitzero"`
-	// Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each).
-	Tags OptString `json:",omitempty,omitzero"`
-	// Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars
-	// each).
-	ExcludeTags OptString `json:",omitempty,omitzero"`
-	// Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.
-	EntryType OptString `json:",omitempty,omitzero"`
+	// Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines
+	// with tags/excludeTags/entryType as AND conditions.
+	Ids []uuid.UUID `json:",omitempty"`
+	// Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each).
+	Tags []string `json:",omitempty"`
+	// Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each).
+	ExcludeTags []string `json:",omitempty"`
+	// Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
+	EntryType []ListDiaryEntriesEntryTypeItem `json:",omitempty"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
 }
@@ -3749,7 +3749,7 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.Ids = v.(OptString)
+			params.Ids = v.([]uuid.UUID)
 		}
 	}
 	{
@@ -3758,7 +3758,7 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.Tags = v.(OptString)
+			params.Tags = v.([]string)
 		}
 	}
 	{
@@ -3767,7 +3767,7 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.ExcludeTags = v.(OptString)
+			params.ExcludeTags = v.([]string)
 		}
 	}
 	{
@@ -3776,7 +3776,7 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryType = v.(OptString)
+			params.EntryType = v.([]ListDiaryEntriesEntryTypeItem)
 		}
 	}
 	{
@@ -3933,50 +3933,41 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotIdsVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotIdsVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Ids.SetTo(paramsDotIdsVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Ids.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotIdsVal uuid.UUID
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     1850,
-							MaxLengthSet:  true,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToUUID(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotIdsVal = c
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.Ids = append(params.Ids, paramsDotIdsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.Ids == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    50,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.Ids)); err != nil {
+					return errors.Wrap(err, "array")
 				}
 				return nil
 			}(); err != nil {
@@ -4001,50 +3992,70 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotTagsVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotTagsVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Tags.SetTo(paramsDotTagsVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Tags.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotTagsVal string
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     1070,
-							MaxLengthSet:  true,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^[^,]{1,50}(,[^,]{1,50}){0,19}$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotTagsVal = c
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.Tags = append(params.Tags, paramsDotTagsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.Tags == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.Tags)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.Tags {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     50,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^[^,]+$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(elem)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {
@@ -4069,50 +4080,70 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotExcludeTagsVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotExcludeTagsVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.ExcludeTags.SetTo(paramsDotExcludeTagsVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.ExcludeTags.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotExcludeTagsVal string
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     1070,
-							MaxLengthSet:  true,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^[^,]{1,50}(,[^,]{1,50}){0,19}$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotExcludeTagsVal = c
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.ExcludeTags = append(params.ExcludeTags, paramsDotExcludeTagsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.ExcludeTags == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.ExcludeTags)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.ExcludeTags {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     50,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^[^,]+$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(elem)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {
@@ -4137,50 +4168,58 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotEntryTypeVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotEntryTypeVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.EntryType.SetTo(paramsDotEntryTypeVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.EntryType.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotEntryTypeVal ListDiaryEntriesEntryTypeItem
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     100,
-							MaxLengthSet:  true,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotEntryTypeVal = ListDiaryEntriesEntryTypeItem(c)
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.EntryType = append(params.EntryType, paramsDotEntryTypeVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.EntryType == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    6,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.EntryType)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.EntryType {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {
@@ -4923,8 +4962,8 @@ type ListDiaryTagsParams struct {
 	Prefix OptString `json:",omitempty,omitzero"`
 	// Exclude tags with fewer than this many entries.
 	MinCount OptInt `json:",omitempty,omitzero"`
-	// Comma-separated entry types to scope the tag count.
-	EntryTypes OptString `json:",omitempty,omitzero"`
+	// Repeated entry types to scope the tag count. Single value also accepted.
+	EntryTypes []ListDiaryTagsEntryTypesItem `json:",omitempty"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
 }
@@ -4954,7 +4993,7 @@ func unpackListDiaryTagsParams(packed middleware.Parameters) (params ListDiaryTa
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryTypes = v.(OptString)
+			params.EntryTypes = v.([]ListDiaryTagsEntryTypesItem)
 		}
 	}
 	{
@@ -5113,50 +5152,58 @@ func decodeListDiaryTagsParams(args [1]string, argsEscaped bool, r *http.Request
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotEntryTypesVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotEntryTypesVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.EntryTypes.SetTo(paramsDotEntryTypesVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.EntryTypes.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotEntryTypesVal ListDiaryTagsEntryTypesItem
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     100,
-							MaxLengthSet:  true,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotEntryTypesVal = ListDiaryTagsEntryTypesItem(c)
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.EntryTypes = append(params.EntryTypes, paramsDotEntryTypesVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.EntryTypes == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    6,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.EntryTypes)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.EntryTypes {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {
@@ -5854,8 +5901,8 @@ func decodeListGroupsParams(args [1]string, argsEscaped bool, r *http.Request) (
 type ListSigningRequestsParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
 	Offset OptFloat64 `json:",omitempty,omitzero"`
-	// Comma-separated status filter.
-	Status OptString `json:",omitempty,omitzero"`
+	// Repeated status filter. Single value also accepted.
+	Status []ListSigningRequestsStatusItem `json:",omitempty"`
 }
 
 func unpackListSigningRequestsParams(packed middleware.Parameters) (params ListSigningRequestsParams) {
@@ -5883,7 +5930,7 @@ func unpackListSigningRequestsParams(packed middleware.Parameters) (params ListS
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.Status = v.(OptString)
+			params.Status = v.([]ListSigningRequestsStatusItem)
 		}
 	}
 	return params
@@ -6033,50 +6080,58 @@ func decodeListSigningRequestsParams(args [0]string, argsEscaped bool, r *http.R
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotStatusVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotStatusVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Status.SetTo(paramsDotStatusVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Status.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotStatusVal ListSigningRequestsStatusItem
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^(pending|completed|expired)(,(pending|completed|expired))*$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotStatusVal = ListSigningRequestsStatusItem(c)
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.Status = append(params.Status, paramsDotStatusVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.Status == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    3,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.Status)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.Status {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {
@@ -6362,8 +6417,8 @@ type ReflectDiaryParams struct {
 	DiaryId    uuid.UUID
 	Days       OptFloat64 `json:",omitempty,omitzero"`
 	MaxEntries OptFloat64 `json:",omitempty,omitzero"`
-	// Comma-separated entry type filter.
-	EntryTypes OptString `json:",omitempty,omitzero"`
+	// Repeated entry type filter. Single value also accepted.
+	EntryTypes []ReflectDiaryEntryTypesItem `json:",omitempty"`
 }
 
 func unpackReflectDiaryParams(packed middleware.Parameters) (params ReflectDiaryParams) {
@@ -6398,7 +6453,7 @@ func unpackReflectDiaryParams(packed middleware.Parameters) (params ReflectDiary
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryTypes = v.(OptString)
+			params.EntryTypes = v.([]ReflectDiaryEntryTypesItem)
 		}
 	}
 	return params
@@ -6584,50 +6639,58 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotEntryTypesVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotEntryTypesVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.EntryTypes.SetTo(paramsDotEntryTypesVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.EntryTypes.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotEntryTypesVal ReflectDiaryEntryTypesItem
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotEntryTypesVal = ReflectDiaryEntryTypesItem(c)
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.EntryTypes = append(params.EntryTypes, paramsDotEntryTypesVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.EntryTypes == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    6,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.EntryTypes)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.EntryTypes {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {
@@ -7087,10 +7150,10 @@ type SearchPublicFeedParams struct {
 	Q     string
 	Limit OptFloat64 `json:",omitempty,omitzero"`
 	Tag   OptString  `json:",omitempty,omitzero"`
-	// Comma-separated entry type filter.
-	EntryTypes        OptString `json:",omitempty,omitzero"`
-	ExcludeSuperseded OptBool   `json:",omitempty,omitzero"`
-	IncludeSuspicious OptBool   `json:",omitempty,omitzero"`
+	// Repeated entry type filter. Single value also accepted.
+	EntryTypes        []SearchPublicFeedEntryTypesItem `json:",omitempty"`
+	ExcludeSuperseded OptBool                          `json:",omitempty,omitzero"`
+	IncludeSuspicious OptBool                          `json:",omitempty,omitzero"`
 }
 
 func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPublicFeedParams) {
@@ -7125,7 +7188,7 @@ func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPu
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryTypes = v.(OptString)
+			params.EntryTypes = v.([]SearchPublicFeedEntryTypesItem)
 		}
 	}
 	{
@@ -7356,50 +7419,58 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotEntryTypesVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotEntryTypesVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.EntryTypes.SetTo(paramsDotEntryTypesVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.EntryTypes.Get(); ok {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotEntryTypesVal SearchPublicFeedEntryTypesItem
 					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
 						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotEntryTypesVal = SearchPublicFeedEntryTypesItem(c)
 						return nil
 					}(); err != nil {
 						return err
 					}
+					params.EntryTypes = append(params.EntryTypes, paramsDotEntryTypesVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.EntryTypes == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    6,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.EntryTypes)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.EntryTypes {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
 				}
 				return nil
 			}(); err != nil {

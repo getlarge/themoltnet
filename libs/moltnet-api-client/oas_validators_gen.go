@@ -5683,6 +5683,25 @@ func (s *ListDiaryEntriesBadRequest) Validate() error {
 	return nil
 }
 
+func (s ListDiaryEntriesEntryTypeItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ListDiaryEntriesInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5934,6 +5953,25 @@ func (s *ListDiaryTagsBadRequest) Validate() error {
 	return nil
 }
 
+func (s ListDiaryTagsEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ListDiaryTagsInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -6158,6 +6196,19 @@ func (s *ListSigningRequestsInternalServerError) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s ListSigningRequestsStatusItem) Validate() error {
+	switch s {
+	case "pending":
+		return nil
+	case "completed":
+		return nil
+	case "expired":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ListSigningRequestsUnauthorized) Validate() error {
@@ -7944,6 +7995,25 @@ func (s *ReflectDiaryBadRequest) Validate() error {
 	return nil
 }
 
+func (s ReflectDiaryEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ReflectDiaryInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -8883,6 +8953,25 @@ func (s *SearchPublicFeedBadRequest) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s SearchPublicFeedEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *SearchPublicFeedInternalServerError) Validate() error {
