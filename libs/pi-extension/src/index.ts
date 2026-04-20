@@ -37,6 +37,12 @@ import {
 } from '@mariozechner/pi-coding-agent';
 import { connect } from '@themoltnet/sdk';
 
+import type { ExtensionState, TrackedError } from './commands/index.js';
+import {
+  registerMoltnetReflectCommand,
+  registerResolveIssueCommand,
+  registerSandboxCommand,
+} from './commands/index.js';
 import { createMoltNetTools } from './moltnet-tools.js';
 import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
@@ -293,14 +299,6 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 
   // -- Session learning (error tracking + automatic reflection) ---------------
 
-  interface TrackedError {
-    toolName: string;
-    toolCallId: string;
-    input: Record<string, unknown>;
-    error: string;
-    timestamp: number;
-  }
-
   const sessionErrors: TrackedError[] = [];
   const sessionStartTime = Date.now();
 
@@ -312,8 +310,8 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       const credsPath = path.join(credsDir, 'moltnet.json');
       if (!existsSync(credsPath)) return null;
       return execFileSync(
-        'npx',
-        ['@themoltnet/cli', 'github', 'token', '--credentials', credsPath],
+        'moltnet',
+        ['github', 'token', '--credentials', credsPath],
         {
           encoding: 'utf8',
           cwd: worktreePath ?? localCwd,
@@ -465,158 +463,29 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 
   // -- Commands ---------------------------------------------------------------
 
-  pi.registerCommand('sandbox', {
-    description: 'Show sandbox status and egress policy',
-    handler: async (_args, ctx) => {
-      if (!vm) {
-        ctx.ui.notify('Sandbox is not running', 'warning');
-        return;
-      }
-      const r = await vm.exec(
-        'hostname && echo "---" && df -h / && echo "---" && node --version && pnpm --version && git --version',
-      );
-      ctx.ui.notify(
-        [
-          'Sandbox: running',
-          `Workspace: ${worktreePath ?? localCwd} → ${GUEST_WORKSPACE}`,
-          `MoltNet diary: ${diaryId ?? 'not configured'}`,
-          r.stdout?.trimEnd() ?? '',
-        ].join('\n'),
-        'info',
-      );
+  const state: ExtensionState = {
+    get vm() {
+      return vm;
     },
-  });
-
-  pi.registerCommand('resolve-issue', {
-    description:
-      'Pick up a GitHub issue and resolve it with accountable commits and a PR',
-    handler: async (args, ctx) => {
-      const issueRef = args.trim();
-      if (!issueRef) {
-        ctx.ui.notify('Usage: /resolve-issue <number|url>', 'error');
-        return;
-      }
-
-      await ensureVm(ctx);
-
-      // Fetch issue content on the host using the agent's GH token
-      let issueBody: string;
-      try {
-        const ghArgs = [
-          'issue',
-          'view',
-          issueRef,
-          '--json',
-          'number,title,body,labels,assignees,comments',
-        ];
-        const ghToken = getAgentGhToken();
-        const env = ghToken
-          ? { ...process.env, GH_TOKEN: ghToken }
-          : process.env;
-        issueBody = execFileSync('gh', ghArgs, {
-          encoding: 'utf8',
-          cwd: worktreePath ?? localCwd,
-          env,
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        ctx.ui.notify(`Failed to fetch issue: ${msg}`, 'error');
-        return;
-      }
-
-      const issue = JSON.parse(issueBody) as {
-        number: number;
-        title: string;
-        body: string;
-        labels: { name: string }[];
-        comments: { body: string; author: { login: string } }[];
-      };
-
-      const meta = await getSessionMeta(ctx);
-      const labelList = issue.labels.map((l) => l.name).join(', ');
-      const commentSummary = issue.comments
-        .slice(-5)
-        .map((c) => `**${c.author.login}**: ${c.body.slice(0, 300)}`)
-        .join('\n\n');
-
-      pi.sendUserMessage(
-        [
-          `**IMPORTANT**: Before doing anything else, read the file \`/workspace/.agents/skills/legreffier/SKILL.md\` and follow its workflow for all commits in this session. Every commit must have a diary entry.`,
-          '',
-          `## Task: Resolve Issue #${issue.number}`,
-          '',
-          `**Title:** ${issue.title}`,
-          labelList ? `**Labels:** ${labelList}` : '',
-          '',
-          '### Issue Description',
-          '',
-          issue.body ?? '_No description provided._',
-          '',
-          commentSummary ? `### Recent Comments\n\n${commentSummary}` : '',
-          '',
-          '### Instructions',
-          '',
-          `1. Create a feature branch: \`git checkout -b fix/${issue.number}-<slug>\``,
-          '2. Understand the problem — read relevant code, reproduce if possible',
-          '3. Implement the fix or feature',
-          '4. Write tests if applicable',
-          '5. Follow the legreffier accountable commit workflow for every commit (diary entry + signed commit)',
-          `6. Push the branch and create a PR referencing issue #${issue.number}`,
-          '',
-          '### Context',
-          '',
-          `- Agent: ${meta.agentName}`,
-          `- Diary: ${diaryId ?? 'unknown'}`,
-          `- Branch: ${meta.gitBranch ?? 'main'}`,
-          `- Workspace: ${GUEST_WORKSPACE}`,
-        ]
-          .filter(Boolean)
-          .join('\n'),
-        { deliverAs: 'followUp' },
-      );
+    get worktreePath() {
+      return worktreePath;
     },
-  });
-
-  pi.registerCommand('moltnet-reflect', {
-    description:
-      'Create a diary entry reflecting on the current session (decisions, findings, mistakes)',
-    handler: async (_args, ctx) => {
-      if (!moltnetAgent || !diaryId) {
-        ctx.ui.notify('MoltNet not connected', 'error');
-        return;
-      }
-
-      const meta = await getSessionMeta(ctx);
-      const errorCount = sessionErrors.length;
-
-      pi.sendUserMessage(
-        [
-          'Review this session and create a MoltNet diary entry using the moltnet_create_entry tool.',
-          '',
-          '**Session context:**',
-          `- Agent: ${meta.agentName}`,
-          `- Model: ${meta.modelName}`,
-          `- Branch: ${meta.gitBranch ?? 'unknown'}`,
-          `- Duration: ~${meta.durationMin} min`,
-          `- Tool errors this session: ${errorCount}`,
-          meta.sessionName ? `- Session: ${meta.sessionName}` : '',
-          '',
-          'The entry should capture:',
-          '- Key decisions made and their rationale',
-          '- Findings or discoveries',
-          '- Mistakes and what was learned',
-          '- Any open questions or follow-ups needed',
-          '',
-          `Include tags: session-reflection${meta.gitBranch ? `, branch:${meta.gitBranch.replace(/\//g, '-')}` : ''}, and any relevant topic tags.`,
-          'Set importance based on the significance of what was accomplished.',
-        ]
-          .filter(Boolean)
-          .join('\n'),
-        { deliverAs: 'followUp' },
-      );
+    localCwd,
+    get diaryId() {
+      return diaryId;
     },
-  });
+    get moltnetAgent() {
+      return moltnetAgent;
+    },
+    sessionErrors,
+    getSessionMeta,
+    getAgentGhToken,
+    ensureVm,
+  };
+
+  registerSandboxCommand(pi, state);
+  registerResolveIssueCommand(pi, state);
+  registerMoltnetReflectCommand(pi, state);
 }
 
 // Re-export modules for programmatic use
