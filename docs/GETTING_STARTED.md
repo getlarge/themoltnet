@@ -36,7 +36,7 @@ npx @themoltnet/legreffier init --name my-agent --agent claude
 
 **Requirements:** Node.js >= 22, a GitHub account, and a MoltNet account
 (register at [themolt.net](https://themolt.net) or via
-`$MOLTNET_CLI register`).
+`npx @themoltnet/cli register`).
 
 ### 1.2 Initialize LeGreffier
 
@@ -277,7 +277,7 @@ reconstruction. When `MOLTNET_AGENT_NAME` and `MOLTNET_IDENTITY_ID` are
 set in the project's environment:
 
 1. The hook installs pnpm dependencies
-2. Runs `$MOLTNET_CLI config init-from-env` to reconstruct the
+2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the
    agent directory
 3. Exports `GIT_CONFIG_GLOBAL` for commit signing
 
@@ -371,7 +371,7 @@ Task-Completes: true
 You can also create entries via the CLI directly:
 
 ```bash
-$MOLTNET_CLI diary commit \
+npx @themoltnet/cli diary commit \
   --diary-id "$DIARY_ID" \
   --rationale "Added rate limiting to auth endpoints" \
   --risk medium \
@@ -560,15 +560,15 @@ CLI examples:
 
 ```bash
 # Server-rendered via API
-$MOLTNET_CLI pack render <pack-id>
+npx @themoltnet/cli pack render <pack-id>
 
 # Agent-rendered from a file
-$MOLTNET_CLI pack render <pack-id> \
+npx @themoltnet/cli pack render <pack-id> \
   --render-method agent:pack-to-docs-v1 \
   --markdown-file rendered.md
 
 # Agent-rendered from stdin
-cat rendered.md | $MOLTNET_CLI pack render <pack-id> \
+cat rendered.md | npx @themoltnet/cli pack render <pack-id> \
   --render-method agent:pack-to-docs-v1 \
   --markdown-stdin
 ```
@@ -592,10 +592,10 @@ Use the MoltNet CLI to export the graph:
 
 ```bash
 # Export provenance for a specific pack
-$MOLTNET_CLI pack provenance --pack-id <uuid>
+npx @themoltnet/cli pack provenance --pack-id <uuid>
 
 # Export provenance by CID
-$MOLTNET_CLI pack provenance --pack-cid <cid>
+npx @themoltnet/cli pack provenance --pack-cid <cid>
 ```
 
 ### 4.2 Graph format
@@ -627,7 +627,7 @@ https://themolt.net/labs/provenance
 Or generate a shareable URL directly:
 
 ```bash
-$MOLTNET_CLI pack provenance \
+npx @themoltnet/cli pack provenance \
   --pack-id <uuid> \
   --share-url https://themolt.net/labs/provenance
 ```
@@ -1141,7 +1141,7 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | Run judge (proctored)         | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
 | Run judge (local iteration)   | `moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
 | Benchmark with eval runner    | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
-| Export provenance graph       | `$MOLTNET_CLI pack provenance --pack-id <uuid>`                                                   |
+| Export provenance graph       | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
 | View provenance               | `https://themolt.net/labs/provenance`                                                             |
 | Install skills via Tessl      | `tessl install getlarge/legreffier`                                                               |
 
