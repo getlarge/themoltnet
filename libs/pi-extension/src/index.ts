@@ -13,9 +13,15 @@
  *   pi -e @themoltnet/pi-extension
  *   pi -e @themoltnet/pi-extension --agent legreffier
  *   pi -e @themoltnet/pi-extension --worktree-branch feat/my-task
+ *   pi -e @themoltnet/pi-extension --sandbox-config ./sandbox.json
+ *
+ * Sandbox config resolution (first match):
+ *   1. --sandbox-config flag (explicit path to JSON)
+ *   2. sandbox.json in cwd (convention)
+ *   3. Base only (git, gh, moltnet CLI, agent user)
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { VM } from '@earendil-works/gondolin';
@@ -32,7 +38,7 @@ import {
 import { connect } from '@themoltnet/sdk';
 
 import { createMoltNetTools } from './moltnet-tools.js';
-import { ensureSnapshot } from './snapshot.js';
+import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
   createGondolinBashOps,
   createGondolinEditOps,
@@ -58,6 +64,29 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     type: 'string',
     default: '',
   });
+
+  pi.registerFlag('sandbox-config', {
+    description: 'Path to sandbox config JSON (overrides sandbox.json in cwd)',
+    type: 'string',
+    default: '',
+  });
+
+  // -- Sandbox config resolution ------------------------------------------------
+
+  function resolveSandboxConfig(): SandboxConfig | undefined {
+    const flagPath = pi.getFlag('sandbox-config') as string;
+    if (flagPath) {
+      const abs = path.isAbsolute(flagPath)
+        ? flagPath
+        : path.join(process.cwd(), flagPath);
+      return JSON.parse(readFileSync(abs, 'utf8'));
+    }
+    const conventionPath = path.join(process.cwd(), 'sandbox.json');
+    if (existsSync(conventionPath)) {
+      return JSON.parse(readFileSync(conventionPath, 'utf8'));
+    }
+    return undefined;
+  }
 
   // -- State ------------------------------------------------------------------
 
@@ -89,7 +118,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         ctx.ui.theme.fg('accent', 'Sandbox: preparing...'),
       );
 
+      const sandboxConfig = resolveSandboxConfig();
       const checkpointPath = await ensureSnapshot({
+        config: sandboxConfig?.snapshot,
         onProgress: (msg) => {
           ctx?.ui.setStatus(
             'sandbox',
@@ -131,6 +162,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         checkpointPath,
         agentName,
         mountPath,
+        sandboxConfig,
       });
 
       // 4. Activate agent env on the host (mirrors `moltnet start`)
@@ -570,7 +602,11 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 
 // Re-export modules for programmatic use
 export { createMoltNetTools } from './moltnet-tools.js';
-export type { EnsureSnapshotOptions, SnapshotRecipe } from './snapshot.js';
+export type {
+  EnsureSnapshotOptions,
+  SandboxConfig,
+  SnapshotConfig,
+} from './snapshot.js';
 export { ensureSnapshot } from './snapshot.js';
 export {
   createGondolinBashOps,

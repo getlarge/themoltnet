@@ -36,13 +36,13 @@
       "path": "../libs/models"
     },
     {
+      "path": "../libs/pi-extension"
+    },
+    {
       "path": "../libs/sdk"
     },
     {
       "path": "../packages/github-agent"
-    },
-    {
-      "path": "../packages/pi-extension"
     }
   ]
 }

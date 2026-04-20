@@ -1,0 +1,24 @@
+{
+  "env": {
+    "GOPATH": "/home/agent/go",
+    "GOROOT": "/usr/lib/go"
+  },
+  "snapshot": {
+    "allowedHosts": [
+      "unofficial-builds.nodejs.org",
+      "proxy.golang.org",
+      "sum.golang.org",
+      "golang.org",
+      "*.googlesource.com"
+    ],
+    "setupCommands": [
+      "apk add --no-cache libgcc libstdc++ python3 go",
+      "sh -eu -c 'curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-arm64-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz && node --version'",
+      "npm install -g pnpm tsx 2>/dev/null"
+    ]
+  },
+  "vfs": {
+    "shadow": ["node_modules"],
+    "shadowMode": "tmpfs"
+  }
+}

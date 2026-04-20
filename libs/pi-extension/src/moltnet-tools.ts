@@ -27,7 +27,7 @@ function ensureConnected(config: MoltNetToolsConfig) {
 /**
  * Create all MoltNet tool definitions, ready to pass to `pi.registerTool()`.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export function createMoltNetTools(
   config: MoltNetToolsConfig,
 ): ToolDefinition<any, any>[] {

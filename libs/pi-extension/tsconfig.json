@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
     "composite": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../../tsconfig.json",
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/sdk"
+      "path": "../sdk"
     }
   ]
 }

@@ -14,6 +14,7 @@
  *   pnpm --filter @moltnet/tools tsx src/resolve-issue.ts --issue 123 --agent legreffier --model claude-sonnet-4-5
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -37,8 +38,18 @@ import {
   ensureSnapshot,
   findMainWorktree,
   resumeVm,
+  type SandboxConfig,
 } from '@themoltnet/pi-extension';
 import { connect } from '@themoltnet/sdk';
+
+// ---------------------------------------------------------------------------
+// Sandbox config (loaded from sandbox.json)
+// ---------------------------------------------------------------------------
+
+function loadSandboxConfig(cwd: string): SandboxConfig {
+  const configPath = join(cwd, 'sandbox.json');
+  return JSON.parse(readFileSync(configPath, 'utf8'));
+}
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -163,6 +174,7 @@ async function main() {
   // 1. Boot sandbox
   console.log('[sandbox] Ensuring snapshot...');
   const checkpointPath = await ensureSnapshot({
+    config: loadSandboxConfig(cwd).snapshot,
     onProgress: (msg) => console.log(`[sandbox] ${msg}`),
   });
 

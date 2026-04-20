@@ -133,17 +133,13 @@ export function createGondolinBashOps(
           : undefined;
 
       try {
-        const sanitizedEnv: Record<string, string> = {};
-        if (env) {
-          for (const [k, v] of Object.entries(env)) {
-            if (typeof v === 'string') sanitizedEnv[k] = v;
-          }
-        }
+        // Do not forward host env to guest — the VM has its own env set at
+        // resume time. Forwarding leaks host-specific paths (GOROOT, PATH, etc).
+        void env;
 
         const proc = vm.exec(['/bin/sh', '-lc', command], {
           cwd: guestCwd,
           signal: ac.signal,
-          env: sanitizedEnv,
           stdout: 'pipe',
           stderr: 'pipe',
         });

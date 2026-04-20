@@ -72,6 +72,9 @@
       "path": "libs/observability"
     },
     {
+      "path": "libs/pi-extension"
+    },
+    {
       "path": "libs/sdk"
     },
     {
@@ -82,9 +85,6 @@
     },
     {
       "path": "packages/legreffier-cli"
-    },
-    {
-      "path": "packages/pi-extension"
     }
   ]
 }

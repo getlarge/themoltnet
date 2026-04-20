@@ -10,11 +10,15 @@ import { parseEnv } from 'node:util';
 import type { VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
+  createShadowPathPredicate,
   RealFSProvider,
+  ShadowProvider,
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
 const GUEST_WORKSPACE = '/workspace';
+
+import type { SandboxConfig } from './snapshot.js';
 
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
@@ -25,6 +29,8 @@ export interface VmConfig {
   mountPath: string;
   /** Additional hosts to allow in egress policy. */
   extraAllowedHosts?: string[];
+  /** Full sandbox config (vfs shadows, env overrides). */
+  sandboxConfig?: SandboxConfig;
 }
 
 export interface VmCredentials {
@@ -140,6 +146,11 @@ const BASE_ALLOWED_HOSTS = [
   'github.com',
   '*.github.com',
   '*.githubusercontent.com',
+  // Go module proxy
+  'proxy.golang.org',
+  'sum.golang.org',
+  'golang.org',
+  '*.googlesource.com',
 ];
 
 /**
@@ -185,20 +196,38 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }
   }
 
+  // Build workspace VFS provider (with optional shadows)
+  const vfsConfig = config.sandboxConfig?.vfs;
+  let workspaceProvider: RealFSProvider | ShadowProvider = new RealFSProvider(
+    config.mountPath,
+  );
+  if (vfsConfig?.shadow?.length) {
+    const predicate = createShadowPathPredicate(vfsConfig.shadow);
+    workspaceProvider = new ShadowProvider(workspaceProvider, {
+      shouldShadow: predicate,
+      writeMode: vfsConfig.shadowMode ?? 'tmpfs',
+    });
+  }
+
+  // Merge env: defaults < sandbox config overrides
+  const envOverrides = config.sandboxConfig?.env ?? {};
+  const vmEnv = {
+    ...secretEnv,
+    ...vmAgentEnv,
+    PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/go/bin',
+    HOME: '/home/agent',
+    NODE_NO_WARNINGS: '1',
+    NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt',
+    ...envOverrides,
+  };
+
   const cp = VmCheckpoint.load(config.checkpointPath);
   const vm = await cp.resume({
     httpHooks,
-    env: {
-      ...secretEnv,
-      ...vmAgentEnv,
-      PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-      HOME: '/home/agent',
-      NODE_NO_WARNINGS: '1',
-      NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt',
-    },
+    env: vmEnv,
     vfs: {
       mounts: {
-        [GUEST_WORKSPACE]: new RealFSProvider(config.mountPath),
+        [GUEST_WORKSPACE]: workspaceProvider,
       },
     },
   });
@@ -217,7 +246,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // Mirrors host layout so legreffier skill and CLI work identically.
   const vmAgentDir = `/home/agent/.moltnet/${config.agentName}`;
   const vmSshDir = `${vmAgentDir}/ssh`;
-  await vm.exec(`mkdir -p ${vmAgentDir}/ssh`);
+  await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
 
   await vm.fs.writeFile('/home/agent/.pi/agent/auth.json', creds.piAuthJson, {
     mode: 0o600,
