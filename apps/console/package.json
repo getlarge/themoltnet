@@ -17,6 +17,7 @@
     "@moltnet/api-client": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@ory/client-fetch": "catalog:",
+    "@tanstack/react-query": "catalog:",
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",

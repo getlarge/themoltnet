@@ -1,9 +1,11 @@
-import { listTeams } from '@moltnet/api-client';
+import { listTeamsOptions } from '@moltnet/api-client';
+import { useQuery } from '@tanstack/react-query';
 import {
   createContext,
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -32,55 +34,47 @@ export const TeamContext = createContext<TeamContextValue | null>(null);
 const STORAGE_KEY = 'moltnet-selected-team';
 
 export function TeamProvider({ children }: { children: ReactNode }) {
-  const [teams, setTeams] = useState<TeamItem[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(() =>
     localStorage.getItem(STORAGE_KEY),
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
-  const loadTeams = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { data } = await listTeams({ client: getApiClient() });
-      const items = data?.items ?? [];
-      setTeams(items);
-
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const valid = items.find((t) => t.id === stored);
-      if (valid) {
-        setSelectedTeamId(valid.id);
-        return;
-      }
-
-      if (items.length > 0) {
-        setSelectedTeamId(items[0].id);
-        localStorage.setItem(STORAGE_KEY, items[0].id);
-      } else {
-        setSelectedTeamId(null);
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch (err) {
-      setTeams([]);
-      setSelectedTeamId(null);
-      setError(err instanceof Error ? err : new Error('Failed to load teams'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const {
+    data: teamsResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    ...listTeamsOptions({
+      client: getApiClient(),
+    }),
+    staleTime: 30_000,
+  });
+  const teams = useMemo(() => teamsResponse?.items ?? [], [teamsResponse]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (isLoading) return;
 
-    void loadTeams().then(() => {
-      if (cancelled) return;
-    });
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const valid = teams.find((t) => t.id === stored);
+    if (valid) {
+      setSelectedTeamId((current) =>
+        current === valid.id ? current : valid.id,
+      );
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [loadTeams]);
+    if (teams.length > 0) {
+      setSelectedTeamId((current) => {
+        if (current === teams[0].id) return current;
+        localStorage.setItem(STORAGE_KEY, teams[0].id);
+        return teams[0].id;
+      });
+      return;
+    }
+
+    setSelectedTeamId(null);
+    localStorage.removeItem(STORAGE_KEY);
+  }, [isLoading, teams]);
 
   const selectTeam = useCallback((teamId: string) => {
     // Set the API client header synchronously BEFORE triggering the
@@ -111,8 +105,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     selectedTeam,
     selectTeam,
     isLoading,
-    error,
-    refreshTeams: loadTeams,
+    error: error ? new Error('Failed to load teams') : null,
+    refreshTeams: async () => {
+      await refetch();
+    },
     callerRoleForTeam,
   };
 

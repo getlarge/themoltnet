@@ -1,16 +1,21 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TeamProvider } from '../src/team/TeamProvider.js';
 import { useTeam } from '../src/team/useTeam.js';
+import { createTestWrapper } from './test-query-client.js';
 
 const mockListTeams = vi.fn();
 const mockSetTeamId = vi.fn();
 
 vi.mock('@moltnet/api-client', () => ({
-  listTeams: (...args: unknown[]) => mockListTeams(...args),
+  listTeamsOptions: (...args: unknown[]) => ({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const response = await mockListTeams(...args);
+      return response.data;
+    },
+  }),
   createClient: () => ({}),
 }));
 
@@ -35,14 +40,6 @@ function TeamDisplay() {
       <span data-testid="team-name">{selectedTeam?.name ?? 'none'}</span>
       <span data-testid="team-count">{teams.length}</span>
     </div>
-  );
-}
-
-function Wrapper({ children }: { children: ReactNode }) {
-  return (
-    <MoltThemeProvider mode="dark">
-      <TeamProvider>{children}</TeamProvider>
-    </MoltThemeProvider>
   );
 }
 
@@ -95,7 +92,13 @@ describe('TeamProvider', () => {
       },
     });
 
-    render(<TeamDisplay />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <TeamDisplay />
+      </TeamProvider>,
+      { wrapper },
+    );
     expect(screen.getByTestId('loading')).toBeDefined();
 
     await waitFor(() => {
@@ -127,7 +130,13 @@ describe('TeamProvider', () => {
       },
     });
 
-    render(<TeamDisplay />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <TeamDisplay />
+      </TeamProvider>,
+      { wrapper },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('team-name').textContent).toBe('personal');
     });
@@ -143,7 +152,13 @@ describe('TeamProvider', () => {
       return <span data-testid="current">{selectedTeam?.id ?? 'none'}</span>;
     }
 
-    render(<Capture />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <Capture />
+      </TeamProvider>,
+      { wrapper },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('current').textContent).toBe('team-1');
     });
@@ -169,7 +184,13 @@ describe('TeamProvider', () => {
       return null;
     }
 
-    render(<Capture />, { wrapper: Wrapper });
+    const wrapper = createTestWrapper();
+    render(
+      <TeamProvider>
+        <Capture />
+      </TeamProvider>,
+      { wrapper },
+    );
     await waitFor(() => expect(selectFn).not.toBeNull());
 
     act(() => {

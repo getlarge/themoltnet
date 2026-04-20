@@ -16,6 +16,9 @@
       "types": "./src/retry-fetch.ts"
     }
   },
+  "dependencies": {
+    "@tanstack/react-query": "catalog:"
+  },
   "scripts": {
     "generate": "openapi-ts",
     "build": "tsc -b",

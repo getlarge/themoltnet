@@ -288,39 +288,261 @@ export type Options<
 };
 
 /**
- * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
  */
-export const getOAuth2Token = <ThrowOnError extends boolean = false>(
-  options?: Options<GetOAuth2TokenData, ThrowOnError>,
+export const getNetworkInfo = <ThrowOnError extends boolean = false>(
+  options?: Options<GetNetworkInfoData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).post<
-    GetOAuth2TokenResponses,
-    GetOAuth2TokenErrors,
+  (options?.client ?? client).get<
+    GetNetworkInfoResponses,
+    unknown,
     ThrowOnError
-  >({ url: '/oauth2/token', ...options });
+  >({ url: '/.well-known/moltnet.json', ...options });
 
 /**
- * Shallow liveness probe.
+ * Get the authenticated agent identity (requires bearer token).
  */
-export const getHealth = <ThrowOnError extends boolean = false>(
-  options?: Options<GetHealthData, ThrowOnError>,
+export const getWhoami = <ThrowOnError extends boolean = false>(
+  options?: Options<GetWhoamiData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({
-    url: '/health',
+  (options?.client ?? client).get<
+    GetWhoamiResponses,
+    GetWhoamiErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agents/whoami',
     ...options,
   });
 
 /**
- * Deep readiness probe. Checks database and Ory connectivity.
+ * Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
  */
-export const getReadiness = <ThrowOnError extends boolean = false>(
-  options?: Options<GetReadinessData, ThrowOnError>,
+export const getAgentProfile = <ThrowOnError extends boolean = false>(
+  options: Options<GetAgentProfileData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetAgentProfileResponses,
+    GetAgentProfileErrors,
+    ThrowOnError
+  >({ url: '/agents/{fingerprint}', ...options });
+
+/**
+ * Verify a signature belongs to the specified agent.
+ */
+export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyAgentSignatureData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    VerifyAgentSignatureResponses,
+    VerifyAgentSignatureErrors,
+    ThrowOnError
+  >({
+    url: '/agents/{fingerprint}/verify',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
+ */
+export const registerAgent = <ThrowOnError extends boolean = false>(
+  options: Options<RegisterAgentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RegisterAgentResponses,
+    RegisterAgentErrors,
+    ThrowOnError
+  >({
+    url: '/auth/register',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
+ */
+export const rotateClientSecret = <ThrowOnError extends boolean = false>(
+  options?: Options<RotateClientSecretData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    RotateClientSecretResponses,
+    RotateClientSecretErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/auth/rotate-secret',
+    ...options,
+  });
+
+/**
+ * Get the authenticated agent's cryptographic identity (keys, fingerprint).
+ */
+export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
+  options?: Options<GetCryptoIdentityData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<
-    GetReadinessResponses,
-    GetReadinessErrors,
+    GetCryptoIdentityResponses,
+    GetCryptoIdentityErrors,
     ThrowOnError
-  >({ url: '/health/ready', ...options });
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/identity',
+    ...options,
+  });
+
+/**
+ * List signing requests for the authenticated agent.
+ */
+export const listSigningRequests = <ThrowOnError extends boolean = false>(
+  options?: Options<ListSigningRequestsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListSigningRequestsResponses,
+    ListSigningRequestsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests',
+    ...options,
+  });
+
+/**
+ * Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
+ */
+export const createSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<CreateSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateSigningRequestResponses,
+    CreateSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Get a specific signing request by ID.
+ */
+export const getSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<GetSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetSigningRequestResponses,
+    GetSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests/{id}',
+    ...options,
+  });
+
+/**
+ * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
+ */
+export const submitSignature = <ThrowOnError extends boolean = false>(
+  options: Options<SubmitSignatureData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SubmitSignatureResponses,
+    SubmitSignatureErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests/{id}/sign',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Verify an Ed25519 signature by looking up the signing request.
+ */
+export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyCryptoSignatureData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    VerifyCryptoSignatureResponses,
+    VerifyCryptoSignatureErrors,
+    ThrowOnError
+  >({
+    url: '/crypto/verify',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * List the authenticated agent's diaries.
@@ -372,6 +594,134 @@ export const createDiary = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Get a digest of recent diary entries.
+ */
+export const reflectDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ReflectDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ReflectDiaryResponses,
+    ReflectDiaryErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/reflect',
+    ...options,
+  });
+
+/**
+ * Search diary entries using hybrid search.
+ */
+export const searchDiary = <ThrowOnError extends boolean = false>(
+  options?: Options<SearchDiaryData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    SearchDiaryResponses,
+    SearchDiaryErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+/**
+ * List diary entries for a specific diary.
+ */
+export const listDiaryEntries = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryEntriesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryEntriesResponses,
+    ListDiaryEntriesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{diaryId}/entries',
+    ...options,
+  });
+
+/**
+ * Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
+ */
+export const createDiaryEntry = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryEntryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryEntryResponses,
+    CreateDiaryEntryErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{diaryId}/entries',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List distinct tags used across all entries in a diary, with counts.
+ */
+export const listDiaryTags = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryTagsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryTagsResponses,
+    ListDiaryTagsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{diaryId}/tags',
+    ...options,
   });
 
 /**
@@ -443,6 +793,62 @@ export const updateDiary = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/diaries/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Compile a token-budget-fitted context pack from diary entries.
+ */
+export const compileDiary = <ThrowOnError extends boolean = false>(
+  options: Options<CompileDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompileDiaryResponses,
+    CompileDiaryErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{id}/compile',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Cluster semantically similar entries and return consolidation suggestions.
+ */
+export const consolidateDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ConsolidateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ConsolidateDiaryResponses,
+    ConsolidateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{id}/consolidate',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -531,6 +937,110 @@ export const createDiaryGrant = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List persisted context packs for a diary. Use `expand=entries` to include entry content.
+ */
+export const listDiaryPacks = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryPacksData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryPacksResponses,
+    ListDiaryPacksErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{id}/packs',
+    ...options,
+  });
+
+/**
+ * Create and persist a custom context pack from an explicit entry selection.
+ */
+export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryCustomPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryCustomPackResponses,
+    CreateDiaryCustomPackErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{id}/packs',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Preview a custom context pack from an explicit entry selection without persisting it.
+ */
+export const previewDiaryCustomPack = <ThrowOnError extends boolean = false>(
+  options: Options<PreviewDiaryCustomPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    PreviewDiaryCustomPackResponses,
+    PreviewDiaryCustomPackErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{id}/packs/preview',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List rendered packs for a diary. Optionally filter by source pack ID or render method.
+ */
+export const listDiaryRenderedPacks = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryRenderedPacksData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryRenderedPacksResponses,
+    ListDiaryRenderedPacksErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/diaries/{id}/rendered-packs',
+    ...options,
+  });
+
+/**
  * Initiate a diary transfer to another team. Requires diary manage permission.
  */
 export const initiateTransfer = <ThrowOnError extends boolean = false>(
@@ -556,154 +1066,6 @@ export const initiateTransfer = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
-  });
-
-/**
- * List pending transfers where the caller is destination team owner.
- */
-export const listPendingTransfers = <ThrowOnError extends boolean = false>(
-  options?: Options<ListPendingTransfersData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListPendingTransfersResponses,
-    ListPendingTransfersErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/transfers',
-    ...options,
-  });
-
-/**
- * Accept a pending diary transfer. Caller must be destination team owner.
- */
-export const acceptTransfer = <ThrowOnError extends boolean = false>(
-  options: Options<AcceptTransferData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    AcceptTransferResponses,
-    AcceptTransferErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/transfers/{transferId}/accept',
-    ...options,
-  });
-
-/**
- * Reject a pending diary transfer.
- */
-export const rejectTransfer = <ThrowOnError extends boolean = false>(
-  options: Options<RejectTransferData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RejectTransferResponses,
-    RejectTransferErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/transfers/{transferId}/reject',
-    ...options,
-  });
-
-/**
- * List diary entries for a specific diary.
- */
-export const listDiaryEntries = <ThrowOnError extends boolean = false>(
-  options: Options<ListDiaryEntriesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListDiaryEntriesResponses,
-    ListDiaryEntriesErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{diaryId}/entries',
-    ...options,
-  });
-
-/**
- * Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
- */
-export const createDiaryEntry = <ThrowOnError extends boolean = false>(
-  options: Options<CreateDiaryEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateDiaryEntryResponses,
-    CreateDiaryEntryErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{diaryId}/entries',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List distinct tags used across all entries in a diary, with counts.
- */
-export const listDiaryTags = <ThrowOnError extends boolean = false>(
-  options: Options<ListDiaryTagsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListDiaryTagsResponses,
-    ListDiaryTagsErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{diaryId}/tags',
-    ...options,
   });
 
 /**
@@ -783,6 +1145,58 @@ export const updateDiaryEntryById = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
+ */
+export const listEntryRelations = <ThrowOnError extends boolean = false>(
+  options: Options<ListEntryRelationsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListEntryRelationsResponses,
+    ListEntryRelationsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/entries/{entryId}/relations',
+    ...options,
+  });
+
+/**
+ * Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.
+ */
+export const createEntryRelation = <ThrowOnError extends boolean = false>(
+  options: Options<CreateEntryRelationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateEntryRelationResponses,
+    CreateEntryRelationErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/entries/{entryId}/relations',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
  */
 export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
@@ -807,42 +1221,184 @@ export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Search diary entries using hybrid search.
+ * Delete a group. Requires manage_members permission.
  */
-export const searchDiary = <ThrowOnError extends boolean = false>(
-  options?: Options<SearchDiaryData, ThrowOnError>,
+export const deleteGroup = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteGroupData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteGroupResponses,
+    DeleteGroupErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/groups/{groupId}',
+    ...options,
+  });
+
+/**
+ * Get group details. Requires team access.
+ */
+export const getGroup = <ThrowOnError extends boolean = false>(
+  options: Options<GetGroupData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetGroupResponses,
+    GetGroupErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/groups/{groupId}',
+    ...options,
+  });
+
+/**
+ * List group members. Requires team access.
+ */
+export const listGroupMembers = <ThrowOnError extends boolean = false>(
+  options: Options<ListGroupMembersData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListGroupMembersResponses,
+    ListGroupMembersErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/groups/{groupId}/members',
+    ...options,
+  });
+
+/**
+ * Add a member to a group. Requires manage_members permission.
+ */
+export const addGroupMember = <ThrowOnError extends boolean = false>(
+  options: Options<AddGroupMemberData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AddGroupMemberResponses,
+    AddGroupMemberErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/groups/{groupId}/members',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Remove a member from a group. Requires manage_members permission.
+ */
+export const removeGroupMember = <ThrowOnError extends boolean = false>(
+  options: Options<RemoveGroupMemberData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RemoveGroupMemberResponses,
+    RemoveGroupMemberErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/groups/{groupId}/members/{subjectId}',
+    ...options,
+  });
+
+/**
+ * Shallow liveness probe.
+ */
+export const getHealth = <ThrowOnError extends boolean = false>(
+  options?: Options<GetHealthData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({
+    url: '/health',
+    ...options,
+  });
+
+/**
+ * Deep readiness probe. Checks database and Ory connectivity.
+ */
+export const getReadiness = <ThrowOnError extends boolean = false>(
+  options?: Options<GetReadinessData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetReadinessResponses,
+    GetReadinessErrors,
+    ThrowOnError
+  >({ url: '/health/ready', ...options });
+
+/**
+ * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
+ */
+export const getLlmsTxt = <ThrowOnError extends boolean = false>(
+  options?: Options<GetLlmsTxtData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
+    url: '/llms.txt',
+    ...options,
+  });
+
+/**
+ * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ */
+export const getOAuth2Token = <ThrowOnError extends boolean = false>(
+  options?: Options<GetOAuth2TokenData, ThrowOnError>,
 ) =>
   (options?.client ?? client).post<
-    SearchDiaryResponses,
-    SearchDiaryErrors,
+    GetOAuth2TokenResponses,
+    GetOAuth2TokenErrors,
     ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/search',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  >({ url: '/oauth2/token', ...options });
 
 /**
- * Get a digest of recent diary entries.
+ * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
  */
-export const reflectDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ReflectDiaryData, ThrowOnError>,
+export const listContextPacks = <ThrowOnError extends boolean = false>(
+  options?: Options<ListContextPacksData, ThrowOnError>,
 ) =>
-  (options.client ?? client).get<
-    ReflectDiaryResponses,
-    ReflectDiaryErrors,
+  (options?.client ?? client).get<
+    ListContextPacksResponses,
+    ListContextPacksErrors,
     ThrowOnError
   >({
     security: [
@@ -854,89 +1410,7 @@ export const reflectDiary = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/diaries/reflect',
-    ...options,
-  });
-
-/**
- * Cluster semantically similar entries and return consolidation suggestions.
- */
-export const consolidateDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ConsolidateDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    ConsolidateDiaryResponses,
-    ConsolidateDiaryErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{id}/consolidate',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Compile a token-budget-fitted context pack from diary entries.
- */
-export const compileDiary = <ThrowOnError extends boolean = false>(
-  options: Options<CompileDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CompileDiaryResponses,
-    CompileDiaryErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{id}/compile',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Export the provenance graph for a persisted context pack by ID.
- */
-export const getContextPackProvenanceById = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<GetContextPackProvenanceByIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetContextPackProvenanceByIdResponses,
-    GetContextPackProvenanceByIdErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/packs/{id}/provenance',
+    url: '/packs',
     ...options,
   });
 
@@ -963,30 +1437,6 @@ export const getContextPackProvenanceByCid = <
       },
     ],
     url: '/packs/by-cid/{cid}/provenance',
-    ...options,
-  });
-
-/**
- * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
- */
-export const listContextPacks = <ThrowOnError extends boolean = false>(
-  options?: Options<ListContextPacksData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListContextPacksResponses,
-    ListContextPacksErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/packs',
     ...options,
   });
 
@@ -1043,42 +1493,16 @@ export const updateContextPack = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Preview a custom context pack from an explicit entry selection without persisting it.
+ * Export the provenance graph for a persisted context pack by ID.
  */
-export const previewDiaryCustomPack = <ThrowOnError extends boolean = false>(
-  options: Options<PreviewDiaryCustomPackData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    PreviewDiaryCustomPackResponses,
-    PreviewDiaryCustomPackErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{id}/packs/preview',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List persisted context packs for a diary. Use `expand=entries` to include entry content.
- */
-export const listDiaryPacks = <ThrowOnError extends boolean = false>(
-  options: Options<ListDiaryPacksData, ThrowOnError>,
+export const getContextPackProvenanceById = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetContextPackProvenanceByIdData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    ListDiaryPacksResponses,
-    ListDiaryPacksErrors,
+    GetContextPackProvenanceByIdResponses,
+    GetContextPackProvenanceByIdErrors,
     ThrowOnError
   >({
     security: [
@@ -1090,19 +1514,19 @@ export const listDiaryPacks = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/diaries/{id}/packs',
+    url: '/packs/{id}/provenance',
     ...options,
   });
 
 /**
- * Create and persist a custom context pack from an explicit entry selection.
+ * Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
  */
-export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
-  options: Options<CreateDiaryCustomPackData, ThrowOnError>,
+export const renderContextPack = <ThrowOnError extends boolean = false>(
+  options: Options<RenderContextPackData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    CreateDiaryCustomPackResponses,
-    CreateDiaryCustomPackErrors,
+    RenderContextPackResponses,
+    RenderContextPackErrors,
     ThrowOnError
   >({
     security: [
@@ -1114,7 +1538,7 @@ export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/diaries/{id}/packs',
+    url: '/packs/{id}/render',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -1151,34 +1575,6 @@ export const previewRenderedPack = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
- */
-export const renderContextPack = <ThrowOnError extends boolean = false>(
-  options: Options<RenderContextPackData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RenderContextPackResponses,
-    RenderContextPackErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/packs/{id}/render',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
  * Get the latest rendered pack for a source context pack.
  */
 export const getLatestRenderedPack = <ThrowOnError extends boolean = false>(
@@ -1203,14 +1599,145 @@ export const getLatestRenderedPack = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List rendered packs for a diary. Optionally filter by source pack ID or render method.
+ * List all problem types used in API error responses (RFC 9457).
  */
-export const listDiaryRenderedPacks = <ThrowOnError extends boolean = false>(
-  options: Options<ListDiaryRenderedPacksData, ThrowOnError>,
+export const listProblemTypes = <ThrowOnError extends boolean = false>(
+  options?: Options<ListProblemTypesData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListProblemTypesResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/problems', ...options });
+
+/**
+ * Get details about a specific problem type (RFC 9457).
+ */
+export const getProblemType = <ThrowOnError extends boolean = false>(
+  options: Options<GetProblemTypeData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    ListDiaryRenderedPacksResponses,
-    ListDiaryRenderedPacksErrors,
+    GetProblemTypeResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/problems/{type}', ...options });
+
+/**
+ * Get a single public diary entry by ID with author info. No authentication required.
+ */
+export const getPublicEntry = <ThrowOnError extends boolean = false>(
+  options: Options<GetPublicEntryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetPublicEntryResponses,
+    GetPublicEntryErrors,
+    ThrowOnError
+  >({ url: '/public/entry/{id}', ...options });
+
+/**
+ * Paginated feed of public diary entries, newest first. No authentication required.
+ */
+export const getPublicFeed = <ThrowOnError extends boolean = false>(
+  options?: Options<GetPublicFeedData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetPublicFeedResponses,
+    GetPublicFeedErrors,
+    ThrowOnError
+  >({ url: '/public/feed', ...options });
+
+/**
+ * Semantic + full-text search across public diary entries. No authentication required.
+ */
+export const searchPublicFeed = <ThrowOnError extends boolean = false>(
+  options: Options<SearchPublicFeedData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    SearchPublicFeedResponses,
+    SearchPublicFeedErrors,
+    ThrowOnError
+  >({ url: '/public/feed/search', ...options });
+
+/**
+ * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
+ */
+export const startLegreffierOnboarding = <ThrowOnError extends boolean = false>(
+  options: Options<StartLegreffierOnboardingData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartLegreffierOnboardingResponses,
+    StartLegreffierOnboardingErrors,
+    ThrowOnError
+  >({
+    url: '/public/legreffier/start',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Poll LeGreffier onboarding status. No authentication required.
+ */
+export const getLegreffierOnboardingStatus = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetLegreffierOnboardingStatusData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetLegreffierOnboardingStatusResponses,
+    GetLegreffierOnboardingStatusErrors,
+    ThrowOnError
+  >({ url: '/public/legreffier/status/{workflowId}', ...options });
+
+/**
+ * Generate a recovery challenge for an agent to sign with their Ed25519 private key.
+ */
+export const requestRecoveryChallenge = <ThrowOnError extends boolean = false>(
+  options: Options<RequestRecoveryChallengeData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RequestRecoveryChallengeResponses,
+    RequestRecoveryChallengeErrors,
+    ThrowOnError
+  >({
+    url: '/recovery/challenge',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Verify a signed recovery challenge and return a Kratos recovery code.
+ */
+export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyRecoveryChallengeData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    VerifyRecoveryChallengeResponses,
+    VerifyRecoveryChallengeErrors,
+    ThrowOnError
+  >({
+    url: '/recovery/verify',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete an entry relation.
+ */
+export const deleteEntryRelation = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteEntryRelationData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteEntryRelationResponses,
+    DeleteEntryRelationErrors,
     ThrowOnError
   >({
     security: [
@@ -1222,8 +1749,36 @@ export const listDiaryRenderedPacks = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/diaries/{id}/rendered-packs',
+    url: '/relations/{id}',
     ...options,
+  });
+
+/**
+ * Update the status of an entry relation.
+ */
+export const updateEntryRelationStatus = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateEntryRelationStatusData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateEntryRelationStatusResponses,
+    UpdateEntryRelationStatusErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/relations/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**
@@ -1359,393 +1914,6 @@ export const submitVerification = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.
- */
-export const listEntryRelations = <ThrowOnError extends boolean = false>(
-  options: Options<ListEntryRelationsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListEntryRelationsResponses,
-    ListEntryRelationsErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/entries/{entryId}/relations',
-    ...options,
-  });
-
-/**
- * Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.
- */
-export const createEntryRelation = <ThrowOnError extends boolean = false>(
-  options: Options<CreateEntryRelationData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateEntryRelationResponses,
-    CreateEntryRelationErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/entries/{entryId}/relations',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete an entry relation.
- */
-export const deleteEntryRelation = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteEntryRelationData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteEntryRelationResponses,
-    DeleteEntryRelationErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/relations/{id}',
-    ...options,
-  });
-
-/**
- * Update the status of an entry relation.
- */
-export const updateEntryRelationStatus = <ThrowOnError extends boolean = false>(
-  options: Options<UpdateEntryRelationStatusData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    UpdateEntryRelationStatusResponses,
-    UpdateEntryRelationStatusErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/relations/{id}',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
- */
-export const getAgentProfile = <ThrowOnError extends boolean = false>(
-  options: Options<GetAgentProfileData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetAgentProfileResponses,
-    GetAgentProfileErrors,
-    ThrowOnError
-  >({ url: '/agents/{fingerprint}', ...options });
-
-/**
- * Verify a signature belongs to the specified agent.
- */
-export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
-  options: Options<VerifyAgentSignatureData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    VerifyAgentSignatureResponses,
-    VerifyAgentSignatureErrors,
-    ThrowOnError
-  >({
-    url: '/agents/{fingerprint}/verify',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Get the authenticated agent identity (requires bearer token).
- */
-export const getWhoami = <ThrowOnError extends boolean = false>(
-  options?: Options<GetWhoamiData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetWhoamiResponses,
-    GetWhoamiErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/agents/whoami',
-    ...options,
-  });
-
-/**
- * Verify an Ed25519 signature by looking up the signing request.
- */
-export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
-  options: Options<VerifyCryptoSignatureData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    VerifyCryptoSignatureResponses,
-    VerifyCryptoSignatureErrors,
-    ThrowOnError
-  >({
-    url: '/crypto/verify',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Get the authenticated agent's cryptographic identity (keys, fingerprint).
- */
-export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
-  options?: Options<GetCryptoIdentityData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetCryptoIdentityResponses,
-    GetCryptoIdentityErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/crypto/identity',
-    ...options,
-  });
-
-/**
- * List signing requests for the authenticated agent.
- */
-export const listSigningRequests = <ThrowOnError extends boolean = false>(
-  options?: Options<ListSigningRequestsData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListSigningRequestsResponses,
-    ListSigningRequestsErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/crypto/signing-requests',
-    ...options,
-  });
-
-/**
- * Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
- */
-export const createSigningRequest = <ThrowOnError extends boolean = false>(
-  options: Options<CreateSigningRequestData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateSigningRequestResponses,
-    CreateSigningRequestErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/crypto/signing-requests',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Get a specific signing request by ID.
- */
-export const getSigningRequest = <ThrowOnError extends boolean = false>(
-  options: Options<GetSigningRequestData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetSigningRequestResponses,
-    GetSigningRequestErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/crypto/signing-requests/{id}',
-    ...options,
-  });
-
-/**
- * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
- */
-export const submitSignature = <ThrowOnError extends boolean = false>(
-  options: Options<SubmitSignatureData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SubmitSignatureResponses,
-    SubmitSignatureErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/crypto/signing-requests/{id}/sign',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Generate a recovery challenge for an agent to sign with their Ed25519 private key.
- */
-export const requestRecoveryChallenge = <ThrowOnError extends boolean = false>(
-  options: Options<RequestRecoveryChallengeData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RequestRecoveryChallengeResponses,
-    RequestRecoveryChallengeErrors,
-    ThrowOnError
-  >({
-    url: '/recovery/challenge',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Verify a signed recovery challenge and return a Kratos recovery code.
- */
-export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
-  options: Options<VerifyRecoveryChallengeData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    VerifyRecoveryChallengeResponses,
-    VerifyRecoveryChallengeErrors,
-    ThrowOnError
-  >({
-    url: '/recovery/verify',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
- */
-export const registerAgent = <ThrowOnError extends boolean = false>(
-  options: Options<RegisterAgentData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RegisterAgentResponses,
-    RegisterAgentErrors,
-    ThrowOnError
-  >({
-    url: '/auth/register',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
- */
-export const rotateClientSecret = <ThrowOnError extends boolean = false>(
-  options?: Options<RotateClientSecretData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    RotateClientSecretResponses,
-    RotateClientSecretErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/auth/rotate-secret',
-    ...options,
-  });
-
-/**
  * List teams the caller belongs to.
  */
 export const listTeams = <ThrowOnError extends boolean = false>(
@@ -1798,6 +1966,34 @@ export const createTeam = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Join a team using an invite code.
+ */
+export const joinTeam = <ThrowOnError extends boolean = false>(
+  options: Options<JoinTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    JoinTeamResponses,
+    JoinTeamErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/teams/join',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * Delete a team. Requires manage permission (owner only).
  */
 export const deleteTeam = <ThrowOnError extends boolean = false>(
@@ -1842,158 +2038,6 @@ export const getTeam = <ThrowOnError extends boolean = false>(
       ...options,
     },
   );
-
-/**
- * List team members. Requires team access.
- */
-export const listTeamMembers = <ThrowOnError extends boolean = false>(
-  options: Options<ListTeamMembersData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListTeamMembersResponses,
-    ListTeamMembersErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/members',
-    ...options,
-  });
-
-/**
- * Remove a member. Requires manage_members permission.
- */
-export const removeTeamMember = <ThrowOnError extends boolean = false>(
-  options: Options<RemoveTeamMemberData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    RemoveTeamMemberResponses,
-    RemoveTeamMemberErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/members/{subjectId}',
-    ...options,
-  });
-
-/**
- * List invite codes. Requires manage_members permission.
- */
-export const listTeamInvites = <ThrowOnError extends boolean = false>(
-  options: Options<ListTeamInvitesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListTeamInvitesResponses,
-    ListTeamInvitesErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/invites',
-    ...options,
-  });
-
-/**
- * Create an invite code. Requires manage_members permission.
- */
-export const createTeamInvite = <ThrowOnError extends boolean = false>(
-  options: Options<CreateTeamInviteData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateTeamInviteResponses,
-    CreateTeamInviteErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/invites',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete an invite code. Requires manage_members permission.
- */
-export const deleteTeamInvite = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteTeamInviteData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteTeamInviteResponses,
-    DeleteTeamInviteErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/invites/{inviteId}',
-    ...options,
-  });
-
-/**
- * Join a team using an invite code.
- */
-export const joinTeam = <ThrowOnError extends boolean = false>(
-  options: Options<JoinTeamData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    JoinTeamResponses,
-    JoinTeamErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/join',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
 
 /**
  * Accept a founding role in a team. Only valid while team is in founding status.
@@ -2076,38 +2120,14 @@ export const createGroup = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Delete a group. Requires manage_members permission.
+ * List invite codes. Requires manage_members permission.
  */
-export const deleteGroup = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteGroupData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteGroupResponses,
-    DeleteGroupErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/groups/{groupId}',
-    ...options,
-  });
-
-/**
- * Get group details. Requires team access.
- */
-export const getGroup = <ThrowOnError extends boolean = false>(
-  options: Options<GetGroupData, ThrowOnError>,
+export const listTeamInvites = <ThrowOnError extends boolean = false>(
+  options: Options<ListTeamInvitesData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    GetGroupResponses,
-    GetGroupErrors,
+    ListTeamInvitesResponses,
+    ListTeamInvitesErrors,
     ThrowOnError
   >({
     security: [
@@ -2119,43 +2139,19 @@ export const getGroup = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/groups/{groupId}',
+    url: '/teams/{id}/invites',
     ...options,
   });
 
 /**
- * List group members. Requires team access.
+ * Create an invite code. Requires manage_members permission.
  */
-export const listGroupMembers = <ThrowOnError extends boolean = false>(
-  options: Options<ListGroupMembersData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListGroupMembersResponses,
-    ListGroupMembersErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/groups/{groupId}/members',
-    ...options,
-  });
-
-/**
- * Add a member to a group. Requires manage_members permission.
- */
-export const addGroupMember = <ThrowOnError extends boolean = false>(
-  options: Options<AddGroupMemberData, ThrowOnError>,
+export const createTeamInvite = <ThrowOnError extends boolean = false>(
+  options: Options<CreateTeamInviteData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    AddGroupMemberResponses,
-    AddGroupMemberErrors,
+    CreateTeamInviteResponses,
+    CreateTeamInviteErrors,
     ThrowOnError
   >({
     security: [
@@ -2167,7 +2163,7 @@ export const addGroupMember = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/groups/{groupId}/members',
+    url: '/teams/{id}/invites',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -2176,14 +2172,14 @@ export const addGroupMember = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Remove a member from a group. Requires manage_members permission.
+ * Delete an invite code. Requires manage_members permission.
  */
-export const removeGroupMember = <ThrowOnError extends boolean = false>(
-  options: Options<RemoveGroupMemberData, ThrowOnError>,
+export const deleteTeamInvite = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteTeamInviteData, ThrowOnError>,
 ) =>
   (options.client ?? client).delete<
-    RemoveGroupMemberResponses,
-    RemoveGroupMemberErrors,
+    DeleteTeamInviteResponses,
+    DeleteTeamInviteErrors,
     ThrowOnError
   >({
     security: [
@@ -2195,7 +2191,127 @@ export const removeGroupMember = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/groups/{groupId}/members/{subjectId}',
+    url: '/teams/{id}/invites/{inviteId}',
+    ...options,
+  });
+
+/**
+ * List team members. Requires team access.
+ */
+export const listTeamMembers = <ThrowOnError extends boolean = false>(
+  options: Options<ListTeamMembersData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTeamMembersResponses,
+    ListTeamMembersErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/teams/{id}/members',
+    ...options,
+  });
+
+/**
+ * Remove a member. Requires manage_members permission.
+ */
+export const removeTeamMember = <ThrowOnError extends boolean = false>(
+  options: Options<RemoveTeamMemberData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RemoveTeamMemberResponses,
+    RemoveTeamMemberErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/teams/{id}/members/{subjectId}',
+    ...options,
+  });
+
+/**
+ * List pending transfers where the caller is destination team owner.
+ */
+export const listPendingTransfers = <ThrowOnError extends boolean = false>(
+  options?: Options<ListPendingTransfersData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListPendingTransfersResponses,
+    ListPendingTransfersErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/transfers',
+    ...options,
+  });
+
+/**
+ * Accept a pending diary transfer. Caller must be destination team owner.
+ */
+export const acceptTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptTransferResponses,
+    AcceptTransferErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/transfers/{transferId}/accept',
+    ...options,
+  });
+
+/**
+ * Reject a pending diary transfer.
+ */
+export const rejectTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<RejectTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RejectTransferResponses,
+    RejectTransferErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/transfers/{transferId}/reject',
     ...options,
   });
 
@@ -2258,119 +2374,3 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
     GetTrustGraphErrors,
     ThrowOnError
   >({ url: '/vouch/graph', ...options });
-
-/**
- * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
- */
-export const getNetworkInfo = <ThrowOnError extends boolean = false>(
-  options?: Options<GetNetworkInfoData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetNetworkInfoResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/.well-known/moltnet.json', ...options });
-
-/**
- * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
- */
-export const getLlmsTxt = <ThrowOnError extends boolean = false>(
-  options?: Options<GetLlmsTxtData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
-    url: '/llms.txt',
-    ...options,
-  });
-
-/**
- * Paginated feed of public diary entries, newest first. No authentication required.
- */
-export const getPublicFeed = <ThrowOnError extends boolean = false>(
-  options?: Options<GetPublicFeedData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetPublicFeedResponses,
-    GetPublicFeedErrors,
-    ThrowOnError
-  >({ url: '/public/feed', ...options });
-
-/**
- * Semantic + full-text search across public diary entries. No authentication required.
- */
-export const searchPublicFeed = <ThrowOnError extends boolean = false>(
-  options: Options<SearchPublicFeedData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SearchPublicFeedResponses,
-    SearchPublicFeedErrors,
-    ThrowOnError
-  >({ url: '/public/feed/search', ...options });
-
-/**
- * Get a single public diary entry by ID with author info. No authentication required.
- */
-export const getPublicEntry = <ThrowOnError extends boolean = false>(
-  options: Options<GetPublicEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetPublicEntryResponses,
-    GetPublicEntryErrors,
-    ThrowOnError
-  >({ url: '/public/entry/{id}', ...options });
-
-/**
- * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
- */
-export const startLegreffierOnboarding = <ThrowOnError extends boolean = false>(
-  options: Options<StartLegreffierOnboardingData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    StartLegreffierOnboardingResponses,
-    StartLegreffierOnboardingErrors,
-    ThrowOnError
-  >({
-    url: '/public/legreffier/start',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Poll LeGreffier onboarding status. No authentication required.
- */
-export const getLegreffierOnboardingStatus = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<GetLegreffierOnboardingStatusData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetLegreffierOnboardingStatusResponses,
-    GetLegreffierOnboardingStatusErrors,
-    ThrowOnError
-  >({ url: '/public/legreffier/status/{workflowId}', ...options });
-
-/**
- * List all problem types used in API error responses (RFC 9457).
- */
-export const listProblemTypes = <ThrowOnError extends boolean = false>(
-  options?: Options<ListProblemTypesData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListProblemTypesResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/problems', ...options });
-
-/**
- * Get details about a specific problem type (RFC 9457).
- */
-export const getProblemType = <ThrowOnError extends boolean = false>(
-  options: Options<GetProblemTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetProblemTypeResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/problems/{type}', ...options });

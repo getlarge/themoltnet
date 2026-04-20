@@ -1,45 +1,25 @@
+import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useMemo, useState } from 'react';
 
 import { DiaryCard } from '../components/diaries/DiaryCard.js';
 import { fetchDiarySummaries } from '../diaries/api.js';
-import type { DiarySummary } from '../diaries/utils.js';
 import { useTeam } from '../team/useTeam.js';
 
 export function DiariesPage() {
   const theme = useTheme();
   const { error: teamError, refreshTeams, selectedTeam } = useTeam();
-  const [diaries, setDiaries] = useState<Array<DiarySummary>>([]);
   const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const items = await fetchDiarySummaries(selectedTeam?.id ?? null);
-        if (!cancelled) setDiaries(items);
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err : new Error('Failed to load diaries'),
-          );
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedTeam?.id]);
+  const {
+    data: diaries = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['diaries', 'summaries', selectedTeam?.id ?? null],
+    queryFn: () => fetchDiarySummaries(selectedTeam?.id ?? null),
+    staleTime: 30_000,
+  });
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -115,7 +95,7 @@ export function DiariesPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.location.reload()}
+              onClick={() => void refetch()}
             >
               Retry
             </Button>

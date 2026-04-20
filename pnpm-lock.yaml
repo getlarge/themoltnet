@@ -129,6 +129,9 @@ catalogs:
     '@sinclair/typebox':
       specifier: ^0.34.0
       version: 0.34.48
+    '@tanstack/react-query':
+      specifier: ^5.90.3
+      version: 5.99.2
     '@testcontainers/postgresql':
       specifier: ^11.0.0
       version: 11.12.0
@@ -364,6 +367,9 @@ importers:
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.34
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.99.2(react@19.2.4)
       '@themoltnet/design-system':
         specifier: workspace:*
         version: link:../../libs/design-system
@@ -739,6 +745,10 @@ importers:
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   libs/api-client:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.99.2(react@19.2.4)
     devDependencies:
       '@hey-api/openapi-ts':
         specifier: 'catalog:'
@@ -3027,6 +3037,14 @@ packages:
 
   '@so-ric/colorspace@1.1.6':
     resolution: {integrity: sha512-/KiKkpHNOBgkFJwu9sh48LkHSMYGyuTcSFK/qMBdnOAlrRJzRSXAOFB5qwzaVQuDl8wAvHVMkaASQDReTahxuw==}
+
+  '@tanstack/query-core@5.99.2':
+    resolution: {integrity: sha512-1HunU0bXVsR1ZJMZbcOPE6VtaBJxsW809RE9xPe4Gz7MlB0GWwQvuTPhMoEmQ/hIzFKJ/DWAuttIe7BOaWx0tA==}
+
+  '@tanstack/react-query@5.99.2':
+    resolution: {integrity: sha512-vM91UEe45QUS9ED6OklsVL15i8qKcRqNwpWzPTVWvRPRSEgDudDgHpvyTjcdlwHcrKNa80T+xXYcchT2noPnZA==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@testcontainers/postgresql@11.12.0':
     resolution: {integrity: sha512-w4ZK0H+WIYBUBk57H9wCSxPMSMZUNsFpx2MZAX4iru0Aevz9HFWDfAhFLAu+/SwsHtEJUD7XfWUDlqBGC3OF0Q==}
@@ -7954,6 +7972,13 @@ snapshots:
     dependencies:
       color: 5.0.3
       text-hex: 1.0.0
+
+  '@tanstack/query-core@5.99.2': {}
+
+  '@tanstack/react-query@5.99.2(react@19.2.4)':
+    dependencies:
+      '@tanstack/query-core': 5.99.2
+      react: 19.2.4
 
   '@testcontainers/postgresql@11.12.0':
     dependencies:

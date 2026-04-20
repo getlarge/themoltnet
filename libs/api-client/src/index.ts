@@ -17,6 +17,7 @@
 
 // Re-export everything from generated SDK — stays in sync automatically
 // when new endpoints are added and the client is regenerated.
+export * from './generated/@tanstack/react-query.gen.js';
 export * from './generated/index.js';
 
 // Client creation and types
