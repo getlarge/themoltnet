@@ -7735,8 +7735,17 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Ids.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.Ids != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.Ids {
+						if err := func() error {
+							return e.EncodeValue(conv.UUIDToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -7752,8 +7761,17 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Tags.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.Tags != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.Tags {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -7769,8 +7787,17 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.ExcludeTags.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.ExcludeTags != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.ExcludeTags {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -7786,8 +7813,17 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.EntryType.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.EntryType != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.EntryType {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -8568,8 +8604,17 @@ func (c *Client) sendListDiaryTags(ctx context.Context, params ListDiaryTagsPara
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.EntryTypes.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.EntryTypes != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.EntryTypes {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -9517,8 +9562,17 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Status.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.Status != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.Status {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -10454,8 +10508,17 @@ func (c *Client) sendReflectDiary(ctx context.Context, params ReflectDiaryParams
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.EntryTypes.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.EntryTypes != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.EntryTypes {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {
@@ -11869,8 +11932,17 @@ func (c *Client) sendSearchPublicFeed(ctx context.Context, params SearchPublicFe
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.EntryTypes.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.EntryTypes != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.EntryTypes {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {

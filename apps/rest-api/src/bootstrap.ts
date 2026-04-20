@@ -152,7 +152,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       : {}),
   };
 
-  const ajv = { customOptions: { removeAdditional: true as const } };
+  const ajv = {
+    customOptions: {
+      removeAdditional: true as const,
+      coerceTypes: 'array' as const,
+    },
+  };
   const app = (
     observability?.logger
       ? Fastify({ loggerInstance: observability.logger, ajv })

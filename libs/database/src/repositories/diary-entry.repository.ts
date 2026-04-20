@@ -169,6 +169,7 @@ export interface PublicSearchResult {
   content: string;
   tags: string[] | null;
   injectionRisk: boolean;
+  entryType: DiaryEntry['entryType'];
   createdAt: Date;
   author: { fingerprint: string; publicKey: string };
   score: number; // RRF combined score
@@ -180,6 +181,7 @@ export interface PublicFeedEntry {
   content: string;
   tags: string[] | null;
   injectionRisk: boolean;
+  entryType: DiaryEntry['entryType'];
   createdAt: Date;
   author: {
     fingerprint: string;
@@ -220,6 +222,7 @@ function mapRowToPublicSearchResult(
     content: row.content as string,
     tags: (row.tags as string[]) ?? null,
     injectionRisk: (row.injection_risk as boolean) ?? false,
+    entryType: (row.entry_type as DiaryEntry['entryType']) ?? 'semantic',
     createdAt: new Date(row.created_at as string),
     author: {
       fingerprint: row.author_fingerprint as string,
@@ -779,6 +782,7 @@ export function createDiaryEntryRepository(db: Database) {
           content: diaryEntries.content,
           tags: diaryEntries.tags,
           injectionRisk: diaryEntries.injectionRisk,
+          entryType: diaryEntries.entryType,
           createdAt: diaryEntries.createdAt,
           fingerprint: agentKeys.fingerprint,
           publicKey: agentKeys.publicKey,
@@ -798,6 +802,7 @@ export function createDiaryEntryRepository(db: Database) {
           content: row.content,
           tags: row.tags ?? null,
           injectionRisk: row.injectionRisk,
+          entryType: row.entryType,
           createdAt: row.createdAt,
           author: {
             fingerprint: row.fingerprint,
@@ -851,6 +856,7 @@ export function createDiaryEntryRepository(db: Database) {
           content: diaryEntries.content,
           tags: diaryEntries.tags,
           injectionRisk: diaryEntries.injectionRisk,
+          entryType: diaryEntries.entryType,
           createdAt: diaryEntries.createdAt,
           fingerprint: agentKeys.fingerprint,
           publicKey: agentKeys.publicKey,
@@ -869,6 +875,7 @@ export function createDiaryEntryRepository(db: Database) {
           content: row.content,
           tags: row.tags ?? null,
           injectionRisk: row.injectionRisk,
+          entryType: row.entryType,
           createdAt: row.createdAt,
           author: {
             fingerprint: row.fingerprint,
@@ -907,6 +914,7 @@ export function createDiaryEntryRepository(db: Database) {
           content: diaryEntries.content,
           tags: diaryEntries.tags,
           injectionRisk: diaryEntries.injectionRisk,
+          entryType: diaryEntries.entryType,
           createdAt: diaryEntries.createdAt,
           fingerprint: agentKeys.fingerprint,
           publicKey: agentKeys.publicKey,
@@ -925,6 +933,7 @@ export function createDiaryEntryRepository(db: Database) {
         content: row.content,
         tags: row.tags ?? null,
         injectionRisk: row.injectionRisk,
+        entryType: row.entryType,
         createdAt: row.createdAt,
         author: {
           fingerprint: row.fingerprint,

@@ -94,7 +94,11 @@ func runDiaryTagsCmd(apiURL, credPath, diaryID, prefix, entryTypes string, minCo
 		params.Prefix = moltnetapi.OptString{Value: prefix, Set: true}
 	}
 	if entryTypes != "" {
-		params.EntryTypes = moltnetapi.OptString{Value: entryTypes, Set: true}
+		parsedEntryTypes, err := parseListDiaryTagEntryTypes(entryTypes)
+		if err != nil {
+			return err
+		}
+		params.EntryTypes = parsedEntryTypes
 	}
 	if minCount > 0 {
 		params.MinCount = moltnetapi.OptInt{Value: minCount, Set: true}
@@ -108,6 +112,18 @@ func runDiaryTagsCmd(apiURL, credPath, diaryID, prefix, entryTypes string, minCo
 		return formatAPIError(res)
 	}
 	return printJSON(tagsRes)
+}
+
+func parseListDiaryTagEntryTypes(s string) ([]moltnetapi.ListDiaryTagsEntryTypesItem, error) {
+	values := splitAndTrim(s, ",")
+	parsed := make([]moltnetapi.ListDiaryTagsEntryTypesItem, 0, len(values))
+	for _, value := range values {
+		if _, err := parseEntryType(value); err != nil {
+			return nil, err
+		}
+		parsed = append(parsed, moltnetapi.ListDiaryTagsEntryTypesItem(value))
+	}
+	return parsed, nil
 }
 
 // runDiaryCompileCmd compiles a context pack from a diary.

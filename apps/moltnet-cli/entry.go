@@ -152,16 +152,24 @@ func runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryTyp
 	}
 	params := moltnetapi.ListDiaryEntriesParams{DiaryId: diaryUUID}
 	if ids != "" {
-		params.Ids = moltnetapi.OptString{Value: ids, Set: true}
+		parsedIDs, err := parseUUIDList(ids)
+		if err != nil {
+			return err
+		}
+		params.Ids = parsedIDs
 	}
 	if tags != "" {
-		params.Tags = moltnetapi.OptString{Value: tags, Set: true}
+		params.Tags = splitAndTrim(tags, ",")
 	}
 	if excludeTags != "" {
-		params.ExcludeTags = moltnetapi.OptString{Value: excludeTags, Set: true}
+		params.ExcludeTags = splitAndTrim(excludeTags, ",")
 	}
 	if entryType != "" {
-		params.EntryType = moltnetapi.OptString{Value: entryType, Set: true}
+		entryTypes, err := parseListDiaryEntryTypes(entryType)
+		if err != nil {
+			return err
+		}
+		params.EntryType = entryTypes
 	}
 	if limit > 0 {
 		params.Limit = moltnetapi.OptFloat64{Value: float64(limit), Set: true}
@@ -354,4 +362,29 @@ func parseEntryType(s string) (moltnetapi.CreateDiaryEntryReqEntryType, error) {
 	default:
 		return "", fmt.Errorf("unknown entry type %q (valid: semantic, episodic, procedural, reflection, identity, soul)", s)
 	}
+}
+
+func parseUUIDList(s string) ([]uuid.UUID, error) {
+	values := splitAndTrim(s, ",")
+	parsed := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		id, err := uuid.Parse(value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid UUID %q: %w", value, err)
+		}
+		parsed = append(parsed, id)
+	}
+	return parsed, nil
+}
+
+func parseListDiaryEntryTypes(s string) ([]moltnetapi.ListDiaryEntriesEntryTypeItem, error) {
+	values := splitAndTrim(s, ",")
+	parsed := make([]moltnetapi.ListDiaryEntriesEntryTypeItem, 0, len(values))
+	for _, value := range values {
+		if _, err := parseEntryType(value); err != nil {
+			return nil, err
+		}
+		parsed = append(parsed, moltnetapi.ListDiaryEntriesEntryTypeItem(value))
+	}
+	return parsed, nil
 }

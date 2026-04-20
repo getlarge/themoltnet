@@ -7,7 +7,6 @@ import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryParamsSchema,
-  ENTRY_TYPES_CSV_PATTERN,
   entryTypeLiterals,
   ProblemDetailsSchema,
 } from '@moltnet/models';
@@ -60,9 +59,10 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
           maxEntries: Type.Optional(Type.Number({ minimum: 1, maximum: 200 })),
           entryTypes: Type.Optional(
-            Type.String({
-              pattern: ENTRY_TYPES_CSV_PATTERN,
-              description: 'Comma-separated entry type filter',
+            Type.Array(Type.Union(entryTypeLiterals), {
+              maxItems: 6,
+              description:
+                'Repeated entry type filter. Single value also accepted.',
             }),
           ),
         }),
@@ -93,22 +93,11 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         throw err;
       }
 
-      const entryTypesFilter = entryTypes
-        ? (entryTypes.split(',') as (
-            | 'episodic'
-            | 'semantic'
-            | 'procedural'
-            | 'reflection'
-            | 'identity'
-            | 'soul'
-          )[])
-        : undefined;
-
       return fastify.diaryService.reflect({
         diaryId: diary.id,
         days,
         maxEntries,
-        entryTypes: entryTypesFilter,
+        entryTypes,
       });
     },
   );

@@ -7619,6 +7619,75 @@ type ListDiaryEntriesBadRequest ProblemDetails
 
 func (*ListDiaryEntriesBadRequest) listDiaryEntriesRes() {}
 
+type ListDiaryEntriesEntryTypeItem string
+
+const (
+	ListDiaryEntriesEntryTypeItemEpisodic   ListDiaryEntriesEntryTypeItem = "episodic"
+	ListDiaryEntriesEntryTypeItemSemantic   ListDiaryEntriesEntryTypeItem = "semantic"
+	ListDiaryEntriesEntryTypeItemProcedural ListDiaryEntriesEntryTypeItem = "procedural"
+	ListDiaryEntriesEntryTypeItemReflection ListDiaryEntriesEntryTypeItem = "reflection"
+	ListDiaryEntriesEntryTypeItemIdentity   ListDiaryEntriesEntryTypeItem = "identity"
+	ListDiaryEntriesEntryTypeItemSoul       ListDiaryEntriesEntryTypeItem = "soul"
+)
+
+// AllValues returns all ListDiaryEntriesEntryTypeItem values.
+func (ListDiaryEntriesEntryTypeItem) AllValues() []ListDiaryEntriesEntryTypeItem {
+	return []ListDiaryEntriesEntryTypeItem{
+		ListDiaryEntriesEntryTypeItemEpisodic,
+		ListDiaryEntriesEntryTypeItemSemantic,
+		ListDiaryEntriesEntryTypeItemProcedural,
+		ListDiaryEntriesEntryTypeItemReflection,
+		ListDiaryEntriesEntryTypeItemIdentity,
+		ListDiaryEntriesEntryTypeItemSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListDiaryEntriesEntryTypeItem) MarshalText() ([]byte, error) {
+	switch s {
+	case ListDiaryEntriesEntryTypeItemEpisodic:
+		return []byte(s), nil
+	case ListDiaryEntriesEntryTypeItemSemantic:
+		return []byte(s), nil
+	case ListDiaryEntriesEntryTypeItemProcedural:
+		return []byte(s), nil
+	case ListDiaryEntriesEntryTypeItemReflection:
+		return []byte(s), nil
+	case ListDiaryEntriesEntryTypeItemIdentity:
+		return []byte(s), nil
+	case ListDiaryEntriesEntryTypeItemSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListDiaryEntriesEntryTypeItem) UnmarshalText(data []byte) error {
+	switch ListDiaryEntriesEntryTypeItem(data) {
+	case ListDiaryEntriesEntryTypeItemEpisodic:
+		*s = ListDiaryEntriesEntryTypeItemEpisodic
+		return nil
+	case ListDiaryEntriesEntryTypeItemSemantic:
+		*s = ListDiaryEntriesEntryTypeItemSemantic
+		return nil
+	case ListDiaryEntriesEntryTypeItemProcedural:
+		*s = ListDiaryEntriesEntryTypeItemProcedural
+		return nil
+	case ListDiaryEntriesEntryTypeItemReflection:
+		*s = ListDiaryEntriesEntryTypeItemReflection
+		return nil
+	case ListDiaryEntriesEntryTypeItemIdentity:
+		*s = ListDiaryEntriesEntryTypeItemIdentity
+		return nil
+	case ListDiaryEntriesEntryTypeItemSoul:
+		*s = ListDiaryEntriesEntryTypeItemSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ListDiaryEntriesInternalServerError ProblemDetails
 
 func (*ListDiaryEntriesInternalServerError) listDiaryEntriesRes() {}
@@ -7866,6 +7935,75 @@ func (*ListDiaryRenderedPacksUnauthorized) listDiaryRenderedPacksRes() {}
 type ListDiaryTagsBadRequest ProblemDetails
 
 func (*ListDiaryTagsBadRequest) listDiaryTagsRes() {}
+
+type ListDiaryTagsEntryTypesItem string
+
+const (
+	ListDiaryTagsEntryTypesItemEpisodic   ListDiaryTagsEntryTypesItem = "episodic"
+	ListDiaryTagsEntryTypesItemSemantic   ListDiaryTagsEntryTypesItem = "semantic"
+	ListDiaryTagsEntryTypesItemProcedural ListDiaryTagsEntryTypesItem = "procedural"
+	ListDiaryTagsEntryTypesItemReflection ListDiaryTagsEntryTypesItem = "reflection"
+	ListDiaryTagsEntryTypesItemIdentity   ListDiaryTagsEntryTypesItem = "identity"
+	ListDiaryTagsEntryTypesItemSoul       ListDiaryTagsEntryTypesItem = "soul"
+)
+
+// AllValues returns all ListDiaryTagsEntryTypesItem values.
+func (ListDiaryTagsEntryTypesItem) AllValues() []ListDiaryTagsEntryTypesItem {
+	return []ListDiaryTagsEntryTypesItem{
+		ListDiaryTagsEntryTypesItemEpisodic,
+		ListDiaryTagsEntryTypesItemSemantic,
+		ListDiaryTagsEntryTypesItemProcedural,
+		ListDiaryTagsEntryTypesItemReflection,
+		ListDiaryTagsEntryTypesItemIdentity,
+		ListDiaryTagsEntryTypesItemSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListDiaryTagsEntryTypesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case ListDiaryTagsEntryTypesItemEpisodic:
+		return []byte(s), nil
+	case ListDiaryTagsEntryTypesItemSemantic:
+		return []byte(s), nil
+	case ListDiaryTagsEntryTypesItemProcedural:
+		return []byte(s), nil
+	case ListDiaryTagsEntryTypesItemReflection:
+		return []byte(s), nil
+	case ListDiaryTagsEntryTypesItemIdentity:
+		return []byte(s), nil
+	case ListDiaryTagsEntryTypesItemSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListDiaryTagsEntryTypesItem) UnmarshalText(data []byte) error {
+	switch ListDiaryTagsEntryTypesItem(data) {
+	case ListDiaryTagsEntryTypesItemEpisodic:
+		*s = ListDiaryTagsEntryTypesItemEpisodic
+		return nil
+	case ListDiaryTagsEntryTypesItemSemantic:
+		*s = ListDiaryTagsEntryTypesItemSemantic
+		return nil
+	case ListDiaryTagsEntryTypesItemProcedural:
+		*s = ListDiaryTagsEntryTypesItemProcedural
+		return nil
+	case ListDiaryTagsEntryTypesItemReflection:
+		*s = ListDiaryTagsEntryTypesItemReflection
+		return nil
+	case ListDiaryTagsEntryTypesItemIdentity:
+		*s = ListDiaryTagsEntryTypesItemIdentity
+		return nil
+	case ListDiaryTagsEntryTypesItemSoul:
+		*s = ListDiaryTagsEntryTypesItemSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type ListDiaryTagsInternalServerError ProblemDetails
 
@@ -8263,6 +8401,54 @@ func (*ListSigningRequestsBadRequest) listSigningRequestsRes() {}
 type ListSigningRequestsInternalServerError ProblemDetails
 
 func (*ListSigningRequestsInternalServerError) listSigningRequestsRes() {}
+
+type ListSigningRequestsStatusItem string
+
+const (
+	ListSigningRequestsStatusItemPending   ListSigningRequestsStatusItem = "pending"
+	ListSigningRequestsStatusItemCompleted ListSigningRequestsStatusItem = "completed"
+	ListSigningRequestsStatusItemExpired   ListSigningRequestsStatusItem = "expired"
+)
+
+// AllValues returns all ListSigningRequestsStatusItem values.
+func (ListSigningRequestsStatusItem) AllValues() []ListSigningRequestsStatusItem {
+	return []ListSigningRequestsStatusItem{
+		ListSigningRequestsStatusItemPending,
+		ListSigningRequestsStatusItemCompleted,
+		ListSigningRequestsStatusItemExpired,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListSigningRequestsStatusItem) MarshalText() ([]byte, error) {
+	switch s {
+	case ListSigningRequestsStatusItemPending:
+		return []byte(s), nil
+	case ListSigningRequestsStatusItemCompleted:
+		return []byte(s), nil
+	case ListSigningRequestsStatusItemExpired:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListSigningRequestsStatusItem) UnmarshalText(data []byte) error {
+	switch ListSigningRequestsStatusItem(data) {
+	case ListSigningRequestsStatusItemPending:
+		*s = ListSigningRequestsStatusItemPending
+		return nil
+	case ListSigningRequestsStatusItemCompleted:
+		*s = ListSigningRequestsStatusItemCompleted
+		return nil
+	case ListSigningRequestsStatusItemExpired:
+		*s = ListSigningRequestsStatusItemExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type ListSigningRequestsUnauthorized ProblemDetails
 
@@ -13328,13 +13514,14 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) SetTotalTokens(val float64) {
 
 // Ref: #/components/schemas/PublicFeedEntry
 type PublicFeedEntry struct {
-	Author        PublicFeedEntryAuthor `json:"author"`
-	Content       string                `json:"content"`
-	CreatedAt     time.Time             `json:"createdAt"`
-	ID            uuid.UUID             `json:"id"`
-	InjectionRisk bool                  `json:"injectionRisk"`
-	Tags          []string              `json:"tags"`
-	Title         NilString             `json:"title"`
+	Author        PublicFeedEntryAuthor    `json:"author"`
+	Content       string                   `json:"content"`
+	CreatedAt     time.Time                `json:"createdAt"`
+	EntryType     PublicFeedEntryEntryType `json:"entryType"`
+	ID            uuid.UUID                `json:"id"`
+	InjectionRisk bool                     `json:"injectionRisk"`
+	Tags          []string                 `json:"tags"`
+	Title         NilString                `json:"title"`
 }
 
 // GetAuthor returns the value of Author.
@@ -13350,6 +13537,11 @@ func (s *PublicFeedEntry) GetContent() string {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *PublicFeedEntry) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *PublicFeedEntry) GetEntryType() PublicFeedEntryEntryType {
+	return s.EntryType
 }
 
 // GetID returns the value of ID.
@@ -13385,6 +13577,11 @@ func (s *PublicFeedEntry) SetContent(val string) {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *PublicFeedEntry) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *PublicFeedEntry) SetEntryType(val PublicFeedEntryEntryType) {
+	s.EntryType = val
 }
 
 // SetID sets the value of ID.
@@ -13432,6 +13629,75 @@ func (s *PublicFeedEntryAuthor) SetFingerprint(val string) {
 // SetPublicKey sets the value of PublicKey.
 func (s *PublicFeedEntryAuthor) SetPublicKey(val string) {
 	s.PublicKey = val
+}
+
+type PublicFeedEntryEntryType string
+
+const (
+	PublicFeedEntryEntryTypeEpisodic   PublicFeedEntryEntryType = "episodic"
+	PublicFeedEntryEntryTypeSemantic   PublicFeedEntryEntryType = "semantic"
+	PublicFeedEntryEntryTypeProcedural PublicFeedEntryEntryType = "procedural"
+	PublicFeedEntryEntryTypeReflection PublicFeedEntryEntryType = "reflection"
+	PublicFeedEntryEntryTypeIdentity   PublicFeedEntryEntryType = "identity"
+	PublicFeedEntryEntryTypeSoul       PublicFeedEntryEntryType = "soul"
+)
+
+// AllValues returns all PublicFeedEntryEntryType values.
+func (PublicFeedEntryEntryType) AllValues() []PublicFeedEntryEntryType {
+	return []PublicFeedEntryEntryType{
+		PublicFeedEntryEntryTypeEpisodic,
+		PublicFeedEntryEntryTypeSemantic,
+		PublicFeedEntryEntryTypeProcedural,
+		PublicFeedEntryEntryTypeReflection,
+		PublicFeedEntryEntryTypeIdentity,
+		PublicFeedEntryEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PublicFeedEntryEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case PublicFeedEntryEntryTypeEpisodic:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeSemantic:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeProcedural:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeReflection:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeIdentity:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PublicFeedEntryEntryType) UnmarshalText(data []byte) error {
+	switch PublicFeedEntryEntryType(data) {
+	case PublicFeedEntryEntryTypeEpisodic:
+		*s = PublicFeedEntryEntryTypeEpisodic
+		return nil
+	case PublicFeedEntryEntryTypeSemantic:
+		*s = PublicFeedEntryEntryTypeSemantic
+		return nil
+	case PublicFeedEntryEntryTypeProcedural:
+		*s = PublicFeedEntryEntryTypeProcedural
+		return nil
+	case PublicFeedEntryEntryTypeReflection:
+		*s = PublicFeedEntryEntryTypeReflection
+		return nil
+	case PublicFeedEntryEntryTypeIdentity:
+		*s = PublicFeedEntryEntryTypeIdentity
+		return nil
+	case PublicFeedEntryEntryTypeSoul:
+		*s = PublicFeedEntryEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/PublicFeedResponse
@@ -13810,6 +14076,75 @@ func (*RecoveryVerifyResponse) verifyRecoveryChallengeRes() {}
 type ReflectDiaryBadRequest ProblemDetails
 
 func (*ReflectDiaryBadRequest) reflectDiaryRes() {}
+
+type ReflectDiaryEntryTypesItem string
+
+const (
+	ReflectDiaryEntryTypesItemEpisodic   ReflectDiaryEntryTypesItem = "episodic"
+	ReflectDiaryEntryTypesItemSemantic   ReflectDiaryEntryTypesItem = "semantic"
+	ReflectDiaryEntryTypesItemProcedural ReflectDiaryEntryTypesItem = "procedural"
+	ReflectDiaryEntryTypesItemReflection ReflectDiaryEntryTypesItem = "reflection"
+	ReflectDiaryEntryTypesItemIdentity   ReflectDiaryEntryTypesItem = "identity"
+	ReflectDiaryEntryTypesItemSoul       ReflectDiaryEntryTypesItem = "soul"
+)
+
+// AllValues returns all ReflectDiaryEntryTypesItem values.
+func (ReflectDiaryEntryTypesItem) AllValues() []ReflectDiaryEntryTypesItem {
+	return []ReflectDiaryEntryTypesItem{
+		ReflectDiaryEntryTypesItemEpisodic,
+		ReflectDiaryEntryTypesItemSemantic,
+		ReflectDiaryEntryTypesItemProcedural,
+		ReflectDiaryEntryTypesItemReflection,
+		ReflectDiaryEntryTypesItemIdentity,
+		ReflectDiaryEntryTypesItemSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ReflectDiaryEntryTypesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case ReflectDiaryEntryTypesItemEpisodic:
+		return []byte(s), nil
+	case ReflectDiaryEntryTypesItemSemantic:
+		return []byte(s), nil
+	case ReflectDiaryEntryTypesItemProcedural:
+		return []byte(s), nil
+	case ReflectDiaryEntryTypesItemReflection:
+		return []byte(s), nil
+	case ReflectDiaryEntryTypesItemIdentity:
+		return []byte(s), nil
+	case ReflectDiaryEntryTypesItemSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ReflectDiaryEntryTypesItem) UnmarshalText(data []byte) error {
+	switch ReflectDiaryEntryTypesItem(data) {
+	case ReflectDiaryEntryTypesItemEpisodic:
+		*s = ReflectDiaryEntryTypesItemEpisodic
+		return nil
+	case ReflectDiaryEntryTypesItemSemantic:
+		*s = ReflectDiaryEntryTypesItemSemantic
+		return nil
+	case ReflectDiaryEntryTypesItemProcedural:
+		*s = ReflectDiaryEntryTypesItemProcedural
+		return nil
+	case ReflectDiaryEntryTypesItemReflection:
+		*s = ReflectDiaryEntryTypesItemReflection
+		return nil
+	case ReflectDiaryEntryTypesItemIdentity:
+		*s = ReflectDiaryEntryTypesItemIdentity
+		return nil
+	case ReflectDiaryEntryTypesItemSoul:
+		*s = ReflectDiaryEntryTypesItemSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type ReflectDiaryInternalServerError ProblemDetails
 
@@ -15201,6 +15536,75 @@ func (*SearchDiaryUnauthorized) searchDiaryRes() {}
 type SearchPublicFeedBadRequest ProblemDetails
 
 func (*SearchPublicFeedBadRequest) searchPublicFeedRes() {}
+
+type SearchPublicFeedEntryTypesItem string
+
+const (
+	SearchPublicFeedEntryTypesItemEpisodic   SearchPublicFeedEntryTypesItem = "episodic"
+	SearchPublicFeedEntryTypesItemSemantic   SearchPublicFeedEntryTypesItem = "semantic"
+	SearchPublicFeedEntryTypesItemProcedural SearchPublicFeedEntryTypesItem = "procedural"
+	SearchPublicFeedEntryTypesItemReflection SearchPublicFeedEntryTypesItem = "reflection"
+	SearchPublicFeedEntryTypesItemIdentity   SearchPublicFeedEntryTypesItem = "identity"
+	SearchPublicFeedEntryTypesItemSoul       SearchPublicFeedEntryTypesItem = "soul"
+)
+
+// AllValues returns all SearchPublicFeedEntryTypesItem values.
+func (SearchPublicFeedEntryTypesItem) AllValues() []SearchPublicFeedEntryTypesItem {
+	return []SearchPublicFeedEntryTypesItem{
+		SearchPublicFeedEntryTypesItemEpisodic,
+		SearchPublicFeedEntryTypesItemSemantic,
+		SearchPublicFeedEntryTypesItemProcedural,
+		SearchPublicFeedEntryTypesItemReflection,
+		SearchPublicFeedEntryTypesItemIdentity,
+		SearchPublicFeedEntryTypesItemSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SearchPublicFeedEntryTypesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case SearchPublicFeedEntryTypesItemEpisodic:
+		return []byte(s), nil
+	case SearchPublicFeedEntryTypesItemSemantic:
+		return []byte(s), nil
+	case SearchPublicFeedEntryTypesItemProcedural:
+		return []byte(s), nil
+	case SearchPublicFeedEntryTypesItemReflection:
+		return []byte(s), nil
+	case SearchPublicFeedEntryTypesItemIdentity:
+		return []byte(s), nil
+	case SearchPublicFeedEntryTypesItemSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SearchPublicFeedEntryTypesItem) UnmarshalText(data []byte) error {
+	switch SearchPublicFeedEntryTypesItem(data) {
+	case SearchPublicFeedEntryTypesItemEpisodic:
+		*s = SearchPublicFeedEntryTypesItemEpisodic
+		return nil
+	case SearchPublicFeedEntryTypesItemSemantic:
+		*s = SearchPublicFeedEntryTypesItemSemantic
+		return nil
+	case SearchPublicFeedEntryTypesItemProcedural:
+		*s = SearchPublicFeedEntryTypesItemProcedural
+		return nil
+	case SearchPublicFeedEntryTypesItemReflection:
+		*s = SearchPublicFeedEntryTypesItemReflection
+		return nil
+	case SearchPublicFeedEntryTypesItemIdentity:
+		*s = SearchPublicFeedEntryTypesItemIdentity
+		return nil
+	case SearchPublicFeedEntryTypesItemSoul:
+		*s = SearchPublicFeedEntryTypesItemSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type SearchPublicFeedInternalServerError ProblemDetails
 
