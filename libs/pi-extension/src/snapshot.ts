@@ -77,6 +77,13 @@ const GH_VERSION = '2.74.0';
 /** MoltNet CLI version — downloaded as a binary, no Node needed. */
 const MOLTNET_CLI_VERSION = '1.28.0';
 
+/** Resolve guest architecture from host (Gondolin VMs match host arch). */
+function getGuestArch(): { gh: string; npm: string } {
+  const hostArch = process.arch; // 'arm64' | 'x64' | ...
+  if (hostArch === 'arm64') return { gh: 'linux_arm64', npm: 'linux-arm64' };
+  return { gh: 'linux_amd64', npm: 'linux-amd64' };
+}
+
 /** Hosts reachable during snapshot build. */
 const SETUP_ALLOWED_HOSTS = [
   'dl-cdn.alpinelinux.org',
@@ -291,16 +298,17 @@ async function buildSnapshot(
   );
 
   // Install gh CLI from GitHub releases
+  const arch = getGuestArch();
   await run(
     vm,
     log,
-    `installing gh ${GH_VERSION}...`,
+    `installing gh ${GH_VERSION} (${arch.gh})...`,
     `sh -eu -c '
-      curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_arm64.tar.gz" -o /tmp/gh.tar.gz
+      curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${arch.gh}.tar.gz" -o /tmp/gh.tar.gz
       tar -xzf /tmp/gh.tar.gz -C /tmp
-      mv /tmp/gh_${GH_VERSION}_linux_arm64/bin/gh /usr/local/bin/gh
+      mv /tmp/gh_${GH_VERSION}_${arch.gh}/bin/gh /usr/local/bin/gh
       chmod +x /usr/local/bin/gh
-      rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_arm64
+      rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_${arch.gh}
       gh --version
     '`,
   );
@@ -309,9 +317,9 @@ async function buildSnapshot(
   await run(
     vm,
     log,
-    `installing moltnet CLI ${MOLTNET_CLI_VERSION}...`,
+    `installing moltnet CLI ${MOLTNET_CLI_VERSION} (${arch.npm})...`,
     `sh -eu -c '
-      curl -fsSL "https://registry.npmjs.org/@themoltnet/cli-linux-arm64/-/cli-linux-arm64-${MOLTNET_CLI_VERSION}.tgz" -o /tmp/moltnet.tgz
+      curl -fsSL "https://registry.npmjs.org/@themoltnet/cli-${arch.npm}/-/cli-${arch.npm}-${MOLTNET_CLI_VERSION}.tgz" -o /tmp/moltnet.tgz
       tar -xzf /tmp/moltnet.tgz -C /tmp
       mv /tmp/package/bin/moltnet /usr/local/bin/moltnet
       chmod +x /usr/local/bin/moltnet

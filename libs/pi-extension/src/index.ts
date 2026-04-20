@@ -53,9 +53,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   // -- Flags ------------------------------------------------------------------
 
   pi.registerFlag('agent', {
-    description: 'MoltNet agent name (default: legreffier)',
+    description: 'MoltNet agent name (required — pass --agent <name>)',
     type: 'string',
-    default: 'legreffier',
+    default: '',
   });
 
   pi.registerFlag('worktree-branch', {
@@ -109,7 +109,12 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     if (vmStarting) return vmStarting;
 
     vmStarting = (async () => {
-      const agentName = (pi.getFlag('agent') as string) || 'legreffier';
+      const agentName = pi.getFlag('agent') as string;
+      if (!agentName) {
+        throw new Error(
+          'Missing --agent flag. Usage: pi -e @themoltnet/pi-extension --agent <name>',
+        );
+      }
       const worktreeBranch = pi.getFlag('worktree-branch') as string;
 
       // 1. Ensure snapshot exists (auto-build on first run)
@@ -320,23 +325,35 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     }
   }
 
-  function getGitBranch(): string | null {
+  let cachedGitBranch: string | null = null;
+
+  async function getGitBranch(): Promise<string | null> {
     try {
-      return (
+      // When the sandbox is running, read branch from the guest workspace
+      // (the agent may have created/switched branches inside the VM).
+      if (vm) {
+        const r = await vm.exec('git -C /workspace branch --show-current');
+        if (r.exitCode === 0 && r.stdout?.trim()) {
+          cachedGitBranch = r.stdout.trim();
+          return cachedGitBranch;
+        }
+      }
+      // Fallback: read from host worktree
+      cachedGitBranch =
         execFileSync('git', ['branch', '--show-current'], {
           encoding: 'utf8',
           cwd: worktreePath ?? localCwd,
           stdio: ['pipe', 'pipe', 'pipe'],
-        }).trim() || null
-      );
+        }).trim() || null;
+      return cachedGitBranch;
     } catch {
-      return null;
+      return cachedGitBranch;
     }
   }
 
-  function getSessionMeta(ctx: ExtensionContext) {
-    const agentName = (pi.getFlag('agent') as string) || 'legreffier';
-    const gitBranch = getGitBranch();
+  async function getSessionMeta(ctx: ExtensionContext) {
+    const agentName = pi.getFlag('agent') as string;
+    const gitBranch = await getGitBranch();
     const sessionName = ctx.sessionManager.getSessionName();
     const sessionId = ctx.sessionManager.getSessionId();
     const modelName = ctx.model?.name ?? ctx.model?.id ?? 'unknown';
@@ -355,7 +372,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     };
   }
 
-  function formatMetaBlock(meta: ReturnType<typeof getSessionMeta>): string {
+  function formatMetaBlock(
+    meta: Awaited<ReturnType<typeof getSessionMeta>>,
+  ): string {
     const lines = [
       `| Field | Value |`,
       `|-------|-------|`,
@@ -396,7 +415,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     if (!moltnetAgent || !diaryId) return;
     if (sessionErrors.length === 0) return;
 
-    const meta = getSessionMeta(ctx);
+    const meta = await getSessionMeta(ctx);
     const errorSummary = sessionErrors
       .map((e) => {
         const inputSnippet = JSON.stringify(e.input).slice(0, 100);
@@ -514,7 +533,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         comments: { body: string; author: { login: string } }[];
       };
 
-      const meta = getSessionMeta(ctx);
+      const meta = await getSessionMeta(ctx);
       const labelList = issue.labels.map((l) => l.name).join(', ');
       const commentSummary = issue.comments
         .slice(-5)
@@ -568,7 +587,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         return;
       }
 
-      const meta = getSessionMeta(ctx);
+      const meta = await getSessionMeta(ctx);
       const errorCount = sessionErrors.length;
 
       pi.sendUserMessage(
