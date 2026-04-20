@@ -13514,13 +13514,14 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) SetTotalTokens(val float64) {
 
 // Ref: #/components/schemas/PublicFeedEntry
 type PublicFeedEntry struct {
-	Author        PublicFeedEntryAuthor `json:"author"`
-	Content       string                `json:"content"`
-	CreatedAt     time.Time             `json:"createdAt"`
-	ID            uuid.UUID             `json:"id"`
-	InjectionRisk bool                  `json:"injectionRisk"`
-	Tags          []string              `json:"tags"`
-	Title         NilString             `json:"title"`
+	Author        PublicFeedEntryAuthor    `json:"author"`
+	Content       string                   `json:"content"`
+	CreatedAt     time.Time                `json:"createdAt"`
+	EntryType     PublicFeedEntryEntryType `json:"entryType"`
+	ID            uuid.UUID                `json:"id"`
+	InjectionRisk bool                     `json:"injectionRisk"`
+	Tags          []string                 `json:"tags"`
+	Title         NilString                `json:"title"`
 }
 
 // GetAuthor returns the value of Author.
@@ -13536,6 +13537,11 @@ func (s *PublicFeedEntry) GetContent() string {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *PublicFeedEntry) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *PublicFeedEntry) GetEntryType() PublicFeedEntryEntryType {
+	return s.EntryType
 }
 
 // GetID returns the value of ID.
@@ -13571,6 +13577,11 @@ func (s *PublicFeedEntry) SetContent(val string) {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *PublicFeedEntry) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *PublicFeedEntry) SetEntryType(val PublicFeedEntryEntryType) {
+	s.EntryType = val
 }
 
 // SetID sets the value of ID.
@@ -13618,6 +13629,75 @@ func (s *PublicFeedEntryAuthor) SetFingerprint(val string) {
 // SetPublicKey sets the value of PublicKey.
 func (s *PublicFeedEntryAuthor) SetPublicKey(val string) {
 	s.PublicKey = val
+}
+
+type PublicFeedEntryEntryType string
+
+const (
+	PublicFeedEntryEntryTypeEpisodic   PublicFeedEntryEntryType = "episodic"
+	PublicFeedEntryEntryTypeSemantic   PublicFeedEntryEntryType = "semantic"
+	PublicFeedEntryEntryTypeProcedural PublicFeedEntryEntryType = "procedural"
+	PublicFeedEntryEntryTypeReflection PublicFeedEntryEntryType = "reflection"
+	PublicFeedEntryEntryTypeIdentity   PublicFeedEntryEntryType = "identity"
+	PublicFeedEntryEntryTypeSoul       PublicFeedEntryEntryType = "soul"
+)
+
+// AllValues returns all PublicFeedEntryEntryType values.
+func (PublicFeedEntryEntryType) AllValues() []PublicFeedEntryEntryType {
+	return []PublicFeedEntryEntryType{
+		PublicFeedEntryEntryTypeEpisodic,
+		PublicFeedEntryEntryTypeSemantic,
+		PublicFeedEntryEntryTypeProcedural,
+		PublicFeedEntryEntryTypeReflection,
+		PublicFeedEntryEntryTypeIdentity,
+		PublicFeedEntryEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PublicFeedEntryEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case PublicFeedEntryEntryTypeEpisodic:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeSemantic:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeProcedural:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeReflection:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeIdentity:
+		return []byte(s), nil
+	case PublicFeedEntryEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PublicFeedEntryEntryType) UnmarshalText(data []byte) error {
+	switch PublicFeedEntryEntryType(data) {
+	case PublicFeedEntryEntryTypeEpisodic:
+		*s = PublicFeedEntryEntryTypeEpisodic
+		return nil
+	case PublicFeedEntryEntryTypeSemantic:
+		*s = PublicFeedEntryEntryTypeSemantic
+		return nil
+	case PublicFeedEntryEntryTypeProcedural:
+		*s = PublicFeedEntryEntryTypeProcedural
+		return nil
+	case PublicFeedEntryEntryTypeReflection:
+		*s = PublicFeedEntryEntryTypeReflection
+		return nil
+	case PublicFeedEntryEntryTypeIdentity:
+		*s = PublicFeedEntryEntryTypeIdentity
+		return nil
+	case PublicFeedEntryEntryTypeSoul:
+		*s = PublicFeedEntryEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/PublicFeedResponse

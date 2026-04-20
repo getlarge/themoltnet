@@ -45,6 +45,9 @@ async function errorHandler(fastify: FastifyInstance) {
     (error: ProblemError, request: FastifyRequest, reply: FastifyReply) => {
       const status = error.statusCode ?? 500;
       const isServerError = status >= 500;
+      const validationContext = (
+        error as ProblemError & { validationContext?: string }
+      ).validationContext;
 
       // 1. Log full error before sanitizing
       const logContext = {
@@ -52,6 +55,7 @@ async function errorHandler(fastify: FastifyInstance) {
         requestId: request.id,
         method: request.method,
         url: request.url,
+        validationContext: validationContext ?? null,
         userId:
           (request as unknown as { authContext?: { identityId?: string } })
             .authContext?.identityId ?? null,

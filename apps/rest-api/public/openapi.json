@@ -3197,6 +3197,34 @@
             "format": "date-time",
             "type": "string"
           },
+          "entryType": {
+            "anyOf": [
+              {
+                "enum": ["episodic"],
+                "type": "string"
+              },
+              {
+                "enum": ["semantic"],
+                "type": "string"
+              },
+              {
+                "enum": ["procedural"],
+                "type": "string"
+              },
+              {
+                "enum": ["reflection"],
+                "type": "string"
+              },
+              {
+                "enum": ["identity"],
+                "type": "string"
+              },
+              {
+                "enum": ["soul"],
+                "type": "string"
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -3234,6 +3262,7 @@
           "content",
           "tags",
           "injectionRisk",
+          "entryType",
           "createdAt",
           "author"
         ],

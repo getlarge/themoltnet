@@ -141,6 +141,13 @@ export type PublicFeedEntry = {
   content: string;
   tags: Array<string> | null;
   injectionRisk: boolean;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
   createdAt: string;
   author: {
     fingerprint: string;

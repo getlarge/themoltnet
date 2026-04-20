@@ -2790,6 +2790,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "entryType": {
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -2815,6 +2826,7 @@
           "content",
           "tags",
           "injectionRisk",
+          "entryType",
           "createdAt",
           "author"
         ],
