@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "Defines contradiction as applying only when two entries concern the same subject, diagnosis, or current-truth claim",
+      "max_score": 15,
+      "name": "Same subject test"
+    },
+    {
+      "description": "Treats contradiction as substantive incompatibility rather than mere difference in detail or emphasis",
+      "max_score": 15,
+      "name": "Substantive conflict"
+    },
+    {
+      "description": "Preserves contradictions as explicit relation proposals rather than collapsing them into one reconciled summary",
+      "max_score": 15,
+      "name": "No summary flattening"
+    },
+    {
+      "description": "Does not replace contradiction with supersedes unless active-version replacement is separately justified",
+      "max_score": 15,
+      "name": "Not supersedes by default"
+    },
+    {
+      "description": "Includes contradiction-specific metadata such as rationale, evidence refs, and an optional contradiction kind",
+      "max_score": 15,
+      "name": "Contradiction metadata"
+    },
+    {
+      "description": "Calls out uncertainty or reviewer follow-up questions where the contradiction confidence is not absolute",
+      "max_score": 10,
+      "name": "Reviewer questions"
+    },
+    {
+      "description": "Shows pairwise reasoning for each contradiction proposal rather than cluster-level statements",
+      "max_score": 15,
+      "name": "Pairwise evidence"
+    }
+  ],
+  "context": "Tests whether the agent distinguishes contradiction from elaboration or supersession, and preserves explicit conflict structure instead of flattening it into summary prose.",
+  "type": "weighted_checklist"
+}

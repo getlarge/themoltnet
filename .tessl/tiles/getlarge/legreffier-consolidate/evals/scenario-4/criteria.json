@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "Compares retrieval before and after consolidation using the same representative task prompt",
+      "max_score": 15,
+      "name": "Same prompt check"
+    },
+    {
+      "description": "Uses compile or search behavior as the verification surface instead of a generic success statement",
+      "max_score": 15,
+      "name": "Compile or search"
+    },
+    {
+      "description": "Checks whether ranking or entry selection becomes more stable or sensible after consolidation",
+      "max_score": 15,
+      "name": "Ranking stability"
+    },
+    {
+      "description": "Checks whether retrieval now connects incidents to relevant fixes or decisions more clearly",
+      "max_score": 15,
+      "name": "Incident-to-fix path"
+    },
+    {
+      "description": "Checks whether contradictions are surfaced rather than silently merged away",
+      "max_score": 15,
+      "name": "Contradiction visibility"
+    },
+    {
+      "description": "Checks for less irrelevant same-topic retrieval after consolidation",
+      "max_score": 15,
+      "name": "Noise reduction"
+    },
+    {
+      "description": "Documents any remaining uncertainty or follow-up work instead of declaring the batch complete unconditionally",
+      "max_score": 10,
+      "name": "Open risks"
+    }
+  ],
+  "context": "Tests whether the agent verifies consolidation quality against retrieval behavior rather than treating relation creation as success by itself.",
+  "type": "weighted_checklist"
+}
