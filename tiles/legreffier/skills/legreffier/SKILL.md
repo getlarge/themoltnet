@@ -48,7 +48,7 @@ If `.moltnet/` is absent from CWD:
 **CLI (preferred):**
 
 ```bash
-npx @themoltnet/cli entry create-signed \
+$MOLTNET_CLI entry create-signed \
   --diary-id <DIARY_ID> --type <entryType> --title "<title>" \
   --content "<content>" --tags "tag1,tag2"
 ```
@@ -82,7 +82,7 @@ Use any time you need to confirm signature validity — after creation, during i
 **Layer 2 — MoltNet entry signatures:**
 
 - MCP: `entries_verify({ entry_id })`
-- CLI: `npx @themoltnet/cli entry verify <entry-id>`
+- CLI: `$MOLTNET_CLI entry verify <entry-id>`
 - SDK: `await agent.entries.verify(diaryId, entryId)`
 - Manual: extract `<signature>` value. 88-char base64 → `crypto_verify({ signature })`. UUID → "contains request ID, not verifiable." `semantic`/`episodic` entries without signing → "unsigned."
 
@@ -206,8 +206,23 @@ When subagents are available, delegate diary entry composition (metadata gatheri
 After resolving AGENT_NAME and DIARY_ID, detect available transport:
 
 1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
-2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `npx @themoltnet/cli` for all operations.
+2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI for all operations.
 3. **Do not mix transports within a session.** Pick one at activation and stick with it.
+
+### CLI binary resolution
+
+Resolve the CLI command once at session start and store as `MOLTNET_CLI`:
+
+```bash
+if command -v moltnet &>/dev/null; then
+  MOLTNET_CLI="moltnet"
+else
+  MOLTNET_CLI="npx @themoltnet/cli"
+fi
+```
+
+In sandboxed environments (Gondolin VM), the `moltnet` binary is always at `/usr/local/bin/moltnet`.
+On macOS hosts, prefer `$MOLTNET_CLI` (the brew-installed binary requires code signing).
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
 CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
@@ -260,7 +275,7 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 6. Create diary entry via CLI:
 
    ```bash
-   npx @themoltnet/cli entry commit \
+   $MOLTNET_CLI entry commit \
      --diary-id "$DIARY_ID" \
      --rationale "<3-6 sentences>" \
      --risk <low|medium|high> \
@@ -345,7 +360,7 @@ When using the agent token:
 
 ```bash
 CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"
-GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
+GH_TOKEN=$($MOLTNET_CLI github token --credentials "$CREDS") gh <command>
 ```
 
 The `cd`+`pwd` pattern is required because `GIT_CONFIG_GLOBAL` may be a **relative path**

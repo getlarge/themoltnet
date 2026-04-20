@@ -63,7 +63,7 @@ If found:
 1. Stage the setup files.
 2. Create a procedural diary entry:
    ```bash
-   npx @themoltnet/cli entry commit \
+   $MOLTNET_CLI entry commit \
      --diary-id "$DIARY_ID" \
      --rationale "First accountable commit: LeGreffier setup artifacts (skills, MCP config, gitignore)." \
      --risk low \

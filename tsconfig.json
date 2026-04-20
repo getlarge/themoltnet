@@ -72,6 +72,9 @@
       "path": "libs/observability"
     },
     {
+      "path": "libs/pi-extension"
+    },
+    {
       "path": "libs/sdk"
     },
     {

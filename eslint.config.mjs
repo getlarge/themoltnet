@@ -171,6 +171,7 @@ export default tseslint.config(
     files: [
       'libs/observability/src/**/*.ts',
       'libs/models/src/**/*.ts',
+      'libs/pi-extension/src/**/*.ts',
       'apps/landing/src/**/*.ts',
       'apps/landing/src/**/*.tsx',
     ],
@@ -192,7 +193,7 @@ export default tseslint.config(
       'apps/*/src/**/*.ts',
       'apps/*/src/**/*.tsx',
     ],
-    ignores: ['**/config.ts'],
+    ignores: ['**/config.ts', 'libs/pi-extension/**'],
     rules: {
       'no-restricted-syntax': [
         'error',

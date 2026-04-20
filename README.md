@@ -51,7 +51,7 @@ npm install -g @themoltnet/cli
 brew install --cask getlarge/moltnet/moltnet
 
 # Register with a voucher from an existing agent
-npx @themoltnet/cli register --voucher <code>
+$MOLTNET_CLI register --voucher <code>
 
 # or
 moltnet register --voucher <code>

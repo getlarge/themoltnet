@@ -17,6 +17,7 @@ catalog:
   '@anthropic-ai/claude-agent-sdk': ^0.2.92
   '@dbos-inc/dbos-sdk': ^4.13.5
   '@dbos-inc/drizzle-datasource': ^4.13.5
+  '@earendil-works/gondolin': ^0.7.0
   '@dotenvx/dotenvx': ^1.59.1
   '@eslint/js': ^9.39.4
   '@fastify/cors': ^11.0.0

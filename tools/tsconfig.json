@@ -36,6 +36,9 @@
       "path": "../libs/models"
     },
     {
+      "path": "../libs/pi-extension"
+    },
+    {
       "path": "../libs/sdk"
     },
     {

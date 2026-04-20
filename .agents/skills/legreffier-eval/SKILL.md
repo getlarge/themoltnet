@@ -28,25 +28,25 @@ reasoning.
 The eval runner ships with `@themoltnet/cli`:
 
 ```bash
-npx @themoltnet/cli eval run --help
+$MOLTNET_CLI eval run --help
 ```
 
 Key flags:
 
 ```bash
 # Baseline (no context)
-npx @themoltnet/cli eval run --scenario <path>
+$MOLTNET_CLI eval run --scenario <path>
 
 # With rendered pack (runs both variants, reports delta)
-npx @themoltnet/cli eval run --scenario <path> --pack <rendered-pack.md>
+$MOLTNET_CLI eval run --scenario <path> --pack <rendered-pack.md>
 
 # Override agent/judge/model
-npx @themoltnet/cli eval run --scenario <path> \
+$MOLTNET_CLI eval run --scenario <path> \
   --agent claude-code --judge claude-code \
   -m anthropic/claude-sonnet-4-6
 
 # Parallel with/without variants
-npx @themoltnet/cli eval run --scenario <path> --pack <pack.md> --concurrency 2
+$MOLTNET_CLI eval run --scenario <path> --pack <pack.md> --concurrency 2
 ```
 
 ### Scenario file structure
@@ -83,7 +83,7 @@ file format details and examples.
 1. If given a pack ID instead of a file, render it locally:
 
    ```bash
-   npx @themoltnet/cli pack render --preview <pack-id> --out /tmp/pack.md
+   $MOLTNET_CLI pack render --preview <pack-id> --out /tmp/pack.md
    ```
 
 2. Run evals — spawn a **validate** subagent per scenario (see
@@ -213,8 +213,8 @@ was written by a subagent in a separate context.
 Run at least 2 times for the gate check:
 
 ```bash
-npx @themoltnet/cli eval run --scenario <path>
-npx @themoltnet/cli eval run --scenario <path>
+$MOLTNET_CLI eval run --scenario <path>
+$MOLTNET_CLI eval run --scenario <path>
 ```
 
 After each run, read the `trial_result.json` from the output directory
@@ -251,7 +251,7 @@ If the gate fails, spawn a new AUTHOR subagent with:
 If the gate passes, optionally run with-context validation:
 
 ```bash
-npx @themoltnet/cli eval run --scenario <path> --pack <rendered-pack.md>
+$MOLTNET_CLI eval run --scenario <path> --pack <rendered-pack.md>
 ```
 
 - A positive delta (baseline → with-pack improvement ≥ 15 points) confirms

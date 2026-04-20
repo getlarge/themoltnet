@@ -12,11 +12,11 @@ knowledge the model wouldn't have from training data:
 
    ```bash
    # Incidents where something broke unexpectedly
-   npx @themoltnet/cli entry list --diary-id $DIARY_ID \
+   $MOLTNET_CLI entry list --diary-id $DIARY_ID \
      --tags incident --limit 20
 
    # Architectural decisions with non-obvious reasoning
-   npx @themoltnet/cli entry list --diary-id $DIARY_ID \
+   $MOLTNET_CLI entry list --diary-id $DIARY_ID \
      --tags decision --limit 20
    ```
 
@@ -24,7 +24,7 @@ knowledge the model wouldn't have from training data:
 
    ```bash
    # Find procedural entries linked to the seed
-   npx @themoltnet/cli relations list --entry-id <seed-entry-id>
+   $MOLTNET_CLI relations list --entry-id <seed-entry-id>
 
    # Search git for the commit that references the procedural entry
    git log --all --grep="MoltNet-Diary: <procedural-entry-id>" \

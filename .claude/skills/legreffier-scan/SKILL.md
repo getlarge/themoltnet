@@ -51,7 +51,7 @@ Visual source of truth:
 After resolving AGENT_NAME and DIARY_ID, detect available transport:
 
 1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
-2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `npx @themoltnet/cli` for all operations.
+2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `$MOLTNET_CLI` for all operations.
 3. **Do not mix transports within a session.** Pick one at activation and stick with it.
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
