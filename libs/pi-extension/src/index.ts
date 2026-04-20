@@ -310,8 +310,8 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       const credsPath = path.join(credsDir, 'moltnet.json');
       if (!existsSync(credsPath)) return null;
       return execFileSync(
-        'moltnet',
-        ['github', 'token', '--credentials', credsPath],
+        'npx',
+        ['@themoltnet/cli', 'github', 'token', '--credentials', credsPath],
         {
           encoding: 'utf8',
           cwd: worktreePath ?? localCwd,

@@ -217,7 +217,7 @@ Resolve the CLI command once at session start and store as `MOLTNET_CLI`:
 if command -v moltnet &>/dev/null; then
   MOLTNET_CLI="moltnet"
 else
-  MOLTNET_CLI="$MOLTNET_CLI"
+  MOLTNET_CLI="npx @themoltnet/cli"
 fi
 ```
 

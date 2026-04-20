@@ -26,7 +26,7 @@ CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json"
 [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
 
 # 3. Call gh with GH_TOKEN inlined.
-GH_TOKEN=$($MOLTNET_CLI github token --credentials "$CREDS") gh <command>
+GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
 
 The credentials file (`moltnet.json`) always lives next to the `gitconfig`
@@ -41,7 +41,7 @@ Every git worktree has a different CWD from the main worktree root, so
 `$(dirname "$GIT_CONFIG_GLOBAL")` resolves differently depending on where you are.
 When it resolves to a non-existent directory:
 
-- `$MOLTNET_CLI github token` prints `no credentials found` to stderr,
+- `npx @themoltnet/cli github token` prints `no credentials found` to stderr,
 - the command substitution yields an empty `GH_TOKEN`,
 - `gh` silently falls back to your personal token,
 - the resulting API call is attributed to the **human**, not the agent.
