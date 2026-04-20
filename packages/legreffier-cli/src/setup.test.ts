@@ -221,7 +221,7 @@ describe('buildGhTokenRule', () => {
       '$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json',
     );
     expect(rule).toContain('GH_TOKEN');
-    expect(rule).toContain('npx @themoltnet/cli github token');
+    expect(rule).toContain('$MOLTNET_CLI github token');
     expect(rule).toContain('.moltnet/<agent>/gitconfig');
   });
 

@@ -146,10 +146,11 @@ const BASE_ALLOWED_HOSTS = [
   'github.com',
   '*.github.com',
   '*.githubusercontent.com',
-  // Go module proxy
+  // Go module proxy + storage backend
   'proxy.golang.org',
   'sum.golang.org',
   'golang.org',
+  'storage.googleapis.com',
   '*.googlesource.com',
 ];
 
