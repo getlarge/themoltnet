@@ -12,7 +12,7 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy workspace config
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 
 # Copy workspace package.json files (rest-api + transitive deps, NO landing/design-system)
 COPY apps/rest-api/package.json apps/rest-api/
