@@ -245,6 +245,10 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
   '`);
 
+  // Fix DNS: ensure working resolvers (VM gateway DNS may not forward correctly)
+  await vm.exec(`sh -c 'echo "nameserver 8.8.8.8
+nameserver 1.1.1.1" > /etc/resolv.conf'`);
+
   // Inject credentials into VM-side agent directory structure:
   //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
   // Mirrors host layout so legreffier skill and CLI work identically.

@@ -349,6 +349,15 @@ async function buildSnapshot(
     '`,
   );
 
+  // Configure DNS (VM gateway DNS may not forward correctly)
+  await run(
+    vm,
+    log,
+    'configuring DNS resolvers...',
+    `sh -c 'echo "nameserver 8.8.8.8
+nameserver 1.1.1.1" > /etc/resolv.conf'`,
+  );
+
   // ── User setup commands (optional) ─────────────────────────────────
 
   if (config.setupCommands?.length) {
