@@ -16,7 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseArgs } from 'node:util';
+import { parseArgs, parseEnv } from 'node:util';
 
 import {
   AgentRuntime,
@@ -55,6 +55,16 @@ const agentName = args.agent!;
 const modelId = args.model!;
 const provider = args.provider!;
 const dryRun = args['dry-run']!;
+
+// The agent name is joined into filesystem paths below. Reject anything
+// that could escape the `.moltnet/` directory via traversal or absolute
+// segments. Matches the set of identifiers the onboarding flow emits.
+if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
+  console.error(
+    `Invalid --agent "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
+  );
+  process.exit(1);
+}
 
 // ---------------------------------------------------------------------------
 // GitHub helpers (host-side — the shim needs them before the VM boots)
@@ -216,13 +226,7 @@ async function main() {
   }).trim();
   const agentDir = join(mainRepo, '.moltnet', agentName);
   const envRaw = readFileSync(join(agentDir, 'env'), 'utf8');
-  const envMatches = Object.fromEntries(
-    envRaw
-      .split('\n')
-      .map((l) => l.match(/^([A-Z0-9_]+)="?([^"]*)"?$/))
-      .filter((m): m is RegExpMatchArray => !!m)
-      .map((m) => [m[1], m[2]]),
-  );
+  const envMatches = parseEnv(envRaw);
   const teamId = envMatches['MOLTNET_TEAM_ID'];
   if (!teamId) {
     throw new Error(

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
-import { Task } from '@moltnet/tasks';
+import { BUILT_IN_TASK_TYPES, Task } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
 import type { TaskSource } from './types.js';
@@ -54,6 +54,27 @@ export class FileTaskSource implements TaskSource {
           : 'unknown';
         throw new Error(
           `FileTaskSource: task[${i}] in ${this.filePath} does not match Task schema: ${where}`,
+        );
+      }
+      const entry =
+        BUILT_IN_TASK_TYPES[
+          candidate.task_type as keyof typeof BUILT_IN_TASK_TYPES
+        ];
+      if (!entry) {
+        throw new Error(
+          `FileTaskSource: task[${i}] in ${this.filePath} has unknown task_type="${candidate.task_type}". ` +
+            `Known types: ${Object.keys(BUILT_IN_TASK_TYPES).join(', ')}`,
+        );
+      }
+      if (!Value.Check(entry.inputSchema, candidate.input)) {
+        const firstError = [
+          ...Value.Errors(entry.inputSchema, candidate.input),
+        ][0];
+        const where = firstError
+          ? `${firstError.path} ${firstError.message}`
+          : 'unknown';
+        throw new Error(
+          `FileTaskSource: task[${i}].input in ${this.filePath} does not match ${candidate.task_type} input schema: ${where}`,
         );
       }
       validated.push(candidate);

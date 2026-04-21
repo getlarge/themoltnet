@@ -31,7 +31,7 @@ interface TaskTypeEntry {
  * Consumers validate `Task.input` against `BUILT_IN_TASK_TYPES[task.task_type].inputSchema`
  * before creating / claiming a task.
  */
-export const BUILT_IN_TASK_TYPES: Record<string, TaskTypeEntry> = {
+export const BUILT_IN_TASK_TYPES = {
   [FULFILL_BRIEF_TYPE]: {
     name: FULFILL_BRIEF_TYPE,
     inputSchema: FulfillBriefInput,
@@ -48,6 +48,6 @@ export const BUILT_IN_TASK_TYPES: Record<string, TaskTypeEntry> = {
     requiresCriteria: true,
     requiresReferences: true,
   },
-};
+} as const satisfies Record<string, TaskTypeEntry>;
 
 export type BuiltInTaskType = keyof typeof BUILT_IN_TASK_TYPES;

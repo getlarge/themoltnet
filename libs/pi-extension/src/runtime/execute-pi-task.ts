@@ -240,11 +240,17 @@ export async function executePiTask(
 
     let llmAbort = false;
     let assistantText = '';
+    let reporterError: { code: string; message: string } | null = null;
+    const usage: TaskUsage = emptyUsage(opts.provider, opts.model);
     const recordingPromise: Promise<void>[] = [];
     const track = (p: Promise<void>) => {
       recordingPromise.push(
-        p.catch(() => {
-          /* swallow */
+        p.catch((err: unknown) => {
+          if (!reporterError) {
+            const message = err instanceof Error ? err.message : String(err);
+            reporterError = { code: 'reporter_failed', message };
+            process.stderr.write(`[reporter] ${message}\n`);
+          }
         }),
       );
     };
@@ -263,13 +269,29 @@ export async function executePiTask(
           emit('tool_call_end', {
             tool_name: event.toolName,
             is_error: event.isError,
-            result: event.isError ? event.result : undefined,
+            result: event.isError ? truncateForWire(event.result) : undefined,
           }),
         );
       } else if (event.type === 'turn_end') {
-        const msg = (event as Record<string, unknown>)['message'] as
-          | { stopReason?: string }
-          | undefined;
+        const msg = event.message as {
+          role?: string;
+          stopReason?: string;
+          usage?: {
+            input?: number;
+            output?: number;
+            cacheRead?: number;
+            cacheWrite?: number;
+          };
+        };
+        if (msg?.role === 'assistant' && msg.usage) {
+          usage.input_tokens += Math.max(0, msg.usage.input ?? 0);
+          usage.output_tokens += Math.max(0, msg.usage.output ?? 0);
+          const cr = Math.max(0, msg.usage.cacheRead ?? 0);
+          const cw = Math.max(0, msg.usage.cacheWrite ?? 0);
+          if (cr) usage.cache_read_tokens = (usage.cache_read_tokens ?? 0) + cr;
+          if (cw)
+            usage.cache_write_tokens = (usage.cache_write_tokens ?? 0) + cw;
+        }
         track(emit('turn_end', { stop_reason: msg?.stopReason ?? 'end_turn' }));
         if (msg?.stopReason === 'error') {
           llmAbort = true;
@@ -288,8 +310,6 @@ export async function executePiTask(
 
     await Promise.all(recordingPromise);
 
-    const usage = emptyUsage(opts.provider, opts.model);
-
     let parsedOutput: Record<string, unknown> | null = null;
     let parseError: { code: string; message: string } | null = null;
     if (!runError && !llmAbort) {
@@ -301,7 +321,10 @@ export async function executePiTask(
             'Agent did not emit a parseable JSON object as its final message.',
         };
       } else {
-        const entry = BUILT_IN_TASK_TYPES[task.task_type];
+        const entry =
+          BUILT_IN_TASK_TYPES[
+            task.task_type as keyof typeof BUILT_IN_TASK_TYPES
+          ];
         if (!entry) {
           parseError = {
             code: 'unknown_task_type',
@@ -331,14 +354,18 @@ export async function executePiTask(
     }
 
     const status: TaskOutput['status'] =
-      runError || llmAbort || parseError ? 'failed' : 'completed';
+      runError || llmAbort || parseError || reporterError
+        ? 'failed'
+        : 'completed';
     const errorCode =
       runError?.code ??
       parseError?.code ??
+      (reporterError as { code: string } | null)?.code ??
       (llmAbort ? 'llm_api_error' : undefined);
     const errorMessage =
       runError?.message ??
       parseError?.message ??
+      (reporterError as { message: string } | null)?.message ??
       (llmAbort ? 'LLM API error during turn' : undefined);
 
     return {
@@ -391,7 +418,34 @@ function emptyUsage(provider: string, model: string): TaskUsage {
   };
 }
 
-export const __testables = { extractJsonObject };
+export const __testables = { extractJsonObject, truncateForWire };
+
+/**
+ * Cap oversized tool-result payloads before embedding them in a
+ * `task_messages.payload` row. Bodies above 4 KiB are replaced with a
+ * `{ truncated, original_size }` marker so the JSONL/DB size stays bounded.
+ */
+const TRUNCATE_LIMIT = 4 * 1024;
+function truncateForWire(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    if (value.length <= TRUNCATE_LIMIT) return value;
+    return {
+      truncated: value.slice(0, TRUNCATE_LIMIT),
+      original_size: value.length,
+    };
+  }
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized.length <= TRUNCATE_LIMIT) return value;
+    return {
+      truncated: serialized.slice(0, TRUNCATE_LIMIT),
+      original_size: serialized.length,
+    };
+  } catch {
+    return { truncated: '[unserializable]', original_size: -1 };
+  }
+}
 
 /**
  * Find the last balanced top-level JSON object in `text` and parse it.
