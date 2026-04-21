@@ -1,16 +1,81 @@
 /**
- * resolve-issue.ts — thin shim over `@moltnet/agent-runtime`.
+ * fulfill-brief.ts — GitHub-issue convenience shim over `@moltnet/agent-runtime`.
  *
- * Historically this file contained the full headless-pi prototype
- * (snapshot + VM + session wiring). That logic now lives in
- * `libs/agent-runtime/` and `libs/pi-extension/`. This shim preserves
- * the original CLI surface (`--issue`, `--agent`, `--model`) by
- * synthesizing a `fulfill_brief` Task from the given GitHub issue and
- * handing it to an in-process `FileTaskSource`-equivalent.
+ * What it does
+ * ------------
+ * Synthesizes a `fulfill_brief` Task from a GitHub issue and executes it
+ * headlessly in a Gondolin VM via `createPiTaskExecutor`. The issue body +
+ * recent comments become the brief; the task runs through the same
+ * AgentRuntime + reporter path as any other `fulfill_brief` task.
  *
- * Usage:
- *   pnpm --filter @moltnet/tools tsx src/resolve-issue.ts --issue 123
- *   pnpm --filter @moltnet/tools tsx src/resolve-issue.ts --issue 123 --agent legreffier --model claude-sonnet-4-5
+ * This is the same wire-format Task that the future API daemon will claim
+ * from `POST /agent-runtimes/:id/tasks/claim`. The only difference here is
+ * the source — we build the Task in-process from `gh issue view` instead of
+ * pulling it from the server.
+ *
+ * Prerequisites
+ * -------------
+ * - `sandbox.json` present in the current working directory (defines the
+ *   Gondolin snapshot + egress policy).
+ * - `.moltnet/<agent>/` populated: `moltnet.json` credentials, `env` with
+ *   at minimum `MOLTNET_TEAM_ID` (and optionally `MOLTNET_DIARY_ID`), and
+ *   the SSH signing key used by the accountable-commit workflow.
+ * - `gh` CLI on PATH. The script resolves a short-lived GitHub App token
+ *   from the agent's `moltnet.json` (never falls back to human auth).
+ * - Run from the **main worktree** (`/Users/.../themoltnet`), not a nested
+ *   `.claude/worktrees/*` worktree — the VM mounts the tree at `/workspace`
+ *   and nested-worktree `.git` pointer files can't resolve there.
+ *
+ * Usage
+ * -----
+ *   pnpm --filter @moltnet/tools resolve-issue --issue 123
+ *   pnpm --filter @moltnet/tools resolve-issue --issue 123 \
+ *     --agent legreffier --provider anthropic --model claude-sonnet-4-5
+ *
+ *   # Or directly, from any cwd with sandbox.json:
+ *   pnpm exec tsx tools/src/fulfill-brief.ts --issue 123
+ *
+ *   # Inspect the synthesized Task without booting a VM:
+ *   pnpm exec tsx tools/src/fulfill-brief.ts --issue 123 --dry-run
+ *
+ * Flags
+ * -----
+ *   -i, --issue     GitHub issue number or URL (required)
+ *   -a, --agent     MoltNet agent name (default: legreffier). Must match
+ *                   `.moltnet/<name>/` on disk; restricted to [A-Za-z0-9_-].
+ *   -p, --provider  LLM provider (default: anthropic)
+ *   -m, --model     Model id for that provider (default: claude-sonnet-4-5)
+ *       --dry-run   Print the synthesized Task JSON and exit without
+ *                   booting the VM.
+ *
+ * What runs inside the VM
+ * -----------------------
+ * The brief (built from issue body + last 5 comments) is handed to the
+ * `fulfill_brief` prompt mapper, which instructs the agent to:
+ *   1. Create a feature branch `fix/<issue>-<slug>`
+ *   2. Understand + implement the change
+ *   3. Follow the legreffier accountable-commit flow (signed diary entry
+ *      per commit)
+ *   4. Push the branch and open a PR referencing the issue
+ *
+ * Tool calls (read/write/edit/bash) execute inside the Gondolin VM via the
+ * redirected ops in `libs/pi-extension/src/tool-operations.ts`. The MoltNet
+ * diary/entry tools talk to the REST API through the egress proxy using the
+ * agent's credentials. Final `TaskOutput` (status, usage, duration) is
+ * printed on stdout.
+ *
+ * Exit codes
+ * ----------
+ *   0 — task completed successfully
+ *   1 — task failed, cancelled, or runtime error (missing args, missing
+ *       MOLTNET_TEAM_ID, gh token resolution failure, etc.)
+ *
+ * Related
+ * -------
+ *   tools/src/run-task.ts      — execute any Task fixture (not GH-specific)
+ *   libs/agent-runtime/        — runtime + reporters + task sources
+ *   libs/pi-extension/runtime  — createPiTaskExecutor (VM wiring)
+ *   libs/tasks/                — Task / FulfillBriefInput schemas
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -46,7 +111,7 @@ const { values: args } = parseArgs({
 });
 
 if (!args.issue) {
-  console.error('Usage: tsx src/resolve-issue.ts --issue <number|url>');
+  console.error('Usage: tsx tools/src/fulfill-brief.ts --issue <number|url>');
   process.exit(1);
 }
 
