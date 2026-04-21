@@ -16,6 +16,30 @@ import type { TrackedError } from '../commands/types.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
 
+type PackEntry = {
+  entryId: string;
+  entryCidSnapshot: string;
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  originalTokens: number | null;
+  packedTokens: number | null;
+  entry: {
+    title: string | null;
+    content: string;
+    tags: string[] | null;
+    entryType: string;
+    creator: {
+      fingerprint: string;
+    } | null;
+  };
+};
+
+type ExpandedPack = {
+  id: string;
+  packCid: string;
+  createdAt: string;
+  entries?: PackEntry[];
+};
+
 export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;
   getDiaryId(): string | null;
@@ -28,6 +52,173 @@ function ensureConnected(config: MoltNetToolsConfig) {
   const diaryId = config.getDiaryId();
   if (!agent || !diaryId) throw new Error('MoltNet not connected');
   return { agent, diaryId };
+}
+
+function slugToTitle(value: string) {
+  return value
+    .split(/[:/_-]+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function extractScope(tags: string[] | null | undefined) {
+  const scope = tags?.find((tag) => tag.startsWith('scope:'));
+  return scope ? scope.slice('scope:'.length) : null;
+}
+
+function extractSeverity(tags: string[] | null | undefined) {
+  const severity = tags?.find((tag) => tag.startsWith('severity:'));
+  return severity ? severity.slice('severity:'.length) : null;
+}
+
+function stripEntryScaffolding(content: string) {
+  return content
+    .replace(/<metadata>[\s\S]*?<\/metadata>/gi, '')
+    .replace(/<\/?moltnet-signed>/gi, '')
+    .replace(/<\/?signature[^>]*>/gi, '')
+    .replace(/^- Compression:.*$/gim, '')
+    .replace(/^- Tokens:.*$/gim, '')
+    .trim();
+}
+
+function normalizeKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function extractRules(content: string) {
+  return stripEntryScaffolding(content)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line.length > 0 &&
+        (/(^rule:|^watch for:|^must\b|^never\b)/i.test(line) ||
+          /\b(MUST|NEVER)\b/.test(line)),
+    )
+    .slice(0, 5);
+}
+
+function renderSourceRefs(entries: PackEntry[]) {
+  return entries
+    .map((entry) => {
+      const shortId = entry.entryId.slice(0, 8);
+      const fingerprint = entry.entry.creator?.fingerprint
+        ?.replaceAll('-', '')
+        .slice(0, 4)
+        .toLowerCase();
+      const agentRef = fingerprint ? `agent:${fingerprint}` : 'agent:unkn';
+      return `[\`e:${shortId}\`](@unknown · ${agentRef})`;
+    })
+    .join(', ');
+}
+
+function renderKeywords(tags: string[] | null | undefined) {
+  const keywords = (tags ?? []).filter(
+    (tag) => !tag.startsWith('scope:') && !tag.startsWith('severity:'),
+  );
+  if (keywords.length === 0) return '';
+  return `Relevant search terms include ${keywords
+    .slice(0, 6)
+    .map((tag) => `\`${tag}\``)
+    .join(', ')}.`;
+}
+
+function renderPhase6Markdown(pack: ExpandedPack) {
+  const entries = pack.entries ?? [];
+  const grouped = new Map<
+    string,
+    Map<string, { title: string; scope: string; entries: PackEntry[] }>
+  >();
+
+  for (const entry of entries) {
+    const scope = extractScope(entry.entry.tags) ?? 'general';
+    const title =
+      entry.entry.title?.trim() || `Entry ${entry.entryId.slice(0, 8)}`;
+    const groupKey = normalizeKey(scope);
+    const topicKey = normalizeKey(title) || entry.entryId;
+
+    if (!grouped.has(groupKey)) grouped.set(groupKey, new Map());
+    const topics = grouped.get(groupKey)!;
+    const existing = topics.get(topicKey);
+    if (existing) {
+      existing.entries.push(entry);
+    } else {
+      topics.set(topicKey, { title, scope, entries: [entry] });
+    }
+  }
+
+  const lines: string[] = [];
+  lines.push('# Rendered Pack');
+  lines.push('');
+  lines.push('## Source');
+  lines.push('');
+  lines.push('| Pack UUID | Pack CID | Entries |');
+  lines.push('| --------- | -------- | ------- |');
+  lines.push(`| \`${pack.id}\` | \`${pack.packCid}\` | ${entries.length} |`);
+  lines.push('');
+
+  for (const [, topics] of grouped) {
+    const firstTopic = topics.values().next().value as
+      | { scope: string }
+      | undefined;
+    const scope = firstTopic?.scope ?? 'general';
+    lines.push(`## ${slugToTitle(scope)}`);
+    lines.push('');
+
+    for (const [, topic] of topics) {
+      const primary = topic.entries[0];
+      const mergedContent = topic.entries
+        .map((entry) => stripEntryScaffolding(entry.entry.content))
+        .filter(Boolean)
+        .join('\n\n');
+      const rules = topic.entries.flatMap((entry) =>
+        extractRules(entry.entry.content),
+      );
+      const severity = extractSeverity(primary.entry.tags);
+
+      lines.push(`### ${topic.title}`);
+      lines.push('');
+      lines.push(`**Subsystem:** ${slugToTitle(topic.scope)}`);
+      if (severity) lines.push(`**Severity:** ${slugToTitle(severity)}`);
+      lines.push(`**Type:** ${primary.entry.entryType}`);
+      lines.push('');
+      if (rules.length > 0) {
+        lines.push('**Rules**');
+        lines.push('');
+        for (const rule of Array.from(new Set(rules))) {
+          lines.push(`- ${rule}`);
+        }
+        lines.push('');
+      }
+      lines.push(mergedContent);
+      lines.push('');
+      const keywords = renderKeywords(primary.entry.tags);
+      if (keywords) {
+        lines.push(keywords);
+        lines.push('');
+      }
+      lines.push('Provenance:');
+      for (const entry of topic.entries) {
+        lines.push(
+          `- Entry ID \`${entry.entryId}\`, CID \`${entry.entryCidSnapshot}\``,
+        );
+      }
+      lines.push('');
+      lines.push(`*Sources: ${renderSourceRefs(topic.entries)}*`);
+      lines.push('');
+    }
+  }
+
+  if (entries.length === 0) {
+    lines.push('_This pack has no expanded entries._');
+    lines.push('');
+  }
+
+  return lines.join('\n').trim();
 }
 
 /**
@@ -65,8 +256,7 @@ export function createMoltNetTools(
   const getPackProvenance = defineTool({
     name: 'moltnet_pack_provenance',
     label: 'Get MoltNet Pack Provenance',
-    description:
-      'Get the provenance graph for a context pack by ID or CID.',
+    description: 'Get the provenance graph for a context pack by ID or CID.',
     parameters: Type.Object({
       packId: Type.Optional(Type.String({ description: 'Context pack ID' })),
       packCid: Type.Optional(Type.String({ description: 'Context pack CID' })),
@@ -115,19 +305,17 @@ export function createMoltNetTools(
     name: 'moltnet_pack_render',
     label: 'Render MoltNet Pack',
     description:
-      'Preview or persist a rendered pack from a source context pack.',
+      'Fetch a pack with entries, transform it into docs, then preview or persist the rendered pack.',
     parameters: Type.Object({
       packId: Type.String({ description: 'Context pack ID' }),
       renderMethod: Type.Optional(
         Type.String({
-          description:
-            'Render method label. Defaults to server:pack-to-docs-v1',
+          description: 'Render method label. Defaults to pi:pack-to-docs-v1',
         }),
       ),
       markdown: Type.Optional(
         Type.String({
-          description:
-            'Caller-authored markdown for non-server render methods',
+          description: 'Optional caller-authored markdown override',
         }),
       ),
       preview: Type.Optional(
@@ -143,25 +331,27 @@ export function createMoltNetTools(
     }),
     async execute(_id, params) {
       const { agent } = ensureConnected(config);
-      const renderMethod = params.renderMethod ?? 'server:pack-to-docs-v1';
-      const body = {
-        renderMethod,
-        renderedMarkdown: params.markdown,
-        pinned: params.pinned,
-      };
+      const renderMethod = params.renderMethod ?? 'pi:pack-to-docs-v1';
 
-      if (!renderMethod.startsWith('server:') && !params.markdown) {
-        throw new Error(
-          'markdown is required for non-server render methods',
-        );
+      let renderedMarkdown = params.markdown;
+      if (!renderedMarkdown && !renderMethod.startsWith('server:')) {
+        const pack = (await agent.packs.get(params.packId, {
+          expand: 'entries',
+        })) as ExpandedPack;
+        renderedMarkdown = renderPhase6Markdown(pack);
       }
 
-      const result = params.preview
-        ? await agent.packs.previewRendered(params.packId, {
-            renderMethod,
-            renderedMarkdown: params.markdown,
-          })
-        : await agent.packs.render(params.packId, body);
+      const result =
+        (params.preview ?? false)
+          ? await agent.packs.previewRendered(params.packId, {
+              renderMethod,
+              renderedMarkdown,
+            })
+          : await agent.packs.render(params.packId, {
+              renderMethod,
+              renderedMarkdown,
+              pinned: params.pinned,
+            });
 
       return {
         content: [

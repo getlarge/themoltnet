@@ -444,7 +444,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 }
 
 // Re-export modules for programmatic use
-export { createMoltNetTools } from './moltnet-tools.js';
+export { createMoltNetTools } from './moltnet/tools.js';
 export type {
   EnsureSnapshotOptions,
   SandboxConfig,
