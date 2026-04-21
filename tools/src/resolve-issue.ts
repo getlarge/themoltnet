@@ -208,7 +208,7 @@ async function main() {
   const cwd = process.cwd();
   const sandboxConfig = JSON.parse(
     readFileSync(join(cwd, 'sandbox.json'), 'utf8'),
-  ) as { snapshot?: SandboxConfig['vfs'] } & SandboxConfig;
+  ) as SandboxConfig;
 
   // Resolve agentDir + creds so we can fetch the GH issue before booting.
   const mainRepo = execFileSync('git', ['rev-parse', '--show-toplevel'], {
@@ -223,7 +223,15 @@ async function main() {
       .filter((m): m is RegExpMatchArray => !!m)
       .map((m) => [m[1], m[2]]),
   );
-  const teamId = envMatches['MOLTNET_TEAM_ID'] ?? randomUUID();
+  const teamId = envMatches['MOLTNET_TEAM_ID'];
+  if (!teamId) {
+    throw new Error(
+      `Missing MOLTNET_TEAM_ID in ${join(agentDir, 'env')}. ` +
+        'Refusing to synthesize a Task with a random team id — the downstream ' +
+        'DB / Keto would reject it. Set MOLTNET_TEAM_ID or run the agent ' +
+        'onboarding flow to populate the env file.',
+    );
+  }
   const diaryId = envMatches['MOLTNET_DIARY_ID'] ?? null;
 
   console.log(`[issue] Fetching #${issueRef}...`);

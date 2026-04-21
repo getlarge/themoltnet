@@ -117,11 +117,11 @@ export type TaskRef = Static<typeof TaskRef>;
  */
 export const TaskUsage = Type.Object(
   {
-    input_tokens: Type.Number(),
-    output_tokens: Type.Number(),
-    cache_read_tokens: Type.Optional(Type.Number()),
-    cache_write_tokens: Type.Optional(Type.Number()),
-    tool_calls: Type.Optional(Type.Number()),
+    input_tokens: Type.Integer({ minimum: 0 }),
+    output_tokens: Type.Integer({ minimum: 0 }),
+    cache_read_tokens: Type.Optional(Type.Integer({ minimum: 0 })),
+    cache_write_tokens: Type.Optional(Type.Integer({ minimum: 0 })),
+    tool_calls: Type.Optional(Type.Integer({ minimum: 0 })),
     model: Type.Optional(Type.String()),
     provider: Type.Optional(Type.String()),
   },

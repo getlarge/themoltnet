@@ -10,7 +10,7 @@
  * PR 7's daemon mode swaps `TaskSource` (file → HTTP long-poll) and
  * `TaskReporter` (stdout/jsonl → HTTP POST). The executor is unchanged.
  */
-import type { Task, TaskOutput } from '@moltnet/tasks';
+import type { Task, TaskOutput, TaskUsage } from '@moltnet/tasks';
 
 import type { TaskReporter } from './reporters/index.js';
 import type { TaskSource } from './sources/index.js';
@@ -80,7 +80,32 @@ export class AgentRuntime {
 
         this.status.currentTaskId = task.id;
         const reporter = this.opts.makeReporter(task);
-        const output = await this.opts.executeTask(task, reporter);
+        const taskStart = Date.now();
+        let output: TaskOutput;
+        try {
+          output = await this.opts.executeTask(task, reporter);
+        } catch (err) {
+          // Contract: executors resolve with `status: 'failed'` on agent
+          // failure, but they may still throw on unrecoverable setup errors
+          // (snapshot build, VM resume, unexpected bugs). Convert those into
+          // a structured failure so the loop drains the source predictably.
+          const message = err instanceof Error ? err.message : String(err);
+          const usage: TaskUsage = { input_tokens: 0, output_tokens: 0 };
+          output = {
+            task_id: task.id,
+            attempt_n: 1,
+            status: 'failed',
+            output: null,
+            output_cid: null,
+            usage,
+            duration_ms: Date.now() - taskStart,
+            error: {
+              code: 'executor_threw',
+              message,
+              retryable: false,
+            },
+          };
+        }
         outputs.push(output);
 
         this.status.tasksProcessed += 1;

@@ -31,7 +31,13 @@ import {
   type PromptContext,
   type TaskReporter,
 } from '@moltnet/agent-runtime';
-import type { Task, TaskOutput, TaskUsage } from '@moltnet/tasks';
+import {
+  BUILT_IN_TASK_TYPES,
+  type Task,
+  type TaskOutput,
+  type TaskUsage,
+} from '@moltnet/tasks';
+import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { connect } from '@themoltnet/sdk';
 
 import { createMoltNetTools } from '../moltnet/tools.js';
@@ -83,6 +89,7 @@ export function createPiTaskExecutor(
   return async (task, reporter) => {
     if (!cachedCheckpoint) {
       cachedCheckpoint = await ensureSnapshot({
+        config: opts.sandboxConfig?.snapshot,
         onProgress:
           opts.onSnapshotProgress ??
           ((m) => {
@@ -115,6 +122,7 @@ export async function executePiTask(
   const checkpointPath =
     opts.checkpointPath ??
     (await ensureSnapshot({
+      config: opts.sandboxConfig?.snapshot,
       onProgress:
         opts.onSnapshotProgress ??
         ((m) => {
@@ -130,12 +138,33 @@ export async function executePiTask(
     sandboxConfig: opts.sandboxConfig,
   });
 
+  const diaryId = task.diary_id ?? '';
+  let reporterOpen = false;
+  let session:
+    | Awaited<ReturnType<typeof createAgentSession>>['session']
+    | null = null;
+
+  const makeFailedOutput = (
+    code: string,
+    message: string,
+    usage: TaskUsage = emptyUsage(opts.provider, opts.model),
+  ): TaskOutput => ({
+    task_id: task.id,
+    attempt_n: attemptN,
+    status: 'failed',
+    output: null,
+    output_cid: null,
+    usage,
+    duration_ms: Date.now() - startTime,
+    error: { code, message, retryable: false },
+  });
+
   try {
     const mainRepo = findMainWorktree();
     activateAgentEnv(managed.credentials.agentEnv, mainRepo);
 
-    const diaryId = task.diary_id ?? '';
     await reporter.open({ taskId: task.id, attemptN });
+    reporterOpen = true;
 
     const emit = (
       kind: Parameters<TaskReporter['record']>[0]['kind'],
@@ -161,19 +190,7 @@ export async function executePiTask(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'prompt_build' });
-      const failedOutput: TaskOutput = {
-        task_id: task.id,
-        attempt_n: attemptN,
-        status: 'failed',
-        output: null,
-        output_cid: null,
-        usage: emptyUsage(opts.provider, opts.model),
-        duration_ms: Date.now() - startTime,
-        error: { code: 'prompt_build_failed', message, retryable: false },
-      };
-      await reporter.finalize(failedOutput.usage);
-      await reporter.close();
-      return failedOutput;
+      return makeFailedOutput('prompt_build_failed', message);
     }
 
     const gondolinRead = createReadTool(mountPath, {
@@ -189,32 +206,40 @@ export async function executePiTask(
       operations: createGondolinBashOps(managed.vm, mountPath),
     });
 
-    const moltnetAgent = await connect({ configDir: managed.agentDir });
-    const moltnetTools = createMoltNetTools({
-      getAgent: () => moltnetAgent,
-      getDiaryId: () => diaryId,
-      getSessionErrors: () => [],
-      clearSessionErrors: () => {
-        /* no-op in headless mode */
-      },
-    });
+    try {
+      const moltnetAgent = await connect({ configDir: managed.agentDir });
+      const moltnetTools = createMoltNetTools({
+        getAgent: () => moltnetAgent,
+        getDiaryId: () => diaryId,
+        getSessionErrors: () => [],
+        clearSessionErrors: () => {
+          /* no-op in headless mode */
+        },
+      });
 
-    const piAuthDir = join(homedir(), '.pi', 'agent');
-    const getModelLoose = getModel as unknown as (
-      provider: string,
-      modelId: string,
-    ) => Model<Api>;
-    const modelHandle = getModelLoose(opts.provider, opts.model);
+      const piAuthDir = join(homedir(), '.pi', 'agent');
+      const getModelLoose = getModel as unknown as (
+        provider: string,
+        modelId: string,
+      ) => Model<Api>;
+      const modelHandle = getModelLoose(opts.provider, opts.model);
 
-    const { session } = await createAgentSession({
-      agentDir: piAuthDir,
-      model: modelHandle,
-      tools: [gondolinRead, gondolinWrite, gondolinEdit, gondolinBash],
-      customTools: moltnetTools,
-      sessionManager: SessionManager.inMemory(),
-    });
+      const created = await createAgentSession({
+        agentDir: piAuthDir,
+        model: modelHandle,
+        tools: [gondolinRead, gondolinWrite, gondolinEdit, gondolinBash],
+        customTools: moltnetTools,
+        sessionManager: SessionManager.inMemory(),
+      });
+      session = created.session;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emit('error', { message, phase: 'session_setup' });
+      return makeFailedOutput('session_setup_failed', message);
+    }
 
     let llmAbort = false;
+    let assistantText = '';
     const recordingPromise: Promise<void>[] = [];
     const track = (p: Promise<void>) => {
       recordingPromise.push(
@@ -228,6 +253,7 @@ export async function executePiTask(
       if (event.type === 'message_update') {
         const ae = event.assistantMessageEvent;
         if (ae.type === 'text_delta') {
+          assistantText += ae.delta;
           track(emit('text_delta', { delta: ae.delta }));
         }
       } else if (event.type === 'tool_execution_start') {
@@ -263,22 +289,63 @@ export async function executePiTask(
     await Promise.all(recordingPromise);
 
     const usage = emptyUsage(opts.provider, opts.model);
-    await reporter.finalize(usage);
-    session.dispose();
-    await reporter.close();
+
+    let parsedOutput: Record<string, unknown> | null = null;
+    let parseError: { code: string; message: string } | null = null;
+    if (!runError && !llmAbort) {
+      const extracted = extractJsonObject(assistantText);
+      if (!extracted) {
+        parseError = {
+          code: 'output_missing',
+          message:
+            'Agent did not emit a parseable JSON object as its final message.',
+        };
+      } else {
+        const entry = BUILT_IN_TASK_TYPES[task.task_type];
+        if (!entry) {
+          parseError = {
+            code: 'unknown_task_type',
+            message: `No output schema registered for task_type=${task.task_type}`,
+          };
+        } else {
+          const check = TypeCompiler.Compile(entry.outputSchema);
+          if (check.Check(extracted)) {
+            parsedOutput = extracted as Record<string, unknown>;
+          } else {
+            const errors = [...check.Errors(extracted)]
+              .slice(0, 3)
+              .map((e) => `${e.path}: ${e.message}`);
+            parseError = {
+              code: 'output_validation_failed',
+              message: `Output failed schema validation: ${errors.join('; ')}`,
+            };
+          }
+        }
+      }
+      if (parseError) {
+        await emit('error', {
+          message: parseError.message,
+          phase: 'output_validation',
+        });
+      }
+    }
 
     const status: TaskOutput['status'] =
-      runError || llmAbort ? 'failed' : 'completed';
+      runError || llmAbort || parseError ? 'failed' : 'completed';
     const errorCode =
-      runError?.code ?? (llmAbort ? 'llm_api_error' : undefined);
+      runError?.code ??
+      parseError?.code ??
+      (llmAbort ? 'llm_api_error' : undefined);
     const errorMessage =
-      runError?.message ?? (llmAbort ? 'LLM API error during turn' : undefined);
+      runError?.message ??
+      parseError?.message ??
+      (llmAbort ? 'LLM API error during turn' : undefined);
 
     return {
       task_id: task.id,
       attempt_n: attemptN,
       status,
-      output: null,
+      output: parsedOutput,
       output_cid: null,
       usage,
       duration_ms: Date.now() - startTime,
@@ -288,7 +355,29 @@ export async function executePiTask(
           }
         : {}),
     };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return makeFailedOutput('executor_unexpected_error', message);
   } finally {
+    if (session) {
+      try {
+        session.dispose();
+      } catch {
+        /* swallow */
+      }
+    }
+    if (reporterOpen) {
+      try {
+        await reporter.finalize(emptyUsage(opts.provider, opts.model));
+      } catch {
+        /* swallow */
+      }
+      try {
+        await reporter.close();
+      } catch {
+        /* swallow */
+      }
+    }
     await managed.vm.close();
   }
 }
@@ -300,4 +389,65 @@ function emptyUsage(provider: string, model: string): TaskUsage {
     provider,
     model,
   };
+}
+
+export const __testables = { extractJsonObject };
+
+/**
+ * Find the last balanced top-level JSON object in `text` and parse it.
+ * Tolerates markdown fences and leading prose. Returns null if parsing fails.
+ */
+function extractJsonObject(text: string): unknown {
+  if (!text) return null;
+
+  const fenceMatch = /```(?:json)?\s*([\s\S]*?)```/gi;
+  const candidates: string[] = [];
+  for (const m of text.matchAll(fenceMatch)) {
+    candidates.push(m[1]);
+  }
+
+  const scanForObject = (s: string): string | null => {
+    let depth = 0;
+    let start = -1;
+    let lastComplete: string | null = null;
+    let inString = false;
+    let escape = false;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (inString) {
+        if (escape) escape = false;
+        else if (ch === '\\') escape = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === '{') {
+        if (depth === 0) start = i;
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0 && start !== -1) {
+          lastComplete = s.slice(start, i + 1);
+          start = -1;
+        }
+      }
+    }
+    return lastComplete;
+  };
+
+  candidates.push(text);
+
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const obj = scanForObject(candidates[i]);
+    if (!obj) continue;
+    try {
+      return JSON.parse(obj);
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
 }

@@ -53,6 +53,7 @@
     "@earendil-works/gondolin": "catalog:",
     "@moltnet/agent-runtime": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@sinclair/typebox": "catalog:",
     "@themoltnet/sdk": "workspace:*"
   },
   "peerDependencies": {
@@ -68,8 +69,8 @@
     }
   },
   "devDependencies": {
-    "@mariozechner/pi-coding-agent": "^0.67.68",
-    "@mariozechner/pi-ai": "^0.67.68",
+    "@mariozechner/pi-ai": "catalog:",
+    "@mariozechner/pi-coding-agent": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

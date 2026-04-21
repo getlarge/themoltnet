@@ -26,8 +26,8 @@
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
     "@huggingface/transformers": "catalog:",
-    "@mariozechner/pi-ai": "^0.67.68",
-    "@mariozechner/pi-coding-agent": "^0.67.68",
+    "@mariozechner/pi-ai": "catalog:",
+    "@mariozechner/pi-coding-agent": "catalog:",
     "@moltnet/agent-runtime": "workspace:*",
     "@moltnet/auth": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
