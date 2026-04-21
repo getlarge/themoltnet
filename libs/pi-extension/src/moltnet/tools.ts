@@ -575,6 +575,117 @@ export function createMoltNetTools(
     },
   });
 
+  const diaryTags = defineTool({
+    name: 'moltnet_diary_tags',
+    label: 'List MoltNet Diary Tags',
+    description:
+      'List distinct tags used across entries in the active diary, with ' +
+      'counts. Supports prefix filter, minimum count floor, and entry-type ' +
+      'scoping. Used by the legreffier-explore skill to inventory scopes ' +
+      'before curating a pack.',
+    parameters: Type.Object({
+      prefix: Type.Optional(
+        Type.String({
+          description: 'Only return tags starting with this prefix',
+        }),
+      ),
+      minCount: Type.Optional(
+        Type.Number({
+          description: 'Exclude tags used by fewer than N entries',
+        }),
+      ),
+      entryTypes: Type.Optional(
+        Type.Array(
+          Type.Union([
+            Type.Literal('episodic'),
+            Type.Literal('semantic'),
+            Type.Literal('procedural'),
+            Type.Literal('reflection'),
+            Type.Literal('identity'),
+            Type.Literal('soul'),
+          ]),
+          { description: 'Restrict the count to entries of these types' },
+        ),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const query: Record<string, unknown> = {};
+      if (params.prefix !== undefined) query.prefix = params.prefix;
+      if (params.minCount !== undefined) query.minCount = params.minCount;
+      if (params.entryTypes !== undefined) query.entryTypes = params.entryTypes;
+      const result = await agent.diaries.tags(diaryId, query);
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const createPack = defineTool({
+    name: 'moltnet_pack_create',
+    label: 'Create MoltNet Context Pack',
+    description:
+      'Persist a custom context pack from an explicit, ranked entry ' +
+      'selection in the active diary. Drives the curator session of the ' +
+      'three-session attribution loop: once the legreffier-explore skill ' +
+      'has picked and ranked the entries, call this to materialize the pack.',
+    parameters: Type.Object({
+      entries: Type.Array(
+        Type.Object({
+          entryId: Type.String({ description: 'Entry UUID to include' }),
+          rank: Type.Number({
+            description:
+              'Selection rank. Lower = more prominent in the rendered pack.',
+          }),
+        }),
+        {
+          description: 'Ranked entry selection (order-independent, rank wins)',
+        },
+      ),
+      params: Type.Optional(
+        Type.Record(Type.String(), Type.Unknown(), {
+          description:
+            'Arbitrary metadata describing the curation recipe (e.g. ' +
+            '{ "recipe": "legreffier-explore-v1", "prompt": "..." }). Stored ' +
+            'on the pack for provenance.',
+        }),
+      ),
+      tokenBudget: Type.Optional(
+        Type.Number({
+          description:
+            'Optional soft token budget for the rendered pack. The server ' +
+            'may use this to truncate low-rank entries.',
+        }),
+      ),
+      pinned: Type.Optional(
+        Type.Boolean({
+          description:
+            'Pin the pack so it is not eligible for expiry. Default false ' +
+            'matches the ephemeral-by-default posture.',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const pack = await agent.packs.create(diaryId, {
+        packType: 'custom',
+        params: params.params ?? {},
+        entries: params.entries,
+        tokenBudget: params.tokenBudget,
+        pinned: params.pinned,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(pack, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const reviewSessionErrors = defineTool({
     name: 'moltnet_review_session_errors',
     label: 'Review Session Tool Errors',
@@ -628,6 +739,8 @@ export function createMoltNetTools(
     getEntry,
     searchEntries,
     createEntry,
+    diaryTags,
+    createPack,
     reviewSessionErrors,
   ];
 }

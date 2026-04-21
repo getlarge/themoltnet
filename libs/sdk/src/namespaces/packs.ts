@@ -1,5 +1,6 @@
 import {
   claimVerification,
+  createDiaryCustomPack,
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
@@ -187,6 +188,17 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
           client,
           auth,
           path: { id },
+          body,
+        }),
+      );
+    },
+
+    async create(diaryId, body) {
+      return unwrapResult(
+        await createDiaryCustomPack({
+          client,
+          auth,
+          path: { id: diaryId },
           body,
         }),
       );

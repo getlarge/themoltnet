@@ -8,6 +8,7 @@ import type {
   ConsolidateResult,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
+  CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryGrantData,
@@ -18,6 +19,7 @@ import type {
   CreateTeamResponse,
   CryptoIdentity,
   CryptoVerifyResult,
+  CustomPackResult,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
   DiaryCatalog,
@@ -25,6 +27,7 @@ import type {
   DiaryEntry,
   DiaryList,
   DiarySearchResult,
+  DiaryTagsResponse,
   Digest,
   EntryVerifyResult,
   GetContextPackByIdData,
@@ -46,6 +49,7 @@ import type {
   ListDiaryGrantsResponse,
   ListDiaryPacksData,
   ListDiaryRenderedPacksData,
+  ListDiaryTagsData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
   ListTeamInvitesResponse,
@@ -135,6 +139,11 @@ export interface DiariesNamespace {
     id: string,
     body: NonNullable<CompileDiaryData['body']>,
   ): Promise<CompileResult>;
+
+  tags(
+    id: string,
+    query?: ListDiaryTagsData['query'],
+  ): Promise<DiaryTagsResponse>;
 }
 
 export interface EntriesNamespace {
@@ -259,6 +268,11 @@ export interface PacksNamespace {
     id: string,
     body: SubmitVerificationData['body'],
   ): Promise<SubmitVerificationResponse>;
+
+  create(
+    diaryId: string,
+    body: NonNullable<CreateDiaryCustomPackData['body']>,
+  ): Promise<CustomPackResult>;
 }
 
 export interface AgentsNamespace {
