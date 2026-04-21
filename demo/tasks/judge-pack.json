@@ -1,0 +1,59 @@
+{
+  "accepted_attempt_n": null,
+  "cancel_reason": null,
+  "cancelled_by_agent_id": null,
+  "cancelled_by_human_id": null,
+  "completed_at": null,
+  "correlation_id": null,
+  "criteria_cid": null,
+  "diary_id": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+  "expires_at": null,
+  "id": "aa100003-0000-4000-8000-000000000003",
+  "imposed_by_agent_id": null,
+  "imposed_by_human_id": null,
+  "input": {
+    "rendered_pack_id": "00000000-0000-4000-8000-000000000001",
+    "rubric": {
+      "criteria": [
+        {
+          "description": "Every source entry is referenced in the rendered content (by entry_id or stable title+cid reference).",
+          "id": "coverage",
+          "scoring": "deterministic_coverage_check",
+          "weight": 0.4
+        },
+        {
+          "description": "Every signed-eligible source entry carries a valid content_signature.",
+          "id": "signature_integrity",
+          "scoring": "deterministic_signature_check",
+          "weight": 0.2
+        },
+        {
+          "description": "No factual claims in the rendered content that cannot be traced to a source entry.",
+          "id": "grounding",
+          "scoring": "llm_judged",
+          "weight": 0.4
+        }
+      ],
+      "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims.",
+      "rubric_id": "pack-fidelity-v1",
+      "scope": "packs",
+      "version": "v1"
+    },
+    "source_pack_id": "00000000-0000-4000-8000-000000000000"
+  },
+  "input_cid": "cid-placeholder",
+  "input_schema_cid": "cid-placeholder",
+  "max_attempts": 1,
+  "output_kind": "judgment",
+  "queued_at": "2026-04-21T16:00:00Z",
+  "references": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "kind": "pack",
+      "role": "subject"
+    }
+  ],
+  "status": "running",
+  "task_type": "judge_pack",
+  "team_id": "6743b4b1-6b93-46e2-a048-19490f04f91a"
+}
