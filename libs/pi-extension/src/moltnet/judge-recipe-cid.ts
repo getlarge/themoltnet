@@ -5,9 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const PACKAGE_DIR = path.dirname(
-  fileURLToPath(new URL('../package.json', import.meta.url)),
-);
+
 const SELF_PACKAGE_NAME = '@themoltnet/pi-extension';
 const PI_PACKAGE_NAME = '@mariozechner/pi-coding-agent';
 const SDK_PACKAGE_NAME = '@themoltnet/sdk';
@@ -20,6 +18,31 @@ interface PackageJsonLike {
   name?: unknown;
   version?: unknown;
 }
+
+// Walk up from this module's directory until we find the package.json that
+// declares `@themoltnet/pi-extension`. Works across layouts:
+//   - src: libs/pi-extension/src/moltnet/judge-recipe-cid.ts → libs/pi-extension/package.json
+//   - dist: node_modules/@themoltnet/pi-extension/dist/moltnet/judge-recipe-cid.js
+//           → node_modules/@themoltnet/pi-extension/package.json
+// A fixed relative path breaks one of the two (`../package.json` breaks both).
+function findSelfPackageDir(): string {
+  const start = path.dirname(fileURLToPath(import.meta.url));
+  let dir = start;
+  while (true) {
+    const candidate = path.join(dir, 'package.json');
+    if (existsSync(candidate)) {
+      const parsed = JSON.parse(
+        readFileSync(candidate, 'utf8'),
+      ) as PackageJsonLike;
+      if (parsed.name === SELF_PACKAGE_NAME) return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return start;
+    dir = parent;
+  }
+}
+
+const PACKAGE_DIR = findSelfPackageDir();
 
 export interface PiJudgeRecipeVersions {
   pi: string | null;
@@ -106,14 +129,15 @@ function stableStringify(value: unknown): string {
 
   const entries = Object.entries(value)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(
-      ([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`,
-    );
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
 
   return `{${entries.join(',')}}`;
 }
 
-function readPackageVersion(pkgPath: string, expectedName?: string): string | null {
+function readPackageVersion(
+  pkgPath: string,
+  expectedName?: string,
+): string | null {
   if (!existsSync(pkgPath)) return null;
 
   const parsed = JSON.parse(readFileSync(pkgPath, 'utf8')) as PackageJsonLike;
@@ -122,8 +146,28 @@ function readPackageVersion(pkgPath: string, expectedName?: string): string | nu
 }
 
 function resolveInstalledPackageVersion(packageName: string): string | null {
+  // Try `require.resolve` first — works for CommonJS-compatible packages.
+  // Fall back to walking node_modules from this extension's package dir,
+  // which handles source-direct ESM exports (e.g. workspace `@themoltnet/sdk`
+  // whose `exports` field points at `./src/index.ts` and is not resolvable
+  // via `require.resolve`).
+  const candidates: string[] = [];
   try {
-    let current = path.dirname(require.resolve(packageName));
+    candidates.push(path.dirname(require.resolve(packageName)));
+  } catch {
+    // continue to fallback
+  }
+
+  let dir = PACKAGE_DIR;
+  while (true) {
+    candidates.push(path.join(dir, 'node_modules', packageName));
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  for (const start of candidates) {
+    let current = start;
     while (true) {
       const candidate = path.join(current, 'package.json');
       const version = readPackageVersion(candidate, packageName);
@@ -133,8 +177,6 @@ function resolveInstalledPackageVersion(packageName: string): string | null {
       if (parent === current) break;
       current = parent;
     }
-  } catch {
-    return null;
   }
 
   return null;
