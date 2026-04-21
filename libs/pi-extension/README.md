@@ -119,4 +119,4 @@ import {
 } from '@themoltnet/pi-extension';
 ```
 
-See `tools/src/fulfill-brief.ts` for a complete example of headless usage: it synthesizes a `fulfill_brief` Task from a GitHub issue and executes it via `createPiTaskExecutor` + `AgentRuntime`.
+See `tools/src/tasks/fulfill-brief.ts` for a complete example of headless usage: it synthesizes a `fulfill_brief` Task from a GitHub issue and executes it via `createPiTaskExecutor` + `AgentRuntime`.
