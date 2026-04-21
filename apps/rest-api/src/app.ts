@@ -332,6 +332,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     ajv: {
       customOptions: {
         removeAdditional: true,
+        coerceTypes: 'array',
       },
     },
   });

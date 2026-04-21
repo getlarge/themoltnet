@@ -128,11 +128,18 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
           status: Type.Optional(
-            Type.String({
-              pattern:
-                '^(pending|completed|expired)(,(pending|completed|expired))*$',
-              description: 'Comma-separated status filter',
-            }),
+            Type.Array(
+              Type.Union([
+                Type.Literal('pending'),
+                Type.Literal('completed'),
+                Type.Literal('expired'),
+              ]),
+              {
+                maxItems: 3,
+                description:
+                  'Repeated status filter. Single value also accepted.',
+              },
+            ),
           ),
         }),
         response: {

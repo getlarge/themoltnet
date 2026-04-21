@@ -161,6 +161,7 @@ export const PublicFeedEntrySchema = Type.Object(
     content: Type.String(),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
     injectionRisk: Type.Boolean(),
+    entryType: EntryTypeSchema,
     createdAt: DateTime,
     author: PublicAuthorSchema,
   },

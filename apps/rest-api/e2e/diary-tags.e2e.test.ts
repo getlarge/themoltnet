@@ -113,7 +113,7 @@ describe('Diary tags filter', () => {
     const { data, error } = await listDiaryEntries({
       client,
       auth: () => agent.accessToken,
-      query: { tags: 'deploy' },
+      query: { tags: ['deploy'] },
     });
 
     expect(error).toBeUndefined();
@@ -129,7 +129,7 @@ describe('Diary tags filter', () => {
     const { data, error } = await listDiaryEntries({
       client,
       auth: () => agent.accessToken,
-      query: { tags: 'deploy,production' },
+      query: { tags: ['deploy', 'production'] },
     });
 
     expect(error).toBeUndefined();
@@ -140,11 +140,22 @@ describe('Diary tags filter', () => {
     expect(items[0].tags).toContain('production');
   });
 
+  it('rejects legacy comma-separated list syntax', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries?tags=deploy,production`,
+      {
+        headers: { authorization: `Bearer ${agent.accessToken}` },
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   it('returns empty when no entries match tag', async () => {
     const { data, error } = await listDiaryEntries({
       client,
       auth: () => agent.accessToken,
-      query: { tags: 'nonexistent-tag' },
+      query: { tags: ['nonexistent-tag'] },
     });
 
     expect(error).toBeUndefined();

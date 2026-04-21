@@ -460,6 +460,19 @@ describe('Public Feed Search', () => {
     expect(data!.items.length).toBeLessThanOrEqual(2);
   });
 
+  it('filters public search by repeated entryTypes query params', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'autonomy', entryTypes: ['semantic'] },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeGreaterThan(0);
+    expect(data!.items.every((item) => item.entryType === 'semantic')).toBe(
+      true,
+    );
+  });
+
   // ── Author info & result shape ─────────────────────────────
 
   it('includes author info in results', async () => {

@@ -12,6 +12,11 @@ import (
 // stubDiaryHandler implements only the diary/entry operations used by the CLI.
 type stubDiaryHandler struct {
 	moltnetapi.UnimplementedHandler
+	listDiaryEntriesParams  moltnetapi.ListDiaryEntriesParams
+	listDiaryTagsParams     moltnetapi.ListDiaryTagsParams
+	listSigningRequestsArgs moltnetapi.ListSigningRequestsParams
+	reflectDiaryParams      moltnetapi.ReflectDiaryParams
+	searchPublicFeedParams  moltnetapi.SearchPublicFeedParams
 }
 
 var testDiaryID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
@@ -47,7 +52,8 @@ func (h *stubDiaryHandler) CreateDiaryEntry(_ context.Context, req *moltnetapi.C
 	return newTestEntry(req.Content), nil
 }
 
-func (h *stubDiaryHandler) ListDiaryEntries(_ context.Context, _ moltnetapi.ListDiaryEntriesParams) (moltnetapi.ListDiaryEntriesRes, error) {
+func (h *stubDiaryHandler) ListDiaryEntries(_ context.Context, params moltnetapi.ListDiaryEntriesParams) (moltnetapi.ListDiaryEntriesRes, error) {
+	h.listDiaryEntriesParams = params
 	return &moltnetapi.DiaryList{
 		Items: []moltnetapi.DiaryEntry{*newTestEntry("entry-1"), *newTestEntry("entry-2")},
 		Total: 2,
@@ -110,13 +116,39 @@ func (h *stubDiaryHandler) GetDiary(_ context.Context, params moltnetapi.GetDiar
 	return d, nil
 }
 
-func (h *stubDiaryHandler) ListDiaryTags(_ context.Context, _ moltnetapi.ListDiaryTagsParams) (moltnetapi.ListDiaryTagsRes, error) {
+func (h *stubDiaryHandler) ListDiaryTags(_ context.Context, params moltnetapi.ListDiaryTagsParams) (moltnetapi.ListDiaryTagsRes, error) {
+	h.listDiaryTagsParams = params
 	return &moltnetapi.DiaryTagsResponse{
 		Tags: []moltnetapi.DiaryTagsResponseTagsItem{
 			{Tag: "scope:cli", Count: 5},
 			{Tag: "tool:claude", Count: 3},
 		},
 		Total: 2,
+	}, nil
+}
+
+func (h *stubDiaryHandler) ListSigningRequests(_ context.Context, params moltnetapi.ListSigningRequestsParams) (moltnetapi.ListSigningRequestsRes, error) {
+	h.listSigningRequestsArgs = params
+	return &moltnetapi.SigningRequestList{
+		Items:  []moltnetapi.SigningRequest{},
+		Total:  0,
+		Limit:  20,
+		Offset: 0,
+	}, nil
+}
+
+func (h *stubDiaryHandler) ReflectDiary(_ context.Context, params moltnetapi.ReflectDiaryParams) (moltnetapi.ReflectDiaryRes, error) {
+	h.reflectDiaryParams = params
+	return &moltnetapi.Digest{
+		Entries: []moltnetapi.DigestEntriesItem{},
+	}, nil
+}
+
+func (h *stubDiaryHandler) SearchPublicFeed(_ context.Context, params moltnetapi.SearchPublicFeedParams) (moltnetapi.SearchPublicFeedRes, error) {
+	h.searchPublicFeedParams = params
+	return &moltnetapi.PublicSearchResponse{
+		Items: []moltnetapi.PublicFeedEntry{},
+		Query: params.Q,
 	}, nil
 }
 
@@ -233,7 +265,8 @@ func TestEntryCreate(t *testing.T) {
 
 func TestEntryList(t *testing.T) {
 	// Arrange
-	_, _, client := newTestServer(t, &stubDiaryHandler{})
+	handler := &stubDiaryHandler{}
+	_, _, client := newTestServer(t, handler)
 
 	// Act
 	res, err := client.ListDiaryEntries(context.Background(), moltnetapi.ListDiaryEntriesParams{DiaryId: testDiaryID})
@@ -248,6 +281,125 @@ func TestEntryList(t *testing.T) {
 	}
 	if len(list.Items) != 2 {
 		t.Errorf("expected 2 items, got %d", len(list.Items))
+	}
+	if handler.listDiaryEntriesParams.DiaryId != testDiaryID {
+		t.Errorf("expected diary id %s, got %s", testDiaryID, handler.listDiaryEntriesParams.DiaryId)
+	}
+}
+
+func TestEntryListRepeatedQueryParams(t *testing.T) {
+	handler := &stubDiaryHandler{}
+	_, _, client := newTestServer(t, handler)
+
+	idA := uuid.MustParse("00000000-0000-0000-0000-0000000000a1")
+	idB := uuid.MustParse("00000000-0000-0000-0000-0000000000b2")
+	params := moltnetapi.ListDiaryEntriesParams{
+		DiaryId:     testDiaryID,
+		Ids:         []uuid.UUID{idA, idB},
+		Tags:        []string{"deploy", "production"},
+		ExcludeTags: []string{"staging"},
+		EntryType: []moltnetapi.ListDiaryEntriesEntryTypeItem{
+			moltnetapi.ListDiaryEntriesEntryTypeItemSemantic,
+			moltnetapi.ListDiaryEntriesEntryTypeItemProcedural,
+		},
+	}
+
+	if _, err := client.ListDiaryEntries(context.Background(), params); err != nil {
+		t.Fatalf("ListDiaryEntries() error: %v", err)
+	}
+
+	if got := handler.listDiaryEntriesParams.Ids; len(got) != 2 || got[0] != idA || got[1] != idB {
+		t.Fatalf("expected ids [%s %s], got %v", idA, idB, got)
+	}
+	if got := handler.listDiaryEntriesParams.Tags; len(got) != 2 || got[0] != "deploy" || got[1] != "production" {
+		t.Fatalf("expected tags [deploy production], got %v", got)
+	}
+	if got := handler.listDiaryEntriesParams.ExcludeTags; len(got) != 1 || got[0] != "staging" {
+		t.Fatalf("expected excludeTags [staging], got %v", got)
+	}
+	if got := handler.listDiaryEntriesParams.EntryType; len(got) != 2 || got[0] != moltnetapi.ListDiaryEntriesEntryTypeItemSemantic || got[1] != moltnetapi.ListDiaryEntriesEntryTypeItemProcedural {
+		t.Fatalf("expected entry types [semantic procedural], got %v", got)
+	}
+}
+
+func TestDiaryTagsRepeatedQueryParams(t *testing.T) {
+	handler := &stubDiaryHandler{}
+	_, _, client := newTestServer(t, handler)
+
+	params := moltnetapi.ListDiaryTagsParams{
+		DiaryId: testDiaryID,
+		EntryTypes: []moltnetapi.ListDiaryTagsEntryTypesItem{
+			moltnetapi.ListDiaryTagsEntryTypesItemSemantic,
+			moltnetapi.ListDiaryTagsEntryTypesItemEpisodic,
+		},
+	}
+
+	if _, err := client.ListDiaryTags(context.Background(), params); err != nil {
+		t.Fatalf("ListDiaryTags() error: %v", err)
+	}
+
+	if got := handler.listDiaryTagsParams.EntryTypes; len(got) != 2 || got[0] != moltnetapi.ListDiaryTagsEntryTypesItemSemantic || got[1] != moltnetapi.ListDiaryTagsEntryTypesItemEpisodic {
+		t.Fatalf("expected entryTypes [semantic episodic], got %v", got)
+	}
+}
+
+func TestReflectDiaryRepeatedQueryParams(t *testing.T) {
+	handler := &stubDiaryHandler{}
+	_, _, client := newTestServer(t, handler)
+
+	params := moltnetapi.ReflectDiaryParams{
+		DiaryId: testDiaryID,
+		EntryTypes: []moltnetapi.ReflectDiaryEntryTypesItem{
+			moltnetapi.ReflectDiaryEntryTypesItemSemantic,
+		},
+	}
+
+	if _, err := client.ReflectDiary(context.Background(), params); err != nil {
+		t.Fatalf("ReflectDiary() error: %v", err)
+	}
+
+	if got := handler.reflectDiaryParams.EntryTypes; len(got) != 1 || got[0] != moltnetapi.ReflectDiaryEntryTypesItemSemantic {
+		t.Fatalf("expected entryTypes [semantic], got %v", got)
+	}
+}
+
+func TestListSigningRequestsRepeatedQueryParams(t *testing.T) {
+	handler := &stubDiaryHandler{}
+	_, _, client := newTestServer(t, handler)
+
+	params := moltnetapi.ListSigningRequestsParams{
+		Status: []moltnetapi.ListSigningRequestsStatusItem{
+			moltnetapi.ListSigningRequestsStatusItemPending,
+			moltnetapi.ListSigningRequestsStatusItemCompleted,
+		},
+	}
+
+	if _, err := client.ListSigningRequests(context.Background(), params); err != nil {
+		t.Fatalf("ListSigningRequests() error: %v", err)
+	}
+
+	if got := handler.listSigningRequestsArgs.Status; len(got) != 2 || got[0] != moltnetapi.ListSigningRequestsStatusItemPending || got[1] != moltnetapi.ListSigningRequestsStatusItemCompleted {
+		t.Fatalf("expected status [pending completed], got %v", got)
+	}
+}
+
+func TestSearchPublicFeedRepeatedQueryParams(t *testing.T) {
+	handler := &stubDiaryHandler{}
+	_, _, client := newTestServer(t, handler)
+
+	params := moltnetapi.SearchPublicFeedParams{
+		Q: "autonomy",
+		EntryTypes: []moltnetapi.SearchPublicFeedEntryTypesItem{
+			moltnetapi.SearchPublicFeedEntryTypesItemSemantic,
+		},
+	}
+
+	if _, err := client.SearchPublicFeed(context.Background(), params); err != nil {
+		t.Fatalf("SearchPublicFeed() error: %v", err)
+	}
+
+	if got := handler.searchPublicFeedParams.EntryTypes; len(got) != 1 || got[0] != moltnetapi.SearchPublicFeedEntryTypesItemSemantic {
+		t.Fatalf("expected entryTypes [semantic], got %v", got)
 	}
 }
 

@@ -175,7 +175,7 @@ describe('Diary entry routes', () => {
 
       await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?tags=accountable-commit,high-risk`,
+        url: `/diaries/${DIARY_ID}/entries?tags=accountable-commit&tags=high-risk`,
         headers: authHeaders,
       });
 
@@ -215,7 +215,7 @@ describe('Diary entry routes', () => {
 
       await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?excludeTags=incident,staging`,
+        url: `/diaries/${DIARY_ID}/entries?excludeTags=incident&excludeTags=staging`,
         headers: authHeaders,
       });
 
@@ -238,7 +238,7 @@ describe('Diary entry routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?ids=${idA},${idB}`,
+        url: `/diaries/${DIARY_ID}/entries?ids=${idA}&ids=${idB}`,
         headers: authHeaders,
       });
 
@@ -267,11 +267,13 @@ describe('Diary entry routes', () => {
         { length: 51 },
         (_, i) =>
           `${i.toString(16).padStart(8, '0')}-0000-0000-0000-000000000000`,
-      ).join(',');
+      )
+        .map((id) => `ids=${id}`)
+        .join('&');
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?ids=${tooMany}`,
+        url: `/diaries/${DIARY_ID}/entries?${tooMany}`,
         headers: authHeaders,
       });
 
@@ -279,10 +281,10 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.listEntries).not.toHaveBeenCalled();
     });
 
-    it('rejects empty tag in comma-separated list', async () => {
+    it('rejects legacy comma-separated tags syntax', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?tags=deploy,,staging`,
+        url: `/diaries/${DIARY_ID}/entries?tags=deploy,staging`,
         headers: authHeaders,
       });
 
@@ -301,10 +303,12 @@ describe('Diary entry routes', () => {
     });
 
     it('rejects more than 20 tags', async () => {
-      const tags = Array.from({ length: 21 }, (_, i) => `tag-${i}`).join(',');
+      const tags = Array.from({ length: 21 }, (_, i) => `tags=tag-${i}`).join(
+        '&',
+      );
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?tags=${tags}`,
+        url: `/diaries/${DIARY_ID}/entries?${tags}`,
         headers: authHeaders,
       });
 
@@ -339,7 +343,7 @@ describe('Diary entry routes', () => {
 
       await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?entryType=identity,soul,semantic`,
+        url: `/diaries/${DIARY_ID}/entries?entryType=identity&entryType=soul&entryType=semantic`,
         headers: authHeaders,
       });
 
@@ -441,7 +445,7 @@ describe('Diary entry routes', () => {
 
       await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/tags?entryTypes=semantic,episodic`,
+        url: `/diaries/${DIARY_ID}/tags?entryTypes=semantic&entryTypes=episodic`,
         headers: authHeaders,
       });
 

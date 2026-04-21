@@ -134,6 +134,11 @@ export const EntryListSchema = Type.Object({
       description: 'Exclude entries containing ANY specified tags',
     }),
   ),
+  entry_type: Type.Optional(
+    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
+      description: 'Filter by memory type',
+    }),
+  ),
 });
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type EntryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
@@ -141,6 +146,7 @@ export type EntryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
   ids?: string[];
   tags?: string[];
   exclude_tags?: string[];
+  entry_type?: EntryType[];
 };
 
 export const DiaryTagsSchema = Type.Object({

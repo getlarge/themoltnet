@@ -5683,6 +5683,25 @@ func (s *ListDiaryEntriesBadRequest) Validate() error {
 	return nil
 }
 
+func (s ListDiaryEntriesEntryTypeItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ListDiaryEntriesInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5934,6 +5953,25 @@ func (s *ListDiaryTagsBadRequest) Validate() error {
 	return nil
 }
 
+func (s ListDiaryTagsEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ListDiaryTagsInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -6158,6 +6196,19 @@ func (s *ListSigningRequestsInternalServerError) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s ListSigningRequestsStatusItem) Validate() error {
+	switch s {
+	case "pending":
+		return nil
+	case "completed":
+		return nil
+	case "expired":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ListSigningRequestsUnauthorized) Validate() error {
@@ -7721,6 +7772,48 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) Validate() error {
 	return nil
 }
 
+func (s *PublicFeedEntry) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.EntryType.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "entryType",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s PublicFeedEntryEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *PublicFeedResponse) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -7730,6 +7823,23 @@ func (s *PublicFeedResponse) Validate() error {
 	if err := func() error {
 		if s.Items == nil {
 			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Items {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
 		}
 		return nil
 	}(); err != nil {
@@ -7753,6 +7863,23 @@ func (s *PublicSearchResponse) Validate() error {
 	if err := func() error {
 		if s.Items == nil {
 			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Items {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
 		}
 		return nil
 	}(); err != nil {
@@ -7942,6 +8069,25 @@ func (s *ReflectDiaryBadRequest) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s ReflectDiaryEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ReflectDiaryInternalServerError) Validate() error {
@@ -8883,6 +9029,25 @@ func (s *SearchPublicFeedBadRequest) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s SearchPublicFeedEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *SearchPublicFeedInternalServerError) Validate() error {

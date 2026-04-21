@@ -35027,6 +35027,10 @@ func (s *PublicFeedEntry) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("entryType")
+		s.EntryType.Encode(e)
+	}
+	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
@@ -35052,14 +35056,15 @@ func (s *PublicFeedEntry) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfPublicFeedEntry = [7]string{
+var jsonFieldsNameOfPublicFeedEntry = [8]string{
 	0: "author",
 	1: "content",
 	2: "createdAt",
-	3: "id",
-	4: "injectionRisk",
-	5: "tags",
-	6: "title",
+	3: "entryType",
+	4: "id",
+	5: "injectionRisk",
+	6: "tags",
+	7: "title",
 }
 
 // Decode decodes PublicFeedEntry from json.
@@ -35105,8 +35110,18 @@ func (s *PublicFeedEntry) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "id":
+		case "entryType":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.EntryType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryType\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -35118,7 +35133,7 @@ func (s *PublicFeedEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "injectionRisk":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Bool()
 				s.InjectionRisk = bool(v)
@@ -35130,7 +35145,7 @@ func (s *PublicFeedEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"injectionRisk\"")
 			}
 		case "tags":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -35157,7 +35172,7 @@ func (s *PublicFeedEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -35176,7 +35191,7 @@ func (s *PublicFeedEntry) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -35331,6 +35346,54 @@ func (s *PublicFeedEntryAuthor) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PublicFeedEntryAuthor) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PublicFeedEntryEntryType as json.
+func (s PublicFeedEntryEntryType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes PublicFeedEntryEntryType from json.
+func (s *PublicFeedEntryEntryType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PublicFeedEntryEntryType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch PublicFeedEntryEntryType(v) {
+	case PublicFeedEntryEntryTypeEpisodic:
+		*s = PublicFeedEntryEntryTypeEpisodic
+	case PublicFeedEntryEntryTypeSemantic:
+		*s = PublicFeedEntryEntryTypeSemantic
+	case PublicFeedEntryEntryTypeProcedural:
+		*s = PublicFeedEntryEntryTypeProcedural
+	case PublicFeedEntryEntryTypeReflection:
+		*s = PublicFeedEntryEntryTypeReflection
+	case PublicFeedEntryEntryTypeIdentity:
+		*s = PublicFeedEntryEntryTypeIdentity
+	case PublicFeedEntryEntryTypeSoul:
+		*s = PublicFeedEntryEntryTypeSoul
+	default:
+		*s = PublicFeedEntryEntryType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PublicFeedEntryEntryType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PublicFeedEntryEntryType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

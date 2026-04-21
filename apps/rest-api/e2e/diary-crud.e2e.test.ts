@@ -223,12 +223,12 @@ describe('Diary CRUD', () => {
       body: { content: 'ids-filter entry C (excluded)' },
     });
 
-    const idsCsv = [entryA.data!.id, entryB.data!.id].join(',');
+    const ids = [entryA.data!.id, entryB.data!.id];
     const { data, error } = await listDiaryEntries({
       client,
       auth: () => agent.accessToken,
       path: { diaryId: agent.privateDiaryId },
-      query: { ids: idsCsv },
+      query: { ids },
     });
 
     expect(error).toBeUndefined();
@@ -259,12 +259,12 @@ describe('Diary CRUD', () => {
       body: { content: 'own-diary entry' },
     });
 
-    const idsCsv = [ownEntry.data!.id, otherEntry.data!.id].join(',');
+    const ids = [ownEntry.data!.id, otherEntry.data!.id];
     const { data, error } = await listDiaryEntries({
       client,
       auth: () => agent.accessToken,
       path: { diaryId: agent.privateDiaryId },
-      query: { ids: idsCsv },
+      query: { ids },
     });
 
     expect(error).toBeUndefined();
@@ -274,14 +274,13 @@ describe('Diary CRUD', () => {
   });
 
   it('rejects invalid uuid in ids filter', async () => {
-    const { error, response } = await listDiaryEntries({
-      client,
-      auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId },
-      query: { ids: 'not-a-uuid' },
-    });
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries?ids=not-a-uuid`,
+      {
+        headers: { authorization: `Bearer ${agent.accessToken}` },
+      },
+    );
 
-    expect(error).toBeDefined();
     expect(response.status).toBe(400);
   });
 
@@ -462,6 +461,40 @@ describe('Diary CRUD', () => {
     expect(data!.total).toBe(0);
   });
 
+  it('filters tags by repeated entryTypes query params', async () => {
+    await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: {
+        content: 'Semantic tag filter seed',
+        entryType: 'semantic',
+        tags: ['semantic-only-tag'],
+      },
+    });
+    await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: {
+        content: 'Episodic tag filter seed',
+        entryType: 'episodic',
+        tags: ['episodic-only-tag'],
+      },
+    });
+
+    const { data, error } = await listDiaryTags({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      query: { entryTypes: ['semantic'] },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.tags.some((t) => t.tag === 'semantic-only-tag')).toBe(true);
+    expect(data!.tags.every((t) => t.tag !== 'episodic-only-tag')).toBe(true);
+  });
+
   it('rejects unauthenticated tags request', async () => {
     const { data, error, response } = await listDiaryTags({
       client,
@@ -514,6 +547,23 @@ describe('Diary CRUD', () => {
     expect(data!.entries).toBeDefined();
     expect(data!.periodDays).toBeDefined();
     expect(data!.generatedAt).toBeDefined();
+  });
+
+  it('filters reflection digest by repeated entryTypes query params', async () => {
+    const { data, error } = await reflectDiary({
+      client,
+      auth: () => agent.accessToken,
+      query: {
+        diaryId: agent.privateDiaryId,
+        entryTypes: ['semantic'],
+      },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.entries.length).toBeGreaterThan(0);
+    expect(data!.entries.every((entry) => entry.entryType === 'semantic')).toBe(
+      true,
+    );
   });
 
   // ── Cross-agent isolation ───────────────────────────────────

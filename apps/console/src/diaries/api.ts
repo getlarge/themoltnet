@@ -87,8 +87,8 @@ export async function fetchDiaryEntries(input: {
     query: {
       limit: input.limit ?? 20,
       offset: input.offset ?? 0,
-      tags: input.tag ?? undefined,
-      entryType: input.entryType ?? undefined,
+      tags: input.tag ? [input.tag] : undefined,
+      entryType: input.entryType ? [input.entryType] : undefined,
     },
   });
 

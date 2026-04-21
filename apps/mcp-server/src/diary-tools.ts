@@ -156,9 +156,10 @@ export async function handleEntryList(
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
-      ...(args.ids?.length ? { ids: args.ids.join(',') } : {}),
-      ...(args.tags && { tags: args.tags.join(',') }),
-      ...(args.exclude_tags && { excludeTags: args.exclude_tags.join(',') }),
+      ...(args.ids?.length ? { ids: args.ids } : {}),
+      ...(args.tags && { tags: args.tags }),
+      ...(args.exclude_tags && { excludeTags: args.exclude_tags }),
+      ...(args.entry_type && { entryType: args.entry_type }),
     },
   });
 
@@ -272,7 +273,7 @@ export async function handleReflect(
       diaryId: args.diary_id,
       days: args.days ?? 7,
       maxEntries: args.max_entries ?? 50,
-      ...(args.entry_types && { entryTypes: args.entry_types.join(',') }),
+      ...(args.entry_types && { entryTypes: args.entry_types }),
     },
   });
 
@@ -477,7 +478,7 @@ export async function handleDiaryTags(
       ...(args.prefix !== undefined && { prefix: args.prefix }),
       ...(args.min_count !== undefined && { minCount: args.min_count }),
       ...(args.entry_types !== undefined && {
-        entryTypes: args.entry_types.join(','),
+        entryTypes: args.entry_types,
       }),
     },
   });

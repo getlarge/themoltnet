@@ -3197,6 +3197,34 @@
             "format": "date-time",
             "type": "string"
           },
+          "entryType": {
+            "anyOf": [
+              {
+                "enum": ["episodic"],
+                "type": "string"
+              },
+              {
+                "enum": ["semantic"],
+                "type": "string"
+              },
+              {
+                "enum": ["procedural"],
+                "type": "string"
+              },
+              {
+                "enum": ["reflection"],
+                "type": "string"
+              },
+              {
+                "enum": ["identity"],
+                "type": "string"
+              },
+              {
+                "enum": ["soul"],
+                "type": "string"
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -3234,6 +3262,7 @@
           "content",
           "tags",
           "injectionRisk",
+          "entryType",
           "createdAt",
           "author"
         ],
@@ -4570,13 +4599,29 @@
             }
           },
           {
-            "description": "Comma-separated status filter",
+            "description": "Repeated status filter. Single value also accepted.",
             "in": "query",
             "name": "status",
             "required": false,
             "schema": {
-              "pattern": "^(pending|completed|expired)(,(pending|completed|expired))*$",
-              "type": "string"
+              "items": {
+                "anyOf": [
+                  {
+                    "enum": ["pending"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["completed"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["expired"],
+                    "type": "string"
+                  }
+                ]
+              },
+              "maxItems": 3,
+              "type": "array"
             }
           }
         ],
@@ -5170,13 +5215,41 @@
             }
           },
           {
-            "description": "Comma-separated entry type filter",
+            "description": "Repeated entry type filter. Single value also accepted.",
             "in": "query",
             "name": "entryTypes",
             "required": false,
             "schema": {
-              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$",
-              "type": "string"
+              "items": {
+                "anyOf": [
+                  {
+                    "enum": ["episodic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["semantic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["procedural"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["reflection"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["identity"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["soul"],
+                    "type": "string"
+                  }
+                ]
+              },
+              "maxItems": 6,
+              "type": "array"
             }
           }
         ],
@@ -5431,47 +5504,87 @@
             }
           },
           {
-            "description": "Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.",
+            "description": "Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.",
             "in": "query",
             "name": "ids",
             "required": false,
             "schema": {
-              "maxLength": 1850,
-              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$",
-              "type": "string"
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 50,
+              "type": "array"
             }
           },
           {
-            "description": "Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)",
+            "description": "Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)",
             "in": "query",
             "name": "tags",
             "required": false,
             "schema": {
-              "maxLength": 1070,
-              "pattern": "^[^,]{1,50}(,[^,]{1,50}){0,19}$",
-              "type": "string"
+              "items": {
+                "maxLength": 50,
+                "minLength": 1,
+                "pattern": "^[^,]+$",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
             }
           },
           {
-            "description": "Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)",
+            "description": "Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)",
             "in": "query",
             "name": "excludeTags",
             "required": false,
             "schema": {
-              "maxLength": 1070,
-              "pattern": "^[^,]{1,50}(,[^,]{1,50}){0,19}$",
-              "type": "string"
+              "items": {
+                "maxLength": 50,
+                "minLength": 1,
+                "pattern": "^[^,]+$",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
             }
           },
           {
-            "description": "Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.",
+            "description": "Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.",
             "in": "query",
             "name": "entryType",
             "required": false,
             "schema": {
-              "maxLength": 100,
-              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$",
-              "type": "string"
+              "items": {
+                "anyOf": [
+                  {
+                    "enum": ["episodic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["semantic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["procedural"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["reflection"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["identity"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["soul"],
+                    "type": "string"
+                  }
+                ]
+              },
+              "maxItems": 6,
+              "type": "array"
             }
           },
           {
@@ -5740,14 +5853,41 @@
             }
           },
           {
-            "description": "Comma-separated entry types to scope the tag count",
+            "description": "Repeated entry types to scope the tag count. Single value also accepted.",
             "in": "query",
             "name": "entryTypes",
             "required": false,
             "schema": {
-              "maxLength": 100,
-              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$",
-              "type": "string"
+              "items": {
+                "anyOf": [
+                  {
+                    "enum": ["episodic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["semantic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["procedural"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["reflection"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["identity"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["soul"],
+                    "type": "string"
+                  }
+                ]
+              },
+              "maxItems": 6,
+              "type": "array"
             }
           },
           {
@@ -10758,13 +10898,41 @@
             }
           },
           {
-            "description": "Comma-separated entry type filter",
+            "description": "Repeated entry type filter. Single value also accepted.",
             "in": "query",
             "name": "entryTypes",
             "required": false,
             "schema": {
-              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
-              "type": "string"
+              "items": {
+                "anyOf": [
+                  {
+                    "enum": ["episodic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["semantic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["procedural"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["reflection"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["identity"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["soul"],
+                    "type": "string"
+                  }
+                ]
+              },
+              "maxItems": 6,
+              "type": "array"
             }
           },
           {

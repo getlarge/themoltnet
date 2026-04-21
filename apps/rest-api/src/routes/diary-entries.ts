@@ -9,7 +9,6 @@ import type { RelationAtDepth } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
-  ENTRY_TYPES_CSV_PATTERN,
   EntryParamsSchema,
   entryTypeLiterals,
   NestedDiaryParamsSchema,
@@ -28,6 +27,12 @@ import {
   EntryVerifyResultSchema,
   SuccessSchema,
 } from '../schemas.js';
+
+const queryTagSchema = Type.String({
+  minLength: 1,
+  maxLength: 50,
+  pattern: '^[^,]+$',
+});
 
 function wantsExpandedRelations(expand?: 'relations'): boolean {
   return expand === 'relations';
@@ -244,36 +249,31 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
           ids: Type.Optional(
-            Type.String({
-              pattern:
-                '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}){0,49}$',
-              maxLength: 1850,
+            Type.Array(Type.String({ format: 'uuid' }), {
+              maxItems: 50,
               description:
-                'Comma-separated entry UUIDs filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.',
+                'Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.',
             }),
           ),
           tags: Type.Optional(
-            Type.String({
-              pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
-              maxLength: 1070,
+            Type.Array(queryTagSchema, {
+              maxItems: 20,
               description:
-                'Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
+                'Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
             }),
           ),
           excludeTags: Type.Optional(
-            Type.String({
-              pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
-              maxLength: 1070,
+            Type.Array(queryTagSchema, {
+              maxItems: 20,
               description:
-                'Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)',
+                'Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)',
             }),
           ),
           entryType: Type.Optional(
-            Type.String({
-              pattern: ENTRY_TYPES_CSV_PATTERN,
-              maxLength: 100,
+            Type.Array(Type.Union(entryTypeLiterals), {
+              maxItems: 6,
               description:
-                'Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.',
+                'Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.',
             }),
           ),
         }),
@@ -306,25 +306,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         throw err;
       }
 
-      const idsFilter = ids ? ids.split(',') : undefined;
-      const tagsFilter = tags
-        ? tags.split(',').map((t) => t.trim())
-        : undefined;
-      const excludedTagsFilter = excludeTags
-        ? excludeTags.split(',').map((t) => t.trim())
-        : undefined;
-      const entryTypesParsed = entryType
-        ? (entryType.split(',').map((t) => t.trim()) as ListInput['entryTypes'])
-        : undefined;
-
       const { items, total } = await fastify.diaryService.listEntries({
         diaryId: diary.id,
-        ids: idsFilter,
-        tags: tagsFilter,
-        excludeTags: excludedTagsFilter,
+        ids,
+        tags,
+        excludeTags,
         limit,
         offset,
-        entryTypes: entryTypesParsed,
+        entryTypes: entryType as ListInput['entryTypes'] | undefined,
       });
 
       return {
@@ -361,10 +350,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             }),
           ),
           entryTypes: Type.Optional(
-            Type.String({
-              pattern: ENTRY_TYPES_CSV_PATTERN,
-              maxLength: 100,
-              description: 'Comma-separated entry types to scope the tag count',
+            Type.Array(Type.Union(entryTypeLiterals), {
+              maxItems: 6,
+              description:
+                'Repeated entry types to scope the tag count. Single value also accepted.',
             }),
           ),
         }),
@@ -390,11 +379,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             diaryId,
             prefix,
             minCount,
-            entryTypes: entryTypes
-              ? (entryTypes
-                  .split(',')
-                  .map((t) => t.trim()) as ListTagsInput['entryTypes'])
-              : undefined,
+            entryTypes: entryTypes as ListTagsInput['entryTypes'] | undefined,
           },
           identityId,
           subjectNs,
