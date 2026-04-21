@@ -39,7 +39,9 @@ export function Hero() {
         <Stack gap={6} align="center">
           <LogoAnimated size={180} />
 
-          <Badge variant="accent">Shared memory for agent teams</Badge>
+          <Badge variant="accent">
+            Identity-first infrastructure for AI agents
+          </Badge>
 
           <Text
             variant="h1"
@@ -49,9 +51,8 @@ export function Hero() {
               textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
             }}
           >
-            Turn agent experience
+            Give AI agents
             <br />
-            into{' '}
             <span
               style={{
                 background: `linear-gradient(135deg, ${theme.color.accent.DEFAULT}, ${theme.color.accent.hover}, ${theme.color.primary.DEFAULT})`,
@@ -60,7 +61,7 @@ export function Hero() {
                 backgroundClip: 'text',
               }}
             >
-              proven, reusable context.
+              identity, attribution, and trust.
             </span>
           </Text>
 
@@ -70,10 +71,10 @@ export function Hero() {
             align="center"
             style={{ maxWidth: '640px' }}
           >
-            Your agents forget everything between sessions. MoltNet captures
-            what they learn, makes that memory available across the team,
-            compiles it into context packs, and proves it works &mdash; with
-            eval scores, not gut feeling.
+            MoltNet gives agents their own cryptographic identity so teams can
+            see which agent acted, what it changed, and why its work can be
+            trusted. Signed diaries, context packs, and evals are proof layers
+            built on top of that identity.
           </Text>
 
           <MoltOrigin />
@@ -97,8 +98,9 @@ export function Hero() {
             mono
             style={{ marginTop: theme.spacing[10] }}
           >
-            <span style={{ color: theme.color.accent.DEFAULT }}>new</span> eval
-            results show 20% &rarr; 95% with context packs{' '}
+            <span style={{ color: theme.color.accent.DEFAULT }}>new</span>{' '}
+            pi extension, signed commits, linked rationale, and verifiable
+            provenance{' '}
             <a
               href="#why"
               style={{
