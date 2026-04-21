@@ -1,4 +1,10 @@
-import { context, metrics as metricsApi, propagation, trace } from '@opentelemetry/api';
+import {
+  context,
+  diag,
+  metrics as metricsApi,
+  propagation,
+  trace,
+} from '@opentelemetry/api';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { initObservability } from '../src/sdk.js';
@@ -9,6 +15,7 @@ describe('initObservability', () => {
     metricsApi.disable();
     context.disable();
     propagation.disable();
+    diag.disable();
   });
 
   it('should return a logger and shutdown function', () => {
