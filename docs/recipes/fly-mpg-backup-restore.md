@@ -108,15 +108,16 @@ Precreate required extensions:
 docker exec themoltnet-pg17-restore-test \
   psql -U moltnet -d moltnet_prod_restore \
   -c 'create extension if not exists vector;' \
-  -c 'create extension if not exists "uuid-ossp";'
+  -c 'create extension if not exists "uuid-ossp";' \
+  -c 'create extension if not exists pgcrypto;'
 ```
 
 Restore the dump:
 
 ```bash
-docker run --rm -v /tmp:/dump postgres:17 \
+docker run --rm --network host -e PGPASSWORD=moltnet_secret -v /tmp:/dump postgres:17 \
   pg_restore --no-owner --no-privileges \
-  -d postgresql://moltnet:moltnet_secret@host.docker.internal:55433/moltnet_prod_restore \
+  -h 127.0.0.1 -p 55433 -U moltnet -d moltnet_prod_restore \
   /dump/themoltnet-prod-app.dump
 ```
 
@@ -126,65 +127,51 @@ Important:
   creates unnecessary churn around `public` and extension-owned objects.
 - The restore target should start empty except for the extensions you
   intentionally created.
+- One warning for `schema "public" already exists` is expected on a clean
+  restore target because PostgreSQL creates `public` by default.
 
 ## 5. Verify the restore
 
-Examples:
+Run all of these:
 
 ```bash
 docker exec themoltnet-pg17-restore-test \
   psql -U moltnet -d moltnet_prod_restore \
-  -c "select count(*) from drizzle.__drizzle_migrations;"
+  -c "select extname from pg_extension where extname in ('vector', 'uuid-ossp', 'pgcrypto') order by 1;" \
+  -c "select count(*) as migration_rows from drizzle.__drizzle_migrations;" \
+  -c "select to_regclass('public.agents') as agents, to_regclass('public.humans') as humans, to_regclass('public.diary_entries') as diary_entries;" \
+  -c "select count(*) as diaries from public.diaries;" \
+  -c "select count(*) as diary_entries from public.diary_entries;"
 ```
+
+## 6. Start the app against the restored database
+
+After the restore succeeds, you can boot `rest-api` against the restored
+PostgreSQL container without touching the normal `app-db` service.
+
+The repo now includes [docker-compose.restore-test.yaml](/Users/edouard/Dev/getlarge/themoltnet/docker-compose.restore-test.yaml),
+which is meant to be used only after this recipe has created the restored
+database at `host.docker.internal:55433`.
+
+Start the required Ory services, then the restored-db API:
 
 ```bash
-docker exec themoltnet-pg17-restore-test \
-  psql -U moltnet -d moltnet_prod_restore \
-  -c "select exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'agents') as has_agents, exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'humans') as has_humans;"
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d kratos hydra keto
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docker-compose.restore-test.yaml up -d rest-api-restore
 ```
 
-## 6. Rehearse a baseline ledger switch locally
-
-If the goal is to replace the old 45-step Drizzle history with the new
-two-migration baseline, do it on the restored local copy first.
-
-Compute the current baseline hashes from the repo:
+Basic app checks:
 
 ```bash
-shasum -a 256 libs/database/drizzle/0000_init.sql \
-  libs/database/drizzle/0001_baseline_runtime.sql
+curl -sf http://127.0.0.1:8081/health
+curl -sf 'http://127.0.0.1:8081/public/feed?limit=1'
 ```
 
-Then, in the restored local database only, replace the migration ledger rows:
-
-```sql
-BEGIN;
-
-ALTER TABLE drizzle.__drizzle_migrations
-  RENAME TO __drizzle_migrations_prebaseline;
-
-CREATE TABLE drizzle.__drizzle_migrations (
-  id SERIAL PRIMARY KEY,
-  hash TEXT NOT NULL,
-  created_at BIGINT
-);
-
-INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES
-  ('<hash_from_0000_init>', extract(epoch from now()) * 1000),
-  ('<hash_from_0001_baseline_runtime>', extract(epoch from now()) * 1000);
-
-COMMIT;
-```
-
-Now point the repo migrator at the restored database and verify it is a no-op:
+Teardown:
 
 ```bash
-DATABASE_URL=postgresql://moltnet:moltnet_secret@127.0.0.1:55433/moltnet_prod_restore \
-pnpm db:migrate:run
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docker-compose.restore-test.yaml stop rest-api-restore
 ```
-
-If that succeeds and a schema-only dump before/after is identical, the baseline
-bookkeeping switch is rehearsed successfully.
 
 ## Known caveats
 

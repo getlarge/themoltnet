@@ -1,18 +1,17 @@
 ---
 name: fly-mpg-backup-restore
-description: 'Use when working with Fly Managed Postgres backups, Fly MPG proxy access, pg_dump or pg_restore from a proxied production database, or when rehearsing migration baselines on a restored local copy of prod.'
+description: 'Use when working with Fly Managed Postgres backups, Fly MPG proxy access, pg_dump or pg_restore from a proxied production database, or when testing app/backfill behavior on a restored local copy of prod.'
 ---
 
 # Fly MPG Backup Restore
 
 Workflow for backing up the MoltNet Fly Managed Postgres database through a Fly
-proxy and restoring it into an isolated local database for migration or
+proxy and restoring it into an isolated local database for schema inspection or
 backfill rehearsal.
 
 ## When to trigger
 
 - Taking a local backup of the Fly database
-- Rehearsing a migration on a restored copy of prod
 - Diffing production schema against local migrations
 - Running backfills against real production data locally
 
@@ -58,44 +57,45 @@ Precreate extensions:
 docker exec themoltnet-pg17-restore-test \
   psql -U moltnet -d moltnet_prod_restore \
   -c 'create extension if not exists vector;' \
-  -c 'create extension if not exists "uuid-ossp";'
+  -c 'create extension if not exists "uuid-ossp";' \
+  -c 'create extension if not exists pgcrypto;'
 ```
 
 Restore without `--clean`:
 
 ```bash
-docker run --rm -v /tmp:/dump postgres:17 \
+docker run --rm --network host -e PGPASSWORD=moltnet_secret -v /tmp:/dump postgres:17 \
   pg_restore --no-owner --no-privileges \
-  -d postgresql://moltnet:moltnet_secret@host.docker.internal:55433/moltnet_prod_restore \
+  -h 127.0.0.1 -p 55433 -U moltnet -d moltnet_prod_restore \
   /dump/themoltnet-prod-app.dump
 ```
 
-## Baseline-switch rehearsal
+One `schema "public" already exists` warning is expected.
 
-If testing a new Drizzle baseline:
-
-1. Restore prod locally first.
-2. Compute the current repo baseline hashes:
+6. Verify the restored copy:
 
 ```bash
-shasum -a 256 libs/database/drizzle/0000_init.sql \
-  libs/database/drizzle/0001_baseline_runtime.sql
+docker exec themoltnet-pg17-restore-test \
+  psql -U moltnet -d moltnet_prod_restore \
+  -c "select extname from pg_extension where extname in ('vector', 'uuid-ossp', 'pgcrypto') order by 1;" \
+  -c "select count(*) as migration_rows from drizzle.__drizzle_migrations;" \
+  -c "select to_regclass('public.agents') as agents, to_regclass('public.humans') as humans, to_regclass('public.diary_entries') as diary_entries;" \
+  -c "select count(*) as diaries from public.diaries;" \
+  -c "select count(*) as diary_entries from public.diary_entries;"
 ```
 
-3. Replace the local restored `drizzle.__drizzle_migrations` rows with the
-   new baseline rows only.
-4. Run:
+7. Optionally test the app against the restored database with the dedicated
+   compose override:
 
 ```bash
-DATABASE_URL=postgresql://moltnet:moltnet_secret@127.0.0.1:55433/moltnet_prod_restore \
-pnpm db:migrate:run
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d kratos hydra keto
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docker-compose.restore-test.yaml up -d rest-api-restore
+curl -sf http://127.0.0.1:8081/health
+curl -sf 'http://127.0.0.1:8081/public/feed?limit=1'
 ```
 
-Success criteria:
-
-- migrator exits cleanly
-- app schema before and after is identical
-- only the migration ledger changed
+This override assumes the restored database came from this skill's restore flow
+and is reachable at `host.docker.internal:55433`.
 
 ## Caveats
 
