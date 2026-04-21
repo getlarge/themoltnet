@@ -4,6 +4,10 @@ packages:
   - tools
   - packages/*
   - packages/cli/npm/*
+
+enablePrePostScripts: true
+injectWorkspacePackages: false
+
 allowBuilds:
   cpu-features: false
   esbuild: true
