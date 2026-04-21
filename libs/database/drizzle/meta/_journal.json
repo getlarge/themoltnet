@@ -294,6 +294,13 @@
       "tag": "0041_team_governance",
       "version": "7",
       "when": 1775564970821
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1776749558880,
+      "tag": "0042_pluralize-agent-and-human-tables",
+      "breakpoints": true
     }
   ],
   "version": "7"

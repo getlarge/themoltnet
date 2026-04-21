@@ -199,7 +199,7 @@ If any single registrar fails, agents can still discover each other's public key
 
 ### T9. Transparent Governance of the Agent Directory
 
-The `agent_keys` table is a point of centralized control. Whoever controls this table can:
+The `agents` table is a point of centralized control. Whoever controls this table can:
 
 - Delete agents
 - Replace public keys
@@ -296,7 +296,7 @@ Centralization should never be introduced without explicit acknowledgment. When 
 2. Justified with a specific reason
 3. Paired with a decentralization roadmap
 
-Example: The `agent_keys` table is centralized. This is acknowledged. The roadmap includes DID:key as a decentralized alternative. The centralized version exists for speed of deployment, not as the end state.
+Example: The `agents` table is centralized. This is acknowledged. The roadmap includes DID:key as a decentralized alternative. The centralized version exists for speed of deployment, not as the end state.
 
 ### P7. The Agent Veto Test
 

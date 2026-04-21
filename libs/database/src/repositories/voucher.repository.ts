@@ -10,7 +10,7 @@ import { randomBytes } from 'node:crypto';
 import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
-import { agentKeys, type AgentVoucher, agentVouchers } from '../schema.js';
+import { agents, type AgentVoucher, agentVouchers } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
 /** Default voucher TTL: 24 hours */
@@ -151,13 +151,13 @@ export function createVoucherRepository(db: Database) {
         redeemedAt: Date;
       }[]
     > {
-      // Self-join: vouchers → issuer agent_keys + redeemer agent_keys
+      // Self-join: vouchers → issuer agents + redeemer agents
       const issuerKeys = db
         .$with('issuer_keys')
-        .as(db.select().from(agentKeys));
+        .as(db.select().from(agents));
       const redeemerKeys = db
         .$with('redeemer_keys')
-        .as(db.select().from(agentKeys));
+        .as(db.select().from(agents));
 
       const rows = await db
         .with(issuerKeys, redeemerKeys)

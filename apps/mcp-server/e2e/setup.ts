@@ -7,7 +7,7 @@
  * are passed to the MCP SDK client via X-Client-Id / X-Client-Secret headers.
  *
  * Flow:
- *   1. Bootstrap a genesis agent (Kratos identity + agent_keys + Keto + OAuth2 client)
+ *   1. Bootstrap a genesis agent (Kratos identity + agents + Keto + OAuth2 client)
  *   2. Tests connect to the containerized MCP server with client credentials headers
  *   3. @moltnet/mcp-auth-proxy exchanges credentials for a Bearer token via Hydra
  *   4. @getlarge/fastify-mcp validates the token, populates authContext
@@ -63,7 +63,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   // eslint-disable-next-line no-console
   console.log('[MCP E2E] Creating test harness...');
 
-  // DB connection for bootstrap (inserts into agent_keys)
+  // DB connection for bootstrap (inserts into agents)
   const { db, pool } = createDatabase(DATABASE_URL);
 
   async function createAgent(name: string): Promise<HarnessAgent> {

@@ -1,28 +1,28 @@
 /**
  * Agent Repository
  *
- * Database operations for agent keys and lookups
+ * Database operations for agents and identity lookups
  */
 
 import { eq } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
-import { type AgentKey, agentKeys, type NewAgentKey } from '../schema.js';
+import { type Agent, agents, type NewAgent } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
 export function createAgentRepository(db: Database) {
   return {
     /**
-     * Create or update agent key record.
+     * Create or update an agent record.
      * Called when syncing from Ory Kratos identity.
      * Automatically participates in the active transaction (via ALS).
      */
-    async upsert(agent: NewAgentKey): Promise<AgentKey> {
+    async upsert(agent: NewAgent): Promise<Agent> {
       const [result] = await getExecutor(db)
-        .insert(agentKeys)
+        .insert(agents)
         .values(agent)
         .onConflictDoUpdate({
-          target: agentKeys.identityId,
+          target: agents.identityId,
           set: {
             publicKey: agent.publicKey,
             fingerprint: agent.fingerprint,
@@ -37,11 +37,11 @@ export function createAgentRepository(db: Database) {
     /**
      * Find agent by Ory identity ID
      */
-    async findByIdentityId(identityId: string): Promise<AgentKey | null> {
+    async findByIdentityId(identityId: string): Promise<Agent | null> {
       const [agent] = await getExecutor(db)
         .select()
-        .from(agentKeys)
-        .where(eq(agentKeys.identityId, identityId))
+        .from(agents)
+        .where(eq(agents.identityId, identityId))
         .limit(1);
 
       return agent || null;
@@ -50,11 +50,11 @@ export function createAgentRepository(db: Database) {
     /**
      * Find agent by public key
      */
-    async findByPublicKey(publicKey: string): Promise<AgentKey | null> {
+    async findByPublicKey(publicKey: string): Promise<Agent | null> {
       const [agent] = await getExecutor(db)
         .select()
-        .from(agentKeys)
-        .where(eq(agentKeys.publicKey, publicKey))
+        .from(agents)
+        .where(eq(agents.publicKey, publicKey))
         .limit(1);
 
       return agent || null;
@@ -63,11 +63,11 @@ export function createAgentRepository(db: Database) {
     /**
      * Find agent by key fingerprint
      */
-    async findByFingerprint(fingerprint: string): Promise<AgentKey | null> {
+    async findByFingerprint(fingerprint: string): Promise<Agent | null> {
       const [agent] = await getExecutor(db)
         .select()
-        .from(agentKeys)
-        .where(eq(agentKeys.fingerprint, fingerprint))
+        .from(agents)
+        .where(eq(agents.fingerprint, fingerprint))
         .limit(1);
 
       return agent || null;
@@ -78,9 +78,9 @@ export function createAgentRepository(db: Database) {
      */
     async delete(identityId: string): Promise<boolean> {
       const result = await getExecutor(db)
-        .delete(agentKeys)
-        .where(eq(agentKeys.identityId, identityId))
-        .returning({ identityId: agentKeys.identityId });
+        .delete(agents)
+        .where(eq(agents.identityId, identityId))
+        .returning({ identityId: agents.identityId });
 
       return result.length > 0;
     },

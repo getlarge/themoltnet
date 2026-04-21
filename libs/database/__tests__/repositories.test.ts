@@ -6,7 +6,7 @@ import { createContextPackRepository } from '../src/repositories/context-pack.re
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { createEntryRelationRepository } from '../src/repositories/entry-relation.repository.js';
-import type { AgentKey, DiaryEntry } from '../src/schema.js';
+import type { Agent, DiaryEntry } from '../src/schema.js';
 
 // Helper to create a mock Drizzle database
 function createMockDb() {
@@ -46,7 +46,7 @@ const ENTRY_ID = '660e8400-e29b-41d4-a716-446655440001';
 const PACK_ID = '770e8400-e29b-41d4-a716-446655440002';
 const RELATION_ID = '880e8400-e29b-41d4-a716-446655440003';
 
-const mockAgent: AgentKey = {
+const mockAgent: Agent = {
   identityId: AGENT_ID,
   publicKey: 'ed25519:dGVzdA==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',

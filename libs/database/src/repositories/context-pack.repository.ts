@@ -18,7 +18,7 @@ import {
 
 import type { Database } from '../db.js';
 import {
-  agentKeys,
+  agents,
   type ContextPack,
   contextPackEntries,
   type ContextPackEntry,
@@ -38,9 +38,9 @@ const packSelection = {
   params: contextPacks.params,
   payload: contextPacks.payload,
   createdBy: contextPacks.createdBy,
-  creatorIdentityId: agentKeys.identityId,
-  creatorFingerprint: agentKeys.fingerprint,
-  creatorPublicKey: agentKeys.publicKey,
+  creatorIdentityId: agents.identityId,
+  creatorFingerprint: agents.fingerprint,
+  creatorPublicKey: agents.publicKey,
   supersedesPackId: contextPacks.supersedesPackId,
   pinned: contextPacks.pinned,
   expiresAt: contextPacks.expiresAt,
@@ -77,9 +77,9 @@ const expandedEntrySelection = {
   entryContentSignature: diaryEntries.contentSignature,
   entryCreatedAt: diaryEntries.createdAt,
   entryUpdatedAt: diaryEntries.updatedAt,
-  entryCreatorIdentityId: agentKeys.identityId,
-  entryCreatorFingerprint: agentKeys.fingerprint,
-  entryCreatorPublicKey: agentKeys.publicKey,
+  entryCreatorIdentityId: agents.identityId,
+  entryCreatorFingerprint: agents.fingerprint,
+  entryCreatorPublicKey: agents.publicKey,
 } as const;
 
 function normalizePack(row: PackRow): ContextPackWithCreator {
@@ -198,7 +198,7 @@ export function createContextPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(packSelection)
         .from(contextPacks)
-        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+        .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
         .where(eq(contextPacks.id, id))
         .limit(1)) as PackRow[];
 
@@ -209,7 +209,7 @@ export function createContextPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(packSelection)
         .from(contextPacks)
-        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+        .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
         .where(eq(contextPacks.packCid, packCid))
         .limit(1)) as PackRow[];
 
@@ -236,7 +236,7 @@ export function createContextPackRepository(db: Database) {
           diaryEntries,
           eq(contextPackEntries.entryId, diaryEntries.id),
         )
-        .leftJoin(agentKeys, eq(diaryEntries.createdBy, agentKeys.identityId))
+        .leftJoin(agents, eq(diaryEntries.createdBy, agents.identityId))
         .where(eq(contextPackEntries.packId, packId))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
@@ -259,7 +259,7 @@ export function createContextPackRepository(db: Database) {
           diaryEntries,
           eq(contextPackEntries.entryId, diaryEntries.id),
         )
-        .leftJoin(agentKeys, eq(diaryEntries.createdBy, agentKeys.identityId))
+        .leftJoin(agents, eq(diaryEntries.createdBy, agents.identityId))
         .where(inArray(contextPackEntries.packId, packIds))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
@@ -351,7 +351,7 @@ export function createContextPackRepository(db: Database) {
         getExecutor(db)
           .select(packSelection)
           .from(contextPacks)
-          .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+          .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
           .where(whereClause)
           .orderBy(desc(contextPacks.createdAt))
           .limit(limit)
@@ -390,7 +390,7 @@ export function createContextPackRepository(db: Database) {
             contextPacks,
             eq(contextPackEntries.packId, contextPacks.id),
           )
-          .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+          .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
           .where(whereClause)
           .orderBy(desc(contextPacks.createdAt))
           .limit(limit)

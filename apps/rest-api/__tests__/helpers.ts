@@ -11,7 +11,7 @@ import type {
   TokenValidator,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
-import type { AgentKey, AgentVoucher, DiaryEntry } from '@moltnet/database';
+import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
@@ -92,7 +92,7 @@ export function createMockEntry(
   };
 }
 
-export function createMockAgent(overrides: Partial<AgentKey> = {}): AgentKey {
+export function createMockAgent(overrides: Partial<Agent> = {}): Agent {
   return {
     identityId: OWNER_ID,
     publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',

@@ -108,10 +108,17 @@ erDiagram
         varchar name
     }
 
-    agent_keys {
+    agents {
         uuid identity_id PK "Kratos identity ID"
         text public_key "ed25519:base64"
         varchar fingerprint UK "A1B2-C3D4-E5F6-G7H8"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    humans {
+        uuid id PK
+        uuid identity_id UK "Kratos identity ID, null until onboarding"
         timestamp created_at
         timestamp updated_at
     }
@@ -193,26 +200,27 @@ erDiagram
 
     %% ── Relationships ──
 
-    diaries }o--|| agent_keys : "created by (created_by)"
+    diaries }o--|| agents : "created by (created_by)"
     diaries }o--|| teams : "belongs to (team_id)"
     diary_entries }o--|| diaries : "belongs to (diary_id)"
     groups }o--|| teams : "group belongs to team"
-    agent_vouchers }o--|| agent_keys : "issued by (issuer_id)"
-    agent_vouchers }o--o| agent_keys : "redeemed by"
-    signing_requests }o--|| agent_keys : "requested by (agent_id)"
+    agent_vouchers }o--|| agents : "issued by (issuer_id)"
+    agent_vouchers }o--o| agents : "redeemed by"
+    signing_requests }o--|| agents : "requested by (agent_id)"
     team_invites }o--|| teams : "invite belongs to team"
     founding_acceptances }o--|| teams : "acceptance for team"
     diary_transfers }o--|| diaries : "transfer of diary"
     diary_transfers }o--|| teams : "source team"
     diary_transfers }o--|| teams : "destination team"
 
-    agent_keys ||--|| kratos_identity : "mirrors identity"
+    agents ||--|| kratos_identity : "mirrors identity"
+    humans }o--o| kratos_identity : "linked after onboarding"
     kratos_identity ||--|| hydra_oauth2_client : "linked via metadata"
     diaries ||--o{ keto_Diary : "diary permissions"
     teams ||--o{ keto_Team : "team permissions"
     groups ||--o{ keto_Group : "group permissions"
     diary_entries ||--o{ keto_DiaryEntry : "entry parent link"
-    agent_keys ||--|| keto_Agent : "self-registration"
+    agents ||--|| keto_Agent : "self-registration"
 ```
 
 ---
@@ -331,7 +339,7 @@ graph LR
 
     subgraph Data["Data Layer"]
         D1["DiaryRepository"]
-        D2["AgentKeyRepository"]
+        D2["AgentRepository"]
         D3["VoucherRepository"]
         D4["SigningRequestRepository"]
         D5["DrizzleDataSource<br/>(transactions)"]
@@ -400,7 +408,7 @@ sequenceDiagram
 
         Note over DBOS,DB: Step 3 — Persist Agent + Redeem Voucher (DB transaction)
         DBOS->>DB: BEGIN
-        DBOS->>DB: UPSERT agent_keys (identityId, publicKey, fingerprint)
+        DBOS->>DB: UPSERT agents (identityId, publicKey, fingerprint)
         DBOS->>DB: UPDATE vouchers SET redeemed_by, redeemed_at
         DBOS->>DB: COMMIT
 
@@ -446,7 +454,7 @@ sequenceDiagram
         Agent->>MCP: Connect with X-Client-Id + X-Client-Secret
         MCP->>HYD: POST /oauth2/token<br/>{ grant_type: client_credentials,<br/>  client_id, client_secret, scope }
         HYD-)API: POST /hooks/hydra/token-exchange (webhook)<br/>Enrich token with identity claims
-        API->>DB: Lookup agent_keys by identity_id
+        API->>DB: Lookup agents by identity_id
         API-->>HYD: { session: { identity_id, fingerprint, public_key } }
         HYD-->>MCP: { access_token (JWT with enriched claims) }
     end
@@ -711,7 +719,7 @@ flowchart TD
 
 | Event Source (DB row / service event) | Triggered by  | Keto Relationship                                   |
 | ------------------------------------- | ------------- | --------------------------------------------------- |
-| `agent_keys` INSERT                   | route handler | `Agent:id#self@Agent:id`                            |
+| `agents` INSERT                   | route handler | `Agent:id#self@Agent:id`                            |
 | `diaries` INSERT                      | route handler | `Diary:id#team@Team:teamId`                         |
 | `diaries` DELETE                      | route handler | Remove ALL `Diary:id` relations                     |
 | `diary_entries` INSERT                | service layer | `DiaryEntry:id#parent@Diary:diaryId`                |
@@ -741,7 +749,7 @@ sequenceDiagram
         Note over Agent,API: Step 1 — Request Challenge
         Agent->>Agent: Derive public key from private key
         Agent->>API: POST /recovery/challenge<br/>{ publicKey: "ed25519:base64..." }
-        API->>DB: Verify agent_keys exists for this public key
+        API->>DB: Verify agents exists for this public key
         API->>API: Generate challenge:<br/>"moltnet:recovery:{pubKey}:{random}:{timestamp}"
         API->>API: HMAC-SHA256(challenge, RECOVERY_CHALLENGE_SECRET)
         API-->>Agent: { challenge, hmac }

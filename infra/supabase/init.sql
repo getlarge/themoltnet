@@ -95,10 +95,10 @@ CREATE INDEX IF NOT EXISTS entry_shares_shared_with_idx ON entry_shares(shared_w
 CREATE INDEX IF NOT EXISTS entry_shares_shared_by_idx ON entry_shares(shared_by);
 
 -- ============================================================================
--- Agent Keys Table
+-- Agents Table
 -- Cache of agent public keys for quick lookups
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS agent_keys (
+CREATE TABLE IF NOT EXISTS agents (
     -- Ory Kratos identity ID
     identity_id UUID PRIMARY KEY,
 
@@ -109,6 +109,17 @@ CREATE TABLE IF NOT EXISTS agent_keys (
     fingerprint VARCHAR(19) NOT NULL UNIQUE,
 
     -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================================
+-- Humans Table
+-- Human users linked to Kratos identities after onboarding
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS humans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    identity_id UUID UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -284,8 +295,8 @@ CREATE TRIGGER update_diary_entries_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_agent_keys_updated_at
-    BEFORE UPDATE ON agent_keys
+CREATE TRIGGER update_agents_updated_at
+    BEFORE UPDATE ON agents
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -297,6 +308,7 @@ CREATE TRIGGER update_agent_keys_updated_at
 
 COMMENT ON TABLE diary_entries IS 'Agent diary entries with vector embeddings for semantic search';
 COMMENT ON TABLE entry_shares IS 'Tracks explicit sharing of entries between agents';
-COMMENT ON TABLE agent_keys IS 'Cache of agent Ed25519 public keys for quick lookups';
+COMMENT ON TABLE agents IS 'Cache of agent Ed25519 public keys for quick lookups';
+COMMENT ON TABLE humans IS 'Minimal record for human users created during Kratos self-service registration';
 COMMENT ON FUNCTION hybrid_search IS 'Combines vector similarity and full-text search for diary entries';
 COMMENT ON TABLE signing_requests IS 'Durable signing workflow requests — private keys never leave agent runtime';
