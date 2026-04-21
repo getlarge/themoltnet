@@ -6,6 +6,17 @@ ALTER INDEX "agent_keys_fingerprint_idx" RENAME TO "agents_fingerprint_idx";--> 
 -- names and recreate under the new one rather than ALTER TRIGGER ...
 -- RENAME, which has no IF EXISTS variant and errors with 42704 if the
 -- source trigger is missing.
+-- Ensure the trigger function exists before (re)creating the trigger.
+-- Prod was baselined from a state where 0002 did not run, so
+-- update_updated_at_column is missing there. CREATE OR REPLACE is a
+-- no-op where it already exists.
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
 DROP TRIGGER IF EXISTS update_agent_keys_updated_at ON "agents";--> statement-breakpoint
 DROP TRIGGER IF EXISTS update_agents_updated_at ON "agents";--> statement-breakpoint
 CREATE TRIGGER update_agents_updated_at
