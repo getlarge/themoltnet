@@ -1,4 +1,10 @@
-import { context, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import {
+  context,
+  propagation,
+  SpanKind,
+  SpanStatusCode,
+  trace,
+} from '@opentelemetry/api';
 import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
@@ -14,8 +20,10 @@ describe('createTraceProvider', () => {
     if (exporter) {
       exporter.reset();
     }
-    // Clean up global trace provider
+    // Clean up global OTel APIs installed by provider.register()
     trace.disable();
+    context.disable();
+    propagation.disable();
   });
 
   it('should create a trace provider with the correct service resource', async () => {

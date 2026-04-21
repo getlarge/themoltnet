@@ -1,4 +1,4 @@
-import { metrics as metricsApi, trace } from '@opentelemetry/api';
+import { context, metrics as metricsApi, propagation, trace } from '@opentelemetry/api';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -10,6 +10,8 @@ describe('observabilityPlugin', () => {
   afterEach(() => {
     metricsApi.disable();
     trace.disable();
+    context.disable();
+    propagation.disable();
   });
 
   it('should register as a Fastify plugin without error', async () => {
