@@ -1,5 +1,6 @@
 import type {
   AgentProfile,
+  ClaimVerificationResponse,
   Client,
   CompileDiaryData,
   CompileResult,
@@ -29,10 +30,12 @@ import type {
   GetContextPackByIdData,
   GetContextPackProvenanceByCidData,
   GetContextPackProvenanceByIdData,
+  GetLatestRenderedPackData,
   GetLegreffierOnboardingStatusData,
   GetLegreffierOnboardingStatusResponse,
   GetProblemTypeData,
   GetPublicFeedData,
+  GetRenderedPackByIdData,
   GetTeamResponse,
   GetTrustGraphData,
   Health,
@@ -42,12 +45,14 @@ import type {
   ListDiaryEntriesData,
   ListDiaryGrantsResponse,
   ListDiaryPacksData,
+  ListDiaryRenderedPacksData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
   ListTeamInvitesResponse,
   ListTeamMembersResponse,
   ListTeamsResponse,
   NetworkInfo,
+  PreviewRenderedPackData,
   ProvenanceGraph,
   PublicFeedEntry,
   PublicFeedResponse,
@@ -56,6 +61,10 @@ import type {
   RecoveryVerifyResponse,
   ReflectDiaryData,
   RemoveTeamMemberResponse,
+  RenderContextPackData,
+  RenderedPackList,
+  RenderedPackPreview,
+  RenderedPackResult,
   RenderedPackWithContent,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
@@ -66,11 +75,15 @@ import type {
   SigningRequestList,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
+  SubmitVerificationData,
+  SubmitVerificationResponse,
   Success,
   UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
+  VerifyRenderedPackData,
+  VerifyRenderedPackResponse,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
@@ -200,6 +213,31 @@ export interface PacksNamespace {
     query?: GetContextPackProvenanceByCidData['query'],
   ): Promise<ProvenanceGraph>;
 
+  previewRendered(
+    id: string,
+    body: NonNullable<PreviewRenderedPackData['body']>,
+  ): Promise<RenderedPackPreview>;
+
+  render(
+    id: string,
+    body: NonNullable<RenderContextPackData['body']>,
+  ): Promise<RenderedPackResult>;
+
+  getLatestRendered(
+    id: string,
+    query?: GetLatestRenderedPackData['query'],
+  ): Promise<RenderedPackWithContent>;
+
+  listRendered(
+    diaryId: string,
+    query?: ListDiaryRenderedPacksData['query'],
+  ): Promise<RenderedPackList>;
+
+  getRendered(
+    id: string,
+    query?: GetRenderedPackByIdData['query'],
+  ): Promise<RenderedPackWithContent>;
+
   update(
     id: string,
     body?: UpdateContextPackData['body'],
@@ -209,6 +247,18 @@ export interface PacksNamespace {
     id: string,
     body: NonNullable<UpdateRenderedPackData['body']>,
   ): Promise<RenderedPackWithContent>;
+
+  verifyRendered(
+    id: string,
+    body: NonNullable<VerifyRenderedPackData['body']>,
+  ): Promise<VerifyRenderedPackResponse>;
+
+  claimVerification(id: string): Promise<ClaimVerificationResponse>;
+
+  submitVerification(
+    id: string,
+    body: SubmitVerificationData['body'],
+  ): Promise<SubmitVerificationResponse>;
 }
 
 export interface AgentsNamespace {

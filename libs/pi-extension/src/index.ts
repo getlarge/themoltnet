@@ -43,7 +43,7 @@ import {
   registerResolveIssueCommand,
   registerSandboxCommand,
 } from './commands/index.js';
-import { createMoltNetTools } from './moltnet-tools.js';
+import { createMoltNetTools } from './moltnet/tools.js';
 import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
   createGondolinBashOps,
@@ -52,6 +52,12 @@ import {
   createGondolinWriteOps,
 } from './tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
+
+export {
+  buildPiJudgeRecipeManifest,
+  computePiJudgeRecipeCid,
+  resolvePiJudgeRecipeVersions,
+} from './moltnet/judge-recipe-cid.js';
 
 const GUEST_WORKSPACE = '/workspace';
 
@@ -438,7 +444,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 }
 
 // Re-export modules for programmatic use
-export { createMoltNetTools } from './moltnet-tools.js';
+export { createMoltNetTools } from './moltnet/tools.js';
 export type {
   EnsureSnapshotOptions,
   SandboxConfig,

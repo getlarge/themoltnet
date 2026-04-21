@@ -221,6 +221,13 @@ else
 fi
 ```
 
+**Hard rule:** after resolving `MOLTNET_CLI`, use that exact command string for all CLI invocations in the session.
+
+- Do not substitute absolute paths discovered from previous runs.
+- Do not call cached `_npx/.../moltnet` binaries directly.
+- If `moltnet` is not on `PATH`, the only fallback is `npx @themoltnet/cli`.
+- Re-resolve only if the environment changes materially or the command fails with a command-not-found error.
+
 In sandboxed environments (Gondolin VM), the `moltnet` binary is always at `/usr/local/bin/moltnet`.
 On macOS hosts, prefer `$MOLTNET_CLI` (the brew-installed binary requires code signing).
 

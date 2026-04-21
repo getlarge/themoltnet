@@ -1,11 +1,19 @@
 import {
+  claimVerification,
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  getLatestRenderedPack,
+  getRenderedPackById,
   listContextPacks,
   listDiaryPacks,
+  listDiaryRenderedPacks,
+  previewRenderedPack,
+  renderContextPack,
+  submitVerification,
   updateContextPack,
   updateRenderedPack,
+  verifyRenderedPack,
 } from '@moltnet/api-client';
 
 import type { PacksNamespace } from '../agent.js';
@@ -75,6 +83,61 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
       );
     },
 
+    async previewRendered(id, body) {
+      return unwrapResult(
+        await previewRenderedPack({
+          client,
+          auth,
+          path: { id },
+          body,
+        }),
+      );
+    },
+
+    async render(id, body) {
+      return unwrapResult(
+        await renderContextPack({
+          client,
+          auth,
+          path: { id },
+          body,
+        }),
+      );
+    },
+
+    async getLatestRendered(id, query) {
+      return unwrapResult(
+        await getLatestRenderedPack({
+          client,
+          auth,
+          path: { id },
+          query,
+        }),
+      );
+    },
+
+    async listRendered(diaryId, query) {
+      return unwrapResult(
+        await listDiaryRenderedPacks({
+          client,
+          auth,
+          path: { id: diaryId },
+          query,
+        }),
+      );
+    },
+
+    async getRendered(id, query) {
+      return unwrapResult(
+        await getRenderedPackById({
+          client,
+          auth,
+          path: { id },
+          query,
+        }),
+      );
+    },
+
     async update(id, body) {
       return unwrapResult(
         await updateContextPack({
@@ -89,6 +152,38 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
     async updateRendered(id, body) {
       return unwrapResult(
         await updateRenderedPack({
+          client,
+          auth,
+          path: { id },
+          body,
+        }),
+      );
+    },
+
+    async verifyRendered(id, body) {
+      return unwrapResult(
+        await verifyRenderedPack({
+          client,
+          auth,
+          path: { id },
+          body,
+        }),
+      );
+    },
+
+    async claimVerification(id) {
+      return unwrapResult(
+        await claimVerification({
+          client,
+          auth,
+          path: { id },
+        }),
+      );
+    },
+
+    async submitVerification(id, body) {
+      return unwrapResult(
+        await submitVerification({
           client,
           auth,
           path: { id },
