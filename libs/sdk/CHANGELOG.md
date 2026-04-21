@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.92.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.91.0...sdk-v0.92.0) (2026-04-21)
+
+
+### Features
+
+* **pi-extension:** pi-native fidelity judge + signed-envelope renderer fix ([7ced200](https://github.com/getlarge/themoltnet/commit/7ced200cc1080ab51d7941f6a8bde5de19395c3a))
+
 ## [0.91.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.90.0...sdk-v0.91.0) (2026-04-17)
 
 
