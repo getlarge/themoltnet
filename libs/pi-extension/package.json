@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/pi-extension",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "MoltNet pi extension — sandboxed tool execution in Gondolin VMs with MoltNet identity and persistent memory",
   "license": "MIT",

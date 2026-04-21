@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.32.3](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.2...legreffier-v0.32.3) (2026-04-21)
+
+
+### Bug Fixes
+
+* **legreffier-cli:** sync buildGhTokenRule with $MOLTNET_CLI convention ([d93aa15](https://github.com/getlarge/themoltnet/commit/d93aa15b39ef1738cec700bdc5ae5cdd226aec39))
+* **legreffier:** hardcode moltnet CLI in gh-token rule, forbid $MOLTNET_CLI ([6131606](https://github.com/getlarge/themoltnet/commit/6131606e81f8058c15897c35cfb9df0b8a71b8b2))
+* **legreffier:** hardcode moltnet CLI in gh-token rule, forbid $MOLTNET_CLI ([7e0e1b5](https://github.com/getlarge/themoltnet/commit/7e0e1b5d1d069cb69ad272e1156ab98d0cb3fc96))
+* **skills:** address PR review — MOLTNET_CLI fallback, arch detection, host/guest consistency ([3801502](https://github.com/getlarge/themoltnet/commit/38015022fd8928add81761793dccfcefdc9106b6))
+
 ## [0.32.2](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.1...legreffier-v0.32.2) (2026-04-17)
 
 
