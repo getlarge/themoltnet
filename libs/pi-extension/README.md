@@ -119,4 +119,4 @@ import {
 } from '@themoltnet/pi-extension';
 ```
 
-See `tools/src/resolve-issue.ts` for a complete example of headless usage with `createAgentSession`.
+See `tools/src/fulfill-brief.ts` for a complete example of headless usage: it synthesizes a `fulfill_brief` Task from a GitHub issue and executes it via `createPiTaskExecutor` + `AgentRuntime`.

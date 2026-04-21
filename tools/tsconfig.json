@@ -18,6 +18,9 @@
       "path": "../apps/rest-api"
     },
     {
+      "path": "../libs/agent-runtime"
+    },
+    {
       "path": "../libs/auth"
     },
     {
@@ -40,6 +43,9 @@
     },
     {
       "path": "../libs/sdk"
+    },
+    {
+      "path": "../libs/tasks"
     },
     {
       "path": "../packages/github-agent"

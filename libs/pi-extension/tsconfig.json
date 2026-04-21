@@ -12,7 +12,13 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../agent-runtime"
+    },
+    {
       "path": "../sdk"
+    },
+    {
+      "path": "../tasks"
     }
   ]
 }
