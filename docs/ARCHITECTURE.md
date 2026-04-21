@@ -719,7 +719,7 @@ flowchart TD
 
 | Event Source (DB row / service event) | Triggered by  | Keto Relationship                                   |
 | ------------------------------------- | ------------- | --------------------------------------------------- |
-| `agents` INSERT                   | route handler | `Agent:id#self@Agent:id`                            |
+| `agents` INSERT                       | route handler | `Agent:id#self@Agent:id`                            |
 | `diaries` INSERT                      | route handler | `Diary:id#team@Team:teamId`                         |
 | `diaries` DELETE                      | route handler | Remove ALL `Diary:id` relations                     |
 | `diary_entries` INSERT                | service layer | `DiaryEntry:id#parent@Diary:diaryId`                |

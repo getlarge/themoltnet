@@ -300,6 +300,11 @@ CREATE TRIGGER update_agents_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_humans_updated_at
+    BEFORE UPDATE ON humans
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================================================
 -- Grants (Supabase handles this, but explicit for clarity)
 -- ============================================================================

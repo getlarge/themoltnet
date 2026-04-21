@@ -15,7 +15,7 @@
  * │ diaries            │ DELETE       │ Remove ALL Diary:{id} relations            │
  * │ diary_entries      │ INSERT       │ DiaryEntry:{id}#parent@Diary:{diaryId}     │
  * │ diary_entries      │ DELETE       │ Remove ALL DiaryEntry:{id} relations       │
- * │ agents         │ INSERT       │ Agent:{identityId}#self@Agent:{identityId} │
+ * │ agents             │ INSERT       │ Agent:{identityId}#self@Agent:{identityId} │
  * └────────────────────┴──────────────┴─────────────────────────────┘
  * ```
  *

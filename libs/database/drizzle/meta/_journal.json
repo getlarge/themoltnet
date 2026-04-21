@@ -308,6 +308,13 @@
       "tag": "0043_diary-search-uses-agents",
       "version": "7",
       "when": 1776762098034
+    },
+    {
+      "breakpoints": true,
+      "idx": 44,
+      "tag": "0044_humans-updated-at-trigger",
+      "version": "7",
+      "when": 1776762098035
     }
   ],
   "version": "7"
