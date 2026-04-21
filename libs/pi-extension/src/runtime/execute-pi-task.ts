@@ -14,16 +14,19 @@
  * Anthropic-SDK one) plug in via the `executeTask` function injected into
  * `AgentRuntime`.
  */
+import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { type Api, getModel, type Model } from '@mariozechner/pi-ai';
+import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import {
   createAgentSession,
-  createBashTool,
-  createEditTool,
-  createReadTool,
-  createWriteTool,
+  createBashToolDefinition,
+  createEditToolDefinition,
+  createReadToolDefinition,
+  createWriteToolDefinition,
+  DefaultResourceLoader,
   SessionManager,
 } from '@mariozechner/pi-coding-agent';
 import {
@@ -130,6 +133,23 @@ export async function executePiTask(
         }),
     }));
 
+  // Repair worktree pointers on the host before the VM mounts the tree.
+  // Mirrors the interactive extension (libs/pi-extension/src/index.ts):
+  // rewrites each worktree's `.git` pointer and backlink to relative form
+  // so the VM (which sees the tree at `/workspace`) can still follow them,
+  // provided the worktree's relative depth from the main repo matches the
+  // VM's layout. No-op if nothing needs fixing.
+  const mainRepoForRepair = findMainWorktree();
+  try {
+    execFileSync(
+      'git',
+      ['-C', mainRepoForRepair, 'worktree', 'repair', '--relative-paths'],
+      { stdio: 'pipe' },
+    );
+  } catch {
+    // Best-effort — older git versions lack --relative-paths.
+  }
+
   const managed = await resumeVm({
     checkpointPath,
     agentName: opts.agentName,
@@ -193,18 +213,24 @@ export async function executePiTask(
       return makeFailedOutput('prompt_build_failed', message);
     }
 
-    const gondolinRead = createReadTool(mountPath, {
-      operations: createGondolinReadOps(managed.vm, mountPath),
-    });
-    const gondolinWrite = createWriteTool(mountPath, {
-      operations: createGondolinWriteOps(managed.vm, mountPath),
-    });
-    const gondolinEdit = createEditTool(mountPath, {
-      operations: createGondolinEditOps(managed.vm, mountPath),
-    });
-    const gondolinBash = createBashTool(mountPath, {
-      operations: createGondolinBashOps(managed.vm, mountPath),
-    });
+    // pi's createAgentSession only treats `tools:` as a name-filter; the actual
+    // read/write/edit/bash implementations are rebuilt from defaults inside the
+    // session unless we route them through customTools, which DOES override the
+    // default by name at definition-registry merge time (AgentSession._refreshToolRegistry).
+    const gondolinCustomTools = [
+      createReadToolDefinition(mountPath, {
+        operations: createGondolinReadOps(managed.vm, mountPath),
+      }),
+      createWriteToolDefinition(mountPath, {
+        operations: createGondolinWriteOps(managed.vm, mountPath),
+      }),
+      createEditToolDefinition(mountPath, {
+        operations: createGondolinEditOps(managed.vm, mountPath),
+      }),
+      createBashToolDefinition(mountPath, {
+        operations: createGondolinBashOps(managed.vm, mountPath),
+      }),
+    ] as unknown as ToolDefinition[];
 
     try {
       const moltnetAgent = await connect({ configDir: managed.agentDir });
@@ -224,12 +250,19 @@ export async function executePiTask(
       ) => Model<Api>;
       const modelHandle = getModelLoose(opts.provider, opts.model);
 
+      const resourceLoader = new DefaultResourceLoader({
+        cwd: mountPath,
+        agentDir: piAuthDir,
+      });
+      await resourceLoader.reload();
+
       const created = await createAgentSession({
         agentDir: piAuthDir,
+        cwd: mountPath,
         model: modelHandle,
-        tools: [gondolinRead, gondolinWrite, gondolinEdit, gondolinBash],
-        customTools: moltnetTools,
+        customTools: [...gondolinCustomTools, ...moltnetTools],
         sessionManager: SessionManager.inMemory(),
+        resourceLoader,
       });
       session = created.session;
     } catch (err) {
