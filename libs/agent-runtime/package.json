@@ -1,0 +1,41 @@
+{
+  "name": "@moltnet/agent-runtime",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@moltnet/tasks": "workspace:*",
+    "@sinclair/typebox": "catalog:",
+    "@themoltnet/pi-extension": "workspace:*",
+    "@themoltnet/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": ">=0.67.0",
+    "@mariozechner/pi-coding-agent": ">=0.67.0"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-ai": "^0.67.68",
+    "@mariozechner/pi-coding-agent": "^0.67.68",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

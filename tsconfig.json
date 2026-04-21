@@ -30,6 +30,9 @@
       "path": "apps/rest-api"
     },
     {
+      "path": "libs/agent-runtime"
+    },
+    {
       "path": "libs/api-client"
     },
     {

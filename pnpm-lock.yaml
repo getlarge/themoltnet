@@ -747,6 +747,37 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
+  libs/agent-runtime:
+    dependencies:
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
+      '@sinclair/typebox':
+        specifier: 'catalog:'
+        version: 0.34.48
+      '@themoltnet/pi-extension':
+        specifier: workspace:*
+        version: link:../pi-extension
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+    devDependencies:
+      '@mariozechner/pi-ai':
+        specifier: ^0.67.68
+        version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-coding-agent':
+        specifier: ^0.67.68
+        version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.30
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
   libs/api-client:
     devDependencies:
       '@hey-api/openapi-ts':
