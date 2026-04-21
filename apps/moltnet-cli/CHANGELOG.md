@@ -1,12 +1,5 @@
 # Changelog
 
-## [1.29.0](https://github.com/getlarge/themoltnet/compare/cli-v1.28.0...cli-v1.29.0) (2026-04-21)
-
-
-### Bug Fixes
-
-* **api-client:** sync Go array query params ([1b5ec23](https://github.com/getlarge/themoltnet/commit/1b5ec2356365018887ec67b5b83462e03fc11096))
-
 ## [1.28.0](https://github.com/getlarge/themoltnet/compare/cli-v1.27.0...cli-v1.28.0) (2026-04-19)
 
 
