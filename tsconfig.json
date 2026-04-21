@@ -78,6 +78,9 @@
       "path": "libs/sdk"
     },
     {
+      "path": "libs/tasks"
+    },
+    {
       "path": "tools"
     },
     {
