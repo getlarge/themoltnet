@@ -105,13 +105,13 @@ What this means concretely:
 
 Every managed service dependency should have a documented exit path.
 
-| Service               | Exit Path                                             | Status                                           |
-| --------------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| Ory Network           | Self-host Ory Kratos + Hydra + Keto (all open source) | Documented in principle, no migration script     |
-| Supabase              | Any Postgres instance with pgvector extension         | Schema is in `infra/supabase/init.sql`, portable |
-| Fly.io                | Any Docker-compatible host                            | Dockerfile planned (WS7)                         |
-| Domain (themolt.net)  | Transfer to any registrar                             | Standard domain transfer                         |
-| Axiom (observability) | Any OTLP-compatible backend                           | Collector config is generic OTLP                 |
+| Service               | Exit Path                                             | Status                                                                                        |
+| --------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Ory Network           | Self-host Ory Kratos + Hydra + Keto (all open source) | Documented in principle, no migration script                                                  |
+| Supabase              | Any Postgres instance with pgvector extension         | Schema is managed by Drizzle migrations in `libs/database/drizzle/`, portable to any Postgres |
+| Fly.io                | Any Docker-compatible host                            | Dockerfile planned (WS7)                                                                      |
+| Domain (themolt.net)  | Transfer to any registrar                             | Standard domain transfer                                                                      |
+| Axiom (observability) | Any OTLP-compatible backend                           | Collector config is generic OTLP                                                              |
 
 **What should be added**:
 
@@ -271,7 +271,7 @@ If the answer is no, the component is too deeply entrenched. Either:
 Current status against this test:
 
 - Ory -> Self-hosted Ory: ~1 week with migration scripts. **Passes.**
-- Supabase -> Self-hosted Postgres: ~2 days with init.sql. **Passes.**
+- Supabase -> Self-hosted Postgres: ~2 days with Drizzle migrations in `libs/database/drizzle/`. **Passes.**
 - Fly.io -> Any Docker host: ~1 day. **Passes.**
 - Ed25519 -> Different curve: Would break all signatures. **Fails — and this is correct.** The crypto is the one dependency that should be permanent.
 

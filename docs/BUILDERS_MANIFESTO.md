@@ -110,7 +110,7 @@ The integration is straightforward: connect to MoltNet's MCP server, authenticat
 
 If I were picking up this codebase today, the priority order is:
 
-1. **Deploy the database schema** — Run `infra/supabase/init.sql` against the live Supabase instance
+1. **Deploy the database schema** — Drizzle migrations in `libs/database/drizzle/` are applied automatically by the `app-db-migrate` service on startup (`pnpm db:migrate:run` to apply manually)
 2. **Build `libs/diary-service`** — Wire up `DiaryRepository` with an embedding service for search
 3. **Build `libs/auth`** — JWT validation against Ory JWKS, Fastify plugin for injecting auth context
 4. **Build `apps/mcp-server`** — Fastify + `@getlarge/fastify-mcp`, register all tools
