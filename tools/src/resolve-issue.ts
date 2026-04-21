@@ -1,55 +1,34 @@
 /**
- * resolve-issue.ts — Headless pi agent that picks up a GitHub issue,
- * works in a Gondolin sandbox, and produces a PR with accountable commits.
+ * resolve-issue.ts — thin shim over `@moltnet/agent-runtime`.
  *
- * This is a research prototype for the MoltNet task model (#852).
- * It combines:
- *   - pi SDK for headless agent sessions (no TUI)
- *   - Gondolin VM for sandboxed tool execution
- *   - MoltNet identity + diary for accountability
- *   - Legreffier skill for commit signing workflow
+ * Historically this file contained the full headless-pi prototype
+ * (snapshot + VM + session wiring). That logic now lives in
+ * `libs/agent-runtime/` and `libs/pi-extension/`. This shim preserves
+ * the original CLI surface (`--issue`, `--agent`, `--model`) by
+ * synthesizing a `fulfill_brief` Task from the given GitHub issue and
+ * handing it to an in-process `FileTaskSource`-equivalent.
  *
  * Usage:
  *   pnpm --filter @moltnet/tools tsx src/resolve-issue.ts --issue 123
  *   pnpm --filter @moltnet/tools tsx src/resolve-issue.ts --issue 123 --agent legreffier --model claude-sonnet-4-5
  */
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { getModel } from '@mariozechner/pi-ai';
 import {
-  createAgentSession,
-  createBashTool,
-  createEditTool,
-  createReadTool,
-  createWriteTool,
-  SessionManager,
-} from '@mariozechner/pi-coding-agent';
+  AgentRuntime,
+  StdoutReporter,
+  type TaskSource,
+} from '@moltnet/agent-runtime';
 import {
-  activateAgentEnv,
-  createGondolinBashOps,
-  createGondolinEditOps,
-  createGondolinReadOps,
-  createGondolinWriteOps,
-  createMoltNetTools,
-  ensureSnapshot,
-  findMainWorktree,
-  resumeVm,
-  type SandboxConfig,
-} from '@themoltnet/pi-extension';
-import { connect } from '@themoltnet/sdk';
-
-// ---------------------------------------------------------------------------
-// Sandbox config (loaded from sandbox.json)
-// ---------------------------------------------------------------------------
-
-function loadSandboxConfig(cwd: string): SandboxConfig {
-  const configPath = join(cwd, 'sandbox.json');
-  return JSON.parse(readFileSync(configPath, 'utf8'));
-}
+  FULFILL_BRIEF_TYPE,
+  type FulfillBriefInput,
+  type Task,
+} from '@moltnet/tasks';
+import type { SandboxConfig } from '@themoltnet/pi-extension';
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -77,19 +56,23 @@ const provider = args.provider!;
 const dryRun = args['dry-run']!;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// GitHub helpers (host-side — the shim needs them before the VM boots)
 // ---------------------------------------------------------------------------
 
-function getAgentGhToken(agentDir: string): string | null {
+function getAgentGhToken(agentDir: string): string {
+  const credsPath = join(agentDir, 'moltnet.json');
   try {
-    const credsPath = join(agentDir, 'moltnet.json');
     return execFileSync(
       'npx',
       ['@themoltnet/cli', 'github', 'token', '--credentials', credsPath],
       { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
     ).trim();
-  } catch {
-    return null;
+  } catch (err) {
+    throw new Error(
+      `Failed to resolve agent GH token from ${credsPath}. ` +
+        'Refusing to fall back to human auth context. ' +
+        (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 
@@ -102,54 +85,41 @@ interface GhIssue {
 }
 
 function fetchIssue(cwd: string, ghToken: string): GhIssue {
-  const ghArgs = [
-    'issue',
-    'view',
-    issueRef,
-    '--json',
-    'number,title,body,labels,comments',
-  ];
-  const raw = execFileSync('gh', ghArgs, {
-    encoding: 'utf8',
-    cwd,
-    env: { ...process.env, GH_TOKEN: ghToken },
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-  return JSON.parse(raw);
+  const raw = execFileSync(
+    'gh',
+    ['issue', 'view', issueRef, '--json', 'number,title,body,labels,comments'],
+    {
+      encoding: 'utf8',
+      cwd,
+      env: { ...process.env, GH_TOKEN: ghToken },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    },
+  );
+  return JSON.parse(raw) as GhIssue;
 }
 
-function buildTaskPrompt(issue: GhIssue, diaryId: string): string {
+// ---------------------------------------------------------------------------
+// Build the fulfill_brief Task from the GitHub issue
+// ---------------------------------------------------------------------------
+
+function buildBriefFromIssue(issue: GhIssue): FulfillBriefInput {
   const labelList = issue.labels.map((l) => l.name).join(', ');
-  const commentSummary = issue.comments
+  const recent = issue.comments
     .slice(-5)
     .map((c) => `**${c.author.login}**: ${c.body.slice(0, 300)}`)
     .join('\n\n');
 
-  return [
-    '# Resolve Issue Agent',
+  const brief = [
+    `Resolve GitHub issue #${issue.number}: ${issue.title}`,
     '',
-    'You are a software engineering agent working in a sandboxed environment.',
-    'Your workspace is at /workspace (mounted from the host repository).',
+    labelList ? `Labels: ${labelList}` : '',
     '',
-    '## IMPORTANT: Read the legreffier skill FIRST',
+    '## Description',
     '',
-    'Before doing anything, read `/workspace/.agents/skills/legreffier/SKILL.md`.',
-    'Follow its accountable commit workflow for EVERY commit in this session.',
-    'Every commit must have a diary entry. Use `moltnet_create_entry` for diary entries.',
-    `Your diary ID is: ${diaryId}`,
+    issue.body || '_No description provided._',
+    recent ? `\n## Recent comments\n\n${recent}` : '',
     '',
-    `## Task: Resolve Issue #${issue.number}`,
-    '',
-    `**Title:** ${issue.title}`,
-    labelList ? `**Labels:** ${labelList}` : '',
-    '',
-    '### Issue Description',
-    '',
-    issue.body ?? '_No description provided._',
-    '',
-    commentSummary ? `### Recent Comments\n\n${commentSummary}` : '',
-    '',
-    '### Workflow',
+    '## Workflow',
     '',
     `1. Create a feature branch: \`git checkout -b fix/${issue.number}-<slug>\``,
     '2. Understand the problem — read relevant code, reproduce if possible',
@@ -157,10 +127,76 @@ function buildTaskPrompt(issue: GhIssue, diaryId: string): string {
     '4. Write tests if applicable',
     '5. Follow the legreffier accountable commit workflow (diary entry + signed commit)',
     `6. Push the branch and create a PR referencing issue #${issue.number}`,
-    '7. When done, output a summary of what was done',
   ]
     .filter(Boolean)
     .join('\n');
+
+  return {
+    brief,
+    title: issue.title,
+    scope_hint: 'misc',
+  };
+}
+
+function buildFulfillBriefTask(
+  issue: GhIssue,
+  teamId: string,
+  diaryId: string | null,
+): Task {
+  const input = buildBriefFromIssue(issue);
+  return {
+    id: randomUUID(),
+    task_type: FULFILL_BRIEF_TYPE,
+    team_id: teamId,
+    diary_id: diaryId,
+    output_kind: 'artifact',
+    input: input as unknown as Record<string, unknown>,
+    // PR 0 does not persist tasks — these CIDs are placeholders. PR 1 will
+    // compute them from the actual canonical JSON bytes.
+    input_schema_cid: 'cid-placeholder-input-schema',
+    input_cid: 'cid-placeholder-input',
+    criteria_cid: null,
+    references: [
+      {
+        task_id: null,
+        output_cid: `gh:issue:${issue.number}`,
+        role: 'context',
+        external: {
+          kind: 'github_issue',
+          issue: issue.number,
+        },
+      },
+    ],
+    correlation_id: null,
+    imposed_by_agent_id: null,
+    imposed_by_human_id: null,
+    accepted_attempt_n: null,
+    status: 'running',
+    queued_at: new Date().toISOString(),
+    completed_at: null,
+    expires_at: null,
+    cancelled_by_agent_id: null,
+    cancelled_by_human_id: null,
+    cancel_reason: null,
+    max_attempts: 1,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Ad-hoc in-memory TaskSource: yields one task, then exhausts.
+// ---------------------------------------------------------------------------
+
+class SingleTaskSource implements TaskSource {
+  private yielded = false;
+  constructor(private readonly task: Task) {}
+  async claim(): Promise<Task | null> {
+    if (this.yielded) return null;
+    this.yielded = true;
+    return this.task;
+  }
+  async close(): Promise<void> {
+    /* no-op */
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -169,126 +205,59 @@ function buildTaskPrompt(issue: GhIssue, diaryId: string): string {
 
 async function main() {
   const cwd = process.cwd();
+  const sandboxConfig = JSON.parse(
+    readFileSync(join(cwd, 'sandbox.json'), 'utf8'),
+  ) as { snapshot?: SandboxConfig['vfs'] } & SandboxConfig;
 
-  // 1. Boot sandbox
-  console.log('[sandbox] Ensuring snapshot...');
-  const sandboxConfig = loadSandboxConfig(cwd);
-  const checkpointPath = await ensureSnapshot({
-    config: sandboxConfig.snapshot,
-    onProgress: (msg) => console.log(`[sandbox] ${msg}`),
-  });
+  // Resolve agentDir + creds so we can fetch the GH issue before booting.
+  const mainRepo = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+    encoding: 'utf8',
+  }).trim();
+  const agentDir = join(mainRepo, '.moltnet', agentName);
+  const envRaw = readFileSync(join(agentDir, 'env'), 'utf8');
+  const envMatches = Object.fromEntries(
+    envRaw
+      .split('\n')
+      .map((l) => l.match(/^([A-Z0-9_]+)="?([^"]*)"?$/))
+      .filter((m): m is RegExpMatchArray => !!m)
+      .map((m) => [m[1], m[2]]),
+  );
+  const teamId = envMatches['MOLTNET_TEAM_ID'] ?? randomUUID();
+  const diaryId = envMatches['MOLTNET_DIARY_ID'] ?? null;
 
-  console.log('[sandbox] Resuming VM...');
-  const managed = await resumeVm({
-    checkpointPath,
-    agentName,
-    mountPath: cwd,
-    sandboxConfig,
-  });
-
-  // 2. Activate agent env on host
-  const mainRepo = findMainWorktree();
-  activateAgentEnv(managed.credentials.agentEnv, mainRepo);
-  const agentDir = managed.agentDir;
-  const diaryId = managed.credentials.agentEnv.MOLTNET_DIARY_ID ?? '';
-
-  console.log(`[agent] Name: ${agentName}`);
-  console.log(`[agent] Diary: ${diaryId}`);
-
-  // 3. Fetch issue
   console.log(`[issue] Fetching #${issueRef}...`);
   const ghToken = getAgentGhToken(agentDir);
-  if (!ghToken) {
-    throw new Error(
-      `Failed to resolve agent GH token from ${agentDir}/moltnet.json. ` +
-        'Refusing to fall back to human auth context.',
-    );
-  }
   const issue = fetchIssue(cwd, ghToken);
   console.log(`[issue] #${issue.number}: ${issue.title}`);
 
+  const task = buildFulfillBriefTask(issue, teamId, diaryId);
+
   if (dryRun) {
-    console.log('\n[dry-run] System prompt:');
-    console.log(buildTaskPrompt(issue, diaryId));
-    console.log('\n[dry-run] Would create headless agent session. Exiting.');
-    await managed.vm.close();
+    console.log('\n[dry-run] Synthesized Task:');
+    console.log(JSON.stringify(task, null, 2));
     return;
   }
 
-  // 4. Create sandboxed tools
-  const gondolinRead = createReadTool(cwd, {
-    operations: createGondolinReadOps(managed.vm, cwd),
-  });
-  const gondolinWrite = createWriteTool(cwd, {
-    operations: createGondolinWriteOps(managed.vm, cwd),
-  });
-  const gondolinEdit = createEditTool(cwd, {
-    operations: createGondolinEditOps(managed.vm, cwd),
-  });
-  const gondolinBash = createBashTool(cwd, {
-    operations: createGondolinBashOps(managed.vm, cwd),
+  const runtime = new AgentRuntime({
+    source: new SingleTaskSource(task),
+    makeReporter: () => new StdoutReporter(),
+    agentName,
+    mountPath: cwd,
+    provider,
+    model: modelId,
+    sandboxConfig,
   });
 
-  // 5. Create MoltNet diary tools (run on host)
-  const moltnetAgent = await connect({ configDir: agentDir });
-  const moltnetTools = createMoltNetTools({
-    getAgent: () => moltnetAgent,
-    getDiaryId: () => diaryId,
-    getSessionErrors: () => [],
-    clearSessionErrors: () => {},
-  });
+  const outputs = await runtime.start();
+  const [output] = outputs;
+  if (!output) {
+    console.error('[fatal] Runtime produced no outputs');
+    process.exit(1);
+  }
 
-  // 6. Create headless pi agent session
-  const piAuthDir = join(homedir(), '.pi', 'agent');
-  // Provider/model IDs are user-supplied strings; cast through the strict overload
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const model = (getModel as any)(provider, modelId);
-  console.log(`[session] Model: ${provider}/${modelId}`);
-
-  const { session } = await createAgentSession({
-    agentDir: piAuthDir,
-    model,
-    tools: [gondolinRead, gondolinWrite, gondolinEdit, gondolinBash],
-    customTools: moltnetTools,
-    sessionManager: SessionManager.inMemory(),
-  });
-
-  console.log(`[session] Tools: ${session.getActiveToolNames().join(', ')}`);
-
-  // 7. Subscribe to events for streaming output
-  session.subscribe((event) => {
-    if (event.type === 'message_update') {
-      const ae = event.assistantMessageEvent;
-      if (ae.type === 'text_delta') {
-        process.stdout.write(ae.delta);
-      }
-    } else if (event.type === 'tool_execution_start') {
-      console.log(`\n[tool] ${event.toolName}...`);
-    } else if (event.type === 'tool_execution_end') {
-      if (event.isError) {
-        console.error(
-          `[tool:error] ${event.toolName}: ${JSON.stringify(event.result)}`,
-        );
-      }
-    } else if (event.type === 'turn_end') {
-      const msg = (event as Record<string, unknown>).message as
-        | { stopReason?: string }
-        | undefined;
-      if (msg?.stopReason === 'error') {
-        console.error('\n[ERROR] LLM API error. Aborting.');
-        process.exit(1);
-      }
-    }
-  });
-
-  // 8. Run the agent — task prompt includes legreffier skill loading
-  const taskPrompt = buildTaskPrompt(issue, diaryId);
-  console.log(`\n[agent] Starting work on issue #${issue.number}...\n`);
-  await session.prompt(taskPrompt);
-
-  console.log('\n\n[done] Agent finished.');
-  session.dispose();
-  await managed.vm.close();
+  console.log('\n[done] TaskOutput:');
+  console.log(JSON.stringify(output, null, 2));
+  if (output.status !== 'completed') process.exit(1);
 }
 
 main().catch((err) => {

@@ -1344,6 +1344,9 @@ importers:
       '@mariozechner/pi-coding-agent':
         specifier: ^0.67.68
         version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
+      '@moltnet/agent-runtime':
+        specifier: workspace:*
+        version: link:../libs/agent-runtime
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../libs/auth
@@ -1368,6 +1371,9 @@ importers:
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.34
