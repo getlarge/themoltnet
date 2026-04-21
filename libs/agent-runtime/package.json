@@ -20,17 +20,9 @@
   },
   "dependencies": {
     "@moltnet/tasks": "workspace:*",
-    "@sinclair/typebox": "catalog:",
-    "@themoltnet/pi-extension": "workspace:*",
-    "@themoltnet/sdk": "workspace:*"
-  },
-  "peerDependencies": {
-    "@mariozechner/pi-ai": ">=0.67.0",
-    "@mariozechner/pi-coding-agent": ">=0.67.0"
+    "@sinclair/typebox": "catalog:"
   },
   "devDependencies": {
-    "@mariozechner/pi-ai": "^0.67.68",
-    "@mariozechner/pi-coding-agent": "^0.67.68",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

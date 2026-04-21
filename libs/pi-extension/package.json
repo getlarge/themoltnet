@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
+    "@moltnet/agent-runtime": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
     "@themoltnet/sdk": "workspace:*"
   },
   "peerDependencies": {

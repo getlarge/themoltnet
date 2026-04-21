@@ -755,19 +755,7 @@ importers:
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
-      '@themoltnet/pi-extension':
-        specifier: workspace:*
-        version: link:../pi-extension
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../sdk
     devDependencies:
-      '@mariozechner/pi-ai':
-        specifier: ^0.67.68
-        version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
-      '@mariozechner/pi-coding-agent':
-        specifier: ^0.67.68
-        version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30
@@ -1159,6 +1147,12 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.7.0
+      '@moltnet/agent-runtime':
+        specifier: workspace:*
+        version: link:../agent-runtime
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk

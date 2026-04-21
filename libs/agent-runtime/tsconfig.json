@@ -10,12 +10,6 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../pi-extension"
-    },
-    {
-      "path": "../sdk"
-    },
-    {
       "path": "../tasks"
     }
   ]

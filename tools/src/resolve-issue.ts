@@ -28,7 +28,10 @@ import {
   type FulfillBriefInput,
   type Task,
 } from '@moltnet/tasks';
-import type { SandboxConfig } from '@themoltnet/pi-extension';
+import {
+  createPiTaskExecutor,
+  type SandboxConfig,
+} from '@themoltnet/pi-extension';
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -238,14 +241,18 @@ async function main() {
     return;
   }
 
-  const runtime = new AgentRuntime({
-    source: new SingleTaskSource(task),
-    makeReporter: () => new StdoutReporter(),
+  const executeTask = createPiTaskExecutor({
     agentName,
     mountPath: cwd,
     provider,
     model: modelId,
     sandboxConfig,
+  });
+
+  const runtime = new AgentRuntime({
+    source: new SingleTaskSource(task),
+    makeReporter: () => new StdoutReporter(),
+    executeTask,
   });
 
   const outputs = await runtime.start();

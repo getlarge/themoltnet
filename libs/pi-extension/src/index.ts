@@ -54,6 +54,11 @@ import {
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
 
 export {
+  createPiTaskExecutor,
+  executePiTask,
+  type ExecutePiTaskOptions,
+} from './execute-pi-task.js';
+export {
   buildPiJudgeRecipeManifest,
   computePiJudgeRecipeCid,
   resolvePiJudgeRecipeVersions,

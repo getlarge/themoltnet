@@ -1,27 +1,29 @@
 /**
- * AgentRuntime — orchestrates the claim → execute → report loop.
+ * AgentRuntime — coding-agent-agnostic claim → execute → report loop.
  *
- * PR 0 scope: pull one task at a time from a `TaskSource`, provision a
- * Gondolin VM, run `executeTask`, close the VM, report the output. No
- * retries, no concurrency, no attempt-N > 1.
+ * The runtime pulls tasks from a `TaskSource` and hands each one to an
+ * injected `executeTask` function that knows how to actually run it. PR 0
+ * ships one concrete executor (pi + Gondolin, in `@themoltnet/pi-extension`),
+ * but the runtime itself has no idea whether tasks run via pi, the Codex
+ * CLI, the Anthropic SDK, or anything else.
  *
- * The same class powers PR 7's daemon mode — the only delta is swapping
- * `TaskSource` (file → HTTP long-poll) and `TaskReporter` (stdout/jsonl →
- * HTTP POST). `AgentRuntime` itself stays identical; that's the whole
- * point of the abstraction.
+ * PR 7's daemon mode swaps `TaskSource` (file → HTTP long-poll) and
+ * `TaskReporter` (stdout/jsonl → HTTP POST). The executor is unchanged.
  */
 import type { Task, TaskOutput } from '@moltnet/tasks';
-import {
-  activateAgentEnv,
-  ensureSnapshot,
-  findMainWorktree,
-  resumeVm,
-  type SandboxConfig,
-} from '@themoltnet/pi-extension';
 
-import { executeTask } from './execute-task.js';
 import type { TaskReporter } from './reporters/index.js';
 import type { TaskSource } from './sources/index.js';
+
+/**
+ * Runs one task attempt. Concrete implementations own the VM, the LLM
+ * session, and any other coding-agent state. They MUST resolve with a
+ * `TaskOutput`; failures surface as `status: 'failed'`, not thrown errors.
+ */
+export type TaskExecutor = (
+  task: Task,
+  reporter: TaskReporter,
+) => Promise<TaskOutput>;
 
 export interface AgentRuntimeOptions {
   /** Pulls the next task (file in PR 0, HTTP poll in PR 7). */
@@ -31,21 +33,11 @@ export interface AgentRuntimeOptions {
    * reporters can own a fresh file / stream / connection.
    */
   makeReporter: (task: Task) => TaskReporter;
-  /** MoltNet agent whose credentials the VM boots with. */
-  agentName: string;
-  /** Host cwd that the VM mounts at /workspace (defaults to `process.cwd()`). */
-  mountPath?: string;
-  /** LLM selection. */
-  provider: string;
-  model: string;
-  /** Extra hosts to allow in the sandbox egress policy. */
-  extraAllowedHosts?: string[];
-  /** Sandbox overrides (env, VFS shadows, resources). */
-  sandboxConfig?: SandboxConfig;
-  /** Forwarded to `buildPromptForTask` for per-type builders. */
-  promptExtras?: Record<string, unknown>;
-  /** Snapshot progress callback; defaults to stderr logging. */
-  onSnapshotProgress?: (message: string) => void;
+  /**
+   * Runs one attempt of the claimed task. Injected by the caller so this
+   * package stays free of pi / Gondolin / SDK dependencies.
+   */
+  executeTask: TaskExecutor;
 }
 
 export interface AgentRuntimeStatus {
@@ -54,11 +46,6 @@ export interface AgentRuntimeStatus {
   currentTaskId: string | null;
 }
 
-/**
- * Local-mode runtime: `start()` drains the source then resolves.
- * PR 7 replaces the source with an HTTP long-poll so the loop runs
- * forever; no other code changes.
- */
 export class AgentRuntime {
   private status: AgentRuntimeStatus = {
     state: 'idle',
@@ -66,7 +53,6 @@ export class AgentRuntime {
     currentTaskId: null,
   };
   private stopRequested = false;
-  private checkpointPath: string | null = null;
 
   constructor(private readonly opts: AgentRuntimeOptions) {}
 
@@ -75,9 +61,8 @@ export class AgentRuntime {
   }
 
   /**
-   * Drain the source, executing each task in its own VM. Resolves with
-   * every `TaskOutput` the runtime produced (in order). Failures are
-   * captured as `TaskOutput.status === 'failed'` — they do not throw.
+   * Drain the source, executing each task via `opts.executeTask`. Resolves
+   * with every `TaskOutput` in claim order.
    */
   async start(): Promise<TaskOutput[]> {
     if (this.status.state !== 'idle') {
@@ -94,7 +79,8 @@ export class AgentRuntime {
         if (!task) break;
 
         this.status.currentTaskId = task.id;
-        const output = await this.runOne(task);
+        const reporter = this.opts.makeReporter(task);
+        const output = await this.opts.executeTask(task, reporter);
         outputs.push(output);
 
         this.status.tasksProcessed += 1;
@@ -107,53 +93,8 @@ export class AgentRuntime {
     return outputs;
   }
 
-  /**
-   * Request cooperative shutdown. The in-flight task (if any) finishes;
-   * subsequent `claim()` calls are skipped. Safe to call from signal
-   * handlers.
-   */
+  /** Request cooperative shutdown. Safe from signal handlers. */
   stop(): void {
     this.stopRequested = true;
-  }
-
-  private async runOne(task: Task): Promise<TaskOutput> {
-    const reporter = this.opts.makeReporter(task);
-
-    // Resolve snapshot once per runtime. Subsequent tasks hit the cache.
-    if (!this.checkpointPath) {
-      this.checkpointPath = await ensureSnapshot({
-        onProgress:
-          this.opts.onSnapshotProgress ??
-          ((m) => {
-            process.stderr.write(`[snapshot] ${m}\n`);
-          }),
-      });
-    }
-
-    const mountPath = this.opts.mountPath ?? process.cwd();
-    const managed = await resumeVm({
-      checkpointPath: this.checkpointPath,
-      agentName: this.opts.agentName,
-      mountPath,
-      extraAllowedHosts: this.opts.extraAllowedHosts,
-      sandboxConfig: this.opts.sandboxConfig,
-    });
-
-    try {
-      const mainRepo = findMainWorktree();
-      activateAgentEnv(managed.credentials.agentEnv, mainRepo);
-
-      return await executeTask(task, {
-        cwd: mountPath,
-        agentDir: managed.agentDir,
-        managedVm: managed,
-        reporter,
-        provider: this.opts.provider,
-        model: this.opts.model,
-        promptExtras: this.opts.promptExtras,
-      });
-    } finally {
-      await managed.vm.close();
-    }
   }
 }
