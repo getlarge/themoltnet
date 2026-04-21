@@ -1,20 +1,19 @@
 /**
- * Judge assets inlined as string constants.
+ * Judge assets — single source of truth.
  *
- * The source of truth is `rubric.md` and `judge-prompt.md` in this directory.
- * They are inlined here so the published `dist/` package does not depend on
- * the `.md` files being shipped alongside the compiled JS (tsc does not copy
- * non-TS assets). If you change the markdown, re-run the sync step or keep
- * both in lockstep.
+ * `DEFAULT_RUBRIC` and `JUDGE_SYSTEM_PROMPT` below ARE the assets. There are
+ * no companion `.md` files; tsc does not copy non-TS files into `dist/`, and
+ * keeping a parallel markdown copy invited drift between source-of-truth
+ * versions, which is what previously happened.
  *
- * The paths below are identifiers used in the judge-recipe CID manifest so
- * verifiers can trace which asset set a given Pi extension version used.
+ * The asset path constants are opaque identifiers used in the judge-recipe
+ * CID manifest so verifiers can trace which asset set a given Pi extension
+ * version emitted. They are NOT filesystem paths and are never read.
+ * Bump the version suffix when you change the corresponding constant.
  */
 
-export const RUBRIC_ASSET_PATH =
-  'libs/pi-extension/src/moltnet/judge/rubric.md';
-export const JUDGE_PROMPT_ASSET_PATH =
-  'libs/pi-extension/src/moltnet/judge/judge-prompt.md';
+export const RUBRIC_ASSET_PATH = 'pi-extension/judge/rubric@v1';
+export const JUDGE_PROMPT_ASSET_PATH = 'pi-extension/judge/system-prompt@v1';
 
 /** Default fidelity rubric — kept verbatim from the Go judge. */
 export const DEFAULT_RUBRIC = `Evaluate the rendered content against the source entries on three axes:
