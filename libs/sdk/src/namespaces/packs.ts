@@ -1,14 +1,16 @@
 import {
-  getLatestRenderedPack,
+  claimVerification,
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  getLatestRenderedPack,
   getRenderedPackById,
   listContextPacks,
   listDiaryPacks,
   listDiaryRenderedPacks,
   previewRenderedPack,
   renderContextPack,
+  submitVerification,
   updateContextPack,
   updateRenderedPack,
   verifyRenderedPack,
@@ -161,6 +163,27 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
     async verifyRendered(id, body) {
       return unwrapResult(
         await verifyRenderedPack({
+          client,
+          auth,
+          path: { id },
+          body,
+        }),
+      );
+    },
+
+    async claimVerification(id) {
+      return unwrapResult(
+        await claimVerification({
+          client,
+          auth,
+          path: { id },
+        }),
+      );
+    },
+
+    async submitVerification(id, body) {
+      return unwrapResult(
+        await submitVerification({
           client,
           auth,
           path: { id },

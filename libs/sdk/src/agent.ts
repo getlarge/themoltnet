@@ -1,5 +1,6 @@
 import type {
   AgentProfile,
+  ClaimVerificationResponse,
   Client,
   CompileDiaryData,
   CompileResult,
@@ -56,11 +57,11 @@ import type {
   PublicFeedEntry,
   PublicFeedResponse,
   PublicSearchResponse,
-  RenderContextPackData,
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
   ReflectDiaryData,
   RemoveTeamMemberResponse,
+  RenderContextPackData,
   RenderedPackList,
   RenderedPackPreview,
   RenderedPackResult,
@@ -74,14 +75,16 @@ import type {
   SigningRequestList,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
+  SubmitVerificationData,
+  SubmitVerificationResponse,
   Success,
   UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
-  VerifyResult,
   VerifyRenderedPackData,
   VerifyRenderedPackResponse,
+  VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
 
@@ -249,6 +252,13 @@ export interface PacksNamespace {
     id: string,
     body: NonNullable<VerifyRenderedPackData['body']>,
   ): Promise<VerifyRenderedPackResponse>;
+
+  claimVerification(id: string): Promise<ClaimVerificationResponse>;
+
+  submitVerification(
+    id: string,
+    body: SubmitVerificationData['body'],
+  ): Promise<SubmitVerificationResponse>;
 }
 
 export interface AgentsNamespace {

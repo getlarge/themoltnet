@@ -13,32 +13,22 @@ import { defineTool } from '@mariozechner/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
 import type { TrackedError } from '../commands/types.js';
+import {
+  buildSourceEntriesMarkdown,
+  DEFAULT_RUBRIC,
+  type FidelityScores,
+  JUDGE_PROMPT_ASSET_PATH,
+  JUDGE_SYSTEM_PROMPT,
+  RUBRIC_ASSET_PATH,
+  runFidelityJudge,
+} from './judge/fidelity.js';
+import {
+  computePiJudgeRecipeCid,
+  type PiJudgeRecipeCid,
+} from './judge-recipe-cid.js';
+import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
-
-type PackEntry = {
-  entryId: string;
-  entryCidSnapshot: string;
-  compressionLevel: 'full' | 'summary' | 'keywords';
-  originalTokens: number | null;
-  packedTokens: number | null;
-  entry: {
-    title: string | null;
-    content: string;
-    tags: string[] | null;
-    entryType: string;
-    creator: {
-      fingerprint: string;
-    } | null;
-  };
-};
-
-type ExpandedPack = {
-  id: string;
-  packCid: string;
-  createdAt: string;
-  entries?: PackEntry[];
-};
 
 export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;
@@ -52,173 +42,6 @@ function ensureConnected(config: MoltNetToolsConfig) {
   const diaryId = config.getDiaryId();
   if (!agent || !diaryId) throw new Error('MoltNet not connected');
   return { agent, diaryId };
-}
-
-function slugToTitle(value: string) {
-  return value
-    .split(/[:/_-]+/)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function extractScope(tags: string[] | null | undefined) {
-  const scope = tags?.find((tag) => tag.startsWith('scope:'));
-  return scope ? scope.slice('scope:'.length) : null;
-}
-
-function extractSeverity(tags: string[] | null | undefined) {
-  const severity = tags?.find((tag) => tag.startsWith('severity:'));
-  return severity ? severity.slice('severity:'.length) : null;
-}
-
-function stripEntryScaffolding(content: string) {
-  return content
-    .replace(/<metadata>[\s\S]*?<\/metadata>/gi, '')
-    .replace(/<\/?moltnet-signed>/gi, '')
-    .replace(/<\/?signature[^>]*>/gi, '')
-    .replace(/^- Compression:.*$/gim, '')
-    .replace(/^- Tokens:.*$/gim, '')
-    .trim();
-}
-
-function normalizeKey(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
-
-function extractRules(content: string) {
-  return stripEntryScaffolding(content)
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(
-      (line) =>
-        line.length > 0 &&
-        (/(^rule:|^watch for:|^must\b|^never\b)/i.test(line) ||
-          /\b(MUST|NEVER)\b/.test(line)),
-    )
-    .slice(0, 5);
-}
-
-function renderSourceRefs(entries: PackEntry[]) {
-  return entries
-    .map((entry) => {
-      const shortId = entry.entryId.slice(0, 8);
-      const fingerprint = entry.entry.creator?.fingerprint
-        ?.replaceAll('-', '')
-        .slice(0, 4)
-        .toLowerCase();
-      const agentRef = fingerprint ? `agent:${fingerprint}` : 'agent:unkn';
-      return `[\`e:${shortId}\`](@unknown · ${agentRef})`;
-    })
-    .join(', ');
-}
-
-function renderKeywords(tags: string[] | null | undefined) {
-  const keywords = (tags ?? []).filter(
-    (tag) => !tag.startsWith('scope:') && !tag.startsWith('severity:'),
-  );
-  if (keywords.length === 0) return '';
-  return `Relevant search terms include ${keywords
-    .slice(0, 6)
-    .map((tag) => `\`${tag}\``)
-    .join(', ')}.`;
-}
-
-function renderPhase6Markdown(pack: ExpandedPack) {
-  const entries = pack.entries ?? [];
-  const grouped = new Map<
-    string,
-    Map<string, { title: string; scope: string; entries: PackEntry[] }>
-  >();
-
-  for (const entry of entries) {
-    const scope = extractScope(entry.entry.tags) ?? 'general';
-    const title =
-      entry.entry.title?.trim() || `Entry ${entry.entryId.slice(0, 8)}`;
-    const groupKey = normalizeKey(scope);
-    const topicKey = normalizeKey(title) || entry.entryId;
-
-    if (!grouped.has(groupKey)) grouped.set(groupKey, new Map());
-    const topics = grouped.get(groupKey)!;
-    const existing = topics.get(topicKey);
-    if (existing) {
-      existing.entries.push(entry);
-    } else {
-      topics.set(topicKey, { title, scope, entries: [entry] });
-    }
-  }
-
-  const lines: string[] = [];
-  lines.push('# Rendered Pack');
-  lines.push('');
-  lines.push('## Source');
-  lines.push('');
-  lines.push('| Pack UUID | Pack CID | Entries |');
-  lines.push('| --------- | -------- | ------- |');
-  lines.push(`| \`${pack.id}\` | \`${pack.packCid}\` | ${entries.length} |`);
-  lines.push('');
-
-  for (const [, topics] of grouped) {
-    const firstTopic = topics.values().next().value as
-      | { scope: string }
-      | undefined;
-    const scope = firstTopic?.scope ?? 'general';
-    lines.push(`## ${slugToTitle(scope)}`);
-    lines.push('');
-
-    for (const [, topic] of topics) {
-      const primary = topic.entries[0];
-      const mergedContent = topic.entries
-        .map((entry) => stripEntryScaffolding(entry.entry.content))
-        .filter(Boolean)
-        .join('\n\n');
-      const rules = topic.entries.flatMap((entry) =>
-        extractRules(entry.entry.content),
-      );
-      const severity = extractSeverity(primary.entry.tags);
-
-      lines.push(`### ${topic.title}`);
-      lines.push('');
-      lines.push(`**Subsystem:** ${slugToTitle(topic.scope)}`);
-      if (severity) lines.push(`**Severity:** ${slugToTitle(severity)}`);
-      lines.push(`**Type:** ${primary.entry.entryType}`);
-      lines.push('');
-      if (rules.length > 0) {
-        lines.push('**Rules**');
-        lines.push('');
-        for (const rule of Array.from(new Set(rules))) {
-          lines.push(`- ${rule}`);
-        }
-        lines.push('');
-      }
-      lines.push(mergedContent);
-      lines.push('');
-      const keywords = renderKeywords(primary.entry.tags);
-      if (keywords) {
-        lines.push(keywords);
-        lines.push('');
-      }
-      lines.push('Provenance:');
-      for (const entry of topic.entries) {
-        lines.push(
-          `- Entry ID \`${entry.entryId}\`, CID \`${entry.entryCidSnapshot}\``,
-        );
-      }
-      lines.push('');
-      lines.push(`*Sources: ${renderSourceRefs(topic.entries)}*`);
-      lines.push('');
-    }
-  }
-
-  if (entries.length === 0) {
-    lines.push('_This pack has no expanded entries._');
-    lines.push('');
-  }
-
-  return lines.join('\n').trim();
 }
 
 /**
@@ -457,6 +280,163 @@ export function createMoltNetTools(
     },
   });
 
+  const judgeRenderedPack = defineTool({
+    name: 'moltnet_rendered_pack_judge',
+    label: 'Judge MoltNet Rendered Pack',
+    description:
+      'Run the fidelity judge against a rendered pack. Local mode (no nonce): ' +
+      'fetch the rendered pack + its source pack with entries, judge locally, ' +
+      'return scores. Proctored mode (nonce): claim the verification payload ' +
+      'from the API, judge, and submit scores with a Pi judge-recipe CID.',
+    parameters: Type.Object({
+      renderedPackId: Type.String({ description: 'Rendered pack ID' }),
+      nonce: Type.Optional(
+        Type.String({
+          description:
+            'Verification nonce from moltnet_rendered_pack_verify. If set, ' +
+            'runs proctored mode and submits scores. If omitted, runs local ' +
+            'mode and does not submit.',
+        }),
+      ),
+      rubric: Type.Optional(
+        Type.String({
+          description:
+            'Custom rubric override (local mode only). Defaults to the ' +
+            'built-in rubric when omitted.',
+        }),
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const { agent } = ensureConnected(config);
+      const model = ctx?.model;
+      if (!model) {
+        throw new Error(
+          'No active model in pi session — cannot run the fidelity judge.',
+        );
+      }
+
+      let sourceEntriesMd: string;
+      let renderedContent: string;
+      let rubric: string;
+
+      if (params.nonce) {
+        if (params.rubric) {
+          throw new Error(
+            '`rubric` is only supported in local mode (omit `nonce`).',
+          );
+        }
+        const claim = await agent.packs.claimVerification(
+          params.renderedPackId,
+        );
+        sourceEntriesMd = buildSourceEntriesMarkdown(claim.sourceEntries);
+        renderedContent = claim.renderedContent;
+        rubric = claim.rubric?.trim() ? claim.rubric : DEFAULT_RUBRIC;
+      } else {
+        const rendered = await agent.packs.getRendered(params.renderedPackId);
+        if (!rendered.content?.trim()) {
+          throw new Error(
+            `rendered pack ${params.renderedPackId} has empty content`,
+          );
+        }
+        const sourcePack = (await agent.packs.get(rendered.sourcePackId, {
+          expand: 'entries',
+        })) as ExpandedPack;
+        if (!sourcePack.entries || sourcePack.entries.length === 0) {
+          throw new Error(
+            `source pack ${rendered.sourcePackId} has no entries`,
+          );
+        }
+        sourceEntriesMd = buildSourceEntriesMarkdown(
+          sourcePack.entries.map((entry) => ({
+            title: entry.entry.title,
+            content: entry.entry.content,
+          })),
+        );
+        renderedContent = rendered.content;
+        rubric = params.rubric?.trim() ? params.rubric : DEFAULT_RUBRIC;
+      }
+
+      let scores: FidelityScores;
+      try {
+        scores = await runFidelityJudge({
+          model,
+          sourceEntries: sourceEntriesMd,
+          renderedContent,
+          rubric,
+        });
+      } catch (err) {
+        throw new Error(
+          `judge failed: ${(err as Error).message ?? String(err)}`,
+        );
+      }
+
+      if (!params.nonce) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  mode: 'local',
+                  renderedPackId: params.renderedPackId,
+                  scores,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          details: {},
+        };
+      }
+
+      const recipe: PiJudgeRecipeCid = computePiJudgeRecipeCid({
+        judgePrompt: JUDGE_SYSTEM_PROMPT,
+        rubric,
+        promptAsset: JUDGE_PROMPT_ASSET_PATH,
+        rubricAsset: RUBRIC_ASSET_PATH,
+      });
+
+      const providerName = (model as { provider?: string }).provider ?? 'pi';
+      const modelId = (model as { id?: string }).id ?? 'unknown';
+
+      const submit = await agent.packs.submitVerification(
+        params.renderedPackId,
+        {
+          nonce: params.nonce,
+          coverage: scores.coverage,
+          grounding: scores.grounding,
+          faithfulness: scores.faithfulness,
+          transcript: scores.reasoning,
+          judgeModel: modelId,
+          judgeProvider: providerName,
+          judgeBinaryCid: recipe.cid,
+        },
+      );
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                mode: 'proctored',
+                renderedPackId: params.renderedPackId,
+                scores,
+                submission: submit,
+                judgeRecipeCid: recipe.cid,
+                judgeRecipeManifest: recipe.manifest,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const listEntries = defineTool({
     name: 'moltnet_list_entries',
     label: 'List MoltNet Diary Entries',
@@ -643,6 +623,7 @@ export function createMoltNetTools(
     listRenderedPacks,
     getRenderedPack,
     verifyRenderedPack,
+    judgeRenderedPack,
     listEntries,
     getEntry,
     searchEntries,
