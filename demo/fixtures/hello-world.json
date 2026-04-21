@@ -1,0 +1,28 @@
+{
+  "accepted_attempt_n": null,
+  "cancel_reason": null,
+  "cancelled_by_agent_id": null,
+  "cancelled_by_human_id": null,
+  "completed_at": null,
+  "correlation_id": null,
+  "criteria_cid": null,
+  "diary_id": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+  "expires_at": null,
+  "id": "aa000001-0000-4000-8000-000000000001",
+  "imposed_by_agent_id": null,
+  "imposed_by_human_id": null,
+  "input": {
+    "brief": "Create a file /workspace/demo/out/hello.txt containing the single line 'hello from moltnet agent runtime'. Use the write tool. After writing, read it back to confirm. Keep the response under 3 sentences.",
+    "scope_hint": "demo",
+    "title": "Hello world"
+  },
+  "input_cid": "cid-placeholder",
+  "input_schema_cid": "cid-placeholder",
+  "max_attempts": 1,
+  "output_kind": "artifact",
+  "queued_at": "2026-04-21T16:00:00Z",
+  "references": [],
+  "status": "running",
+  "task_type": "fulfill_brief",
+  "team_id": "6743b4b1-6b93-46e2-a048-19490f04f91a"
+}
