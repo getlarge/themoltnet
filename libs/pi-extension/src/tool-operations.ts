@@ -28,6 +28,16 @@ function shQuote(s: string): string {
  * Throws if the path escapes the workspace.
  */
 export function toGuestPath(localCwd: string, localPath: string): string {
+  // The LLM often addresses files by guest-absolute path (`/workspace/...`)
+  // because that's what the system prompt implies. Accept those as-is —
+  // otherwise `path.relative(hostCwd, '/workspace/...')` produces an escape
+  // and Gondolin rejects every read from that namespace.
+  if (
+    localPath === GUEST_WORKSPACE ||
+    localPath.startsWith(`${GUEST_WORKSPACE}/`)
+  ) {
+    return localPath;
+  }
   const rel = path.relative(localCwd, localPath);
   if (rel === '') return GUEST_WORKSPACE;
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
