@@ -482,6 +482,40 @@ The Ory console UI (Branding > Theming > Customize UI) is the only way to **prev
 
 > **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. It's deployed automatically by `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
 
+## Ory Backup / Restore
+
+MoltNet supports two different recovery modes:
+
+- **Ory Network**: export + rebuild into a fresh project
+- **Self-hosted Ory**: database snapshot + PITR as the primary rollback path
+
+The detailed backup matrix, restore sequence, client secret recovery policy, and
+self-hosted PITR drill live in
+[recipes/ory-backup-restore.md](recipes/ory-backup-restore.md).
+
+### Ory Network export automation
+
+The repo includes `infra/ory/backup.mjs`, which exports:
+
+- project, identity, OAuth2, and permission config
+- identities
+- OAuth2 clients
+- Keto relationship tuples
+- explicitly configured JWK sets
+
+It packages the exported files as `bundle.tar.gz`, then encrypts that archive as
+`bundle.tar.gz.enc` plus metadata.
+
+```bash
+ORY_JWK_SET_IDS='hydra.jwt.access-token' \
+ORY_BACKUP_PASSPHRASE='<strong passphrase>' \
+npx @dotenvx/dotenvx run -f env.public -f .env -- \
+  pnpm run ory:backup \
+  --output-dir .ory-backups/manual
+```
+
+For scheduled exports, use `.github/workflows/ory-backup-export.yml`.
+
 ## Observability
 
 The `@moltnet/observability` library (`libs/observability/`) provides:
