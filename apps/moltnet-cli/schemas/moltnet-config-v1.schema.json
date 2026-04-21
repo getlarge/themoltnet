@@ -1,0 +1,115 @@
+{
+  "$id": "https://api.themolt.net/schemas/moltnet-config/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "endpoints": {
+      "additionalProperties": false,
+      "properties": {
+        "api": {
+          "type": "string"
+        },
+        "mcp": {
+          "type": "string"
+        }
+      },
+      "required": ["api", "mcp"],
+      "type": "object"
+    },
+    "git": {
+      "additionalProperties": false,
+      "properties": {
+        "config_path": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "signing": {
+          "type": "boolean"
+        }
+      },
+      "required": ["name", "email", "signing", "config_path"],
+      "type": "object"
+    },
+    "github": {
+      "additionalProperties": false,
+      "properties": {
+        "app_id": {
+          "type": "string"
+        },
+        "app_slug": {
+          "type": "string"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "org": {
+          "type": "string"
+        },
+        "private_key_path": {
+          "type": "string"
+        }
+      },
+      "required": ["app_id", "installation_id", "private_key_path"],
+      "type": "object"
+    },
+    "identity_id": {
+      "type": "string"
+    },
+    "keys": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "type": "string"
+        },
+        "private_key": {
+          "type": "string"
+        },
+        "public_key": {
+          "type": "string"
+        }
+      },
+      "required": ["public_key", "private_key", "fingerprint"],
+      "type": "object"
+    },
+    "oauth2": {
+      "additionalProperties": false,
+      "properties": {
+        "client_id": {
+          "type": "string"
+        },
+        "client_secret": {
+          "type": "string"
+        }
+      },
+      "required": ["client_id", "client_secret"],
+      "type": "object"
+    },
+    "registered_at": {
+      "type": "string"
+    },
+    "ssh": {
+      "additionalProperties": false,
+      "properties": {
+        "private_key_path": {
+          "type": "string"
+        },
+        "public_key_path": {
+          "type": "string"
+        }
+      },
+      "required": ["private_key_path", "public_key_path"],
+      "type": "object"
+    }
+  },
+  "required": ["identity_id", "oauth2", "keys", "endpoints", "registered_at"],
+  "title": "MoltNet Config",
+  "type": "object"
+}

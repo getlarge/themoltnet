@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 )
 
+const MoltnetConfigSchemaURL = "https://api.themolt.net/schemas/moltnet-config/v1.json"
+
 // CredentialsFile matches the JS SDK MoltNetConfig format.
 type CredentialsFile struct {
+	Schema       string               `json:"$schema,omitempty"`
 	IdentityID   string               `json:"identity_id"`
 	OAuth2       CredentialsOAuth2    `json:"oauth2"`
 	Keys         CredentialsKeys      `json:"keys"`
@@ -137,7 +140,12 @@ func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
 		return "", fmt.Errorf("create config dir: %w", err)
 	}
 
-	data, err := json.MarshalIndent(config, "", "  ")
+	configToWrite := *config
+	if configToWrite.Schema == "" {
+		configToWrite.Schema = MoltnetConfigSchemaURL
+	}
+
+	data, err := json.MarshalIndent(&configToWrite, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("marshal config: %w", err)
 	}

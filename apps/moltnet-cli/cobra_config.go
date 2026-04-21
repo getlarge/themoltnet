@@ -89,8 +89,18 @@ usable with init-from-env --env-file.`,
 	exportEnvCmd.Flags().StringP("output", "o", "", "Write to file instead of stdout")
 	exportEnvCmd.Flags().Bool("include-github-pem", false, "Include GitHub App private key content")
 
+	schemaCmd := &cobra.Command{
+		Use:   "schema",
+		Short: "Print JSON Schema for moltnet.json",
+		Long:  "Print the JSON Schema for moltnet.json to stdout.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runConfigSchemaCmd(cmd.OutOrStdout())
+		},
+	}
+
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)
 	configCmd.AddCommand(exportEnvCmd)
+	configCmd.AddCommand(schemaCmd)
 	return configCmd
 }

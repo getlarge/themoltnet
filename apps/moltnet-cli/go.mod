@@ -8,6 +8,7 @@ require (
 	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.17.2
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
+	github.com/invopop/jsonschema v0.13.0
 	github.com/ipfs/go-cid v0.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/multiformats/go-multihash v0.2.3
@@ -24,6 +25,8 @@ require (
 	github.com/XiaoConstantine/mcp-go v0.3.1 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/anthropics/anthropic-sdk-go v1.27.1 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
@@ -40,6 +43,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.20 // indirect
@@ -57,6 +61,7 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
