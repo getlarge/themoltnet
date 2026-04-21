@@ -34,15 +34,15 @@ import {
 import type { Task, TaskOutput, TaskUsage } from '@moltnet/tasks';
 import { connect } from '@themoltnet/sdk';
 
-import { createMoltNetTools } from './moltnet/tools.js';
-import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
+import { createMoltNetTools } from '../moltnet/tools.js';
+import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
   createGondolinEditOps,
   createGondolinReadOps,
   createGondolinWriteOps,
-} from './tool-operations.js';
-import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
+} from '../tool-operations.js';
+import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
 
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
