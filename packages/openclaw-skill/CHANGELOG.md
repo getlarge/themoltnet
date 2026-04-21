@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.27.1...openclaw-skill-v0.28.0) (2026-04-21)
+
+
+### Features
+
+* **pi-extension:** sandbox.json config, shadow VFS, env isolation ([a8b80b9](https://github.com/getlarge/themoltnet/commit/a8b80b998ca234c83432ffc7b920361321abf294))
+
 ## [0.27.1](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.27.0...openclaw-skill-v0.27.1) (2026-04-02)
 
 

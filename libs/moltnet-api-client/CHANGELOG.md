@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.17.1...moltnet-api-client-v1.17.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* **api-client:** sync Go array query params ([1b5ec23](https://github.com/getlarge/themoltnet/commit/1b5ec2356365018887ec67b5b83462e03fc11096))
+* **rest-api:** regenerate public api artifacts for issue 825 ([12e70de](https://github.com/getlarge/themoltnet/commit/12e70de76f121ee452b2d92497d4b61dd6473ae0))
+
 ## [1.17.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.17.0...moltnet-api-client-v1.17.1) (2026-04-17)
 
 
