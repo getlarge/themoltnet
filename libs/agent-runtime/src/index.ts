@@ -2,3 +2,4 @@
 // Populated as subsequent PR 0 commits land: executeTask, reporters,
 // sources, AgentRuntime class.
 export * from './prompts/index.js';
+export * from './reporters/index.js';
