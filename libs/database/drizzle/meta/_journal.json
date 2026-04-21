@@ -296,11 +296,18 @@
       "when": 1775564970821
     },
     {
+      "breakpoints": true,
       "idx": 42,
-      "version": "7",
-      "when": 1776749558880,
       "tag": "0042_pluralize-agent-and-human-tables",
-      "breakpoints": true
+      "version": "7",
+      "when": 1776749558880
+    },
+    {
+      "breakpoints": true,
+      "idx": 43,
+      "tag": "0043_diary-search-uses-agents",
+      "version": "7",
+      "when": 1776762098034
     }
   ],
   "version": "7"
