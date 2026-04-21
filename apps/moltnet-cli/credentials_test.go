@@ -151,6 +151,9 @@ func TestWriteConfig(t *testing.T) {
 	if read.IdentityID != "uuid-write-test" {
 		t.Errorf("identity_id: got %s", read.IdentityID)
 	}
+	if read.Schema != MoltnetConfigSchemaURL {
+		t.Errorf("$schema: got %s, want %s", read.Schema, MoltnetConfigSchemaURL)
+	}
 }
 
 func TestOptionalSections(t *testing.T) {
@@ -251,5 +254,8 @@ func TestOptionalSections_OmitEmpty(t *testing.T) {
 	}
 	if _, exists := raw["github"]; exists {
 		t.Error("github should be omitted when nil")
+	}
+	if got := raw["$schema"]; got != MoltnetConfigSchemaURL {
+		t.Errorf("$schema: got %v, want %s", got, MoltnetConfigSchemaURL)
 	}
 }
