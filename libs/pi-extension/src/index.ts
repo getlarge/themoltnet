@@ -163,7 +163,25 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         mountPath = worktreePath;
       }
 
-      // 3. Resume VM from snapshot
+      // 3. Repair any worktree pointers corrupted by prior VM sessions.
+      // Before the VM started writing relative pointers, `git worktree add`
+      // inside the sandbox persisted `/workspace/...` absolute paths that
+      // are dead on the host. `git worktree repair --relative-paths`
+      // rewrites both the `.git/worktrees/<name>/gitdir` file and each
+      // worktree's `.git` file to relative form, which is valid from
+      // both the host and the guest. No-op if nothing needs fixing.
+      try {
+        execFileSync(
+          'git',
+          ['-C', mainRepo, 'worktree', 'repair', '--relative-paths'],
+          { stdio: 'pipe' },
+        );
+      } catch {
+        // Best-effort — older git versions without --relative-paths will
+        // fail here; the extension should not block the session on it.
+      }
+
+      // 4. Resume VM from snapshot
       ctx?.ui.setStatus(
         'sandbox',
         ctx.ui.theme.fg('accent', 'Sandbox: starting...'),

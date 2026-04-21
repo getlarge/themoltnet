@@ -266,13 +266,21 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
     mode: 0o600,
   });
 
-  // Inject gitconfig with VM-side signing key path
+  // Inject gitconfig with VM-side signing key path and relative worktree
+  // paths. `worktree.useRelativePaths = true` (git >= 2.48) makes
+  // `git worktree add` write relative pointers — the only form that is
+  // simultaneously valid inside the VM (where the mount appears at
+  // `/workspace`) and on the host (where it appears at the real mount
+  // path). Without it the guest writes `/workspace/...` absolute paths
+  // that get persisted via RealFSProvider and leave corrupt worktree
+  // metadata on the host.
   if (creds.gitconfig) {
     const vmSigningKey = `${vmSshDir}/id_ed25519`;
-    const vmGitconfig = creds.gitconfig.replace(
+    let vmGitconfig = creds.gitconfig.replace(
       /signingKey\s*=\s*.+/g,
       `signingKey = ${vmSigningKey}`,
     );
+    vmGitconfig = ensureRelativeWorktreePaths(vmGitconfig);
     await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
       mode: 0o644,
     });
@@ -304,4 +312,26 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
     guestWorkspace: GUEST_WORKSPACE,
     agentDir,
   };
+}
+
+/**
+ * Ensure `[worktree] useRelativePaths = true` is set in the given
+ * gitconfig text. If the section exists, rewrite the key; otherwise
+ * append a new section.
+ */
+export function ensureRelativeWorktreePaths(gitconfig: string): string {
+  const sectionRe = /^\[worktree\]\s*$/m;
+  const keyRe = /^(\[worktree\][\s\S]*?^)\s*useRelativePaths\s*=\s*\S+\s*$/m;
+
+  if (keyRe.test(gitconfig)) {
+    return gitconfig.replace(/^(\s*useRelativePaths\s*=\s*)\S+\s*$/m, '$1true');
+  }
+  if (sectionRe.test(gitconfig)) {
+    return gitconfig.replace(
+      sectionRe,
+      '[worktree]\n\tuseRelativePaths = true',
+    );
+  }
+  const sep = gitconfig.endsWith('\n') ? '' : '\n';
+  return `${gitconfig}${sep}[worktree]\n\tuseRelativePaths = true\n`;
 }
