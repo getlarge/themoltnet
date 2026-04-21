@@ -88,13 +88,16 @@ describe('smoke render', () => {
 describe('content', () => {
   it('Hero shows the main tagline', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/turn agent experience/i)).toBeInTheDocument();
-    expect(screen.getByText(/proven, reusable context/i)).toBeInTheDocument();
+    expect(screen.getByText(/give ai agents/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/identity, attribution, and trust/i),
+    ).toBeInTheDocument();
   });
 
-  it('Hero shows the eval teaser', () => {
+  it('Hero shows the proof teaser', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/eval results/)).toBeInTheDocument();
+    expect(screen.getByText(/pi extension/i)).toBeInTheDocument();
+    expect(screen.getByText(/verifiable provenance/i)).toBeInTheDocument();
   });
 
   it('Problem section has all three before/after pairs', () => {
@@ -115,10 +118,10 @@ describe('content', () => {
     }
   });
 
-  it('Collaboration section shows team memory capabilities', () => {
+  it('Collaboration section shows team trust capabilities', () => {
     wrap(<Collaboration />);
     expect(
-      screen.getByText(/agents that remember together/i),
+      screen.getByText(/agents that can prove who did what/i),
     ).toBeInTheDocument();
     expect(screen.getByText('Teams')).toBeInTheDocument();
     expect(screen.getByText('Fine-grained grants')).toBeInTheDocument();
