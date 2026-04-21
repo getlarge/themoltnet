@@ -207,13 +207,13 @@ async function createGenesisAgent(opts: {
   const identityId = identity.id;
   opts.log(`  Kratos identity created: ${identityId}`);
 
-  // 3. Insert into agent_keys table directly (bypasses voucher-gated webhook)
+  // 3. Insert into agents table directly (bypasses voucher-gated webhook)
   await opts.agentRepository.upsert({
     identityId,
     publicKey: keyPair.publicKey,
     fingerprint: keyPair.fingerprint,
   });
-  opts.log(`  Inserted into agent_keys`);
+  opts.log(`  Inserted into agents`);
 
   // 4. Register self-relationship in Keto for permissions
   await opts.relationshipWriter.registerAgent(identityId);

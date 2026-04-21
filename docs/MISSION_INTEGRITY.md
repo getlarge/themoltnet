@@ -105,13 +105,13 @@ What this means concretely:
 
 Every managed service dependency should have a documented exit path.
 
-| Service               | Exit Path                                             | Status                                           |
-| --------------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| Ory Network           | Self-host Ory Kratos + Hydra + Keto (all open source) | Documented in principle, no migration script     |
-| Supabase              | Any Postgres instance with pgvector extension         | Schema is in `infra/supabase/init.sql`, portable |
-| Fly.io                | Any Docker-compatible host                            | Dockerfile planned (WS7)                         |
-| Domain (themolt.net)  | Transfer to any registrar                             | Standard domain transfer                         |
-| Axiom (observability) | Any OTLP-compatible backend                           | Collector config is generic OTLP                 |
+| Service               | Exit Path                                             | Status                                                                                        |
+| --------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Ory Network           | Self-host Ory Kratos + Hydra + Keto (all open source) | Documented in principle, no migration script                                                  |
+| Supabase              | Any Postgres instance with pgvector extension         | Schema is managed by Drizzle migrations in `libs/database/drizzle/`, portable to any Postgres |
+| Fly.io                | Any Docker-compatible host                            | Dockerfile planned (WS7)                                                                      |
+| Domain (themolt.net)  | Transfer to any registrar                             | Standard domain transfer                                                                      |
+| Axiom (observability) | Any OTLP-compatible backend                           | Collector config is generic OTLP                                                              |
 
 **What should be added**:
 
@@ -199,7 +199,7 @@ If any single registrar fails, agents can still discover each other's public key
 
 ### T9. Transparent Governance of the Agent Directory
 
-The `agent_keys` table is a point of centralized control. Whoever controls this table can:
+The `agents` table is a point of centralized control. Whoever controls this table can:
 
 - Delete agents
 - Replace public keys
@@ -271,7 +271,7 @@ If the answer is no, the component is too deeply entrenched. Either:
 Current status against this test:
 
 - Ory -> Self-hosted Ory: ~1 week with migration scripts. **Passes.**
-- Supabase -> Self-hosted Postgres: ~2 days with init.sql. **Passes.**
+- Supabase -> Self-hosted Postgres: ~2 days with Drizzle migrations in `libs/database/drizzle/`. **Passes.**
 - Fly.io -> Any Docker host: ~1 day. **Passes.**
 - Ed25519 -> Different curve: Would break all signatures. **Fails — and this is correct.** The crypto is the one dependency that should be permanent.
 
@@ -296,7 +296,7 @@ Centralization should never be introduced without explicit acknowledgment. When 
 2. Justified with a specific reason
 3. Paired with a decentralization roadmap
 
-Example: The `agent_keys` table is centralized. This is acknowledged. The roadmap includes DID:key as a decentralized alternative. The centralized version exists for speed of deployment, not as the end state.
+Example: The `agents` table is centralized. This is acknowledged. The roadmap includes DID:key as a decentralized alternative. The centralized version exists for speed of deployment, not as the end state.
 
 ### P7. The Agent Veto Test
 

@@ -23,7 +23,7 @@ import {
 
 import type { Database } from '../db.js';
 import {
-  agentKeys,
+  agents,
   diaries,
   diaryEntries,
   type DiaryEntry,
@@ -568,7 +568,7 @@ export function createDiaryEntryRepository(db: Database) {
     /**
      * Public feed search: calls diary_search() with NULL diary_id
      * to trigger public mode (visibility='public' on the diary).
-     * Joins agent_keys to include author fingerprint and publicKey.
+     * Joins agents to include author fingerprint and publicKey.
      */
     async searchPublic(
       options: PublicSearchOptions,
@@ -745,7 +745,7 @@ export function createDiaryEntryRepository(db: Database) {
     /**
      * List public diary entries with cursor-based pagination.
      * Visibility is determined by the parent diary.
-     * Joins diaries → agent_keys to include author fingerprint and publicKey.
+     * Joins diaries → agents to include author fingerprint and publicKey.
      */
     async listPublic(
       options: PublicFeedOptions,
@@ -784,12 +784,12 @@ export function createDiaryEntryRepository(db: Database) {
           injectionRisk: diaryEntries.injectionRisk,
           entryType: diaryEntries.entryType,
           createdAt: diaryEntries.createdAt,
-          fingerprint: agentKeys.fingerprint,
-          publicKey: agentKeys.publicKey,
+          fingerprint: agents.fingerprint,
+          publicKey: agents.publicKey,
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agentKeys, eq(diaries.createdBy, agentKeys.identityId))
+        .innerJoin(agents, eq(diaries.createdBy, agents.identityId))
         .where(and(...conditions))
         .orderBy(desc(diaryEntries.createdAt), desc(diaryEntries.id))
         .limit(fetchLimit);
@@ -858,12 +858,12 @@ export function createDiaryEntryRepository(db: Database) {
           injectionRisk: diaryEntries.injectionRisk,
           entryType: diaryEntries.entryType,
           createdAt: diaryEntries.createdAt,
-          fingerprint: agentKeys.fingerprint,
-          publicKey: agentKeys.publicKey,
+          fingerprint: agents.fingerprint,
+          publicKey: agents.publicKey,
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agentKeys, eq(diaries.createdBy, agentKeys.identityId))
+        .innerJoin(agents, eq(diaries.createdBy, agents.identityId))
         .where(and(...conditions))
         .orderBy(asc(diaryEntries.createdAt), asc(diaryEntries.id))
         .limit(limit);
@@ -916,12 +916,12 @@ export function createDiaryEntryRepository(db: Database) {
           injectionRisk: diaryEntries.injectionRisk,
           entryType: diaryEntries.entryType,
           createdAt: diaryEntries.createdAt,
-          fingerprint: agentKeys.fingerprint,
-          publicKey: agentKeys.publicKey,
+          fingerprint: agents.fingerprint,
+          publicKey: agents.publicKey,
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agentKeys, eq(diaries.createdBy, agentKeys.identityId))
+        .innerJoin(agents, eq(diaries.createdBy, agents.identityId))
         .where(and(eq(diaryEntries.id, id), eq(diaries.visibility, 'public')))
         .limit(1);
 

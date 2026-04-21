@@ -236,13 +236,13 @@ export const diaryEntries = pgTable(
 );
 
 /**
- * Agent Keys Table
+ * Agents Table
  *
  * Stores Ed25519 public keys for agents (mirrors Ory Kratos identity traits)
  * This is a denormalized cache for quick lookups without hitting Ory
  */
-export const agentKeys = pgTable(
-  'agent_keys',
+export const agents = pgTable(
+  'agents',
   {
     // Ory Kratos identity ID
     identityId: uuid('identity_id').primaryKey(),
@@ -263,19 +263,19 @@ export const agentKeys = pgTable(
   },
   (table) => [
     // Unique fingerprint
-    uniqueIndex('agent_keys_fingerprint_idx').on(table.fingerprint),
+    uniqueIndex('agents_fingerprint_idx').on(table.fingerprint),
   ],
 );
 
 /**
- * Human Table
+ * Humans Table
  *
  * Minimal record for human users. Created during Kratos self-service
  * registration (identityId is NULL at that point — Kratos returns an
  * empty UUID). The real identityId is set during the onboarding
  * workflow triggered by the after-login webhook.
  */
-export const humans = pgTable('human', {
+export const humans = pgTable('humans', {
   id: uuid('id').primaryKey().defaultRandom(),
 
   // Ory Kratos identity ID — NULL until first login (onboarding gate)
@@ -777,8 +777,8 @@ export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
 export type Diary = typeof diaries.$inferSelect;
 export type NewDiary = typeof diaries.$inferInsert;
-export type AgentKey = typeof agentKeys.$inferSelect;
-export type NewAgentKey = typeof agentKeys.$inferInsert;
+export type Agent = typeof agents.$inferSelect;
+export type NewAgent = typeof agents.$inferInsert;
 export type Human = typeof humans.$inferSelect;
 export type NewHuman = typeof humans.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;
