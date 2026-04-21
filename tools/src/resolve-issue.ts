@@ -234,6 +234,8 @@ async function main() {
   const moltnetTools = createMoltNetTools({
     getAgent: () => moltnetAgent,
     getDiaryId: () => diaryId,
+    getSessionErrors: () => [],
+    clearSessionErrors: () => {},
   });
 
   // 6. Create headless pi agent session

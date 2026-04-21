@@ -10,11 +10,15 @@ import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
+import type { TrackedError } from './commands/types.js';
+
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
 
 export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;
   getDiaryId(): string | null;
+  getSessionErrors(): readonly TrackedError[];
+  clearSessionErrors(): void;
 }
 
 function ensureConnected(config: MoltNetToolsConfig) {
@@ -169,5 +173,52 @@ export function createMoltNetTools(
     },
   });
 
-  return [listEntries, getEntry, searchEntries, createEntry];
+  const reviewSessionErrors = defineTool({
+    name: 'moltnet_review_session_errors',
+    label: 'Review Session Tool Errors',
+    description:
+      'Review tool failures buffered during this session (isError=true results). ' +
+      'Use this to decide whether any failures are worth persisting as a diary entry ' +
+      'via moltnet_create_entry. Most failures are transient (denied prompts, empty ' +
+      'greps, mid-iteration typecheck errors) and should NOT be written to the diary — ' +
+      'only persist incidents that represent a real finding (root cause identified, ' +
+      'non-obvious workaround, recurring pattern). Pass clear=true to drop the buffer ' +
+      'after reviewing.',
+    parameters: Type.Object({
+      clear: Type.Optional(
+        Type.Boolean({
+          description:
+            'If true, empty the buffer after returning it. Use once you have decided whether to persist.',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const errors = config.getSessionErrors();
+      const payload = {
+        count: errors.length,
+        errors: errors.map((e) => ({
+          toolName: e.toolName,
+          toolCallId: e.toolCallId,
+          timestamp: new Date(e.timestamp).toISOString(),
+          input: e.input,
+          error: e.error,
+        })),
+      };
+      if (params.clear) config.clearSessionErrors();
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(payload, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  return [
+    listEntries,
+    getEntry,
+    searchEntries,
+    createEntry,
+    reviewSessionErrors,
+  ];
 }

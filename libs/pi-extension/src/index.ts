@@ -163,7 +163,25 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         mountPath = worktreePath;
       }
 
-      // 3. Resume VM from snapshot
+      // 3. Repair any worktree pointers corrupted by prior VM sessions.
+      // Before the VM started writing relative pointers, `git worktree add`
+      // inside the sandbox persisted `/workspace/...` absolute paths that
+      // are dead on the host. `git worktree repair --relative-paths`
+      // rewrites both the `.git/worktrees/<name>/gitdir` file and each
+      // worktree's `.git` file to relative form, which is valid from
+      // both the host and the guest. No-op if nothing needs fixing.
+      try {
+        execFileSync(
+          'git',
+          ['-C', mainRepo, 'worktree', 'repair', '--relative-paths'],
+          { stdio: 'pipe' },
+        );
+      } catch {
+        // Best-effort — older git versions without --relative-paths will
+        // fail here; the extension should not block the session on it.
+      }
+
+      // 4. Resume VM from snapshot
       ctx?.ui.setStatus(
         'sandbox',
         ctx.ui.theme.fg('accent', 'Sandbox: starting...'),
@@ -207,13 +225,6 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   });
 
   pi.on('session_shutdown', async (_event, ctx) => {
-    // Record session errors before losing the MoltNet connection
-    try {
-      await createErrorEntry(ctx, 'session shutdown');
-    } catch {
-      // Best-effort — session is shutting down
-    }
-
     if (!vm) return;
     ctx.ui.setStatus('sandbox', ctx.ui.theme.fg('muted', 'Sandbox: stopping'));
     try {
@@ -288,18 +299,23 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 
   // -- MoltNet custom tools (run on host, not in VM) -------------------------
 
+  const sessionErrors: TrackedError[] = [];
+
   const moltnetTools = createMoltNetTools({
     getAgent: () => moltnetAgent,
     getDiaryId: () => diaryId,
+    getSessionErrors: () => sessionErrors,
+    clearSessionErrors: () => {
+      sessionErrors.length = 0;
+    },
   });
 
   for (const tool of moltnetTools) {
     pi.registerTool(tool);
   }
 
-  // -- Session learning (error tracking + automatic reflection) ---------------
+  // -- Session learning (host-side error buffer, reviewable by the agent) ---
 
-  const sessionErrors: TrackedError[] = [];
   const sessionStartTime = Date.now();
 
   function getAgentGhToken(): string | null {
@@ -370,25 +386,14 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     };
   }
 
-  function formatMetaBlock(
-    meta: Awaited<ReturnType<typeof getSessionMeta>>,
-  ): string {
-    const lines = [
-      `| Field | Value |`,
-      `|-------|-------|`,
-      `| Agent | ${meta.agentName} |`,
-      `| Model | ${meta.modelName} |`,
-      `| Branch | ${meta.gitBranch ?? 'detached/unknown'} |`,
-      `| CWD | ${meta.cwd} |`,
-    ];
-    if (meta.worktree) lines.push(`| Worktree | ${meta.worktree} |`);
-    if (meta.sessionName) lines.push(`| Session | ${meta.sessionName} |`);
-    lines.push(`| Duration | ~${meta.durationMin} min |`);
-    return lines.join('\n');
-  }
-
-  // Track tool errors with full context
-  pi.on('tool_result', async (event, _ctx) => {
+  // Track tool errors with full context. The buffer is exposed to the agent
+  // via the `moltnet_review_session_errors` tool and surfaced in
+  // `/moltnet-reflect`, so the agent can decide whether anything is worth
+  // persisting. We deliberately do not auto-write diary entries from raw
+  // tool failures — most `isError: true` results are transient noise
+  // (denied permission prompts, empty greps, typechecks mid-iteration) and
+  // dumping them into the diary poisons retrieval.
+  pi.on('tool_result', (event, _ctx) => {
     if (event.isError) {
       sessionErrors.push({
         toolName: event.toolName,
@@ -402,62 +407,6 @@ export default function moltnetExtension(pi: ExtensionAPI) {
             .slice(0, 500) ?? 'unknown error',
         timestamp: Date.now(),
       });
-    }
-  });
-
-  async function createErrorEntry(
-    ctx: ExtensionContext,
-    trigger: string,
-    extra?: string,
-  ): Promise<void> {
-    if (!moltnetAgent || !diaryId) return;
-    if (sessionErrors.length === 0) return;
-
-    const meta = await getSessionMeta(ctx);
-    const errorSummary = sessionErrors
-      .map((e) => {
-        const inputSnippet = JSON.stringify(e.input).slice(0, 100);
-        return `- **${e.toolName}** (${new Date(e.timestamp).toISOString()})\n  Input: \`${inputSnippet}\`\n  Error: ${e.error.slice(0, 200)}`;
-      })
-      .join('\n');
-
-    const branchTag = meta.gitBranch
-      ? `branch:${meta.gitBranch.replace(/\//g, '-')}`
-      : null;
-    const tags = ['session-learning', 'errors', 'episodic'];
-    if (branchTag) tags.push(branchTag);
-
-    await moltnetAgent.entries.create(diaryId, {
-      title: `Session incidents: ${sessionErrors.length} tool failure(s) on ${meta.gitBranch ?? 'unknown'}`,
-      content: [
-        `## Session incident log (${trigger})`,
-        '',
-        formatMetaBlock(meta),
-        '',
-        '### Errors encountered',
-        '',
-        errorSummary,
-        ...(extra ? ['', extra] : []),
-        '',
-        '_Auto-generated by @themoltnet/pi-extension session learning._',
-      ].join('\n'),
-      tags,
-      importance: sessionErrors.length >= 3 ? 7 : 4,
-      entryType: 'episodic',
-    });
-  }
-
-  // On session_tree (branch navigation) — record errors for the current branch
-  pi.on('session_tree', async (event, ctx) => {
-    try {
-      await createErrorEntry(
-        ctx,
-        'tree navigation',
-        `Branch navigated: \`${event.oldLeafId}\` → \`${event.newLeafId}\``,
-      );
-      sessionErrors.length = 0;
-    } catch {
-      // Don't let diary failures break the session
     }
   });
 
