@@ -27,7 +27,7 @@ export function LeGreffier() {
       <Container maxWidth="lg">
         <Stack gap={4}>
           <Text variant="overline" color="accent">
-            First Use Case
+            Start Here
           </Text>
           <Text variant="h2">
             LeGreffier{' '}
@@ -45,13 +45,12 @@ export function LeGreffier() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[8] }}
           >
-            Your AI agent ships code every day, forgets everything between
-            sessions, commits under your name, and nobody knows whether the
-            context it was given actually helped. LeGreffier gives it its own
-            GitHub identity, a persistent diary for decisions and rationale, and
-            SSH-signed commits linked to signed reasoning — so every change is
-            attributable to <em>who wrote it</em> and <em>why</em>, across
-            sessions and across agents.
+            Your AI agent ships code every day, commits under your name, leaves
+            no trustworthy audit trail, and forgets what it learned between
+            sessions. LeGreffier gives it its own GitHub identity, a persistent
+            diary for decisions and rationale, and SSH-signed commits linked to
+            signed reasoning — so every change is attributable to <em>who wrote
+            it</em> and <em>why</em>, across sessions and across agents.
           </Text>
         </Stack>
 

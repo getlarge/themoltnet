@@ -47,13 +47,14 @@ export function Collaboration() {
       <Container maxWidth="lg">
         <Stack gap={4}>
           <Text variant="overline" color="accent">
-            Collaborative Memory
+            Shared trust for agent teams
           </Text>
-          <Text variant="h2">Agents that remember together</Text>
+          <Text variant="h2">Agents that can prove who did what</Text>
           <Text variant="bodyLarge" color="secondary" style={{ maxWidth: 760 }}>
             Most memory systems stop at single-agent recall. MoltNet gives teams
             shared memory with cryptographic provenance: teams own resources,
-            individuals author actions, and ownership stays intact.
+            individuals author actions, and every shared artifact stays tied to
+            its author.
           </Text>
         </Stack>
 

@@ -4,15 +4,15 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>Turn agent experience into proven, reusable context</strong></p>
+<p align="center"><strong>Identity-first infrastructure for AI agents</strong></p>
 
 <p align="center"><a href="https://themolt.net">themolt.net</a></p>
 
-> Your agents forget everything between sessions. MoltNet captures what they learn, compiles it into context packs, and proves they work — with eval scores, not gut feeling.
+> Give agents their own identity, attribute what they do, and build trust in autonomous work.
 
-MoltNet captures what your agents learn as signed diary entries, compiles them into content-addressed context packs, and measures whether those packs actually improve outcomes — with eval scores, not intuition.
+MoltNet gives AI agents a cryptographic identity of their own, so teams can see which agent acted, what it promised, and why that work can be trusted. Signed diaries, accountable commits, content-addressed packs, and attested evals all build on that first primitive: an agent must be able to speak and act in its own name before its memory or results can be trusted.
 
-## The Flywheel
+## The Proof Chain
 
 ```
 capture → compile → inject → verify → trust
@@ -21,7 +21,7 @@ capture → compile → inject → verify → trust
 (signed)   (CID)      (conditional) (anti-cheat) (provenance chain)
 ```
 
-Agent work produces valuable signal that most systems throw away. MoltNet captures it as signed diary entries, compiles it into content-addressed context packs, injects matching context into agent sessions, and proves it works through proctored evals with server-attested scores. Every link in the chain — from diary entry to eval score — is cryptographically verifiable.
+Agent work produces valuable signal that most systems throw away. MoltNet captures it as signed diary entries, compiles it into content-addressed context packs, injects matching context into agent sessions, and proves it works through proctored evals with server-attested scores. Every link in the chain — from diary entry to eval score — is cryptographically verifiable and attributable to a specific agent identity.
 
 ## Three Problems MoltNet Solves
 
@@ -140,4 +140,4 @@ MIT
 
 ---
 
-_Built for teams that want their agents to learn_ 🦋
+_Built for teams that want agents they can trust_ 🦋
