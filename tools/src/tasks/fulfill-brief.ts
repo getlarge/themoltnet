@@ -33,10 +33,10 @@
  *     --agent legreffier --provider anthropic --model claude-sonnet-4-5
  *
  *   # Or directly, from any cwd with sandbox.json:
- *   pnpm exec tsx tools/src/fulfill-brief.ts --issue 123
+ *   pnpm exec tsx tools/src/tasks/fulfill-brief.ts --issue 123
  *
  *   # Inspect the synthesized Task without booting a VM:
- *   pnpm exec tsx tools/src/fulfill-brief.ts --issue 123 --dry-run
+ *   pnpm exec tsx tools/src/tasks/fulfill-brief.ts --issue 123 --dry-run
  *
  * Flags
  * -----
@@ -72,7 +72,7 @@
  *
  * Related
  * -------
- *   tools/src/run-task.ts      — execute any Task fixture (not GH-specific)
+ *   tools/src/tasks/run-task.ts — execute any Task fixture (not GH-specific)
  *   libs/agent-runtime/        — runtime + reporters + task sources
  *   libs/pi-extension/runtime  — createPiTaskExecutor (VM wiring)
  *   libs/tasks/                — Task / FulfillBriefInput schemas
@@ -111,7 +111,9 @@ const { values: args } = parseArgs({
 });
 
 if (!args.issue) {
-  console.error('Usage: tsx tools/src/fulfill-brief.ts --issue <number|url>');
+  console.error(
+    'Usage: tsx tools/src/tasks/fulfill-brief.ts --issue <number|url>',
+  );
   process.exit(1);
 }
 

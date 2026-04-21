@@ -2,9 +2,16 @@
  * run-task.ts — execute a Task from a JSON fixture via the agent-runtime.
  *
  * Usage:
- *   pnpm exec tsx tools/src/run-task.ts --task-file demo/fixtures/hello-world.json
- *   pnpm exec tsx tools/src/run-task.ts --task-file <path> --agent legreffier \
+ *   pnpm --filter @moltnet/tools task:run --task-file demo/tasks/hello-world.json
+ *   pnpm exec tsx tools/src/tasks/run-task.ts --task-file demo/tasks/hello-world.json
+ *   pnpm exec tsx tools/src/tasks/run-task.ts --task-file <path> --agent legreffier \
  *     --provider openai --model gpt-5.3-codex
+ *
+ * Related
+ * -------
+ *   tools/src/tasks/fulfill-brief.ts — GitHub-issue shim that synthesizes a
+ *                                       fulfill_brief Task and runs it.
+ *   demo/tasks/*.json                — minimal Task fixtures for smoke tests.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -30,7 +37,7 @@ const { values: args } = parseArgs({
 
 if (!args['task-file']) {
   console.error(
-    'Usage: tsx tools/src/run-task.ts --task-file <path> [--agent <name>] [--provider <p>] [--model <id>]',
+    'Usage: tsx tools/src/tasks/run-task.ts --task-file <path> [--agent <name>] [--provider <p>] [--model <id>]',
   );
   process.exit(1);
 }
