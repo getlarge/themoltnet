@@ -12,7 +12,7 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy workspace config
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 
 # Copy workspace package.json files needed for landing build
 COPY apps/landing/package.json apps/landing/

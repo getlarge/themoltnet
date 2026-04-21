@@ -12,7 +12,7 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy workspace config
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 
 # Copy all workspace package.json files to leverage Docker layer caching
 COPY apps/mcp-server/package.json apps/mcp-server/
