@@ -4,3 +4,5 @@
 export * from './execute-task.js';
 export * from './prompts/index.js';
 export * from './reporters/index.js';
+export * from './runtime.js';
+export * from './sources/index.js';
