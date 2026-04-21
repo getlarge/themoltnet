@@ -221,8 +221,19 @@ describe('buildGhTokenRule', () => {
       '$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json',
     );
     expect(rule).toContain('GH_TOKEN');
+    expect(rule).toContain('moltnet github token');
     expect(rule).toContain('npx @themoltnet/cli github token');
     expect(rule).toContain('.moltnet/<agent>/gitconfig');
+  });
+
+  it('forbids referencing $MOLTNET_CLI (unset in ad-hoc shells causes silent fallback to human token)', () => {
+    const rule = buildGhTokenRule();
+    // The rule must not USE $MOLTNET_CLI in a command example, but it must
+    // explicitly call out why referencing it is forbidden.
+    expect(rule).toMatch(/GH_TOKEN=\$\(moltnet github token/);
+    expect(rule).toMatch(/GH_TOKEN=\$\(npx @themoltnet\/cli github token/);
+    expect(rule).toContain('$MOLTNET_CLI');
+    expect(rule).toContain('ad-hoc shells');
   });
 
   it('is generic across MoltNet agents (not legreffier-specific)', () => {

@@ -25,7 +25,13 @@ CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json"
 # 2. Refuse to proceed if the file does not exist at that absolute path.
 [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
 
-# 3. Call gh with GH_TOKEN inlined.
+# 3. Call gh with GH_TOKEN inlined. Use the `moltnet` binary if it
+#    is on PATH, otherwise fall back to `npx @themoltnet/cli`. Never
+#    reference `$MOLTNET_CLI` here — it may be unset in ad-hoc shells
+#    and expanding to empty silently swallows the subcommand, producing
+#    an empty GH_TOKEN and falling back to your personal auth.
+GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
+# or, if `moltnet` is not installed:
 GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
 
@@ -41,7 +47,7 @@ Every git worktree has a different CWD from the main worktree root, so
 `$(dirname "$GIT_CONFIG_GLOBAL")` resolves differently depending on where you are.
 When it resolves to a non-existent directory:
 
-- `npx @themoltnet/cli github token` prints `no credentials found` to stderr,
+- `moltnet github token` (or `npx @themoltnet/cli github token`) prints `no credentials found` to stderr,
 - the command substitution yields an empty `GH_TOKEN`,
 - `gh` silently falls back to your personal token,
 - the resulting API call is attributed to the **human**, not the agent.
@@ -58,6 +64,11 @@ is the only reliable way to get an absolute path that works across worktrees.
 - `GH_TOKEN=$(... --credentials "./moltnet.json") gh ...` — relative. Breaks.
 - `GH_TOKEN=$(... --credentials "~/.moltnet/...") gh ...` — `~` is not expanded
   inside double quotes; use `$HOME` or the literal absolute path.
+- `GH_TOKEN=$($MOLTNET_CLI github token ...) gh ...` — do **not** reference the
+  `$MOLTNET_CLI` variable in this rule. It is only set inside the legreffier
+  skill session; in ad-hoc shells it expands to empty, the `github token`
+  subcommand is swallowed, `GH_TOKEN` is empty, and `gh` silently falls back
+  to the human token. Hardcode `moltnet` or `npx @themoltnet/cli`.
 
 ## Allowed `gh` subcommands
 
