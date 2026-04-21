@@ -5,12 +5,14 @@
  * These tools run on the host (not in the VM) via the MoltNet SDK,
  * so agent credentials never touch the VM filesystem.
  */
+import { randomUUID } from 'node:crypto';
+
 import { Type } from '@mariozechner/pi-ai';
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
-import type { TrackedError } from './commands/types.js';
+import type { TrackedError } from '../commands/types.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
 
@@ -35,6 +37,236 @@ function ensureConnected(config: MoltNetToolsConfig) {
 export function createMoltNetTools(
   config: MoltNetToolsConfig,
 ): ToolDefinition<any, any>[] {
+  const getPack = defineTool({
+    name: 'moltnet_pack_get',
+    label: 'Get MoltNet Pack',
+    description:
+      'Get a context pack by ID. Optionally expand included entries.',
+    parameters: Type.Object({
+      packId: Type.String({ description: 'Context pack ID' }),
+      expandEntries: Type.Optional(
+        Type.Boolean({ description: 'Include full expanded entries' }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const pack = await agent.packs.get(params.packId, {
+        expand: params.expandEntries ? 'entries' : undefined,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(pack, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const getPackProvenance = defineTool({
+    name: 'moltnet_pack_provenance',
+    label: 'Get MoltNet Pack Provenance',
+    description:
+      'Get the provenance graph for a context pack by ID or CID.',
+    parameters: Type.Object({
+      packId: Type.Optional(Type.String({ description: 'Context pack ID' })),
+      packCid: Type.Optional(Type.String({ description: 'Context pack CID' })),
+      depth: Type.Optional(
+        Type.Number({
+          description: 'Supersession ancestry depth to include (default 2)',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      if (!params.packId && !params.packCid) {
+        throw new Error('Provide either packId or packCid');
+      }
+      if (params.packId && params.packCid) {
+        throw new Error('Provide only one of packId or packCid');
+      }
+
+      const graph = params.packId
+        ? await agent.packs.getProvenance(params.packId, {
+            depth: params.depth ?? 2,
+          })
+        : await agent.packs.getProvenanceByCid(params.packCid!, {
+            depth: params.depth ?? 2,
+          });
+
+      const payload = {
+        metadata: graph.metadata,
+        counts: {
+          nodes: graph.nodes.length,
+          edges: graph.edges.length,
+        },
+        graph,
+      };
+
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(payload, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const renderPack = defineTool({
+    name: 'moltnet_pack_render',
+    label: 'Render MoltNet Pack',
+    description:
+      'Preview or persist a rendered pack from a source context pack.',
+    parameters: Type.Object({
+      packId: Type.String({ description: 'Context pack ID' }),
+      renderMethod: Type.Optional(
+        Type.String({
+          description:
+            'Render method label. Defaults to server:pack-to-docs-v1',
+        }),
+      ),
+      markdown: Type.Optional(
+        Type.String({
+          description:
+            'Caller-authored markdown for non-server render methods',
+        }),
+      ),
+      preview: Type.Optional(
+        Type.Boolean({
+          description: 'Preview without persisting (default false)',
+        }),
+      ),
+      pinned: Type.Optional(
+        Type.Boolean({
+          description: 'Persist the rendered pack as pinned (default false)',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const renderMethod = params.renderMethod ?? 'server:pack-to-docs-v1';
+      const body = {
+        renderMethod,
+        renderedMarkdown: params.markdown,
+        pinned: params.pinned,
+      };
+
+      if (!renderMethod.startsWith('server:') && !params.markdown) {
+        throw new Error(
+          'markdown is required for non-server render methods',
+        );
+      }
+
+      const result = params.preview
+        ? await agent.packs.previewRendered(params.packId, {
+            renderMethod,
+            renderedMarkdown: params.markdown,
+          })
+        : await agent.packs.render(params.packId, body);
+
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const listRenderedPacks = defineTool({
+    name: 'moltnet_rendered_pack_list',
+    label: 'List MoltNet Rendered Packs',
+    description:
+      'List rendered packs for the current MoltNet diary, optionally filtered by source pack or render method.',
+    parameters: Type.Object({
+      sourcePackId: Type.Optional(
+        Type.String({ description: 'Filter by source pack ID' }),
+      ),
+      renderMethod: Type.Optional(
+        Type.String({ description: 'Filter by render method' }),
+      ),
+      limit: Type.Optional(
+        Type.Number({ description: 'Max results (default 10)' }),
+      ),
+      offset: Type.Optional(
+        Type.Number({ description: 'Offset for pagination (default 0)' }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const rendered = await agent.packs.listRendered(diaryId, {
+        sourcePackId: params.sourcePackId,
+        renderMethod: params.renderMethod,
+        limit: params.limit ?? 10,
+        offset: params.offset ?? 0,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(rendered, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const getRenderedPack = defineTool({
+    name: 'moltnet_rendered_pack_get',
+    label: 'Get MoltNet Rendered Pack',
+    description: 'Get a rendered pack by ID.',
+    parameters: Type.Object({
+      renderedPackId: Type.String({ description: 'Rendered pack ID' }),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const rendered = await agent.packs.getRendered(params.renderedPackId);
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(rendered, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const verifyRenderedPack = defineTool({
+    name: 'moltnet_rendered_pack_verify',
+    label: 'Verify MoltNet Rendered Pack',
+    description:
+      'Create a verification workflow for a rendered pack and return the verification ID and nonce.',
+    parameters: Type.Object({
+      renderedPackId: Type.String({ description: 'Rendered pack ID' }),
+      nonce: Type.Optional(
+        Type.String({
+          description:
+            'Caller-supplied idempotency nonce. Generated automatically if omitted.',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const nonce = params.nonce ?? randomUUID();
+      const verification = await agent.packs.verifyRendered(
+        params.renderedPackId,
+        { nonce },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                ...verification,
+                nonce,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const listEntries = defineTool({
     name: 'moltnet_list_entries',
     label: 'List MoltNet Diary Entries',
@@ -215,6 +447,12 @@ export function createMoltNetTools(
   });
 
   return [
+    getPack,
+    getPackProvenance,
+    renderPack,
+    listRenderedPacks,
+    getRenderedPack,
+    verifyRenderedPack,
     listEntries,
     getEntry,
     searchEntries,
