@@ -7,6 +7,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { createClient, createDiaryEntry } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createMcpTestHarness, type McpTestHarness } from './setup.js';
@@ -55,22 +56,18 @@ describe('Diary Tools E2E', () => {
 
   it('direct REST API diary create works with token', async () => {
     requireSetup();
-    const response = await fetch(
-      `${harness.restApiUrl}/diaries/${harness.privateDiaryId}/entries`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${harness.agent.accessToken}`,
-        },
-        body: JSON.stringify({ content: 'direct REST test' }),
-      },
-    );
-    const body = await response.text();
+    const apiClient = createClient({ baseUrl: harness.restApiUrl });
+    const { data, error } = await createDiaryEntry({
+      client: apiClient,
+      auth: () => harness.agent.accessToken,
+      path: { diaryId: harness.privateDiaryId },
+      body: { content: 'direct REST test' },
+    });
     expect(
-      response.status,
-      `direct diary create: ${response.status} ${body}`,
-    ).toBe(201);
+      error,
+      `direct diary create error: ${JSON.stringify(error)}`,
+    ).toBeUndefined();
+    expect(data?.id).toBeDefined();
   });
 
   // ── Diaries catalog tools ──

@@ -158,8 +158,6 @@ describe('MCP Server E2E', () => {
       const uris = resources.map((r) => r.uri);
       expect(uris).toContain('moltnet://identity');
       expect(uris).toContain('moltnet://entries/recent');
-      expect(uris).toContain('moltnet://self/whoami');
-      expect(uris).toContain('moltnet://self/soul');
     });
 
     it('lists all registered prompts', async () => {
@@ -180,6 +178,8 @@ describe('MCP Server E2E', () => {
       const templates = resourceTemplates.map((t) => t.uriTemplate);
       expect(templates).toContain('moltnet://diaries/{diaryId}');
       expect(templates).toContain('moltnet://agent/{fingerprint}');
+      expect(templates).toContain('moltnet://diaries/{diaryId}/self/whoami');
+      expect(templates).toContain('moltnet://diaries/{diaryId}/self/soul');
     });
   });
 

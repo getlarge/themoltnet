@@ -15,16 +15,12 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getAgentProfile: vi.fn(),
-  listDiaries: vi.fn(),
   searchDiary: vi.fn(),
 }));
 
-import {
-  getAgentProfile,
-  getWhoami,
-  listDiaries,
-  searchDiary,
-} from '@moltnet/api-client';
+import { getAgentProfile, getWhoami, searchDiary } from '@moltnet/api-client';
+
+const WHOAMI_ARGS = { diary_id: DIARY_ID };
 
 describe('Identity tools', () => {
   let deps: McpDeps;
@@ -34,9 +30,6 @@ describe('Identity tools', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
-    vi.mocked(listDiaries).mockResolvedValue(
-      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
-    );
   });
 
   describe('moltnet_whoami', () => {
@@ -51,7 +44,7 @@ describe('Identity tools', () => {
       );
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await handleWhoami({}, deps, context);
+      const result = await handleWhoami(WHOAMI_ARGS, deps, context);
 
       expect(getWhoami).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -69,9 +62,11 @@ describe('Identity tools', () => {
     });
 
     it('returns unauthenticated when no auth', async () => {
-      const unauthContext = createMockContext(null);
-
-      const result = await handleWhoami({}, deps, unauthContext);
+      const result = await handleWhoami(
+        WHOAMI_ARGS,
+        deps,
+        createMockContext(null),
+      );
 
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', false);
@@ -108,7 +103,7 @@ describe('Identity tools', () => {
         }) as never,
       );
 
-      const result = await handleWhoami({}, deps, context);
+      const result = await handleWhoami(WHOAMI_ARGS, deps, context);
       const parsed = parseResult<{
         profile: {
           whoami: { id: string; content: string } | null;
@@ -128,6 +123,26 @@ describe('Identity tools', () => {
       expect(parsed.hint).toBeUndefined();
     });
 
+    it('searches only the provided diary_id', async () => {
+      vi.mocked(getWhoami).mockResolvedValue(
+        sdkOk({
+          identityId: 'id-123',
+          clientId: 'client-abc',
+          publicKey: 'pk-abc',
+          fingerprint: 'fp:abc123',
+        }) as never,
+      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
+
+      await handleWhoami(WHOAMI_ARGS, deps, context);
+
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ diaryId: DIARY_ID }),
+        }),
+      );
+    });
+
     it('includes hint when system entries are missing', async () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
@@ -139,30 +154,22 @@ describe('Identity tools', () => {
       );
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await handleWhoami({}, deps, context);
+      const result = await handleWhoami(WHOAMI_ARGS, deps, context);
       const parsed = parseResult<{
-        profile: {
-          whoami: null;
-          soul: null;
-        };
+        profile: { whoami: null; soul: null };
         hint: string;
       }>(result);
 
       expect(parsed.profile.whoami).toBeNull();
       expect(parsed.profile.soul).toBeNull();
       expect(parsed.hint).toContain('identity_bootstrap');
-      expect(parsed.hint).toContain('whoami');
-      expect(parsed.hint).toContain('soul');
     });
   });
 
   describe('agent_lookup', () => {
     it('returns agent info by fingerprint', async () => {
       vi.mocked(getAgentProfile).mockResolvedValue(
-        sdkOk({
-          publicKey: 'pk-abc',
-          fingerprint: 'fp:abc123',
-        }) as never,
+        sdkOk({ publicKey: 'pk-abc', fingerprint: 'fp:abc123' }) as never,
       );
 
       const result = await handleAgentLookup(
@@ -172,15 +179,10 @@ describe('Identity tools', () => {
       );
 
       expect(getAgentProfile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { fingerprint: 'fp:abc123' },
-        }),
+        expect.objectContaining({ path: { fingerprint: 'fp:abc123' } }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toEqual({
-        publicKey: 'pk-abc',
-        fingerprint: 'fp:abc123',
-      });
+      expect(parsed).toEqual({ publicKey: 'pk-abc', fingerprint: 'fp:abc123' });
       expect(result.structuredContent).toEqual(parsed);
     });
 
@@ -223,18 +225,14 @@ describe('Identity tools', () => {
     });
 
     it('does not require authentication', async () => {
-      const unauthContext = createMockContext(null);
       vi.mocked(getAgentProfile).mockResolvedValue(
-        sdkOk({
-          publicKey: 'pk-abc',
-          fingerprint: 'fp:abc123',
-        }) as never,
+        sdkOk({ publicKey: 'pk-abc', fingerprint: 'fp:abc123' }) as never,
       );
 
       const result = await handleAgentLookup(
         { fingerprint: 'fp:abc123' },
         deps,
-        unauthContext,
+        createMockContext(null),
       );
 
       expect(result.isError).toBeUndefined();

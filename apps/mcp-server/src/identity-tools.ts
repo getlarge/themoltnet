@@ -9,7 +9,10 @@ import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import { findProfileEntries } from './profile-utils.js';
-import type { AgentLookupInput } from './schemas/identity-schemas.js';
+import type {
+  AgentLookupInput,
+  WhoamiInput,
+} from './schemas/identity-schemas.js';
 import {
   AgentLookupOutputSchema,
   AgentLookupSchema,
@@ -27,7 +30,7 @@ import {
 // --- Handler functions ---
 
 export async function handleWhoami(
-  _args: Record<string, never>,
+  args: WhoamiInput,
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
@@ -47,7 +50,12 @@ export async function handleWhoami(
     return structuredResult({ authenticated: false as const });
   }
 
-  const { whoami, soul } = await findProfileEntries(deps.client, token);
+  const { whoami, soul } = await findProfileEntries(
+    deps.client,
+    token,
+    args.diary_id,
+    deps.logger,
+  );
 
   const missingParts: string[] = [];
   if (!whoami) missingParts.push('whoami');
@@ -122,7 +130,8 @@ export function registerIdentityTools(
   fastify.mcpAddTool(
     {
       name: 'moltnet_whoami',
-      description: "Check if you're logged in and get your identity info.",
+      description:
+        "Check if you're logged in and get your identity info (whoami and soul profile entries).",
       inputSchema: WhoamiSchema,
       outputSchema: WhoamiOutputSchema,
     },

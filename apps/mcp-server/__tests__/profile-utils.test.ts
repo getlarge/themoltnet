@@ -11,6 +11,13 @@ import { searchDiary } from '@moltnet/api-client';
 
 import { sdkErr, sdkOk } from './helpers.js';
 
+const DIARY_ID = '550e8400-e29b-41d4-a716-446655440001';
+
+const mockLogger = {
+  warn: vi.fn(),
+  error: vi.fn(),
+};
+
 describe('profile-utils', () => {
   const client = {} as Client;
   const token = 'test-token';
@@ -35,11 +42,12 @@ describe('profile-utils', () => {
         }) as never,
       );
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(client, token, DIARY_ID, 'identity');
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: {
+            diaryId: DIARY_ID,
             entryTypes: ['identity'],
             tags: ['system'],
             limit: 1,
@@ -56,27 +64,42 @@ describe('profile-utils', () => {
     it('returns null when no matching entry exists', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(client, token, DIARY_ID, 'identity');
 
       expect(result).toBeNull();
     });
 
-    it('returns null on API error', async () => {
+    it('returns null on API error and logs a warning', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
         sdkErr({ error: 'fail', message: 'fail', statusCode: 500 }) as never,
       );
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(
+        client,
+        token,
+        DIARY_ID,
+        'identity',
+        mockLogger,
+      );
 
       expect(result).toBeNull();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ diaryId: DIARY_ID }),
+        expect.any(String),
+      );
     });
 
-    it('handles entries with null tags', async () => {
+    it('searches only the provided diary id', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await findSystemEntry(client, token, 'identity');
+      await findSystemEntry(client, token, DIARY_ID, 'identity');
 
-      expect(result).toBeNull();
+      expect(searchDiary).toHaveBeenCalledTimes(1);
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ diaryId: DIARY_ID }),
+        }),
+      );
     });
   });
 
@@ -103,7 +126,7 @@ describe('profile-utils', () => {
         }) as never,
       );
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, DIARY_ID);
 
       expect(result.whoami).toMatchObject({
         id: '2',
@@ -118,7 +141,7 @@ describe('profile-utils', () => {
     it('returns nulls when no system entries exist', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, DIARY_ID);
 
       expect(result.whoami).toBeNull();
       expect(result.soul).toBeNull();
@@ -138,36 +161,43 @@ describe('profile-utils', () => {
         }) as never,
       );
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, DIARY_ID);
 
       expect(result.whoami).not.toBeNull();
       expect(result.soul).toBeNull();
     });
 
-    it('handles API errors gracefully', async () => {
+    it('returns nulls and logs on API error', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
         sdkErr({ error: 'fail', message: 'fail', statusCode: 500 }) as never,
       );
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(
+        client,
+        token,
+        DIARY_ID,
+        mockLogger,
+      );
 
       expect(result.whoami).toBeNull();
       expect(result.soul).toBeNull();
+      expect(mockLogger.warn).toHaveBeenCalled();
     });
 
-    it('makes only one search API call for both entries', async () => {
+    it('searches only the provided diary id', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      await findProfileEntries(client, token);
+      await findProfileEntries(client, token, DIARY_ID);
 
       expect(searchDiary).toHaveBeenCalledTimes(1);
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: {
+          body: expect.objectContaining({
+            diaryId: DIARY_ID,
             entryTypes: ['identity', 'soul'],
             tags: ['system'],
             limit: 10,
-          },
+          }),
         }),
       );
     });

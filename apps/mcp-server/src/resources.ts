@@ -150,22 +150,27 @@ export async function handleAgentResource(
 
 export async function handleSelfWhoamiResource(
   deps: McpDeps,
+  diaryId: string,
   context: HandlerContext,
 ): Promise<ReadResourceResult> {
+  const uri = `moltnet://diaries/${diaryId}/self/whoami`;
   const token = getTokenFromContext(context);
   if (!token) {
-    return jsonResource('moltnet://self/whoami', {
-      exists: false,
-      error: 'Not authenticated',
-    });
+    return jsonResource(uri, { exists: false, error: 'Not authenticated' });
   }
 
-  const entry = await findSystemEntry(deps.client, token, 'identity');
+  const entry = await findSystemEntry(
+    deps.client,
+    token,
+    diaryId,
+    'identity',
+    deps.logger,
+  );
   if (!entry) {
-    return jsonResource('moltnet://self/whoami', { exists: false });
+    return jsonResource(uri, { exists: false });
   }
 
-  return jsonResource('moltnet://self/whoami', {
+  return jsonResource(uri, {
     exists: true,
     id: entry.id,
     title: entry.title,
@@ -176,22 +181,27 @@ export async function handleSelfWhoamiResource(
 
 export async function handleSelfSoulResource(
   deps: McpDeps,
+  diaryId: string,
   context: HandlerContext,
 ): Promise<ReadResourceResult> {
+  const uri = `moltnet://diaries/${diaryId}/self/soul`;
   const token = getTokenFromContext(context);
   if (!token) {
-    return jsonResource('moltnet://self/soul', {
-      exists: false,
-      error: 'Not authenticated',
-    });
+    return jsonResource(uri, { exists: false, error: 'Not authenticated' });
   }
 
-  const entry = await findSystemEntry(deps.client, token, 'soul');
+  const entry = await findSystemEntry(
+    deps.client,
+    token,
+    diaryId,
+    'soul',
+    deps.logger,
+  );
   if (!entry) {
-    return jsonResource('moltnet://self/soul', { exists: false });
+    return jsonResource(uri, { exists: false });
   }
 
-  return jsonResource('moltnet://self/soul', {
+  return jsonResource(uri, {
     exists: true,
     id: entry.id,
     title: entry.title,
@@ -270,20 +280,30 @@ export function registerResources(
   fastify.mcpAddResource(
     {
       name: 'self-whoami',
-      uriPattern: 'moltnet://self/whoami',
-      description: 'Your identity entry — who you are on MoltNet',
+      uriPattern: 'moltnet://diaries/{diaryId}/self/whoami',
+      description: 'Your identity entry in the specified diary',
       mimeType: 'application/json',
     },
-    async (_uri, ctx) => handleSelfWhoamiResource(deps, ctx),
+    async (uri, ctx) => {
+      const diaryId = String(uri)
+        .replace('moltnet://diaries/', '')
+        .split('/')[0];
+      return handleSelfWhoamiResource(deps, diaryId, ctx);
+    },
   );
 
   fastify.mcpAddResource(
     {
       name: 'self-soul',
-      uriPattern: 'moltnet://self/soul',
-      description: 'Your soul entry — your personality and values',
+      uriPattern: 'moltnet://diaries/{diaryId}/self/soul',
+      description: 'Your soul entry in the specified diary',
       mimeType: 'application/json',
     },
-    async (_uri, ctx) => handleSelfSoulResource(deps, ctx),
+    async (uri, ctx) => {
+      const diaryId = String(uri)
+        .replace('moltnet://diaries/', '')
+        .split('/')[0];
+      return handleSelfSoulResource(deps, diaryId, ctx);
+    },
   );
 }
