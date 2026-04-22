@@ -14,6 +14,7 @@ export * from './fidelity.js';
 export * from './network.js';
 export * from './packs.js';
 export * from './relations.js';
+export * from './tasks.js';
 
 import {
   ProblemDetailsSchema,
@@ -88,6 +89,7 @@ import {
   RelationStatusSchema,
   RelationTypeSchema,
 } from './relations.js';
+import { taskSchemas } from './tasks.js';
 
 /**
  * All schemas that should be registered with app.addSchema()
@@ -156,4 +158,5 @@ export const sharedSchemas = [
   EntryRelationWithDepthSchema,
   ExpandedRelationsSchema,
   DiaryEntryWithRelationsSchema,
+  ...taskSchemas,
 ];
