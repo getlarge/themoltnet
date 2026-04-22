@@ -1,15 +1,12 @@
 /**
  * @moltnet/mcp-server — Profile Utilities
  *
- * Helpers for finding system diary entries (identity/soul)
- * that store an agent's self-concept.
- *
- * Searches are scoped to diaries created by the caller (createdBy === identityId)
- * to prevent cross-tenant data leaks. Team-shared diaries are excluded.
+ * Helpers for finding system diary entries (identity/soul).
+ * The caller must supply the diary ID explicitly — no discovery is performed.
  */
 
 import type { Client } from '@moltnet/api-client';
-import { listDiaries, searchDiary } from '@moltnet/api-client';
+import { searchDiary } from '@moltnet/api-client';
 import type { FastifyBaseLogger } from 'fastify';
 
 export interface SystemEntry {
@@ -22,130 +19,74 @@ export interface SystemEntry {
 type Logger = Pick<FastifyBaseLogger, 'warn' | 'error'>;
 
 /**
- * Returns diary IDs created by the given agent (not shared team diaries).
- * Returns null if the API call fails (to distinguish from "agent owns no diaries").
+ * Find a single system entry by entry type in the given diary.
+ * Returns null when not found or on API errors.
  */
-async function getOwnDiaryIds(
+export async function findSystemEntry(
   client: Client,
   token: string,
-  identityId: string,
+  diaryId: string,
+  entryType: 'identity' | 'soul',
   logger?: Logger,
-): Promise<string[] | null> {
+): Promise<SystemEntry | null> {
   try {
-    const { data, error } = await listDiaries({ client, auth: () => token });
+    const { data, error } = await searchDiary({
+      client,
+      auth: () => token,
+      body: {
+        diaryId,
+        entryTypes: [entryType],
+        tags: ['system'],
+        limit: 1,
+      },
+    });
     if (error) {
-      logger?.warn({ err: error }, 'profile-utils: listDiaries error');
+      logger?.warn({ err: error, diaryId }, 'profile-utils: searchDiary error');
       return null;
     }
-    return (
-      data?.items?.filter((d) => d.createdBy === identityId).map((d) => d.id) ??
-      []
-    );
+    const entry = data?.results?.[0] as SystemEntryCandidate | undefined;
+    if (!entry) return null;
+    return {
+      id: entry.id,
+      title: entry.title ?? null,
+      content: entry.content,
+      tags: entry.tags ?? null,
+    };
   } catch (err) {
-    logger?.error({ err }, 'profile-utils: listDiaries threw');
+    logger?.error({ err, diaryId }, 'profile-utils: searchDiary threw');
     return null;
   }
 }
 
 /**
- * Find a single diary entry by entry type and system tag.
- * Only searches diaries created by the caller (createdBy === identityId).
- * Returns null on API/transport errors (caller should surface a retry hint, not bootstrap hint).
- */
-export async function findSystemEntry(
-  client: Client,
-  token: string,
-  identityId: string,
-  entryType: 'identity' | 'soul',
-  logger?: Logger,
-): Promise<SystemEntry | null> {
-  const diaryIds = await getOwnDiaryIds(client, token, identityId, logger);
-  if (!diaryIds?.length) return null;
-
-  const results = await Promise.all(
-    diaryIds.map(async (diaryId) => {
-      try {
-        const { data, error } = await searchDiary({
-          client,
-          auth: () => token,
-          body: {
-            diaryId,
-            entryTypes: [entryType],
-            tags: ['system'],
-            limit: 1,
-          },
-        });
-        if (error) {
-          logger?.warn(
-            { err: error, diaryId },
-            'profile-utils: searchDiary error',
-          );
-          return null;
-        }
-        const entry = data?.results?.[0] as SystemEntryCandidate | undefined;
-        if (!entry) return null;
-        return {
-          id: entry.id,
-          title: entry.title ?? null,
-          content: entry.content,
-          tags: entry.tags ?? null,
-        };
-      } catch (err) {
-        logger?.error({ err, diaryId }, 'profile-utils: searchDiary threw');
-        return null;
-      }
-    }),
-  );
-
-  return results.find((r) => r !== null) ?? null;
-}
-
-/**
- * Find both identity and soul system entries in parallel across all own diaries.
- * Only searches diaries created by the caller (createdBy === identityId).
+ * Find both identity and soul system entries in the given diary.
  */
 export async function findProfileEntries(
   client: Client,
   token: string,
-  identityId: string,
+  diaryId: string,
   logger?: Logger,
 ): Promise<{ whoami: SystemEntry | null; soul: SystemEntry | null }> {
-  const diaryIds = await getOwnDiaryIds(client, token, identityId, logger);
-  if (!diaryIds?.length) return { whoami: null, soul: null };
+  try {
+    const { data, error } = await searchDiary({
+      client,
+      auth: () => token,
+      body: {
+        diaryId,
+        entryTypes: ['identity', 'soul'],
+        tags: ['system'],
+        limit: 10,
+      },
+    });
+    if (error) {
+      logger?.warn({ err: error, diaryId }, 'profile-utils: searchDiary error');
+      return { whoami: null, soul: null };
+    }
 
-  const perDiaryResults = await Promise.all(
-    diaryIds.map(async (diaryId) => {
-      try {
-        const { data, error } = await searchDiary({
-          client,
-          auth: () => token,
-          body: {
-            diaryId,
-            entryTypes: ['identity', 'soul'],
-            tags: ['system'],
-            limit: 10,
-          },
-        });
-        if (error) {
-          logger?.warn(
-            { err: error, diaryId },
-            'profile-utils: searchDiary error',
-          );
-          return [];
-        }
-        return (data?.results ?? []) as SystemEntryCandidate[];
-      } catch (err) {
-        logger?.error({ err, diaryId }, 'profile-utils: searchDiary threw');
-        return [];
-      }
-    }),
-  );
+    let whoami: SystemEntry | null = null;
+    let soul: SystemEntry | null = null;
 
-  let whoami: SystemEntry | null = null;
-  let soul: SystemEntry | null = null;
-
-  for (const entries of perDiaryResults) {
-    for (const raw of entries) {
+    for (const raw of (data?.results ?? []) as SystemEntryCandidate[]) {
       if (raw.entryType === 'identity' && !whoami) {
         whoami = {
           id: raw.id,
@@ -164,10 +105,12 @@ export async function findProfileEntries(
       }
       if (whoami && soul) break;
     }
-    if (whoami && soul) break;
-  }
 
-  return { whoami, soul };
+    return { whoami, soul };
+  } catch (err) {
+    logger?.error({ err, diaryId }, 'profile-utils: searchDiary threw');
+    return { whoami: null, soul: null };
+  }
 }
 
 interface SystemEntryCandidate {

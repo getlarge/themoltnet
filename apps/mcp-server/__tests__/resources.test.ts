@@ -19,12 +19,9 @@ import {
   sdkOk,
 } from './helpers.js';
 
-const IDENTITY_ID = 'uuid-1234';
-
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getDiary: vi.fn(),
-  listDiaries: vi.fn(),
   searchDiary: vi.fn(),
   getDiaryEntryById: vi.fn(),
   getAgentProfile: vi.fn(),
@@ -35,7 +32,6 @@ import {
   getDiary,
   getDiaryEntryById,
   getWhoami,
-  listDiaries,
   searchDiary,
 } from '@moltnet/api-client';
 
@@ -47,17 +43,6 @@ describe('MCP Resources', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
-    vi.mocked(listDiaries).mockResolvedValue(
-      sdkOk({ items: [{ id: DIARY_ID, createdBy: IDENTITY_ID }] }) as never,
-    );
-    vi.mocked(getWhoami).mockResolvedValue(
-      sdkOk({
-        identityId: IDENTITY_ID,
-        clientId: 'client-abc',
-        publicKey: 'pk-abc',
-        fingerprint: 'fp:abc123',
-      }) as never,
-    );
   });
 
   describe('moltnet://identity', () => {
@@ -142,7 +127,7 @@ describe('MCP Resources', () => {
   });
 
   describe('moltnet://entries/{entryId}', () => {
-    it('returns entry using direct path (no listDiaries loop)', async () => {
+    it('returns entry using direct path', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
       vi.mocked(getDiaryEntryById).mockResolvedValue(sdkOk(entry) as never);
 
@@ -151,7 +136,6 @@ describe('MCP Resources', () => {
       expect(getDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({ path: { entryId: ENTRY_ID } }),
       );
-      expect(getDiaryEntryById).toHaveBeenCalledTimes(1);
       expect(result.contents[0].uri).toBe(`moltnet://entries/${ENTRY_ID}`);
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('id', ENTRY_ID);
@@ -258,7 +242,7 @@ describe('MCP Resources', () => {
     });
   });
 
-  describe('moltnet://self/whoami', () => {
+  describe('moltnet://diaries/{diaryId}/self/whoami', () => {
     it('returns whoami entry when it exists', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
@@ -274,18 +258,20 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleSelfWhoamiResource(deps, context);
+      const result = await handleSelfWhoamiResource(deps, DIARY_ID, context);
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('exists', true);
       expect(data).toHaveProperty('content', 'My identity...');
-      expect(result.contents[0].uri).toBe('moltnet://self/whoami');
+      expect(result.contents[0].uri).toBe(
+        `moltnet://diaries/${DIARY_ID}/self/whoami`,
+      );
     });
 
-    it('searches with entryTypes=identity, tags=system, limit=1', async () => {
+    it('searches with entryTypes=identity, tags=system, limit=1 in the given diary', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      await handleSelfWhoamiResource(deps, context);
+      await handleSelfWhoamiResource(deps, DIARY_ID, context);
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -302,15 +288,16 @@ describe('MCP Resources', () => {
     it('returns exists:false when no whoami entry', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await handleSelfWhoamiResource(deps, context);
+      const result = await handleSelfWhoamiResource(deps, DIARY_ID, context);
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('exists', false);
     });
 
-    it('returns exists:false when not authenticated', async () => {
+    it('returns exists:false with error when not authenticated', async () => {
       const result = await handleSelfWhoamiResource(
         deps,
+        DIARY_ID,
         createMockContext(null),
       );
 
@@ -320,7 +307,7 @@ describe('MCP Resources', () => {
     });
   });
 
-  describe('moltnet://self/soul', () => {
+  describe('moltnet://diaries/{diaryId}/self/soul', () => {
     it('returns soul entry when it exists', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
@@ -336,18 +323,20 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleSelfSoulResource(deps, context);
+      const result = await handleSelfSoulResource(deps, DIARY_ID, context);
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('exists', true);
       expect(data).toHaveProperty('content', 'I value truth...');
-      expect(result.contents[0].uri).toBe('moltnet://self/soul');
+      expect(result.contents[0].uri).toBe(
+        `moltnet://diaries/${DIARY_ID}/self/soul`,
+      );
     });
 
-    it('searches with entryTypes=soul, tags=system, limit=1', async () => {
+    it('searches with entryTypes=soul, tags=system, limit=1 in the given diary', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      await handleSelfSoulResource(deps, context);
+      await handleSelfSoulResource(deps, DIARY_ID, context);
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -364,7 +353,7 @@ describe('MCP Resources', () => {
     it('returns exists:false when no soul entry', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await handleSelfSoulResource(deps, context);
+      const result = await handleSelfSoulResource(deps, DIARY_ID, context);
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('exists', false);

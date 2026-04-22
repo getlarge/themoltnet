@@ -14,13 +14,17 @@ import { Type } from '@sinclair/typebox';
 import type {
   AssertOutputMatchesApi,
   AssertSchemaToApi,
-  EmptyInput,
   PathOf,
   ResponseOf,
 } from './common.js';
 
-export const WhoamiSchema = Type.Object({});
-export type WhoamiInput = EmptyInput;
+export const WhoamiSchema = Type.Object({
+  diary_id: Type.String({
+    format: 'uuid',
+    description: 'The diary ID to search for your identity and soul entries.',
+  }),
+});
+export type WhoamiInput = { diary_id: string };
 
 export const AgentLookupSchema = Type.Object({
   fingerprint: Type.String({

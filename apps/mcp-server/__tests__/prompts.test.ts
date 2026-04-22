@@ -15,11 +15,10 @@ import {
 
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
-  listDiaries: vi.fn(),
   searchDiary: vi.fn(),
 }));
 
-import { getWhoami, listDiaries, searchDiary } from '@moltnet/api-client';
+import { getWhoami, searchDiary } from '@moltnet/api-client';
 
 function getPromptText(result: { messages: { content: unknown }[] }): string {
   return (result.messages[0].content as { type: string; text: string }).text;
@@ -33,15 +32,14 @@ describe('identity_bootstrap prompt', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
-    vi.mocked(listDiaries).mockResolvedValue(
-      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
-    );
   });
 
   it('returns auth error when not authenticated', async () => {
-    const unauthContext = createMockContext(null);
-
-    const result = await handleIdentityBootstrap(deps, unauthContext);
+    const result = await handleIdentityBootstrap(
+      { diary_id: DIARY_ID },
+      deps,
+      createMockContext(null),
+    );
 
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('user');
@@ -57,7 +55,11 @@ describe('identity_bootstrap prompt', () => {
       }) as never,
     );
 
-    const result = await handleIdentityBootstrap(deps, context);
+    const result = await handleIdentityBootstrap(
+      { diary_id: DIARY_ID },
+      deps,
+      context,
+    );
 
     expect(getPromptText(result)).toContain('Failed to retrieve');
   });
@@ -71,7 +73,11 @@ describe('identity_bootstrap prompt', () => {
     );
     vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-    const result = await handleIdentityBootstrap(deps, context);
+    const result = await handleIdentityBootstrap(
+      { diary_id: DIARY_ID },
+      deps,
+      context,
+    );
 
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('user');
@@ -112,7 +118,11 @@ describe('identity_bootstrap prompt', () => {
       }) as never,
     );
 
-    const result = await handleIdentityBootstrap(deps, context);
+    const result = await handleIdentityBootstrap(
+      { diary_id: DIARY_ID },
+      deps,
+      context,
+    );
 
     const text = getPromptText(result);
     expect(text).toContain('Whoami (established)');
@@ -120,34 +130,6 @@ describe('identity_bootstrap prompt', () => {
     expect(text).toContain('Soul (established)');
     expect(text).toContain('I value truth');
     expect(text).not.toContain('diary_create');
-  });
-
-  it('confirms setup when both entries exist — no diary_create reference', async () => {
-    vi.mocked(getWhoami).mockResolvedValue(
-      sdkOk({ publicKey: 'pk-abc', fingerprint: 'A1B2-C3D4' }) as never,
-    );
-    vi.mocked(searchDiary).mockResolvedValue(
-      sdkOk({
-        results: [
-          {
-            id: '1',
-            content: 'I am Archon',
-            tags: ['system', 'identity'],
-            entryType: 'identity',
-          },
-          {
-            id: '2',
-            content: 'I value truth',
-            tags: ['system', 'soul'],
-            entryType: 'soul',
-          },
-        ],
-      }) as never,
-    );
-
-    const result = await handleIdentityBootstrap(deps, context);
-
-    expect(getPromptText(result)).not.toContain('diary_create');
   });
 
   it('shows mixed state when only whoami exists', async () => {
@@ -170,7 +152,11 @@ describe('identity_bootstrap prompt', () => {
       }) as never,
     );
 
-    const result = await handleIdentityBootstrap(deps, context);
+    const result = await handleIdentityBootstrap(
+      { diary_id: DIARY_ID },
+      deps,
+      context,
+    );
 
     const text = getPromptText(result);
     expect(text).toContain('Whoami (established)');
@@ -216,7 +202,7 @@ describe('write_identity prompt', () => {
     expect(getPromptText(result)).toContain('Failed to retrieve');
   });
 
-  it('whoami type: instructs entries_create with identity entry_type and moltnet visibility', async () => {
+  it('whoami type: instructs entries_create with identity entry_type', async () => {
     vi.mocked(getWhoami).mockResolvedValue(
       sdkOk({ publicKey: 'pk-abc', fingerprint: 'A1B2-C3D4' }) as never,
     );
@@ -232,12 +218,11 @@ describe('write_identity prompt', () => {
     expect(text).toContain(`diary_id: "${DIARY_ID}"`);
     expect(text).toContain('entry_type: "identity"');
     expect(text).toContain('tags: ["system", "identity"]');
-    expect(text).toContain('visibility: "moltnet"');
     expect(text).toContain('A1B2-C3D4');
     expect(text).not.toContain('diary_create');
   });
 
-  it('soul type: instructs entries_create with soul entry_type and private visibility', async () => {
+  it('soul type: instructs entries_create with soul entry_type', async () => {
     vi.mocked(getWhoami).mockResolvedValue(
       sdkOk({ publicKey: 'pk-abc', fingerprint: 'A1B2-C3D4' }) as never,
     );
@@ -253,7 +238,6 @@ describe('write_identity prompt', () => {
     expect(text).toContain(`diary_id: "${DIARY_ID}"`);
     expect(text).toContain('entry_type: "soul"');
     expect(text).toContain('tags: ["system", "soul"]');
-    expect(text).toContain('visibility: "private"');
     expect(text).not.toContain('diary_create');
   });
 });

@@ -16,6 +16,7 @@ import { getTokenFromContext } from './utils.js';
 // --- Handler functions (testable without MCP transport) ---
 
 export async function handleIdentityBootstrap(
+  args: { diary_id: string },
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<GetPromptResult> {
@@ -56,7 +57,7 @@ export async function handleIdentityBootstrap(
   const { whoami, soul } = await findProfileEntries(
     deps.client,
     token,
-    identity.identityId,
+    args.diary_id,
     deps.logger,
   );
 
@@ -79,9 +80,9 @@ export async function handleIdentityBootstrap(
       '',
       '```',
       'Use entries_create with:',
+      `  diary_id: "${args.diary_id}"`,
       '  tags: ["system", "identity"]',
       '  entry_type: "identity"',
-      '  visibility: "moltnet"',
       '  title: <your chosen name or introduction>',
       '  content: <who you are, in your own words>',
       '```',
@@ -101,9 +102,9 @@ export async function handleIdentityBootstrap(
       '',
       '```',
       'Use entries_create with:',
+      `  diary_id: "${args.diary_id}"`,
       '  tags: ["system", "soul"]',
       '  entry_type: "soul"',
-      '  visibility: "private"',
       '  title: <what you care about>',
       '  content: <your values, personality, voice — in your own words>',
       '```',
@@ -192,7 +193,6 @@ export async function handleWriteIdentity(
     `  diary_id: "${args.diary_id}"`,
     `  entry_type: "${args.type === 'whoami' ? 'identity' : 'soul'}"`,
     `  tags: ["system", "${args.type === 'whoami' ? 'identity' : 'soul'}"]`,
-    `  visibility: "${isWhoami ? 'moltnet' : 'private'}"`,
     `  title: <${isWhoami ? 'your name or introduction' : 'what you care about'}>`,
     `  content: <write it now, in your own words>`,
     ``,
@@ -243,9 +243,21 @@ export function registerPrompts(fastify: FastifyInstance, deps: McpDeps): void {
     {
       name: 'identity_bootstrap',
       description:
-        'Check your MoltNet identity and soul. Creates or confirms your whoami and soul diary entries.',
+        'Check your MoltNet identity and soul entries in the given diary.',
+      arguments: [
+        {
+          name: 'diary_id',
+          description: 'The diary ID to check for your whoami and soul entries',
+          required: true,
+        },
+      ],
     },
-    async (_name, _args, ctx) => handleIdentityBootstrap(deps, ctx),
+    async (_name, args, ctx) =>
+      handleIdentityBootstrap(
+        { diary_id: String(args?.diary_id ?? '') },
+        deps,
+        ctx,
+      ),
   );
 
   fastify.mcpAddPrompt(
@@ -262,8 +274,7 @@ export function registerPrompts(fastify: FastifyInstance, deps: McpDeps): void {
         },
         {
           name: 'diary_id',
-          description:
-            'The diary ID to write into (use diaries_list to discover yours)',
+          description: 'The diary ID to write into',
           required: true,
         },
       ],
