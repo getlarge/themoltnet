@@ -465,3 +465,12 @@ export {
   loadCredentials,
   resumeVm,
 } from './vm-manager.js';
+
+// Headless pi task executor. Previously exported under the `./runtime`
+// subpath; collapsed to the root so the package has a single published
+// entry and `check:pack` can bundle types cleanly via vite + rollupTypes.
+export {
+  createPiTaskExecutor,
+  executePiTask,
+  type ExecutePiTaskOptions,
+} from './runtime/execute-pi-task.js';
