@@ -42,6 +42,8 @@ export {
   type ContextPackWithCreator,
   createContextPackRepository,
   type ExpandedPackEntry,
+  type PackDiffCompressionLevel,
+  type PackDiffRow,
 } from './repositories/context-pack.repository.js';
 export {
   createDiaryRepository,
