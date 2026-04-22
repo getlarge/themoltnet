@@ -7,6 +7,7 @@
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
+export type { TaskService } from './services/task.service.js';
 export type { VerificationService } from './services/verification.service.js';
 export type {
   AuthContext,
@@ -66,6 +67,7 @@ import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
+import type { TaskService } from './services/task.service.js';
 import type { VerificationService } from './services/verification.service.js';
 
 declare module 'fastify' {
@@ -92,6 +94,7 @@ declare module 'fastify' {
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;
     taskRepository: TaskRepository;
+    taskService: TaskService;
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;
