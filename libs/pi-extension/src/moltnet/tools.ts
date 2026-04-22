@@ -76,6 +76,58 @@ export function createMoltNetTools(
     },
   });
 
+  const createPack = defineTool({
+    name: 'moltnet_pack_create',
+    label: 'Create MoltNet Pack',
+    description:
+      'Persist a curated context pack. Entries are caller-ranked (lower rank = more prominent). ' +
+      'Recipe/prompt/selection_rationale belong in params. Defaults to pinned=false — packs in ' +
+      'the attribution pipeline are ephemeral unless the caller explicitly opts in.',
+    parameters: Type.Object({
+      entries: Type.Array(
+        Type.Object({
+          entryId: Type.String({ description: 'Diary entry UUID' }),
+          rank: Type.Number({
+            description: 'Rank (1..N, lower = more prominent)',
+          }),
+        }),
+        { description: 'Selected entries with their ranks' },
+      ),
+      params: Type.Optional(
+        Type.Record(Type.String(), Type.Unknown(), {
+          description:
+            'Free-form recipe parameters (recipe name, prompt, selection rationale, etc.)',
+        }),
+      ),
+      tokenBudget: Type.Optional(
+        Type.Number({
+          description: 'Soft token budget recorded on the pack (optional)',
+        }),
+      ),
+      pinned: Type.Optional(
+        Type.Boolean({
+          description: 'Pin the pack against retention policy (default false)',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const pack = await agent.packs.create(diaryId, {
+        packType: 'custom',
+        params: params.params ?? {},
+        entries: params.entries,
+        tokenBudget: params.tokenBudget,
+        pinned: params.pinned ?? false,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(pack, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const getPackProvenance = defineTool({
     name: 'moltnet_pack_provenance',
     label: 'Get MoltNet Pack Provenance',
@@ -437,6 +489,55 @@ export function createMoltNetTools(
     },
   });
 
+  const diaryTags = defineTool({
+    name: 'moltnet_diary_tags',
+    label: 'List MoltNet Diary Tags',
+    description:
+      'Inventory tags on the current diary with entry counts. Cheap reconnaissance ' +
+      'before committing to a search or list — use it to discover scope prefixes and ' +
+      'cluster sizes. Optional prefix/minCount/entryTypes filters narrow the result.',
+    parameters: Type.Object({
+      prefix: Type.Optional(
+        Type.String({
+          description:
+            'Filter to tags starting with this prefix (e.g. "scope:")',
+        }),
+      ),
+      minCount: Type.Optional(
+        Type.Number({
+          description: 'Exclude tags with fewer than this many entries',
+        }),
+      ),
+      entryTypes: Type.Optional(
+        Type.Array(
+          Type.Union([
+            Type.Literal('episodic'),
+            Type.Literal('semantic'),
+            Type.Literal('procedural'),
+            Type.Literal('reflection'),
+            Type.Literal('identity'),
+            Type.Literal('soul'),
+          ]),
+          { description: 'Scope the tag count to these entry types' },
+        ),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const result = await agent.diaries.tags(diaryId, {
+        prefix: params.prefix,
+        minCount: params.minCount,
+        entryTypes: params.entryTypes,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const listEntries = defineTool({
     name: 'moltnet_list_entries',
     label: 'List MoltNet Diary Entries',
@@ -618,12 +719,14 @@ export function createMoltNetTools(
 
   return [
     getPack,
+    createPack,
     getPackProvenance,
     renderPack,
     listRenderedPacks,
     getRenderedPack,
     verifyRenderedPack,
     judgeRenderedPack,
+    diaryTags,
     listEntries,
     getEntry,
     searchEntries,
