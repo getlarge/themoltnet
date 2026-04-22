@@ -29,6 +29,7 @@ export type {
   NonceRepository,
   RenderedPackRepository,
   SigningRequestRepository,
+  TaskRepository,
   TeamRepository,
   TransactionRunner,
   VoucherRepository,
@@ -55,6 +56,7 @@ import type {
   HumanRepository,
   RenderedPackRepository,
   SigningRequestRepository,
+  TaskRepository,
   TeamRepository,
   TransactionRunner,
   VoucherRepository,
@@ -89,6 +91,7 @@ declare module 'fastify' {
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;
+    taskRepository: TaskRepository;
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;

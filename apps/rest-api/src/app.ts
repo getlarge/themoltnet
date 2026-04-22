@@ -63,6 +63,7 @@ import type {
   NonceRepository,
   RenderedPackRepository,
   SigningRequestRepository,
+  TaskRepository,
   TeamRepository,
   TransactionRunner,
   VerificationService,
@@ -120,6 +121,7 @@ export interface AppOptions {
   groupRepository: GroupRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
+  taskRepository: TaskRepository;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
   nonceRepository: NonceRepository;
@@ -282,6 +284,7 @@ export async function registerApiRoutes(
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
+  decorateSafe('taskRepository', options.taskRepository);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);

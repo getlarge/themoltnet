@@ -27,6 +27,17 @@ export {
   signingWorkflows,
 } from './signing-workflows.js';
 export {
+  _resetTaskWorkflowsForTesting,
+  initTaskWorkflows,
+  setTaskWorkflowDeps,
+  type TaskAttemptClaimedEvent,
+  type TaskAttemptFinalEvent,
+  type TaskAttemptResult,
+  TaskWorkflowConfigurationError,
+  type TaskWorkflowDeps,
+  taskWorkflows,
+} from './task-workflows.js';
+export {
   _resetVerificationWorkflowsForTesting,
   initVerificationWorkflows,
   setVerificationWorkflowDeps,
