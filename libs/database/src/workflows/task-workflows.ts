@@ -39,7 +39,7 @@ export interface TaskWorkflowDeps {
         | 'usage'
       >
     >,
-  ): Promise<TaskAttempt>;
+  ): Promise<TaskAttempt | null>;
   updateTaskStatus(
     taskId: string,
     status: Task['status'],
@@ -49,7 +49,7 @@ export interface TaskWorkflowDeps {
         'completedAt' | 'acceptedAttemptN' | 'claimAgentId' | 'claimExpiresAt'
       >
     >,
-  ): Promise<Task>;
+  ): Promise<Task | null>;
   removeClaimantTuple(taskId: string, agentId: string): Promise<void>;
   countAttempts(taskId: string): Promise<number>;
   getMaxAttempts(taskId: string): Promise<number>;
@@ -99,15 +99,17 @@ export function setTaskWorkflowDeps(deps: TaskWorkflowDeps): void {
 export function initTaskWorkflows(): void {
   if (_workflows) return;
 
+  // Split into two steps so each is independently idempotent under retry.
+  // insertAttemptStep uses ON CONFLICT DO NOTHING guard via the unique index
+  // on workflow_id — if the INSERT already succeeded on a prior attempt, the
+  // re-run is a no-op and the step proceeds to the UPDATE safely.
   const insertAttemptStep = DBOS.registerStep(
     async (
       taskId: string,
       attemptN: number,
       agentId: string,
       workflowId: string,
-      leaseTtlSec: number,
     ): Promise<void> => {
-      const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
       await getDeps().createAttempt({
         taskId,
         attemptN,
@@ -115,12 +117,23 @@ export function initTaskWorkflows(): void {
         workflowId,
         status: 'claimed',
       });
+    },
+    { name: 'task.step.insertAttempt', ...stepConfig },
+  );
+
+  const dispatchTaskStep = DBOS.registerStep(
+    async (
+      taskId: string,
+      agentId: string,
+      leaseTtlSec: number,
+    ): Promise<void> => {
+      const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
       await getDeps().updateTaskStatus(taskId, 'dispatched', {
         claimAgentId: agentId,
         claimExpiresAt: leaseExpiresAt,
       });
     },
-    { name: 'task.step.insertAttempt', ...stepConfig },
+    { name: 'task.step.dispatchTask', ...stepConfig },
   );
 
   const markRunningStep = DBOS.registerStep(
@@ -205,6 +218,21 @@ export function initTaskWorkflows(): void {
     { name: 'task.step.markTimedOut', ...stepConfig },
   );
 
+  // Wraps countAttempts + getMaxAttempts in a step so results are recorded in
+  // the DBOS event log and not re-fetched on workflow replay (determinism).
+  const getRetryInfoStep = DBOS.registerStep(
+    async (
+      taskId: string,
+    ): Promise<{ attemptCount: number; maxAttempts: number }> => {
+      const [attemptCount, maxAttempts] = await Promise.all([
+        getDeps().countAttempts(taskId),
+        getDeps().getMaxAttempts(taskId),
+      ]);
+      return { attemptCount, maxAttempts };
+    },
+    { name: 'task.step.getRetryInfo', ...stepConfig },
+  );
+
   _workflows = {
     startAttemptWorkflow: DBOS.registerWorkflow(
       async (
@@ -214,13 +242,8 @@ export function initTaskWorkflows(): void {
         workflowId: string,
         leaseTtlSec: number,
       ): Promise<TaskAttemptFinalEvent> => {
-        await insertAttemptStep(
-          taskId,
-          attemptN,
-          agentId,
-          workflowId,
-          leaseTtlSec,
-        );
+        await insertAttemptStep(taskId, attemptN, agentId, workflowId);
+        await dispatchTaskStep(taskId, agentId, leaseTtlSec);
         await DBOS.setEvent<TaskAttemptClaimedEvent>('claimed', {
           taskId,
           attemptN,
@@ -231,10 +254,7 @@ export function initTaskWorkflows(): void {
           DISPATCH_TIMEOUT_SECONDS,
         );
         if (!started) {
-          const [attemptCount, maxAttempts] = await Promise.all([
-            getDeps().countAttempts(taskId),
-            getDeps().getMaxAttempts(taskId),
-          ]);
+          const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           await markTimedOutStep(
             taskId,
             attemptN,
@@ -259,10 +279,7 @@ export function initTaskWorkflows(): void {
           RUNNING_TIMEOUT_SECONDS,
         );
         if (!result) {
-          const [attemptCount, maxAttempts] = await Promise.all([
-            getDeps().countAttempts(taskId),
-            getDeps().getMaxAttempts(taskId),
-          ]);
+          const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           await markTimedOutStep(
             taskId,
             attemptN,
@@ -279,10 +296,7 @@ export function initTaskWorkflows(): void {
           return event;
         }
 
-        const [attemptCount, maxAttempts] = await Promise.all([
-          getDeps().countAttempts(taskId),
-          getDeps().getMaxAttempts(taskId),
-        ]);
+        const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
         return persistResultStep(
           taskId,
           attemptN,

@@ -369,10 +369,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
             // Keto claimant tuple removal deferred to task service (Phase 3)
           },
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
-          getMaxAttempts: async (taskId) => {
-            const task = await taskRepository.findById(taskId);
-            return task?.maxAttempts ?? 1;
-          },
+          getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
         });
       },
       () => {

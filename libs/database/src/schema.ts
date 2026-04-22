@@ -967,6 +967,9 @@ export const tasks = pgTable(
   (table) => [
     index('tasks_team_status_idx').on(table.teamId, table.status),
     index('tasks_type_status_idx').on(table.taskType, table.status),
+    index('tasks_diary_idx')
+      .on(table.diaryId)
+      .where(sql`diary_id IS NOT NULL`),
     index('tasks_correlation_idx')
       .on(table.correlationId)
       .where(sql`correlation_id IS NOT NULL`),

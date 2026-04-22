@@ -28,6 +28,13 @@
       "tag": "0003_add_task_messages_fk",
       "version": "7",
       "when": 1776865102652
+    },
+    {
+      "breakpoints": true,
+      "idx": 4,
+      "tag": "0004_secret_vindicator",
+      "version": "7",
+      "when": 1776868978349
     }
   ],
   "version": "7"

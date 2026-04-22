@@ -81,13 +81,13 @@ export function createTaskRepository(db: Database) {
           | 'claimExpiresAt'
         >
       >,
-    ): Promise<Task> {
+    ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
         .set({ status, updatedAt: sql`now()`, ...extra })
         .where(eq(tasks.id, id))
         .returning();
-      return row;
+      return row ?? null;
     },
 
     async createAttempt(input: NewTaskAttempt): Promise<TaskAttempt> {
@@ -132,7 +132,7 @@ export function createTaskRepository(db: Database) {
           | 'signedAt'
         >
       >,
-    ): Promise<TaskAttempt> {
+    ): Promise<TaskAttempt | null> {
       const [row] = await getExecutor(db)
         .update(taskAttempts)
         .set(fields)
@@ -143,7 +143,7 @@ export function createTaskRepository(db: Database) {
           ),
         )
         .returning();
-      return row;
+      return row ?? null;
     },
 
     async listAttempts(taskId: string): Promise<TaskAttempt[]> {
@@ -162,6 +162,15 @@ export function createTaskRepository(db: Database) {
       return row?.count ?? 0;
     },
 
+    async getMaxAttempts(taskId: string): Promise<number> {
+      const [row] = await getExecutor(db)
+        .select({ maxAttempts: tasks.maxAttempts })
+        .from(tasks)
+        .where(eq(tasks.id, taskId))
+        .limit(1);
+      return row?.maxAttempts ?? 1;
+    },
+
     async appendMessages(messages: NewTaskMessage[]): Promise<void> {
       if (messages.length === 0) return;
       await getExecutor(db).insert(taskMessages).values(messages);
@@ -171,7 +180,7 @@ export function createTaskRepository(db: Database) {
       taskId: string,
       attemptN: number,
       opts: { afterSeq?: number; limit?: number } = {},
-    ): Promise<TaskMessage[]> {
+    ): Promise<{ items: TaskMessage[]; hasMore: boolean }> {
       const limit = Math.min(opts.limit ?? PAGE_SIZE, PAGE_SIZE);
       const filters = [
         eq(taskMessages.taskId, taskId),
@@ -180,12 +189,14 @@ export function createTaskRepository(db: Database) {
       if (opts.afterSeq !== undefined) {
         filters.push(gt(taskMessages.seq, opts.afterSeq));
       }
-      return getExecutor(db)
+      const rows = await getExecutor(db)
         .select()
         .from(taskMessages)
         .where(and(...filters))
         .orderBy(asc(taskMessages.seq))
-        .limit(limit);
+        .limit(limit + 1);
+      const hasMore = rows.length > limit;
+      return { items: hasMore ? rows.slice(0, limit) : rows, hasMore };
     },
   };
 }
