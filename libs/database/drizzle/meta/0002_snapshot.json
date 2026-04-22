@@ -2674,6 +2674,22 @@
           "where": "correlation_id IS NOT NULL",
           "with": {}
         },
+        "tasks_diary_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "diary_id",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "tasks_diary_idx",
+          "where": "diary_id IS NOT NULL",
+          "with": {}
+        },
         "tasks_team_status_idx": {
           "columns": [
             {

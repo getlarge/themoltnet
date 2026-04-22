@@ -18,23 +18,9 @@
     {
       "breakpoints": true,
       "idx": 2,
-      "tag": "0002_yielding_tana_nile",
+      "tag": "0002_tasks",
       "version": "7",
       "when": 1776865087039
-    },
-    {
-      "breakpoints": true,
-      "idx": 3,
-      "tag": "0003_add_task_messages_fk",
-      "version": "7",
-      "when": 1776865102652
-    },
-    {
-      "breakpoints": true,
-      "idx": 4,
-      "tag": "0004_secret_vindicator",
-      "version": "7",
-      "when": 1776868978349
     }
   ],
   "version": "7"
