@@ -15,6 +15,7 @@ import {
   GroupRelation,
   HumanRelation,
   KetoNamespace,
+  TaskRelation,
   TeamRelation,
 } from './keto-constants.js';
 
@@ -90,6 +91,10 @@ export interface RelationshipWriter {
     subjectNs: KetoNamespace,
   ): Promise<void>;
   removeGroupRelations(groupId: string): Promise<void>;
+  // Task relations
+  grantTaskParent(taskId: string, diaryId: string): Promise<void>;
+  grantTaskClaimant(taskId: string, agentId: string): Promise<void>;
+  removeTaskClaimant(taskId: string, agentId: string): Promise<void>;
 }
 
 export function createRelationshipWriter(
@@ -422,6 +427,47 @@ export function createRelationshipWriter(
         subjectSetObject: subjectId,
         subjectSetRelation:
           subjectNs === KetoNamespace.Group ? GroupRelation.Members : '',
+      });
+    },
+
+    async grantTaskParent(taskId: string, diaryId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Task,
+          object: taskId,
+          relation: TaskRelation.Parent,
+          subject_set: {
+            namespace: KetoNamespace.Diary,
+            object: diaryId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async grantTaskClaimant(taskId: string, agentId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Task,
+          object: taskId,
+          relation: TaskRelation.Claimant,
+          subject_set: {
+            namespace: KetoNamespace.Agent,
+            object: agentId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async removeTaskClaimant(taskId: string, agentId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Task,
+        object: taskId,
+        relation: TaskRelation.Claimant,
+        subjectSetNamespace: KetoNamespace.Agent,
+        subjectSetObject: agentId,
+        subjectSetRelation: '',
       });
     },
   };
