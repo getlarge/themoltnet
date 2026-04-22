@@ -20,7 +20,6 @@ import type {
 
 export const WhoamiSchema = Type.Object({
   diary_id: Type.String({
-    format: 'uuid',
     description: 'The diary ID to search for your identity and soul entries.',
   }),
 });

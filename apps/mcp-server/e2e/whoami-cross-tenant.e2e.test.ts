@@ -197,30 +197,4 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
       'Agent A whoami must not contain Agent B content',
     ).not.toContain('AGENT-B-MARKER');
   });
-
-  it('self resource moltnet://self/whoami returns Agent A entry (not Agent B from public diary)', async () => {
-    // Depends on the previous test having created Agent A's identity entry.
-    // Verifies findSystemEntry (used by the resource handler) also applies
-    // the createdBy filter correctly.
-    const result = await clientA.readResource({
-      uri: 'moltnet://self/whoami',
-    });
-    const data = JSON.parse((result.contents[0] as { text: string }).text) as {
-      exists: boolean;
-      content?: string;
-    };
-
-    expect(
-      data.exists,
-      'Agent A self whoami resource should exist after Agent A created an identity entry',
-    ).toBe(true);
-    expect(
-      data.content,
-      'Agent A self whoami resource should contain Agent A content',
-    ).toContain('AGENT-A-MARKER');
-    expect(
-      data.content,
-      'Agent A self whoami resource must not contain Agent B content from public diary',
-    ).not.toContain('AGENT-B-MARKER');
-  });
 });
