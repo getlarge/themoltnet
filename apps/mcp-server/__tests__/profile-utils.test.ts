@@ -12,8 +12,11 @@ import { listDiaries, searchDiary } from '@moltnet/api-client';
 
 import { sdkErr, sdkOk } from './helpers.js';
 
+const AGENT_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
+const OTHER_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440099';
 const DIARY_ID = '550e8400-e29b-41d4-a716-446655440001';
 const DIARY_ID_2 = '550e8400-e29b-41d4-a716-446655440002';
+const TEAM_DIARY_ID = '550e8400-e29b-41d4-a716-446655440003';
 
 const mockLogger = {
   warn: vi.fn(),
@@ -23,11 +26,14 @@ const mockLogger = {
 describe('profile-utils', () => {
   const client = {} as Client;
   const token = 'test-token';
+  const identityId = AGENT_IDENTITY_ID;
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(listDiaries).mockResolvedValue(
-      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+      sdkOk({
+        items: [{ id: DIARY_ID, createdBy: AGENT_IDENTITY_ID }],
+      }) as never,
     );
   });
 
@@ -47,7 +53,12 @@ describe('profile-utils', () => {
         }) as never,
       );
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(
+        client,
+        token,
+        identityId,
+        'identity',
+      );
 
       expect(listDiaries).toHaveBeenCalledWith(
         expect.objectContaining({ client, auth: expect.any(Function) }),
@@ -72,7 +83,12 @@ describe('profile-utils', () => {
     it('returns null when no matching entry exists', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(
+        client,
+        token,
+        identityId,
+        'identity',
+      );
 
       expect(result).toBeNull();
     });
@@ -85,6 +101,7 @@ describe('profile-utils', () => {
       const result = await findSystemEntry(
         client,
         token,
+        identityId,
         'identity',
         mockLogger,
       );
@@ -99,7 +116,12 @@ describe('profile-utils', () => {
     it('returns null when listDiaries returns empty (agent owns no diaries)', async () => {
       vi.mocked(listDiaries).mockResolvedValue(sdkOk({ items: [] }) as never);
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(
+        client,
+        token,
+        identityId,
+        'identity',
+      );
 
       expect(searchDiary).not.toHaveBeenCalled();
       expect(result).toBeNull();
@@ -113,6 +135,7 @@ describe('profile-utils', () => {
       const result = await findSystemEntry(
         client,
         token,
+        identityId,
         'identity',
         mockLogger,
       );
@@ -122,9 +145,40 @@ describe('profile-utils', () => {
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
-    it('searches all diaries in parallel and returns first match', async () => {
+    it('excludes team diaries owned by a different agent (cross-tenant isolation)', async () => {
       vi.mocked(listDiaries).mockResolvedValue(
-        sdkOk({ items: [{ id: DIARY_ID }, { id: DIARY_ID_2 }] }) as never,
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: TEAM_DIARY_ID, createdBy: OTHER_IDENTITY_ID },
+          ],
+        }) as never,
+      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
+
+      await findSystemEntry(client, token, identityId, 'identity');
+
+      expect(searchDiary).toHaveBeenCalledTimes(1);
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ diaryId: DIARY_ID }),
+        }),
+      );
+      expect(searchDiary).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ diaryId: TEAM_DIARY_ID }),
+        }),
+      );
+    });
+
+    it('searches all own diaries in parallel and returns first match', async () => {
+      vi.mocked(listDiaries).mockResolvedValue(
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: DIARY_ID_2, createdBy: AGENT_IDENTITY_ID },
+          ],
+        }) as never,
       );
       vi.mocked(searchDiary)
         .mockResolvedValueOnce(sdkOk({ results: [] }) as never)
@@ -141,25 +195,25 @@ describe('profile-utils', () => {
           }) as never,
         );
 
-      const result = await findSystemEntry(client, token, 'identity');
+      const result = await findSystemEntry(
+        client,
+        token,
+        identityId,
+        'identity',
+      );
 
       expect(searchDiary).toHaveBeenCalledTimes(2);
-      expect(searchDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.objectContaining({ diaryId: DIARY_ID }),
-        }),
-      );
-      expect(searchDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.objectContaining({ diaryId: DIARY_ID_2 }),
-        }),
-      );
       expect(result?.id).toBe('entry-in-second-diary');
     });
 
     it('skips errored diary and returns result from next diary', async () => {
       vi.mocked(listDiaries).mockResolvedValue(
-        sdkOk({ items: [{ id: DIARY_ID }, { id: DIARY_ID_2 }] }) as never,
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: DIARY_ID_2, createdBy: AGENT_IDENTITY_ID },
+          ],
+        }) as never,
       );
       vi.mocked(searchDiary)
         .mockResolvedValueOnce(
@@ -181,6 +235,7 @@ describe('profile-utils', () => {
       const result = await findSystemEntry(
         client,
         token,
+        identityId,
         'identity',
         mockLogger,
       );
@@ -216,7 +271,7 @@ describe('profile-utils', () => {
         }) as never,
       );
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, identityId);
 
       expect(result.whoami).toMatchObject({
         id: '2',
@@ -231,7 +286,7 @@ describe('profile-utils', () => {
     it('returns nulls when no system entries exist', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, identityId);
 
       expect(result.whoami).toBeNull();
       expect(result.soul).toBeNull();
@@ -251,7 +306,7 @@ describe('profile-utils', () => {
         }) as never,
       );
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, identityId);
 
       expect(result.whoami).not.toBeNull();
       expect(result.soul).toBeNull();
@@ -262,7 +317,12 @@ describe('profile-utils', () => {
         sdkErr({ error: 'fail', message: 'fail', statusCode: 500 }) as never,
       );
 
-      const result = await findProfileEntries(client, token, mockLogger);
+      const result = await findProfileEntries(
+        client,
+        token,
+        identityId,
+        mockLogger,
+      );
 
       expect(result.whoami).toBeNull();
       expect(result.soul).toBeNull();
@@ -272,7 +332,7 @@ describe('profile-utils', () => {
     it('returns nulls when listDiaries returns empty (agent owns no diaries)', async () => {
       vi.mocked(listDiaries).mockResolvedValue(sdkOk({ items: [] }) as never);
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, identityId);
 
       expect(searchDiary).not.toHaveBeenCalled();
       expect(result.whoami).toBeNull();
@@ -284,7 +344,12 @@ describe('profile-utils', () => {
         sdkErr({ error: 'fail', message: 'fail', statusCode: 500 }) as never,
       );
 
-      const result = await findProfileEntries(client, token, mockLogger);
+      const result = await findProfileEntries(
+        client,
+        token,
+        identityId,
+        mockLogger,
+      );
 
       expect(searchDiary).not.toHaveBeenCalled();
       expect(result.whoami).toBeNull();
@@ -292,10 +357,30 @@ describe('profile-utils', () => {
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
+    it('excludes team diaries owned by a different agent (cross-tenant isolation)', async () => {
+      vi.mocked(listDiaries).mockResolvedValue(
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: TEAM_DIARY_ID, createdBy: OTHER_IDENTITY_ID },
+          ],
+        }) as never,
+      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
+
+      await findProfileEntries(client, token, identityId);
+
+      const calls = vi.mocked(searchDiary).mock.calls;
+      expect(calls).toHaveLength(1);
+      expect(
+        (calls[0][0] as { body?: { diaryId?: string } }).body?.diaryId,
+      ).toBe(DIARY_ID);
+    });
+
     it('scopes each search call to the own diary id', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      await findProfileEntries(client, token);
+      await findProfileEntries(client, token, identityId);
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -312,7 +397,7 @@ describe('profile-utils', () => {
     it('never searches without a diary id (prevents cross-tenant leak)', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      await findProfileEntries(client, token);
+      await findProfileEntries(client, token, identityId);
 
       const calls = vi.mocked(searchDiary).mock.calls;
       for (const [opts] of calls) {
@@ -324,7 +409,12 @@ describe('profile-utils', () => {
 
     it('accumulates whoami from one diary and soul from another', async () => {
       vi.mocked(listDiaries).mockResolvedValue(
-        sdkOk({ items: [{ id: DIARY_ID }, { id: DIARY_ID_2 }] }) as never,
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: DIARY_ID_2, createdBy: AGENT_IDENTITY_ID },
+          ],
+        }) as never,
       );
       vi.mocked(searchDiary)
         .mockResolvedValueOnce(
@@ -352,7 +442,7 @@ describe('profile-utils', () => {
           }) as never,
         );
 
-      const result = await findProfileEntries(client, token);
+      const result = await findProfileEntries(client, token, identityId);
 
       expect(result.whoami?.id).toBe('whoami-in-diary-1');
       expect(result.soul?.id).toBe('soul-in-diary-2');
@@ -360,7 +450,12 @@ describe('profile-utils', () => {
 
     it('skips errored diary and accumulates results from remaining diaries', async () => {
       vi.mocked(listDiaries).mockResolvedValue(
-        sdkOk({ items: [{ id: DIARY_ID }, { id: DIARY_ID_2 }] }) as never,
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: DIARY_ID_2, createdBy: AGENT_IDENTITY_ID },
+          ],
+        }) as never,
       );
       vi.mocked(searchDiary)
         .mockResolvedValueOnce(
@@ -379,7 +474,12 @@ describe('profile-utils', () => {
           }) as never,
         );
 
-      const result = await findProfileEntries(client, token, mockLogger);
+      const result = await findProfileEntries(
+        client,
+        token,
+        identityId,
+        mockLogger,
+      );
 
       expect(result.whoami?.id).toBe('whoami-from-fallback');
       expect(result.soul).toBeNull();
@@ -389,13 +489,18 @@ describe('profile-utils', () => {
       );
     });
 
-    it('issues parallel searchDiary calls (one per diary)', async () => {
+    it('issues parallel searchDiary calls (one per owned diary)', async () => {
       vi.mocked(listDiaries).mockResolvedValue(
-        sdkOk({ items: [{ id: DIARY_ID }, { id: DIARY_ID_2 }] }) as never,
+        sdkOk({
+          items: [
+            { id: DIARY_ID, createdBy: AGENT_IDENTITY_ID },
+            { id: DIARY_ID_2, createdBy: AGENT_IDENTITY_ID },
+          ],
+        }) as never,
       );
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
-      await findProfileEntries(client, token);
+      await findProfileEntries(client, token, identityId);
 
       expect(searchDiary).toHaveBeenCalledTimes(2);
     });

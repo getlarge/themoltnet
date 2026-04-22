@@ -56,6 +56,7 @@ export async function handleIdentityBootstrap(
   const { whoami, soul } = await findProfileEntries(
     deps.client,
     token,
+    identity.identityId,
     deps.logger,
   );
 

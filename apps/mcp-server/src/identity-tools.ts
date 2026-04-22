@@ -50,6 +50,7 @@ export async function handleWhoami(
   const { whoami, soul } = await findProfileEntries(
     deps.client,
     token,
+    data.identityId,
     deps.logger,
   );
 

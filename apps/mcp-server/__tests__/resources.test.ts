@@ -19,6 +19,8 @@ import {
   sdkOk,
 } from './helpers.js';
 
+const IDENTITY_ID = 'uuid-1234';
+
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getDiary: vi.fn(),
@@ -46,7 +48,15 @@ describe('MCP Resources', () => {
     deps = createMockDeps();
     context = createMockContext();
     vi.mocked(listDiaries).mockResolvedValue(
-      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+      sdkOk({ items: [{ id: DIARY_ID, createdBy: IDENTITY_ID }] }) as never,
+    );
+    vi.mocked(getWhoami).mockResolvedValue(
+      sdkOk({
+        identityId: IDENTITY_ID,
+        clientId: 'client-abc',
+        publicKey: 'pk-abc',
+        fingerprint: 'fp:abc123',
+      }) as never,
     );
   });
 

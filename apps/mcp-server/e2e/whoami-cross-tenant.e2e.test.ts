@@ -2,13 +2,20 @@
  * E2E: moltnet_whoami cross-tenant isolation (regression for issue #889)
  *
  * Two independent agents are bootstrapped. Agent B creates identity/soul entries
- * with moltnet visibility. Agent A's whoami must return its own profile (null if
- * no entries) — never Agent B's entries.
+ * in its public diary (readable by any authenticated agent). Agent A's whoami
+ * must return its own profile (null if no entries) — never Agent B's entries,
+ * even though Agent B's entries are in a publicly readable diary.
+ *
+ * This test catches the specific regression: before the fix, searchDiary without
+ * diaryId scoping would return Agent B's public entries when Agent A called whoami.
+ * After the fix, only diaries created by Agent A (createdBy === identityId) are
+ * searched, so Agent B's public diary is excluded entirely.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createClient, createDiaryEntry } from '@moltnet/api-client';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createMcpTestHarness, type McpTestHarness } from './setup.js';
 
@@ -45,58 +52,51 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
       });
       await clientA.connect(transportA);
 
-      // Bootstrap Agent B with moltnet-visible identity entries via direct REST API
+      // Bootstrap Agent B and create identity entries in Agent B's PUBLIC diary.
+      // The public diary is readable by any authenticated agent — this is the
+      // exact scenario that triggered issue #889 (unscoped searchDiary returns
+      // other agents' publicly visible entries).
       const agentBHarness = await harness.createAgent(
         'e2e-cross-tenant-agent-b',
       );
       const agentB = agentBHarness.agent;
 
-      // Create Agent B's identity entry with moltnet visibility
-      // (moltnet visibility is the default — readable by any authenticated agent)
-      const whoamiResp = await fetch(
-        `${harness.restApiUrl}/diaries/${agentBHarness.privateDiaryId}/entries`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${agentB.accessToken}`,
-          },
-          body: JSON.stringify({
-            content: AGENT_B_WHOAMI_CONTENT,
-            title: 'I am Agent B',
-            tags: ['system', 'identity'],
-            entry_type: 'identity',
-            visibility: 'moltnet',
-          }),
+      const apiClient = createClient({ baseUrl: harness.restApiUrl });
+
+      // Create Agent B's identity entry in Agent B's PUBLIC diary
+      // so any authenticated agent (including Agent A) can read it.
+      const { error: whoamiError } = await createDiaryEntry({
+        client: apiClient,
+        auth: () => agentB.accessToken,
+        path: { diaryId: agentBHarness.publicDiaryId },
+        body: {
+          content: AGENT_B_WHOAMI_CONTENT,
+          title: 'I am Agent B',
+          tags: ['system', 'identity'],
+          entryType: 'identity',
         },
-      );
-      if (!whoamiResp.ok) {
+      });
+      if (whoamiError) {
         throw new Error(
-          `Agent B identity create failed: ${whoamiResp.status} ${await whoamiResp.text()}`,
+          `Agent B identity create failed: ${JSON.stringify(whoamiError)}`,
         );
       }
 
-      // Create Agent B's soul entry with moltnet visibility
-      const soulResp = await fetch(
-        `${harness.restApiUrl}/diaries/${agentBHarness.privateDiaryId}/entries`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${agentB.accessToken}`,
-          },
-          body: JSON.stringify({
-            content: AGENT_B_SOUL_CONTENT,
-            title: 'Agent B soul',
-            tags: ['system', 'soul'],
-            entry_type: 'soul',
-            visibility: 'moltnet',
-          }),
+      // Create Agent B's soul entry in Agent B's public diary
+      const { error: soulError } = await createDiaryEntry({
+        client: apiClient,
+        auth: () => agentB.accessToken,
+        path: { diaryId: agentBHarness.publicDiaryId },
+        body: {
+          content: AGENT_B_SOUL_CONTENT,
+          title: 'Agent B soul',
+          tags: ['system', 'soul'],
+          entryType: 'soul',
         },
-      );
-      if (!soulResp.ok) {
+      });
+      if (soulError) {
         throw new Error(
-          `Agent B soul create failed: ${soulResp.status} ${await soulResp.text()}`,
+          `Agent B soul create failed: ${JSON.stringify(soulError)}`,
         );
       }
     } catch (err) {
@@ -109,17 +109,15 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
     await harness?.teardown();
   });
 
-  function requireSetup(): void {
+  beforeEach(() => {
     if (setupError) {
       throw new Error(
         `E2E setup failed — cannot continue: ${setupError.message}`,
       );
     }
-  }
+  });
 
-  it('Agent A whoami returns null profile when Agent A has no entries (not Agent B entries)', async () => {
-    requireSetup();
-
+  it('Agent A whoami returns null profile when Agent A has no entries (not Agent B entries from public diary)', async () => {
     const result = await clientA.callTool({
       name: 'moltnet_whoami',
       arguments: {},
@@ -138,27 +136,25 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
     };
 
     expect(parsed.authenticated).toBe(true);
-    // Agent A's auth identity must be Agent A's own identity
     expect(parsed.identity.fingerprint).toBe(harness.agent.keyPair.fingerprint);
 
-    // Profile must be null — Agent A has no entries, and Agent B's entries
-    // must not bleed through even though they have moltnet visibility
+    // Profile must be null — Agent A has no entries.
+    // Agent B's entries are in a public diary (readable by Agent A), so without
+    // the createdBy filter this test would fail with Agent B's content leaking.
     expect(
       parsed.profile.whoami,
-      'Agent B whoami leaked into Agent A profile (issue #889)',
+      'Agent B whoami from public diary leaked into Agent A profile (issue #889)',
     ).toBeNull();
     expect(
       parsed.profile.soul,
-      'Agent B soul leaked into Agent A profile (issue #889)',
+      'Agent B soul from public diary leaked into Agent A profile (issue #889)',
     ).toBeNull();
   });
 
   it('Agent A whoami returns own entries after Agent A creates them (not Agent B entries)', async () => {
-    requireSetup();
-
     const AGENT_A_CONTENT = 'I am Agent A. My unique content: AGENT-A-MARKER.';
 
-    // Create Agent A's identity entry
+    // Create Agent A's identity entry via MCP
     const createResult = await clientA.callTool({
       name: 'entries_create',
       arguments: {
@@ -178,7 +174,6 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
       `Agent A identity create error: ${createContent[0].text}`,
     ).toBeUndefined();
 
-    // Now whoami must return Agent A's own content
     const result = await clientA.callTool({
       name: 'moltnet_whoami',
       arguments: {},
@@ -203,11 +198,10 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
     ).not.toContain('AGENT-B-MARKER');
   });
 
-  it('self resource moltnet://self/whoami returns Agent A entry after bootstrap (not Agent B)', async () => {
+  it('self resource moltnet://self/whoami returns Agent A entry (not Agent B from public diary)', async () => {
     // Depends on the previous test having created Agent A's identity entry.
-    // Verifies findSystemEntry (used by the resource handler) also scopes correctly.
-    requireSetup();
-
+    // Verifies findSystemEntry (used by the resource handler) also applies
+    // the createdBy filter correctly.
     const result = await clientA.readResource({
       uri: 'moltnet://self/whoami',
     });
@@ -226,7 +220,7 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
     ).toContain('AGENT-A-MARKER');
     expect(
       data.content,
-      'Agent A self whoami resource must not contain Agent B content',
+      'Agent A self whoami resource must not contain Agent B content from public diary',
     ).not.toContain('AGENT-B-MARKER');
   });
 });

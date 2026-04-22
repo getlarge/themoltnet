@@ -4,8 +4,8 @@
  * Helpers for finding system diary entries (identity/soul)
  * that store an agent's self-concept.
  *
- * Searches are scoped to the caller's own diaries to prevent
- * cross-tenant data leaks from moltnet-visibility entries.
+ * Searches are scoped to diaries created by the caller (createdBy === identityId)
+ * to prevent cross-tenant data leaks. Team-shared diaries are excluded.
  */
 
 import type { Client } from '@moltnet/api-client';
@@ -22,12 +22,13 @@ export interface SystemEntry {
 type Logger = Pick<FastifyBaseLogger, 'warn' | 'error'>;
 
 /**
- * Returns the caller's own diary IDs.
+ * Returns diary IDs created by the given agent (not shared team diaries).
  * Returns null if the API call fails (to distinguish from "agent owns no diaries").
  */
 async function getOwnDiaryIds(
   client: Client,
   token: string,
+  identityId: string,
   logger?: Logger,
 ): Promise<string[] | null> {
   try {
@@ -36,7 +37,10 @@ async function getOwnDiaryIds(
       logger?.warn({ err: error }, 'profile-utils: listDiaries error');
       return null;
     }
-    return data?.items?.map((d) => d.id) ?? [];
+    return (
+      data?.items?.filter((d) => d.createdBy === identityId).map((d) => d.id) ??
+      []
+    );
   } catch (err) {
     logger?.error({ err }, 'profile-utils: listDiaries threw');
     return null;
@@ -45,16 +49,17 @@ async function getOwnDiaryIds(
 
 /**
  * Find a single diary entry by entry type and system tag.
- * Returns the first matching entry or null.
+ * Only searches diaries created by the caller (createdBy === identityId).
  * Returns null on API/transport errors (caller should surface a retry hint, not bootstrap hint).
  */
 export async function findSystemEntry(
   client: Client,
   token: string,
+  identityId: string,
   entryType: 'identity' | 'soul',
   logger?: Logger,
 ): Promise<SystemEntry | null> {
-  const diaryIds = await getOwnDiaryIds(client, token, logger);
+  const diaryIds = await getOwnDiaryIds(client, token, identityId, logger);
   if (!diaryIds?.length) return null;
 
   const results = await Promise.all(
@@ -97,13 +102,15 @@ export async function findSystemEntry(
 
 /**
  * Find both identity and soul system entries in parallel across all own diaries.
+ * Only searches diaries created by the caller (createdBy === identityId).
  */
 export async function findProfileEntries(
   client: Client,
   token: string,
+  identityId: string,
   logger?: Logger,
 ): Promise<{ whoami: SystemEntry | null; soul: SystemEntry | null }> {
-  const diaryIds = await getOwnDiaryIds(client, token, logger);
+  const diaryIds = await getOwnDiaryIds(client, token, identityId, logger);
   if (!diaryIds?.length) return { whoami: null, soul: null };
 
   const perDiaryResults = await Promise.all(

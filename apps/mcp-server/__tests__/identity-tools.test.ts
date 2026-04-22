@@ -35,7 +35,7 @@ describe('Identity tools', () => {
     deps = createMockDeps();
     context = createMockContext();
     vi.mocked(listDiaries).mockResolvedValue(
-      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+      sdkOk({ items: [{ id: DIARY_ID, createdBy: 'id-123' }] }) as never,
     );
   });
 
