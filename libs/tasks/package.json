@@ -19,7 +19,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@sinclair/typebox": "catalog:"
+    "@sinclair/typebox": "catalog:",
+    "multiformats": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",
