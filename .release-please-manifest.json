@@ -3,7 +3,7 @@
   "libs/design-system": "0.6.0",
   "libs/dspy-adapters": "0.9.0",
   "libs/moltnet-api-client": "1.18.0",
-  "libs/pi-extension": "0.4.0",
+  "libs/pi-extension": "0.2.0",
   "libs/sdk": "0.93.0",
   "packages/cli": "1.30.0",
   "packages/cli/npm/darwin-arm64": "1.30.0",

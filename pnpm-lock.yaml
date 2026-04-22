@@ -1153,12 +1153,6 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.7.0
-      '@moltnet/agent-runtime':
-        specifier: workspace:*
-        version: link:../agent-runtime
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../tasks
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -1172,12 +1166,24 @@ importers:
       '@mariozechner/pi-coding-agent':
         specifier: 'catalog:'
         version: 0.67.68(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
+      '@moltnet/agent-runtime':
+        specifier: workspace:*
+        version: link:../agent-runtime
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@20.19.30)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)

@@ -35,8 +35,10 @@ import {
   FileTaskSource,
   StdoutReporter,
 } from '@moltnet/agent-runtime';
-import type { SandboxConfig } from '@themoltnet/pi-extension';
-import { createPiTaskExecutor } from '@themoltnet/pi-extension/runtime';
+import {
+  createPiTaskExecutor,
+  type SandboxConfig,
+} from '@themoltnet/pi-extension';
 
 const { values: args } = parseArgs({
   options: {

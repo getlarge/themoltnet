@@ -93,8 +93,10 @@ import {
   type FulfillBriefInput,
   type Task,
 } from '@moltnet/tasks';
-import type { SandboxConfig } from '@themoltnet/pi-extension';
-import { createPiTaskExecutor } from '@themoltnet/pi-extension/runtime';
+import {
+  createPiTaskExecutor,
+  type SandboxConfig,
+} from '@themoltnet/pi-extension';
 
 // ---------------------------------------------------------------------------
 // CLI args

@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/pi-extension",
-  "version": "0.4.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "MoltNet pi extension — sandboxed tool execution in Gondolin VMs with MoltNet identity and persistent memory",
   "license": "MIT",
@@ -16,10 +16,6 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
-    },
-    "./runtime": {
-      "import": "./src/runtime/index.ts",
-      "types": "./src/runtime/index.ts"
     }
   },
   "publishConfig": {
@@ -27,15 +23,12 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
-      },
-      "./runtime": {
-        "types": "./dist/runtime/index.d.ts",
-        "import": "./dist/runtime/index.js"
       }
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/.dts"
   ],
   "pi": {
     "extensions": [
@@ -43,7 +36,7 @@
     ]
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint src/",
@@ -51,8 +44,6 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
-    "@moltnet/agent-runtime": "workspace:*",
-    "@moltnet/tasks": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "@themoltnet/sdk": "workspace:*"
   },
@@ -71,8 +62,12 @@
   "devDependencies": {
     "@mariozechner/pi-ai": "catalog:",
     "@mariozechner/pi-coding-agent": "catalog:",
+    "@moltnet/agent-runtime": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {
