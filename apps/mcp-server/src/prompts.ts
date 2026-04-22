@@ -53,7 +53,11 @@ export async function handleIdentityBootstrap(
     };
   }
 
-  const { whoami, soul } = await findProfileEntries(deps.client, token);
+  const { whoami, soul } = await findProfileEntries(
+    deps.client,
+    token,
+    deps.logger,
+  );
 
   const parts: string[] = [
     `Your MoltNet cryptographic identity:`,

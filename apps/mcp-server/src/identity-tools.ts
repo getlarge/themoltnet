@@ -47,7 +47,11 @@ export async function handleWhoami(
     return structuredResult({ authenticated: false as const });
   }
 
-  const { whoami, soul } = await findProfileEntries(deps.client, token);
+  const { whoami, soul } = await findProfileEntries(
+    deps.client,
+    token,
+    deps.logger,
+  );
 
   const missingParts: string[] = [];
   if (!whoami) missingParts.push('whoami');

@@ -203,24 +203,30 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
     ).not.toContain('AGENT-B-MARKER');
   });
 
-  it('self resource moltnet://self/whoami returns exists:false for Agent A before bootstrap', async () => {
-    // This verifies the resource handler (findSystemEntry) also scopes correctly.
-    // Note: this test order depends on the first test running before Agent A creates entries.
-    // The full bootstrap test above creates entries, so this test is order-sensitive.
-    // We verify the resource after the bootstrap test has run — it should now return exists:true
-    // with Agent A's content, not Agent B's.
+  it('self resource moltnet://self/whoami returns Agent A entry after bootstrap (not Agent B)', async () => {
+    // Depends on the previous test having created Agent A's identity entry.
+    // Verifies findSystemEntry (used by the resource handler) also scopes correctly.
     requireSetup();
 
     const result = await clientA.readResource({
       uri: 'moltnet://self/whoami',
     });
-    const data = JSON.parse((result.contents[0] as { text: string }).text);
+    const data = JSON.parse((result.contents[0] as { text: string }).text) as {
+      exists: boolean;
+      content?: string;
+    };
 
-    // After the previous test created Agent A's identity entry, this must return it
-    if (data.exists) {
-      expect(data.content).toContain('AGENT-A-MARKER');
-      expect(data.content).not.toContain('AGENT-B-MARKER');
-    }
-    // If exists is false, the scoping worked (no bleed-through from Agent B)
+    expect(
+      data.exists,
+      'Agent A self whoami resource should exist after Agent A created an identity entry',
+    ).toBe(true);
+    expect(
+      data.content,
+      'Agent A self whoami resource should contain Agent A content',
+    ).toContain('AGENT-A-MARKER');
+    expect(
+      data.content,
+      'Agent A self whoami resource must not contain Agent B content',
+    ).not.toContain('AGENT-B-MARKER');
   });
 });

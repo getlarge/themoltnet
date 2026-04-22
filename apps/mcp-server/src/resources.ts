@@ -160,7 +160,12 @@ export async function handleSelfWhoamiResource(
     });
   }
 
-  const entry = await findSystemEntry(deps.client, token, 'identity');
+  const entry = await findSystemEntry(
+    deps.client,
+    token,
+    'identity',
+    deps.logger,
+  );
   if (!entry) {
     return jsonResource('moltnet://self/whoami', { exists: false });
   }
@@ -186,7 +191,7 @@ export async function handleSelfSoulResource(
     });
   }
 
-  const entry = await findSystemEntry(deps.client, token, 'soul');
+  const entry = await findSystemEntry(deps.client, token, 'soul', deps.logger);
   if (!entry) {
     return jsonResource('moltnet://self/soul', { exists: false });
   }
