@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.93.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.92.0...sdk-v0.93.0) (2026-04-22)
+
+
+### Features
+
+* **pack-pipeline:** curate/render/judge_pack task types + prompt builders ([be89841](https://github.com/getlarge/themoltnet/commit/be89841ae09227779c7f514b12a2a2304b7fd002))
+* **sdk:** add diaries.tags + packs.create + packs.preview ([3dff092](https://github.com/getlarge/themoltnet/commit/3dff092ad1b2964676334836fcb97b60e9ea4ac8))
+
 ## [0.92.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.91.0...sdk-v0.92.0) (2026-04-21)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.18.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.17.2...moltnet-api-client-v1.18.0) (2026-04-22)
+
+
+### Features
+
+* **pack-pipeline:** curate/render/judge_pack task types + prompt builders ([be89841](https://github.com/getlarge/themoltnet/commit/be89841ae09227779c7f514b12a2a2304b7fd002))
+
+
+### Bug Fixes
+
+* **rest-api:** return packId on custom pack create ([008f8bb](https://github.com/getlarge/themoltnet/commit/008f8bb9d0302dbd1e03cf368beb80c692e3a720))
+
 ## [1.17.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.17.1...moltnet-api-client-v1.17.2) (2026-04-21)
 
 
