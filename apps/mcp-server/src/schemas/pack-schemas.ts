@@ -582,30 +582,23 @@ export const PackProvenanceOutputSchema = Type.Object({
   edges: Type.Array(ProvenanceEdgeSchema),
 });
 
-export const PackDiffSchema = Type.Object({
-  pack_id: Type.Optional(
-    Type.String({
-      description: 'Pack A UUID. Provide either pack_id or pack_cid.',
-    }),
-  ),
-  pack_cid: Type.Optional(
-    Type.String({
-      description: 'Pack A CID. Provide either pack_id or pack_cid.',
-    }),
-  ),
-  other_pack_id: Type.Optional(
-    Type.String({
-      description:
-        'Pack B UUID. Provide either other_pack_id or other_pack_cid.',
-    }),
-  ),
-  other_pack_cid: Type.Optional(
-    Type.String({
-      description:
-        'Pack B CID. Provide either other_pack_id or other_pack_cid.',
-    }),
-  ),
+const PackDiffByIdSchema = Type.Object({
+  pack_id: Type.String({ description: 'Pack A UUID.' }),
+  other_pack_id: Type.String({ description: 'Pack B UUID.' }),
 });
+
+const PackDiffByCidSchema = Type.Object({
+  pack_cid: Type.String({ description: 'Pack A CID.' }),
+  other_pack_cid: Type.String({ description: 'Pack B CID.' }),
+});
+
+export const PackDiffSchema = Type.Union(
+  [PackDiffByIdSchema, PackDiffByCidSchema],
+  {
+    description:
+      'Identify both packs by UUID (pack_id + other_pack_id) or both by CID (pack_cid + other_pack_cid). Mixed identifier types are not supported.',
+  },
+);
 
 export type PackDiffInput = Static<typeof PackDiffSchema>;
 

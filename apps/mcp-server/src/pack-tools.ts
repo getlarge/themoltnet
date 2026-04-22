@@ -416,46 +416,11 @@ export async function handlePacksDiff(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const packId =
-    typeof args.pack_id === 'string' && args.pack_id.trim() !== ''
-      ? args.pack_id
-      : undefined;
-  const packCid =
-    typeof args.pack_cid === 'string' && args.pack_cid.trim() !== ''
-      ? args.pack_cid
-      : undefined;
-  const otherPackId =
-    typeof args.other_pack_id === 'string' && args.other_pack_id.trim() !== ''
-      ? args.other_pack_id
-      : undefined;
-  const otherPackCid =
-    typeof args.other_pack_cid === 'string' && args.other_pack_cid.trim() !== ''
-      ? args.other_pack_cid
-      : undefined;
-
-  if (!packId && !packCid) {
-    return errorResult('Provide either pack_id or pack_cid for pack A');
-  }
-  if (!otherPackId && !otherPackCid) {
-    return errorResult(
-      'Provide either other_pack_id or other_pack_cid for pack B',
-    );
-  }
-
-  const useIds = packId && otherPackId;
-  const useCids = packCid && otherPackCid;
-
-  if (!useIds && !useCids) {
-    return errorResult(
-      'Identifier type mismatch: use pack_id + other_pack_id (both UUIDs) or pack_cid + other_pack_cid (both CIDs)',
-    );
-  }
-
-  if (useIds) {
+  if ('pack_id' in args) {
     const { data, error } = await diffContextPacksById({
       client: deps.client,
       auth: () => token,
-      path: { id: packId, otherId: otherPackId },
+      path: { id: args.pack_id, otherId: args.other_pack_id },
     });
     if (error || !data) {
       deps.logger.error({ tool: 'packs_diff', err: error }, 'tool.error');
@@ -467,7 +432,7 @@ export async function handlePacksDiff(
   const { data, error } = await diffContextPacksByCid({
     client: deps.client,
     auth: () => token,
-    path: { cid: packCid as string, otherCid: otherPackCid as string },
+    path: { cid: args.pack_cid, otherCid: args.other_pack_cid },
   });
   if (error || !data) {
     deps.logger.error({ tool: 'packs_diff', err: error }, 'tool.error');
@@ -597,6 +562,6 @@ export function registerPackTools(
       inputSchema: PackDiffSchema,
       outputSchema: PackDiffOutputSchema,
     },
-    async (args, ctx) => handlePacksDiff(args, deps, ctx),
+    async (args, ctx) => handlePacksDiff(args as PackDiffInput, deps, ctx),
   );
 }
