@@ -4,18 +4,27 @@
  * Helpers for finding system diary entries (identity/soul)
  * that store an agent's self-concept.
  *
- * Uses the search endpoint with entryTypes filter — searches across
- * all owned diaries (no diary_id scoping).
+ * Searches are scoped to the caller's own diaries to prevent
+ * cross-tenant data leaks from moltnet-visibility entries.
  */
 
 import type { Client } from '@moltnet/api-client';
-import { searchDiary } from '@moltnet/api-client';
+import { listDiaries, searchDiary } from '@moltnet/api-client';
 
 export interface SystemEntry {
   id: string;
   title: string | null;
   content: string;
   tags: string[] | null;
+}
+
+async function getOwnDiaryIds(
+  client: Client,
+  token: string,
+): Promise<string[]> {
+  const { data, error } = await listDiaries({ client, auth: () => token });
+  if (error || !data?.items?.length) return [];
+  return data.items.map((d) => d.id);
 }
 
 /**
@@ -27,25 +36,33 @@ export async function findSystemEntry(
   token: string,
   entryType: 'identity' | 'soul',
 ): Promise<SystemEntry | null> {
-  const { data, error } = await searchDiary({
-    client,
-    auth: () => token,
-    body: {
-      entryTypes: [entryType],
-      tags: ['system'],
-      limit: 1,
-    },
-  });
+  const diaryIds = await getOwnDiaryIds(client, token);
+  if (!diaryIds.length) return null;
 
-  if (error || !data?.results?.length) return null;
+  for (const diaryId of diaryIds) {
+    const { data, error } = await searchDiary({
+      client,
+      auth: () => token,
+      body: {
+        diaryId,
+        entryTypes: [entryType],
+        tags: ['system'],
+        limit: 1,
+      },
+    });
 
-  const entry = data.results[0] as SystemEntryCandidate;
-  return {
-    id: entry.id,
-    title: entry.title ?? null,
-    content: entry.content,
-    tags: entry.tags ?? null,
-  };
+    if (error || !data?.results?.length) continue;
+
+    const entry = data.results[0] as SystemEntryCandidate;
+    return {
+      id: entry.id,
+      title: entry.title ?? null,
+      content: entry.content,
+      tags: entry.tags ?? null,
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -55,39 +72,47 @@ export async function findProfileEntries(
   client: Client,
   token: string,
 ): Promise<{ whoami: SystemEntry | null; soul: SystemEntry | null }> {
-  const { data, error } = await searchDiary({
-    client,
-    auth: () => token,
-    body: {
-      entryTypes: ['identity', 'soul'],
-      tags: ['system'],
-      limit: 10,
-    },
-  });
-
-  if (error || !data?.results) return { whoami: null, soul: null };
+  const diaryIds = await getOwnDiaryIds(client, token);
+  if (!diaryIds.length) return { whoami: null, soul: null };
 
   let whoami: SystemEntry | null = null;
   let soul: SystemEntry | null = null;
 
-  for (const raw of data.results as SystemEntryCandidate[]) {
-    if (raw.entryType === 'identity' && !whoami) {
-      whoami = {
-        id: raw.id,
-        title: raw.title ?? null,
-        content: raw.content,
-        tags: raw.tags ?? null,
-      };
-    }
-    if (raw.entryType === 'soul' && !soul) {
-      soul = {
-        id: raw.id,
-        title: raw.title ?? null,
-        content: raw.content,
-        tags: raw.tags ?? null,
-      };
-    }
+  for (const diaryId of diaryIds) {
     if (whoami && soul) break;
+
+    const { data, error } = await searchDiary({
+      client,
+      auth: () => token,
+      body: {
+        diaryId,
+        entryTypes: ['identity', 'soul'],
+        tags: ['system'],
+        limit: 10,
+      },
+    });
+
+    if (error || !data?.results) continue;
+
+    for (const raw of data.results as SystemEntryCandidate[]) {
+      if (raw.entryType === 'identity' && !whoami) {
+        whoami = {
+          id: raw.id,
+          title: raw.title ?? null,
+          content: raw.content,
+          tags: raw.tags ?? null,
+        };
+      }
+      if (raw.entryType === 'soul' && !soul) {
+        soul = {
+          id: raw.id,
+          title: raw.title ?? null,
+          content: raw.content,
+          tags: raw.tags ?? null,
+        };
+      }
+      if (whoami && soul) break;
+    }
   }
 
   return { whoami, soul };

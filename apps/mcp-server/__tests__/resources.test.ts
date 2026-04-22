@@ -22,6 +22,7 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getDiary: vi.fn(),
+  listDiaries: vi.fn(),
   searchDiary: vi.fn(),
   getDiaryEntryById: vi.fn(),
   getAgentProfile: vi.fn(),
@@ -32,6 +33,7 @@ import {
   getDiary,
   getDiaryEntryById,
   getWhoami,
+  listDiaries,
   searchDiary,
 } from '@moltnet/api-client';
 
@@ -43,6 +45,9 @@ describe('MCP Resources', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
+    vi.mocked(listDiaries).mockResolvedValue(
+      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+    );
   });
 
   describe('moltnet://identity', () => {
@@ -274,7 +279,12 @@ describe('MCP Resources', () => {
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { entryTypes: ['identity'], tags: ['system'], limit: 1 },
+          body: {
+            diaryId: DIARY_ID,
+            entryTypes: ['identity'],
+            tags: ['system'],
+            limit: 1,
+          },
         }),
       );
     });
@@ -331,7 +341,12 @@ describe('MCP Resources', () => {
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { entryTypes: ['soul'], tags: ['system'], limit: 1 },
+          body: {
+            diaryId: DIARY_ID,
+            entryTypes: ['soul'],
+            tags: ['system'],
+            limit: 1,
+          },
         }),
       );
     });
