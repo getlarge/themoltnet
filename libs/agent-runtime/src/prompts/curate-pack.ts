@@ -15,6 +15,17 @@ interface Ctx {
  * exact tool calls would waste that capability. Instead we frame the
  * goal, list the tools, describe the evidence trail we expect, and
  * leave sequencing to the model.
+ *
+ * TODO(#885): add a `moltnet_parallel_explore` custom tool that spawns
+ * N isolated `createAgentSession` children (one per tag cluster or
+ * entry_type axis the curator picks after recon), each with a narrow
+ * tool subset and a turn cap, and returns compressed summaries. Parent
+ * curator keeps a warm context and only sees {candidate_ids, notes}
+ * per probe — mirrors the fan-out pattern pi-mono SDK example #13
+ * (session runtime) + #05 (custom tools) makes possible. Until that
+ * lands, the `checkpoints[]` output field is the fallback: curator
+ * emits pruned state at phase boundaries so a follow-up session can
+ * resume without replaying the tool history.
  */
 export function buildCuratePackPrompt(
   input: CuratePackInput,
