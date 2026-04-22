@@ -8,12 +8,15 @@
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  bigint,
   boolean,
+  check,
   index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   real,
   smallint,
   text,
@@ -113,6 +116,36 @@ export const foundingAcceptanceStatusEnum = pgEnum(
   'founding_acceptance_status',
   ['pending', 'accepted'],
 );
+
+export const taskStatusEnum = pgEnum('task_status', [
+  'queued',
+  'dispatched',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+  'expired',
+]);
+
+export const taskAttemptStatusEnum = pgEnum('task_attempt_status', [
+  'claimed',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+  'timed_out',
+]);
+
+export const taskMessageKindEnum = pgEnum('task_message_kind', [
+  'text_delta',
+  'tool_call_start',
+  'tool_call_end',
+  'turn_end',
+  'error',
+  'info',
+]);
+
+export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
 
 /**
  * Diaries Table
@@ -872,3 +905,155 @@ export type RenderedPackAttestation =
   typeof renderedPackAttestations.$inferSelect;
 export type NewRenderedPackAttestation =
   typeof renderedPackAttestations.$inferInsert;
+
+// ── Tasks ──────────────────────────────────────────────────
+
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    taskType: varchar('task_type', { length: 100 }).notNull(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    diaryId: uuid('diary_id').references(() => diaries.id, {
+      onDelete: 'restrict',
+    }),
+    outputKind: outputKindEnum('output_kind').notNull(),
+    input: jsonb('input').notNull(),
+    inputSchemaCid: varchar('input_schema_cid', { length: 100 }).notNull(),
+    inputCid: varchar('input_cid', { length: 100 }).notNull(),
+    criteriaCid: varchar('criteria_cid', { length: 100 }),
+    // wire field is `references`; `references` is a SQL reserved word
+    taskRefs: jsonb('task_refs')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    correlationId: uuid('correlation_id'),
+    imposedByAgentId: uuid('imposed_by_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    imposedByHumanId: uuid('imposed_by_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
+    acceptedAttemptN: integer('accepted_attempt_n'),
+    claimAgentId: uuid('claim_agent_id').references(() => agents.identityId, {
+      onDelete: 'restrict',
+    }),
+    claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true }),
+    status: taskStatusEnum('status').notNull().default('queued'),
+    queuedAt: timestamp('queued_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    cancelledByAgentId: uuid('cancelled_by_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    cancelledByHumanId: uuid('cancelled_by_human_id').references(
+      () => humans.id,
+      { onDelete: 'restrict' },
+    ),
+    cancelReason: text('cancel_reason'),
+    maxAttempts: integer('max_attempts').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('tasks_team_status_idx').on(table.teamId, table.status),
+    index('tasks_type_status_idx').on(table.taskType, table.status),
+    index('tasks_correlation_idx')
+      .on(table.correlationId)
+      .where(sql`correlation_id IS NOT NULL`),
+    index('tasks_claim_expires_idx')
+      .on(table.claimExpiresAt)
+      .where(sql`claim_expires_at IS NOT NULL`),
+    check(
+      'tasks_imposer_xor',
+      sql`(imposed_by_agent_id IS NOT NULL) <> (imposed_by_human_id IS NOT NULL)`,
+    ),
+    check(
+      'tasks_canceller_xor',
+      sql`status <> 'cancelled' OR (cancelled_by_agent_id IS NOT NULL) <> (cancelled_by_human_id IS NOT NULL)`,
+    ),
+    check(
+      'tasks_cancel_reason_required',
+      sql`status <> 'cancelled' OR cancel_reason IS NOT NULL`,
+    ),
+  ],
+);
+
+export type Task = typeof tasks.$inferSelect;
+export type NewTask = typeof tasks.$inferInsert;
+
+// ── Task Attempts ──────────────────────────────────────────
+
+export const taskAttempts = pgTable(
+  'task_attempts',
+  {
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    attemptN: integer('attempt_n').notNull(),
+    claimedByAgentId: uuid('claimed_by_agent_id')
+      .notNull()
+      .references(() => agents.identityId, { onDelete: 'restrict' }),
+    // FK to agent_runtimes added in PR 7
+    runtimeId: uuid('runtime_id'),
+    // Deterministic DBOS workflow ID: task:{taskId}:attempt:{n}
+    workflowId: varchar('workflow_id', { length: 200 }).notNull(),
+    claimedAt: timestamp('claimed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    status: taskAttemptStatusEnum('status').notNull().default('claimed'),
+    output: jsonb('output'),
+    outputCid: varchar('output_cid', { length: 100 }),
+    error: jsonb('error'),
+    usage: jsonb('usage'),
+    contentSignature: text('content_signature'),
+    signedAt: timestamp('signed_at', { withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.taskId, table.attemptN] }),
+    index('task_attempts_task_idx').on(table.taskId),
+    uniqueIndex('task_attempts_workflow_idx').on(table.workflowId),
+  ],
+);
+
+export type TaskAttempt = typeof taskAttempts.$inferSelect;
+export type NewTaskAttempt = typeof taskAttempts.$inferInsert;
+
+// ── Task Messages ──────────────────────────────────────────
+
+export const taskMessages = pgTable(
+  'task_messages',
+  {
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    attemptN: integer('attempt_n').notNull(),
+    seq: bigint('seq', { mode: 'number' }).notNull(),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
+    kind: taskMessageKindEnum('kind').notNull(),
+    payload: jsonb('payload')
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.taskId, table.attemptN, table.seq] }),
+    index('task_messages_task_attempt_idx').on(table.taskId, table.attemptN),
+  ],
+);
+
+// Composite FK (task_id, attempt_n) → task_attempts is added via custom SQL migration
+// because Drizzle's FK API doesn't support composite foreign keys.
+
+export type TaskMessage = typeof taskMessages.$inferSelect;
+export type NewTaskMessage = typeof taskMessages.$inferInsert;
