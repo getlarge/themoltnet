@@ -359,6 +359,8 @@ export async function packRoutes(fastify: FastifyInstance) {
       entries: payload.entries,
     });
 
+    let persistedPackId: string | undefined;
+
     if (persist) {
       const createdAtDate = new Date(createdAt);
       const pinned = request.body.pinned ?? false;
@@ -374,6 +376,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       const existing = await fastify.contextPackRepository.findByCid(packCid);
       if (existing) {
         return {
+          packId: existing.id,
           packCid: existing.packCid,
           packType: 'custom' as const,
           params: request.body.params,
@@ -441,9 +444,12 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Failed to finalize custom pack authorization',
         );
       }
+
+      persistedPackId = pack.id;
     }
 
     return {
+      ...(persistedPackId ? { packId: persistedPackId } : {}),
       packCid,
       packType: 'custom' as const,
       params: request.body.params,

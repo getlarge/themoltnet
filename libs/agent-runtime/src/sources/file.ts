@@ -77,6 +77,17 @@ export class FileTaskSource implements TaskSource {
           `FileTaskSource: task[${i}].input in ${this.filePath} does not match ${candidate.task_type} input schema: ${where}`,
         );
       }
+      const validateInput = (
+        entry as { validateInput?: (input: unknown) => string | null }
+      ).validateInput;
+      if (validateInput) {
+        const err = validateInput(candidate.input);
+        if (err) {
+          throw new Error(
+            `FileTaskSource: task[${i}].input in ${this.filePath} failed ${candidate.task_type} cross-field validation: ${err}`,
+          );
+        }
+      }
       validated.push(candidate);
     }
 

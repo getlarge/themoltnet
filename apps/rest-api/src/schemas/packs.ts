@@ -186,6 +186,11 @@ export const CustomPackEntryResultSchema = Type.Object(
 
 export const CustomPackResultSchema = Type.Object(
   {
+    /**
+     * Present on persisted (create) responses; omitted on preview, which
+     * never touches storage.
+     */
+    packId: Type.Optional(Type.String({ format: 'uuid' })),
     packCid: Type.String(),
     packType: Type.Literal('custom'),
     params: Type.Record(Type.String(), Type.Unknown()),

@@ -1,0 +1,59 @@
+{
+  "accepted_attempt_n": null,
+  "cancel_reason": null,
+  "cancelled_by_agent_id": null,
+  "cancelled_by_human_id": null,
+  "completed_at": null,
+  "correlation_id": null,
+  "criteria_cid": null,
+  "diary_id": "{{diary_id}}",
+  "expires_at": null,
+  "id": "aa100003-0000-4000-8000-000000000003",
+  "imposed_by_agent_id": null,
+  "imposed_by_human_id": null,
+  "input": {
+    "rendered_pack_id": "{{rendered_pack_id}}",
+    "rubric": {
+      "criteria": [
+        {
+          "description": "Every source entry is referenced in the rendered content (by entry_id or stable title+cid reference).",
+          "id": "coverage",
+          "scoring": "deterministic_coverage_check",
+          "weight": 0.4
+        },
+        {
+          "description": "Entries whose type REQUIRES signing carry a valid content_signature. Required: (a) entryType in ['identity','soul'] (always), (b) entryType='procedural' with a 'risk:high' tag. Optional (do NOT penalize when unsigned): entryType in ['episodic','reflection'], 'semantic' (signing recommended only for architecture/security decisions), 'procedural' with risk:low or risk:medium or missing risk tag. Score 1 if all required-signed entries are signed; score fractionally by (required_signed_ok / required_signed_total) when some required entries lack signatures. If there are zero required-signed entries in the source pack, score 1.",
+          "id": "signature_integrity",
+          "scoring": "deterministic_signature_check",
+          "weight": 0.2
+        },
+        {
+          "description": "No factual claims in the rendered content that cannot be traced to a source entry.",
+          "id": "grounding",
+          "scoring": "llm_judged",
+          "weight": 0.4
+        }
+      ],
+      "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims.",
+      "rubric_id": "pack-fidelity-v2",
+      "scope": "packs",
+      "version": "v2"
+    },
+    "source_pack_id": "{{source_pack_id}}"
+  },
+  "input_cid": "cid-placeholder",
+  "input_schema_cid": "cid-placeholder",
+  "max_attempts": 1,
+  "output_kind": "judgment",
+  "queued_at": "2026-04-21T16:00:00Z",
+  "references": [
+    {
+      "output_cid": "{{rendered_pack_cid}}",
+      "role": "judged_work",
+      "task_id": null
+    }
+  ],
+  "status": "running",
+  "task_type": "judge_pack",
+  "team_id": "{{team_id}}"
+}

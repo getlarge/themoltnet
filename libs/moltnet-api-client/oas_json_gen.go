@@ -10248,6 +10248,12 @@ func (s *CustomPackResult) encodeFields(e *jx.Encoder) {
 		e.Str(s.PackCid)
 	}
 	{
+		if s.PackId.Set {
+			e.FieldStart("packId")
+			s.PackId.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("packType")
 		s.PackType.Encode(e)
 	}
@@ -10257,12 +10263,13 @@ func (s *CustomPackResult) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCustomPackResult = [5]string{
+var jsonFieldsNameOfCustomPackResult = [6]string{
 	0: "compileStats",
 	1: "entries",
 	2: "packCid",
-	3: "packType",
-	4: "params",
+	3: "packId",
+	4: "packType",
+	5: "params",
 }
 
 // Decode decodes CustomPackResult from json.
@@ -10314,8 +10321,18 @@ func (s *CustomPackResult) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
+		case "packId":
+			if err := func() error {
+				s.PackId.Reset()
+				if err := s.PackId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packId\"")
+			}
 		case "packType":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.PackType.Decode(d); err != nil {
 					return err
@@ -10325,7 +10342,7 @@ func (s *CustomPackResult) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packType\"")
 			}
 		case "params":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Params.Decode(d); err != nil {
 					return err
@@ -10344,7 +10361,7 @@ func (s *CustomPackResult) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00011111,
+		0b00110111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

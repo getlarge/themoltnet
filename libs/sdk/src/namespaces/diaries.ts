@@ -5,6 +5,7 @@ import {
   deleteDiary,
   getDiary,
   listDiaries,
+  listDiaryTags,
   updateDiary,
 } from '@moltnet/api-client';
 
@@ -58,6 +59,17 @@ export function createDiariesNamespace(
           auth,
           path: { id },
           body,
+        }),
+      );
+    },
+
+    async tags(diaryId, query) {
+      return unwrapResult(
+        await listDiaryTags({
+          client,
+          auth,
+          path: { diaryId },
+          query,
         }),
       );
     },

@@ -1,0 +1,30 @@
+{
+  "accepted_attempt_n": null,
+  "cancel_reason": null,
+  "cancelled_by_agent_id": null,
+  "cancelled_by_human_id": null,
+  "completed_at": null,
+  "correlation_id": null,
+  "criteria_cid": null,
+  "diary_id": "{{diary_id}}",
+  "expires_at": null,
+  "id": "aa100001-0000-4000-8000-000000000001",
+  "imposed_by_agent_id": null,
+  "imposed_by_human_id": null,
+  "input": {
+    "diary_id": "{{diary_id}}",
+    "entry_types": ["episodic", "procedural"],
+    "recipe": "topic-focused-v1",
+    "tag_filters": { "prefix": "scope:" },
+    "task_prompt": "{{task_prompt}}"
+  },
+  "input_cid": "cid-placeholder",
+  "input_schema_cid": "cid-placeholder",
+  "max_attempts": 1,
+  "output_kind": "artifact",
+  "queued_at": "2026-04-21T16:00:00Z",
+  "references": [],
+  "status": "running",
+  "task_type": "curate_pack",
+  "team_id": "{{team_id}}"
+}

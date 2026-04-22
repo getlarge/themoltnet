@@ -326,9 +326,12 @@ export async function executePiTask(
             usage.cache_write_tokens = (usage.cache_write_tokens ?? 0) + cw;
         }
         track(emit('turn_end', { stop_reason: msg?.stopReason ?? 'end_turn' }));
-        if (msg?.stopReason === 'error') {
-          llmAbort = true;
-        }
+        // Reflect ONLY the final turn's stop reason. pi emits turn_end per
+        // assistant turn; a transient error in an earlier turn that pi then
+        // recovers from (next turn completes cleanly) must not fail the task.
+        // session.prompt() resolves after the final turn, so by the time we
+        // read llmAbort below it holds the terminal state.
+        llmAbort = msg?.stopReason === 'error';
       }
     });
 

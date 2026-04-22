@@ -704,6 +704,7 @@ export type CustomPackEntryResult = {
 };
 
 export type CustomPackResult = {
+  packId?: string;
   packCid: string;
   packType: 'custom';
   params: {

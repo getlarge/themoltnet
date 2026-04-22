@@ -76,6 +76,58 @@ export function createMoltNetTools(
     },
   });
 
+  const createPack = defineTool({
+    name: 'moltnet_pack_create',
+    label: 'Create MoltNet Pack',
+    description:
+      'Persist a curated context pack. Entries are caller-ranked (lower rank = more prominent). ' +
+      'Recipe/prompt/selection_rationale belong in params. Defaults to pinned=false — packs in ' +
+      'the attribution pipeline are ephemeral unless the caller explicitly opts in.',
+    parameters: Type.Object({
+      entries: Type.Array(
+        Type.Object({
+          entryId: Type.String({ description: 'Diary entry UUID' }),
+          rank: Type.Number({
+            description: 'Rank (1..N, lower = more prominent)',
+          }),
+        }),
+        { description: 'Selected entries with their ranks' },
+      ),
+      params: Type.Optional(
+        Type.Record(Type.String(), Type.Unknown(), {
+          description:
+            'Free-form recipe parameters (recipe name, prompt, selection rationale, etc.)',
+        }),
+      ),
+      tokenBudget: Type.Optional(
+        Type.Number({
+          description: 'Soft token budget recorded on the pack (optional)',
+        }),
+      ),
+      pinned: Type.Optional(
+        Type.Boolean({
+          description: 'Pin the pack against retention policy (default false)',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const pack = await agent.packs.create(diaryId, {
+        packType: 'custom',
+        params: params.params ?? {},
+        entries: params.entries,
+        tokenBudget: params.tokenBudget,
+        pinned: params.pinned ?? false,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(pack, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const getPackProvenance = defineTool({
     name: 'moltnet_pack_provenance',
     label: 'Get MoltNet Pack Provenance',
@@ -437,11 +489,60 @@ export function createMoltNetTools(
     },
   });
 
+  const diaryTags = defineTool({
+    name: 'moltnet_diary_tags',
+    label: 'List MoltNet Diary Tags',
+    description:
+      'Inventory tags on the current diary with entry counts. Cheap reconnaissance ' +
+      'before committing to a search or list — use it to discover scope prefixes and ' +
+      'cluster sizes. Optional prefix/minCount/entryTypes filters narrow the result.',
+    parameters: Type.Object({
+      prefix: Type.Optional(
+        Type.String({
+          description:
+            'Filter to tags starting with this prefix (e.g. "scope:")',
+        }),
+      ),
+      minCount: Type.Optional(
+        Type.Number({
+          description: 'Exclude tags with fewer than this many entries',
+        }),
+      ),
+      entryTypes: Type.Optional(
+        Type.Array(
+          Type.Union([
+            Type.Literal('episodic'),
+            Type.Literal('semantic'),
+            Type.Literal('procedural'),
+            Type.Literal('reflection'),
+            Type.Literal('identity'),
+            Type.Literal('soul'),
+          ]),
+          { description: 'Scope the tag count to these entry types' },
+        ),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, diaryId } = ensureConnected(config);
+      const result = await agent.diaries.tags(diaryId, {
+        prefix: params.prefix,
+        minCount: params.minCount,
+        entryTypes: params.entryTypes,
+      });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const listEntries = defineTool({
     name: 'moltnet_list_entries',
     label: 'List MoltNet Diary Entries',
     description:
-      'List recent entries from the MoltNet diary. Returns title, tags, importance, and creation date.',
+      'List entries from the MoltNet diary. When `entryIds` is provided, batch-fetches those specific entries (max 50) and returns full fields including entryType, contentSignature, and contentHash for signature checks. Otherwise returns recent entries with a content preview.',
     parameters: Type.Object({
       limit: Type.Optional(
         Type.Number({ description: 'Max entries to return (default 10)' }),
@@ -449,27 +550,55 @@ export function createMoltNetTools(
       tag: Type.Optional(
         Type.String({ description: 'Filter by tag (optional)' }),
       ),
+      entryIds: Type.Optional(
+        Type.Array(Type.String(), {
+          description:
+            'Batch-fetch specific entries by UUID (max 50). Overrides `limit` and `tag` for selection.',
+          maxItems: 50,
+        }),
+      ),
     }),
     async execute(_id, params) {
       const { agent, diaryId } = ensureConnected(config);
       const query: Record<string, unknown> = {
-        limit: params.limit ?? 10,
         orderBy: 'createdAt',
         order: 'desc',
       };
-      if (params.tag) query.tag = params.tag;
+      const batchMode = !!params.entryIds?.length;
+      if (batchMode) {
+        query.ids = params.entryIds;
+      } else {
+        query.limit = params.limit ?? 10;
+        if (params.tag) query.tag = params.tag;
+      }
 
       const entries = await agent.entries.list(diaryId, query);
       const text = JSON.stringify(
-        entries.items?.map((e: Record<string, unknown>) => ({
-          id: e.id,
-          title: e.title,
-          tags: e.tags,
-          importance: e.importance,
-          createdAt: e.createdAt,
-          contentPreview:
-            typeof e.content === 'string' ? e.content.slice(0, 200) : undefined,
-        })),
+        entries.items?.map((e: Record<string, unknown>) =>
+          batchMode
+            ? {
+                id: e.id,
+                title: e.title,
+                entryType: e.entryType,
+                tags: e.tags,
+                importance: e.importance,
+                contentHash: e.contentHash,
+                contentSignature: e.contentSignature,
+                signingNonce: e.signingNonce,
+                createdAt: e.createdAt,
+              }
+            : {
+                id: e.id,
+                title: e.title,
+                tags: e.tags,
+                importance: e.importance,
+                createdAt: e.createdAt,
+                contentPreview:
+                  typeof e.content === 'string'
+                    ? e.content.slice(0, 200)
+                    : undefined,
+              },
+        ),
         null,
         2,
       );
@@ -618,12 +747,14 @@ export function createMoltNetTools(
 
   return [
     getPack,
+    createPack,
     getPackProvenance,
     renderPack,
     listRenderedPacks,
     getRenderedPack,
     verifyRenderedPack,
     judgeRenderedPack,
+    diaryTags,
     listEntries,
     getEntry,
     searchEntries,

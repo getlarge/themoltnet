@@ -1,17 +1,29 @@
 import {
   ASSESS_BRIEF_TYPE,
   AssessBriefInput,
+  CURATE_PACK_TYPE,
+  CuratePackInput,
   FULFILL_BRIEF_TYPE,
   FulfillBriefInput,
+  JUDGE_PACK_TYPE,
+  JudgePackInput,
+  RENDER_PACK_TYPE,
+  RenderPackInput,
   type Task,
 } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
 import { buildAssessBriefPrompt } from './assess-brief.js';
+import { buildCuratePackPrompt } from './curate-pack.js';
 import { buildFulfillBriefPrompt } from './fulfill-brief.js';
+import { buildJudgePackPrompt } from './judge-pack.js';
+import { buildRenderPackPrompt } from './render-pack.js';
 
 export * from './assess-brief.js';
+export * from './curate-pack.js';
 export * from './fulfill-brief.js';
+export * from './judge-pack.js';
+export * from './render-pack.js';
 
 /**
  * Context shared by all prompt builders. Concrete per-type context extras
@@ -61,6 +73,45 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         target,
+      });
+    }
+
+    case CURATE_PACK_TYPE: {
+      if (!Value.Check(CuratePackInput, task.input)) {
+        const errors = [...Value.Errors(CuratePackInput, task.input)];
+        throw new Error(
+          `curate_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildCuratePackPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
+      });
+    }
+
+    case RENDER_PACK_TYPE: {
+      if (!Value.Check(RenderPackInput, task.input)) {
+        const errors = [...Value.Errors(RenderPackInput, task.input)];
+        throw new Error(
+          `render_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildRenderPackPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
+      });
+    }
+
+    case JUDGE_PACK_TYPE: {
+      if (!Value.Check(JudgePackInput, task.input)) {
+        const errors = [...Value.Errors(JudgePackInput, task.input)];
+        throw new Error(
+          `judge_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildJudgePackPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
       });
     }
 
