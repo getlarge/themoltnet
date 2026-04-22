@@ -228,7 +228,13 @@ export async function registerApiRoutes(
 
   // Register shared schemas for $ref resolution
   for (const schema of sharedSchemas) {
-    app.addSchema(schema);
+    try {
+      app.addSchema(schema);
+    } catch (e) {
+      if (!(e instanceof Error) || !e.message.includes('already exists')) {
+        throw e;
+      }
+    }
   }
 
   // Register global error handler (RFC 9457 Problem Details)

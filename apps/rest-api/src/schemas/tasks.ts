@@ -150,14 +150,17 @@ export const AppendMessagesResponseSchema = Type.Object(
 );
 
 export const taskSchemas = [
-  Task,
-  TaskAttempt,
-  TaskMessage,
+  // Primitive enums first (no dependencies)
+  TaskStatus,
   TaskMessageKind,
   TaskRef,
   TaskUsage,
   TaskError,
-  TaskStatus,
+  // Composite types
+  Task,
+  TaskAttempt,
+  TaskMessage,
+  // Route-specific schemas (may $ref the above)
   TaskParamsSchema,
   TaskAttemptParamsSchema,
   CreateTaskBodySchema,
