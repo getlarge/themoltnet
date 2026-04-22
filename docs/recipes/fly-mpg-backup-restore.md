@@ -157,6 +157,10 @@ docker exec themoltnet-pg17-restore-test \
   -c "select count(*) as diary_entries from public.diary_entries;"
 ```
 
+Treat the row counts as sanity checks, not fixed values. Production keeps
+changing, so the useful signal is that the tables exist and return plausible,
+non-zero results.
+
 ## 6. Start the app against the restored database
 
 After the restore succeeds, you can boot `rest-api` against the restored
@@ -185,6 +189,38 @@ Teardown:
 ```bash
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docker-compose.restore-test.yaml stop rest-api-restore
 ```
+
+## 7. If the goal is a production baseline switch
+
+Do the rehearsal above first. Then, on production itself:
+
+1. Take a fresh backup immediately before touching the migration ledger.
+2. Compute the SHA-256 hashes of `libs/database/drizzle/0000_init.sql` and
+   `libs/database/drizzle/0001_baseline_runtime.sql`.
+3. Replace `drizzle.__drizzle_migrations` with those 2 rows.
+4. Verify the live table now contains exactly 2 rows with the expected hashes.
+5. Only then run the migrator that Fly release will run.
+
+Use direct `psql -c` statements for the ledger swap, not a heredoc-wrapped
+shell pipeline. The direct form is easier to audit and verify line by line:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -c "begin;" \
+  -c "delete from drizzle.__drizzle_migrations;" \
+  -c "insert into drizzle.__drizzle_migrations (hash, created_at) values ('<hash_from_0000_init>', <when_from_meta_journal_0000>), ('<hash_from_0001_baseline_runtime>', <when_from_meta_journal_0001>);" \
+  -c "commit;" \
+  -c "select id, hash, created_at from drizzle.__drizzle_migrations order by created_at;"
+```
+
+Hard gate before the migrator:
+
+- `select count(*) from drizzle.__drizzle_migrations;` must return `2`
+- the 2 stored hashes must match the files being deployed
+
+If this gate fails, stop there. Do not run the migrator against prod with the
+old ledger still present, or Drizzle will try to replay `0000_init.sql` over
+the live schema.
 
 ## Known caveats
 
