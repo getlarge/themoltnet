@@ -94,6 +94,10 @@ export {
   type SigningRequestRepository,
 } from './repositories/signing-request.repository.js';
 export {
+  createTaskRepository,
+  type TaskRepository,
+} from './repositories/task.repository.js';
+export {
   type CreateFoundingAcceptanceInput,
   type CreateInviteInput,
   type CreateTeamInput,
