@@ -406,7 +406,7 @@ export function createContextPackRepository(db: Database) {
           CASE
             WHEN rank_a IS NULL THEN 'added'
             WHEN rank_b IS NULL THEN 'removed'
-            WHEN cid_a IS DISTINCT FROM cid_b OR compression_a IS DISTINCT FROM compression_b THEN 'changed'
+            WHEN cid_a IS DISTINCT FROM cid_b OR compression_a IS DISTINCT FROM compression_b OR tokens_a IS DISTINCT FROM tokens_b THEN 'changed'
             WHEN rank_a IS DISTINCT FROM rank_b THEN 'reordered'
           END AS kind,
           rank_a,
@@ -422,6 +422,7 @@ export function createContextPackRepository(db: Database) {
           rank_a IS DISTINCT FROM rank_b
           OR cid_a IS DISTINCT FROM cid_b
           OR compression_a IS DISTINCT FROM compression_b
+          OR tokens_a IS DISTINCT FROM tokens_b
         ORDER BY COALESCE(rank_b, rank_a)
       `);
 

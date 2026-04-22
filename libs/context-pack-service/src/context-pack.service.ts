@@ -242,6 +242,9 @@ export class ContextPackService {
       throw new PackServiceError('Pack B not found', 'not_found');
     }
 
+    await this.assertCanReadPack(packA.id, actor);
+    await this.assertCanReadPack(packB.id, actor);
+
     if (packA.diaryId !== packB.diaryId) {
       throw new PackServiceError(
         'Packs must belong to the same diary',
@@ -249,11 +252,8 @@ export class ContextPackService {
       );
     }
 
-    await this.assertCanReadPack(packA.id, actor);
-    await this.assertCanReadPack(packB.id, actor);
-
     if (packA.packCid === packB.packCid) {
-      return emptyDiff(packMetaFrom(packA), packMetaFrom(packB));
+      return emptyDiff(packMetaFrom(packA), packMetaFrom(packB), true);
     }
 
     const rows = await this.deps.contextPackRepository.diffPacks(
@@ -755,6 +755,7 @@ function packMetaFrom(pack: PackLike): PackDiffPackMeta {
 function emptyDiff(
   packA: PackDiffPackMeta,
   packB: PackDiffPackMeta,
+  sameCid = false,
 ): PackDiffResult {
   return {
     added: [],
@@ -766,7 +767,9 @@ function emptyDiff(
       removedCount: 0,
       reorderedCount: 0,
       changedCount: 0,
-      tokenDelta: (packB.totalTokens ?? 0) - (packA.totalTokens ?? 0),
+      tokenDelta: sameCid
+        ? 0
+        : (packB.totalTokens ?? 0) - (packA.totalTokens ?? 0),
       packA,
       packB,
     },

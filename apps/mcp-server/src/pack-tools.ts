@@ -442,7 +442,16 @@ export async function handlePacksDiff(
     );
   }
 
-  if (packId && otherPackId) {
+  const useIds = packId && otherPackId;
+  const useCids = packCid && otherPackCid;
+
+  if (!useIds && !useCids) {
+    return errorResult(
+      'Identifier type mismatch: use pack_id + other_pack_id (both UUIDs) or pack_cid + other_pack_cid (both CIDs)',
+    );
+  }
+
+  if (useIds) {
     const { data, error } = await diffContextPacksById({
       client: deps.client,
       auth: () => token,
@@ -455,13 +464,10 @@ export async function handlePacksDiff(
     return structuredResult(data);
   }
 
-  const resolvedPackCid = (packCid ?? packId) as string;
-  const resolvedOtherCid = (otherPackCid ?? otherPackId) as string;
-
   const { data, error } = await diffContextPacksByCid({
     client: deps.client,
     auth: () => token,
-    path: { cid: resolvedPackCid, otherCid: resolvedOtherCid },
+    path: { cid: packCid as string, otherCid: otherPackCid as string },
   });
   if (error || !data) {
     deps.logger.error({ tool: 'packs_diff', err: error }, 'tool.error');
