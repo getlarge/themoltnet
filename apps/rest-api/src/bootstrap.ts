@@ -370,6 +370,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           },
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
           getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
+          runInTransaction: (fn) => transactionRunner.runInTransaction(fn),
         });
       },
       () => {

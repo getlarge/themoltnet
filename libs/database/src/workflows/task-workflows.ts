@@ -1,6 +1,7 @@
 import { DBOS } from '@dbos-inc/dbos-sdk';
 
 import type { NewTaskAttempt, Task, TaskAttempt } from '../schema.js';
+import type { TransactionRunner } from '../transaction-context.js';
 
 export interface TaskAttemptResult {
   kind: 'completed' | 'failed' | 'cancelled';
@@ -53,6 +54,7 @@ export interface TaskWorkflowDeps {
   removeClaimantTuple(taskId: string, agentId: string): Promise<void>;
   countAttempts(taskId: string): Promise<number>;
   getMaxAttempts(taskId: string): Promise<number>;
+  runInTransaction: TransactionRunner['runInTransaction'];
 }
 
 export class TaskWorkflowConfigurationError extends Error {
@@ -62,8 +64,15 @@ export class TaskWorkflowConfigurationError extends Error {
   }
 }
 
-const DISPATCH_TIMEOUT_SECONDS = 120;
-const RUNNING_TIMEOUT_SECONDS = 3600;
+// Time for a claimed agent to send the 'started' signal after picking up a task.
+// Short tasks (tool calls, lookups): 120s is fine. For queued evals or brief
+// fulfillment that may need to spin up a runtime, consider raising to 600s+
+// via the leaseTtlSec parameter passed to startAttemptWorkflow.
+const DISPATCH_TIMEOUT_SECONDS = 300;
+// Maximum wall-clock time between 'started' and result delivery.
+// Long-running evals (brief fulfillment, judgment) can take 30–60 min.
+// Agents must heartbeat (extend the lease) before this elapses to signal liveness.
+const RUNNING_TIMEOUT_SECONDS = 7200;
 
 const stepConfig = {
   retriesAllowed: true,
@@ -143,12 +152,14 @@ export function initTaskWorkflows(): void {
       leaseTtlSec: number,
     ): Promise<void> => {
       const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
-      await getDeps().updateAttempt(taskId, attemptN, {
-        status: 'running',
-        startedAt: new Date(),
-      });
-      await getDeps().updateTaskStatus(taskId, 'running', {
-        claimExpiresAt: leaseExpiresAt,
+      await getDeps().runInTransaction(async () => {
+        await getDeps().updateAttempt(taskId, attemptN, {
+          status: 'running',
+          startedAt: new Date(),
+        });
+        await getDeps().updateTaskStatus(taskId, 'running', {
+          claimExpiresAt: leaseExpiresAt,
+        });
       });
     },
     { name: 'task.step.markRunning', ...stepConfig },
@@ -164,33 +175,39 @@ export function initTaskWorkflows(): void {
       attemptCount: number,
     ): Promise<TaskAttemptFinalEvent> => {
       const now = new Date();
-      await getDeps().updateAttempt(taskId, attemptN, {
-        status: result.kind,
-        completedAt: now,
-        output: result.output ?? null,
-        outputCid: result.outputCid ?? null,
-        error: result.error ?? null,
-        usage: result.usage ?? null,
+      const canRetry = result.kind === 'failed' && attemptCount < maxAttempts;
+
+      await getDeps().runInTransaction(async () => {
+        await getDeps().updateAttempt(taskId, attemptN, {
+          status: result.kind,
+          completedAt: now,
+          output: result.output ?? null,
+          outputCid: result.outputCid ?? null,
+          error: result.error ?? null,
+          usage: result.usage ?? null,
+        });
+        if (result.kind === 'completed') {
+          await getDeps().updateTaskStatus(taskId, 'completed', {
+            completedAt: now,
+            acceptedAttemptN: attemptN,
+            claimAgentId: null,
+            claimExpiresAt: null,
+          });
+        } else {
+          await getDeps().updateTaskStatus(
+            taskId,
+            canRetry ? 'queued' : result.kind,
+            { claimAgentId: null, claimExpiresAt: null },
+          );
+        }
       });
+      // Keto tuple removal is outside the DB transaction — best-effort,
+      // orphaned tuples are cleaned up by the Phase 3 task service.
       await getDeps().removeClaimantTuple(taskId, agentId);
 
       if (result.kind === 'completed') {
-        await getDeps().updateTaskStatus(taskId, 'completed', {
-          completedAt: now,
-          acceptedAttemptN: attemptN,
-          claimAgentId: null,
-          claimExpiresAt: null,
-        });
         return { status: 'completed', taskId, attemptN, output: result.output };
       }
-
-      // failed or cancelled — re-queue if attempts remain
-      const canRetry = result.kind === 'failed' && attemptCount < maxAttempts;
-      await getDeps().updateTaskStatus(
-        taskId,
-        canRetry ? 'queued' : result.kind,
-        { claimAgentId: null, claimExpiresAt: null },
-      );
       return { status: result.kind, taskId, attemptN };
     },
     { name: 'task.step.persistResult', ...stepConfig },
@@ -204,16 +221,22 @@ export function initTaskWorkflows(): void {
       maxAttempts: number,
       attemptCount: number,
     ): Promise<void> => {
-      await getDeps().updateAttempt(taskId, attemptN, {
-        status: 'timed_out',
-        completedAt: new Date(),
+      const canRetry = attemptCount < maxAttempts;
+      await getDeps().runInTransaction(async () => {
+        await getDeps().updateAttempt(taskId, attemptN, {
+          status: 'timed_out',
+          completedAt: new Date(),
+        });
+        await getDeps().updateTaskStatus(
+          taskId,
+          canRetry ? 'queued' : 'failed',
+          {
+            claimAgentId: null,
+            claimExpiresAt: null,
+          },
+        );
       });
       await getDeps().removeClaimantTuple(taskId, agentId);
-      const canRetry = attemptCount < maxAttempts;
-      await getDeps().updateTaskStatus(taskId, canRetry ? 'queued' : 'failed', {
-        claimAgentId: null,
-        claimExpiresAt: null,
-      });
     },
     { name: 'task.step.markTimedOut', ...stepConfig },
   );

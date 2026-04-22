@@ -168,6 +168,8 @@ class Task implements Namespace {
       this.related.parent.traverse((d) => d.permits.write(ctx)),
     claim: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.write(ctx)),
+    // Covers all claimant-only operations: heartbeat, complete, fail,
+    // append messages, list messages. Only the agent holding the lease qualifies.
     report: (ctx: Context) => this.related.claimant.includes(ctx.subject),
   };
 }
