@@ -33,6 +33,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "multiformats": "catalog:",
     "@moltnet/discovery": "workspace:*",
     "@huggingface/transformers": "catalog:",
     "@moltnet/context-distill": "workspace:*",
