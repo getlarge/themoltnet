@@ -416,7 +416,9 @@ export async function handlePacksDiff(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  if ('pack_id' in args) {
+  if (args.pack_id !== undefined) {
+    if (!args.other_pack_id)
+      return errorResult('other_pack_id is required when pack_id is provided');
     const { data, error } = await diffContextPacksById({
       client: deps.client,
       auth: () => token,
@@ -429,6 +431,11 @@ export async function handlePacksDiff(
     return structuredResult(data);
   }
 
+  if (!args.pack_cid || !args.other_pack_cid) {
+    return errorResult(
+      'Provide pack_id + other_pack_id (UUIDs) or pack_cid + other_pack_cid (CIDs)',
+    );
+  }
   const { data, error } = await diffContextPacksByCid({
     client: deps.client,
     auth: () => token,
@@ -562,6 +569,6 @@ export function registerPackTools(
       inputSchema: PackDiffSchema,
       outputSchema: PackDiffOutputSchema,
     },
-    async (args, ctx) => handlePacksDiff(args as PackDiffInput, deps, ctx),
+    async (args, ctx) => handlePacksDiff(args, deps, ctx), // cast: mcpAddTool types args as `any`
   );
 }

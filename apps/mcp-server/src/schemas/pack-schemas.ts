@@ -582,21 +582,34 @@ export const PackProvenanceOutputSchema = Type.Object({
   edges: Type.Array(ProvenanceEdgeSchema),
 });
 
-const PackDiffByIdSchema = Type.Object({
-  pack_id: Type.String({ description: 'Pack A UUID.' }),
-  other_pack_id: Type.String({ description: 'Pack B UUID.' }),
-});
-
-const PackDiffByCidSchema = Type.Object({
-  pack_cid: Type.String({ description: 'Pack A CID.' }),
-  other_pack_cid: Type.String({ description: 'Pack B CID.' }),
-});
-
-export const PackDiffSchema = Type.Union(
-  [PackDiffByIdSchema, PackDiffByCidSchema],
+export const PackDiffSchema = Type.Object(
+  {
+    pack_id: Type.Optional(
+      Type.String({
+        description:
+          'Pack A UUID. Use with other_pack_id. Mutually exclusive with pack_cid/other_pack_cid.',
+      }),
+    ),
+    other_pack_id: Type.Optional(
+      Type.String({
+        description: 'Pack B UUID. Required when pack_id is provided.',
+      }),
+    ),
+    pack_cid: Type.Optional(
+      Type.String({
+        description:
+          'Pack A CID. Use with other_pack_cid. Mutually exclusive with pack_id/other_pack_id.',
+      }),
+    ),
+    other_pack_cid: Type.Optional(
+      Type.String({
+        description: 'Pack B CID. Required when pack_cid is provided.',
+      }),
+    ),
+  },
   {
     description:
-      'Identify both packs by UUID (pack_id + other_pack_id) or both by CID (pack_cid + other_pack_cid). Mixed identifier types are not supported.',
+      'Identify both packs by UUID (pack_id + other_pack_id) or by CID (pack_cid + other_pack_cid). Provide exactly one pair — mixed identifier types are not supported.',
   },
 );
 
