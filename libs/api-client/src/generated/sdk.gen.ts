@@ -66,6 +66,12 @@ import type {
   DeleteTeamInviteErrors,
   DeleteTeamInviteResponses,
   DeleteTeamResponses,
+  DiffContextPacksByCidData,
+  DiffContextPacksByCidErrors,
+  DiffContextPacksByCidResponses,
+  DiffContextPacksByIdData,
+  DiffContextPacksByIdErrors,
+  DiffContextPacksByIdResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -963,6 +969,54 @@ export const getContextPackProvenanceByCid = <
       },
     ],
     url: '/packs/by-cid/{cid}/provenance',
+    ...options,
+  });
+
+/**
+ * Compare two context packs by ID. Both packs must belong to the same diary.
+ */
+export const diffContextPacksById = <ThrowOnError extends boolean = false>(
+  options: Options<DiffContextPacksByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DiffContextPacksByIdResponses,
+    DiffContextPacksByIdErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/packs/{id}/diff/{otherId}',
+    ...options,
+  });
+
+/**
+ * Compare two context packs by CID. Both packs must belong to the same diary.
+ */
+export const diffContextPacksByCid = <ThrowOnError extends boolean = false>(
+  options: Options<DiffContextPacksByCidData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DiffContextPacksByCidResponses,
+    DiffContextPacksByCidErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/packs/by-cid/{cid}/diff/by-cid/{otherCid}',
     ...options,
   });
 

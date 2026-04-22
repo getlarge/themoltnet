@@ -2711,6 +2711,234 @@ export type GetContextPackProvenanceByCidResponses = {
 export type GetContextPackProvenanceByCidResponse =
   GetContextPackProvenanceByCidResponses[keyof GetContextPackProvenanceByCidResponses];
 
+export type DiffContextPacksByIdData = {
+  body?: never;
+  path: {
+    /**
+     * Pack A UUID
+     */
+    id: string;
+    /**
+     * Pack B UUID
+     */
+    otherId: string;
+  };
+  query?: never;
+  url: '/packs/{id}/diff/{otherId}';
+};
+
+export type DiffContextPacksByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DiffContextPacksByIdError =
+  DiffContextPacksByIdErrors[keyof DiffContextPacksByIdErrors];
+
+export type DiffContextPacksByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    added: Array<{
+      entryId: string;
+      title: string | null;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      packedTokens: number | null;
+      rank: number;
+    }>;
+    removed: Array<{
+      entryId: string;
+      title: string | null;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      packedTokens: number | null;
+      rank: number;
+    }>;
+    reordered: Array<{
+      entryId: string;
+      title: string | null;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      packedTokens: number | null;
+      oldRank: number;
+      newRank: number;
+    }>;
+    changed: Array<{
+      entryId: string;
+      /**
+       * Rank in packB
+       */
+      rank: number;
+      title: string | null;
+      oldEntryCidSnapshot: string;
+      newEntryCidSnapshot: string;
+      oldCompressionLevel: 'full' | 'summary' | 'keywords';
+      newCompressionLevel: 'full' | 'summary' | 'keywords';
+      oldPackedTokens: number | null;
+      newPackedTokens: number | null;
+      tokenDelta: number;
+    }>;
+    stats: {
+      addedCount: number;
+      removedCount: number;
+      reorderedCount: number;
+      changedCount: number;
+      tokenDelta: number;
+      packA: {
+        id: string;
+        packCid: string;
+        totalTokens: number | null;
+        packType: 'compile' | 'optimized' | 'custom';
+        createdAt: string;
+      };
+      packB: {
+        id: string;
+        packCid: string;
+        totalTokens: number | null;
+        packType: 'compile' | 'optimized' | 'custom';
+        createdAt: string;
+      };
+    };
+  };
+};
+
+export type DiffContextPacksByIdResponse =
+  DiffContextPacksByIdResponses[keyof DiffContextPacksByIdResponses];
+
+export type DiffContextPacksByCidData = {
+  body?: never;
+  path: {
+    /**
+     * Pack A CID
+     */
+    cid: string;
+    /**
+     * Pack B CID
+     */
+    otherCid: string;
+  };
+  query?: never;
+  url: '/packs/by-cid/{cid}/diff/by-cid/{otherCid}';
+};
+
+export type DiffContextPacksByCidErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DiffContextPacksByCidError =
+  DiffContextPacksByCidErrors[keyof DiffContextPacksByCidErrors];
+
+export type DiffContextPacksByCidResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    added: Array<{
+      entryId: string;
+      title: string | null;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      packedTokens: number | null;
+      rank: number;
+    }>;
+    removed: Array<{
+      entryId: string;
+      title: string | null;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      packedTokens: number | null;
+      rank: number;
+    }>;
+    reordered: Array<{
+      entryId: string;
+      title: string | null;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      packedTokens: number | null;
+      oldRank: number;
+      newRank: number;
+    }>;
+    changed: Array<{
+      entryId: string;
+      /**
+       * Rank in packB
+       */
+      rank: number;
+      title: string | null;
+      oldEntryCidSnapshot: string;
+      newEntryCidSnapshot: string;
+      oldCompressionLevel: 'full' | 'summary' | 'keywords';
+      newCompressionLevel: 'full' | 'summary' | 'keywords';
+      oldPackedTokens: number | null;
+      newPackedTokens: number | null;
+      tokenDelta: number;
+    }>;
+    stats: {
+      addedCount: number;
+      removedCount: number;
+      reorderedCount: number;
+      changedCount: number;
+      tokenDelta: number;
+      packA: {
+        id: string;
+        packCid: string;
+        totalTokens: number | null;
+        packType: 'compile' | 'optimized' | 'custom';
+        createdAt: string;
+      };
+      packB: {
+        id: string;
+        packCid: string;
+        totalTokens: number | null;
+        packType: 'compile' | 'optimized' | 'custom';
+        createdAt: string;
+      };
+    };
+  };
+};
+
+export type DiffContextPacksByCidResponse =
+  DiffContextPacksByCidResponses[keyof DiffContextPacksByCidResponses];
+
 export type ListContextPacksData = {
   body?: never;
   path?: never;
