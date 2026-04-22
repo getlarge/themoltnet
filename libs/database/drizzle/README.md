@@ -100,6 +100,21 @@ already applied without executing them again.
 Important: Drizzle uses the `drizzle` schema, not `public`, for its migration
 tracking table.
 
+For production, the safe order is:
+
+1. Take a fresh backup first.
+2. Compute the SHA-256 hashes of the baseline SQL files you are about to
+   deploy.
+3. Replace the existing contents of `drizzle.__drizzle_migrations` with the
+   new baseline rows.
+4. Verify the live table contains exactly those 2 rows.
+5. Only then run the migrator.
+
+Do not merge or deploy the release that contains the new baseline before the
+production ledger has been updated. Fly release runs `node dist/migrate.js`
+before switching traffic, so an old ledger plus the new two-file baseline will
+make Drizzle try to replay `0000_init.sql` over the live schema.
+
 ```sql
 CREATE SCHEMA IF NOT EXISTS drizzle;
 
@@ -119,6 +134,26 @@ Compute the hashes with:
 ```bash
 node -e "const c=require('crypto'),f=require('fs'); for (const p of process.argv.slice(1)) console.log(p + ': ' + c.createHash('sha256').update(f.readFileSync(p, 'utf-8')).digest('hex'))" libs/database/drizzle/*.sql
 ```
+
+On production, prefer plain `psql -c` statements over heredoc-wrapped shell
+pipelines so each step is visible and easy to verify:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -c "begin;" \
+  -c "delete from drizzle.__drizzle_migrations;" \
+  -c "insert into drizzle.__drizzle_migrations (hash, created_at) values ('<hash_from_0000_init>', <when_from_meta_journal_0000>), ('<hash_from_0001_baseline_runtime>', <when_from_meta_journal_0001>);" \
+  -c "commit;" \
+  -c "select id, hash, created_at from drizzle.__drizzle_migrations order by created_at;"
+```
+
+Before running the migrator, confirm both of these:
+
+- `select count(*) from drizzle.__drizzle_migrations;` returns `2`
+- the stored hashes match the exact files being deployed
+
+After the migrator runs, verify status with `pnpm db:status` or the equivalent
+runtime entrypoint. Expect `2/2 applied`, not a replay of the baseline SQL.
 
 ## Docker and rollback
 
