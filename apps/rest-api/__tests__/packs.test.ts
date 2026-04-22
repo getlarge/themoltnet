@@ -350,8 +350,8 @@ describe('Pack routes', () => {
     expect(response.json().edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          from: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
-          to: `pack:${PACK_ID}`,
+          from: `pack:${PACK_ID}`,
+          to: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
           kind: 'rendered_from',
         }),
       ]),
@@ -378,6 +378,32 @@ describe('Pack routes', () => {
       PACK_CID,
     );
     expect(response.json().metadata.rootPackId).toBe(PACK_ID);
+    expect(response.json().nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
+          kind: 'rendered_pack',
+        }),
+        expect.objectContaining({
+          id: `rendered_pack:${MOCK_RENDERED_PACK_2.id}`,
+          kind: 'rendered_pack',
+        }),
+      ]),
+    );
+    expect(response.json().edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: `pack:${PACK_ID}`,
+          to: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
+          kind: 'rendered_from',
+        }),
+        expect.objectContaining({
+          from: `pack:${PACK_ID_2}`,
+          to: `rendered_pack:${MOCK_RENDERED_PACK_2.id}`,
+          kind: 'rendered_from',
+        }),
+      ]),
+    );
     expect(
       response.json().nodes.filter(
         (node: { kind: string }) => node.kind === 'rendered_pack',

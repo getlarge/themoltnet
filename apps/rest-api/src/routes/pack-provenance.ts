@@ -153,15 +153,11 @@ export async function buildPackProvenanceGraph({
   }
 
   for (const renderedPack of renderedPacks) {
-    if (!visiblePackIds.includes(renderedPack.sourcePackId)) {
-      continue;
-    }
-
     pushRenderedPackNode(nodes, renderedPack);
     edges.push({
-      id: `${renderedPackNodeId(renderedPack.id)}->${packNodeId(renderedPack.sourcePackId)}:rendered_from`,
-      from: renderedPackNodeId(renderedPack.id),
-      to: packNodeId(renderedPack.sourcePackId),
+      id: `${packNodeId(renderedPack.sourcePackId)}->${renderedPackNodeId(renderedPack.id)}:rendered_from`,
+      from: packNodeId(renderedPack.sourcePackId),
+      to: renderedPackNodeId(renderedPack.id),
       kind: 'rendered_from',
       label: 'rendered from',
     });

@@ -16,8 +16,8 @@ describe('provenance graph utilities', () => {
     );
 
     expect(parsed.metadata.rootNodeId).toBe('pack:compile-2');
-    expect(parsed.nodes).toHaveLength(5);
-    expect(parsed.edges).toHaveLength(5);
+    expect(parsed.nodes).toHaveLength(6);
+    expect(parsed.edges).toHaveLength(6);
   });
 
   it('rejects malformed graph payloads before render time', () => {
@@ -40,6 +40,14 @@ describe('provenance graph utilities', () => {
     );
     expect(layout.positions['pack:compile-1'].x).toBeLessThan(
       layout.positions['entry:identity'].x,
+    );
+  });
+
+  it('keeps rendered packs reachable from the root via outgoing edges', () => {
+    const layout = buildGraphLayout(sampleProvenanceGraph);
+
+    expect(layout.positions['pack:compile-2'].x).toBeLessThan(
+      layout.positions['rendered_pack:docs-1'].x,
     );
   });
 });
