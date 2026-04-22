@@ -226,6 +226,19 @@ fly ssh console --app moltnet -C "node dist/migrate.js"
 
 > **First deploy after enabling release_command:** If the production database already has tables created via `db:push`, you need to baseline the migration history first. Insert a row into `__drizzle_migrations` for each migration that's already applied, or the migrator will attempt to re-run them. See `libs/database/drizzle/README.md` for the baselining procedure.
 
+### Fly MPG backup / restore rehearsal
+
+When you need a local copy of prod for migration rehearsal or schema diffing,
+use the recipe in [recipes/fly-mpg-backup-restore.md](recipes/fly-mpg-backup-restore.md).
+
+It covers:
+
+- `flyctl mpg proxy`
+- Dockerized `pg_dump` / `pg_restore` with matching PostgreSQL major versions
+- restoring only the app-owned schemas (`public`, `drizzle`, `dbos`)
+- preparing a restored local copy for migration rehearsal or schema diffing
+  instead of working against the live database
+
 ### Deploy steps
 
 **CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
