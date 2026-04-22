@@ -1012,6 +1012,10 @@
           "packCid": {
             "type": "string"
           },
+          "packId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "packType": {
             "enum": ["custom"],
             "type": "string"

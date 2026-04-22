@@ -3595,6 +3595,7 @@ type CustomPackResult struct {
 	CompileStats CompileStats             `json:"compileStats"`
 	Entries      []CustomPackEntryResult  `json:"entries"`
 	PackCid      string                   `json:"packCid"`
+	PackId       OptUUID                  `json:"packId"`
 	PackType     CustomPackResultPackType `json:"packType"`
 	Params       CustomPackResultParams   `json:"params"`
 }
@@ -3612,6 +3613,11 @@ func (s *CustomPackResult) GetEntries() []CustomPackEntryResult {
 // GetPackCid returns the value of PackCid.
 func (s *CustomPackResult) GetPackCid() string {
 	return s.PackCid
+}
+
+// GetPackId returns the value of PackId.
+func (s *CustomPackResult) GetPackId() OptUUID {
+	return s.PackId
 }
 
 // GetPackType returns the value of PackType.
@@ -3637,6 +3643,11 @@ func (s *CustomPackResult) SetEntries(val []CustomPackEntryResult) {
 // SetPackCid sets the value of PackCid.
 func (s *CustomPackResult) SetPackCid(val string) {
 	s.PackCid = val
+}
+
+// SetPackId sets the value of PackId.
+func (s *CustomPackResult) SetPackId(val OptUUID) {
+	s.PackId = val
 }
 
 // SetPackType sets the value of PackType.
