@@ -236,8 +236,8 @@ It covers:
 - `flyctl mpg proxy`
 - Dockerized `pg_dump` / `pg_restore` with matching PostgreSQL major versions
 - restoring only the app-owned schemas (`public`, `drizzle`, `dbos`)
-- rehearsing a Drizzle baseline switch on a restored local copy instead of on
-  the live database
+- preparing a restored local copy for migration rehearsal or schema diffing
+  instead of working against the live database
 
 ### Deploy steps
 

@@ -1,0 +1,31 @@
+# MoltNet Docker Compose — Restored DB App Test
+#
+# This override is intentionally not a full backup/restore workflow.
+# Use it only after following the Fly MPG backup/restore skill or recipe:
+#   - .agents/skills/fly-mpg-backup-restore/SKILL.md
+#   - docs/recipes/fly-mpg-backup-restore.md
+#
+# Expected precondition:
+#   a restored PostgreSQL 17 + pgvector container is already running locally,
+#   with production data restored into `moltnet_prod_restore`.
+#
+# Default assumption from the documented restore flow:
+#   host: host.docker.internal
+#   port: 55433
+#   db:   moltnet_prod_restore
+#
+# This file only starts app services against that restored database so the app
+# can be exercised without mutating the normal `app-db` service.
+
+services:
+  rest-api-restore:
+    extends:
+      file: docker-compose.e2e.yaml
+      service: rest-api
+    ports:
+      - '8081:8080'
+    environment:
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@host.docker.internal:55433/moltnet_prod_restore?sslmode=disable
+      DBOS_SYSTEM_DATABASE_URL: postgresql://moltnet:moltnet_secret@host.docker.internal:55433/moltnet_prod_restore?schema=dbos&sslmode=disable
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

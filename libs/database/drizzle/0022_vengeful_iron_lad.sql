@@ -1,1 +1,0 @@
-CREATE INDEX "diary_entries_content_hash_idx" ON "diary_entries" USING btree ("content_hash") WHERE content_hash IS NOT NULL;
