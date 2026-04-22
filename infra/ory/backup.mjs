@@ -31,6 +31,8 @@ import { createCipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const BACKUP_ROOT = resolve(process.cwd(), '.ory-backups');
+const ORY_STDIO_MAX_BUFFER = 64 * 1024 * 1024;
 
 function fatal(message) {
   console.error(`ERROR: ${message}`);
@@ -87,7 +89,11 @@ function parseArgs(argv) {
     }
   }
 
-  if (!Number.isFinite(args.pageSize) || args.pageSize <= 0) {
+  if (
+    !Number.isFinite(args.pageSize) ||
+    !Number.isInteger(args.pageSize) ||
+    args.pageSize <= 0
+  ) {
     fatal('--page-size must be a positive integer');
   }
 
@@ -147,16 +153,62 @@ function buildOryEnv(mode) {
 }
 
 function runOry(args, { mode } = {}) {
-  return execFileSync('ory', args, {
-    cwd: '/tmp',
-    env: buildOryEnv(mode),
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  try {
+    return execFileSync('ory', args, {
+      cwd: '/tmp',
+      env: buildOryEnv(mode),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: ORY_STDIO_MAX_BUFFER,
+    });
+  } catch (error) {
+    const command = ['ory', ...args].join(' ');
+    const stdout =
+      typeof error?.stdout === 'string'
+        ? error.stdout.trim()
+        : Buffer.isBuffer(error?.stdout)
+          ? error.stdout.toString('utf8').trim()
+          : '';
+    const stderr =
+      typeof error?.stderr === 'string'
+        ? error.stderr.trim()
+        : Buffer.isBuffer(error?.stderr)
+          ? error.stderr.toString('utf8').trim()
+          : '';
+
+    const details = [
+      `ory command failed: ${command}`,
+      error instanceof Error ? error.message : String(error),
+      stderr ? `stderr:\n${stderr}` : '',
+      stdout ? `stdout:\n${stdout}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    throw new Error(details, {
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
 }
 
 function ensureDir(path) {
   mkdirSync(path, { recursive: true });
+}
+
+function ensureSafeOutputDir(path) {
+  const relative = path.startsWith(BACKUP_ROOT)
+    ? path.slice(BACKUP_ROOT.length)
+    : null;
+
+  if (relative === null || (!relative.startsWith('/') && relative !== '')) {
+    fatal(
+      `--output-dir must stay inside ${BACKUP_ROOT} to avoid accidental deletion`,
+    );
+  }
+
+  if (path === BACKUP_ROOT) {
+    fatal(`--output-dir cannot be the backup root itself: ${BACKUP_ROOT}`);
+  }
 }
 
 function writeJson(path, value) {
@@ -345,6 +397,7 @@ async function main() {
   const projectId = requireEnv('ORY_PROJECT_ID');
   const passphrase = process.env[args.encryptPassphraseEnv];
 
+  ensureSafeOutputDir(args.outputDir);
   rmSync(args.outputDir, { recursive: true, force: true });
   ensureDir(args.outputDir);
 

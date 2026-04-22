@@ -93,6 +93,19 @@ damaged project without an explicit incident decision.
 3. Download the encrypted bundle and decrypt it in a secure workstation.
 4. Review `metadata.json` for warnings before import.
 
+### 1.5. Load one Ory API key at a time
+
+The Ory CLI treats workspace-scoped and project-scoped keys differently. Do not
+load both into the same shell session for restore work.
+
+- Use the **workspace API key** for `ory update project` and `ory update opl`
+- Use the **project API key** for `ory import identities`,
+  `ory import oauth2-client`, `ory import jwk`, and
+  `ory create relationships`
+
+If both are loaded together, Ory CLI can fail with confusing auth and flag
+errors instead of applying the restore steps.
+
 ### 2. Restore config first
 
 ```bash
