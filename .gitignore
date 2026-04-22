@@ -153,6 +153,7 @@ vite.config.ts.timestamp-*
 # Ory resolved/response configs (contain secrets)
 infra/ory/project.resolved.json
 infra/ory/project.response.json
+.ory-backups/
 .git.worktree.bak
 .pnpm-store/
 
