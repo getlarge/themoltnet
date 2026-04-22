@@ -19,40 +19,13 @@
 
 services:
   rest-api-restore:
-    image: themoltnet-rest-api
+    extends:
+      file: docker-compose.e2e.yaml
+      service: rest-api
     ports:
       - '8081:8080'
     environment:
-      NODE_ENV: production
-      PORT: '8080'
       DATABASE_URL: postgresql://moltnet:moltnet_secret@host.docker.internal:55433/moltnet_prod_restore?sslmode=disable
       DBOS_SYSTEM_DATABASE_URL: postgresql://moltnet:moltnet_secret@host.docker.internal:55433/moltnet_prod_restore?schema=dbos&sslmode=disable
-      ORY_KRATOS_PUBLIC_URL: http://kratos:4433
-      ORY_KRATOS_ADMIN_URL: http://kratos:4434
-      ORY_HYDRA_PUBLIC_URL: http://hydra:4444
-      ORY_HYDRA_ADMIN_URL: http://hydra:4445
-      ORY_KETO_PUBLIC_URL: http://keto:4466
-      ORY_KETO_ADMIN_URL: http://keto:4467
-      ORY_ACTION_API_KEY: local-dev-webhook-key
-      RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
-      CORS_ORIGINS: 'http://localhost:5174,http://localhost:4433'
-      RATE_LIMIT_GLOBAL_AUTH: '10000'
-      RATE_LIMIT_GLOBAL_ANON: '10000'
-      RATE_LIMIT_EMBEDDING: '10000'
-      RATE_LIMIT_VOUCH: '10000'
-      RATE_LIMIT_SIGNING: '10000'
-      RATE_LIMIT_RECOVERY: '10000'
-      RATE_LIMIT_PUBLIC_VERIFY: '10000'
-      RATE_LIMIT_PUBLIC_SEARCH: '10000'
-      RATE_LIMIT_LEGREFFIER_START: '10000'
-      RATE_LIMIT_REGISTRATION: '10000'
-      SPONSOR_AGENT_ID: ${SPONSOR_AGENT_ID:-}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
-    depends_on:
-      kratos:
-        condition: service_healthy
-      hydra:
-        condition: service_healthy
-      keto:
-        condition: service_healthy

@@ -19,8 +19,10 @@ Use this when you need a real copy of prod state for:
 - Docker is available
 
 This repo already assumes the app database URL comes from encrypted `.env`.
-The `tools/db/*.ts` scripts rewrite that URL to `localhost:15432` and set
-`sslmode=disable` when using a Fly proxy.
+When commands run on the host, the repo pattern is to rewrite that URL to
+`127.0.0.1:15432` and set `sslmode=disable`. When commands run inside a Docker
+container, use `host.docker.internal` instead so the container can reach the
+host-side Fly proxy.
 
 ## 1. Start the Fly MPG proxy
 
@@ -30,21 +32,25 @@ flyctl mpg proxy <cluster-id> --local-port 15432
 
 Keep this terminal open for the entire backup operation.
 
-## 2. Rewrite the production connection string to the proxy
+## 2. Rewrite the production connection string for Dockerized clients
 
-The repo pattern is:
+For `pg_dump` and `pg_restore` running in Docker, rewrite the URL to
+`host.docker.internal:15432`:
 
 ```bash
 npx dotenvx run --env-file .env --env-file env.public -- node -e "
 const raw = process.env.DATABASE_URL;
 if (!raw || raw.startsWith('encrypted:')) throw new Error('DATABASE_URL unavailable');
 const url = new URL(raw);
-url.hostname = '127.0.0.1';
+url.hostname = 'host.docker.internal';
 url.port = '15432';
 url.searchParams.set('sslmode', 'disable');
 console.log(url.toString());
 "
 ```
+
+If you use host-native `pg_dump` / `pg_restore` instead of Dockerized clients,
+rewrite to `127.0.0.1:15432` instead.
 
 ## 3. Take the dump with a PostgreSQL 17 client
 
@@ -58,10 +64,12 @@ This captures only the app-owned schemas and avoids Fly-managed extras such as
 `pgbouncer`, `pg_stat_monitor`, and `pgaudit`.
 
 ```bash
-docker run --rm -v /tmp:/dump postgres:17 \
+docker run --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -v /tmp:/dump postgres:17 \
   pg_dump -Fc --no-owner --no-privileges \
   --schema=public --schema=drizzle --schema=dbos \
-  "<rewritten-proxy-url>" \
+  "<rewritten-docker-url>" \
   -f /dump/themoltnet-prod-app.dump
 ```
 
@@ -70,9 +78,11 @@ docker run --rm -v /tmp:/dump postgres:17 \
 Useful for diffing before touching anything:
 
 ```bash
-docker run --rm -v /tmp:/dump postgres:17 \
+docker run --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -v /tmp:/dump postgres:17 \
   pg_dump --schema-only --no-owner --no-privileges \
-  "<rewritten-proxy-url>" \
+  "<rewritten-docker-url>" \
   -f /dump/themoltnet-prod-schema.sql
 ```
 
@@ -115,9 +125,12 @@ docker exec themoltnet-pg17-restore-test \
 Restore the dump:
 
 ```bash
-docker run --rm --network host -e PGPASSWORD=moltnet_secret -v /tmp:/dump postgres:17 \
+docker run --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -e PGPASSWORD=moltnet_secret \
+  -v /tmp:/dump postgres:17 \
   pg_restore --no-owner --no-privileges \
-  -h 127.0.0.1 -p 55433 -U moltnet -d moltnet_prod_restore \
+  -h host.docker.internal -p 55433 -U moltnet -d moltnet_prod_restore \
   /dump/themoltnet-prod-app.dump
 ```
 
@@ -149,7 +162,7 @@ docker exec themoltnet-pg17-restore-test \
 After the restore succeeds, you can boot `rest-api` against the restored
 PostgreSQL container without touching the normal `app-db` service.
 
-The repo now includes [docker-compose.restore-test.yaml](/Users/edouard/Dev/getlarge/themoltnet/docker-compose.restore-test.yaml),
+The repo now includes [docker-compose.restore-test.yaml](/docker-compose.restore-test.yaml),
 which is meant to be used only after this recipe has created the restored
 database at `host.docker.internal:55433`.
 
@@ -177,6 +190,8 @@ COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docke
 
 - Fly proxy access is local only. If commands inside the sandbox cannot reach
   `127.0.0.1:15432`, rerun them outside the sandbox.
+- `host.docker.internal` works on Docker Desktop. The `--add-host` flag above
+  makes the same commands work on Linux hosts.
 - Host `pg_dump` / `pg_restore` major-version mismatch against the server is a
   real failure mode. Use Dockerized clients with matching versions.
 - Production may contain renamed objects whose **data model** is current but
