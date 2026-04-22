@@ -44,6 +44,28 @@ const MOCK_PACK_2 = {
   id: PACK_ID_2,
   packCid: 'bafytestpack2',
 };
+const MOCK_RENDERED_PACK = {
+  id: '880e8400-e29b-41d4-a716-446655440000',
+  packCid: 'bafyrendered-pack-1',
+  sourcePackId: PACK_ID,
+  diaryId: DIARY_ID,
+  content: '# rendered pack 1',
+  contentHash: 'rendered-hash-1',
+  renderMethod: 'server:pack-to-docs-v1',
+  totalTokens: 42,
+  createdBy: OWNER_ID,
+  pinned: false,
+  expiresAt: new Date('2026-03-31T10:00:00Z'),
+  createdAt: new Date('2026-03-24T10:00:00Z'),
+};
+const MOCK_RENDERED_PACK_2 = {
+  ...MOCK_RENDERED_PACK,
+  id: '880e8400-e29b-41d4-a716-446655440001',
+  packCid: 'bafyrendered-pack-2',
+  content: '# rendered pack 2',
+  contentHash: 'rendered-hash-2',
+  totalTokens: 84,
+};
 
 const LONG_ENTRY_CONTENT =
   'Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu. '.repeat(
@@ -144,6 +166,7 @@ describe('Pack routes', () => {
         [PACK_ID_2, []],
       ]),
     );
+    mocks.renderedPackRepository.listBySourcePackIds.mockResolvedValue([]);
     mocks.permissionChecker.canReadPack.mockResolvedValue(true);
     mocks.permissionChecker.canReadPacks.mockResolvedValue(
       new Map([
@@ -285,11 +308,65 @@ describe('Pack routes', () => {
       ]),
     );
     expect(
+      response.json().nodes.filter(
+        (node: { kind: string }) => node.kind === 'rendered_pack',
+      ),
+    ).toHaveLength(0);
+    expect(
       mocks.contextPackRepository.listEntriesExpandedByPackIds,
     ).toHaveBeenCalledWith([PACK_ID, PACK_ID_2]);
+    expect(mocks.renderedPackRepository.listBySourcePackIds).toHaveBeenCalledWith(
+      [PACK_ID, PACK_ID_2],
+    );
+  });
+
+  it('includes a derived rendered pack in the provenance graph', async () => {
+    mocks.renderedPackRepository.listBySourcePackIds.mockResolvedValue([
+      MOCK_RENDERED_PACK,
+    ]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/packs/${PACK_ID}/provenance?depth=1`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
+          kind: 'rendered_pack',
+          cid: MOCK_RENDERED_PACK.packCid,
+          meta: expect.objectContaining({
+            renderedPackId: MOCK_RENDERED_PACK.id,
+            sourcePackId: PACK_ID,
+            renderMethod: MOCK_RENDERED_PACK.renderMethod,
+            totalTokens: MOCK_RENDERED_PACK.totalTokens,
+          }),
+        }),
+      ]),
+    );
+    expect(response.json().edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: `pack:${PACK_ID}`,
+          to: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
+          kind: 'rendered_from',
+        }),
+      ]),
+    );
   });
 
   it('returns a pack provenance graph by cid', async () => {
+    mocks.renderedPackRepository.listBySourcePackIds.mockResolvedValue([
+      MOCK_RENDERED_PACK,
+      {
+        ...MOCK_RENDERED_PACK_2,
+        sourcePackId: PACK_ID_2,
+      },
+    ]);
+
     const response = await app.inject({
       method: 'GET',
       url: `/packs/by-cid/${PACK_CID}/provenance`,
@@ -301,6 +378,37 @@ describe('Pack routes', () => {
       PACK_CID,
     );
     expect(response.json().metadata.rootPackId).toBe(PACK_ID);
+    expect(response.json().nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
+          kind: 'rendered_pack',
+        }),
+        expect.objectContaining({
+          id: `rendered_pack:${MOCK_RENDERED_PACK_2.id}`,
+          kind: 'rendered_pack',
+        }),
+      ]),
+    );
+    expect(response.json().edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: `pack:${PACK_ID}`,
+          to: `rendered_pack:${MOCK_RENDERED_PACK.id}`,
+          kind: 'rendered_from',
+        }),
+        expect.objectContaining({
+          from: `pack:${PACK_ID_2}`,
+          to: `rendered_pack:${MOCK_RENDERED_PACK_2.id}`,
+          kind: 'rendered_from',
+        }),
+      ]),
+    );
+    expect(
+      response.json().nodes.filter(
+        (node: { kind: string }) => node.kind === 'rendered_pack',
+      ),
+    ).toHaveLength(2);
   });
 
   it('lists packs for an accessible diary', async () => {

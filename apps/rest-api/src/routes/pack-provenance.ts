@@ -2,6 +2,7 @@ import type { KetoNamespace } from '@moltnet/auth';
 import type {
   ContextPackWithCreator,
   ExpandedPackEntry,
+  RenderedPack,
 } from '@moltnet/database';
 import type { ProvenanceGraph } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
@@ -23,6 +24,10 @@ function packNodeId(packId: string): string {
 
 function entryNodeId(entryId: string): string {
   return `entry:${entryId}`;
+}
+
+function renderedPackNodeId(renderedPackId: string): string {
+  return `rendered_pack:${renderedPackId}`;
 }
 
 interface BuildPackProvenanceGraphOptions {
@@ -81,6 +86,9 @@ export async function buildPackProvenanceGraph({
     await fastify.contextPackRepository.listEntriesExpandedByPackIds(
       visiblePackIds,
     );
+  const renderedPacks = await fastify.renderedPackRepository.listBySourcePackIds(
+    visiblePackIds,
+  );
 
   const nodes: ProvenanceGraph['nodes'] = [];
   const edges: ProvenanceGraph['edges'] = [];
@@ -144,6 +152,17 @@ export async function buildPackProvenanceGraph({
     }
   }
 
+  for (const renderedPack of renderedPacks) {
+    pushRenderedPackNode(nodes, renderedPack);
+    edges.push({
+      id: `${packNodeId(renderedPack.sourcePackId)}->${renderedPackNodeId(renderedPack.id)}:rendered_from`,
+      from: packNodeId(renderedPack.sourcePackId),
+      to: renderedPackNodeId(renderedPack.id),
+      kind: 'rendered_from',
+      label: 'rendered from',
+    });
+  }
+
   return {
     metadata: {
       format: 'moltnet.provenance-graph/v1',
@@ -183,6 +202,29 @@ function pushEntryNode(
       title: item.entry.title,
       tags: item.entry.tags ?? [],
       creator: item.entry.creator ?? null,
+    },
+  });
+}
+
+function pushRenderedPackNode(
+  nodes: ProvenanceGraph['nodes'],
+  renderedPack: RenderedPack,
+): void {
+  nodes.push({
+    id: renderedPackNodeId(renderedPack.id),
+    kind: 'rendered_pack',
+    label: `${renderedPack.renderMethod} ${renderedPack.id.slice(0, 8)}`,
+    cid: renderedPack.packCid,
+    meta: {
+      renderedPackId: renderedPack.id,
+      sourcePackId: renderedPack.sourcePackId,
+      diaryId: renderedPack.diaryId,
+      packCid: renderedPack.packCid,
+      renderMethod: renderedPack.renderMethod,
+      totalTokens: renderedPack.totalTokens,
+      pinned: renderedPack.pinned,
+      createdAt: renderedPack.createdAt.toISOString(),
+      expiresAt: renderedPack.expiresAt?.toISOString() ?? null,
     },
   });
 }

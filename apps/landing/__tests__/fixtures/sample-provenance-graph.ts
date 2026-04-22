@@ -119,6 +119,23 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         },
       },
     },
+    {
+      id: 'rendered_pack:docs-1',
+      kind: 'rendered_pack',
+      label: 'server:pack-to-docs-v1 docs-1',
+      cid: 'bafybeirendered1',
+      meta: {
+        renderedPackId: '66666666-6666-4666-8666-666666666666',
+        sourcePackId: '11111111-1111-4111-8111-111111111111',
+        diaryId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        packCid: 'bafybeirendered1',
+        renderMethod: 'server:pack-to-docs-v1',
+        totalTokens: 512,
+        pinned: false,
+        createdAt: '2026-03-19T10:05:00.000Z',
+        expiresAt: '2026-03-26T10:05:00.000Z',
+      },
+    },
   ],
   edges: [
     {
@@ -149,6 +166,13 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         rank: 2,
         compressionLevel: 'summary',
       },
+    },
+    {
+      id: 'pack:compile-2->rendered_pack:docs-1:rendered_from',
+      from: 'pack:compile-2',
+      to: 'rendered_pack:docs-1',
+      kind: 'rendered_from',
+      label: 'rendered from',
     },
     {
       id: 'pack:compile-1->entry:identity:includes',
