@@ -1,7 +1,7 @@
 import { DBOS } from '@dbos-inc/dbos-sdk';
 
+import type { DataSource } from '../dbos.js';
 import type { NewTaskAttempt, Task, TaskAttempt } from '../schema.js';
-import type { TransactionRunner } from '../transaction-context.js';
 
 export interface TaskAttemptResult {
   kind: 'completed' | 'failed' | 'cancelled';
@@ -24,6 +24,7 @@ export interface TaskAttemptFinalEvent {
 }
 
 export interface TaskWorkflowDeps {
+  dataSource: DataSource;
   createAttempt(input: NewTaskAttempt): Promise<TaskAttempt>;
   updateAttempt(
     taskId: string,
@@ -54,7 +55,6 @@ export interface TaskWorkflowDeps {
   removeClaimantTuple(taskId: string, agentId: string): Promise<void>;
   countAttempts(taskId: string): Promise<number>;
   getMaxAttempts(taskId: string): Promise<number>;
-  runInTransaction: TransactionRunner['runInTransaction'];
 }
 
 export class TaskWorkflowConfigurationError extends Error {
@@ -108,10 +108,7 @@ export function setTaskWorkflowDeps(deps: TaskWorkflowDeps): void {
 export function initTaskWorkflows(): void {
   if (_workflows) return;
 
-  // Split into two steps so each is independently idempotent under retry.
-  // insertAttemptStep uses ON CONFLICT DO NOTHING guard via the unique index
-  // on workflow_id — if the INSERT already succeeded on a prior attempt, the
-  // re-run is a no-op and the step proceeds to the UPDATE safely.
+  // Single-write steps — no transaction needed, each is naturally idempotent.
   const insertAttemptStep = DBOS.registerStep(
     async (
       taskId: string,
@@ -145,100 +142,12 @@ export function initTaskWorkflows(): void {
     { name: 'task.step.dispatchTask', ...stepConfig },
   );
 
-  const markRunningStep = DBOS.registerStep(
-    async (
-      taskId: string,
-      attemptN: number,
-      leaseTtlSec: number,
-    ): Promise<void> => {
-      const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
-      await getDeps().runInTransaction(async () => {
-        await getDeps().updateAttempt(taskId, attemptN, {
-          status: 'running',
-          startedAt: new Date(),
-        });
-        await getDeps().updateTaskStatus(taskId, 'running', {
-          claimExpiresAt: leaseExpiresAt,
-        });
-      });
-    },
-    { name: 'task.step.markRunning', ...stepConfig },
-  );
-
-  const persistResultStep = DBOS.registerStep(
-    async (
-      taskId: string,
-      attemptN: number,
-      agentId: string,
-      result: TaskAttemptResult,
-      maxAttempts: number,
-      attemptCount: number,
-    ): Promise<TaskAttemptFinalEvent> => {
-      const now = new Date();
-      const canRetry = result.kind === 'failed' && attemptCount < maxAttempts;
-
-      await getDeps().runInTransaction(async () => {
-        await getDeps().updateAttempt(taskId, attemptN, {
-          status: result.kind,
-          completedAt: now,
-          output: result.output ?? null,
-          outputCid: result.outputCid ?? null,
-          error: result.error ?? null,
-          usage: result.usage ?? null,
-        });
-        if (result.kind === 'completed') {
-          await getDeps().updateTaskStatus(taskId, 'completed', {
-            completedAt: now,
-            acceptedAttemptN: attemptN,
-            claimAgentId: null,
-            claimExpiresAt: null,
-          });
-        } else {
-          await getDeps().updateTaskStatus(
-            taskId,
-            canRetry ? 'queued' : result.kind,
-            { claimAgentId: null, claimExpiresAt: null },
-          );
-        }
-      });
-      // Keto tuple removal is outside the DB transaction — best-effort,
-      // orphaned tuples are cleaned up by the Phase 3 task service.
-      await getDeps().removeClaimantTuple(taskId, agentId);
-
-      if (result.kind === 'completed') {
-        return { status: 'completed', taskId, attemptN, output: result.output };
-      }
-      return { status: result.kind, taskId, attemptN };
-    },
-    { name: 'task.step.persistResult', ...stepConfig },
-  );
-
-  const markTimedOutStep = DBOS.registerStep(
-    async (
-      taskId: string,
-      attemptN: number,
-      agentId: string,
-      maxAttempts: number,
-      attemptCount: number,
-    ): Promise<void> => {
-      const canRetry = attemptCount < maxAttempts;
-      await getDeps().runInTransaction(async () => {
-        await getDeps().updateAttempt(taskId, attemptN, {
-          status: 'timed_out',
-          completedAt: new Date(),
-        });
-        await getDeps().updateTaskStatus(
-          taskId,
-          canRetry ? 'queued' : 'failed',
-          {
-            claimAgentId: null,
-            claimExpiresAt: null,
-          },
-        );
-      });
+  const removeClaimantTupleStep = DBOS.registerStep(
+    async (taskId: string, agentId: string): Promise<void> => {
+      // Keto tuple removal — best-effort, orphaned tuples cleaned up by Phase 3.
       await getDeps().removeClaimantTuple(taskId, agentId);
     },
-    { name: 'task.step.markTimedOut', ...stepConfig },
+    { name: 'task.step.removeClaimantTuple', ...stepConfig },
   );
 
   // Wraps countAttempts + getMaxAttempts in a step so results are recorded in
@@ -265,6 +174,7 @@ export function initTaskWorkflows(): void {
         workflowId: string,
         leaseTtlSec: number,
       ): Promise<TaskAttemptFinalEvent> => {
+        // Steps 1-2: insert attempt row, mark task dispatched (split for idempotency).
         await insertAttemptStep(taskId, attemptN, agentId, workflowId);
         await dispatchTaskStep(taskId, agentId, leaseTtlSec);
         await DBOS.setEvent<TaskAttemptClaimedEvent>('claimed', {
@@ -278,13 +188,23 @@ export function initTaskWorkflows(): void {
         );
         if (!started) {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-          await markTimedOutStep(
-            taskId,
-            attemptN,
-            agentId,
-            maxAttempts,
-            attemptCount,
+          const canRetry = attemptCount < maxAttempts;
+          // Atomic: mark attempt timed_out + re-queue or fail task together.
+          await getDeps().dataSource.runTransaction(
+            async () => {
+              await getDeps().updateAttempt(taskId, attemptN, {
+                status: 'timed_out',
+                completedAt: new Date(),
+              });
+              await getDeps().updateTaskStatus(
+                taskId,
+                canRetry ? 'queued' : 'failed',
+                { claimAgentId: null, claimExpiresAt: null },
+              );
+            },
+            { name: 'task.tx.markDispatchTimedOut' },
           );
+          await removeClaimantTupleStep(taskId, agentId);
           const event: TaskAttemptFinalEvent = {
             status: 'timed_out',
             taskId,
@@ -294,7 +214,20 @@ export function initTaskWorkflows(): void {
           return event;
         }
 
-        await markRunningStep(taskId, attemptN, leaseTtlSec);
+        // Atomic: mark attempt running + extend lease on task together.
+        const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
+        await getDeps().dataSource.runTransaction(
+          async () => {
+            await getDeps().updateAttempt(taskId, attemptN, {
+              status: 'running',
+              startedAt: new Date(),
+            });
+            await getDeps().updateTaskStatus(taskId, 'running', {
+              claimExpiresAt: leaseExpiresAt,
+            });
+          },
+          { name: 'task.tx.markRunning' },
+        );
         await DBOS.setEvent('running', { taskId, attemptN });
 
         const result = await DBOS.recv<TaskAttemptResult>(
@@ -303,13 +236,22 @@ export function initTaskWorkflows(): void {
         );
         if (!result) {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-          await markTimedOutStep(
-            taskId,
-            attemptN,
-            agentId,
-            maxAttempts,
-            attemptCount,
+          const canRetry = attemptCount < maxAttempts;
+          await getDeps().dataSource.runTransaction(
+            async () => {
+              await getDeps().updateAttempt(taskId, attemptN, {
+                status: 'timed_out',
+                completedAt: new Date(),
+              });
+              await getDeps().updateTaskStatus(
+                taskId,
+                canRetry ? 'queued' : 'failed',
+                { claimAgentId: null, claimExpiresAt: null },
+              );
+            },
+            { name: 'task.tx.markRunningTimedOut' },
           );
+          await removeClaimantTupleStep(taskId, agentId);
           const event: TaskAttemptFinalEvent = {
             status: 'timed_out',
             taskId,
@@ -320,14 +262,43 @@ export function initTaskWorkflows(): void {
         }
 
         const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-        return persistResultStep(
-          taskId,
-          attemptN,
-          agentId,
-          result,
-          maxAttempts,
-          attemptCount,
+        const canRetry = result.kind === 'failed' && attemptCount < maxAttempts;
+        const now = new Date();
+        // Atomic: persist attempt result + final task status together.
+        await getDeps().dataSource.runTransaction(
+          async () => {
+            await getDeps().updateAttempt(taskId, attemptN, {
+              status: result.kind,
+              completedAt: now,
+              output: result.output ?? null,
+              outputCid: result.outputCid ?? null,
+              error: result.error ?? null,
+              usage: result.usage ?? null,
+            });
+            if (result.kind === 'completed') {
+              await getDeps().updateTaskStatus(taskId, 'completed', {
+                completedAt: now,
+                acceptedAttemptN: attemptN,
+                claimAgentId: null,
+                claimExpiresAt: null,
+              });
+            } else {
+              await getDeps().updateTaskStatus(
+                taskId,
+                canRetry ? 'queued' : result.kind,
+                { claimAgentId: null, claimExpiresAt: null },
+              );
+            }
+          },
+          { name: 'task.tx.persistResult' },
         );
+        await removeClaimantTupleStep(taskId, agentId);
+
+        const event: TaskAttemptFinalEvent =
+          result.kind === 'completed'
+            ? { status: 'completed', taskId, attemptN, output: result.output }
+            : { status: result.kind, taskId, attemptN };
+        return event;
       },
       { name: 'task.workflow.startAttempt' },
     ),

@@ -360,6 +360,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       () => {
         setTaskWorkflowDeps({
+          dataSource,
           createAttempt: (input) => taskRepository.createAttempt(input),
           updateAttempt: (taskId, attemptN, fields) =>
             taskRepository.updateAttempt(taskId, attemptN, fields),
@@ -370,7 +371,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           },
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
           getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
-          runInTransaction: (fn) => transactionRunner.runInTransaction(fn),
         });
       },
       () => {
