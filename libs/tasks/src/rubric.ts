@@ -78,3 +78,21 @@ export const Rubric = Type.Object(
   { $id: 'Rubric', additionalProperties: false },
 );
 export type Rubric = Static<typeof Rubric>;
+
+/**
+ * Verify rubric criteria weights sum to 1.0 within floating-point tolerance.
+ * The schema constrains each weight to [0,1] but can't express a cross-field
+ * sum constraint, so this is enforced programmatically by callers that
+ * accept rubrics (task input validators, server-side task creation).
+ *
+ * Returns null when valid; otherwise an error message suitable for surfacing
+ * to the caller. Tolerance is 1e-6 to accommodate JSON round-tripping of
+ * decimal fractions (e.g. 0.1 + 0.2 + 0.3 + 0.4 ≠ 1.0 exactly).
+ */
+export function validateRubricWeights(rubric: Rubric): string | null {
+  const sum = rubric.criteria.reduce((acc, c) => acc + c.weight, 0);
+  if (Math.abs(sum - 1) > 1e-6) {
+    return `Rubric weights must sum to 1.0 (got ${sum.toFixed(6)})`;
+  }
+  return null;
+}

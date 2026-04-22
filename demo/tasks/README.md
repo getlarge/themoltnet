@@ -18,24 +18,102 @@ These exercise the three-session attribution loop from #875. They must
 be run in order — `render` and `judge` reference pack ids that only
 exist after `curate` has landed its pack via `moltnet_pack_create`.
 
-| File                       | Task type     | Purpose                                                                     |
-| -------------------------- | ------------- | --------------------------------------------------------------------------- |
-| `curate-ci-incidents.json` | `curate_pack` | Curator builds a pack from the legreffier diary on CI/flaky-test incidents. |
-| `render-pack.json`         | `render_pack` | Renderer turns a pack into markdown via `moltnet_pack_render`.              |
-| `judge-pack.json`          | `judge_pack`  | Judge scores a rendered pack against the `pack-fidelity-v1` rubric.         |
+| File                        | Task type     | Purpose                                                                        |
+| --------------------------- | ------------- | ------------------------------------------------------------------------------ |
+| `curate-ci-incidents.json`  | `curate_pack` | Curator builds a pack from the legreffier diary on CI/flaky-test incidents.    |
+| `curate-pack.template.json` | `curate_pack` | Same shape with `{{diary_id}}`, `{{team_id}}`, `{{task_prompt}}` placeholders. |
+| `render-pack.json`          | `render_pack` | Renderer turns a pack into markdown via `moltnet_pack_render`.                 |
+| `render-pack.template.json` | `render_pack` | Same shape with `{{diary_id}}`, `{{team_id}}`, `{{pack_id}}` placeholders.     |
+| `judge-pack.json`           | `judge_pack`  | Judge scores a rendered pack against the `pack-fidelity-v2` rubric.            |
+| `judge-pack.template.json`  | `judge_pack`  | Same shape with source/rendered placeholders for chaining a live demo.         |
 
-### Pipeline run
+### Pipeline run (with `.template.json` + `--set`)
 
-1. **Curate** — run `curate-ci-incidents.json`. The curator emits
-   `CuratePackOutput` with a real `pack_id` and `pack_cid`.
-2. **Render** — edit `render-pack.json`, replace the placeholder
-   `pack_id` (`00000000-0000-4000-8000-000000000000`) with the
-   `pack_id` from step 1, run it. The renderer emits
-   `RenderPackOutput` with a real `rendered_pack_id` and `rendered_cid`.
-3. **Judge** — edit `judge-pack.json`, replace `source_pack_id` with
-   step 1's `pack_id` and `rendered_pack_id` with step 2's
-   `rendered_pack_id`. Run it. The judge emits `JudgePackOutput` with
-   per-criterion scores and a composite.
+Templates let each stage be demo'd visibly without hand-editing JSON
+between runs. `run-task.ts` substitutes `{{key}}` tokens via repeatable
+`--set key=value` flags BEFORE schema validation; any unsubstituted
+token is a fatal error.
+
+Common vars (export once):
+
+```bash
+export DIARY=6e4d9948-8ec5-4f59-b82a-3acbc4bbc396
+export TEAM=6743b4b1-6b93-46e2-a048-19490f04f91a
+```
+
+Each stage prints a `[done] TaskOutput:` block to stdout ending in a
+JSON object. Copy the relevant fields into shell vars before running
+the next stage.
+
+1. **Curate**
+
+   ```bash
+   pnpm exec tsx tools/src/tasks/run-task.ts \
+     --task-file demo/tasks/curate-pack.template.json \
+     --set diary_id=$DIARY --set team_id=$TEAM \
+     --set task_prompt="incidents and workarounds related to CI pipelines"
+   ```
+
+   From the `[done] TaskOutput:` JSON, copy `output.pack_id`:
+
+   ```bash
+   export PACK=<paste pack_id here>
+   ```
+
+2. **Render**
+
+   ```bash
+   pnpm exec tsx tools/src/tasks/run-task.ts \
+     --task-file demo/tasks/render-pack.template.json \
+     --set diary_id=$DIARY --set team_id=$TEAM \
+     --set pack_id=$PACK
+   ```
+
+   From the `[done] TaskOutput:` JSON, copy `output.rendered_pack_id`
+   and `output.rendered_cid`:
+
+   ```bash
+   export RPACK=<paste rendered_pack_id here>
+   export RCID=<paste rendered_cid here>
+   ```
+
+3. **Judge**
+   ```bash
+   pnpm exec tsx tools/src/tasks/run-task.ts \
+     --task-file demo/tasks/judge-pack.template.json \
+     --set diary_id=$DIARY --set team_id=$TEAM \
+     --set source_pack_id=$PACK \
+     --set rendered_pack_id=$RPACK \
+     --set rendered_pack_cid=$RCID
+   ```
+   The final `[done] TaskOutput:` JSON contains the per-criterion
+   scores and composite.
+
+#### Optional: auto-capture IDs (no manual paste)
+
+To skip the export-paste step, pipe each command through `jq` and
+`tee` so the output is streamed to the terminal (for the audience)
+AND captured into a shell var in one shot:
+
+```bash
+PACK=$(pnpm exec tsx tools/src/tasks/run-task.ts \
+  --task-file demo/tasks/curate-pack.template.json \
+  --set diary_id=$DIARY --set team_id=$TEAM \
+  --set task_prompt="CI incidents" 2>&1 \
+  | tee /dev/tty \
+  | awk '/^\[done\] TaskOutput:/{flag=1; next} flag' \
+  | jq -r '.output.pack_id')
+```
+
+Same trick for `RPACK=… .output.rendered_pack_id` and
+`RCID=… .output.rendered_cid` after the render stage.
+
+### Pipeline run (legacy, concrete fixtures)
+
+The `.json` (non-template) fixtures hold known-good IDs from a prior
+run. To re-run a single stage without the ceremony above, edit the
+fixture directly. See the three-step flow before templates existed in
+git history if needed.
 
 ### Design constraints these fixtures encode
 

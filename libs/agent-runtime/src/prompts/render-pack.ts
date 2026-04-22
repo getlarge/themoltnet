@@ -65,5 +65,5 @@ export function buildRenderPackPrompt(
     'Failing to emit it is a task failure.',
   ];
 
-  return lines.filter(Boolean).join('\n');
+  return lines.join('\n');
 }

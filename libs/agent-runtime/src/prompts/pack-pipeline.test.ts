@@ -51,7 +51,6 @@ describe('curate_pack prompt', () => {
     expect(prompt).toContain('topic-focused-v1');
     expect(prompt).toContain('moltnet_pack_create');
     expect(prompt).toContain('checkpoints');
-    expect(prompt).toContain('entry_count');
     expect(prompt).toContain('t1');
   });
 

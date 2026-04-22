@@ -49,15 +49,15 @@ export function buildCuratePackPrompt(
 
   const includeLine = tagFilters?.include?.length
     ? `- Hard include (ALL must be present on an entry): ${tagFilters.include.map((t) => `\`${t}\``).join(', ')}`
-    : '';
+    : null;
   const excludeLine = tagFilters?.exclude?.length
     ? `- Hard exclude (drop if ANY present): ${tagFilters.exclude.map((t) => `\`${t}\``).join(', ')}`
-    : '';
+    : null;
   const prefixLine = tagFilters?.prefix
     ? `- Tag prefix hint when inventorying: \`${tagFilters.prefix}\``
-    : '';
+    : null;
 
-  const lines = [
+  const lines: Array<string | null> = [
     '# Curate Pack Agent',
     '',
     'You are the curator. Step 1 of the three-session attribution loop:',
@@ -162,7 +162,6 @@ export function buildCuratePackPrompt(
     '  "entries": [',
     '    { "entry_id": "<uuid>", "rank": 1, "rationale": "<why>" }',
     '  ],',
-    '  "entry_count": <int, equals entries.length>,',
     '  "recipe_params": { "recipe": "...", "prompt": "...", ... },',
     '  "checkpoints": [',
     '    { "phase": "recon", "candidate_ids": [...], "dropped_ids": [...], "notes": "..." }',
@@ -173,5 +172,5 @@ export function buildCuratePackPrompt(
     'The runtime parses this. Failing to emit it is a task failure.',
   ];
 
-  return lines.filter(Boolean).join('\n');
+  return lines.filter((l): l is string => l !== null).join('\n');
 }

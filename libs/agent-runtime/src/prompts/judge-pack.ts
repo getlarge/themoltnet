@@ -21,9 +21,9 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
 
   const preambleSection = rubric.preamble
     ? ['### Rubric preamble', '', rubric.preamble, ''].join('\n')
-    : '';
+    : null;
 
-  const lines = [
+  const lines: Array<string | null> = [
     '# Judge Pack Agent',
     '',
     'You are an independent judge. You did NOT curate or render the pack',
@@ -111,5 +111,5 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
     'emitting the JSON.',
   ];
 
-  return lines.filter(Boolean).join('\n');
+  return lines.filter((l): l is string => l !== null).join('\n');
 }

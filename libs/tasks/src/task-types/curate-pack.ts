@@ -138,12 +138,6 @@ export const CuratePackOutput = Type.Object(
       ),
     ),
 
-    /**
-     * Final chosen entry count. Curator-declared, not operator-specified.
-     * Recorded for eval and comparison across runs with the same prompt.
-     */
-    entry_count: Type.Number({ minimum: 1 }),
-
     /** 2–4 sentence narrative of the curation reasoning. */
     summary: Type.String({ minLength: 1 }),
   },
