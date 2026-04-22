@@ -358,7 +358,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           createAttestation: (input) => attestationRepository.create(input),
         });
       },
-      () => {
+      (dataSource) => {
         setTaskWorkflowDeps({
           dataSource,
           createAttempt: (input) => taskRepository.createAttempt(input),
