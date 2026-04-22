@@ -33,7 +33,7 @@ describe('demo/tasks pack-pipeline fixtures', () => {
     const task = load('judge-pack.json');
     expect(task.task_type).toBe('judge_pack');
     const prompt = buildPromptForTask(task, ctx);
-    expect(prompt).toContain('pack-fidelity-v1');
+    expect(prompt).toContain('pack-fidelity-v2');
     expect(prompt).toContain('coverage');
     expect(prompt).toContain('deterministic_coverage_check');
   });

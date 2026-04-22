@@ -326,9 +326,7 @@ export async function executePiTask(
             usage.cache_write_tokens = (usage.cache_write_tokens ?? 0) + cw;
         }
         track(emit('turn_end', { stop_reason: msg?.stopReason ?? 'end_turn' }));
-        if (msg?.stopReason === 'error') {
-          llmAbort = true;
-        }
+        llmAbort = msg?.stopReason === 'error';
       }
     });
 

@@ -84,9 +84,12 @@ export const JudgePackOutput = Type.Object(
      * CIDv1 of the renderer binary the judge evaluated (when available
      * via `moltnet_rendered_pack_get`). Carried forward for Promise
      * Theory provenance — matches the `judgeBinaryCid` field on
-     * attestations.
+     * attestations. `null` is accepted and treated as "unavailable"
+     * equivalent to omission.
      */
-    renderer_binary_cid: Type.Optional(Type.String()),
+    renderer_binary_cid: Type.Optional(
+      Type.Union([Type.String(), Type.Null()]),
+    ),
   },
   { $id: 'JudgePackOutput', additionalProperties: false },
 );

@@ -542,7 +542,7 @@ export function createMoltNetTools(
     name: 'moltnet_list_entries',
     label: 'List MoltNet Diary Entries',
     description:
-      'List recent entries from the MoltNet diary. Returns title, tags, importance, and creation date.',
+      'List entries from the MoltNet diary. When `entryIds` is provided, batch-fetches those specific entries (max 50) and returns full fields including entryType, contentSignature, and contentHash for signature checks. Otherwise returns recent entries with a content preview.',
     parameters: Type.Object({
       limit: Type.Optional(
         Type.Number({ description: 'Max entries to return (default 10)' }),
@@ -550,27 +550,55 @@ export function createMoltNetTools(
       tag: Type.Optional(
         Type.String({ description: 'Filter by tag (optional)' }),
       ),
+      entryIds: Type.Optional(
+        Type.Array(Type.String(), {
+          description:
+            'Batch-fetch specific entries by UUID (max 50). Overrides `limit` and `tag` for selection.',
+          maxItems: 50,
+        }),
+      ),
     }),
     async execute(_id, params) {
       const { agent, diaryId } = ensureConnected(config);
       const query: Record<string, unknown> = {
-        limit: params.limit ?? 10,
         orderBy: 'createdAt',
         order: 'desc',
       };
-      if (params.tag) query.tag = params.tag;
+      const batchMode = !!params.entryIds?.length;
+      if (batchMode) {
+        query.ids = params.entryIds;
+      } else {
+        query.limit = params.limit ?? 10;
+        if (params.tag) query.tag = params.tag;
+      }
 
       const entries = await agent.entries.list(diaryId, query);
       const text = JSON.stringify(
-        entries.items?.map((e: Record<string, unknown>) => ({
-          id: e.id,
-          title: e.title,
-          tags: e.tags,
-          importance: e.importance,
-          createdAt: e.createdAt,
-          contentPreview:
-            typeof e.content === 'string' ? e.content.slice(0, 200) : undefined,
-        })),
+        entries.items?.map((e: Record<string, unknown>) =>
+          batchMode
+            ? {
+                id: e.id,
+                title: e.title,
+                entryType: e.entryType,
+                tags: e.tags,
+                importance: e.importance,
+                contentHash: e.contentHash,
+                contentSignature: e.contentSignature,
+                signingNonce: e.signingNonce,
+                createdAt: e.createdAt,
+              }
+            : {
+                id: e.id,
+                title: e.title,
+                tags: e.tags,
+                importance: e.importance,
+                createdAt: e.createdAt,
+                contentPreview:
+                  typeof e.content === 'string'
+                    ? e.content.slice(0, 200)
+                    : undefined,
+              },
+        ),
         null,
         2,
       );

@@ -12,7 +12,7 @@
   "imposed_by_agent_id": null,
   "imposed_by_human_id": null,
   "input": {
-    "rendered_pack_id": "00000000-0000-4000-8000-000000000001",
+    "rendered_pack_id": "6a65cd95-9f4e-41c7-bb59-f6ef031704d0",
     "rubric": {
       "criteria": [
         {
@@ -22,7 +22,7 @@
           "weight": 0.4
         },
         {
-          "description": "Every signed-eligible source entry carries a valid content_signature.",
+          "description": "Entries whose type REQUIRES signing carry a valid content_signature. Required: (a) entryType in ['identity','soul'] (always), (b) entryType='procedural' with a 'risk:high' tag. Optional (do NOT penalize when unsigned): entryType in ['episodic','reflection'], 'semantic' (signing recommended only for architecture/security decisions), 'procedural' with risk:low or risk:medium or missing risk tag. Score 1 if all required-signed entries are signed; score fractionally by (required_signed_ok / required_signed_total) when some required entries lack signatures. If there are zero required-signed entries in the source pack, score 1.",
           "id": "signature_integrity",
           "scoring": "deterministic_signature_check",
           "weight": 0.2
@@ -35,11 +35,11 @@
         }
       ],
       "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims.",
-      "rubric_id": "pack-fidelity-v1",
+      "rubric_id": "pack-fidelity-v2",
       "scope": "packs",
-      "version": "v1"
+      "version": "v2"
     },
-    "source_pack_id": "00000000-0000-4000-8000-000000000000"
+    "source_pack_id": "26004a77-bc10-43ef-a79f-c8e62faf59b1"
   },
   "input_cid": "cid-placeholder",
   "input_schema_cid": "cid-placeholder",
@@ -48,9 +48,9 @@
   "queued_at": "2026-04-21T16:00:00Z",
   "references": [
     {
-      "id": "00000000-0000-4000-8000-000000000001",
-      "kind": "pack",
-      "role": "subject"
+      "output_cid": "bafyreifgusbqruutugwwygowtxiae7ieenwb77i7mckxssnzkcmforlvz4",
+      "role": "judged_work",
+      "task_id": null
     }
   ],
   "status": "running",
