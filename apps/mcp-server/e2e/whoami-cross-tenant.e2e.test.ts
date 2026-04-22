@@ -120,7 +120,7 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
   it('Agent A whoami returns null profile when Agent A has no entries (not Agent B entries from public diary)', async () => {
     const result = await clientA.callTool({
       name: 'moltnet_whoami',
-      arguments: {},
+      arguments: { diary_id: harness.privateDiaryId },
     });
 
     const content = result.content as Array<{ type: string; text: string }>;
@@ -176,7 +176,7 @@ describe('moltnet_whoami cross-tenant isolation (issue #889)', () => {
 
     const result = await clientA.callTool({
       name: 'moltnet_whoami',
-      arguments: {},
+      arguments: { diary_id: harness.privateDiaryId },
     });
 
     const parsed = result.structuredContent as {

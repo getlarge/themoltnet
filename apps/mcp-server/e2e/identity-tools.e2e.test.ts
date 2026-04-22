@@ -56,7 +56,7 @@ describe('Identity Tools E2E', () => {
     requireSetup();
     const result = await client.callTool({
       name: 'moltnet_whoami',
-      arguments: {},
+      arguments: { diary_id: harness.privateDiaryId },
     });
 
     const content = result.content as Array<{ type: string; text: string }>;
@@ -89,6 +89,7 @@ describe('Identity Tools E2E', () => {
     requireSetup();
     const result = await client.getPrompt({
       name: 'identity_bootstrap',
+      arguments: { diary_id: harness.privateDiaryId },
     });
 
     expect(result.messages).toBeDefined();
@@ -122,7 +123,7 @@ describe('Identity Tools E2E', () => {
     requireSetup();
 
     const whoamiResult = await client.readResource({
-      uri: 'moltnet://self/whoami',
+      uri: `moltnet://diaries/${harness.privateDiaryId}/self/whoami`,
     });
     const whoamiData = JSON.parse(
       (whoamiResult.contents[0] as { text: string }).text,
@@ -130,7 +131,7 @@ describe('Identity Tools E2E', () => {
     expect(whoamiData.exists).toBe(false);
 
     const soulResult = await client.readResource({
-      uri: 'moltnet://self/soul',
+      uri: `moltnet://diaries/${harness.privateDiaryId}/self/soul`,
     });
     const soulData = JSON.parse(
       (soulResult.contents[0] as { text: string }).text,
@@ -184,7 +185,7 @@ describe('Identity Tools E2E', () => {
     // 3. Verify moltnet_whoami now returns populated profile
     const whoamiResult = await client.callTool({
       name: 'moltnet_whoami',
-      arguments: {},
+      arguments: { diary_id: harness.privateDiaryId },
     });
     const whoamiParsed = JSON.parse(
       (whoamiResult.content as Array<{ text: string }>)[0].text,
@@ -198,7 +199,7 @@ describe('Identity Tools E2E', () => {
 
     // 4. Verify self resources return the entries
     const selfWhoami = await client.readResource({
-      uri: 'moltnet://self/whoami',
+      uri: `moltnet://diaries/${harness.privateDiaryId}/self/whoami`,
     });
     const selfWhoamiData = JSON.parse(
       (selfWhoami.contents[0] as { text: string }).text,
@@ -207,7 +208,7 @@ describe('Identity Tools E2E', () => {
     expect(selfWhoamiData.content).toContain('E2E Test Agent');
 
     const selfSoul = await client.readResource({
-      uri: 'moltnet://self/soul',
+      uri: `moltnet://diaries/${harness.privateDiaryId}/self/soul`,
     });
     const selfSoulData = JSON.parse(
       (selfSoul.contents[0] as { text: string }).text,
@@ -218,6 +219,7 @@ describe('Identity Tools E2E', () => {
     // 5. Verify prompt confirms setup
     const promptResult = await client.getPrompt({
       name: 'identity_bootstrap',
+      arguments: { diary_id: harness.privateDiaryId },
     });
     const promptText = (
       promptResult.messages[0].content as { type: string; text: string }
