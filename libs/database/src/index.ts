@@ -94,6 +94,10 @@ export {
   type SigningRequestRepository,
 } from './repositories/signing-request.repository.js';
 export {
+  createTaskRepository,
+  type TaskRepository,
+} from './repositories/task.repository.js';
+export {
   type CreateFoundingAcceptanceInput,
   type CreateInviteInput,
   type CreateTeamInput,
@@ -117,20 +121,29 @@ export {
   type TransactionRunner,
 } from './transaction-context.js';
 export {
+  _resetTaskWorkflowsForTesting,
   _resetVerificationWorkflowsForTesting,
   type AgentKeyLookup,
   initSigningWorkflows,
+  initTaskWorkflows,
   initVerificationWorkflows,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningTimeoutSeconds,
   setSigningVerifier,
+  setTaskWorkflowDeps,
   setVerificationWorkflowDeps,
   type SignatureVerifier,
   type SigningEnvelope,
   type SigningRequestPersistence,
   type SigningResult,
   signingWorkflows,
+  type TaskAttemptClaimedEvent,
+  type TaskAttemptFinalEvent,
+  type TaskAttemptResult,
+  TaskWorkflowConfigurationError,
+  type TaskWorkflowDeps,
+  taskWorkflows,
   type VerificationPayload,
   type VerificationResult,
   type VerificationSubmission,

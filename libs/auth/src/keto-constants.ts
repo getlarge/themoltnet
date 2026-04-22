@@ -13,6 +13,7 @@ export enum KetoNamespace {
   DiaryEntry = 'DiaryEntry',
   Group = 'Group',
   Human = 'Human',
+  Task = 'Task',
   Team = 'Team',
 }
 
@@ -115,6 +116,25 @@ export enum ContextPackPermission {
   Read = 'read',
   Manage = 'manage',
   VerifyClaim = 'verify_claim',
+}
+
+/**
+ * Relations for the Task namespace
+ */
+export enum TaskRelation {
+  Parent = 'parent',
+  Claimant = 'claimant',
+}
+
+/**
+ * Permissions for the Task namespace
+ */
+export enum TaskPermission {
+  View = 'view',
+  Impose = 'impose',
+  Cancel = 'cancel',
+  Claim = 'claim',
+  Report = 'report',
 }
 
 /**

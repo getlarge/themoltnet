@@ -36,6 +36,7 @@ import {
   createNonceRepository,
   createRenderedPackRepository,
   createSigningRequestRepository,
+  createTaskRepository,
   createTeamRepository,
   createVerificationRepository,
   createVoucherRepository,
@@ -43,11 +44,13 @@ import {
   getDatabase,
   getDataSource,
   initSigningWorkflows,
+  initTaskWorkflows,
   initVerificationWorkflows,
   type NonceRepository,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
+  setTaskWorkflowDeps,
   setVerificationWorkflowDeps,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
@@ -209,6 +212,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
   const attestationRepository = createAttestationRepository(dbConnection.db);
   const verificationRepository = createVerificationRepository(dbConnection.db);
+  const taskRepository = createTaskRepository(dbConnection.db);
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -261,6 +265,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       () => initVerificationWorkflows(),
+      () => initTaskWorkflows(),
       () => initRegistrationWorkflow(),
       () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
@@ -353,6 +358,21 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           createAttestation: (input) => attestationRepository.create(input),
         });
       },
+      (dataSource) => {
+        setTaskWorkflowDeps({
+          dataSource,
+          createAttempt: (input) => taskRepository.createAttempt(input),
+          updateAttempt: (taskId, attemptN, fields) =>
+            taskRepository.updateAttempt(taskId, attemptN, fields),
+          updateTaskStatus: (taskId, status, extra) =>
+            taskRepository.updateStatus(taskId, status, extra),
+          removeClaimantTuple: async (_taskId, _agentId) => {
+            // Keto claimant tuple removal deferred to task service (Phase 3)
+          },
+          countAttempts: (taskId) => taskRepository.countAttempts(taskId),
+          getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
+        });
+      },
       () => {
         setTeamFoundingDeps({
           teamRepository,
@@ -441,6 +461,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     groupRepository,
     teamRepository,
     diaryTransferRepository,
+    taskRepository,
     signingRequestRepository,
     nonceRepository,
     dataSource,

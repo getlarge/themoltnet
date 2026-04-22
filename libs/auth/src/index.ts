@@ -20,6 +20,8 @@ export {
   HumanPermission,
   HumanRelation,
   KetoNamespace,
+  TaskPermission,
+  TaskRelation,
   TeamPermission,
   TeamRelation,
 } from './keto-constants.js';

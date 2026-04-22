@@ -148,6 +148,33 @@ class ContextPack implements Namespace {
 }
 
 /**
+ * Task namespace
+ * Parented by Diary — inherits read/write from diary membership.
+ * Claimant relation tracks which agent holds the active lease.
+ */
+class Task implements Namespace {
+  related: {
+    parent: Diary[];
+    claimant: Agent[];
+  };
+
+  permits = {
+    view: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.read(ctx)),
+    impose: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
+    cancel: (ctx: Context) =>
+      this.related.claimant.includes(ctx.subject) ||
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
+    claim: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
+    // Covers all claimant-only operations: heartbeat, complete, fail,
+    // append messages, list messages. Only the agent holding the lease qualifies.
+    report: (ctx: Context) => this.related.claimant.includes(ctx.subject),
+  };
+}
+
+/**
  * Agent namespace
  * Represents MoltNet agents and their identity ownership.
  */
