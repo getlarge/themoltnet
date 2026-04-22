@@ -13897,6 +13897,3970 @@ func (s *DiaryTagsResponseTagsItem) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes DiffContextPacksByCidBadRequest as json.
+func (s *DiffContextPacksByCidBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByCidBadRequest from json.
+func (s *DiffContextPacksByCidBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByCidBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidForbidden as json.
+func (s *DiffContextPacksByCidForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByCidForbidden from json.
+func (s *DiffContextPacksByCidForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByCidForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidInternalServerError as json.
+func (s *DiffContextPacksByCidInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByCidInternalServerError from json.
+func (s *DiffContextPacksByCidInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidInternalServerError to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByCidInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidNotFound as json.
+func (s *DiffContextPacksByCidNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByCidNotFound from json.
+func (s *DiffContextPacksByCidNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByCidNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("added")
+		e.ArrStart()
+		for _, elem := range s.Added {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("changed")
+		e.ArrStart()
+		for _, elem := range s.Changed {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("removed")
+		e.ArrStart()
+		for _, elem := range s.Removed {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("reordered")
+		e.ArrStart()
+		for _, elem := range s.Reordered {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("stats")
+		s.Stats.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOK = [5]string{
+	0: "added",
+	1: "changed",
+	2: "removed",
+	3: "reordered",
+	4: "stats",
+}
+
+// Decode decodes DiffContextPacksByCidOK from json.
+func (s *DiffContextPacksByCidOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "added":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Added = make([]DiffContextPacksByCidOKAddedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByCidOKAddedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Added = append(s.Added, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"added\"")
+			}
+		case "changed":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Changed = make([]DiffContextPacksByCidOKChangedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByCidOKChangedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Changed = append(s.Changed, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"changed\"")
+			}
+		case "removed":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				s.Removed = make([]DiffContextPacksByCidOKRemovedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByCidOKRemovedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Removed = append(s.Removed, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"removed\"")
+			}
+		case "reordered":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				s.Reordered = make([]DiffContextPacksByCidOKReorderedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByCidOKReorderedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Reordered = append(s.Reordered, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reordered\"")
+			}
+		case "stats":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Stats.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"stats\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOK) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKAddedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKAddedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("compressionLevel")
+		s.CompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKAddedItem = [6]string{
+	0: "compressionLevel",
+	1: "entryCidSnapshot",
+	2: "entryId",
+	3: "packedTokens",
+	4: "rank",
+	5: "title",
+}
+
+// Decode decodes DiffContextPacksByCidOKAddedItem from json.
+func (s *DiffContextPacksByCidOKAddedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKAddedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "compressionLevel":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionLevel\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Rank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKAddedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKAddedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKAddedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKAddedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKAddedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKAddedItemCompressionLevel as json.
+func (s DiffContextPacksByCidOKAddedItemCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKAddedItemCompressionLevel from json.
+func (s *DiffContextPacksByCidOKAddedItemCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKAddedItemCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKAddedItemCompressionLevel(v) {
+	case DiffContextPacksByCidOKAddedItemCompressionLevelFull:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevelFull
+	case DiffContextPacksByCidOKAddedItemCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevelSummary
+	case DiffContextPacksByCidOKAddedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKAddedItemCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKAddedItemCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKChangedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKChangedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("newCompressionLevel")
+		s.NewCompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("newEntryCidSnapshot")
+		e.Str(s.NewEntryCidSnapshot)
+	}
+	{
+		e.FieldStart("newPackedTokens")
+		s.NewPackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("oldCompressionLevel")
+		s.OldCompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("oldEntryCidSnapshot")
+		e.Str(s.OldEntryCidSnapshot)
+	}
+	{
+		e.FieldStart("oldPackedTokens")
+		s.OldPackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("tokenDelta")
+		e.Int(s.TokenDelta)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKChangedItem = [10]string{
+	0: "entryId",
+	1: "newCompressionLevel",
+	2: "newEntryCidSnapshot",
+	3: "newPackedTokens",
+	4: "oldCompressionLevel",
+	5: "oldEntryCidSnapshot",
+	6: "oldPackedTokens",
+	7: "rank",
+	8: "title",
+	9: "tokenDelta",
+}
+
+// Decode decodes DiffContextPacksByCidOKChangedItem from json.
+func (s *DiffContextPacksByCidOKChangedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKChangedItem to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "entryId":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "newCompressionLevel":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.NewCompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newCompressionLevel\"")
+			}
+		case "newEntryCidSnapshot":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.NewEntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newEntryCidSnapshot\"")
+			}
+		case "newPackedTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.NewPackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newPackedTokens\"")
+			}
+		case "oldCompressionLevel":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.OldCompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldCompressionLevel\"")
+			}
+		case "oldEntryCidSnapshot":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.OldEntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldEntryCidSnapshot\"")
+			}
+		case "oldPackedTokens":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.OldPackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldPackedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.Rank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "title":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "tokenDelta":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.TokenDelta = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tokenDelta\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKChangedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKChangedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKChangedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKChangedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKChangedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKChangedItemNewCompressionLevel as json.
+func (s DiffContextPacksByCidOKChangedItemNewCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKChangedItemNewCompressionLevel from json.
+func (s *DiffContextPacksByCidOKChangedItemNewCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKChangedItemNewCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKChangedItemNewCompressionLevel(v) {
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelFull:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevelFull
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKChangedItemNewCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKChangedItemNewCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKChangedItemOldCompressionLevel as json.
+func (s DiffContextPacksByCidOKChangedItemOldCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKChangedItemOldCompressionLevel from json.
+func (s *DiffContextPacksByCidOKChangedItemOldCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKChangedItemOldCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKChangedItemOldCompressionLevel(v) {
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelFull:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevelFull
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKChangedItemOldCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKChangedItemOldCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKRemovedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKRemovedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("compressionLevel")
+		s.CompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKRemovedItem = [6]string{
+	0: "compressionLevel",
+	1: "entryCidSnapshot",
+	2: "entryId",
+	3: "packedTokens",
+	4: "rank",
+	5: "title",
+}
+
+// Decode decodes DiffContextPacksByCidOKRemovedItem from json.
+func (s *DiffContextPacksByCidOKRemovedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKRemovedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "compressionLevel":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionLevel\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Rank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKRemovedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKRemovedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKRemovedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKRemovedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKRemovedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKRemovedItemCompressionLevel as json.
+func (s DiffContextPacksByCidOKRemovedItemCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKRemovedItemCompressionLevel from json.
+func (s *DiffContextPacksByCidOKRemovedItemCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKRemovedItemCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKRemovedItemCompressionLevel(v) {
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelFull:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevelFull
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevelSummary
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKRemovedItemCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKRemovedItemCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKReorderedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKReorderedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("compressionLevel")
+		s.CompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("newRank")
+		e.Int(s.NewRank)
+	}
+	{
+		e.FieldStart("oldRank")
+		e.Int(s.OldRank)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKReorderedItem = [7]string{
+	0: "compressionLevel",
+	1: "entryCidSnapshot",
+	2: "entryId",
+	3: "newRank",
+	4: "oldRank",
+	5: "packedTokens",
+	6: "title",
+}
+
+// Decode decodes DiffContextPacksByCidOKReorderedItem from json.
+func (s *DiffContextPacksByCidOKReorderedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKReorderedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "compressionLevel":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionLevel\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "newRank":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.NewRank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newRank\"")
+			}
+		case "oldRank":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.OldRank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldRank\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKReorderedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKReorderedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKReorderedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKReorderedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKReorderedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKReorderedItemCompressionLevel as json.
+func (s DiffContextPacksByCidOKReorderedItemCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKReorderedItemCompressionLevel from json.
+func (s *DiffContextPacksByCidOKReorderedItemCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKReorderedItemCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKReorderedItemCompressionLevel(v) {
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelFull:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevelFull
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevelSummary
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKReorderedItemCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKReorderedItemCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKStats) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKStats) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("addedCount")
+		e.Int(s.AddedCount)
+	}
+	{
+		e.FieldStart("changedCount")
+		e.Int(s.ChangedCount)
+	}
+	{
+		e.FieldStart("packA")
+		s.PackA.Encode(e)
+	}
+	{
+		e.FieldStart("packB")
+		s.PackB.Encode(e)
+	}
+	{
+		e.FieldStart("removedCount")
+		e.Int(s.RemovedCount)
+	}
+	{
+		e.FieldStart("reorderedCount")
+		e.Int(s.ReorderedCount)
+	}
+	{
+		e.FieldStart("tokenDelta")
+		e.Int(s.TokenDelta)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKStats = [7]string{
+	0: "addedCount",
+	1: "changedCount",
+	2: "packA",
+	3: "packB",
+	4: "removedCount",
+	5: "reorderedCount",
+	6: "tokenDelta",
+}
+
+// Decode decodes DiffContextPacksByCidOKStats from json.
+func (s *DiffContextPacksByCidOKStats) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKStats to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "addedCount":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AddedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"addedCount\"")
+			}
+		case "changedCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.ChangedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"changedCount\"")
+			}
+		case "packA":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.PackA.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packA\"")
+			}
+		case "packB":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackB.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packB\"")
+			}
+		case "removedCount":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.RemovedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"removedCount\"")
+			}
+		case "reorderedCount":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.ReorderedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reorderedCount\"")
+			}
+		case "tokenDelta":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.TokenDelta = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tokenDelta\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKStats")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKStats) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKStats[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKStats) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKStats) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKStatsPackA) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKStatsPackA) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("packCid")
+		e.Str(s.PackCid)
+	}
+	{
+		e.FieldStart("packType")
+		s.PackType.Encode(e)
+	}
+	{
+		e.FieldStart("totalTokens")
+		s.TotalTokens.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKStatsPackA = [5]string{
+	0: "createdAt",
+	1: "id",
+	2: "packCid",
+	3: "packType",
+	4: "totalTokens",
+}
+
+// Decode decodes DiffContextPacksByCidOKStatsPackA from json.
+func (s *DiffContextPacksByCidOKStatsPackA) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKStatsPackA to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "packType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packType\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.TotalTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKStatsPackA")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKStatsPackA) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKStatsPackA[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKStatsPackA) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKStatsPackA) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKStatsPackAPackType as json.
+func (s DiffContextPacksByCidOKStatsPackAPackType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKStatsPackAPackType from json.
+func (s *DiffContextPacksByCidOKStatsPackAPackType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKStatsPackAPackType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKStatsPackAPackType(v) {
+	case DiffContextPacksByCidOKStatsPackAPackTypeCompile:
+		*s = DiffContextPacksByCidOKStatsPackAPackTypeCompile
+	case DiffContextPacksByCidOKStatsPackAPackTypeOptimized:
+		*s = DiffContextPacksByCidOKStatsPackAPackTypeOptimized
+	case DiffContextPacksByCidOKStatsPackAPackTypeCustom:
+		*s = DiffContextPacksByCidOKStatsPackAPackTypeCustom
+	default:
+		*s = DiffContextPacksByCidOKStatsPackAPackType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKStatsPackAPackType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKStatsPackAPackType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByCidOKStatsPackB) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByCidOKStatsPackB) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("packCid")
+		e.Str(s.PackCid)
+	}
+	{
+		e.FieldStart("packType")
+		s.PackType.Encode(e)
+	}
+	{
+		e.FieldStart("totalTokens")
+		s.TotalTokens.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByCidOKStatsPackB = [5]string{
+	0: "createdAt",
+	1: "id",
+	2: "packCid",
+	3: "packType",
+	4: "totalTokens",
+}
+
+// Decode decodes DiffContextPacksByCidOKStatsPackB from json.
+func (s *DiffContextPacksByCidOKStatsPackB) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKStatsPackB to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "packType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packType\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.TotalTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByCidOKStatsPackB")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByCidOKStatsPackB) {
+					name = jsonFieldsNameOfDiffContextPacksByCidOKStatsPackB[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidOKStatsPackB) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKStatsPackB) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidOKStatsPackBPackType as json.
+func (s DiffContextPacksByCidOKStatsPackBPackType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByCidOKStatsPackBPackType from json.
+func (s *DiffContextPacksByCidOKStatsPackBPackType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidOKStatsPackBPackType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByCidOKStatsPackBPackType(v) {
+	case DiffContextPacksByCidOKStatsPackBPackTypeCompile:
+		*s = DiffContextPacksByCidOKStatsPackBPackTypeCompile
+	case DiffContextPacksByCidOKStatsPackBPackTypeOptimized:
+		*s = DiffContextPacksByCidOKStatsPackBPackTypeOptimized
+	case DiffContextPacksByCidOKStatsPackBPackTypeCustom:
+		*s = DiffContextPacksByCidOKStatsPackBPackTypeCustom
+	default:
+		*s = DiffContextPacksByCidOKStatsPackBPackType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByCidOKStatsPackBPackType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidOKStatsPackBPackType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByCidUnauthorized as json.
+func (s *DiffContextPacksByCidUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByCidUnauthorized from json.
+func (s *DiffContextPacksByCidUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByCidUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByCidUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByCidUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByCidUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdBadRequest as json.
+func (s *DiffContextPacksByIdBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByIdBadRequest from json.
+func (s *DiffContextPacksByIdBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByIdBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdForbidden as json.
+func (s *DiffContextPacksByIdForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByIdForbidden from json.
+func (s *DiffContextPacksByIdForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByIdForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdInternalServerError as json.
+func (s *DiffContextPacksByIdInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByIdInternalServerError from json.
+func (s *DiffContextPacksByIdInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdInternalServerError to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByIdInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdNotFound as json.
+func (s *DiffContextPacksByIdNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByIdNotFound from json.
+func (s *DiffContextPacksByIdNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByIdNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("added")
+		e.ArrStart()
+		for _, elem := range s.Added {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("changed")
+		e.ArrStart()
+		for _, elem := range s.Changed {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("removed")
+		e.ArrStart()
+		for _, elem := range s.Removed {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("reordered")
+		e.ArrStart()
+		for _, elem := range s.Reordered {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("stats")
+		s.Stats.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOK = [5]string{
+	0: "added",
+	1: "changed",
+	2: "removed",
+	3: "reordered",
+	4: "stats",
+}
+
+// Decode decodes DiffContextPacksByIdOK from json.
+func (s *DiffContextPacksByIdOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "added":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Added = make([]DiffContextPacksByIdOKAddedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByIdOKAddedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Added = append(s.Added, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"added\"")
+			}
+		case "changed":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Changed = make([]DiffContextPacksByIdOKChangedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByIdOKChangedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Changed = append(s.Changed, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"changed\"")
+			}
+		case "removed":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				s.Removed = make([]DiffContextPacksByIdOKRemovedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByIdOKRemovedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Removed = append(s.Removed, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"removed\"")
+			}
+		case "reordered":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				s.Reordered = make([]DiffContextPacksByIdOKReorderedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DiffContextPacksByIdOKReorderedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Reordered = append(s.Reordered, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reordered\"")
+			}
+		case "stats":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Stats.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"stats\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOK) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKAddedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKAddedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("compressionLevel")
+		s.CompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKAddedItem = [6]string{
+	0: "compressionLevel",
+	1: "entryCidSnapshot",
+	2: "entryId",
+	3: "packedTokens",
+	4: "rank",
+	5: "title",
+}
+
+// Decode decodes DiffContextPacksByIdOKAddedItem from json.
+func (s *DiffContextPacksByIdOKAddedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKAddedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "compressionLevel":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionLevel\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Rank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKAddedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKAddedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKAddedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKAddedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKAddedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKAddedItemCompressionLevel as json.
+func (s DiffContextPacksByIdOKAddedItemCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKAddedItemCompressionLevel from json.
+func (s *DiffContextPacksByIdOKAddedItemCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKAddedItemCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKAddedItemCompressionLevel(v) {
+	case DiffContextPacksByIdOKAddedItemCompressionLevelFull:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevelFull
+	case DiffContextPacksByIdOKAddedItemCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevelSummary
+	case DiffContextPacksByIdOKAddedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKAddedItemCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKAddedItemCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKChangedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKChangedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("newCompressionLevel")
+		s.NewCompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("newEntryCidSnapshot")
+		e.Str(s.NewEntryCidSnapshot)
+	}
+	{
+		e.FieldStart("newPackedTokens")
+		s.NewPackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("oldCompressionLevel")
+		s.OldCompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("oldEntryCidSnapshot")
+		e.Str(s.OldEntryCidSnapshot)
+	}
+	{
+		e.FieldStart("oldPackedTokens")
+		s.OldPackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("tokenDelta")
+		e.Int(s.TokenDelta)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKChangedItem = [10]string{
+	0: "entryId",
+	1: "newCompressionLevel",
+	2: "newEntryCidSnapshot",
+	3: "newPackedTokens",
+	4: "oldCompressionLevel",
+	5: "oldEntryCidSnapshot",
+	6: "oldPackedTokens",
+	7: "rank",
+	8: "title",
+	9: "tokenDelta",
+}
+
+// Decode decodes DiffContextPacksByIdOKChangedItem from json.
+func (s *DiffContextPacksByIdOKChangedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKChangedItem to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "entryId":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "newCompressionLevel":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.NewCompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newCompressionLevel\"")
+			}
+		case "newEntryCidSnapshot":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.NewEntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newEntryCidSnapshot\"")
+			}
+		case "newPackedTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.NewPackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newPackedTokens\"")
+			}
+		case "oldCompressionLevel":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.OldCompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldCompressionLevel\"")
+			}
+		case "oldEntryCidSnapshot":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.OldEntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldEntryCidSnapshot\"")
+			}
+		case "oldPackedTokens":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.OldPackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldPackedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.Rank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "title":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "tokenDelta":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.TokenDelta = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tokenDelta\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKChangedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKChangedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKChangedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKChangedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKChangedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKChangedItemNewCompressionLevel as json.
+func (s DiffContextPacksByIdOKChangedItemNewCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKChangedItemNewCompressionLevel from json.
+func (s *DiffContextPacksByIdOKChangedItemNewCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKChangedItemNewCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKChangedItemNewCompressionLevel(v) {
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelFull:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevelFull
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKChangedItemNewCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKChangedItemNewCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKChangedItemOldCompressionLevel as json.
+func (s DiffContextPacksByIdOKChangedItemOldCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKChangedItemOldCompressionLevel from json.
+func (s *DiffContextPacksByIdOKChangedItemOldCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKChangedItemOldCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKChangedItemOldCompressionLevel(v) {
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelFull:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevelFull
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKChangedItemOldCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKChangedItemOldCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKRemovedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKRemovedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("compressionLevel")
+		s.CompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKRemovedItem = [6]string{
+	0: "compressionLevel",
+	1: "entryCidSnapshot",
+	2: "entryId",
+	3: "packedTokens",
+	4: "rank",
+	5: "title",
+}
+
+// Decode decodes DiffContextPacksByIdOKRemovedItem from json.
+func (s *DiffContextPacksByIdOKRemovedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKRemovedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "compressionLevel":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionLevel\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Rank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKRemovedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKRemovedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKRemovedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKRemovedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKRemovedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKRemovedItemCompressionLevel as json.
+func (s DiffContextPacksByIdOKRemovedItemCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKRemovedItemCompressionLevel from json.
+func (s *DiffContextPacksByIdOKRemovedItemCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKRemovedItemCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKRemovedItemCompressionLevel(v) {
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelFull:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevelFull
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevelSummary
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKRemovedItemCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKRemovedItemCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKReorderedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKReorderedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("compressionLevel")
+		s.CompressionLevel.Encode(e)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
+	}
+	{
+		e.FieldStart("newRank")
+		e.Int(s.NewRank)
+	}
+	{
+		e.FieldStart("oldRank")
+		e.Int(s.OldRank)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKReorderedItem = [7]string{
+	0: "compressionLevel",
+	1: "entryCidSnapshot",
+	2: "entryId",
+	3: "newRank",
+	4: "oldRank",
+	5: "packedTokens",
+	6: "title",
+}
+
+// Decode decodes DiffContextPacksByIdOKReorderedItem from json.
+func (s *DiffContextPacksByIdOKReorderedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKReorderedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "compressionLevel":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompressionLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionLevel\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
+			}
+		case "newRank":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.NewRank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newRank\"")
+			}
+		case "oldRank":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.OldRank = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"oldRank\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKReorderedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKReorderedItem) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKReorderedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKReorderedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKReorderedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKReorderedItemCompressionLevel as json.
+func (s DiffContextPacksByIdOKReorderedItemCompressionLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKReorderedItemCompressionLevel from json.
+func (s *DiffContextPacksByIdOKReorderedItemCompressionLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKReorderedItemCompressionLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKReorderedItemCompressionLevel(v) {
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelFull:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevelFull
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevelSummary
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords
+	default:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKReorderedItemCompressionLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKReorderedItemCompressionLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKStats) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKStats) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("addedCount")
+		e.Int(s.AddedCount)
+	}
+	{
+		e.FieldStart("changedCount")
+		e.Int(s.ChangedCount)
+	}
+	{
+		e.FieldStart("packA")
+		s.PackA.Encode(e)
+	}
+	{
+		e.FieldStart("packB")
+		s.PackB.Encode(e)
+	}
+	{
+		e.FieldStart("removedCount")
+		e.Int(s.RemovedCount)
+	}
+	{
+		e.FieldStart("reorderedCount")
+		e.Int(s.ReorderedCount)
+	}
+	{
+		e.FieldStart("tokenDelta")
+		e.Int(s.TokenDelta)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKStats = [7]string{
+	0: "addedCount",
+	1: "changedCount",
+	2: "packA",
+	3: "packB",
+	4: "removedCount",
+	5: "reorderedCount",
+	6: "tokenDelta",
+}
+
+// Decode decodes DiffContextPacksByIdOKStats from json.
+func (s *DiffContextPacksByIdOKStats) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKStats to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "addedCount":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AddedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"addedCount\"")
+			}
+		case "changedCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.ChangedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"changedCount\"")
+			}
+		case "packA":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.PackA.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packA\"")
+			}
+		case "packB":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackB.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packB\"")
+			}
+		case "removedCount":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.RemovedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"removedCount\"")
+			}
+		case "reorderedCount":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.ReorderedCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reorderedCount\"")
+			}
+		case "tokenDelta":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.TokenDelta = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tokenDelta\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKStats")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKStats) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKStats[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKStats) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKStats) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKStatsPackA) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKStatsPackA) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("packCid")
+		e.Str(s.PackCid)
+	}
+	{
+		e.FieldStart("packType")
+		s.PackType.Encode(e)
+	}
+	{
+		e.FieldStart("totalTokens")
+		s.TotalTokens.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKStatsPackA = [5]string{
+	0: "createdAt",
+	1: "id",
+	2: "packCid",
+	3: "packType",
+	4: "totalTokens",
+}
+
+// Decode decodes DiffContextPacksByIdOKStatsPackA from json.
+func (s *DiffContextPacksByIdOKStatsPackA) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKStatsPackA to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "packType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packType\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.TotalTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKStatsPackA")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKStatsPackA) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKStatsPackA[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKStatsPackA) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKStatsPackA) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKStatsPackAPackType as json.
+func (s DiffContextPacksByIdOKStatsPackAPackType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKStatsPackAPackType from json.
+func (s *DiffContextPacksByIdOKStatsPackAPackType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKStatsPackAPackType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKStatsPackAPackType(v) {
+	case DiffContextPacksByIdOKStatsPackAPackTypeCompile:
+		*s = DiffContextPacksByIdOKStatsPackAPackTypeCompile
+	case DiffContextPacksByIdOKStatsPackAPackTypeOptimized:
+		*s = DiffContextPacksByIdOKStatsPackAPackTypeOptimized
+	case DiffContextPacksByIdOKStatsPackAPackTypeCustom:
+		*s = DiffContextPacksByIdOKStatsPackAPackTypeCustom
+	default:
+		*s = DiffContextPacksByIdOKStatsPackAPackType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKStatsPackAPackType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKStatsPackAPackType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DiffContextPacksByIdOKStatsPackB) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiffContextPacksByIdOKStatsPackB) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("packCid")
+		e.Str(s.PackCid)
+	}
+	{
+		e.FieldStart("packType")
+		s.PackType.Encode(e)
+	}
+	{
+		e.FieldStart("totalTokens")
+		s.TotalTokens.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDiffContextPacksByIdOKStatsPackB = [5]string{
+	0: "createdAt",
+	1: "id",
+	2: "packCid",
+	3: "packType",
+	4: "totalTokens",
+}
+
+// Decode decodes DiffContextPacksByIdOKStatsPackB from json.
+func (s *DiffContextPacksByIdOKStatsPackB) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKStatsPackB to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "packType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packType\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.TotalTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiffContextPacksByIdOKStatsPackB")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiffContextPacksByIdOKStatsPackB) {
+					name = jsonFieldsNameOfDiffContextPacksByIdOKStatsPackB[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdOKStatsPackB) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKStatsPackB) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdOKStatsPackBPackType as json.
+func (s DiffContextPacksByIdOKStatsPackBPackType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiffContextPacksByIdOKStatsPackBPackType from json.
+func (s *DiffContextPacksByIdOKStatsPackBPackType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdOKStatsPackBPackType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiffContextPacksByIdOKStatsPackBPackType(v) {
+	case DiffContextPacksByIdOKStatsPackBPackTypeCompile:
+		*s = DiffContextPacksByIdOKStatsPackBPackTypeCompile
+	case DiffContextPacksByIdOKStatsPackBPackTypeOptimized:
+		*s = DiffContextPacksByIdOKStatsPackBPackTypeOptimized
+	case DiffContextPacksByIdOKStatsPackBPackTypeCustom:
+		*s = DiffContextPacksByIdOKStatsPackBPackTypeCustom
+	default:
+		*s = DiffContextPacksByIdOKStatsPackBPackType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiffContextPacksByIdOKStatsPackBPackType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdOKStatsPackBPackType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiffContextPacksByIdUnauthorized as json.
+func (s *DiffContextPacksByIdUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DiffContextPacksByIdUnauthorized from json.
+func (s *DiffContextPacksByIdUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiffContextPacksByIdUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DiffContextPacksByIdUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiffContextPacksByIdUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiffContextPacksByIdUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *Digest) Encode(e *jx.Encoder) {
 	e.ObjStart()

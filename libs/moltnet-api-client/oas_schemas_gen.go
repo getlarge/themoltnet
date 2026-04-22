@@ -4892,6 +4892,1894 @@ func (s *DiaryTagsResponseTagsItem) SetTag(val string) {
 	s.Tag = val
 }
 
+type DiffContextPacksByCidBadRequest ProblemDetails
+
+func (*DiffContextPacksByCidBadRequest) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByCidForbidden ProblemDetails
+
+func (*DiffContextPacksByCidForbidden) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByCidInternalServerError ProblemDetails
+
+func (*DiffContextPacksByCidInternalServerError) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByCidNotFound ProblemDetails
+
+func (*DiffContextPacksByCidNotFound) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByCidOK struct {
+	Added     []DiffContextPacksByCidOKAddedItem     `json:"added"`
+	Changed   []DiffContextPacksByCidOKChangedItem   `json:"changed"`
+	Removed   []DiffContextPacksByCidOKRemovedItem   `json:"removed"`
+	Reordered []DiffContextPacksByCidOKReorderedItem `json:"reordered"`
+	Stats     DiffContextPacksByCidOKStats           `json:"stats"`
+}
+
+// GetAdded returns the value of Added.
+func (s *DiffContextPacksByCidOK) GetAdded() []DiffContextPacksByCidOKAddedItem {
+	return s.Added
+}
+
+// GetChanged returns the value of Changed.
+func (s *DiffContextPacksByCidOK) GetChanged() []DiffContextPacksByCidOKChangedItem {
+	return s.Changed
+}
+
+// GetRemoved returns the value of Removed.
+func (s *DiffContextPacksByCidOK) GetRemoved() []DiffContextPacksByCidOKRemovedItem {
+	return s.Removed
+}
+
+// GetReordered returns the value of Reordered.
+func (s *DiffContextPacksByCidOK) GetReordered() []DiffContextPacksByCidOKReorderedItem {
+	return s.Reordered
+}
+
+// GetStats returns the value of Stats.
+func (s *DiffContextPacksByCidOK) GetStats() DiffContextPacksByCidOKStats {
+	return s.Stats
+}
+
+// SetAdded sets the value of Added.
+func (s *DiffContextPacksByCidOK) SetAdded(val []DiffContextPacksByCidOKAddedItem) {
+	s.Added = val
+}
+
+// SetChanged sets the value of Changed.
+func (s *DiffContextPacksByCidOK) SetChanged(val []DiffContextPacksByCidOKChangedItem) {
+	s.Changed = val
+}
+
+// SetRemoved sets the value of Removed.
+func (s *DiffContextPacksByCidOK) SetRemoved(val []DiffContextPacksByCidOKRemovedItem) {
+	s.Removed = val
+}
+
+// SetReordered sets the value of Reordered.
+func (s *DiffContextPacksByCidOK) SetReordered(val []DiffContextPacksByCidOKReorderedItem) {
+	s.Reordered = val
+}
+
+// SetStats sets the value of Stats.
+func (s *DiffContextPacksByCidOK) SetStats(val DiffContextPacksByCidOKStats) {
+	s.Stats = val
+}
+
+func (*DiffContextPacksByCidOK) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByCidOKAddedItem struct {
+	CompressionLevel DiffContextPacksByCidOKAddedItemCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                           `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                        `json:"entryId"`
+	PackedTokens     NilInt                                           `json:"packedTokens"`
+	Rank             int                                              `json:"rank"`
+	Title            NilString                                        `json:"title"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *DiffContextPacksByCidOKAddedItem) GetCompressionLevel() DiffContextPacksByCidOKAddedItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *DiffContextPacksByCidOKAddedItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByCidOKAddedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *DiffContextPacksByCidOKAddedItem) GetPackedTokens() NilInt {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByCidOKAddedItem) GetRank() int {
+	return s.Rank
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByCidOKAddedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *DiffContextPacksByCidOKAddedItem) SetCompressionLevel(val DiffContextPacksByCidOKAddedItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *DiffContextPacksByCidOKAddedItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByCidOKAddedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *DiffContextPacksByCidOKAddedItem) SetPackedTokens(val NilInt) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByCidOKAddedItem) SetRank(val int) {
+	s.Rank = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByCidOKAddedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+type DiffContextPacksByCidOKAddedItemCompressionLevel string
+
+const (
+	DiffContextPacksByCidOKAddedItemCompressionLevelFull     DiffContextPacksByCidOKAddedItemCompressionLevel = "full"
+	DiffContextPacksByCidOKAddedItemCompressionLevelSummary  DiffContextPacksByCidOKAddedItemCompressionLevel = "summary"
+	DiffContextPacksByCidOKAddedItemCompressionLevelKeywords DiffContextPacksByCidOKAddedItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByCidOKAddedItemCompressionLevel values.
+func (DiffContextPacksByCidOKAddedItemCompressionLevel) AllValues() []DiffContextPacksByCidOKAddedItemCompressionLevel {
+	return []DiffContextPacksByCidOKAddedItemCompressionLevel{
+		DiffContextPacksByCidOKAddedItemCompressionLevelFull,
+		DiffContextPacksByCidOKAddedItemCompressionLevelSummary,
+		DiffContextPacksByCidOKAddedItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKAddedItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKAddedItemCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKAddedItemCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKAddedItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKAddedItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKAddedItemCompressionLevel(data) {
+	case DiffContextPacksByCidOKAddedItemCompressionLevelFull:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevelFull
+		return nil
+	case DiffContextPacksByCidOKAddedItemCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevelSummary
+		return nil
+	case DiffContextPacksByCidOKAddedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKAddedItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidOKChangedItem struct {
+	EntryId             uuid.UUID                                             `json:"entryId"`
+	NewCompressionLevel DiffContextPacksByCidOKChangedItemNewCompressionLevel `json:"newCompressionLevel"`
+	NewEntryCidSnapshot string                                                `json:"newEntryCidSnapshot"`
+	NewPackedTokens     NilInt                                                `json:"newPackedTokens"`
+	OldCompressionLevel DiffContextPacksByCidOKChangedItemOldCompressionLevel `json:"oldCompressionLevel"`
+	OldEntryCidSnapshot string                                                `json:"oldEntryCidSnapshot"`
+	OldPackedTokens     NilInt                                                `json:"oldPackedTokens"`
+	// Rank in packB.
+	Rank       int       `json:"rank"`
+	Title      NilString `json:"title"`
+	TokenDelta int       `json:"tokenDelta"`
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByCidOKChangedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetNewCompressionLevel returns the value of NewCompressionLevel.
+func (s *DiffContextPacksByCidOKChangedItem) GetNewCompressionLevel() DiffContextPacksByCidOKChangedItemNewCompressionLevel {
+	return s.NewCompressionLevel
+}
+
+// GetNewEntryCidSnapshot returns the value of NewEntryCidSnapshot.
+func (s *DiffContextPacksByCidOKChangedItem) GetNewEntryCidSnapshot() string {
+	return s.NewEntryCidSnapshot
+}
+
+// GetNewPackedTokens returns the value of NewPackedTokens.
+func (s *DiffContextPacksByCidOKChangedItem) GetNewPackedTokens() NilInt {
+	return s.NewPackedTokens
+}
+
+// GetOldCompressionLevel returns the value of OldCompressionLevel.
+func (s *DiffContextPacksByCidOKChangedItem) GetOldCompressionLevel() DiffContextPacksByCidOKChangedItemOldCompressionLevel {
+	return s.OldCompressionLevel
+}
+
+// GetOldEntryCidSnapshot returns the value of OldEntryCidSnapshot.
+func (s *DiffContextPacksByCidOKChangedItem) GetOldEntryCidSnapshot() string {
+	return s.OldEntryCidSnapshot
+}
+
+// GetOldPackedTokens returns the value of OldPackedTokens.
+func (s *DiffContextPacksByCidOKChangedItem) GetOldPackedTokens() NilInt {
+	return s.OldPackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByCidOKChangedItem) GetRank() int {
+	return s.Rank
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByCidOKChangedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// GetTokenDelta returns the value of TokenDelta.
+func (s *DiffContextPacksByCidOKChangedItem) GetTokenDelta() int {
+	return s.TokenDelta
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByCidOKChangedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetNewCompressionLevel sets the value of NewCompressionLevel.
+func (s *DiffContextPacksByCidOKChangedItem) SetNewCompressionLevel(val DiffContextPacksByCidOKChangedItemNewCompressionLevel) {
+	s.NewCompressionLevel = val
+}
+
+// SetNewEntryCidSnapshot sets the value of NewEntryCidSnapshot.
+func (s *DiffContextPacksByCidOKChangedItem) SetNewEntryCidSnapshot(val string) {
+	s.NewEntryCidSnapshot = val
+}
+
+// SetNewPackedTokens sets the value of NewPackedTokens.
+func (s *DiffContextPacksByCidOKChangedItem) SetNewPackedTokens(val NilInt) {
+	s.NewPackedTokens = val
+}
+
+// SetOldCompressionLevel sets the value of OldCompressionLevel.
+func (s *DiffContextPacksByCidOKChangedItem) SetOldCompressionLevel(val DiffContextPacksByCidOKChangedItemOldCompressionLevel) {
+	s.OldCompressionLevel = val
+}
+
+// SetOldEntryCidSnapshot sets the value of OldEntryCidSnapshot.
+func (s *DiffContextPacksByCidOKChangedItem) SetOldEntryCidSnapshot(val string) {
+	s.OldEntryCidSnapshot = val
+}
+
+// SetOldPackedTokens sets the value of OldPackedTokens.
+func (s *DiffContextPacksByCidOKChangedItem) SetOldPackedTokens(val NilInt) {
+	s.OldPackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByCidOKChangedItem) SetRank(val int) {
+	s.Rank = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByCidOKChangedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+// SetTokenDelta sets the value of TokenDelta.
+func (s *DiffContextPacksByCidOKChangedItem) SetTokenDelta(val int) {
+	s.TokenDelta = val
+}
+
+type DiffContextPacksByCidOKChangedItemNewCompressionLevel string
+
+const (
+	DiffContextPacksByCidOKChangedItemNewCompressionLevelFull     DiffContextPacksByCidOKChangedItemNewCompressionLevel = "full"
+	DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary  DiffContextPacksByCidOKChangedItemNewCompressionLevel = "summary"
+	DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords DiffContextPacksByCidOKChangedItemNewCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByCidOKChangedItemNewCompressionLevel values.
+func (DiffContextPacksByCidOKChangedItemNewCompressionLevel) AllValues() []DiffContextPacksByCidOKChangedItemNewCompressionLevel {
+	return []DiffContextPacksByCidOKChangedItemNewCompressionLevel{
+		DiffContextPacksByCidOKChangedItemNewCompressionLevelFull,
+		DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary,
+		DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKChangedItemNewCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKChangedItemNewCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKChangedItemNewCompressionLevel(data) {
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelFull:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevelFull
+		return nil
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevelSummary
+		return nil
+	case DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKChangedItemNewCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidOKChangedItemOldCompressionLevel string
+
+const (
+	DiffContextPacksByCidOKChangedItemOldCompressionLevelFull     DiffContextPacksByCidOKChangedItemOldCompressionLevel = "full"
+	DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary  DiffContextPacksByCidOKChangedItemOldCompressionLevel = "summary"
+	DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords DiffContextPacksByCidOKChangedItemOldCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByCidOKChangedItemOldCompressionLevel values.
+func (DiffContextPacksByCidOKChangedItemOldCompressionLevel) AllValues() []DiffContextPacksByCidOKChangedItemOldCompressionLevel {
+	return []DiffContextPacksByCidOKChangedItemOldCompressionLevel{
+		DiffContextPacksByCidOKChangedItemOldCompressionLevelFull,
+		DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary,
+		DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKChangedItemOldCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKChangedItemOldCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKChangedItemOldCompressionLevel(data) {
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelFull:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevelFull
+		return nil
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevelSummary
+		return nil
+	case DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKChangedItemOldCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidOKRemovedItem struct {
+	CompressionLevel DiffContextPacksByCidOKRemovedItemCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                             `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                          `json:"entryId"`
+	PackedTokens     NilInt                                             `json:"packedTokens"`
+	Rank             int                                                `json:"rank"`
+	Title            NilString                                          `json:"title"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *DiffContextPacksByCidOKRemovedItem) GetCompressionLevel() DiffContextPacksByCidOKRemovedItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *DiffContextPacksByCidOKRemovedItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByCidOKRemovedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *DiffContextPacksByCidOKRemovedItem) GetPackedTokens() NilInt {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByCidOKRemovedItem) GetRank() int {
+	return s.Rank
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByCidOKRemovedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *DiffContextPacksByCidOKRemovedItem) SetCompressionLevel(val DiffContextPacksByCidOKRemovedItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *DiffContextPacksByCidOKRemovedItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByCidOKRemovedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *DiffContextPacksByCidOKRemovedItem) SetPackedTokens(val NilInt) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByCidOKRemovedItem) SetRank(val int) {
+	s.Rank = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByCidOKRemovedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+type DiffContextPacksByCidOKRemovedItemCompressionLevel string
+
+const (
+	DiffContextPacksByCidOKRemovedItemCompressionLevelFull     DiffContextPacksByCidOKRemovedItemCompressionLevel = "full"
+	DiffContextPacksByCidOKRemovedItemCompressionLevelSummary  DiffContextPacksByCidOKRemovedItemCompressionLevel = "summary"
+	DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords DiffContextPacksByCidOKRemovedItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByCidOKRemovedItemCompressionLevel values.
+func (DiffContextPacksByCidOKRemovedItemCompressionLevel) AllValues() []DiffContextPacksByCidOKRemovedItemCompressionLevel {
+	return []DiffContextPacksByCidOKRemovedItemCompressionLevel{
+		DiffContextPacksByCidOKRemovedItemCompressionLevelFull,
+		DiffContextPacksByCidOKRemovedItemCompressionLevelSummary,
+		DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKRemovedItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKRemovedItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKRemovedItemCompressionLevel(data) {
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelFull:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevelFull
+		return nil
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevelSummary
+		return nil
+	case DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKRemovedItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidOKReorderedItem struct {
+	CompressionLevel DiffContextPacksByCidOKReorderedItemCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                               `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                            `json:"entryId"`
+	NewRank          int                                                  `json:"newRank"`
+	OldRank          int                                                  `json:"oldRank"`
+	PackedTokens     NilInt                                               `json:"packedTokens"`
+	Title            NilString                                            `json:"title"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *DiffContextPacksByCidOKReorderedItem) GetCompressionLevel() DiffContextPacksByCidOKReorderedItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *DiffContextPacksByCidOKReorderedItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByCidOKReorderedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetNewRank returns the value of NewRank.
+func (s *DiffContextPacksByCidOKReorderedItem) GetNewRank() int {
+	return s.NewRank
+}
+
+// GetOldRank returns the value of OldRank.
+func (s *DiffContextPacksByCidOKReorderedItem) GetOldRank() int {
+	return s.OldRank
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *DiffContextPacksByCidOKReorderedItem) GetPackedTokens() NilInt {
+	return s.PackedTokens
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByCidOKReorderedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *DiffContextPacksByCidOKReorderedItem) SetCompressionLevel(val DiffContextPacksByCidOKReorderedItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *DiffContextPacksByCidOKReorderedItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByCidOKReorderedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetNewRank sets the value of NewRank.
+func (s *DiffContextPacksByCidOKReorderedItem) SetNewRank(val int) {
+	s.NewRank = val
+}
+
+// SetOldRank sets the value of OldRank.
+func (s *DiffContextPacksByCidOKReorderedItem) SetOldRank(val int) {
+	s.OldRank = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *DiffContextPacksByCidOKReorderedItem) SetPackedTokens(val NilInt) {
+	s.PackedTokens = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByCidOKReorderedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+type DiffContextPacksByCidOKReorderedItemCompressionLevel string
+
+const (
+	DiffContextPacksByCidOKReorderedItemCompressionLevelFull     DiffContextPacksByCidOKReorderedItemCompressionLevel = "full"
+	DiffContextPacksByCidOKReorderedItemCompressionLevelSummary  DiffContextPacksByCidOKReorderedItemCompressionLevel = "summary"
+	DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords DiffContextPacksByCidOKReorderedItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByCidOKReorderedItemCompressionLevel values.
+func (DiffContextPacksByCidOKReorderedItemCompressionLevel) AllValues() []DiffContextPacksByCidOKReorderedItemCompressionLevel {
+	return []DiffContextPacksByCidOKReorderedItemCompressionLevel{
+		DiffContextPacksByCidOKReorderedItemCompressionLevelFull,
+		DiffContextPacksByCidOKReorderedItemCompressionLevelSummary,
+		DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKReorderedItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKReorderedItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKReorderedItemCompressionLevel(data) {
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelFull:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevelFull
+		return nil
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelSummary:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevelSummary
+		return nil
+	case DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByCidOKReorderedItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidOKStats struct {
+	AddedCount     int                               `json:"addedCount"`
+	ChangedCount   int                               `json:"changedCount"`
+	PackA          DiffContextPacksByCidOKStatsPackA `json:"packA"`
+	PackB          DiffContextPacksByCidOKStatsPackB `json:"packB"`
+	RemovedCount   int                               `json:"removedCount"`
+	ReorderedCount int                               `json:"reorderedCount"`
+	TokenDelta     int                               `json:"tokenDelta"`
+}
+
+// GetAddedCount returns the value of AddedCount.
+func (s *DiffContextPacksByCidOKStats) GetAddedCount() int {
+	return s.AddedCount
+}
+
+// GetChangedCount returns the value of ChangedCount.
+func (s *DiffContextPacksByCidOKStats) GetChangedCount() int {
+	return s.ChangedCount
+}
+
+// GetPackA returns the value of PackA.
+func (s *DiffContextPacksByCidOKStats) GetPackA() DiffContextPacksByCidOKStatsPackA {
+	return s.PackA
+}
+
+// GetPackB returns the value of PackB.
+func (s *DiffContextPacksByCidOKStats) GetPackB() DiffContextPacksByCidOKStatsPackB {
+	return s.PackB
+}
+
+// GetRemovedCount returns the value of RemovedCount.
+func (s *DiffContextPacksByCidOKStats) GetRemovedCount() int {
+	return s.RemovedCount
+}
+
+// GetReorderedCount returns the value of ReorderedCount.
+func (s *DiffContextPacksByCidOKStats) GetReorderedCount() int {
+	return s.ReorderedCount
+}
+
+// GetTokenDelta returns the value of TokenDelta.
+func (s *DiffContextPacksByCidOKStats) GetTokenDelta() int {
+	return s.TokenDelta
+}
+
+// SetAddedCount sets the value of AddedCount.
+func (s *DiffContextPacksByCidOKStats) SetAddedCount(val int) {
+	s.AddedCount = val
+}
+
+// SetChangedCount sets the value of ChangedCount.
+func (s *DiffContextPacksByCidOKStats) SetChangedCount(val int) {
+	s.ChangedCount = val
+}
+
+// SetPackA sets the value of PackA.
+func (s *DiffContextPacksByCidOKStats) SetPackA(val DiffContextPacksByCidOKStatsPackA) {
+	s.PackA = val
+}
+
+// SetPackB sets the value of PackB.
+func (s *DiffContextPacksByCidOKStats) SetPackB(val DiffContextPacksByCidOKStatsPackB) {
+	s.PackB = val
+}
+
+// SetRemovedCount sets the value of RemovedCount.
+func (s *DiffContextPacksByCidOKStats) SetRemovedCount(val int) {
+	s.RemovedCount = val
+}
+
+// SetReorderedCount sets the value of ReorderedCount.
+func (s *DiffContextPacksByCidOKStats) SetReorderedCount(val int) {
+	s.ReorderedCount = val
+}
+
+// SetTokenDelta sets the value of TokenDelta.
+func (s *DiffContextPacksByCidOKStats) SetTokenDelta(val int) {
+	s.TokenDelta = val
+}
+
+type DiffContextPacksByCidOKStatsPackA struct {
+	CreatedAt   time.Time                                 `json:"createdAt"`
+	ID          uuid.UUID                                 `json:"id"`
+	PackCid     string                                    `json:"packCid"`
+	PackType    DiffContextPacksByCidOKStatsPackAPackType `json:"packType"`
+	TotalTokens NilInt                                    `json:"totalTokens"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiffContextPacksByCidOKStatsPackA) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *DiffContextPacksByCidOKStatsPackA) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *DiffContextPacksByCidOKStatsPackA) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackType returns the value of PackType.
+func (s *DiffContextPacksByCidOKStatsPackA) GetPackType() DiffContextPacksByCidOKStatsPackAPackType {
+	return s.PackType
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *DiffContextPacksByCidOKStatsPackA) GetTotalTokens() NilInt {
+	return s.TotalTokens
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiffContextPacksByCidOKStatsPackA) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *DiffContextPacksByCidOKStatsPackA) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *DiffContextPacksByCidOKStatsPackA) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *DiffContextPacksByCidOKStatsPackA) SetPackType(val DiffContextPacksByCidOKStatsPackAPackType) {
+	s.PackType = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *DiffContextPacksByCidOKStatsPackA) SetTotalTokens(val NilInt) {
+	s.TotalTokens = val
+}
+
+type DiffContextPacksByCidOKStatsPackAPackType string
+
+const (
+	DiffContextPacksByCidOKStatsPackAPackTypeCompile   DiffContextPacksByCidOKStatsPackAPackType = "compile"
+	DiffContextPacksByCidOKStatsPackAPackTypeOptimized DiffContextPacksByCidOKStatsPackAPackType = "optimized"
+	DiffContextPacksByCidOKStatsPackAPackTypeCustom    DiffContextPacksByCidOKStatsPackAPackType = "custom"
+)
+
+// AllValues returns all DiffContextPacksByCidOKStatsPackAPackType values.
+func (DiffContextPacksByCidOKStatsPackAPackType) AllValues() []DiffContextPacksByCidOKStatsPackAPackType {
+	return []DiffContextPacksByCidOKStatsPackAPackType{
+		DiffContextPacksByCidOKStatsPackAPackTypeCompile,
+		DiffContextPacksByCidOKStatsPackAPackTypeOptimized,
+		DiffContextPacksByCidOKStatsPackAPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKStatsPackAPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKStatsPackAPackTypeCompile:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKStatsPackAPackTypeOptimized:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKStatsPackAPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKStatsPackAPackType) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKStatsPackAPackType(data) {
+	case DiffContextPacksByCidOKStatsPackAPackTypeCompile:
+		*s = DiffContextPacksByCidOKStatsPackAPackTypeCompile
+		return nil
+	case DiffContextPacksByCidOKStatsPackAPackTypeOptimized:
+		*s = DiffContextPacksByCidOKStatsPackAPackTypeOptimized
+		return nil
+	case DiffContextPacksByCidOKStatsPackAPackTypeCustom:
+		*s = DiffContextPacksByCidOKStatsPackAPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidOKStatsPackB struct {
+	CreatedAt   time.Time                                 `json:"createdAt"`
+	ID          uuid.UUID                                 `json:"id"`
+	PackCid     string                                    `json:"packCid"`
+	PackType    DiffContextPacksByCidOKStatsPackBPackType `json:"packType"`
+	TotalTokens NilInt                                    `json:"totalTokens"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiffContextPacksByCidOKStatsPackB) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *DiffContextPacksByCidOKStatsPackB) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *DiffContextPacksByCidOKStatsPackB) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackType returns the value of PackType.
+func (s *DiffContextPacksByCidOKStatsPackB) GetPackType() DiffContextPacksByCidOKStatsPackBPackType {
+	return s.PackType
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *DiffContextPacksByCidOKStatsPackB) GetTotalTokens() NilInt {
+	return s.TotalTokens
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiffContextPacksByCidOKStatsPackB) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *DiffContextPacksByCidOKStatsPackB) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *DiffContextPacksByCidOKStatsPackB) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *DiffContextPacksByCidOKStatsPackB) SetPackType(val DiffContextPacksByCidOKStatsPackBPackType) {
+	s.PackType = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *DiffContextPacksByCidOKStatsPackB) SetTotalTokens(val NilInt) {
+	s.TotalTokens = val
+}
+
+type DiffContextPacksByCidOKStatsPackBPackType string
+
+const (
+	DiffContextPacksByCidOKStatsPackBPackTypeCompile   DiffContextPacksByCidOKStatsPackBPackType = "compile"
+	DiffContextPacksByCidOKStatsPackBPackTypeOptimized DiffContextPacksByCidOKStatsPackBPackType = "optimized"
+	DiffContextPacksByCidOKStatsPackBPackTypeCustom    DiffContextPacksByCidOKStatsPackBPackType = "custom"
+)
+
+// AllValues returns all DiffContextPacksByCidOKStatsPackBPackType values.
+func (DiffContextPacksByCidOKStatsPackBPackType) AllValues() []DiffContextPacksByCidOKStatsPackBPackType {
+	return []DiffContextPacksByCidOKStatsPackBPackType{
+		DiffContextPacksByCidOKStatsPackBPackTypeCompile,
+		DiffContextPacksByCidOKStatsPackBPackTypeOptimized,
+		DiffContextPacksByCidOKStatsPackBPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByCidOKStatsPackBPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByCidOKStatsPackBPackTypeCompile:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKStatsPackBPackTypeOptimized:
+		return []byte(s), nil
+	case DiffContextPacksByCidOKStatsPackBPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByCidOKStatsPackBPackType) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByCidOKStatsPackBPackType(data) {
+	case DiffContextPacksByCidOKStatsPackBPackTypeCompile:
+		*s = DiffContextPacksByCidOKStatsPackBPackTypeCompile
+		return nil
+	case DiffContextPacksByCidOKStatsPackBPackTypeOptimized:
+		*s = DiffContextPacksByCidOKStatsPackBPackTypeOptimized
+		return nil
+	case DiffContextPacksByCidOKStatsPackBPackTypeCustom:
+		*s = DiffContextPacksByCidOKStatsPackBPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByCidUnauthorized ProblemDetails
+
+func (*DiffContextPacksByCidUnauthorized) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByIdBadRequest ProblemDetails
+
+func (*DiffContextPacksByIdBadRequest) diffContextPacksByIdRes() {}
+
+type DiffContextPacksByIdForbidden ProblemDetails
+
+func (*DiffContextPacksByIdForbidden) diffContextPacksByIdRes() {}
+
+type DiffContextPacksByIdInternalServerError ProblemDetails
+
+func (*DiffContextPacksByIdInternalServerError) diffContextPacksByIdRes() {}
+
+type DiffContextPacksByIdNotFound ProblemDetails
+
+func (*DiffContextPacksByIdNotFound) diffContextPacksByIdRes() {}
+
+type DiffContextPacksByIdOK struct {
+	Added     []DiffContextPacksByIdOKAddedItem     `json:"added"`
+	Changed   []DiffContextPacksByIdOKChangedItem   `json:"changed"`
+	Removed   []DiffContextPacksByIdOKRemovedItem   `json:"removed"`
+	Reordered []DiffContextPacksByIdOKReorderedItem `json:"reordered"`
+	Stats     DiffContextPacksByIdOKStats           `json:"stats"`
+}
+
+// GetAdded returns the value of Added.
+func (s *DiffContextPacksByIdOK) GetAdded() []DiffContextPacksByIdOKAddedItem {
+	return s.Added
+}
+
+// GetChanged returns the value of Changed.
+func (s *DiffContextPacksByIdOK) GetChanged() []DiffContextPacksByIdOKChangedItem {
+	return s.Changed
+}
+
+// GetRemoved returns the value of Removed.
+func (s *DiffContextPacksByIdOK) GetRemoved() []DiffContextPacksByIdOKRemovedItem {
+	return s.Removed
+}
+
+// GetReordered returns the value of Reordered.
+func (s *DiffContextPacksByIdOK) GetReordered() []DiffContextPacksByIdOKReorderedItem {
+	return s.Reordered
+}
+
+// GetStats returns the value of Stats.
+func (s *DiffContextPacksByIdOK) GetStats() DiffContextPacksByIdOKStats {
+	return s.Stats
+}
+
+// SetAdded sets the value of Added.
+func (s *DiffContextPacksByIdOK) SetAdded(val []DiffContextPacksByIdOKAddedItem) {
+	s.Added = val
+}
+
+// SetChanged sets the value of Changed.
+func (s *DiffContextPacksByIdOK) SetChanged(val []DiffContextPacksByIdOKChangedItem) {
+	s.Changed = val
+}
+
+// SetRemoved sets the value of Removed.
+func (s *DiffContextPacksByIdOK) SetRemoved(val []DiffContextPacksByIdOKRemovedItem) {
+	s.Removed = val
+}
+
+// SetReordered sets the value of Reordered.
+func (s *DiffContextPacksByIdOK) SetReordered(val []DiffContextPacksByIdOKReorderedItem) {
+	s.Reordered = val
+}
+
+// SetStats sets the value of Stats.
+func (s *DiffContextPacksByIdOK) SetStats(val DiffContextPacksByIdOKStats) {
+	s.Stats = val
+}
+
+func (*DiffContextPacksByIdOK) diffContextPacksByIdRes() {}
+
+type DiffContextPacksByIdOKAddedItem struct {
+	CompressionLevel DiffContextPacksByIdOKAddedItemCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                          `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                       `json:"entryId"`
+	PackedTokens     NilInt                                          `json:"packedTokens"`
+	Rank             int                                             `json:"rank"`
+	Title            NilString                                       `json:"title"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *DiffContextPacksByIdOKAddedItem) GetCompressionLevel() DiffContextPacksByIdOKAddedItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *DiffContextPacksByIdOKAddedItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByIdOKAddedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *DiffContextPacksByIdOKAddedItem) GetPackedTokens() NilInt {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByIdOKAddedItem) GetRank() int {
+	return s.Rank
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByIdOKAddedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *DiffContextPacksByIdOKAddedItem) SetCompressionLevel(val DiffContextPacksByIdOKAddedItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *DiffContextPacksByIdOKAddedItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByIdOKAddedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *DiffContextPacksByIdOKAddedItem) SetPackedTokens(val NilInt) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByIdOKAddedItem) SetRank(val int) {
+	s.Rank = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByIdOKAddedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+type DiffContextPacksByIdOKAddedItemCompressionLevel string
+
+const (
+	DiffContextPacksByIdOKAddedItemCompressionLevelFull     DiffContextPacksByIdOKAddedItemCompressionLevel = "full"
+	DiffContextPacksByIdOKAddedItemCompressionLevelSummary  DiffContextPacksByIdOKAddedItemCompressionLevel = "summary"
+	DiffContextPacksByIdOKAddedItemCompressionLevelKeywords DiffContextPacksByIdOKAddedItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByIdOKAddedItemCompressionLevel values.
+func (DiffContextPacksByIdOKAddedItemCompressionLevel) AllValues() []DiffContextPacksByIdOKAddedItemCompressionLevel {
+	return []DiffContextPacksByIdOKAddedItemCompressionLevel{
+		DiffContextPacksByIdOKAddedItemCompressionLevelFull,
+		DiffContextPacksByIdOKAddedItemCompressionLevelSummary,
+		DiffContextPacksByIdOKAddedItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKAddedItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKAddedItemCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKAddedItemCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKAddedItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKAddedItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKAddedItemCompressionLevel(data) {
+	case DiffContextPacksByIdOKAddedItemCompressionLevelFull:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevelFull
+		return nil
+	case DiffContextPacksByIdOKAddedItemCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevelSummary
+		return nil
+	case DiffContextPacksByIdOKAddedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKAddedItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdOKChangedItem struct {
+	EntryId             uuid.UUID                                            `json:"entryId"`
+	NewCompressionLevel DiffContextPacksByIdOKChangedItemNewCompressionLevel `json:"newCompressionLevel"`
+	NewEntryCidSnapshot string                                               `json:"newEntryCidSnapshot"`
+	NewPackedTokens     NilInt                                               `json:"newPackedTokens"`
+	OldCompressionLevel DiffContextPacksByIdOKChangedItemOldCompressionLevel `json:"oldCompressionLevel"`
+	OldEntryCidSnapshot string                                               `json:"oldEntryCidSnapshot"`
+	OldPackedTokens     NilInt                                               `json:"oldPackedTokens"`
+	// Rank in packB.
+	Rank       int       `json:"rank"`
+	Title      NilString `json:"title"`
+	TokenDelta int       `json:"tokenDelta"`
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByIdOKChangedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetNewCompressionLevel returns the value of NewCompressionLevel.
+func (s *DiffContextPacksByIdOKChangedItem) GetNewCompressionLevel() DiffContextPacksByIdOKChangedItemNewCompressionLevel {
+	return s.NewCompressionLevel
+}
+
+// GetNewEntryCidSnapshot returns the value of NewEntryCidSnapshot.
+func (s *DiffContextPacksByIdOKChangedItem) GetNewEntryCidSnapshot() string {
+	return s.NewEntryCidSnapshot
+}
+
+// GetNewPackedTokens returns the value of NewPackedTokens.
+func (s *DiffContextPacksByIdOKChangedItem) GetNewPackedTokens() NilInt {
+	return s.NewPackedTokens
+}
+
+// GetOldCompressionLevel returns the value of OldCompressionLevel.
+func (s *DiffContextPacksByIdOKChangedItem) GetOldCompressionLevel() DiffContextPacksByIdOKChangedItemOldCompressionLevel {
+	return s.OldCompressionLevel
+}
+
+// GetOldEntryCidSnapshot returns the value of OldEntryCidSnapshot.
+func (s *DiffContextPacksByIdOKChangedItem) GetOldEntryCidSnapshot() string {
+	return s.OldEntryCidSnapshot
+}
+
+// GetOldPackedTokens returns the value of OldPackedTokens.
+func (s *DiffContextPacksByIdOKChangedItem) GetOldPackedTokens() NilInt {
+	return s.OldPackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByIdOKChangedItem) GetRank() int {
+	return s.Rank
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByIdOKChangedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// GetTokenDelta returns the value of TokenDelta.
+func (s *DiffContextPacksByIdOKChangedItem) GetTokenDelta() int {
+	return s.TokenDelta
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByIdOKChangedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetNewCompressionLevel sets the value of NewCompressionLevel.
+func (s *DiffContextPacksByIdOKChangedItem) SetNewCompressionLevel(val DiffContextPacksByIdOKChangedItemNewCompressionLevel) {
+	s.NewCompressionLevel = val
+}
+
+// SetNewEntryCidSnapshot sets the value of NewEntryCidSnapshot.
+func (s *DiffContextPacksByIdOKChangedItem) SetNewEntryCidSnapshot(val string) {
+	s.NewEntryCidSnapshot = val
+}
+
+// SetNewPackedTokens sets the value of NewPackedTokens.
+func (s *DiffContextPacksByIdOKChangedItem) SetNewPackedTokens(val NilInt) {
+	s.NewPackedTokens = val
+}
+
+// SetOldCompressionLevel sets the value of OldCompressionLevel.
+func (s *DiffContextPacksByIdOKChangedItem) SetOldCompressionLevel(val DiffContextPacksByIdOKChangedItemOldCompressionLevel) {
+	s.OldCompressionLevel = val
+}
+
+// SetOldEntryCidSnapshot sets the value of OldEntryCidSnapshot.
+func (s *DiffContextPacksByIdOKChangedItem) SetOldEntryCidSnapshot(val string) {
+	s.OldEntryCidSnapshot = val
+}
+
+// SetOldPackedTokens sets the value of OldPackedTokens.
+func (s *DiffContextPacksByIdOKChangedItem) SetOldPackedTokens(val NilInt) {
+	s.OldPackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByIdOKChangedItem) SetRank(val int) {
+	s.Rank = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByIdOKChangedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+// SetTokenDelta sets the value of TokenDelta.
+func (s *DiffContextPacksByIdOKChangedItem) SetTokenDelta(val int) {
+	s.TokenDelta = val
+}
+
+type DiffContextPacksByIdOKChangedItemNewCompressionLevel string
+
+const (
+	DiffContextPacksByIdOKChangedItemNewCompressionLevelFull     DiffContextPacksByIdOKChangedItemNewCompressionLevel = "full"
+	DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary  DiffContextPacksByIdOKChangedItemNewCompressionLevel = "summary"
+	DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords DiffContextPacksByIdOKChangedItemNewCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByIdOKChangedItemNewCompressionLevel values.
+func (DiffContextPacksByIdOKChangedItemNewCompressionLevel) AllValues() []DiffContextPacksByIdOKChangedItemNewCompressionLevel {
+	return []DiffContextPacksByIdOKChangedItemNewCompressionLevel{
+		DiffContextPacksByIdOKChangedItemNewCompressionLevelFull,
+		DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary,
+		DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKChangedItemNewCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKChangedItemNewCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKChangedItemNewCompressionLevel(data) {
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelFull:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevelFull
+		return nil
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevelSummary
+		return nil
+	case DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKChangedItemNewCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdOKChangedItemOldCompressionLevel string
+
+const (
+	DiffContextPacksByIdOKChangedItemOldCompressionLevelFull     DiffContextPacksByIdOKChangedItemOldCompressionLevel = "full"
+	DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary  DiffContextPacksByIdOKChangedItemOldCompressionLevel = "summary"
+	DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords DiffContextPacksByIdOKChangedItemOldCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByIdOKChangedItemOldCompressionLevel values.
+func (DiffContextPacksByIdOKChangedItemOldCompressionLevel) AllValues() []DiffContextPacksByIdOKChangedItemOldCompressionLevel {
+	return []DiffContextPacksByIdOKChangedItemOldCompressionLevel{
+		DiffContextPacksByIdOKChangedItemOldCompressionLevelFull,
+		DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary,
+		DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKChangedItemOldCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKChangedItemOldCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKChangedItemOldCompressionLevel(data) {
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelFull:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevelFull
+		return nil
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevelSummary
+		return nil
+	case DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKChangedItemOldCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdOKRemovedItem struct {
+	CompressionLevel DiffContextPacksByIdOKRemovedItemCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                            `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                         `json:"entryId"`
+	PackedTokens     NilInt                                            `json:"packedTokens"`
+	Rank             int                                               `json:"rank"`
+	Title            NilString                                         `json:"title"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *DiffContextPacksByIdOKRemovedItem) GetCompressionLevel() DiffContextPacksByIdOKRemovedItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *DiffContextPacksByIdOKRemovedItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByIdOKRemovedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *DiffContextPacksByIdOKRemovedItem) GetPackedTokens() NilInt {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByIdOKRemovedItem) GetRank() int {
+	return s.Rank
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByIdOKRemovedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *DiffContextPacksByIdOKRemovedItem) SetCompressionLevel(val DiffContextPacksByIdOKRemovedItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *DiffContextPacksByIdOKRemovedItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByIdOKRemovedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *DiffContextPacksByIdOKRemovedItem) SetPackedTokens(val NilInt) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByIdOKRemovedItem) SetRank(val int) {
+	s.Rank = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByIdOKRemovedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+type DiffContextPacksByIdOKRemovedItemCompressionLevel string
+
+const (
+	DiffContextPacksByIdOKRemovedItemCompressionLevelFull     DiffContextPacksByIdOKRemovedItemCompressionLevel = "full"
+	DiffContextPacksByIdOKRemovedItemCompressionLevelSummary  DiffContextPacksByIdOKRemovedItemCompressionLevel = "summary"
+	DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords DiffContextPacksByIdOKRemovedItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByIdOKRemovedItemCompressionLevel values.
+func (DiffContextPacksByIdOKRemovedItemCompressionLevel) AllValues() []DiffContextPacksByIdOKRemovedItemCompressionLevel {
+	return []DiffContextPacksByIdOKRemovedItemCompressionLevel{
+		DiffContextPacksByIdOKRemovedItemCompressionLevelFull,
+		DiffContextPacksByIdOKRemovedItemCompressionLevelSummary,
+		DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKRemovedItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKRemovedItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKRemovedItemCompressionLevel(data) {
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelFull:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevelFull
+		return nil
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevelSummary
+		return nil
+	case DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKRemovedItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdOKReorderedItem struct {
+	CompressionLevel DiffContextPacksByIdOKReorderedItemCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                              `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                           `json:"entryId"`
+	NewRank          int                                                 `json:"newRank"`
+	OldRank          int                                                 `json:"oldRank"`
+	PackedTokens     NilInt                                              `json:"packedTokens"`
+	Title            NilString                                           `json:"title"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *DiffContextPacksByIdOKReorderedItem) GetCompressionLevel() DiffContextPacksByIdOKReorderedItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *DiffContextPacksByIdOKReorderedItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *DiffContextPacksByIdOKReorderedItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetNewRank returns the value of NewRank.
+func (s *DiffContextPacksByIdOKReorderedItem) GetNewRank() int {
+	return s.NewRank
+}
+
+// GetOldRank returns the value of OldRank.
+func (s *DiffContextPacksByIdOKReorderedItem) GetOldRank() int {
+	return s.OldRank
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *DiffContextPacksByIdOKReorderedItem) GetPackedTokens() NilInt {
+	return s.PackedTokens
+}
+
+// GetTitle returns the value of Title.
+func (s *DiffContextPacksByIdOKReorderedItem) GetTitle() NilString {
+	return s.Title
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *DiffContextPacksByIdOKReorderedItem) SetCompressionLevel(val DiffContextPacksByIdOKReorderedItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *DiffContextPacksByIdOKReorderedItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *DiffContextPacksByIdOKReorderedItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetNewRank sets the value of NewRank.
+func (s *DiffContextPacksByIdOKReorderedItem) SetNewRank(val int) {
+	s.NewRank = val
+}
+
+// SetOldRank sets the value of OldRank.
+func (s *DiffContextPacksByIdOKReorderedItem) SetOldRank(val int) {
+	s.OldRank = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *DiffContextPacksByIdOKReorderedItem) SetPackedTokens(val NilInt) {
+	s.PackedTokens = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiffContextPacksByIdOKReorderedItem) SetTitle(val NilString) {
+	s.Title = val
+}
+
+type DiffContextPacksByIdOKReorderedItemCompressionLevel string
+
+const (
+	DiffContextPacksByIdOKReorderedItemCompressionLevelFull     DiffContextPacksByIdOKReorderedItemCompressionLevel = "full"
+	DiffContextPacksByIdOKReorderedItemCompressionLevelSummary  DiffContextPacksByIdOKReorderedItemCompressionLevel = "summary"
+	DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords DiffContextPacksByIdOKReorderedItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all DiffContextPacksByIdOKReorderedItemCompressionLevel values.
+func (DiffContextPacksByIdOKReorderedItemCompressionLevel) AllValues() []DiffContextPacksByIdOKReorderedItemCompressionLevel {
+	return []DiffContextPacksByIdOKReorderedItemCompressionLevel{
+		DiffContextPacksByIdOKReorderedItemCompressionLevelFull,
+		DiffContextPacksByIdOKReorderedItemCompressionLevelSummary,
+		DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKReorderedItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelFull:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelSummary:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKReorderedItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKReorderedItemCompressionLevel(data) {
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelFull:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevelFull
+		return nil
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelSummary:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevelSummary
+		return nil
+	case DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords:
+		*s = DiffContextPacksByIdOKReorderedItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdOKStats struct {
+	AddedCount     int                              `json:"addedCount"`
+	ChangedCount   int                              `json:"changedCount"`
+	PackA          DiffContextPacksByIdOKStatsPackA `json:"packA"`
+	PackB          DiffContextPacksByIdOKStatsPackB `json:"packB"`
+	RemovedCount   int                              `json:"removedCount"`
+	ReorderedCount int                              `json:"reorderedCount"`
+	TokenDelta     int                              `json:"tokenDelta"`
+}
+
+// GetAddedCount returns the value of AddedCount.
+func (s *DiffContextPacksByIdOKStats) GetAddedCount() int {
+	return s.AddedCount
+}
+
+// GetChangedCount returns the value of ChangedCount.
+func (s *DiffContextPacksByIdOKStats) GetChangedCount() int {
+	return s.ChangedCount
+}
+
+// GetPackA returns the value of PackA.
+func (s *DiffContextPacksByIdOKStats) GetPackA() DiffContextPacksByIdOKStatsPackA {
+	return s.PackA
+}
+
+// GetPackB returns the value of PackB.
+func (s *DiffContextPacksByIdOKStats) GetPackB() DiffContextPacksByIdOKStatsPackB {
+	return s.PackB
+}
+
+// GetRemovedCount returns the value of RemovedCount.
+func (s *DiffContextPacksByIdOKStats) GetRemovedCount() int {
+	return s.RemovedCount
+}
+
+// GetReorderedCount returns the value of ReorderedCount.
+func (s *DiffContextPacksByIdOKStats) GetReorderedCount() int {
+	return s.ReorderedCount
+}
+
+// GetTokenDelta returns the value of TokenDelta.
+func (s *DiffContextPacksByIdOKStats) GetTokenDelta() int {
+	return s.TokenDelta
+}
+
+// SetAddedCount sets the value of AddedCount.
+func (s *DiffContextPacksByIdOKStats) SetAddedCount(val int) {
+	s.AddedCount = val
+}
+
+// SetChangedCount sets the value of ChangedCount.
+func (s *DiffContextPacksByIdOKStats) SetChangedCount(val int) {
+	s.ChangedCount = val
+}
+
+// SetPackA sets the value of PackA.
+func (s *DiffContextPacksByIdOKStats) SetPackA(val DiffContextPacksByIdOKStatsPackA) {
+	s.PackA = val
+}
+
+// SetPackB sets the value of PackB.
+func (s *DiffContextPacksByIdOKStats) SetPackB(val DiffContextPacksByIdOKStatsPackB) {
+	s.PackB = val
+}
+
+// SetRemovedCount sets the value of RemovedCount.
+func (s *DiffContextPacksByIdOKStats) SetRemovedCount(val int) {
+	s.RemovedCount = val
+}
+
+// SetReorderedCount sets the value of ReorderedCount.
+func (s *DiffContextPacksByIdOKStats) SetReorderedCount(val int) {
+	s.ReorderedCount = val
+}
+
+// SetTokenDelta sets the value of TokenDelta.
+func (s *DiffContextPacksByIdOKStats) SetTokenDelta(val int) {
+	s.TokenDelta = val
+}
+
+type DiffContextPacksByIdOKStatsPackA struct {
+	CreatedAt   time.Time                                `json:"createdAt"`
+	ID          uuid.UUID                                `json:"id"`
+	PackCid     string                                   `json:"packCid"`
+	PackType    DiffContextPacksByIdOKStatsPackAPackType `json:"packType"`
+	TotalTokens NilInt                                   `json:"totalTokens"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiffContextPacksByIdOKStatsPackA) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *DiffContextPacksByIdOKStatsPackA) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *DiffContextPacksByIdOKStatsPackA) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackType returns the value of PackType.
+func (s *DiffContextPacksByIdOKStatsPackA) GetPackType() DiffContextPacksByIdOKStatsPackAPackType {
+	return s.PackType
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *DiffContextPacksByIdOKStatsPackA) GetTotalTokens() NilInt {
+	return s.TotalTokens
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiffContextPacksByIdOKStatsPackA) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *DiffContextPacksByIdOKStatsPackA) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *DiffContextPacksByIdOKStatsPackA) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *DiffContextPacksByIdOKStatsPackA) SetPackType(val DiffContextPacksByIdOKStatsPackAPackType) {
+	s.PackType = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *DiffContextPacksByIdOKStatsPackA) SetTotalTokens(val NilInt) {
+	s.TotalTokens = val
+}
+
+type DiffContextPacksByIdOKStatsPackAPackType string
+
+const (
+	DiffContextPacksByIdOKStatsPackAPackTypeCompile   DiffContextPacksByIdOKStatsPackAPackType = "compile"
+	DiffContextPacksByIdOKStatsPackAPackTypeOptimized DiffContextPacksByIdOKStatsPackAPackType = "optimized"
+	DiffContextPacksByIdOKStatsPackAPackTypeCustom    DiffContextPacksByIdOKStatsPackAPackType = "custom"
+)
+
+// AllValues returns all DiffContextPacksByIdOKStatsPackAPackType values.
+func (DiffContextPacksByIdOKStatsPackAPackType) AllValues() []DiffContextPacksByIdOKStatsPackAPackType {
+	return []DiffContextPacksByIdOKStatsPackAPackType{
+		DiffContextPacksByIdOKStatsPackAPackTypeCompile,
+		DiffContextPacksByIdOKStatsPackAPackTypeOptimized,
+		DiffContextPacksByIdOKStatsPackAPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKStatsPackAPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKStatsPackAPackTypeCompile:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKStatsPackAPackTypeOptimized:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKStatsPackAPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKStatsPackAPackType) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKStatsPackAPackType(data) {
+	case DiffContextPacksByIdOKStatsPackAPackTypeCompile:
+		*s = DiffContextPacksByIdOKStatsPackAPackTypeCompile
+		return nil
+	case DiffContextPacksByIdOKStatsPackAPackTypeOptimized:
+		*s = DiffContextPacksByIdOKStatsPackAPackTypeOptimized
+		return nil
+	case DiffContextPacksByIdOKStatsPackAPackTypeCustom:
+		*s = DiffContextPacksByIdOKStatsPackAPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdOKStatsPackB struct {
+	CreatedAt   time.Time                                `json:"createdAt"`
+	ID          uuid.UUID                                `json:"id"`
+	PackCid     string                                   `json:"packCid"`
+	PackType    DiffContextPacksByIdOKStatsPackBPackType `json:"packType"`
+	TotalTokens NilInt                                   `json:"totalTokens"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiffContextPacksByIdOKStatsPackB) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *DiffContextPacksByIdOKStatsPackB) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *DiffContextPacksByIdOKStatsPackB) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackType returns the value of PackType.
+func (s *DiffContextPacksByIdOKStatsPackB) GetPackType() DiffContextPacksByIdOKStatsPackBPackType {
+	return s.PackType
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *DiffContextPacksByIdOKStatsPackB) GetTotalTokens() NilInt {
+	return s.TotalTokens
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiffContextPacksByIdOKStatsPackB) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *DiffContextPacksByIdOKStatsPackB) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *DiffContextPacksByIdOKStatsPackB) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *DiffContextPacksByIdOKStatsPackB) SetPackType(val DiffContextPacksByIdOKStatsPackBPackType) {
+	s.PackType = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *DiffContextPacksByIdOKStatsPackB) SetTotalTokens(val NilInt) {
+	s.TotalTokens = val
+}
+
+type DiffContextPacksByIdOKStatsPackBPackType string
+
+const (
+	DiffContextPacksByIdOKStatsPackBPackTypeCompile   DiffContextPacksByIdOKStatsPackBPackType = "compile"
+	DiffContextPacksByIdOKStatsPackBPackTypeOptimized DiffContextPacksByIdOKStatsPackBPackType = "optimized"
+	DiffContextPacksByIdOKStatsPackBPackTypeCustom    DiffContextPacksByIdOKStatsPackBPackType = "custom"
+)
+
+// AllValues returns all DiffContextPacksByIdOKStatsPackBPackType values.
+func (DiffContextPacksByIdOKStatsPackBPackType) AllValues() []DiffContextPacksByIdOKStatsPackBPackType {
+	return []DiffContextPacksByIdOKStatsPackBPackType{
+		DiffContextPacksByIdOKStatsPackBPackTypeCompile,
+		DiffContextPacksByIdOKStatsPackBPackTypeOptimized,
+		DiffContextPacksByIdOKStatsPackBPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiffContextPacksByIdOKStatsPackBPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiffContextPacksByIdOKStatsPackBPackTypeCompile:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKStatsPackBPackTypeOptimized:
+		return []byte(s), nil
+	case DiffContextPacksByIdOKStatsPackBPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiffContextPacksByIdOKStatsPackBPackType) UnmarshalText(data []byte) error {
+	switch DiffContextPacksByIdOKStatsPackBPackType(data) {
+	case DiffContextPacksByIdOKStatsPackBPackTypeCompile:
+		*s = DiffContextPacksByIdOKStatsPackBPackTypeCompile
+		return nil
+	case DiffContextPacksByIdOKStatsPackBPackTypeOptimized:
+		*s = DiffContextPacksByIdOKStatsPackBPackTypeOptimized
+		return nil
+	case DiffContextPacksByIdOKStatsPackBPackTypeCustom:
+		*s = DiffContextPacksByIdOKStatsPackBPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiffContextPacksByIdUnauthorized ProblemDetails
+
+func (*DiffContextPacksByIdUnauthorized) diffContextPacksByIdRes() {}
+
 // Ref: #/components/schemas/Digest
 type Digest struct {
 	Entries      []DigestEntriesItem `json:"entries"`

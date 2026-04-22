@@ -31,6 +31,8 @@ import {
   deleteGroup,
   deleteTeam,
   deleteTeamInvite,
+  diffContextPacksByCid,
+  diffContextPacksById,
   getAgentProfile,
   getContextPackById,
   getContextPackProvenanceByCid,
@@ -166,6 +168,12 @@ import type {
   DeleteTeamInviteError,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
+  DiffContextPacksByCidData,
+  DiffContextPacksByCidError,
+  DiffContextPacksByCidResponse,
+  DiffContextPacksByIdData,
+  DiffContextPacksByIdError,
+  DiffContextPacksByIdResponse,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileResponse,
@@ -1240,6 +1248,62 @@ export const getContextPackProvenanceByCidOptions = (
       return data;
     },
     queryKey: getContextPackProvenanceByCidQueryKey(options),
+  });
+
+export const diffContextPacksByIdQueryKey = (
+  options: Options<DiffContextPacksByIdData>,
+) => createQueryKey('diffContextPacksById', options);
+
+/**
+ * Compare two context packs by ID. Both packs must belong to the same diary.
+ */
+export const diffContextPacksByIdOptions = (
+  options: Options<DiffContextPacksByIdData>,
+) =>
+  queryOptions<
+    DiffContextPacksByIdResponse,
+    DiffContextPacksByIdError,
+    DiffContextPacksByIdResponse,
+    ReturnType<typeof diffContextPacksByIdQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await diffContextPacksById({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: diffContextPacksByIdQueryKey(options),
+  });
+
+export const diffContextPacksByCidQueryKey = (
+  options: Options<DiffContextPacksByCidData>,
+) => createQueryKey('diffContextPacksByCid', options);
+
+/**
+ * Compare two context packs by CID. Both packs must belong to the same diary.
+ */
+export const diffContextPacksByCidOptions = (
+  options: Options<DiffContextPacksByCidData>,
+) =>
+  queryOptions<
+    DiffContextPacksByCidResponse,
+    DiffContextPacksByCidError,
+    DiffContextPacksByCidResponse,
+    ReturnType<typeof diffContextPacksByCidQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await diffContextPacksByCid({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: diffContextPacksByCidQueryKey(options),
   });
 
 export const listContextPacksQueryKey = (

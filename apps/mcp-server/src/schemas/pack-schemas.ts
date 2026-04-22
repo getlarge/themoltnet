@@ -1,13 +1,15 @@
 /**
  * Context pack MCP tool input schemas.
  *
- * Covers: packs_get/list/preview/create/provenance/update,
+ * Covers: packs_get/list/preview/create/provenance/update/diff,
  * rendered pack update, and render/render_preview.
  */
 
 import type {
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackResponses,
+  DiffContextPacksByCidResponses,
+  DiffContextPacksByIdResponses,
   GetContextPackByIdData,
   GetContextPackByIdResponses,
   GetContextPackProvenanceByCidData,
@@ -580,6 +582,99 @@ export const PackProvenanceOutputSchema = Type.Object({
   edges: Type.Array(ProvenanceEdgeSchema),
 });
 
+export const PackDiffSchema = Type.Object(
+  {
+    pack_id: Type.Optional(
+      Type.String({
+        description:
+          'Pack A UUID. Use with other_pack_id. Mutually exclusive with pack_cid/other_pack_cid.',
+      }),
+    ),
+    other_pack_id: Type.Optional(
+      Type.String({
+        description: 'Pack B UUID. Required when pack_id is provided.',
+      }),
+    ),
+    pack_cid: Type.Optional(
+      Type.String({
+        description:
+          'Pack A CID. Use with other_pack_cid. Mutually exclusive with pack_id/other_pack_id.',
+      }),
+    ),
+    other_pack_cid: Type.Optional(
+      Type.String({
+        description: 'Pack B CID. Required when pack_cid is provided.',
+      }),
+    ),
+  },
+  {
+    description:
+      'Identify both packs by UUID (pack_id + other_pack_id) or by CID (pack_cid + other_pack_cid). Provide exactly one pair — mixed identifier types are not supported.',
+  },
+);
+
+export type PackDiffInput = Static<typeof PackDiffSchema>;
+
+const PackDiffEntryBaseOutputSchema = Type.Object({
+  entryId: Type.String(),
+  title: Type.Union([Type.String(), Type.Null()]),
+  entryCidSnapshot: Type.String(),
+  compressionLevel: CompressionLevelSchema,
+  packedTokens: Type.Union([Type.Integer(), Type.Null()]),
+});
+
+const PackDiffPackMetaOutputSchema = Type.Object({
+  id: Type.String(),
+  packCid: Type.String(),
+  totalTokens: Type.Union([Type.Integer(), Type.Null()]),
+  packType: PackTypeSchema,
+  createdAt: Type.String(),
+});
+
+export const PackDiffOutputSchema = Type.Object({
+  added: Type.Array(
+    Type.Composite([
+      PackDiffEntryBaseOutputSchema,
+      Type.Object({ rank: Type.Integer() }),
+    ]),
+  ),
+  removed: Type.Array(
+    Type.Composite([
+      PackDiffEntryBaseOutputSchema,
+      Type.Object({ rank: Type.Integer() }),
+    ]),
+  ),
+  reordered: Type.Array(
+    Type.Composite([
+      PackDiffEntryBaseOutputSchema,
+      Type.Object({ oldRank: Type.Integer(), newRank: Type.Integer() }),
+    ]),
+  ),
+  changed: Type.Array(
+    Type.Object({
+      entryId: Type.String(),
+      rank: Type.Integer(),
+      title: Type.Union([Type.String(), Type.Null()]),
+      oldEntryCidSnapshot: Type.String(),
+      newEntryCidSnapshot: Type.String(),
+      oldCompressionLevel: CompressionLevelSchema,
+      newCompressionLevel: CompressionLevelSchema,
+      oldPackedTokens: Type.Union([Type.Integer(), Type.Null()]),
+      newPackedTokens: Type.Union([Type.Integer(), Type.Null()]),
+      tokenDelta: Type.Integer(),
+    }),
+  ),
+  stats: Type.Object({
+    addedCount: Type.Integer(),
+    removedCount: Type.Integer(),
+    reorderedCount: Type.Integer(),
+    changedCount: Type.Integer(),
+    tokenDelta: Type.Integer(),
+    packA: PackDiffPackMetaOutputSchema,
+    packB: PackDiffPackMetaOutputSchema,
+  }),
+});
+
 // --- Compile-time drift checks ---
 
 type _PackGetInputMatchesSchema = AssertSchemaToApi<
@@ -654,4 +749,12 @@ type _PackProvenanceByIdOutputMatchesApi = AssertOutputMatchesApi<
 type _PackProvenanceByCidOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof PackProvenanceOutputSchema>,
   ResponseOf<GetContextPackProvenanceByCidResponses>
+>;
+type _PackDiffByIdOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackDiffOutputSchema>,
+  ResponseOf<DiffContextPacksByIdResponses>
+>;
+type _PackDiffByCidOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof PackDiffOutputSchema>,
+  ResponseOf<DiffContextPacksByCidResponses>
 >;

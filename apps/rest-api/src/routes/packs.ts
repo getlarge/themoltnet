@@ -26,6 +26,9 @@ import {
   CustomPackResultSchema,
   PackCidParamsSchema,
   PackCollectionQuerySchema,
+  PackDiffByCidParamsSchema,
+  PackDiffParamsSchema,
+  PackDiffResultSchema,
   PackListQuerySchema,
   PackParamsSchema,
   PackProvenanceQuerySchema,
@@ -566,6 +569,84 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Failed to build pack provenance graph',
         );
         throw createProblem('internal', 'Failed to build pack provenance');
+      }
+    },
+  );
+
+  server.get(
+    '/packs/:id/diff/:otherId',
+    {
+      schema: {
+        operationId: 'diffContextPacksById',
+        tags: ['diary'],
+        description:
+          'Compare two context packs by ID. Both packs must belong to the same diary.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        params: PackDiffParamsSchema,
+        response: {
+          200: PackDiffResultSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      try {
+        return await fastify.contextPackService.diffPacks({
+          packAId: request.params.id,
+          packBId: request.params.otherId,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
+        throw err;
+      }
+    },
+  );
+
+  server.get(
+    '/packs/by-cid/:cid/diff/by-cid/:otherCid',
+    {
+      schema: {
+        operationId: 'diffContextPacksByCid',
+        tags: ['diary'],
+        description:
+          'Compare two context packs by CID. Both packs must belong to the same diary.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        params: PackDiffByCidParamsSchema,
+        response: {
+          200: PackDiffResultSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      try {
+        return await fastify.contextPackService.diffPacks({
+          packACid: request.params.cid,
+          packBCid: request.params.otherCid,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError)
+          return translatePackServiceError(err);
+        throw err;
       }
     },
   );

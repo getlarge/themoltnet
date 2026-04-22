@@ -229,6 +229,97 @@ export const PackCidParamsSchema = Type.Object({
   cid: Type.String(),
 });
 
+export const PackDiffParamsSchema = Type.Object({
+  id: Type.String({ format: 'uuid', description: 'Pack A UUID' }),
+  otherId: Type.String({ format: 'uuid', description: 'Pack B UUID' }),
+});
+
+export const PackDiffByCidParamsSchema = Type.Object({
+  cid: Type.String({ description: 'Pack A CID' }),
+  otherCid: Type.String({ description: 'Pack B CID' }),
+});
+
+const CompressionLevelSchema = Type.Union([
+  Type.Literal('full'),
+  Type.Literal('summary'),
+  Type.Literal('keywords'),
+]);
+
+const PackTypeSchema = Type.Union([
+  Type.Literal('compile'),
+  Type.Literal('optimized'),
+  Type.Literal('custom'),
+]);
+
+const PackDiffEntryBaseSchema = Type.Object({
+  entryId: Type.String({ format: 'uuid' }),
+  title: Type.Union([Type.String(), Type.Null()]),
+  entryCidSnapshot: Type.String(),
+  compressionLevel: CompressionLevelSchema,
+  packedTokens: Type.Union([Type.Integer(), Type.Null()]),
+});
+
+const PackDiffAddedEntrySchema = Type.Composite([
+  PackDiffEntryBaseSchema,
+  Type.Object({ rank: Type.Integer() }),
+]);
+
+const PackDiffRemovedEntrySchema = Type.Composite([
+  PackDiffEntryBaseSchema,
+  Type.Object({ rank: Type.Integer() }),
+]);
+
+const PackDiffReorderedEntrySchema = Type.Composite([
+  PackDiffEntryBaseSchema,
+  Type.Object({
+    oldRank: Type.Integer(),
+    newRank: Type.Integer(),
+  }),
+]);
+
+const PackDiffChangedEntrySchema = Type.Object({
+  entryId: Type.String({ format: 'uuid' }),
+  rank: Type.Integer({ description: 'Rank in packB' }),
+  title: Type.Union([Type.String(), Type.Null()]),
+  oldEntryCidSnapshot: Type.String(),
+  newEntryCidSnapshot: Type.String(),
+  oldCompressionLevel: CompressionLevelSchema,
+  newCompressionLevel: CompressionLevelSchema,
+  oldPackedTokens: Type.Union([Type.Integer(), Type.Null()]),
+  newPackedTokens: Type.Union([Type.Integer(), Type.Null()]),
+  tokenDelta: Type.Integer(),
+});
+
+const PackDiffPackMetaSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  packCid: Type.String(),
+  totalTokens: Type.Union([Type.Integer(), Type.Null()]),
+  packType: PackTypeSchema,
+  createdAt: Type.Unsafe<Date | string>({
+    type: 'string',
+    format: 'date-time',
+  }),
+});
+
+export const PackDiffResultSchema = Type.Object(
+  {
+    added: Type.Array(PackDiffAddedEntrySchema),
+    removed: Type.Array(PackDiffRemovedEntrySchema),
+    reordered: Type.Array(PackDiffReorderedEntrySchema),
+    changed: Type.Array(PackDiffChangedEntrySchema),
+    stats: Type.Object({
+      addedCount: Type.Integer(),
+      removedCount: Type.Integer(),
+      reorderedCount: Type.Integer(),
+      changedCount: Type.Integer(),
+      tokenDelta: Type.Integer(),
+      packA: PackDiffPackMetaSchema,
+      packB: PackDiffPackMetaSchema,
+    }),
+  },
+  { $id: 'PackDiffResult' },
+);
+
 export const PackProvenanceQuerySchema = Type.Object({
   depth: Type.Optional(Type.Integer({ minimum: 0, maximum: 10 })),
 });

@@ -368,6 +368,93 @@ export function createContextPackRepository(db: Database) {
       };
     },
 
+    async diffPacks(packAId: string, packBId: string): Promise<PackDiffRow[]> {
+      const result = await getExecutor(db).execute(sql`
+        WITH
+          a AS (
+            SELECT cpe.entry_id, cpe.rank, cpe.entry_cid_snapshot, cpe.compression_level,
+                   cpe.packed_tokens, de.title
+            FROM context_pack_entries cpe
+            LEFT JOIN diary_entries de ON de.id = cpe.entry_id
+            WHERE cpe.pack_id = ${packAId}
+          ),
+          b AS (
+            SELECT cpe.entry_id, cpe.rank, cpe.entry_cid_snapshot, cpe.compression_level,
+                   cpe.packed_tokens, de.title
+            FROM context_pack_entries cpe
+            LEFT JOIN diary_entries de ON de.id = cpe.entry_id
+            WHERE cpe.pack_id = ${packBId}
+          ),
+          joined AS (
+            SELECT
+              COALESCE(a.entry_id, b.entry_id) AS entry_id,
+              COALESCE(a.title, b.title)        AS title,
+              a.rank                            AS rank_a,
+              b.rank                            AS rank_b,
+              a.entry_cid_snapshot              AS cid_a,
+              b.entry_cid_snapshot              AS cid_b,
+              a.compression_level               AS compression_a,
+              b.compression_level               AS compression_b,
+              a.packed_tokens                   AS tokens_a,
+              b.packed_tokens                   AS tokens_b
+            FROM a
+            FULL OUTER JOIN b USING (entry_id)
+          )
+        SELECT
+          entry_id,
+          title,
+          CASE
+            WHEN rank_a IS NULL THEN 'added'
+            WHEN rank_b IS NULL THEN 'removed'
+            WHEN cid_a IS DISTINCT FROM cid_b OR compression_a IS DISTINCT FROM compression_b OR tokens_a IS DISTINCT FROM tokens_b THEN 'changed'
+            WHEN rank_a IS DISTINCT FROM rank_b THEN 'reordered'
+          END AS kind,
+          rank_a,
+          rank_b,
+          cid_a,
+          cid_b,
+          compression_a,
+          compression_b,
+          tokens_a,
+          tokens_b
+        FROM joined
+        WHERE
+          rank_a IS DISTINCT FROM rank_b
+          OR cid_a IS DISTINCT FROM cid_b
+          OR compression_a IS DISTINCT FROM compression_b
+          OR tokens_a IS DISTINCT FROM tokens_b
+        ORDER BY COALESCE(rank_b, rank_a)
+      `);
+
+      return result.rows.map((row) => ({
+        entryId: row['entry_id'] as string,
+        title: (row['title'] as string | null) ?? null,
+        kind: row['kind'] as 'added' | 'removed' | 'reordered' | 'changed',
+        rankA:
+          row['rank_a'] !== null && row['rank_a'] !== undefined
+            ? Number(row['rank_a'])
+            : null,
+        rankB:
+          row['rank_b'] !== null && row['rank_b'] !== undefined
+            ? Number(row['rank_b'])
+            : null,
+        cidA: (row['cid_a'] as string | null) ?? null,
+        cidB: (row['cid_b'] as string | null) ?? null,
+        compressionA:
+          (row['compression_a'] as PackDiffCompressionLevel | null) ?? null,
+        compressionB:
+          (row['compression_b'] as PackDiffCompressionLevel | null) ?? null,
+        tokensA:
+          row['tokens_a'] !== null && row['tokens_a'] !== undefined
+            ? Number(row['tokens_a'])
+            : null,
+        tokensB:
+          row['tokens_b'] !== null && row['tokens_b'] !== undefined
+            ? Number(row['tokens_b'])
+            : null,
+      }));
+    },
+
     async findByEntryId(
       entryId: string,
       opts: { diaryId?: string; limit?: number; offset?: number } = {},
@@ -438,4 +525,20 @@ export interface ContextPackWithCreator extends ContextPack {
     fingerprint: string;
     publicKey: string;
   } | null;
+}
+
+export type PackDiffCompressionLevel = 'full' | 'summary' | 'keywords';
+
+export interface PackDiffRow {
+  entryId: string;
+  title: string | null;
+  kind: 'added' | 'removed' | 'reordered' | 'changed';
+  rankA: number | null;
+  rankB: number | null;
+  cidA: string | null;
+  cidB: string | null;
+  compressionA: PackDiffCompressionLevel | null;
+  compressionB: PackDiffCompressionLevel | null;
+  tokensA: number | null;
+  tokensB: number | null;
 }

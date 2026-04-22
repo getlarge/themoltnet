@@ -7,6 +7,8 @@
 
 import {
   createDiaryCustomPack,
+  diffContextPacksByCid,
+  diffContextPacksById,
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
@@ -22,6 +24,7 @@ import type { FastifyInstance } from 'fastify';
 
 import type {
   PackCreateInput,
+  PackDiffInput,
   PackGetInput,
   PackListInput,
   PackPreviewInput,
@@ -34,6 +37,8 @@ import type {
 import {
   PackCreateOutputSchema,
   PackCreateSchema,
+  PackDiffOutputSchema,
+  PackDiffSchema,
   PackGetOutputSchema,
   PackGetSchema,
   PackListOutputSchema,
@@ -402,6 +407,47 @@ export async function handlePacksRenderPreview(
   return structuredResult(data);
 }
 
+export async function handlePacksDiff(
+  args: PackDiffInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'packs_diff' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  if (args.pack_id !== undefined) {
+    if (!args.other_pack_id)
+      return errorResult('other_pack_id is required when pack_id is provided');
+    const { data, error } = await diffContextPacksById({
+      client: deps.client,
+      auth: () => token,
+      path: { id: args.pack_id, otherId: args.other_pack_id },
+    });
+    if (error || !data) {
+      deps.logger.error({ tool: 'packs_diff', err: error }, 'tool.error');
+      return errorResult(extractApiErrorMessage(error, 'Pack diff failed'));
+    }
+    return structuredResult(data);
+  }
+
+  if (!args.pack_cid || !args.other_pack_cid) {
+    return errorResult(
+      'Provide pack_id + other_pack_id (UUIDs) or pack_cid + other_pack_cid (CIDs)',
+    );
+  }
+  const { data, error } = await diffContextPacksByCid({
+    client: deps.client,
+    auth: () => token,
+    path: { cid: args.pack_cid, otherCid: args.other_pack_cid },
+  });
+  if (error || !data) {
+    deps.logger.error({ tool: 'packs_diff', err: error }, 'tool.error');
+    return errorResult(extractApiErrorMessage(error, 'Pack diff failed'));
+  }
+  return structuredResult(data);
+}
+
 // --- Tool registration ---
 
 export function registerPackTools(
@@ -510,5 +556,19 @@ export function registerPackTools(
       outputSchema: PackProvenanceOutputSchema,
     },
     async (args, ctx) => handlePacksProvenance(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'packs_diff',
+      description:
+        'Compare two context packs from the same diary. ' +
+        'Returns added, removed, reordered, and changed entries with token-level stats. ' +
+        'Identify packs by UUID (pack_id/other_pack_id) or CID (pack_cid/other_pack_cid). ' +
+        'Provide one identifier per pack. If both IDs and CIDs are given, IDs take priority.',
+      inputSchema: PackDiffSchema,
+      outputSchema: PackDiffOutputSchema,
+    },
+    async (args, ctx) => handlePacksDiff(args, deps, ctx), // cast: mcpAddTool types args as `any`
   );
 }
