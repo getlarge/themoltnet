@@ -137,6 +137,18 @@ type Handler interface {
 	//
 	// DELETE /teams/{id}/invites/{inviteId}
 	DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (DeleteTeamInviteRes, error)
+	// DiffContextPacksByCid implements diffContextPacksByCid operation.
+	//
+	// Compare two context packs by CID. Both packs must belong to the same diary.
+	//
+	// GET /packs/by-cid/{cid}/diff/by-cid/{otherCid}
+	DiffContextPacksByCid(ctx context.Context, params DiffContextPacksByCidParams) (DiffContextPacksByCidRes, error)
+	// DiffContextPacksById implements diffContextPacksById operation.
+	//
+	// Compare two context packs by ID. Both packs must belong to the same diary.
+	//
+	// GET /packs/{id}/diff/{otherId}
+	DiffContextPacksById(ctx context.Context, params DiffContextPacksByIdParams) (DiffContextPacksByIdRes, error)
 	// GetAgentProfile implements getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).

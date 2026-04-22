@@ -205,6 +205,24 @@ func (UnimplementedHandler) DeleteTeamInvite(ctx context.Context, params DeleteT
 	return r, ht.ErrNotImplemented
 }
 
+// DiffContextPacksByCid implements diffContextPacksByCid operation.
+//
+// Compare two context packs by CID. Both packs must belong to the same diary.
+//
+// GET /packs/by-cid/{cid}/diff/by-cid/{otherCid}
+func (UnimplementedHandler) DiffContextPacksByCid(ctx context.Context, params DiffContextPacksByCidParams) (r DiffContextPacksByCidRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DiffContextPacksById implements diffContextPacksById operation.
+//
+// Compare two context packs by ID. Both packs must belong to the same diary.
+//
+// GET /packs/{id}/diff/{otherId}
+func (UnimplementedHandler) DiffContextPacksById(ctx context.Context, params DiffContextPacksByIdParams) (r DiffContextPacksByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetAgentProfile implements getAgentProfile operation.
 //
 // Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).

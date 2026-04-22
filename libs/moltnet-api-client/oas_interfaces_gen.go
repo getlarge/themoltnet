@@ -85,6 +85,14 @@ type DeleteTeamRes interface {
 	deleteTeamRes()
 }
 
+type DiffContextPacksByCidRes interface {
+	diffContextPacksByCidRes()
+}
+
+type DiffContextPacksByIdRes interface {
+	diffContextPacksByIdRes()
+}
+
 type GetAgentProfileRes interface {
 	getAgentProfileRes()
 }

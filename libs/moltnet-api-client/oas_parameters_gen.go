@@ -1363,6 +1363,246 @@ func decodeDeleteTeamInviteParams(args [2]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// DiffContextPacksByCidParams is parameters of diffContextPacksByCid operation.
+type DiffContextPacksByCidParams struct {
+	// Pack A CID.
+	Cid string
+	// Pack B CID.
+	OtherCid string
+}
+
+func unpackDiffContextPacksByCidParams(packed middleware.Parameters) (params DiffContextPacksByCidParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "cid",
+			In:   "path",
+		}
+		params.Cid = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "otherCid",
+			In:   "path",
+		}
+		params.OtherCid = packed[key].(string)
+	}
+	return params
+}
+
+func decodeDiffContextPacksByCidParams(args [2]string, argsEscaped bool, r *http.Request) (params DiffContextPacksByCidParams, _ error) {
+	// Decode path: cid.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "cid",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Cid = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "cid",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: otherCid.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "otherCid",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.OtherCid = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "otherCid",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DiffContextPacksByIdParams is parameters of diffContextPacksById operation.
+type DiffContextPacksByIdParams struct {
+	// Pack A UUID.
+	ID uuid.UUID
+	// Pack B UUID.
+	OtherId uuid.UUID
+}
+
+func unpackDiffContextPacksByIdParams(packed middleware.Parameters) (params DiffContextPacksByIdParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "otherId",
+			In:   "path",
+		}
+		params.OtherId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDiffContextPacksByIdParams(args [2]string, argsEscaped bool, r *http.Request) (params DiffContextPacksByIdParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: otherId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "otherId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.OtherId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "otherId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetAgentProfileParams is parameters of getAgentProfile operation.
 type GetAgentProfileParams struct {
 	Fingerprint string

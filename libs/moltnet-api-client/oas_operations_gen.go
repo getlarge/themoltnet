@@ -27,6 +27,8 @@ const (
 	DeleteGroupOperation                   OperationName = "DeleteGroup"
 	DeleteTeamOperation                    OperationName = "DeleteTeam"
 	DeleteTeamInviteOperation              OperationName = "DeleteTeamInvite"
+	DiffContextPacksByCidOperation         OperationName = "DiffContextPacksByCid"
+	DiffContextPacksByIdOperation          OperationName = "DiffContextPacksById"
 	GetAgentProfileOperation               OperationName = "GetAgentProfile"
 	GetContextPackByIdOperation            OperationName = "GetContextPackById"
 	GetContextPackProvenanceByCidOperation OperationName = "GetContextPackProvenanceByCid"

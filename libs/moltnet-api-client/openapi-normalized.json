@@ -8127,6 +8127,381 @@
         "tags": ["diary"]
       }
     },
+    "/packs/by-cid/{cid}/diff/by-cid/{otherCid}": {
+      "get": {
+        "description": "Compare two context packs by CID. Both packs must belong to the same diary.",
+        "operationId": "diffContextPacksByCid",
+        "parameters": [
+          {
+            "description": "Pack A CID",
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pack B CID",
+            "in": "path",
+            "name": "otherCid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "added": {
+                      "items": {
+                        "properties": {
+                          "compressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "entryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "packedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "rank": {
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "title",
+                          "entryCidSnapshot",
+                          "compressionLevel",
+                          "packedTokens",
+                          "rank"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "changed": {
+                      "items": {
+                        "properties": {
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "newCompressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "newEntryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "newPackedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "oldCompressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "oldEntryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "oldPackedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "rank": {
+                            "description": "Rank in packB",
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "tokenDelta": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "rank",
+                          "title",
+                          "oldEntryCidSnapshot",
+                          "newEntryCidSnapshot",
+                          "oldCompressionLevel",
+                          "newCompressionLevel",
+                          "oldPackedTokens",
+                          "newPackedTokens",
+                          "tokenDelta"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "removed": {
+                      "items": {
+                        "properties": {
+                          "compressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "entryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "packedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "rank": {
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "title",
+                          "entryCidSnapshot",
+                          "compressionLevel",
+                          "packedTokens",
+                          "rank"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "reordered": {
+                      "items": {
+                        "properties": {
+                          "compressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "entryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "newRank": {
+                            "type": "integer"
+                          },
+                          "oldRank": {
+                            "type": "integer"
+                          },
+                          "packedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "title",
+                          "entryCidSnapshot",
+                          "compressionLevel",
+                          "packedTokens",
+                          "oldRank",
+                          "newRank"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "stats": {
+                      "properties": {
+                        "addedCount": {
+                          "type": "integer"
+                        },
+                        "changedCount": {
+                          "type": "integer"
+                        },
+                        "packA": {
+                          "properties": {
+                            "createdAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "id": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "packCid": {
+                              "type": "string"
+                            },
+                            "packType": {
+                              "enum": ["compile", "optimized", "custom"],
+                              "type": "string"
+                            },
+                            "totalTokens": {
+                              "nullable": true,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "packCid",
+                            "totalTokens",
+                            "packType",
+                            "createdAt"
+                          ],
+                          "type": "object"
+                        },
+                        "packB": {
+                          "properties": {
+                            "createdAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "id": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "packCid": {
+                              "type": "string"
+                            },
+                            "packType": {
+                              "enum": ["compile", "optimized", "custom"],
+                              "type": "string"
+                            },
+                            "totalTokens": {
+                              "nullable": true,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "packCid",
+                            "totalTokens",
+                            "packType",
+                            "createdAt"
+                          ],
+                          "type": "object"
+                        },
+                        "removedCount": {
+                          "type": "integer"
+                        },
+                        "reorderedCount": {
+                          "type": "integer"
+                        },
+                        "tokenDelta": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "addedCount",
+                        "removedCount",
+                        "reorderedCount",
+                        "changedCount",
+                        "tokenDelta",
+                        "packA",
+                        "packB"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "added",
+                    "removed",
+                    "reordered",
+                    "changed",
+                    "stats"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
     "/packs/by-cid/{cid}/provenance": {
       "get": {
         "description": "Export the provenance graph for a persisted context pack by CID.",
@@ -8503,6 +8878,383 @@
             "description": "Default Response"
           },
           "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/packs/{id}/diff/{otherId}": {
+      "get": {
+        "description": "Compare two context packs by ID. Both packs must belong to the same diary.",
+        "operationId": "diffContextPacksById",
+        "parameters": [
+          {
+            "description": "Pack A UUID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pack B UUID",
+            "in": "path",
+            "name": "otherId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "added": {
+                      "items": {
+                        "properties": {
+                          "compressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "entryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "packedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "rank": {
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "title",
+                          "entryCidSnapshot",
+                          "compressionLevel",
+                          "packedTokens",
+                          "rank"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "changed": {
+                      "items": {
+                        "properties": {
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "newCompressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "newEntryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "newPackedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "oldCompressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "oldEntryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "oldPackedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "rank": {
+                            "description": "Rank in packB",
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "tokenDelta": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "rank",
+                          "title",
+                          "oldEntryCidSnapshot",
+                          "newEntryCidSnapshot",
+                          "oldCompressionLevel",
+                          "newCompressionLevel",
+                          "oldPackedTokens",
+                          "newPackedTokens",
+                          "tokenDelta"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "removed": {
+                      "items": {
+                        "properties": {
+                          "compressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "entryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "packedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "rank": {
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "title",
+                          "entryCidSnapshot",
+                          "compressionLevel",
+                          "packedTokens",
+                          "rank"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "reordered": {
+                      "items": {
+                        "properties": {
+                          "compressionLevel": {
+                            "enum": ["full", "summary", "keywords"],
+                            "type": "string"
+                          },
+                          "entryCidSnapshot": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "newRank": {
+                            "type": "integer"
+                          },
+                          "oldRank": {
+                            "type": "integer"
+                          },
+                          "packedTokens": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entryId",
+                          "title",
+                          "entryCidSnapshot",
+                          "compressionLevel",
+                          "packedTokens",
+                          "oldRank",
+                          "newRank"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "stats": {
+                      "properties": {
+                        "addedCount": {
+                          "type": "integer"
+                        },
+                        "changedCount": {
+                          "type": "integer"
+                        },
+                        "packA": {
+                          "properties": {
+                            "createdAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "id": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "packCid": {
+                              "type": "string"
+                            },
+                            "packType": {
+                              "enum": ["compile", "optimized", "custom"],
+                              "type": "string"
+                            },
+                            "totalTokens": {
+                              "nullable": true,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "packCid",
+                            "totalTokens",
+                            "packType",
+                            "createdAt"
+                          ],
+                          "type": "object"
+                        },
+                        "packB": {
+                          "properties": {
+                            "createdAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "id": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "packCid": {
+                              "type": "string"
+                            },
+                            "packType": {
+                              "enum": ["compile", "optimized", "custom"],
+                              "type": "string"
+                            },
+                            "totalTokens": {
+                              "nullable": true,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "packCid",
+                            "totalTokens",
+                            "packType",
+                            "createdAt"
+                          ],
+                          "type": "object"
+                        },
+                        "removedCount": {
+                          "type": "integer"
+                        },
+                        "reorderedCount": {
+                          "type": "integer"
+                        },
+                        "tokenDelta": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "addedCount",
+                        "removedCount",
+                        "reorderedCount",
+                        "changedCount",
+                        "tokenDelta",
+                        "packA",
+                        "packB"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "added",
+                    "removed",
+                    "reordered",
+                    "changed",
+                    "stats"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
