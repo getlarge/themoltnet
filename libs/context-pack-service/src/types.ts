@@ -3,8 +3,12 @@ import type { CompressionLevel } from '@moltnet/crypto-service';
 import type {
   ContextPackWithCreator,
   ExpandedPackEntry,
+  PackDiffCompressionLevel,
+  PackDiffRow,
   RenderedPack,
 } from '@moltnet/database';
+
+export type { PackDiffCompressionLevel, PackDiffRow };
 
 export interface SelectedEntry {
   entryId: string;
@@ -166,4 +170,74 @@ export interface GetPackForProvenanceInput {
   actor: PackActor;
   packId?: string;
   packCid?: string;
+}
+
+export type PackType = 'compile' | 'optimized' | 'custom';
+
+export interface PackDiffEntryBase {
+  entryId: string;
+  title: string | null;
+  entryCidSnapshot: string;
+  compressionLevel: PackDiffCompressionLevel;
+  packedTokens: number | null;
+}
+
+export interface PackDiffAddedEntry extends PackDiffEntryBase {
+  rank: number;
+}
+
+export interface PackDiffRemovedEntry extends PackDiffEntryBase {
+  rank: number;
+}
+
+export interface PackDiffReorderedEntry extends PackDiffEntryBase {
+  oldRank: number;
+  newRank: number;
+}
+
+export interface PackDiffChangedEntry {
+  entryId: string;
+  rank: number;
+  title: string | null;
+  oldEntryCidSnapshot: string;
+  newEntryCidSnapshot: string;
+  oldCompressionLevel: PackDiffCompressionLevel;
+  newCompressionLevel: PackDiffCompressionLevel;
+  oldPackedTokens: number | null;
+  newPackedTokens: number | null;
+  tokenDelta: number;
+}
+
+export interface PackDiffPackMeta {
+  id: string;
+  packCid: string;
+  totalTokens: number | null;
+  packType: PackType;
+  createdAt: Date | string;
+}
+
+export interface PackDiffStats {
+  addedCount: number;
+  removedCount: number;
+  reorderedCount: number;
+  changedCount: number;
+  tokenDelta: number;
+  packA: PackDiffPackMeta;
+  packB: PackDiffPackMeta;
+}
+
+export interface PackDiffResult {
+  added: PackDiffAddedEntry[];
+  removed: PackDiffRemovedEntry[];
+  reordered: PackDiffReorderedEntry[];
+  changed: PackDiffChangedEntry[];
+  stats: PackDiffStats;
+}
+
+export interface DiffPacksInput {
+  actor: PackActor;
+  packAId?: string;
+  packBId?: string;
+  packACid?: string;
+  packBCid?: string;
 }

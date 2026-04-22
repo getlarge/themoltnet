@@ -19,6 +19,7 @@ import { renderPackToMarkdown } from './pack-renderer.js';
 import type {
   CreateCustomPackInput,
   CreateRenderedPackInput,
+  DiffPacksInput,
   FitResult,
   GetLatestRenderedPackInput,
   GetPackByIdInput,
@@ -30,6 +31,13 @@ import type {
   ListRenderedPacksByDiaryInput,
   ListRenderedPacksByDiaryResult,
   PackActor,
+  PackDiffAddedEntry,
+  PackDiffChangedEntry,
+  PackDiffPackMeta,
+  PackDiffRemovedEntry,
+  PackDiffReorderedEntry,
+  PackDiffResult,
+  PackDiffRow,
   PacksByEntryResult,
   PackWithOptionalEntries,
   PreviewRenderedPackInput,
@@ -48,6 +56,7 @@ export interface ContextPackServiceDeps {
     | 'listByDiary'
     | 'listEntriesExpanded'
     | 'listEntriesExpandedByPackIds'
+    | 'diffPacks'
   >;
   renderedPackRepository: Pick<
     RenderedPackRepository,
@@ -199,6 +208,60 @@ export class ContextPackService {
     }
     await this.assertCanReadPack(pack.id, input.actor);
     return pack;
+  }
+
+  async diffPacks(input: DiffPacksInput): Promise<PackDiffResult> {
+    const { actor, packAId, packBId, packACid, packBCid } = input;
+
+    if (!packAId && !packACid) {
+      throw new PackServiceError(
+        'packAId or packACid is required',
+        'validation',
+      );
+    }
+    if (!packBId && !packBCid) {
+      throw new PackServiceError(
+        'packBId or packBCid is required',
+        'validation',
+      );
+    }
+
+    const [packA, packB] = await Promise.all([
+      packAId
+        ? this.deps.contextPackRepository.findById(packAId)
+        : this.deps.contextPackRepository.findByCid(packACid!),
+      packBId
+        ? this.deps.contextPackRepository.findById(packBId)
+        : this.deps.contextPackRepository.findByCid(packBCid!),
+    ]);
+
+    if (!packA) {
+      throw new PackServiceError('Pack A not found', 'not_found');
+    }
+    if (!packB) {
+      throw new PackServiceError('Pack B not found', 'not_found');
+    }
+
+    if (packA.diaryId !== packB.diaryId) {
+      throw new PackServiceError(
+        'Packs must belong to the same diary',
+        'validation',
+      );
+    }
+
+    await this.assertCanReadPack(packA.id, actor);
+    await this.assertCanReadPack(packB.id, actor);
+
+    if (packA.packCid === packB.packCid) {
+      return emptyDiff(packMetaFrom(packA), packMetaFrom(packB));
+    }
+
+    const rows = await this.deps.contextPackRepository.diffPacks(
+      packA.id,
+      packB.id,
+    );
+
+    return buildDiffResult(rows, packMetaFrom(packA), packMetaFrom(packB));
   }
 
   async listPacksByDiary(
@@ -663,4 +726,125 @@ export class ContextPackService {
       );
     }
   }
+}
+
+// ── Pack diff helpers ──────────────────────────────────────
+
+type PackLike = {
+  id: string;
+  packCid: string;
+  packType: 'compile' | 'optimized' | 'custom';
+  payload: unknown;
+  createdAt: Date | string;
+};
+
+function packMetaFrom(pack: PackLike): PackDiffPackMeta {
+  const payload = pack.payload as
+    | { compileStats?: { totalTokens?: number } }
+    | null
+    | undefined;
+  return {
+    id: pack.id,
+    packCid: pack.packCid,
+    packType: pack.packType,
+    totalTokens: payload?.compileStats?.totalTokens ?? null,
+    createdAt: pack.createdAt,
+  };
+}
+
+function emptyDiff(
+  packA: PackDiffPackMeta,
+  packB: PackDiffPackMeta,
+): PackDiffResult {
+  return {
+    added: [],
+    removed: [],
+    reordered: [],
+    changed: [],
+    stats: {
+      addedCount: 0,
+      removedCount: 0,
+      reorderedCount: 0,
+      changedCount: 0,
+      tokenDelta: (packB.totalTokens ?? 0) - (packA.totalTokens ?? 0),
+      packA,
+      packB,
+    },
+  };
+}
+
+function buildDiffResult(
+  rows: PackDiffRow[],
+  packA: PackDiffPackMeta,
+  packB: PackDiffPackMeta,
+): PackDiffResult {
+  const added: PackDiffAddedEntry[] = [];
+  const removed: PackDiffRemovedEntry[] = [];
+  const reordered: PackDiffReorderedEntry[] = [];
+  const changed: PackDiffChangedEntry[] = [];
+
+  for (const row of rows) {
+    if (row.kind === 'added') {
+      added.push({
+        entryId: row.entryId,
+        title: row.title,
+        rank: row.rankB!,
+        entryCidSnapshot: row.cidB!,
+        compressionLevel: row.compressionB!,
+        packedTokens: row.tokensB,
+      });
+    } else if (row.kind === 'removed') {
+      removed.push({
+        entryId: row.entryId,
+        title: row.title,
+        rank: row.rankA!,
+        entryCidSnapshot: row.cidA!,
+        compressionLevel: row.compressionA!,
+        packedTokens: row.tokensA,
+      });
+    } else if (row.kind === 'reordered') {
+      reordered.push({
+        entryId: row.entryId,
+        title: row.title,
+        oldRank: row.rankA!,
+        newRank: row.rankB!,
+        entryCidSnapshot: row.cidB!,
+        compressionLevel: row.compressionB!,
+        packedTokens: row.tokensB,
+      });
+    } else if (row.kind === 'changed') {
+      const oldTokens = row.tokensA ?? 0;
+      const newTokens = row.tokensB ?? 0;
+      changed.push({
+        entryId: row.entryId,
+        title: row.title,
+        rank: row.rankB!,
+        oldEntryCidSnapshot: row.cidA!,
+        newEntryCidSnapshot: row.cidB!,
+        oldCompressionLevel: row.compressionA!,
+        newCompressionLevel: row.compressionB!,
+        oldPackedTokens: row.tokensA,
+        newPackedTokens: row.tokensB,
+        tokenDelta: newTokens - oldTokens,
+      });
+    }
+  }
+
+  const tokenDelta = (packB.totalTokens ?? 0) - (packA.totalTokens ?? 0);
+
+  return {
+    added,
+    removed,
+    reordered,
+    changed,
+    stats: {
+      addedCount: added.length,
+      removedCount: removed.length,
+      reorderedCount: reordered.length,
+      changedCount: changed.length,
+      tokenDelta,
+      packA,
+      packB,
+    },
+  };
 }
