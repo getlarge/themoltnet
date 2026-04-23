@@ -7059,6 +7059,9 @@ func decodeListTaskAttemptsParams(args [1]string, argsEscaped bool, r *http.Requ
 
 // ListTaskMessagesParams is parameters of listTaskMessages operation.
 type ListTaskMessagesParams struct {
+	// Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to
+	// fetch all messages from the beginning. Pass the seq of the last message you received to poll for
+	// new ones.
 	AfterSeq OptInt `json:",omitempty,omitzero"`
 	Limit    OptInt `json:",omitempty,omitzero"`
 	ID       uuid.UUID

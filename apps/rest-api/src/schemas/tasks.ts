@@ -98,7 +98,13 @@ export const CancelTaskBodySchema = Type.Object(
 
 export const ListMessagesQuerySchema = Type.Object(
   {
-    after_seq: Type.Optional(Type.Integer({ minimum: 0 })),
+    after_seq: Type.Optional(
+      Type.Integer({
+        minimum: 0,
+        description:
+          'Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.',
+      }),
+    ),
     limit: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 200, default: 200 }),
     ),

@@ -256,7 +256,11 @@ export const TaskMessage = Type.Object(
   {
     task_id: Uuid,
     attempt_n: Type.Number({ minimum: 1 }),
-    seq: Type.Number({ minimum: 0 }),
+    seq: Type.Number({
+      minimum: 0,
+      description:
+        'Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.',
+    }),
     timestamp: IsoTimestamp,
     kind: TaskMessageKind,
     payload: Type.Record(Type.String(), Type.Unknown()),
