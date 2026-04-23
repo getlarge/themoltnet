@@ -209,20 +209,25 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
 
   // Build VM-side agent env vars from credentials.
   // GIT_CONFIG_GLOBAL must point to the VM-side path, not host-side.
+  const vmAgentDir = `/home/agent/.moltnet/${config.agentName}`;
   const vmAgentEnv: Record<string, string> = {};
   for (const [k, v] of Object.entries(creds.agentEnv)) {
     if (v === undefined || v === '') continue;
     if (k === 'GIT_CONFIG_GLOBAL') {
       // Remap to VM-side credentials path
-      vmAgentEnv[k] = `/home/agent/.moltnet/${config.agentName}/gitconfig`;
+      vmAgentEnv[k] = `${vmAgentDir}/gitconfig`;
     } else if (k.endsWith('_PRIVATE_KEY_PATH')) {
       // Remap key paths to VM-side
-      vmAgentEnv[k] =
-        `/home/agent/.moltnet/${config.agentName}/${path.basename(v)}`;
+      vmAgentEnv[k] = `${vmAgentDir}/${path.basename(v)}`;
     } else {
       vmAgentEnv[k] = v;
     }
   }
+  // Pin MOLTNET_CREDENTIALS_PATH to the VM-side moltnet.json so that
+  // `moltnet github token` (and other subcommands) find the right agent
+  // without auto-discovery ambiguity (workspace mount exposes multiple
+  // .moltnet/<agent>/ dirs that confuse auto-discovery).
+  vmAgentEnv.MOLTNET_CREDENTIALS_PATH = `${vmAgentDir}/moltnet.json`;
 
   // Build workspace VFS provider (with optional shadows)
   const vfsConfig = config.sandboxConfig?.vfs;
@@ -279,7 +284,6 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
   // Inject credentials into VM-side agent directory structure:
   //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
   // Mirrors host layout so legreffier skill and CLI work identically.
-  const vmAgentDir = `/home/agent/.moltnet/${config.agentName}`;
   const vmSshDir = `${vmAgentDir}/ssh`;
   await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
 
