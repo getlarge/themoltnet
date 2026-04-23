@@ -85,7 +85,7 @@ function translateDBOSError(err: unknown, logger: Logger): never {
     err instanceof DBOSErrors.DBOSError
   ) {
     logger.error({ err }, 'Workflow execution failed');
-    throw createProblem('internal', 'Workflow execution failed.');
+    throw createProblem('internal-server-error', 'Workflow execution failed.');
   }
   // Application-level error from the workflow function — let it propagate
   throw err;

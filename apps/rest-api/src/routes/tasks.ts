@@ -37,7 +37,7 @@ function toTaskProblem(error: TaskServiceError) {
     case 'invalid':
       return createProblem('validation-failed', error.message);
     case 'timed_out':
-      return createProblem('server-error', error.message);
+      return createProblem('internal-server-error', error.message);
   }
 }
 

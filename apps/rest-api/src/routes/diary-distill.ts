@@ -37,7 +37,7 @@ function translateServiceError(err: DiaryServiceError): never {
     case 'immutable':
       throw createProblem('conflict', err.message);
     default:
-      throw createProblem('internal', err.message);
+      throw createProblem('internal-server-error', err.message);
   }
 }
 

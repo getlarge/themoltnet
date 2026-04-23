@@ -82,7 +82,7 @@ function translateFindDiaryError(err: DiaryServiceError): never {
     case 'forbidden':
       throw createProblem('forbidden', err.message);
     default:
-      throw createProblem('internal', err.message);
+      throw createProblem('internal-server-error', err.message);
   }
 }
 
@@ -97,7 +97,7 @@ function translatePackServiceError(err: PackServiceError): never {
     case 'conflict':
       throw createProblem('conflict', err.message);
     default:
-      throw createProblem('internal', err.message);
+      throw createProblem('internal-server-error', err.message);
   }
 }
 
@@ -512,7 +512,10 @@ export async function packRoutes(fastify: FastifyInstance) {
           { err: error, packId: pack.id },
           'Failed to build pack provenance graph',
         );
-        throw createProblem('internal', 'Failed to build pack provenance');
+        throw createProblem(
+          'internal-server-error',
+          'Failed to build pack provenance',
+        );
       }
     },
   );
@@ -568,7 +571,10 @@ export async function packRoutes(fastify: FastifyInstance) {
           { err: error, packCid: request.params.cid, packId: pack.id },
           'Failed to build pack provenance graph',
         );
-        throw createProblem('internal', 'Failed to build pack provenance');
+        throw createProblem(
+          'internal-server-error',
+          'Failed to build pack provenance',
+        );
       }
     },
   );
@@ -716,7 +722,7 @@ export async function packRoutes(fastify: FastifyInstance) {
             case 'validation':
               throw createProblem('validation-failed', err.message);
             default:
-              throw createProblem('internal', err.message);
+              throw createProblem('internal-server-error', err.message);
           }
         }
         throw err;
