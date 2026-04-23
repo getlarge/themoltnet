@@ -248,16 +248,26 @@ describe('Tasks API', () => {
     });
 
     it('heartbeat extends the lease', async () => {
-      const { data, error } = await taskHeartbeat({
+      const { data: hb1, error: err1 } = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
-        body: { lease_ttl_sec: 60 },
+        body: { lease_ttl_sec: 30 },
       });
-      expect(error).toBeUndefined();
-      expect(new Date(data!.claim_expires_at).getTime()).toBeGreaterThan(
-        Date.now(),
-      );
+      expect(err1).toBeUndefined();
+      const firstExpiry = new Date(hb1!.claim_expires_at).getTime();
+
+      const { data: hb2, error: err2 } = await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { lease_ttl_sec: 120 },
+      });
+      expect(err2).toBeUndefined();
+      const secondExpiry = new Date(hb2!.claim_expires_at).getTime();
+
+      expect(secondExpiry).toBeGreaterThan(firstExpiry);
+      expect(secondExpiry).toBeGreaterThan(Date.now());
     });
 
     it('completes the task and returns completed status', async () => {
@@ -345,7 +355,7 @@ describe('Tasks API', () => {
 
   // ── Cancel ────────────────────────────────────────────────────────────────────
 
-  describe('DELETE /tasks/:id (cancel)', () => {
+  describe('POST /tasks/:id/cancel', () => {
     it('cancels a queued task', async () => {
       const { data } = await impose();
       const taskId = data!.id;
@@ -416,10 +426,10 @@ describe('Tasks API', () => {
         query: { after_seq: 0 },
       });
       expect(error).toBeUndefined();
-      expect(data!.items.length).toBe(2);
-      expect(data!.items[0].kind).toBe('progress');
-      expect(data!.items[1].kind).toBe('log');
-      expect(data!.items[0].seq).toBeLessThan(data!.items[1].seq);
+      expect(data!.length).toBe(2);
+      expect(data![0].kind).toBe('progress');
+      expect(data![1].kind).toBe('log');
+      expect(data![0].seq).toBeLessThan(data![1].seq);
     });
 
     it('returns 400 when messages array is empty', async () => {
@@ -448,7 +458,7 @@ describe('Tasks API', () => {
         query: { after_seq: 0 },
       });
 
-      const secondSeq = all!.items[1].seq;
+      const secondSeq = all![1].seq;
 
       const { data: after } = await listTaskMessages({
         client,
@@ -457,9 +467,9 @@ describe('Tasks API', () => {
         query: { after_seq: secondSeq },
       });
 
-      expect(after!.items.length).toBe(1);
-      expect(after!.items[0].kind).toBe('log');
-      expect(after!.items[0].payload).toEqual({ text: 'done' });
+      expect(after!.length).toBe(1);
+      expect(after![0].kind).toBe('log');
+      expect(after![0].payload).toEqual({ text: 'done' });
     });
   });
 
@@ -470,8 +480,21 @@ describe('Tasks API', () => {
       const { data } = await impose();
       const taskId = data!.id;
 
-      // Two concurrent claim attempts
-      const [r1, r2] = await Promise.all([claim(taskId), claim(taskId)]);
+      // Two concurrent claim attempts from different identities
+      const [r1, r2] = await Promise.all([
+        claimTask({
+          client,
+          auth: () => claimer.accessToken,
+          path: { id: taskId },
+          body: { lease_ttl_sec: 30 },
+        }),
+        claimTask({
+          client,
+          auth: () => imposer.accessToken,
+          path: { id: taskId },
+          body: { lease_ttl_sec: 30 },
+        }),
+      ]);
 
       const statuses = [r1.response.status, r2.response.status].sort();
       // Exactly one 200, one 409
