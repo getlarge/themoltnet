@@ -165,16 +165,6 @@ export function createTaskService(deps: TaskServiceDeps) {
 
   return {
     async create(input: CreateTaskInput): Promise<Task> {
-      const taskTypeDef = (
-        BUILT_IN_TASK_TYPES as Record<string, TaskTypeEntry | undefined>
-      )[input.taskType];
-      if (!taskTypeDef) {
-        throw new TaskServiceError(
-          'unknown_task_type',
-          `Unknown task type: ${input.taskType}`,
-        );
-      }
-
       const createErrors = validateTaskCreateRequest({
         taskType: input.taskType,
         input: input.inputPayload,
@@ -189,8 +179,33 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
+      const taskTypes = BUILT_IN_TASK_TYPES as Record<
+        string,
+        TaskTypeEntry | undefined
+      >;
+      const taskTypeDef = Object.prototype.hasOwnProperty.call(
+        taskTypes,
+        input.taskType,
+      )
+        ? taskTypes[input.taskType]
+        : undefined;
+      if (!taskTypeDef) {
+        throw new TaskServiceError(
+          'invalid',
+          `Unknown task type: ${input.taskType}`,
+          [
+            {
+              field: 'task_type',
+              message: `Unknown task type: ${input.taskType}`,
+            },
+          ],
+        );
+      }
+
       if (!input.diaryId) {
-        throw new TaskServiceError('invalid', 'diary_id is required');
+        throw new TaskServiceError('invalid', 'diary_id is required', [
+          { field: 'diary_id', message: 'diary_id is required' },
+        ]);
       }
 
       const diary = await diaryRepository.findById(input.diaryId);
@@ -214,8 +229,14 @@ export function createTaskService(deps: TaskServiceDeps) {
       const inputSchemaCid = schemaCids.get(input.taskType);
       if (!inputSchemaCid) {
         throw new TaskServiceError(
-          'unknown_task_type',
+          'invalid',
           `Schema CID not found for: ${input.taskType}`,
+          [
+            {
+              field: 'task_type',
+              message: `Schema CID not found for: ${input.taskType}`,
+            },
+          ],
         );
       }
       const inputCid = await computeJsonCid(input.inputPayload);

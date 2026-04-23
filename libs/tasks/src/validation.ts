@@ -20,9 +20,16 @@ interface TaskTypeDefinition {
 }
 
 function getTaskTypeEntry(taskType: string) {
-  return (BUILT_IN_TASK_TYPES as Record<string, TaskTypeDefinition | undefined>)[
-    taskType
-  ];
+  const taskTypes = BUILT_IN_TASK_TYPES as Record<
+    string,
+    TaskTypeDefinition | undefined
+  >;
+
+  if (!Object.prototype.hasOwnProperty.call(taskTypes, taskType)) {
+    return undefined;
+  }
+
+  return taskTypes[taskType];
 }
 
 function formatField(prefix: string, path: string): string {
@@ -110,7 +117,10 @@ export function validateTaskCreateRequest(args: {
       message: `criteria_cid is required for task type: ${args.taskType}`,
     });
   }
-  if (entry.requiresReferences && (!args.references || args.references.length < 1)) {
+  if (
+    entry.requiresReferences &&
+    (!args.references || args.references.length < 1)
+  ) {
     errors.push({
       field: 'references',
       message: `At least one reference is required for task type: ${args.taskType}`,

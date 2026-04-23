@@ -335,7 +335,7 @@ describe('Tasks API', () => {
       const badOutput = { summary: 42 };
       const badOutputCid = await computeJsonCid(badOutput);
 
-      const { response } = await completeTask({
+      const { response, error } = await completeTask({
         client,
         auth: () => claimer.accessToken,
         path: { id: invalidTaskId, n: invalidAttemptN },
@@ -347,7 +347,7 @@ describe('Tasks API', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({
+      expect(error).toMatchObject({
         code: 'VALIDATION_FAILED',
         errors: expect.arrayContaining([
           expect.objectContaining({ field: 'output/pack_id' }),

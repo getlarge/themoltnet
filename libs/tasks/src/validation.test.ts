@@ -3,6 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { validateTaskCreateRequest, validateTaskOutput } from './validation.js';
 
 describe('validateTaskCreateRequest', () => {
+  it('rejects prototype task type keys as unknown', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'constructor',
+      input: {},
+    });
+
+    expect(errors).toEqual([
+      {
+        field: 'task_type',
+        message: 'Unknown task type: constructor',
+      },
+    ]);
+  });
+
   it('requires references for judge_pack', () => {
     const errors = validateTaskCreateRequest({
       taskType: 'judge_pack',
@@ -37,6 +51,17 @@ describe('validateTaskCreateRequest', () => {
 });
 
 describe('validateTaskOutput', () => {
+  it('rejects prototype task type keys as unknown', () => {
+    const errors = validateTaskOutput('toString', {});
+
+    expect(errors).toEqual([
+      {
+        field: 'task_type',
+        message: 'Unknown task type: toString',
+      },
+    ]);
+  });
+
   it('returns field-level errors for invalid fulfill_brief output', () => {
     const errors = validateTaskOutput('fulfill_brief', {
       branch: 'feat/tasks',

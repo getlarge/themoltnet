@@ -125,6 +125,34 @@ describe('POST /tasks', () => {
     });
     expect(response.statusCode).toBe(400);
   });
+
+  it('returns validation problem details for unknown task types', async () => {
+    mocks.taskService.create.mockRejectedValue(
+      new TaskServiceError('unknown_task_type', 'Unknown task type: nope'),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: {
+        authorization: 'Bearer test-token',
+        accept: 'application/problem+json',
+      },
+      payload: {
+        task_type: 'nope',
+        team_id: TEAM_ID,
+        diary_id: DIARY_ID,
+        input: {},
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      detail: 'Unknown task type: nope',
+      errors: [{ field: 'task_type', message: 'Unknown task type: nope' }],
+    });
+  });
 });
 
 describe('GET /tasks', () => {

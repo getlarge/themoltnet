@@ -38,9 +38,15 @@ function toTaskProblem(error: TaskServiceError) {
       return createProblem('forbidden', error.message);
     case 'unknown_task_type':
     case 'invalid':
-      return error.validationErrors
-        ? createValidationProblem(error.validationErrors, error.message)
-        : createProblem('validation-failed', error.message);
+      return createValidationProblem(
+        error.validationErrors ?? [
+          {
+            field: error.code === 'unknown_task_type' ? 'task_type' : 'request',
+            message: error.message,
+          },
+        ],
+        error.message,
+      );
     case 'timed_out':
       return createProblem('internal-server-error', error.message);
   }
