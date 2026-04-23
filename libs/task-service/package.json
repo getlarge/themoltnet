@@ -1,0 +1,33 @@
+{
+  "name": "@moltnet/task-service",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc --watch",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/tasks": "workspace:*"
+  },
+  "devDependencies": {
+    "@sinclair/typebox": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

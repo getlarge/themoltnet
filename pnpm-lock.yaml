@@ -646,6 +646,9 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@moltnet/task-service':
+        specifier: workspace:*
+        version: link:../../libs/task-service
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks
@@ -1230,6 +1233,31 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  libs/task-service:
+    dependencies:
+      '@moltnet/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../database
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
+    devDependencies:
+      '@sinclair/typebox':
+        specifier: 'catalog:'
+        version: 0.34.48
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   libs/tasks:
     dependencies:

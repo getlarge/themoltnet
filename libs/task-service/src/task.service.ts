@@ -1,0 +1,722 @@
+import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+import { KetoNamespace } from '@moltnet/auth';
+import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  DBOS,
+  type DiaryRepository,
+  type NewTask,
+  type NewTaskMessage,
+  type Task as DbTask,
+  type TaskAttempt as DbTaskAttempt,
+  type TaskMessage as DbTaskMessage,
+  type TaskRepository,
+  taskWorkflows,
+} from '@moltnet/database';
+import {
+  BUILT_IN_TASK_TYPES,
+  getTaskTypeRegistry,
+  type OutputKind,
+  type Task,
+  type TaskAttempt,
+  type TaskError,
+  type TaskMessage,
+  type TaskUsage,
+} from '@moltnet/tasks';
+import type { TSchema } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
+
+interface TaskTypeEntry {
+  readonly name: string;
+  readonly inputSchema: TSchema;
+  readonly outputSchema: TSchema;
+  readonly outputKind: OutputKind;
+  readonly requiresCriteria: boolean;
+  readonly requiresReferences: boolean;
+  readonly validateInput?: (input: unknown) => string | null;
+}
+
+interface Logger {
+  info(obj: object, msg: string): void;
+  debug(obj: object, msg: string): void;
+  warn(obj: object, msg: string): void;
+  error(obj: object, msg: string): void;
+}
+
+const EVENT_TIMEOUT_SECONDS = 10;
+const DEFAULT_LEASE_TTL_SEC = 300;
+const TERMINAL_STATUSES = new Set<DbTask['status']>([
+  'completed',
+  'failed',
+  'cancelled',
+  'expired',
+]);
+
+export class TaskServiceError extends Error {
+  constructor(
+    public readonly code:
+      | 'not_found'
+      | 'conflict'
+      | 'forbidden'
+      | 'invalid'
+      | 'timed_out'
+      | 'unknown_task_type',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'TaskServiceError';
+  }
+}
+
+function taskWorkflowId(taskId: string, attemptN: number): string {
+  return `task:${taskId}:attempt:${attemptN}`;
+}
+
+function dbTaskToWire(row: DbTask): Task {
+  return {
+    id: row.id,
+    task_type: row.taskType,
+    team_id: row.teamId,
+    diary_id: row.diaryId ?? null,
+    output_kind: row.outputKind,
+    input: row.input as Record<string, unknown>,
+    input_schema_cid: row.inputSchemaCid,
+    input_cid: row.inputCid,
+    criteria_cid: row.criteriaCid ?? null,
+    references: row.taskRefs as unknown[] as Task['references'],
+    correlation_id: row.correlationId ?? null,
+    imposed_by_agent_id: row.imposedByAgentId ?? null,
+    imposed_by_human_id: row.imposedByHumanId ?? null,
+    accepted_attempt_n: row.acceptedAttemptN ?? null,
+    status: row.status,
+    queued_at: row.queuedAt.toISOString(),
+    completed_at: row.completedAt?.toISOString() ?? null,
+    expires_at: row.expiresAt?.toISOString() ?? null,
+    cancelled_by_agent_id: row.cancelledByAgentId ?? null,
+    cancelled_by_human_id: row.cancelledByHumanId ?? null,
+    cancel_reason: row.cancelReason ?? null,
+    max_attempts: row.maxAttempts,
+  };
+}
+
+function dbAttemptToWire(row: DbTaskAttempt): TaskAttempt {
+  return {
+    task_id: row.taskId,
+    attempt_n: row.attemptN,
+    claimed_by_agent_id: row.claimedByAgentId,
+    runtime_id: row.runtimeId ?? null,
+    claimed_at: row.claimedAt.toISOString(),
+    started_at: row.startedAt?.toISOString() ?? null,
+    completed_at: row.completedAt?.toISOString() ?? null,
+    status: row.status,
+    output: (row.output as Record<string, unknown>) ?? null,
+    output_cid: row.outputCid ?? null,
+    error: (row.error as TaskError) ?? null,
+    usage: (row.usage as TaskUsage) ?? null,
+    content_signature: row.contentSignature ?? null,
+    signed_at: row.signedAt?.toISOString() ?? null,
+  };
+}
+
+function dbMessageToWire(row: DbTaskMessage): TaskMessage {
+  return {
+    task_id: row.taskId,
+    attempt_n: row.attemptN,
+    seq: Number(row.seq),
+    timestamp: row.timestamp.toISOString(),
+    kind: row.kind,
+    payload: row.payload as Record<string, unknown>,
+  };
+}
+
+export interface CreateTaskInput {
+  taskType: string;
+  teamId: string;
+  diaryId?: string;
+  inputPayload: Record<string, unknown>;
+  references?: unknown[];
+  correlationId?: string;
+  maxAttempts?: number;
+  expiresInSec?: number;
+  criteriaCid?: string;
+  callerId: string;
+  callerNs: KetoNamespace;
+  callerIsAgent: boolean;
+}
+
+interface TaskServiceDeps {
+  taskRepository: TaskRepository;
+  diaryRepository: DiaryRepository;
+  permissionChecker: PermissionChecker;
+  relationshipWriter: RelationshipWriter;
+  logger: Logger;
+}
+
+export function createTaskService(deps: TaskServiceDeps) {
+  const {
+    taskRepository,
+    diaryRepository,
+    permissionChecker,
+    relationshipWriter,
+    logger,
+  } = deps;
+
+  return {
+    async create(input: CreateTaskInput): Promise<Task> {
+      const taskTypeDef = (
+        BUILT_IN_TASK_TYPES as Record<string, TaskTypeEntry | undefined>
+      )[input.taskType];
+      if (!taskTypeDef) {
+        throw new TaskServiceError(
+          'unknown_task_type',
+          `Unknown task type: ${input.taskType}`,
+        );
+      }
+
+      if (!Value.Check(taskTypeDef.inputSchema, input.inputPayload)) {
+        throw new TaskServiceError(
+          'invalid',
+          `Input does not match schema for task type: ${input.taskType}`,
+        );
+      }
+
+      if (taskTypeDef.validateInput) {
+        const validationError = taskTypeDef.validateInput(input.inputPayload);
+        if (validationError) {
+          throw new TaskServiceError('invalid', validationError);
+        }
+      }
+
+      if (!input.diaryId) {
+        throw new TaskServiceError('invalid', 'diary_id is required');
+      }
+
+      const diary = await diaryRepository.findById(input.diaryId);
+      if (!diary) {
+        throw new TaskServiceError('not_found', 'Diary not found');
+      }
+
+      const canImpose = await permissionChecker.canImposeTask(
+        input.diaryId,
+        input.callerId,
+        input.callerNs,
+      );
+      if (!canImpose) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to impose tasks on this diary',
+        );
+      }
+
+      const schemaCids = getTaskTypeRegistry();
+      const inputSchemaCid = schemaCids.get(input.taskType);
+      if (!inputSchemaCid) {
+        throw new TaskServiceError(
+          'unknown_task_type',
+          `Schema CID not found for: ${input.taskType}`,
+        );
+      }
+      const inputCid = await computeJsonCid(input.inputPayload);
+
+      const expiresAt = input.expiresInSec
+        ? new Date(Date.now() + input.expiresInSec * 1000)
+        : null;
+
+      const newTask: NewTask = {
+        taskType: input.taskType,
+        teamId: input.teamId,
+        diaryId: input.diaryId,
+        outputKind: taskTypeDef.outputKind,
+        input: input.inputPayload,
+        inputSchemaCid,
+        inputCid,
+        criteriaCid: input.criteriaCid ?? null,
+        taskRefs: (input.references ?? []) as NewTask['taskRefs'],
+        correlationId: input.correlationId ?? null,
+        imposedByAgentId: input.callerIsAgent ? input.callerId : null,
+        imposedByHumanId: input.callerIsAgent ? null : input.callerId,
+        maxAttempts: input.maxAttempts ?? 1,
+        expiresAt,
+      };
+
+      const row = await taskRepository.create(newTask);
+
+      try {
+        await relationshipWriter.grantTaskParent(row.id, input.diaryId);
+      } catch (err) {
+        logger.error(
+          { taskId: row.id, diaryId: input.diaryId, err },
+          'task.create.grant_failed — rolling back task',
+        );
+        await taskRepository
+          .updateStatus(row.id, 'cancelled', {
+            cancelReason: 'Keto grant failed during creation',
+            cancelledByAgentId: null,
+            cancelledByHumanId: null,
+          })
+          .catch((rollbackErr: unknown) => {
+            logger.error(
+              { taskId: row.id, err: rollbackErr },
+              'task.create.rollback_failed',
+            );
+          });
+        throw new TaskServiceError(
+          'conflict',
+          'Failed to register task ownership — task was rolled back',
+        );
+      }
+
+      logger.info({ taskId: row.id, taskType: row.taskType }, 'task.created');
+      return dbTaskToWire(row);
+    },
+
+    async list(opts: {
+      teamId: string;
+      status?: string;
+      taskType?: string;
+      correlationId?: string;
+      limit?: number;
+      cursor?: string;
+      callerId: string;
+      callerNs: KetoNamespace;
+    }): Promise<{ items: Task[]; total: number; next_cursor?: string }> {
+      const canAccess = await permissionChecker.canAccessTeam(
+        opts.teamId,
+        opts.callerId,
+        opts.callerNs,
+      );
+      if (!canAccess)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to list tasks for this team',
+        );
+
+      const { items, nextCursor } = await taskRepository.list({
+        teamId: opts.teamId,
+        status: opts.status as DbTask['status'] | undefined,
+        taskType: opts.taskType,
+        correlationId: opts.correlationId,
+        limit: opts.limit,
+        cursor: opts.cursor,
+      });
+      return {
+        items: items.map(dbTaskToWire),
+        total: items.length,
+        next_cursor: nextCursor,
+      };
+    },
+
+    async get(
+      taskId: string,
+      callerId: string,
+      callerNs: KetoNamespace,
+    ): Promise<Task> {
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
+      const canView = await permissionChecker.canViewTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canView)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to view this task',
+        );
+
+      return dbTaskToWire(row);
+    },
+
+    async claim(
+      taskId: string,
+      callerId: string,
+      callerNs: KetoNamespace,
+      leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
+    ): Promise<{ task: Task; attempt: TaskAttempt }> {
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+      if (row.status !== 'queued') {
+        throw new TaskServiceError(
+          'conflict',
+          `Task cannot be claimed in status: ${row.status}`,
+        );
+      }
+
+      const attemptCount = await taskRepository.countAttempts(taskId);
+      if (attemptCount >= row.maxAttempts) {
+        throw new TaskServiceError(
+          'conflict',
+          'Task has exhausted all allowed attempts',
+        );
+      }
+
+      if (!row.diaryId) {
+        throw new TaskServiceError('invalid', 'Task has no diary_id');
+      }
+      const canClaim = await permissionChecker.canClaimTask(
+        row.diaryId,
+        callerId,
+        callerNs,
+      );
+      if (!canClaim)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to claim this task',
+        );
+
+      const attemptN = attemptCount + 1;
+      const workflowId = taskWorkflowId(taskId, attemptN);
+
+      try {
+        await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
+          workflowID: workflowId,
+        })(taskId, attemptN, callerId, workflowId, leaseTtlSec);
+      } catch (error) {
+        if (
+          !(error instanceof Error) ||
+          !error.name.includes('WorkflowAlreadyExists')
+        ) {
+          throw error;
+        }
+      }
+
+      const claimed = await DBOS.getEvent<{ taskId: string; attemptN: number }>(
+        workflowId,
+        'claimed',
+        EVENT_TIMEOUT_SECONDS,
+      );
+      if (!claimed) {
+        throw new TaskServiceError('timed_out', 'Claim workflow timed out');
+      }
+
+      await relationshipWriter.grantTaskClaimant(taskId, callerId);
+
+      const [updatedTask, attempt] = await Promise.all([
+        taskRepository.findById(taskId),
+        taskRepository.findAttempt(taskId, attemptN),
+      ]);
+
+      logger.info({ taskId, attemptN, callerId }, 'task.claimed');
+      return {
+        task: dbTaskToWire(updatedTask!),
+        attempt: dbAttemptToWire(attempt!),
+      };
+    },
+
+    async heartbeat(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
+    ): Promise<{ claim_expires_at: string }> {
+      const canReport = await permissionChecker.canReportTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canReport)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to report on this task',
+        );
+
+      const attempt = await taskRepository.findAttempt(taskId, attemptN);
+      if (!attempt)
+        throw new TaskServiceError('not_found', 'Attempt not found');
+      if (attempt.claimedByAgentId !== callerId) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Only the claiming agent may send heartbeats',
+        );
+      }
+
+      const workflowId = taskWorkflowId(taskId, attemptN);
+      await DBOS.send(workflowId, true, 'started');
+
+      const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
+      await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
+
+      logger.debug({ taskId, attemptN }, 'task.heartbeat');
+      return { claim_expires_at: claimExpiresAt.toISOString() };
+    },
+
+    async complete(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      body: {
+        output: Record<string, unknown>;
+        outputCid: string;
+        usage: TaskUsage;
+        contentSignature?: string;
+      },
+    ): Promise<Task> {
+      const canReport = await permissionChecker.canReportTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canReport)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to report on this task',
+        );
+
+      const attempt = await taskRepository.findAttempt(taskId, attemptN);
+      if (!attempt)
+        throw new TaskServiceError('not_found', 'Attempt not found');
+      if (attempt.claimedByAgentId !== callerId) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Only the claiming agent may complete this attempt',
+        );
+      }
+
+      const workflowId = taskWorkflowId(taskId, attemptN);
+      await DBOS.send(
+        workflowId,
+        {
+          kind: 'completed',
+          output: body.output,
+          outputCid: body.outputCid,
+          usage: body.usage,
+        },
+        'result',
+      );
+
+      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
+      while (true) {
+        const updated = await taskRepository.findById(taskId);
+        if (updated && TERMINAL_STATUSES.has(updated.status)) {
+          logger.info(
+            { taskId, attemptN, status: updated.status },
+            'task.completed',
+          );
+          return dbTaskToWire(updated);
+        }
+        if (Date.now() >= deadline) {
+          throw new TaskServiceError(
+            'timed_out',
+            'Complete workflow timed out waiting for result',
+          );
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
+      }
+    },
+
+    async fail(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      error: TaskError,
+    ): Promise<Task> {
+      const canReport = await permissionChecker.canReportTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canReport)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to report on this task',
+        );
+
+      const attempt = await taskRepository.findAttempt(taskId, attemptN);
+      if (!attempt)
+        throw new TaskServiceError('not_found', 'Attempt not found');
+      if (attempt.claimedByAgentId !== callerId) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Only the claiming agent may fail this attempt',
+        );
+      }
+
+      const workflowId = taskWorkflowId(taskId, attemptN);
+      await DBOS.send(workflowId, { kind: 'failed', error }, 'result');
+
+      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
+      while (true) {
+        const updated = await taskRepository.findById(taskId);
+        if (updated && TERMINAL_STATUSES.has(updated.status)) {
+          logger.info(
+            { taskId, attemptN, status: updated.status },
+            'task.failed',
+          );
+          return dbTaskToWire(updated);
+        }
+        if (Date.now() >= deadline) {
+          throw new TaskServiceError(
+            'timed_out',
+            'Fail workflow timed out waiting for result',
+          );
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
+      }
+    },
+
+    async cancel(
+      taskId: string,
+      callerId: string,
+      callerNs: KetoNamespace,
+      reason: string,
+    ): Promise<Task> {
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
+      const terminalStatuses: DbTask['status'][] = [
+        'completed',
+        'failed',
+        'cancelled',
+        'expired',
+      ];
+      if (terminalStatuses.includes(row.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Cannot cancel a task in terminal state: ${row.status}`,
+        );
+      }
+
+      const canCancel = await permissionChecker.canCancelTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canCancel)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to cancel this task',
+        );
+
+      const isAgent = callerNs === KetoNamespace.Agent;
+      const updated = await taskRepository.updateStatus(taskId, 'cancelled', {
+        cancelReason: reason,
+        cancelledByAgentId: isAgent ? callerId : null,
+        cancelledByHumanId: isAgent ? null : callerId,
+      });
+
+      if (row.claimAgentId) {
+        await relationshipWriter
+          .removeTaskClaimant(taskId, row.claimAgentId)
+          .catch((err: unknown) => {
+            logger.warn(
+              { taskId, claimAgentId: row.claimAgentId, err },
+              'task.cancel.remove_claimant_failed',
+            );
+          });
+      }
+
+      logger.info({ taskId, callerId, reason }, 'task.cancelled');
+      return dbTaskToWire(updated!);
+    },
+
+    async listAttempts(
+      taskId: string,
+      callerId: string,
+      callerNs: KetoNamespace,
+    ): Promise<TaskAttempt[]> {
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
+      const canView = await permissionChecker.canViewTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canView)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to view this task',
+        );
+
+      const attempts = await taskRepository.listAttempts(taskId);
+      return attempts.map(dbAttemptToWire);
+    },
+
+    async listMessages(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      opts: { afterSeq?: number; limit?: number },
+    ): Promise<TaskMessage[]> {
+      const canView = await permissionChecker.canViewTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canView)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to view this task',
+        );
+
+      const { items } = await taskRepository.listMessages(
+        taskId,
+        attemptN,
+        opts,
+      );
+      return items.map(dbMessageToWire);
+    },
+
+    async appendMessages(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      messages: Array<{
+        kind: string;
+        payload: Record<string, unknown>;
+        timestamp?: string;
+      }>,
+    ): Promise<{ count: number }> {
+      const canReport = await permissionChecker.canReportTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canReport)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to append messages',
+        );
+
+      const attempt = await taskRepository.findAttempt(taskId, attemptN);
+      if (!attempt)
+        throw new TaskServiceError('not_found', 'Attempt not found');
+      if (attempt.claimedByAgentId !== callerId) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Only the claiming agent may append messages',
+        );
+      }
+
+      const maxSeq = await taskRepository.findMaxMessageSeq(taskId, attemptN);
+      const baseSeq = maxSeq + 1;
+
+      const rows: NewTaskMessage[] = messages.map((m, i) => ({
+        taskId,
+        attemptN,
+        seq: baseSeq + i,
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+        kind: m.kind as NewTaskMessage['kind'],
+        payload: m.payload,
+      }));
+
+      await taskRepository.appendMessages(rows);
+      logger.debug(
+        { taskId, attemptN, count: messages.length },
+        'task.messages_appended',
+      );
+      return { count: messages.length };
+    },
+  };
+}
+
+export type TaskService = ReturnType<typeof createTaskService>;

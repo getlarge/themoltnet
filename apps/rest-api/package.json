@@ -39,6 +39,7 @@
     "@moltnet/context-distill": "workspace:*",
     "@moltnet/context-pack-service": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
+    "@moltnet/task-service": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/observability": "workspace:*",

@@ -81,6 +81,9 @@
       "path": "libs/sdk"
     },
     {
+      "path": "libs/task-service"
+    },
+    {
       "path": "libs/tasks"
     },
     {
