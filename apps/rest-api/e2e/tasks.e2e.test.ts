@@ -103,8 +103,11 @@ describe('Tasks API', () => {
 
   describe('auth', () => {
     it('returns 401 without a token', async () => {
-      const res = await fetch(`${harness.baseUrl}/tasks?team_id=irrelevant`);
-      expect(res.status).toBe(401);
+      const { response } = await listTasks({
+        client,
+        query: { team_id: imposer.personalTeamId },
+      });
+      expect(response.status).toBe(401);
     });
 
     it('returns 400 when team_id is missing from list', async () => {
