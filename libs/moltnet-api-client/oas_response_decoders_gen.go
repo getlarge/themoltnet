@@ -2119,7 +2119,7 @@ func decodeCompleteTaskResponse(resp *http.Response) (res CompleteTaskRes, _ err
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CompleteTaskBadRequest
+			var response ValidationProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -4408,7 +4408,7 @@ func decodeCreateTaskResponse(resp *http.Response) (res CreateTaskRes, _ error) 
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateTaskBadRequest
+			var response ValidationProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

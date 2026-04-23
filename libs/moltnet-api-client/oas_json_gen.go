@@ -4558,44 +4558,6 @@ func (s *CompileStats) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CompleteTaskBadRequest as json.
-func (s *CompleteTaskBadRequest) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CompleteTaskBadRequest from json.
-func (s *CompleteTaskBadRequest) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CompleteTaskBadRequest to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CompleteTaskBadRequest(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CompleteTaskBadRequest) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CompleteTaskBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CompleteTaskConflict as json.
 func (s *CompleteTaskConflict) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -10155,44 +10117,6 @@ func (s *CreateSigningRequestUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateSigningRequestUnauthorized) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateTaskBadRequest as json.
-func (s *CreateTaskBadRequest) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateTaskBadRequest from json.
-func (s *CreateTaskBadRequest) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateTaskBadRequest to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateTaskBadRequest(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateTaskBadRequest) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateTaskBadRequest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -54433,6 +54357,415 @@ func (s *UpdateRenderedPackUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRenderedPackUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ValidationProblemDetails) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ValidationProblemDetails) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfValidationProblemDetails = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes ValidationProblemDetails from json.
+func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidationProblemDetails to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]ValidationProblemDetailsErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ValidationProblemDetailsErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ValidationProblemDetails")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfValidationProblemDetails) {
+					name = jsonFieldsNameOfValidationProblemDetails[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ValidationProblemDetails) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidationProblemDetails) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ValidationProblemDetailsCode as json.
+func (s ValidationProblemDetailsCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ValidationProblemDetailsCode from json.
+func (s *ValidationProblemDetailsCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidationProblemDetailsCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ValidationProblemDetailsCode(v) {
+	case ValidationProblemDetailsCodeUNAUTHORIZED:
+		*s = ValidationProblemDetailsCodeUNAUTHORIZED
+	case ValidationProblemDetailsCodeFORBIDDEN:
+		*s = ValidationProblemDetailsCodeFORBIDDEN
+	case ValidationProblemDetailsCodeNOTFOUND:
+		*s = ValidationProblemDetailsCodeNOTFOUND
+	case ValidationProblemDetailsCodeCONFLICT:
+		*s = ValidationProblemDetailsCodeCONFLICT
+	case ValidationProblemDetailsCodeVALIDATIONFAILED:
+		*s = ValidationProblemDetailsCodeVALIDATIONFAILED
+	case ValidationProblemDetailsCodeINVALIDCHALLENGE:
+		*s = ValidationProblemDetailsCodeINVALIDCHALLENGE
+	case ValidationProblemDetailsCodeINVALIDSIGNATURE:
+		*s = ValidationProblemDetailsCodeINVALIDSIGNATURE
+	case ValidationProblemDetailsCodeVOUCHERLIMIT:
+		*s = ValidationProblemDetailsCodeVOUCHERLIMIT
+	case ValidationProblemDetailsCodeRATELIMITEXCEEDED:
+		*s = ValidationProblemDetailsCodeRATELIMITEXCEEDED
+	case ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		*s = ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED
+	case ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		*s = ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED
+	case ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ValidationProblemDetailsCodeREGISTRATIONFAILED:
+		*s = ValidationProblemDetailsCodeREGISTRATIONFAILED
+	case ValidationProblemDetailsCodeUPSTREAMERROR:
+		*s = ValidationProblemDetailsCodeUPSTREAMERROR
+	case ValidationProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = ValidationProblemDetailsCodeSERVICEUNAVAILABLE
+	case ValidationProblemDetailsCodeINTERNALSERVERERROR:
+		*s = ValidationProblemDetailsCodeINTERNALSERVERERROR
+	case ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE
+	case ValidationProblemDetailsCodeTEAMNOTACTIVE:
+		*s = ValidationProblemDetailsCodeTEAMNOTACTIVE
+	case ValidationProblemDetailsCodeINVITEEXPIRED:
+		*s = ValidationProblemDetailsCodeINVITEEXPIRED
+	case ValidationProblemDetailsCodeINVITEEXHAUSTED:
+		*s = ValidationProblemDetailsCodeINVITEEXHAUSTED
+	case ValidationProblemDetailsCodeTEAMLASTOWNER:
+		*s = ValidationProblemDetailsCodeTEAMLASTOWNER
+	case ValidationProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = ValidationProblemDetailsCodeTEAMALREADYACTIVE
+	case ValidationProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = ValidationProblemDetailsCodeTEAMNOTFOUNDING
+	case ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED
+	case ValidationProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = ValidationProblemDetailsCodeDIARYTRANSFERPENDING
+	case ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND
+	case ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = ValidationProblemDetailsCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ValidationProblemDetailsCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidationProblemDetailsCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ValidationProblemDetailsErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ValidationProblemDetailsErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfValidationProblemDetailsErrorsItem = [2]string{
+	0: "field",
+	1: "message",
+}
+
+// Decode decodes ValidationProblemDetailsErrorsItem from json.
+func (s *ValidationProblemDetailsErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidationProblemDetailsErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "field":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ValidationProblemDetailsErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfValidationProblemDetailsErrorsItem) {
+					name = jsonFieldsNameOfValidationProblemDetailsErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ValidationProblemDetailsErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidationProblemDetailsErrorsItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
