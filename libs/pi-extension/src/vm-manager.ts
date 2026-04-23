@@ -42,6 +42,10 @@ export interface VmCredentials {
   sshPrivateKey: string | null;
   sshPublicKey: string | null;
   allowedSigners: string | null;
+  /** Raw PEM content of the GitHub App private key, or null if not configured. */
+  githubAppPem: string | null;
+  /** VM-local filename for the GitHub App PEM (basename of host path), or null. */
+  githubAppPemFilename: string | null;
 }
 
 export interface ManagedVm {
@@ -103,6 +107,25 @@ export function loadCredentials(agentDir: string): VmCredentials {
     ? readFileSync(path.join(sshDir, 'allowed_signers'), 'utf8')
     : null;
 
+  // Read GitHub App PEM if configured in moltnet.json.
+  // The path is host-absolute and must be rewritten to a VM-local path before
+  // injecting the JSON into the guest — done in resumeVm.
+  let githubAppPem: string | null = null;
+  let githubAppPemFilename: string | null = null;
+  try {
+    const moltnetConfig = JSON.parse(moltnetJson) as {
+      github?: { private_key_path?: string };
+    };
+    const pemPath = moltnetConfig.github?.private_key_path;
+    if (pemPath && existsSync(pemPath)) {
+      githubAppPem = readFileSync(pemPath, 'utf8');
+      githubAppPemFilename = path.basename(pemPath);
+    }
+  } catch {
+    // moltnet.json parse failure or missing PEM is non-fatal; token derivation
+    // will simply fail inside the guest if the file is absent.
+  }
+
   return {
     moltnetJson,
     agentEnvRaw,
@@ -112,6 +135,8 @@ export function loadCredentials(agentDir: string): VmCredentials {
     sshPrivateKey,
     sshPublicKey,
     allowedSigners,
+    githubAppPem,
+    githubAppPemFilename,
   };
 }
 
@@ -259,9 +284,20 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
   await vm.fs.writeFile('/home/agent/.pi/agent/auth.json', creds.piAuthJson, {
     mode: 0o600,
   });
-  await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, creds.moltnetJson, {
+
+  // Rewrite moltnet.json with VM-local paths before injecting into the guest.
+  // The host-absolute paths (ssh private_key_path, github private_key_path)
+  // are invalid inside the VM — replace them with paths under vmAgentDir.
+  const vmMoltnetJson = rewriteMoltnetJsonPaths(
+    creds.moltnetJson,
+    vmAgentDir,
+    vmSshDir,
+    creds.githubAppPemFilename,
+  );
+  await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, vmMoltnetJson, {
     mode: 0o600,
   });
+
   await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
     mode: 0o600,
   });
@@ -303,6 +339,17 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
     });
   }
 
+  // Inject GitHub App PEM so `moltnet github token` works inside the guest.
+  // The filename is the basename of the host path (e.g. "legreffier.pem"),
+  // matching the path written into vmMoltnetJson above.
+  if (creds.githubAppPem && creds.githubAppPemFilename) {
+    await vm.fs.writeFile(
+      `${vmAgentDir}/${creds.githubAppPemFilename}`,
+      creds.githubAppPem,
+      { mode: 0o600 },
+    );
+  }
+
   await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet');
 
   return {
@@ -312,6 +359,56 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
     guestWorkspace: GUEST_WORKSPACE,
     agentDir,
   };
+}
+
+/**
+ * Rewrite host-absolute paths inside moltnet.json to VM-local equivalents.
+ *
+ * Fields rewritten:
+ *   ssh.private_key_path  → <vmSshDir>/id_ed25519
+ *   ssh.public_key_path   → <vmSshDir>/id_ed25519.pub
+ *   git.config_path       → <vmAgentDir>/gitconfig
+ *   github.private_key_path → <vmAgentDir>/<pemFilename>  (if present)
+ *
+ * All other fields are passed through unchanged.
+ */
+export function rewriteMoltnetJsonPaths(
+  moltnetJson: string,
+  vmAgentDir: string,
+  vmSshDir: string,
+  githubAppPemFilename: string | null,
+): string {
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(moltnetJson) as Record<string, unknown>;
+  } catch {
+    return moltnetJson;
+  }
+
+  if (config.ssh && typeof config.ssh === 'object') {
+    const ssh = { ...(config.ssh as Record<string, unknown>) };
+    ssh.private_key_path = `${vmSshDir}/id_ed25519`;
+    ssh.public_key_path = `${vmSshDir}/id_ed25519.pub`;
+    config.ssh = ssh;
+  }
+
+  if (config.git && typeof config.git === 'object') {
+    const git = { ...(config.git as Record<string, unknown>) };
+    git.config_path = `${vmAgentDir}/gitconfig`;
+    config.git = git;
+  }
+
+  if (
+    githubAppPemFilename &&
+    config.github &&
+    typeof config.github === 'object'
+  ) {
+    const github = { ...(config.github as Record<string, unknown>) };
+    github.private_key_path = `${vmAgentDir}/${githubAppPemFilename}`;
+    config.github = github;
+  }
+
+  return JSON.stringify(config);
 }
 
 /**

@@ -241,6 +241,7 @@ export async function executePiTask(
         clearSessionErrors: () => {
           /* no-op in headless mode */
         },
+        getHostCwd: () => mountPath,
       });
 
       const piAuthDir = join(homedir(), '.pi', 'agent');

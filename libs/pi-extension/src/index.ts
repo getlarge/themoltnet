@@ -314,6 +314,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     clearSessionErrors: () => {
       sessionErrors.length = 0;
     },
+    getHostCwd: () => worktreePath ?? localCwd,
   });
 
   for (const tool of moltnetTools) {

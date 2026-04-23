@@ -5,6 +5,7 @@
  * These tools run on the host (not in the VM) via the MoltNet SDK,
  * so agent credentials never touch the VM filesystem.
  */
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
 import { Type } from '@mariozechner/pi-ai';
@@ -35,6 +36,8 @@ export interface MoltNetToolsConfig {
   getDiaryId(): string | null;
   getSessionErrors(): readonly TrackedError[];
   clearSessionErrors(): void;
+  /** Host working directory for host-exec commands (worktree path or cwd). */
+  getHostCwd?(): string;
 }
 
 function ensureConnected(config: MoltNetToolsConfig) {
@@ -745,6 +748,83 @@ export function createMoltNetTools(
     },
   });
 
+  // Allowlist of executables permitted for host-exec. Expanding this list
+  // widens the escape hatch surface — keep it narrow.
+  const HOST_EXEC_ALLOWED: ReadonlySet<string> = new Set([
+    'git',
+    'gh',
+    'moltnet',
+  ]);
+
+  const hostExec = defineTool({
+    name: 'moltnet_host_exec',
+    label: 'Run command on host (escape hatch)',
+    description:
+      'Run a command on the HOST machine, outside the sandbox VM. ' +
+      'Use ONLY when a sandboxed operation is impossible — e.g. `git push`, ' +
+      '`gh pr create` — and the user has explicitly approved this call. ' +
+      'Allowed executables: git, gh, moltnet. ' +
+      'Every invocation is logged as an auditable host execution.',
+    parameters: Type.Object({
+      executable: Type.String({
+        description: 'Executable to run (git | gh | moltnet)',
+      }),
+      args: Type.Array(Type.String(), {
+        description: 'Arguments to pass to the executable',
+      }),
+      env: Type.Optional(
+        Type.Record(Type.String(), Type.String(), {
+          description:
+            'Extra environment variables to merge (e.g. GH_TOKEN). ' +
+            'Merged on top of the host process env.',
+        }),
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, _ctx) {
+      if (!HOST_EXEC_ALLOWED.has(params.executable)) {
+        throw new Error(
+          `host_exec: '${params.executable}' is not in the allowed list ` +
+            `(${[...HOST_EXEC_ALLOWED].join(', ')}). ` +
+            'Extend HOST_EXEC_ALLOWED only after explicit security review.',
+        );
+      }
+
+      const cwd = config.getHostCwd?.() ?? process.cwd();
+      const mergedEnv = { ...process.env, ...(params.env ?? {}) };
+
+      let stdout: string;
+      let stderr = '';
+      try {
+        stdout = execFileSync(params.executable, params.args, {
+          encoding: 'utf8',
+          cwd,
+          env: mergedEnv,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (err) {
+        const e = err as { stdout?: string; stderr?: string; message?: string };
+        stdout = e.stdout ?? '';
+        stderr = e.stderr ?? e.message ?? String(err);
+      }
+
+      const result = {
+        host_exec: true,
+        executable: params.executable,
+        args: params.args,
+        cwd,
+        stdout: stdout.trimEnd(),
+        stderr: stderr.trimEnd() || undefined,
+      };
+
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   return [
     getPack,
     createPack,
@@ -760,5 +840,6 @@ export function createMoltNetTools(
     searchEntries,
     createEntry,
     reviewSessionErrors,
+    hostExec,
   ];
 }
