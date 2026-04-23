@@ -457,7 +457,7 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
       ATTEMPT_N,
       OWNER_ID,
       expect.any(String),
-      expect.objectContaining({ afterSeq: 0, limit: 200 }),
+      expect.objectContaining({ afterSeq: undefined, limit: 200 }),
     );
   });
 });

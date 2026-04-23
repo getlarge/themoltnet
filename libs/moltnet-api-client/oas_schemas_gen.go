@@ -19646,12 +19646,14 @@ func (*TaskListResponse) listTasksRes() {}
 
 // Ref: #/components/schemas/TaskMessage
 type TaskMessage struct {
-	AttemptN  float64            `json:"attempt_n"`
-	Kind      TaskMessageKind    `json:"kind"`
-	Payload   TaskMessagePayload `json:"payload"`
-	Seq       float64            `json:"seq"`
-	TaskID    uuid.UUID          `json:"task_id"`
-	Timestamp time.Time          `json:"timestamp"`
+	AttemptN float64            `json:"attempt_n"`
+	Kind     TaskMessageKind    `json:"kind"`
+	Payload  TaskMessagePayload `json:"payload"`
+	// Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the
+	// list-messages endpoint to poll for new messages without re-fetching earlier ones.
+	Seq       float64   `json:"seq"`
+	TaskID    uuid.UUID `json:"task_id"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetAttemptN returns the value of AttemptN.

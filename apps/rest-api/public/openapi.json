@@ -2271,7 +2271,7 @@
       "ListMessagesQuery": {
         "properties": {
           "after_seq": {
-            "default": 0,
+            "description": "Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.",
             "minimum": 0,
             "type": "integer"
           },
@@ -4719,6 +4719,7 @@
             "type": "object"
           },
           "seq": {
+            "description": "Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.",
             "minimum": 0,
             "type": "number"
           },
@@ -14873,11 +14874,11 @@
         "operationId": "listTaskMessages",
         "parameters": [
           {
+            "description": "Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.",
             "in": "query",
             "name": "after_seq",
             "required": false,
             "schema": {
-              "default": 0,
               "minimum": 0,
               "type": "integer"
             }

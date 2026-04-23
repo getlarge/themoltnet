@@ -1197,6 +1197,9 @@ export type TaskAttemptStatus =
 export type TaskMessage = {
   task_id: string;
   attempt_n: number;
+  /**
+   * Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.
+   */
   seq: number;
   timestamp: string;
   kind:
@@ -1269,6 +1272,9 @@ export type CancelTaskBody = {
 };
 
 export type ListMessagesQuery = {
+  /**
+   * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
+   */
   after_seq?: number;
   limit?: number;
 };
@@ -6388,6 +6394,9 @@ export type ListTaskMessagesData = {
     n: number;
   };
   query?: {
+    /**
+     * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
+     */
     after_seq?: number;
     limit?: number;
   };

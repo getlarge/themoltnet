@@ -215,7 +215,7 @@ export function createTaskRepository(db: Database) {
       const valuesTuples = messages
         .map(
           (m) =>
-            sql`(${m.kind}::text, ${JSON.stringify(m.payload)}::jsonb, ${m.timestamp ?? new Date()})`,
+            sql`(${m.kind}::task_message_kind, ${JSON.stringify(m.payload)}::jsonb, ${m.timestamp ?? new Date()}::timestamptz)`,
         )
         .reduce((acc, cur) => sql`${acc}, ${cur}`);
 
