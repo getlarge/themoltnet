@@ -10257,10 +10257,8 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.DiaryID.Set {
-			e.FieldStart("diary_id")
-			s.DiaryID.Encode(e)
-		}
+		e.FieldStart("diary_id")
+		json.EncodeUUID(e, s.DiaryID)
 	}
 	{
 		if s.ExpiresInSec.Set {
@@ -10341,9 +10339,11 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"criteria_cid\"")
 			}
 		case "diary_id":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				s.DiaryID.Reset()
-				if err := s.DiaryID.Decode(d); err != nil {
+				v, err := json.DecodeUUID(d)
+				s.DiaryID = v
+				if err != nil {
 					return err
 				}
 				return nil
@@ -10431,7 +10431,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b10010000,
+		0b10010100,
 		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
@@ -21623,6 +21623,44 @@ func (s *FailTaskBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *FailTaskBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FailTaskConflict as json.
+func (s *FailTaskConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes FailTaskConflict from json.
+func (s *FailTaskConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FailTaskConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = FailTaskConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FailTaskConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FailTaskConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -51219,11 +51257,16 @@ func (s *TaskListResponse) encodeFields(e *jx.Encoder) {
 			s.NextCursor.Encode(e)
 		}
 	}
+	{
+		e.FieldStart("total")
+		e.Int(s.Total)
+	}
 }
 
-var jsonFieldsNameOfTaskListResponse = [2]string{
+var jsonFieldsNameOfTaskListResponse = [3]string{
 	0: "items",
 	1: "next_cursor",
+	2: "total",
 }
 
 // Decode decodes TaskListResponse from json.
@@ -51263,6 +51306,18 @@ func (s *TaskListResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"next_cursor\"")
 			}
+		case "total":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.Total = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -51273,7 +51328,7 @@ func (s *TaskListResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000001,
+		0b00000101,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

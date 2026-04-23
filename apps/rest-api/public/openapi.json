@@ -53,6 +53,7 @@
               "required": ["kind", "payload"],
               "type": "object"
             },
+            "minItems": 1,
             "type": "array"
           }
         },
@@ -1058,7 +1059,7 @@
             "type": "string"
           }
         },
-        "required": ["task_type", "team_id", "input"],
+        "required": ["task_type", "team_id", "diary_id", "input"],
         "type": "object"
       },
       "CryptoIdentity": {
@@ -4669,9 +4670,13 @@
           },
           "next_cursor": {
             "type": "string"
+          },
+          "total": {
+            "minimum": 0,
+            "type": "integer"
           }
         },
-        "required": ["items"],
+        "required": ["items", "total"],
         "type": "object"
       },
       "TaskMessage": {
@@ -14315,7 +14320,7 @@
                     "type": "string"
                   }
                 },
-                "required": ["task_type", "team_id", "input"],
+                "required": ["task_type", "team_id", "diary_id", "input"],
                 "type": "object"
               }
             }
@@ -14740,6 +14745,16 @@
               }
             },
             "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
           }
         },
         "security": [
@@ -15001,6 +15016,7 @@
                       "required": ["kind", "payload"],
                       "type": "object"
                     },
+                    "minItems": 1,
                     "type": "array"
                   }
                 },

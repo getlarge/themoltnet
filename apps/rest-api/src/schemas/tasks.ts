@@ -31,7 +31,7 @@ export const CreateTaskBodySchema = Type.Object(
   {
     task_type: Type.String({ minLength: 1 }),
     team_id: Type.String({ format: 'uuid' }),
-    diary_id: Type.Optional(Type.String({ format: 'uuid' })),
+    diary_id: Type.String({ format: 'uuid' }),
     input: Type.Record(Type.String(), Type.Unknown()),
     references: Type.Optional(Type.Array(Type.Ref(TaskRef))),
     correlation_id: Type.Optional(Type.String({ format: 'uuid' })),
@@ -114,6 +114,7 @@ export const AppendMessagesBodySchema = Type.Object(
         payload: Type.Record(Type.String(), Type.Unknown()),
         timestamp: Type.Optional(Type.String({ format: 'date-time' })),
       }),
+      { minItems: 1 },
     ),
   },
   { $id: 'AppendMessagesBody' },

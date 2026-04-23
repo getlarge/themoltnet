@@ -3278,7 +3278,7 @@ func (*CreateTaskForbidden) createTaskRes() {}
 type CreateTaskReq struct {
 	CorrelationID OptUUID            `json:"correlation_id"`
 	CriteriaCid   OptString          `json:"criteria_cid"`
-	DiaryID       OptUUID            `json:"diary_id"`
+	DiaryID       uuid.UUID          `json:"diary_id"`
 	ExpiresInSec  OptInt             `json:"expires_in_sec"`
 	Input         CreateTaskReqInput `json:"input"`
 	MaxAttempts   OptInt             `json:"max_attempts"`
@@ -3298,7 +3298,7 @@ func (s *CreateTaskReq) GetCriteriaCid() OptString {
 }
 
 // GetDiaryID returns the value of DiaryID.
-func (s *CreateTaskReq) GetDiaryID() OptUUID {
+func (s *CreateTaskReq) GetDiaryID() uuid.UUID {
 	return s.DiaryID
 }
 
@@ -3343,7 +3343,7 @@ func (s *CreateTaskReq) SetCriteriaCid(val OptString) {
 }
 
 // SetDiaryID sets the value of DiaryID.
-func (s *CreateTaskReq) SetDiaryID(val OptUUID) {
+func (s *CreateTaskReq) SetDiaryID(val uuid.UUID) {
 	s.DiaryID = val
 }
 
@@ -7986,6 +7986,10 @@ func (s *ExpandedRelations) SetRequestedDepth(val int) {
 type FailTaskBadRequest ProblemDetails
 
 func (*FailTaskBadRequest) failTaskRes() {}
+
+type FailTaskConflict ProblemDetails
+
+func (*FailTaskConflict) failTaskRes() {}
 
 type FailTaskForbidden ProblemDetails
 
@@ -19605,6 +19609,7 @@ func (s *TaskInput) init() TaskInput {
 type TaskListResponse struct {
 	Items      []Task    `json:"items"`
 	NextCursor OptString `json:"next_cursor"`
+	Total      int       `json:"total"`
 }
 
 // GetItems returns the value of Items.
@@ -19617,6 +19622,11 @@ func (s *TaskListResponse) GetNextCursor() OptString {
 	return s.NextCursor
 }
 
+// GetTotal returns the value of Total.
+func (s *TaskListResponse) GetTotal() int {
+	return s.Total
+}
+
 // SetItems sets the value of Items.
 func (s *TaskListResponse) SetItems(val []Task) {
 	s.Items = val
@@ -19625,6 +19635,11 @@ func (s *TaskListResponse) SetItems(val []Task) {
 // SetNextCursor sets the value of NextCursor.
 func (s *TaskListResponse) SetNextCursor(val OptString) {
 	s.NextCursor = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskListResponse) SetTotal(val int) {
+	s.Total = val
 }
 
 func (*TaskListResponse) listTasksRes() {}

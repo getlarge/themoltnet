@@ -105,7 +105,7 @@ export interface PermissionChecker {
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
   canClaimTask(
-    diaryId: string,
+    taskId: string,
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
@@ -458,15 +458,15 @@ export function createPermissionChecker(
     },
 
     canClaimTask(
-      diaryId: string,
+      taskId: string,
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<boolean> {
       return checkPermission(
         permissionApi,
-        KetoNamespace.Diary,
-        diaryId,
-        DiaryPermission.Write,
+        KetoNamespace.Task,
+        taskId,
+        TaskPermission.Claim,
         subjectNs,
         subjectId,
       );

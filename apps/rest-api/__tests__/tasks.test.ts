@@ -95,6 +95,7 @@ describe('POST /tasks', () => {
       payload: {
         task_type: 'context_distill',
         team_id: TEAM_ID,
+        diary_id: DIARY_ID,
         input: {},
       },
     });
@@ -488,14 +489,13 @@ describe('POST /tasks/:id/attempts/:n/messages', () => {
     expect(response.json()).toEqual({ count: 2 });
   });
 
-  it('returns 200 when messages is empty (minItems not enforced by schema)', async () => {
+  it('returns 400 when messages is empty', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages`,
       headers: { authorization: 'Bearer test-token' },
       payload: { messages: [] },
     });
-    // Empty array passes schema validation (minItems not set), so expect 200
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(400);
   });
 });

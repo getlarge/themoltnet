@@ -310,9 +310,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
     ): Promise<Task> {
-      const row = await taskRepository.findById(taskId);
-      if (!row) throw new TaskServiceError('not_found', 'Task not found');
-
+      // Check permission before fetching to avoid leaking existence info (Issue 8).
       const canView = await permissionChecker.canViewTask(
         taskId,
         callerId,
@@ -324,6 +322,9 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Not authorized to view this task',
         );
 
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
       return dbTaskToWire(row);
     },
 
@@ -333,12 +334,19 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
     ): Promise<{ task: Task; attempt: TaskAttempt }> {
-      const row = await taskRepository.findById(taskId);
-      if (!row) throw new TaskServiceError('not_found', 'Task not found');
-      if (row.status !== 'queued') {
+      // Only agents may claim tasks (Issue 4).
+      if (callerNs !== KetoNamespace.Agent) {
+        throw new TaskServiceError('invalid', 'Only agents may claim tasks');
+      }
+
+      // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
+      const row = await taskRepository.claimIfQueued(taskId);
+      if (!row) {
+        // Either the task doesn't exist or it was not in 'queued' state.
+        // We disambiguate to give a meaningful error without leaking existence.
         throw new TaskServiceError(
           'conflict',
-          `Task cannot be claimed in status: ${row.status}`,
+          'Task is not queued or is already being claimed',
         );
       }
 
@@ -350,11 +358,8 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      if (!row.diaryId) {
-        throw new TaskServiceError('invalid', 'Task has no diary_id');
-      }
       const canClaim = await permissionChecker.canClaimTask(
-        row.diaryId,
+        taskId,
         callerId,
         callerNs,
       );
@@ -420,6 +425,15 @@ export function createTaskService(deps: TaskServiceDeps) {
           'forbidden',
           'Not authorized to report on this task',
         );
+
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
@@ -621,9 +635,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
     ): Promise<TaskAttempt[]> {
-      const row = await taskRepository.findById(taskId);
-      if (!row) throw new TaskServiceError('not_found', 'Task not found');
-
+      // Check permission before fetching to avoid leaking existence info (Issue 8).
       const canView = await permissionChecker.canViewTask(
         taskId,
         callerId,
@@ -634,6 +646,9 @@ export function createTaskService(deps: TaskServiceDeps) {
           'forbidden',
           'Not authorized to view this task',
         );
+
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
 
       const attempts = await taskRepository.listAttempts(taskId);
       return attempts.map(dbAttemptToWire);
@@ -697,13 +712,11 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const maxSeq = await taskRepository.findMaxMessageSeq(taskId, attemptN);
-      const baseSeq = maxSeq + 1;
-
-      const rows: NewTaskMessage[] = messages.map((m, i) => ({
+      // Seq is generated atomically inside the DB by the repository to avoid
+      // read-then-write races (see appendMessages in task.repository.ts).
+      const rows = messages.map((m) => ({
         taskId,
         attemptN,
-        seq: baseSeq + i,
         timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
         kind: m.kind as NewTaskMessage['kind'],
         payload: m.payload,

@@ -1223,7 +1223,7 @@ export type TaskAttemptParams = {
 export type CreateTaskBody = {
   task_type: string;
   team_id: string;
-  diary_id?: string;
+  diary_id: string;
   input: {
     [key: string]: unknown;
   };
@@ -1285,6 +1285,7 @@ export type AppendMessagesBody = {
 
 export type TaskListResponse = {
   items: Array<Task>;
+  total: number;
   next_cursor?: string;
 };
 
@@ -6040,7 +6041,7 @@ export type CreateTaskData = {
   body: {
     task_type: string;
     team_id: string;
-    diary_id?: string;
+    diary_id: string;
     input: {
       [key: string]: unknown;
     };
@@ -6281,6 +6282,10 @@ export type FailTaskErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
 };
 
 export type FailTaskError = FailTaskErrors[keyof FailTaskErrors];
