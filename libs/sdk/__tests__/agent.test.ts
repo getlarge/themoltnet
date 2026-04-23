@@ -6,6 +6,7 @@ import {
   createDiaryEntry,
   createDiaryGrant,
   createSigningRequest,
+  createTask,
   createTeam,
   createTeamInvite,
   deleteDiary,
@@ -35,6 +36,7 @@ import {
   listDiaryGrants,
   listProblemTypes,
   listSigningRequests,
+  listTasks,
   listTeamInvites,
   listTeamMembers,
   listTeams,
@@ -119,6 +121,15 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
     revokeDiaryGrant: vi.fn(),
+    listTasks: vi.fn(),
+    createTask: vi.fn(),
+    claimTask: vi.fn(),
+    taskHeartbeat: vi.fn(),
+    completeTask: vi.fn(),
+    cancelTask: vi.fn(),
+    listTaskAttempts: vi.fn(),
+    listTaskMessages: vi.fn(),
+    appendTaskMessages: vi.fn(),
   };
 });
 
@@ -154,6 +165,31 @@ const problemError = {
   status: 404,
   code: 'NOT_FOUND' as const,
   detail: 'Entry not found',
+};
+
+const mockTask = {
+  id: 'task-1',
+  taskType: 'fulfill_brief',
+  teamId: 'team-1',
+  diaryId: 'diary-1',
+  outputKind: 'artifact',
+  input: { brief: 'Hello' },
+  inputSchemaCid: 'cid-schema',
+  inputCid: 'cid-input',
+  criteriaCid: null,
+  references: [],
+  correlationId: null,
+  imposedByAgentId: null,
+  imposedByHumanId: null,
+  acceptedAttemptN: null,
+  status: 'queued',
+  queuedAt: '2024-01-01T00:00:00Z',
+  completedAt: null,
+  expiresAt: null,
+  cancelledByAgentId: null,
+  cancelledByHumanId: null,
+  cancelReason: null,
+  maxAttempts: 1,
 };
 
 describe('Agent facade', () => {
@@ -323,6 +359,60 @@ describe('Agent facade', () => {
       expect(verifyDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { entryId: 'entry-1' },
+        }),
+      );
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // tasks
+  // -----------------------------------------------------------------------
+  describe('tasks', () => {
+    it('tasks.list calls listTasks', async () => {
+      const taskList = { items: [mockTask], total: 1, nextCursor: null };
+      vi.mocked(listTasks).mockResolvedValueOnce({
+        data: taskList,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.list({ teamId: 'team-1' });
+
+      expect(result).toEqual(taskList);
+      expect(listTasks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          query: { teamId: 'team-1' },
+        }),
+      );
+    });
+
+    it('tasks.create calls createTask', async () => {
+      vi.mocked(createTask).mockResolvedValueOnce({
+        data: mockTask,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.create({
+        taskType: 'fulfill_brief',
+        teamId: 'team-1',
+        diaryId: 'diary-1',
+        input: { brief: 'Hello' },
+      });
+
+      expect(result).toEqual(mockTask);
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          body: {
+            taskType: 'fulfill_brief',
+            teamId: 'team-1',
+            diaryId: 'diary-1',
+            input: { brief: 'Hello' },
+          },
         }),
       );
     });

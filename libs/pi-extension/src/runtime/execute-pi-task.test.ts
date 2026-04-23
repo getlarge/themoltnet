@@ -66,11 +66,11 @@ describe('parseStructuredTaskOutput', () => {
         {
           sha: 'abcdef1',
           message: 'fix(tasks): validate output locally',
-          diary_entry_id: '1851828e-b3a7-4130-a938-db6dd16477bd',
+          diaryEntryId: '1851828e-b3a7-4130-a938-db6dd16477bd',
         },
       ],
-      pull_request_url: null,
-      diary_entry_ids: ['1851828e-b3a7-4130-a938-db6dd16477bd'],
+      pullRequestUrl: null,
+      diaryEntryIds: ['1851828e-b3a7-4130-a938-db6dd16477bd'],
       summary: 'Validated output before sending completion payloads.',
     };
 
@@ -91,8 +91,8 @@ describe('parseStructuredTaskOutput', () => {
       JSON.stringify({
         branch: 123,
         commits: [],
-        pull_request_url: null,
-        diary_entry_ids: [],
+        pullRequestUrl: null,
+        diaryEntryIds: [],
       }),
       'fulfill_brief',
     );

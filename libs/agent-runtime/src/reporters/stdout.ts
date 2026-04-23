@@ -24,7 +24,7 @@ export class StdoutReporter implements TaskReporter {
   }
 
   async record(
-    body: Omit<TaskMessage, 'task_id' | 'attempt_n' | 'seq' | 'timestamp'>,
+    body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void> {
     this.seq += 1;
 
@@ -71,7 +71,7 @@ export class StdoutReporter implements TaskReporter {
 
   async finalize(usage: TaskUsage): Promise<void> {
     process.stdout.write(
-      `\n\n[done] task ${this.taskId} — input=${usage.input_tokens}t output=${usage.output_tokens}t\n`,
+      `\n\n[done] task ${this.taskId} — input=${usage.inputTokens}t output=${usage.outputTokens}t\n`,
     );
   }
 

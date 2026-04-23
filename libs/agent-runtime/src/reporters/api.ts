@@ -54,7 +54,7 @@ export class ApiTaskReporter implements TaskReporter {
   }
 
   async record(
-    body: Omit<TaskMessage, 'task_id' | 'attempt_n' | 'seq' | 'timestamp'>,
+    body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void> {
     const token = await this.opts.auth();
     const response = await this.fetchImpl(
@@ -111,7 +111,7 @@ export class ApiTaskReporter implements TaskReporter {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          this.opts.leaseTtlSec ? { lease_ttl_sec: this.opts.leaseTtlSec } : {},
+          this.opts.leaseTtlSec ? { leaseTtlSec: this.opts.leaseTtlSec } : {},
         ),
       },
     );

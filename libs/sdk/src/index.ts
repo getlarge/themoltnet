@@ -12,6 +12,7 @@ export type {
   PublicNamespace,
   RecoveryNamespace,
   SigningRequestsNamespace,
+  TasksNamespace,
   TeamsNamespace,
   VouchNamespace,
 } from './agent.js';

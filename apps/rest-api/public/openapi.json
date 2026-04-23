@@ -156,7 +156,7 @@
       },
       "ClaimTaskBody": {
         "properties": {
-          "lease_ttl_sec": {
+          "leaseTtlSec": {
             "default": 300,
             "maximum": 3600,
             "minimum": 1,
@@ -429,14 +429,14 @@
       },
       "CompleteTaskBody": {
         "properties": {
-          "content_signature": {
+          "contentSignature": {
             "type": "string"
           },
           "output": {
             "additionalProperties": {},
             "type": "object"
           },
-          "output_cid": {
+          "outputCid": {
             "minLength": 1,
             "type": "string"
           },
@@ -444,7 +444,7 @@
             "$ref": "#/components/schemas/TaskUsage"
           }
         },
-        "required": ["output", "output_cid", "usage"],
+        "required": ["output", "outputCid", "usage"],
         "type": "object"
       },
       "ConsolidateResult": {
@@ -1019,19 +1019,19 @@
       },
       "CreateTaskBody": {
         "properties": {
-          "correlation_id": {
+          "correlationId": {
             "format": "uuid",
             "type": "string"
           },
-          "criteria_cid": {
+          "criteriaCid": {
             "minLength": 1,
             "type": "string"
           },
-          "diary_id": {
+          "diaryId": {
             "format": "uuid",
             "type": "string"
           },
-          "expires_in_sec": {
+          "expiresInSec": {
             "minimum": 1,
             "type": "integer"
           },
@@ -1039,7 +1039,7 @@
             "additionalProperties": {},
             "type": "object"
           },
-          "max_attempts": {
+          "maxAttempts": {
             "default": 1,
             "minimum": 1,
             "type": "integer"
@@ -1050,16 +1050,16 @@
             },
             "type": "array"
           },
-          "task_type": {
+          "taskType": {
             "minLength": 1,
             "type": "string"
           },
-          "team_id": {
+          "teamId": {
             "format": "uuid",
             "type": "string"
           }
         },
-        "required": ["task_type", "team_id", "diary_id", "input"],
+        "required": ["taskType", "teamId", "diaryId", "input"],
         "type": "object"
       },
       "CryptoIdentity": {
@@ -2250,7 +2250,7 @@
       },
       "HeartbeatBody": {
         "properties": {
-          "lease_ttl_sec": {
+          "leaseTtlSec": {
             "maximum": 3600,
             "minimum": 1,
             "type": "integer"
@@ -2260,17 +2260,17 @@
       },
       "HeartbeatResponse": {
         "properties": {
-          "claim_expires_at": {
+          "claimExpiresAt": {
             "format": "date-time",
             "type": "string"
           }
         },
-        "required": ["claim_expires_at"],
+        "required": ["claimExpiresAt"],
         "type": "object"
       },
       "ListMessagesQuery": {
         "properties": {
-          "after_seq": {
+          "afterSeq": {
             "description": "Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.",
             "minimum": 0,
             "type": "integer"
@@ -2286,7 +2286,7 @@
       },
       "ListTasksQuery": {
         "properties": {
-          "correlation_id": {
+          "correlationId": {
             "format": "uuid",
             "type": "string"
           },
@@ -2302,15 +2302,15 @@
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
           },
-          "task_type": {
+          "taskType": {
             "type": "string"
           },
-          "team_id": {
+          "teamId": {
             "format": "uuid",
             "type": "string"
           }
         },
-        "required": ["team_id"],
+        "required": ["teamId"],
         "type": "object"
       },
       "NetworkInfo": {
@@ -4086,7 +4086,7 @@
       "Task": {
         "additionalProperties": false,
         "properties": {
-          "accepted_attempt_n": {
+          "acceptedAttemptN": {
             "anyOf": [
               {
                 "type": "number"
@@ -4096,7 +4096,7 @@
               }
             ]
           },
-          "cancel_reason": {
+          "cancelReason": {
             "anyOf": [
               {
                 "type": "string"
@@ -4106,18 +4106,7 @@
               }
             ]
           },
-          "cancelled_by_agent_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "cancelled_by_human_id": {
+          "cancelledByAgentId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4128,7 +4117,18 @@
               }
             ]
           },
-          "completed_at": {
+          "cancelledByHumanId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedAt": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -4139,7 +4139,7 @@
               }
             ]
           },
-          "correlation_id": {
+          "correlationId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4150,7 +4150,7 @@
               }
             ]
           },
-          "criteria_cid": {
+          "criteriaCid": {
             "anyOf": [
               {
                 "minLength": 1,
@@ -4161,7 +4161,7 @@
               }
             ]
           },
-          "diary_id": {
+          "diaryId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4172,7 +4172,7 @@
               }
             ]
           },
-          "expires_at": {
+          "expiresAt": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -4187,7 +4187,7 @@
             "format": "uuid",
             "type": "string"
           },
-          "imposed_by_agent_id": {
+          "imposedByAgentId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4198,7 +4198,7 @@
               }
             ]
           },
-          "imposed_by_human_id": {
+          "imposedByHumanId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4213,19 +4213,19 @@
             "additionalProperties": {},
             "type": "object"
           },
-          "input_cid": {
+          "inputCid": {
             "minLength": 1,
             "type": "string"
           },
-          "input_schema_cid": {
+          "inputSchemaCid": {
             "minLength": 1,
             "type": "string"
           },
-          "max_attempts": {
+          "maxAttempts": {
             "minimum": 1,
             "type": "number"
           },
-          "output_kind": {
+          "outputKind": {
             "anyOf": [
               {
                 "enum": ["artifact"],
@@ -4237,7 +4237,7 @@
               }
             ]
           },
-          "queued_at": {
+          "queuedAt": {
             "format": "date-time",
             "type": "string"
           },
@@ -4283,7 +4283,7 @@
                   "required": ["kind"],
                   "type": "object"
                 },
-                "output_cid": {
+                "outputCid": {
                   "minLength": 1,
                   "type": "string"
                 },
@@ -4307,7 +4307,7 @@
                     }
                   ]
                 },
-                "task_id": {
+                "taskId": {
                   "anyOf": [
                     {
                       "format": "uuid",
@@ -4319,7 +4319,7 @@
                   ]
                 }
               },
-              "required": ["task_id", "output_cid", "role"],
+              "required": ["taskId", "outputCid", "role"],
               "type": "object"
             },
             "type": "array"
@@ -4356,57 +4356,57 @@
               }
             ]
           },
-          "task_type": {
+          "taskType": {
             "minLength": 1,
             "type": "string"
           },
-          "team_id": {
+          "teamId": {
             "format": "uuid",
             "type": "string"
           }
         },
         "required": [
           "id",
-          "task_type",
-          "team_id",
-          "diary_id",
-          "output_kind",
+          "taskType",
+          "teamId",
+          "diaryId",
+          "outputKind",
           "input",
-          "input_schema_cid",
-          "input_cid",
-          "criteria_cid",
+          "inputSchemaCid",
+          "inputCid",
+          "criteriaCid",
           "references",
-          "correlation_id",
-          "imposed_by_agent_id",
-          "imposed_by_human_id",
-          "accepted_attempt_n",
+          "correlationId",
+          "imposedByAgentId",
+          "imposedByHumanId",
+          "acceptedAttemptN",
           "status",
-          "queued_at",
-          "completed_at",
-          "expires_at",
-          "cancelled_by_agent_id",
-          "cancelled_by_human_id",
-          "cancel_reason",
-          "max_attempts"
+          "queuedAt",
+          "completedAt",
+          "expiresAt",
+          "cancelledByAgentId",
+          "cancelledByHumanId",
+          "cancelReason",
+          "maxAttempts"
         ],
         "type": "object"
       },
       "TaskAttempt": {
         "additionalProperties": false,
         "properties": {
-          "attempt_n": {
+          "attemptN": {
             "minimum": 1,
             "type": "number"
           },
-          "claimed_at": {
+          "claimedAt": {
             "format": "date-time",
             "type": "string"
           },
-          "claimed_by_agent_id": {
+          "claimedByAgentId": {
             "format": "uuid",
             "type": "string"
           },
-          "completed_at": {
+          "completedAt": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -4417,7 +4417,7 @@
               }
             ]
           },
-          "content_signature": {
+          "contentSignature": {
             "anyOf": [
               {
                 "type": "string"
@@ -4464,7 +4464,7 @@
               }
             ]
           },
-          "output_cid": {
+          "outputCid": {
             "anyOf": [
               {
                 "minLength": 1,
@@ -4475,7 +4475,7 @@
               }
             ]
           },
-          "runtime_id": {
+          "runtimeId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4486,7 +4486,7 @@
               }
             ]
           },
-          "signed_at": {
+          "signedAt": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -4497,7 +4497,7 @@
               }
             ]
           },
-          "started_at": {
+          "startedAt": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -4536,7 +4536,7 @@
               }
             ]
           },
-          "task_id": {
+          "taskId": {
             "format": "uuid",
             "type": "string"
           },
@@ -4545,34 +4545,34 @@
               {
                 "additionalProperties": false,
                 "properties": {
-                  "cache_read_tokens": {
+                  "cacheReadTokens": {
                     "minimum": 0,
                     "type": "integer"
                   },
-                  "cache_write_tokens": {
+                  "cacheWriteTokens": {
                     "minimum": 0,
                     "type": "integer"
                   },
-                  "input_tokens": {
+                  "inputTokens": {
                     "minimum": 0,
                     "type": "integer"
                   },
                   "model": {
                     "type": "string"
                   },
-                  "output_tokens": {
+                  "outputTokens": {
                     "minimum": 0,
                     "type": "integer"
                   },
                   "provider": {
                     "type": "string"
                   },
-                  "tool_calls": {
+                  "toolCalls": {
                     "minimum": 0,
                     "type": "integer"
                   }
                 },
-                "required": ["input_tokens", "output_tokens"],
+                "required": ["inputTokens", "outputTokens"],
                 "type": "object"
               },
               {
@@ -4582,20 +4582,20 @@
           }
         },
         "required": [
-          "task_id",
-          "attempt_n",
-          "claimed_by_agent_id",
-          "runtime_id",
-          "claimed_at",
-          "started_at",
-          "completed_at",
+          "taskId",
+          "attemptN",
+          "claimedByAgentId",
+          "runtimeId",
+          "claimedAt",
+          "startedAt",
+          "completedAt",
           "status",
           "output",
-          "output_cid",
+          "outputCid",
           "error",
           "usage",
-          "content_signature",
-          "signed_at"
+          "contentSignature",
+          "signedAt"
         ],
         "type": "object"
       },
@@ -4668,7 +4668,7 @@
             },
             "type": "array"
           },
-          "next_cursor": {
+          "nextCursor": {
             "type": "string"
           },
           "total": {
@@ -4682,7 +4682,7 @@
       "TaskMessage": {
         "additionalProperties": false,
         "properties": {
-          "attempt_n": {
+          "attemptN": {
             "minimum": 1,
             "type": "number"
           },
@@ -4719,11 +4719,11 @@
             "type": "object"
           },
           "seq": {
-            "description": "Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.",
+            "description": "Monotonically increasing integer assigned by the server. Use as the afterSeq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.",
             "minimum": 0,
             "type": "number"
           },
-          "task_id": {
+          "taskId": {
             "format": "uuid",
             "type": "string"
           },
@@ -4733,8 +4733,8 @@
           }
         },
         "required": [
-          "task_id",
-          "attempt_n",
+          "taskId",
+          "attemptN",
           "seq",
           "timestamp",
           "kind",
@@ -4821,7 +4821,7 @@
             "required": ["kind"],
             "type": "object"
           },
-          "output_cid": {
+          "outputCid": {
             "minLength": 1,
             "type": "string"
           },
@@ -4845,7 +4845,7 @@
               }
             ]
           },
-          "task_id": {
+          "taskId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -4857,7 +4857,7 @@
             ]
           }
         },
-        "required": ["task_id", "output_cid", "role"],
+        "required": ["taskId", "outputCid", "role"],
         "type": "object"
       },
       "TaskStatus": {
@@ -4895,34 +4895,34 @@
       "TaskUsage": {
         "additionalProperties": false,
         "properties": {
-          "cache_read_tokens": {
+          "cacheReadTokens": {
             "minimum": 0,
             "type": "integer"
           },
-          "cache_write_tokens": {
+          "cacheWriteTokens": {
             "minimum": 0,
             "type": "integer"
           },
-          "input_tokens": {
+          "inputTokens": {
             "minimum": 0,
             "type": "integer"
           },
           "model": {
             "type": "string"
           },
-          "output_tokens": {
+          "outputTokens": {
             "minimum": 0,
             "type": "integer"
           },
           "provider": {
             "type": "string"
           },
-          "tool_calls": {
+          "toolCalls": {
             "minimum": 0,
             "type": "integer"
           }
         },
-        "required": ["input_tokens", "output_tokens"],
+        "required": ["inputTokens", "outputTokens"],
         "type": "object"
       },
       "ValidationError": {
@@ -14177,7 +14177,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "team_id",
+            "name": "teamId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -14193,7 +14193,7 @@
           },
           {
             "in": "query",
-            "name": "task_type",
+            "name": "taskType",
             "required": false,
             "schema": {
               "type": "string"
@@ -14201,7 +14201,7 @@
           },
           {
             "in": "query",
-            "name": "correlation_id",
+            "name": "correlationId",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -14281,19 +14281,19 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "correlation_id": {
+                  "correlationId": {
                     "format": "uuid",
                     "type": "string"
                   },
-                  "criteria_cid": {
+                  "criteriaCid": {
                     "minLength": 1,
                     "type": "string"
                   },
-                  "diary_id": {
+                  "diaryId": {
                     "format": "uuid",
                     "type": "string"
                   },
-                  "expires_in_sec": {
+                  "expiresInSec": {
                     "minimum": 1,
                     "type": "integer"
                   },
@@ -14301,7 +14301,7 @@
                     "additionalProperties": {},
                     "type": "object"
                   },
-                  "max_attempts": {
+                  "maxAttempts": {
                     "default": 1,
                     "minimum": 1,
                     "type": "integer"
@@ -14312,16 +14312,16 @@
                     },
                     "type": "array"
                   },
-                  "task_type": {
+                  "taskType": {
                     "minLength": 1,
                     "type": "string"
                   },
-                  "team_id": {
+                  "teamId": {
                     "format": "uuid",
                     "type": "string"
                   }
                 },
-                "required": ["task_type", "team_id", "diary_id", "input"],
+                "required": ["taskType", "teamId", "diaryId", "input"],
                 "type": "object"
               }
             }
@@ -14558,14 +14558,14 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "content_signature": {
+                  "contentSignature": {
                     "type": "string"
                   },
                   "output": {
                     "additionalProperties": {},
                     "type": "object"
                   },
-                  "output_cid": {
+                  "outputCid": {
                     "minLength": 1,
                     "type": "string"
                   },
@@ -14573,7 +14573,7 @@
                     "$ref": "#/components/schemas/TaskUsage"
                   }
                 },
-                "required": ["output", "output_cid", "usage"],
+                "required": ["output", "outputCid", "usage"],
                 "type": "object"
               }
             }
@@ -14801,7 +14801,7 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "lease_ttl_sec": {
+                  "leaseTtlSec": {
                     "maximum": 3600,
                     "minimum": 1,
                     "type": "integer"
@@ -14876,7 +14876,7 @@
           {
             "description": "Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.",
             "in": "query",
-            "name": "after_seq",
+            "name": "afterSeq",
             "required": false,
             "schema": {
               "minimum": 0,
@@ -15222,7 +15222,7 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "lease_ttl_sec": {
+                  "leaseTtlSec": {
                     "default": 300,
                     "maximum": 3600,
                     "minimum": 1,

@@ -55,7 +55,7 @@ export function validateTaskInput(
   if (!entry) {
     return [
       {
-        field: 'task_type',
+        field: 'taskType',
         message: `Unknown task type: ${taskType}`,
       },
     ];
@@ -82,7 +82,7 @@ export function validateTaskOutput(
   if (!entry) {
     return [
       {
-        field: 'task_type',
+        field: 'taskType',
         message: `Unknown task type: ${taskType}`,
       },
     ];
@@ -101,7 +101,7 @@ export function validateTaskCreateRequest(args: {
   if (!entry) {
     return [
       {
-        field: 'task_type',
+        field: 'taskType',
         message: `Unknown task type: ${args.taskType}`,
       },
     ];
@@ -113,8 +113,8 @@ export function validateTaskCreateRequest(args: {
   const errors: TaskValidationError[] = [];
   if (entry.requiresCriteria && !args.criteriaCid) {
     errors.push({
-      field: 'criteria_cid',
-      message: `criteria_cid is required for task type: ${args.taskType}`,
+      field: 'criteriaCid',
+      message: `criteriaCid is required for task type: ${args.taskType}`,
     });
   }
   if (

@@ -214,7 +214,7 @@ function buildBriefFromIssue(issue: GhIssue): FulfillBriefInput {
   return {
     brief,
     title: issue.title,
-    scope_hint: 'misc',
+    scopeHint: 'misc',
   };
 }
 
@@ -226,20 +226,20 @@ function buildFulfillBriefTask(
   const input = buildBriefFromIssue(issue);
   return {
     id: randomUUID(),
-    task_type: FULFILL_BRIEF_TYPE,
-    team_id: teamId,
-    diary_id: diaryId,
-    output_kind: 'artifact',
+    taskType: FULFILL_BRIEF_TYPE,
+    teamId: teamId,
+    diaryId: diaryId,
+    outputKind: 'artifact',
     input: input as unknown as Record<string, unknown>,
     // PR 0 does not persist tasks — these CIDs are placeholders. PR 1 will
     // compute them from the actual canonical JSON bytes.
-    input_schema_cid: 'cid-placeholder-input-schema',
-    input_cid: 'cid-placeholder-input',
-    criteria_cid: null,
+    inputSchemaCid: 'cid-placeholder-input-schema',
+    inputCid: 'cid-placeholder-input',
+    criteriaCid: null,
     references: [
       {
-        task_id: null,
-        output_cid: `gh:issue:${issue.number}`,
+        taskId: null,
+        outputCid: `gh:issue:${issue.number}`,
         role: 'context',
         external: {
           kind: 'github_issue',
@@ -247,18 +247,18 @@ function buildFulfillBriefTask(
         },
       },
     ],
-    correlation_id: null,
-    imposed_by_agent_id: null,
-    imposed_by_human_id: null,
-    accepted_attempt_n: null,
+    correlationId: null,
+    imposedByAgentId: null,
+    imposedByHumanId: null,
+    acceptedAttemptN: null,
     status: 'running',
-    queued_at: new Date().toISOString(),
-    completed_at: null,
-    expires_at: null,
-    cancelled_by_agent_id: null,
-    cancelled_by_human_id: null,
-    cancel_reason: null,
-    max_attempts: 1,
+    queuedAt: new Date().toISOString(),
+    completedAt: null,
+    expiresAt: null,
+    cancelledByAgentId: null,
+    cancelledByHumanId: null,
+    cancelReason: null,
+    maxAttempts: 1,
   };
 }
 

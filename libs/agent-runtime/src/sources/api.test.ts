@@ -13,20 +13,20 @@ describe('ApiTaskSource', () => {
         JSON.stringify({
           task,
           attempt: {
-            task_id: task.id,
-            attempt_n: 3,
-            claimed_by_agent_id: '33333333-3333-4333-8333-333333333333',
-            runtime_id: null,
-            claimed_at: '2026-04-23T10:00:00Z',
-            started_at: null,
-            completed_at: null,
+            taskId: task.id,
+            attemptN: 3,
+            claimedByAgentId: '33333333-3333-4333-8333-333333333333',
+            runtimeId: null,
+            claimedAt: '2026-04-23T10:00:00Z',
+            startedAt: null,
+            completedAt: null,
             status: 'claimed',
             output: null,
-            output_cid: null,
+            outputCid: null,
             error: null,
             usage: null,
-            content_signature: null,
-            signed_at: null,
+            contentSignature: null,
+            signedAt: null,
           },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -58,9 +58,11 @@ describe('ApiTaskSource', () => {
   });
 
   it('surfaces non-2xx claim failures', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response('nope', { status: 409, statusText: 'Conflict' }),
-    );
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response('nope', { status: 409, statusText: 'Conflict' }),
+      );
     const src = new ApiTaskSource({
       baseUrl: 'https://api.example.test',
       taskId: '11111111-1111-4111-8111-111111111111',

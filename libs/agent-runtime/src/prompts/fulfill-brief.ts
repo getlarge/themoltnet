@@ -20,9 +20,9 @@ export function buildFulfillBriefPrompt(
   const {
     brief,
     title,
-    acceptance_criteria: acceptanceCriteria,
-    seed_files: seedFiles,
-    scope_hint: scopeHint,
+    acceptanceCriteria,
+    seedFiles,
+    scopeHint,
   } = input;
 
   const criteriaSection = acceptanceCriteria?.length
@@ -80,7 +80,7 @@ export function buildFulfillBriefPrompt(
     '### Final output',
     '',
     'When done, write to stdout a JSON object with shape matching `FulfillBriefOutput`:',
-    '  { "branch", "commits": [{sha, message, diary_entry_id}], "pull_request_url", "diary_entry_ids", "summary" }',
+    '  { "branch", "commits": [{sha, message, diaryEntryId}], "pullRequestUrl", "diaryEntryIds", "summary" }',
     'The runtime parses this as the structured task output. Failing to emit it is a failure.',
   ];
 

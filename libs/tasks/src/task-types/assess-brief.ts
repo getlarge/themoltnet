@@ -45,13 +45,13 @@ export type AssessBriefCriterion = Static<typeof AssessBriefCriterion>;
 export const AssessBriefInput = Type.Object(
   {
     /** Task id of the `fulfill_brief` being judged. Also must appear in the Task's `references[]` with role='judged_work'. */
-    target_task_id: Type.String({ format: 'uuid' }),
+    targetTaskId: Type.String({ format: 'uuid' }),
 
     /** Criteria in scoring order. Must be non-empty. */
     criteria: Type.Array(AssessBriefCriterion, { minItems: 1 }),
 
     /** Free-text context passed to the LLM judge. Kept short. */
-    rubric_preamble: Type.Optional(Type.String()),
+    rubricPreamble: Type.Optional(Type.String()),
   },
   { $id: 'AssessBriefInput', additionalProperties: false },
 );
@@ -60,7 +60,7 @@ export type AssessBriefInput = Static<typeof AssessBriefInput>;
 /** One score line. */
 export const AssessBriefScore = Type.Object(
   {
-    criterion_id: Type.String({ minLength: 1 }),
+    criterionId: Type.String({ minLength: 1 }),
     score: Type.Number({ minimum: 0, maximum: 1 }),
     /** Required for `llm_judged`; optional for `boolean`/`deterministic_*`. */
     rationale: Type.Optional(Type.String()),
@@ -68,9 +68,9 @@ export const AssessBriefScore = Type.Object(
     evidence: Type.Optional(
       Type.Object(
         {
-          commits_verified: Type.Number(),
-          commits_total: Type.Number(),
-          signature_failures: Type.Array(Type.String()),
+          commitsVerified: Type.Number(),
+          commitsTotal: Type.Number(),
+          signatureFailures: Type.Array(Type.String()),
         },
         { additionalProperties: false },
       ),
@@ -92,7 +92,7 @@ export const AssessBriefOutput = Type.Object(
     verdict: Type.String({ minLength: 1 }),
 
     /** Model identifier used for `llm_judged` criteria, for auditability. */
-    judge_model: Type.Optional(Type.String()),
+    judgeModel: Type.Optional(Type.String()),
   },
   { $id: 'AssessBriefOutput', additionalProperties: false },
 );

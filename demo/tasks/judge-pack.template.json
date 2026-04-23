@@ -1,22 +1,22 @@
 {
-  "accepted_attempt_n": null,
-  "cancel_reason": null,
-  "cancelled_by_agent_id": null,
-  "cancelled_by_human_id": null,
-  "completed_at": null,
-  "correlation_id": null,
-  "criteria_cid": null,
-  "diary_id": "{{diary_id}}",
-  "expires_at": null,
+  "acceptedAttemptN": null,
+  "cancelReason": null,
+  "cancelledByAgentId": null,
+  "cancelledByHumanId": null,
+  "completedAt": null,
+  "correlationId": null,
+  "criteriaCid": null,
+  "diaryId": "{{diaryId}}",
+  "expiresAt": null,
   "id": "aa100003-0000-4000-8000-000000000003",
-  "imposed_by_agent_id": null,
-  "imposed_by_human_id": null,
+  "imposedByAgentId": null,
+  "imposedByHumanId": null,
   "input": {
-    "rendered_pack_id": "{{rendered_pack_id}}",
+    "renderedPackId": "{{renderedPackId}}",
     "rubric": {
       "criteria": [
         {
-          "description": "Every source entry is referenced in the rendered content (by entry_id or stable title+cid reference).",
+          "description": "Every source entry is referenced in the rendered content (by entryId or stable title+cid reference).",
           "id": "coverage",
           "scoring": "deterministic_coverage_check",
           "weight": 0.4
@@ -35,25 +35,25 @@
         }
       ],
       "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims.",
-      "rubric_id": "pack-fidelity-v2",
+      "rubricId": "pack-fidelity-v2",
       "scope": "packs",
       "version": "v2"
     },
-    "source_pack_id": "{{source_pack_id}}"
+    "sourcePackId": "{{sourcePackId}}"
   },
-  "input_cid": "cid-placeholder",
-  "input_schema_cid": "cid-placeholder",
-  "max_attempts": 1,
-  "output_kind": "judgment",
-  "queued_at": "2026-04-21T16:00:00Z",
+  "inputCid": "cid-placeholder",
+  "inputSchemaCid": "cid-placeholder",
+  "maxAttempts": 1,
+  "outputKind": "judgment",
+  "queuedAt": "2026-04-21T16:00:00Z",
   "references": [
     {
-      "output_cid": "{{rendered_pack_cid}}",
+      "outputCid": "{{renderedPackCid}}",
       "role": "judged_work",
-      "task_id": null
+      "taskId": null
     }
   ],
   "status": "running",
-  "task_type": "judge_pack",
-  "team_id": "{{team_id}}"
+  "taskType": "judge_pack",
+  "teamId": "{{teamId}}"
 }

@@ -35,7 +35,7 @@ export async function parseStructuredTaskOutput(
       outputCid: null,
       error: {
         code:
-          firstError?.field === 'task_type'
+          firstError?.field === 'taskType'
             ? 'unknown_task_type'
             : 'output_validation_failed',
         message: `Output failed schema validation: ${details.join('; ')}`,

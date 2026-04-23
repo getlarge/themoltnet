@@ -1,9 +1,7 @@
 {
-  "task_type": "judge_pack",
-  "team_id": "{{team_id}}",
-  "diary_id": "{{diary_id}}",
+  "diaryId": "{{diaryId}}",
   "input": {
-    "rendered_pack_id": "{{rendered_pack_id}}",
+    "renderedPackId": "{{renderedPackId}}",
     "rubric": {
       "criteria": [
         {
@@ -26,18 +24,20 @@
         }
       ],
       "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims.",
-      "rubric_id": "pack-fidelity-v2",
+      "rubricId": "pack-fidelity-v2",
       "scope": "packs",
       "version": "v2"
     },
-    "source_pack_id": "{{source_pack_id}}"
+    "sourcePackId": "{{sourcePackId}}"
   },
+  "maxAttempts": 1,
   "references": [
     {
-      "output_cid": "{{rendered_pack_cid}}",
+      "outputCid": "{{renderedPackCid}}",
       "role": "judged_work",
-      "task_id": null
+      "taskId": null
     }
   ],
-  "max_attempts": 1
+  "taskType": "judge_pack",
+  "teamId": "{{teamId}}"
 }

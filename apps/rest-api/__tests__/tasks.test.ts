@@ -16,44 +16,44 @@ const ATTEMPT_N = 1;
 
 const MOCK_TASK = {
   id: TASK_ID,
-  task_type: 'fulfill_brief',
-  team_id: TEAM_ID,
-  diary_id: DIARY_ID,
-  output_kind: 'artifact' as const,
+  taskType: 'fulfill_brief',
+  teamId: TEAM_ID,
+  diaryId: DIARY_ID,
+  outputKind: 'artifact' as const,
   input: { brief: 'Ship a task worker.' },
-  input_schema_cid: 'bafy1',
-  input_cid: 'bafy2',
-  criteria_cid: null,
+  inputSchemaCid: 'bafy1',
+  inputCid: 'bafy2',
+  criteriaCid: null,
   references: [],
-  correlation_id: null,
-  imposed_by_agent_id: OWNER_ID,
-  imposed_by_human_id: null,
-  accepted_attempt_n: null,
+  correlationId: null,
+  imposedByAgentId: OWNER_ID,
+  imposedByHumanId: null,
+  acceptedAttemptN: null,
   status: 'queued' as const,
-  queued_at: new Date().toISOString(),
-  completed_at: null,
-  expires_at: null,
-  cancelled_by_agent_id: null,
-  cancelled_by_human_id: null,
-  cancel_reason: null,
-  max_attempts: 1,
+  queuedAt: new Date().toISOString(),
+  completedAt: null,
+  expiresAt: null,
+  cancelledByAgentId: null,
+  cancelledByHumanId: null,
+  cancelReason: null,
+  maxAttempts: 1,
 };
 
 const MOCK_ATTEMPT = {
-  task_id: TASK_ID,
-  attempt_n: ATTEMPT_N,
-  claimed_by_agent_id: OWNER_ID,
-  runtime_id: null,
-  claimed_at: new Date().toISOString(),
-  started_at: null,
-  completed_at: null,
+  taskId: TASK_ID,
+  attemptN: ATTEMPT_N,
+  claimedByAgentId: OWNER_ID,
+  runtimeId: null,
+  claimedAt: new Date().toISOString(),
+  startedAt: null,
+  completedAt: null,
   status: 'running' as const,
   output: null,
-  output_cid: null,
+  outputCid: null,
   error: null,
   usage: null,
-  content_signature: null,
-  signed_at: null,
+  contentSignature: null,
+  signedAt: null,
 };
 
 describe('POST /tasks', () => {
@@ -72,9 +72,9 @@ describe('POST /tasks', () => {
       url: '/tasks',
       headers: { authorization: 'Bearer test-token' },
       payload: {
-        task_type: 'fulfill_brief',
-        team_id: TEAM_ID,
-        diary_id: DIARY_ID,
+        taskType: 'fulfill_brief',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
         input: { brief: 'Ship a task worker.' },
       },
     });
@@ -82,7 +82,7 @@ describe('POST /tasks', () => {
     expect(response.statusCode).toBe(201);
     expect(response.json()).toMatchObject({
       id: TASK_ID,
-      task_type: 'fulfill_brief',
+      taskType: 'fulfill_brief',
     });
     expect(mocks.taskService.create).toHaveBeenCalledOnce();
   });
@@ -93,33 +93,33 @@ describe('POST /tasks', () => {
       method: 'POST',
       url: '/tasks',
       payload: {
-        task_type: 'fulfill_brief',
-        team_id: TEAM_ID,
-        diary_id: DIARY_ID,
+        taskType: 'fulfill_brief',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
         input: {},
       },
     });
     expect(response.statusCode).toBe(401);
   });
 
-  it('returns 400 when task_type is missing', async () => {
+  it('returns 400 when taskType is missing', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
       headers: { authorization: 'Bearer test-token' },
-      payload: { team_id: TEAM_ID, input: {} },
+      payload: { teamId: TEAM_ID, input: {} },
     });
     expect(response.statusCode).toBe(400);
   });
 
-  it('returns 400 when team_id is not a uuid', async () => {
+  it('returns 400 when teamId is not a uuid', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
       headers: { authorization: 'Bearer test-token' },
       payload: {
-        task_type: 'fulfill_brief',
-        team_id: 'not-a-uuid',
+        taskType: 'fulfill_brief',
+        teamId: 'not-a-uuid',
         input: {},
       },
     });
@@ -139,9 +139,9 @@ describe('POST /tasks', () => {
         accept: 'application/problem+json',
       },
       payload: {
-        task_type: 'nope',
-        team_id: TEAM_ID,
-        diary_id: DIARY_ID,
+        taskType: 'nope',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
         input: {},
       },
     });
@@ -150,7 +150,7 @@ describe('POST /tasks', () => {
     expect(response.json()).toMatchObject({
       code: 'VALIDATION_FAILED',
       detail: 'Unknown task type: nope',
-      errors: [{ field: 'task_type', message: 'Unknown task type: nope' }],
+      errors: [{ field: 'taskType', message: 'Unknown task type: nope' }],
     });
   });
 });
@@ -168,7 +168,7 @@ describe('GET /tasks', () => {
   it('returns 200 with task list', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/tasks?team_id=${TEAM_ID}`,
+      url: `/tasks?teamId=${TEAM_ID}`,
       headers: { authorization: 'Bearer test-token' },
     });
 
@@ -177,7 +177,7 @@ describe('GET /tasks', () => {
     expect(mocks.taskService.list).toHaveBeenCalledOnce();
   });
 
-  it('returns 400 when team_id is missing', async () => {
+  it('returns 400 when teamId is missing', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/tasks',
@@ -262,7 +262,7 @@ describe('POST /tasks/:id/claim', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       task: { id: TASK_ID },
-      attempt: { task_id: TASK_ID, attempt_n: ATTEMPT_N },
+      attempt: { taskId: TASK_ID, attemptN: ATTEMPT_N },
     });
     expect(mocks.taskService.claim).toHaveBeenCalledOnce();
   });
@@ -291,11 +291,11 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.taskService.heartbeat.mockResolvedValue({
-      claim_expires_at: new Date(Date.now() + 300_000).toISOString(),
+      claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
     });
   });
 
-  it('returns 200 with updated claim_expires_at', async () => {
+  it('returns 200 with updated claimExpiresAt', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/heartbeat`,
@@ -304,7 +304,7 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toHaveProperty('claim_expires_at');
+    expect(response.json()).toHaveProperty('claimExpiresAt');
     expect(mocks.taskService.heartbeat).toHaveBeenCalledWith(
       TASK_ID,
       ATTEMPT_N,
@@ -337,12 +337,12 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
         output: {
           branch: 'feat/tasks-api',
           commits: [],
-          pull_request_url: null,
-          diary_entry_ids: [],
+          pullRequestUrl: null,
+          diaryEntryIds: [],
           summary: 'Completed the task successfully.',
         },
-        output_cid: 'bafy-output',
-        usage: { input_tokens: 100, output_tokens: 50 },
+        outputCid: 'bafy-output',
+        usage: { inputTokens: 100, outputTokens: 50 },
       },
     });
 
@@ -350,14 +350,14 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
     expect(response.json()).toMatchObject({ id: TASK_ID, status: 'completed' });
   });
 
-  it('returns 400 when output_cid is missing', async () => {
+  it('returns 400 when outputCid is missing', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/complete`,
       headers: { authorization: 'Bearer test-token' },
       payload: {
         output: {},
-        usage: { input_tokens: 0, output_tokens: 0 },
+        usage: { inputTokens: 0, outputTokens: 0 },
       },
     });
     expect(response.statusCode).toBe(400);
@@ -381,8 +381,8 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
       },
       payload: {
         output: {},
-        output_cid: 'bafy-output',
-        usage: { input_tokens: 0, output_tokens: 0 },
+        outputCid: 'bafy-output',
+        usage: { inputTokens: 0, outputTokens: 0 },
       },
     });
 
@@ -484,7 +484,7 @@ describe('GET /tasks/:id/attempts', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject([
-      { task_id: TASK_ID, attempt_n: ATTEMPT_N },
+      { taskId: TASK_ID, attemptN: ATTEMPT_N },
     ]);
   });
 });
@@ -494,8 +494,8 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
   let mocks: ReturnType<typeof createMockServices>;
 
   const MOCK_MESSAGE = {
-    task_id: TASK_ID,
-    attempt_n: ATTEMPT_N,
+    taskId: TASK_ID,
+    attemptN: ATTEMPT_N,
     seq: 0,
     timestamp: new Date().toISOString(),
     kind: 'text_delta',
@@ -516,7 +516,7 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject([{ task_id: TASK_ID, seq: 0 }]);
+    expect(response.json()).toMatchObject([{ taskId: TASK_ID, seq: 0 }]);
     expect(mocks.taskService.listMessages).toHaveBeenCalledWith(
       TASK_ID,
       ATTEMPT_N,

@@ -12,7 +12,7 @@ describe('buildPromptForTask', () => {
       input: {
         brief: 'Implement feature X',
         title: 'Feature X',
-        scope_hint: 'misc',
+        scopeHint: 'misc',
       },
     });
     const prompt = buildPromptForTask(task, ctx);
@@ -29,9 +29,9 @@ describe('buildPromptForTask', () => {
 
   it('rejects assess_brief without a target in extras', () => {
     const task = makeFulfillBriefTask({
-      task_type: ASSESS_BRIEF_TYPE,
+      taskType: ASSESS_BRIEF_TYPE,
       input: {
-        target_task_id: '11111111-1111-4111-8111-111111111111',
+        targetTaskId: '11111111-1111-4111-8111-111111111111',
         criteria: [
           { id: 'c1', description: 'Works', weight: 1, scoring: 'llm_judged' },
         ],
@@ -40,8 +40,8 @@ describe('buildPromptForTask', () => {
     expect(() => buildPromptForTask(task, ctx)).toThrow(/target/);
   });
 
-  it('throws on unknown task_type', () => {
-    const task = makeFulfillBriefTask({ task_type: 'custom_type' });
+  it('throws on unknown taskType', () => {
+    const task = makeFulfillBriefTask({ taskType: 'custom_type' });
     expect(() => buildPromptForTask(task, ctx)).toThrow(
       /No prompt builder registered/,
     );

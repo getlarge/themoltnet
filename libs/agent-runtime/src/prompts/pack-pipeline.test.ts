@@ -12,7 +12,7 @@ import { buildPromptForTask } from './index.js';
 const ctx = { diaryId: 'd1', taskId: 't1' };
 
 const testRubric: Rubric = {
-  rubric_id: 'pack-fidelity',
+  rubricId: 'pack-fidelity',
   version: 'v1',
   preamble: 'Evaluate faithfulness of the rendering to the source entries.',
   scope: 'packs',
@@ -35,11 +35,11 @@ const testRubric: Rubric = {
 describe('curate_pack prompt', () => {
   it('includes the task prompt, diary id, tag filters, and recipe', () => {
     const task = makeFulfillBriefTask({
-      task_type: CURATE_PACK_TYPE,
+      taskType: CURATE_PACK_TYPE,
       input: {
-        diary_id: 'aaaaaaaa-0000-4000-8000-000000000001',
-        task_prompt: 'incidents related to CI pipelines',
-        tag_filters: { include: ['scope:ci'], prefix: 'scope:' },
+        diaryId: 'aaaaaaaa-0000-4000-8000-000000000001',
+        taskPrompt: 'incidents related to CI pipelines',
+        tagFilters: { include: ['scope:ci'], prefix: 'scope:' },
         recipe: 'topic-focused-v1',
       },
     });
@@ -54,12 +54,12 @@ describe('curate_pack prompt', () => {
     expect(prompt).toContain('t1');
   });
 
-  it('rejects curate_pack with empty task_prompt', () => {
+  it('rejects curate_pack with empty taskPrompt', () => {
     const task = makeFulfillBriefTask({
-      task_type: CURATE_PACK_TYPE,
+      taskType: CURATE_PACK_TYPE,
       input: {
-        diary_id: 'aaaaaaaa-0000-4000-8000-000000000001',
-        task_prompt: '',
+        diaryId: 'aaaaaaaa-0000-4000-8000-000000000001',
+        taskPrompt: '',
       },
     });
     expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
@@ -69,9 +69,9 @@ describe('curate_pack prompt', () => {
 describe('render_pack prompt', () => {
   it('mentions the pack id, persist/pinned flags, and pack_render', () => {
     const task = makeFulfillBriefTask({
-      task_type: RENDER_PACK_TYPE,
+      taskType: RENDER_PACK_TYPE,
       input: {
-        pack_id: 'bbbbbbbb-0000-4000-8000-000000000002',
+        packId: 'bbbbbbbb-0000-4000-8000-000000000002',
         persist: true,
         pinned: false,
       },
@@ -85,8 +85,8 @@ describe('render_pack prompt', () => {
 
   it('rejects render_pack with non-uuid pack id', () => {
     const task = makeFulfillBriefTask({
-      task_type: RENDER_PACK_TYPE,
-      input: { pack_id: 'not-a-uuid' },
+      taskType: RENDER_PACK_TYPE,
+      input: { packId: 'not-a-uuid' },
     });
     expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
   });
@@ -95,10 +95,10 @@ describe('render_pack prompt', () => {
 describe('judge_pack prompt', () => {
   it('lists every rubric criterion with weight and scoring mode', () => {
     const task = makeFulfillBriefTask({
-      task_type: JUDGE_PACK_TYPE,
+      taskType: JUDGE_PACK_TYPE,
       input: {
-        rendered_pack_id: 'cccccccc-0000-4000-8000-000000000003',
-        source_pack_id: 'dddddddd-0000-4000-8000-000000000004',
+        renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
+        sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
         rubric: testRubric,
       },
     });
@@ -118,12 +118,12 @@ describe('judge_pack prompt', () => {
 
   it('rejects judge_pack with empty criteria array', () => {
     const task = makeFulfillBriefTask({
-      task_type: JUDGE_PACK_TYPE,
+      taskType: JUDGE_PACK_TYPE,
       input: {
-        rendered_pack_id: 'cccccccc-0000-4000-8000-000000000003',
-        source_pack_id: 'dddddddd-0000-4000-8000-000000000004',
+        renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
+        sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
         rubric: {
-          rubric_id: 'empty',
+          rubricId: 'empty',
           version: 'v1',
           criteria: [],
         },

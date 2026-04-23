@@ -12,8 +12,8 @@ export interface ApiTaskSourceOptions {
 }
 
 interface ClaimTaskResponse {
-  task: unknown;
-  attempt: unknown;
+  task: Task;
+  attempt: TaskAttempt;
 }
 
 /**
@@ -46,7 +46,7 @@ export class ApiTaskSource implements TaskSource {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          this.opts.leaseTtlSec ? { lease_ttl_sec: this.opts.leaseTtlSec } : {},
+          this.opts.leaseTtlSec ? { leaseTtlSec: this.opts.leaseTtlSec } : {},
         ),
       },
     );
@@ -81,7 +81,7 @@ export class ApiTaskSource implements TaskSource {
 
     return {
       task: body.task,
-      attemptN: body.attempt.attempt_n,
+      attemptN: body.attempt.attemptN,
     };
   }
 

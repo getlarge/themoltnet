@@ -9,9 +9,9 @@
  * own signed rows and CIDv1 lookup. The schema below is designed to
  * carry forward unchanged — only storage and addressing differ.
  *
- * Until Phase 2 lands, `rubric_id` + `version` + `content_hash` are
+ * Until Phase 2 lands, `rubricId` + `version` + `contentHash` are
  * informational fields the author fills in; no uniqueness is enforced.
- * `content_hash` is optional in Phase 1 because the *task*'s input_cid
+ * `contentHash` is optional in Phase 1 because the *task*'s input_cid
  * is the authoritative commitment.
  */
 import { type Static, Type } from '@sinclair/typebox';
@@ -57,8 +57,8 @@ export type RubricCriterion = Static<typeof RubricCriterion>;
 export const Rubric = Type.Object(
   {
     /** Namespace within an author — e.g. 'pack-fidelity'. */
-    rubric_id: Type.String({ minLength: 1 }),
-    /** Monotonic version per `rubric_id`. Prose like 'v1'. */
+    rubricId: Type.String({ minLength: 1 }),
+    /** Monotonic version per `rubricId`. Prose like 'v1'. */
     version: Type.String({ minLength: 1 }),
     /** Free-text preamble prepended to the judge's prompt. Kept short. */
     preamble: Type.Optional(Type.String()),
@@ -73,7 +73,7 @@ export const Rubric = Type.Object(
      * Phase-2 artefact: CIDv1 of the canonical rubric body. Optional in
      * Phase 1; when Phase 2 lands the server computes & enforces it.
      */
-    content_hash: Type.Optional(Type.String()),
+    contentHash: Type.Optional(Type.String()),
   },
   { $id: 'Rubric', additionalProperties: false },
 );

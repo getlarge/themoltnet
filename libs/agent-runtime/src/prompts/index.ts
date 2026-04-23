@@ -36,11 +36,11 @@ export interface PromptContext {
 }
 
 /**
- * Resolve the correct prompt builder for `task.task_type` and invoke it.
+ * Resolve the correct prompt builder for `task.taskType` and invoke it.
  * Throws if the type is unknown or the input fails TypeBox validation.
  */
 export function buildPromptForTask(task: Task, ctx: PromptContext): string {
-  switch (task.task_type) {
+  switch (task.taskType) {
     case FULFILL_BRIEF_TYPE: {
       if (!Value.Check(FulfillBriefInput, task.input)) {
         const errors = [...Value.Errors(FulfillBriefInput, task.input)];
@@ -117,7 +117,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
 
     default:
       throw new Error(
-        `No prompt builder registered for task_type="${task.task_type}"`,
+        `No prompt builder registered for taskType="${task.taskType}"`,
       );
   }
 }

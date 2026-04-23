@@ -68,10 +68,10 @@ describe('FileTaskSource', () => {
     await expect(src.claim()).rejects.toThrow(/does not match Task schema/);
   });
 
-  it('rejects an unknown task_type', async () => {
-    const task = makeFulfillBriefTask({ task_type: 'unknown_type' });
+  it('rejects an unknown taskType', async () => {
+    const task = makeFulfillBriefTask({ taskType: 'unknown_type' });
     const src = new FileTaskSource(write(task));
-    await expect(src.claim()).rejects.toThrow(/unknown task_type/);
+    await expect(src.claim()).rejects.toThrow(/unknown taskType/);
   });
 
   it('rejects a well-formed Task whose input fails the type schema', async () => {

@@ -20,7 +20,7 @@ export const RENDER_PACK_TYPE = 'render_pack' as const;
 export const RenderPackInput = Type.Object(
   {
     /** Pack to render. Must exist and be readable by the renderer agent. */
-    pack_id: Type.String({ format: 'uuid' }),
+    packId: Type.String({ format: 'uuid' }),
 
     /**
      * Persist the rendered pack on the server. Default true. When false,
@@ -45,26 +45,26 @@ export const RenderPackOutput = Type.Object(
      * UUID of the persisted rendered pack row. Null when `persist: false`
      * or when the renderer chose not to persist (e.g. validation failure).
      */
-    rendered_pack_id: Type.Union([
+    renderedPackId: Type.Union([
       Type.String({ format: 'uuid' }),
       Type.Null(),
     ]),
 
     /** CIDv1 of the canonical rendered content. Always present. */
-    rendered_cid: Type.String({ minLength: 1 }),
+    renderedCid: Type.String({ minLength: 1 }),
 
     /**
      * Label identifying the renderer implementation — e.g.
      * `pi:pack-to-docs-v1`, `server:pack-to-docs-v1`. Recorded verbatim
      * from the server's render response.
      */
-    render_method: Type.String({ minLength: 1 }),
+    renderMethod: Type.String({ minLength: 1 }),
 
     /** Size in bytes of the rendered markdown. */
-    byte_size: Type.Number({ minimum: 0 }),
+    byteSize: Type.Number({ minimum: 0 }),
 
     /** Number of source entries represented in the rendering. */
-    entries_rendered: Type.Number({ minimum: 0 }),
+    entriesRendered: Type.Number({ minimum: 0 }),
 
     /** 1–3 sentence summary. */
     summary: Type.String({ minLength: 1 }),

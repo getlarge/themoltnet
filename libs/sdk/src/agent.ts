@@ -1,9 +1,14 @@
 import type {
   AgentProfile,
+  AppendTaskMessagesData,
+  CancelTaskData,
+  ClaimTaskData,
+  ClaimTaskResponse,
   ClaimVerificationResponse,
   Client,
   CompileDiaryData,
   CompileResult,
+  CompleteTaskData,
   ConsolidateDiaryData,
   ConsolidateResult,
   ContextPackResponse,
@@ -13,6 +18,7 @@ import type {
   CreateDiaryEntryData,
   CreateDiaryGrantData,
   CreateDiaryGrantResponse,
+  CreateTaskData,
   CreateTeamData,
   CreateTeamInviteData,
   CreateTeamInviteResponse,
@@ -30,6 +36,7 @@ import type {
   DiaryTagsResponse,
   Digest,
   EntryVerifyResult,
+  FailTaskData,
   GetContextPackByIdData,
   GetContextPackProvenanceByCidData,
   GetContextPackProvenanceByIdData,
@@ -42,6 +49,7 @@ import type {
   GetTeamResponse,
   GetTrustGraphData,
   Health,
+  HeartbeatResponse,
   JoinTeamResponse,
   ListContextPacksData,
   ListDiariesData,
@@ -52,6 +60,8 @@ import type {
   ListDiaryTagsData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
+  ListTaskMessagesData,
+  ListTasksData,
   ListTeamInvitesResponse,
   ListTeamMembersResponse,
   ListTeamsResponse,
@@ -83,6 +93,11 @@ import type {
   SubmitVerificationData,
   SubmitVerificationResponse,
   Success,
+  Task,
+  TaskAttempt,
+  TaskHeartbeatData,
+  TaskListResponse,
+  TaskMessage,
   UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
@@ -106,6 +121,7 @@ import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
+import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
 import type { TokenManager } from './token.js';
@@ -405,6 +421,49 @@ export interface DiaryGrantsNamespace {
   ): Promise<RevokeDiaryGrantResponse>;
 }
 
+export interface TasksNamespace {
+  list(query: ListTasksData['query']): Promise<TaskListResponse>;
+
+  create(body: CreateTaskData['body']): Promise<Task>;
+
+  get(id: string): Promise<Task>;
+
+  claim(
+    id: string,
+    body?: ClaimTaskData['body'],
+  ): Promise<ClaimTaskResponse>;
+
+  heartbeat(
+    id: string,
+    n: number,
+    body?: TaskHeartbeatData['body'],
+  ): Promise<HeartbeatResponse>;
+
+  complete(
+    id: string,
+    n: number,
+    body: CompleteTaskData['body'],
+  ): Promise<Task>;
+
+  fail(id: string, n: number, body: FailTaskData['body']): Promise<Task>;
+
+  cancel(id: string, body: CancelTaskData['body']): Promise<Task>;
+
+  listAttempts(id: string): Promise<TaskAttempt[]>;
+
+  listMessages(
+    id: string,
+    n: number,
+    query?: ListTaskMessagesData['query'],
+  ): Promise<TaskMessage[]>;
+
+  appendMessages(
+    id: string,
+    n: number,
+    body: AppendTaskMessagesData['body'],
+  ): Promise<{ count: number }>;
+}
+
 // ---------------------------------------------------------------------------
 // Agent facade type
 // ---------------------------------------------------------------------------
@@ -423,6 +482,7 @@ export interface Agent {
   legreffier: LegreffierNamespace;
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
+  tasks: TasksNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -459,6 +519,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const legreffierNs = createLegreffierNamespace(context);
   const problemsNs = createProblemsNamespace(context);
   const teams = createTeamsNamespace(context);
+  const tasks = createTasksNamespace(context);
 
   return {
     diaries,
@@ -474,6 +535,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     legreffier: legreffierNs,
     problems: problemsNs,
     teams,
+    tasks,
     client,
     getToken: () => tokenManager.getToken(),
   };

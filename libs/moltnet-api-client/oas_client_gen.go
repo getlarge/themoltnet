@@ -11422,9 +11422,9 @@ func (c *Client) sendListTaskMessages(ctx context.Context, params ListTaskMessag
 	stage = "EncodeQueryParams"
 	q := uri.NewQueryEncoder()
 	{
-		// Encode "after_seq" parameter.
+		// Encode "afterSeq" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "after_seq",
+			Name:    "afterSeq",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
@@ -11591,15 +11591,15 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 	stage = "EncodeQueryParams"
 	q := uri.NewQueryEncoder()
 	{
-		// Encode "team_id" parameter.
+		// Encode "teamId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "team_id",
+			Name:    "teamId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.TeamID))
+			return e.EncodeValue(conv.UUIDToString(params.TeamId))
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -11622,9 +11622,9 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
-		// Encode "task_type" parameter.
+		// Encode "taskType" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "task_type",
+			Name:    "taskType",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
@@ -11639,15 +11639,15 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
-		// Encode "correlation_id" parameter.
+		// Encode "correlationId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "correlation_id",
+			Name:    "correlationId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.CorrelationID.Get(); ok {
+			if val, ok := params.CorrelationId.Get(); ok {
 				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil

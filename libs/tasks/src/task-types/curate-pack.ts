@@ -28,20 +28,20 @@ export const EntryTypeFilter = Type.Union([
 export const CuratePackInput = Type.Object(
   {
     /** The diary to curate from. Usually the agent's session diary. */
-    diary_id: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
 
     /**
      * Free-text prompt describing the desired pack. Seeds hybrid search
      * and feeds the model's ranking reasoning. e.g.
      * "incidents and workarounds related to CI pipelines".
      */
-    task_prompt: Type.String({ minLength: 1 }),
+    taskPrompt: Type.String({ minLength: 1 }),
 
     /**
      * Restrict search to these entry types. Defaults to the
      * knowledge-bearing set: ['semantic','episodic','procedural'].
      */
-    entry_types: Type.Optional(Type.Array(EntryTypeFilter, { minItems: 1 })),
+    entryTypes: Type.Optional(Type.Array(EntryTypeFilter, { minItems: 1 })),
 
     /**
      * Tag filters applied after candidate discovery.
@@ -50,7 +50,7 @@ export const CuratePackInput = Type.Object(
      *  - `prefix`: when listing tags via `moltnet_diary_tags`, narrow to
      *    tags starting with this prefix (e.g. 'scope:').
      */
-    tag_filters: Type.Optional(
+    tagFilters: Type.Optional(
       Type.Object(
         {
           include: Type.Optional(Type.Array(Type.String())),
@@ -66,7 +66,7 @@ export const CuratePackInput = Type.Object(
      * constraint, not a target — the curator picks entry count such that
      * the resulting pack fits under this budget.
      */
-    token_budget: Type.Optional(Type.Number({ minimum: 500 })),
+    tokenBudget: Type.Optional(Type.Number({ minimum: 500 })),
 
     /**
      * Curation recipe identifier. Recorded on the pack's `params` for
@@ -92,16 +92,16 @@ export type CuratePackInput = Static<typeof CuratePackInput>;
 export const CuratePackOutput = Type.Object(
   {
     /** UUID of the created pack row. */
-    pack_id: Type.String({ format: 'uuid' }),
+    packId: Type.String({ format: 'uuid' }),
 
     /** CIDv1 of the pack's canonical content, as returned by the server. */
-    pack_cid: Type.String({ minLength: 1 }),
+    packCid: Type.String({ minLength: 1 }),
 
     /** Ordered entry selection (lowest rank = most prominent). */
     entries: Type.Array(
       Type.Object(
         {
-          entry_id: Type.String({ format: 'uuid' }),
+          entryId: Type.String({ format: 'uuid' }),
           rank: Type.Number({ minimum: 1 }),
           /** Short phrase explaining why this entry earned its rank. */
           rationale: Type.String({ minLength: 1 }),
@@ -112,7 +112,7 @@ export const CuratePackOutput = Type.Object(
     ),
 
     /** Free-form recipe metadata mirrored onto the pack's `params`. */
-    recipe_params: Type.Record(Type.String(), Type.Unknown()),
+    recipeParams: Type.Record(Type.String(), Type.Unknown()),
 
     /**
      * Intermediate exploration snapshots the curator chose to emit.
@@ -127,8 +127,8 @@ export const CuratePackOutput = Type.Object(
         Type.Object(
           {
             phase: Type.String({ minLength: 1 }),
-            candidate_ids: Type.Array(Type.String({ format: 'uuid' })),
-            dropped_ids: Type.Optional(
+            candidateIds: Type.Array(Type.String({ format: 'uuid' })),
+            droppedIds: Type.Optional(
               Type.Array(Type.String({ format: 'uuid' })),
             ),
             notes: Type.String({ minLength: 1 }),

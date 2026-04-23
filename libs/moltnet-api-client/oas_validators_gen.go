@@ -470,7 +470,7 @@ func (s *ClaimTaskReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if value, ok := s.LeaseTTLSec.Get(); ok {
+		if value, ok := s.LeaseTtlSec.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
 					MinSet:        true,
@@ -493,7 +493,7 @@ func (s *ClaimTaskReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "lease_ttl_sec",
+			Name:  "leaseTtlSec",
 			Error: err,
 		})
 	}
@@ -1265,7 +1265,7 @@ func (s *CompleteTaskReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_cid",
+			Name:  "outputCid",
 			Error: err,
 		})
 	}
@@ -3142,7 +3142,7 @@ func (s *CreateTaskReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "criteria_cid",
+			Name:  "criteriaCid",
 			Error: err,
 		})
 	}
@@ -3170,7 +3170,7 @@ func (s *CreateTaskReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "expires_in_sec",
+			Name:  "expiresInSec",
 			Error: err,
 		})
 	}
@@ -3198,7 +3198,7 @@ func (s *CreateTaskReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "max_attempts",
+			Name:  "maxAttempts",
 			Error: err,
 		})
 	}
@@ -3246,7 +3246,7 @@ func (s *CreateTaskReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "task_type",
+			Name:  "taskType",
 			Error: err,
 		})
 	}
@@ -11270,7 +11270,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "accepted_attempt_n",
+			Name:  "acceptedAttemptN",
 			Error: err,
 		})
 	}
@@ -11300,7 +11300,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "criteria_cid",
+			Name:  "criteriaCid",
 			Error: err,
 		})
 	}
@@ -11323,7 +11323,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "input_cid",
+			Name:  "inputCid",
 			Error: err,
 		})
 	}
@@ -11346,7 +11346,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "input_schema_cid",
+			Name:  "inputSchemaCid",
 			Error: err,
 		})
 	}
@@ -11367,7 +11367,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "max_attempts",
+			Name:  "maxAttempts",
 			Error: err,
 		})
 	}
@@ -11378,7 +11378,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_kind",
+			Name:  "outputKind",
 			Error: err,
 		})
 	}
@@ -11440,7 +11440,7 @@ func (s *Task) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "task_type",
+			Name:  "taskType",
 			Error: err,
 		})
 	}
@@ -11473,7 +11473,7 @@ func (s *TaskAttempt) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "attempt_n",
+			Name:  "attemptN",
 			Error: err,
 		})
 	}
@@ -11503,7 +11503,7 @@ func (s *TaskAttempt) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_cid",
+			Name:  "outputCid",
 			Error: err,
 		})
 	}
@@ -11591,7 +11591,7 @@ func (s *TaskAttemptUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "cache_read_tokens",
+			Name:  "cacheReadTokens",
 			Error: err,
 		})
 	}
@@ -11619,7 +11619,7 @@ func (s *TaskAttemptUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "cache_write_tokens",
+			Name:  "cacheWriteTokens",
 			Error: err,
 		})
 	}
@@ -11640,7 +11640,7 @@ func (s *TaskAttemptUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "input_tokens",
+			Name:  "inputTokens",
 			Error: err,
 		})
 	}
@@ -11661,7 +11661,7 @@ func (s *TaskAttemptUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_tokens",
+			Name:  "outputTokens",
 			Error: err,
 		})
 	}
@@ -11689,7 +11689,7 @@ func (s *TaskAttemptUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "tool_calls",
+			Name:  "toolCalls",
 			Error: err,
 		})
 	}
@@ -11722,7 +11722,7 @@ func (s *TaskHeartbeatReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if value, ok := s.LeaseTTLSec.Get(); ok {
+		if value, ok := s.LeaseTtlSec.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
 					MinSet:        true,
@@ -11745,7 +11745,7 @@ func (s *TaskHeartbeatReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "lease_ttl_sec",
+			Name:  "leaseTtlSec",
 			Error: err,
 		})
 	}
@@ -11847,7 +11847,7 @@ func (s *TaskMessage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "attempt_n",
+			Name:  "attemptN",
 			Error: err,
 		})
 	}
@@ -11962,7 +11962,7 @@ func (s *TaskRef) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_cid",
+			Name:  "outputCid",
 			Error: err,
 		})
 	}
@@ -12143,7 +12143,7 @@ func (s *TaskReferencesItem) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_cid",
+			Name:  "outputCid",
 			Error: err,
 		})
 	}
@@ -12332,7 +12332,7 @@ func (s *TaskUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "cache_read_tokens",
+			Name:  "cacheReadTokens",
 			Error: err,
 		})
 	}
@@ -12360,7 +12360,7 @@ func (s *TaskUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "cache_write_tokens",
+			Name:  "cacheWriteTokens",
 			Error: err,
 		})
 	}
@@ -12381,7 +12381,7 @@ func (s *TaskUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "input_tokens",
+			Name:  "inputTokens",
 			Error: err,
 		})
 	}
@@ -12402,7 +12402,7 @@ func (s *TaskUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "output_tokens",
+			Name:  "outputTokens",
 			Error: err,
 		})
 	}
@@ -12430,7 +12430,7 @@ func (s *TaskUsage) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "tool_calls",
+			Name:  "toolCalls",
 			Error: err,
 		})
 	}

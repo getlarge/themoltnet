@@ -1,14 +1,14 @@
 {
-  "task_type": "curate_pack",
-  "team_id": "{{team_id}}",
-  "diary_id": "{{diary_id}}",
+  "diaryId": "{{diaryId}}",
   "input": {
-    "diary_id": "{{diary_id}}",
-    "entry_types": ["episodic", "procedural"],
+    "diaryId": "{{diaryId}}",
+    "entryTypes": ["episodic", "procedural"],
     "recipe": "topic-focused-v1",
-    "tag_filters": { "prefix": "scope:" },
-    "task_prompt": "{{task_prompt}}"
+    "tagFilters": { "prefix": "scope:" },
+    "taskPrompt": "{{taskPrompt}}"
   },
+  "maxAttempts": 1,
   "references": [],
-  "max_attempts": 1
+  "taskType": "curate_pack",
+  "teamId": "{{teamId}}"
 }

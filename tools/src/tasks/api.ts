@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { connect } from '@themoltnet/sdk';
+import { type Agent,connect } from '@themoltnet/sdk';
 
 interface MoltNetConfig {
   endpoints?: { api?: string };
@@ -10,6 +10,7 @@ interface MoltNetConfig {
 export interface TasksApiContext {
   agentDir: string;
   apiUrl: string;
+  agent: Agent;
   auth: () => Promise<string>;
 }
 
@@ -30,35 +31,9 @@ export async function resolveTasksApiContext(
   return {
     agentDir,
     apiUrl,
+    agent,
     auth: () => agent.getToken(),
   };
-}
-
-export async function taskApiFetch<T>(
-  ctx: TasksApiContext,
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const token = await ctx.auth();
-  const response = await fetch(`${ctx.apiUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(
-      `Tasks API ${init.method ?? 'GET'} ${path} failed: ` +
-        `${response.status} ${response.statusText}${body ? ` — ${body}` : ''}`,
-    );
-  }
-
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
 }
 
 export function parseSetArgs(pairs: string[]): Map<string, string> {

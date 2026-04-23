@@ -29,25 +29,25 @@ export const TaskAttemptParamsSchema = Type.Object(
 
 export const CreateTaskBodySchema = Type.Object(
   {
-    task_type: Type.String({ minLength: 1 }),
-    team_id: Type.String({ format: 'uuid' }),
-    diary_id: Type.String({ format: 'uuid' }),
+    taskType: Type.String({ minLength: 1 }),
+    teamId: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
     input: Type.Record(Type.String(), Type.Unknown()),
     references: Type.Optional(Type.Array(Type.Ref(TaskRef))),
-    correlation_id: Type.Optional(Type.String({ format: 'uuid' })),
-    max_attempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
-    expires_in_sec: Type.Optional(Type.Integer({ minimum: 1 })),
-    criteria_cid: Type.Optional(Type.String({ minLength: 1 })),
+    correlationId: Type.Optional(Type.String({ format: 'uuid' })),
+    maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
+    expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
+    criteriaCid: Type.Optional(Type.String({ minLength: 1 })),
   },
   { $id: 'CreateTaskBody' },
 );
 
 export const ListTasksQuerySchema = Type.Object(
   {
-    team_id: Type.String({ format: 'uuid' }),
+    teamId: Type.String({ format: 'uuid' }),
     status: Type.Optional(Type.Ref(TaskStatus)),
-    task_type: Type.Optional(Type.String()),
-    correlation_id: Type.Optional(Type.String({ format: 'uuid' })),
+    taskType: Type.Optional(Type.String()),
+    correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     limit: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 100, default: 20 }),
     ),
@@ -58,7 +58,7 @@ export const ListTasksQuerySchema = Type.Object(
 
 export const ClaimTaskBodySchema = Type.Object(
   {
-    lease_ttl_sec: Type.Optional(
+    leaseTtlSec: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 3600, default: 300 }),
     ),
   },
@@ -67,7 +67,7 @@ export const ClaimTaskBodySchema = Type.Object(
 
 export const HeartbeatBodySchema = Type.Object(
   {
-    lease_ttl_sec: Type.Optional(Type.Integer({ minimum: 1, maximum: 3600 })),
+    leaseTtlSec: Type.Optional(Type.Integer({ minimum: 1, maximum: 3600 })),
   },
   { $id: 'HeartbeatBody' },
 );
@@ -75,9 +75,9 @@ export const HeartbeatBodySchema = Type.Object(
 export const CompleteTaskBodySchema = Type.Object(
   {
     output: Type.Record(Type.String(), Type.Unknown()),
-    output_cid: Type.String({ minLength: 1 }),
+    outputCid: Type.String({ minLength: 1 }),
     usage: Type.Ref(TaskUsage),
-    content_signature: Type.Optional(Type.String()),
+    contentSignature: Type.Optional(Type.String()),
   },
   { $id: 'CompleteTaskBody' },
 );
@@ -98,7 +98,7 @@ export const CancelTaskBodySchema = Type.Object(
 
 export const ListMessagesQuerySchema = Type.Object(
   {
-    after_seq: Type.Optional(
+    afterSeq: Type.Optional(
       Type.Integer({
         minimum: 0,
         description:
@@ -132,7 +132,7 @@ export const TaskListResponseSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(Task)),
     total: Type.Integer({ minimum: 0 }),
-    next_cursor: Type.Optional(Type.String()),
+    nextCursor: Type.Optional(Type.String()),
   },
   { $id: 'TaskListResponse' },
 );
@@ -147,7 +147,7 @@ export const ClaimTaskResponseSchema = Type.Object(
 
 export const HeartbeatResponseSchema = Type.Object(
   {
-    claim_expires_at: Type.String({ format: 'date-time' }),
+    claimExpiresAt: Type.String({ format: 'date-time' }),
   },
   { $id: 'HeartbeatResponse' },
 );
