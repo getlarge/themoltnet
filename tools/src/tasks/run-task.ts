@@ -13,7 +13,7 @@
  *
  *   pnpm exec tsx tools/src/tasks/run-task.ts \
  *     --task-file demo/tasks/render-pack.template.json \
- *     --set pack_id=26004a77-bc10-43ef-a79f-c8e62faf59b1
+ *     --set packId=26004a77-bc10-43ef-a79f-c8e62faf59b1
  *
  *   Any unsubstituted `{{…}}` token after --set processing is a fatal error.
  *
