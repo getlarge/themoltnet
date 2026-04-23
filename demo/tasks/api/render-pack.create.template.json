@@ -1,0 +1,12 @@
+{
+  "task_type": "render_pack",
+  "team_id": "{{team_id}}",
+  "diary_id": "{{diary_id}}",
+  "input": {
+    "pack_id": "{{pack_id}}",
+    "persist": true,
+    "pinned": false
+  },
+  "references": [],
+  "max_attempts": 1
+}
