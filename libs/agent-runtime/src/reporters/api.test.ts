@@ -33,7 +33,7 @@ describe('ApiTaskReporter', () => {
     });
 
     await vi.advanceTimersByTimeAsync(1_000);
-    await reporter.finalize({ input_tokens: 1, output_tokens: 2 });
+    await reporter.finalize({ inputTokens: 1, outputTokens: 2 });
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.example.test/tasks/11111111-1111-4111-8111-111111111111/attempts/2/messages',
@@ -43,13 +43,15 @@ describe('ApiTaskReporter', () => {
       'https://api.example.test/tasks/11111111-1111-4111-8111-111111111111/attempts/2/heartbeat',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(reporter.getUsage()).toEqual({ input_tokens: 1, output_tokens: 2 });
+    expect(reporter.getUsage()).toEqual({ inputTokens: 1, outputTokens: 2 });
   });
 
   it('throws when appending messages fails', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response('bad', { status: 500, statusText: 'Server Error' }),
-    );
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response('bad', { status: 500, statusText: 'Server Error' }),
+      );
     const reporter = new ApiTaskReporter({
       baseUrl: 'https://api.example.test',
       auth: async () => 'token-123',

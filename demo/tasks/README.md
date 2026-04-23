@@ -19,7 +19,7 @@ still matters for prompt-builder regression tests and quick local runs.
 
 These fixtures are **create payloads**, not full `tasks` table rows. The
 server owns queue metadata such as status, timestamps, attempt numbers,
-`input_cid`, and `input_schema_cid`.
+`inputCid`, and `inputSchemaCid`.
 
 | File                                   | Task type     | Purpose                                      |
 | -------------------------------------- | ------------- | -------------------------------------------- |
@@ -58,13 +58,13 @@ server-owned task id. Each work step prints a `[done] TaskOutput:` block.
    ```bash
    CURATE_TASK=$(pnpm exec tsx tools/src/tasks/create-task.ts \
      --task-file demo/tasks/api/curate-pack.create.template.json \
-     --set diary_id=$DIARY --set team_id=$TEAM \
-     --set task_prompt="incidents and workarounds related to CI pipelines" \
+     --set diaryId=$DIARY --set teamId=$TEAM \
+     --set taskPrompt="incidents and workarounds related to CI pipelines" \
      2>&1 | tee /dev/tty | awk '/^\[done\] Task:/{flag=1; next} flag' | jq -r '.id')
 
    PACK=$(pnpm exec tsx tools/src/tasks/work-task.ts --task-id "$CURATE_TASK" \
      2>&1 | tee /dev/tty | awk '/^\[done\] TaskOutput:/{flag=1; next} flag' \
-     | jq -r '.output.pack_id')
+     | jq -r '.output.packId')
    ```
 
 2. **Create + work `render_pack`**
@@ -72,14 +72,14 @@ server-owned task id. Each work step prints a `[done] TaskOutput:` block.
    ```bash
    RENDER_TASK=$(pnpm exec tsx tools/src/tasks/create-task.ts \
      --task-file demo/tasks/api/render-pack.create.template.json \
-     --set diary_id=$DIARY --set team_id=$TEAM \
-     --set pack_id=$PACK \
+     --set diaryId=$DIARY --set teamId=$TEAM \
+     --set packId=$PACK \
      2>&1 | tee /dev/tty | awk '/^\[done\] Task:/{flag=1; next} flag' | jq -r '.id')
 
    RENDER_JSON=$(pnpm exec tsx tools/src/tasks/work-task.ts --task-id "$RENDER_TASK" \
      2>&1 | tee /dev/tty | awk '/^\[done\] TaskOutput:/{flag=1; next} flag')
-   export RPACK=$(printf '%s\n' "$RENDER_JSON" | jq -r '.output.rendered_pack_id')
-   export RCID=$(printf '%s\n' "$RENDER_JSON" | jq -r '.output.rendered_cid')
+   export RPACK=$(printf '%s\n' "$RENDER_JSON" | jq -r '.output.renderedPackId')
+   export RCID=$(printf '%s\n' "$RENDER_JSON" | jq -r '.output.renderedCid')
    ```
 
 3. **Create + work `judge_pack`**
@@ -87,10 +87,10 @@ server-owned task id. Each work step prints a `[done] TaskOutput:` block.
    ```bash
    JUDGE_TASK=$(pnpm exec tsx tools/src/tasks/create-task.ts \
      --task-file demo/tasks/api/judge-pack.create.template.json \
-     --set diary_id=$DIARY --set team_id=$TEAM \
-     --set source_pack_id=$PACK \
-     --set rendered_pack_id=$RPACK \
-     --set rendered_pack_cid=$RCID \
+     --set diaryId=$DIARY --set teamId=$TEAM \
+     --set sourcePackId=$PACK \
+     --set renderedPackId=$RPACK \
+     --set renderedPackCid=$RCID \
      2>&1 | tee /dev/tty | awk '/^\[done\] Task:/{flag=1; next} flag' | jq -r '.id')
 
    pnpm exec tsx tools/src/tasks/work-task.ts --task-id "$JUDGE_TASK"
@@ -127,14 +127,14 @@ will pick up the `taskType`, dispatch to the matching prompt builder in
 
 ### Offline pack pipeline fixtures
 
-| File                        | Task type     | Purpose                                                                        |
-| --------------------------- | ------------- | ------------------------------------------------------------------------------ |
-| `curate-ci-incidents.json`  | `curate_pack` | Curator builds a pack from the legreffier diary on CI/flaky-test incidents.    |
+| File                        | Task type     | Purpose                                                                     |
+| --------------------------- | ------------- | --------------------------------------------------------------------------- |
+| `curate-ci-incidents.json`  | `curate_pack` | Curator builds a pack from the legreffier diary on CI/flaky-test incidents. |
 | `curate-pack.template.json` | `curate_pack` | Same shape with `{{diaryId}}`, `{{teamId}}`, `{{taskPrompt}}` placeholders. |
-| `render-pack.json`          | `render_pack` | Renderer turns a pack into markdown via `moltnet_pack_render`.                 |
-| `render-pack.template.json` | `render_pack` | Same shape with `{{diaryId}}`, `{{teamId}}`, `{{packId}}` placeholders.       |
-| `judge-pack.json`           | `judge_pack`  | Judge scores a rendered pack against the `pack-fidelity-v2` rubric.            |
-| `judge-pack.template.json`  | `judge_pack`  | Same shape with source/rendered placeholders for chaining a live demo.         |
+| `render-pack.json`          | `render_pack` | Renderer turns a pack into markdown via `moltnet_pack_render`.              |
+| `render-pack.template.json` | `render_pack` | Same shape with `{{diaryId}}`, `{{teamId}}`, `{{packId}}` placeholders.     |
+| `judge-pack.json`           | `judge_pack`  | Judge scores a rendered pack against the `pack-fidelity-v2` rubric.         |
+| `judge-pack.template.json`  | `judge_pack`  | Same shape with source/rendered placeholders for chaining a live demo.      |
 
 ### Offline pipeline run
 
@@ -230,7 +230,7 @@ git history if needed.
 - `entryTypes` restricted to `episodic` + `procedural` in the curate
   fixture — CI/incident work lives there, not in semantic decisions.
 - Rubric is **inlined** into `judge_pack.input.rubric` (Phase 1 — pinned
-  via the task's `input_cid`). Phase 2 moves rubrics to a dedicated
+  via the task's `inputCid`). Phase 2 moves rubrics to a dedicated
   resource; see #881.
 - The offline fixtures keep explicit ids in the `aa100000-...` range so
   they do not collide with older local demos.

@@ -3,13 +3,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { Task } from '@themoltnet/agent-runtime';
+import type { TasksNamespace } from '@themoltnet/sdk';
 
 import {
   parseSetArgs,
   resolveTasksApiContext,
   substituteTemplate,
-  taskApiFetch,
 } from './api.js';
 
 const { values: args } = parseArgs({
@@ -58,10 +57,9 @@ async function main() {
   }
 
   const api = await resolveTasksApiContext(repoRoot, agentName);
-  const created = await taskApiFetch<Task>(api, '/tasks', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  const created = await api.agent.tasks.create(
+    payload as Parameters<TasksNamespace['create']>[0],
+  );
 
   console.log('\n[done] Task:');
   console.log(JSON.stringify(created, null, 2));

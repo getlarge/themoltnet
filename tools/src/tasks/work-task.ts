@@ -3,19 +3,19 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { Task, TaskError } from '@themoltnet/agent-runtime';
 import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
   StdoutReporter,
 } from '@themoltnet/agent-runtime';
+import type { TasksNamespace } from '@themoltnet/sdk';
 import {
   createPiTaskExecutor,
   type SandboxConfig,
 } from '@themoltnet/pi-extension';
 
-import { resolveTasksApiContext, taskApiFetch } from './api.js';
+import { resolveTasksApiContext } from './api.js';
 
 const { values: args } = parseArgs({
   options: {
@@ -120,39 +120,26 @@ async function main() {
     throw new Error('Runtime produced no outputs');
   }
 
-  if (output.status === 'completed' && output.output && output.output_cid) {
-    await taskApiFetch<Task>(
-      api,
-      `/tasks/${taskId}/attempts/${output.attempt_n}/complete`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          output: output.output,
-          output_cid: output.output_cid,
-          usage: output.usage,
-          ...(output.content_signature
-            ? { content_signature: output.content_signature }
-            : {}),
-        }),
-      },
-    );
+  if (output.status === 'completed' && output.output && output.outputCid) {
+    await api.agent.tasks.complete(taskId, output.attemptN, {
+      output: output.output,
+      outputCid: output.outputCid,
+      usage: output.usage,
+      ...(output.contentSignature
+        ? { contentSignature: output.contentSignature }
+        : {}),
+    });
   } else {
-    const error: TaskError = output.error ?? {
-      code: output.status === 'cancelled' ? 'task_cancelled' : 'task_failed',
-      message:
-        output.status === 'cancelled'
-          ? 'Task was cancelled by the runtime.'
-          : 'Task execution failed before producing a valid output.',
-      retryable: false,
-    };
-    await taskApiFetch<Task>(
-      api,
-      `/tasks/${taskId}/attempts/${output.attempt_n}/fail`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ error }),
-      },
-    );
+    const error: NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] =
+      output.error ?? {
+        code: output.status === 'cancelled' ? 'task_cancelled' : 'task_failed',
+        message:
+          output.status === 'cancelled'
+            ? 'Task was cancelled by the runtime.'
+            : 'Task execution failed before producing a valid output.',
+        retryable: false,
+      };
+    await api.agent.tasks.fail(taskId, output.attemptN, { error });
   }
 
   console.log('\n[done] TaskOutput:');
