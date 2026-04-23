@@ -39,13 +39,14 @@ function getHostExecTool(config: MoltNetToolsConfig) {
 async function callTool(
   tool: ReturnType<typeof getHostExecTool>,
   params: { executable: string; args: string[]; env?: Record<string, string> },
+  ctx?: { ui?: { confirm: (...args: unknown[]) => Promise<boolean> } } | null,
 ) {
   return tool.execute(
     'call-id',
     params,
     new AbortController().signal,
     () => {},
-    null as any,
+    (ctx === undefined ? null : ctx) as any,
   );
 }
 
@@ -198,5 +199,39 @@ describe('moltnet_host_exec env merging', () => {
     } else {
       process.env.MY_SECRET_PI_KEY = origVal;
     }
+  });
+});
+
+describe('moltnet_host_exec UI approval', () => {
+  it('proceeds when ctx.ui.confirm returns true', async () => {
+    const tool = getHostExecTool(makeConfig('/tmp'));
+    const ctx = { ui: { confirm: async () => true } };
+    const result = await callTool(
+      tool,
+      { executable: 'git', args: ['--version'] },
+      ctx,
+    );
+    const parsed = JSON.parse(getText(result));
+    expect(parsed.host_exec).toBe(true);
+    expect(parsed.stdout).toMatch(/git version/);
+  });
+
+  it('throws when ctx.ui.confirm returns false', async () => {
+    const tool = getHostExecTool(makeConfig('/tmp'));
+    const ctx = { ui: { confirm: async () => false } };
+    await expect(
+      callTool(tool, { executable: 'git', args: ['--version'] }, ctx),
+    ).rejects.toThrow(/user declined/);
+  });
+
+  it('proceeds without dialog when ctx has no ui (headless)', async () => {
+    const tool = getHostExecTool(makeConfig('/tmp'));
+    const result = await callTool(
+      tool,
+      { executable: 'git', args: ['--version'] },
+      null,
+    );
+    const parsed = JSON.parse(getText(result));
+    expect(parsed.host_exec).toBe(true);
   });
 });

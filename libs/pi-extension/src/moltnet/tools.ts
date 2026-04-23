@@ -796,12 +796,10 @@ export function createMoltNetTools(
     name: 'moltnet_host_exec',
     label: 'Run command on host (escape hatch — requires user approval)',
     description:
-      '⚠️  APPROVAL REQUIRED: You MUST ask the user for explicit approval ' +
-      'before calling this tool. State the exact command and arguments, ' +
-      'explain why it cannot run inside the sandbox, and wait for confirmation. ' +
-      'Do NOT call this tool speculatively or without a prior user approval in this conversation.\n\n' +
-      'Runs a command on the HOST machine, outside the sandbox VM. Use ONLY ' +
-      'when a sandboxed operation is impossible — e.g. `git push`, `gh pr create`.\n\n' +
+      'Runs a command on the HOST machine, outside the sandbox VM. ' +
+      'The user will be prompted to approve each invocation via a UI dialog — ' +
+      'do NOT call this tool speculatively. Use ONLY when a sandboxed operation ' +
+      'is impossible — e.g. `git push`, `gh pr create`.\n\n' +
       'Allowed executables: git, gh, moltnet. ' +
       'Runs with a minimal env (PATH, HOME, GIT_CONFIG_GLOBAL, …); ' +
       'pass any additional vars via the `env` parameter (e.g. GH_TOKEN). ' +
@@ -821,13 +819,28 @@ export function createMoltNetTools(
         }),
       ),
     }),
-    async execute(_id, params, _signal, _onUpdate, _ctx) {
+    async execute(_id, params, _signal, _onUpdate, ctx) {
       if (!HOST_EXEC_ALLOWED.has(params.executable)) {
         throw new Error(
           `host_exec: '${params.executable}' is not in the allowed list ` +
             `(${[...HOST_EXEC_ALLOWED].join(', ')}). ` +
             'Extend HOST_EXEC_ALLOWED only after explicit security review.',
         );
+      }
+
+      // Require explicit user approval via UI dialog when available.
+      // Falls back to proceeding when running headless (no UI context).
+      if (ctx?.ui) {
+        const cmdDisplay = [params.executable, ...params.args].join(' ');
+        const approved = await ctx.ui.confirm(
+          'Allow host command?',
+          `The agent wants to run on your machine:\n\n  ${cmdDisplay}\n\nAllow?`,
+        );
+        if (!approved) {
+          throw new Error(
+            `host_exec: user declined approval for: ${cmdDisplay}`,
+          );
+        }
       }
 
       const cwd = config.getHostCwd?.() ?? process.cwd();
