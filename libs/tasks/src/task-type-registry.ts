@@ -1,3 +1,6 @@
+// TODO: When the task ecosystem matures, this registry should move to a
+// dedicated API/service so that task types can be registered dynamically
+// without redeploying the rest-api.
 import { CID } from 'multiformats/cid';
 import * as json from 'multiformats/codecs/json';
 import { sha256 } from 'multiformats/hashes/sha2';

@@ -1,7 +1,9 @@
 import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
 import { KetoNamespace } from '@moltnet/auth';
+import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   DBOS,
+  type DiaryRepository,
   type NewTask,
   type NewTaskMessage,
   type Task as DbTask,
@@ -21,6 +23,7 @@ import {
   type TaskUsage,
 } from '@moltnet/tasks';
 import type { TSchema } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
 
 interface TaskTypeEntry {
   readonly name: string;
@@ -31,13 +34,22 @@ interface TaskTypeEntry {
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
 }
-import { Value } from '@sinclair/typebox/value';
-import { CID } from 'multiformats/cid';
-import * as json from 'multiformats/codecs/json';
-import { sha256 } from 'multiformats/hashes/sha2';
+
+interface Logger {
+  info(obj: object, msg: string): void;
+  debug(obj: object, msg: string): void;
+  warn(obj: object, msg: string): void;
+  error(obj: object, msg: string): void;
+}
 
 const EVENT_TIMEOUT_SECONDS = 10;
 const DEFAULT_LEASE_TTL_SEC = 300;
+const TERMINAL_STATUSES = new Set<DbTask['status']>([
+  'completed',
+  'failed',
+  'cancelled',
+  'expired',
+]);
 
 export class TaskServiceError extends Error {
   constructor(
@@ -55,10 +67,8 @@ export class TaskServiceError extends Error {
   }
 }
 
-async function computeCid(value: unknown): Promise<string> {
-  const bytes = json.encode(value);
-  const hash = await sha256.digest(bytes);
-  return CID.create(1, json.code, hash).toString();
+function taskWorkflowId(taskId: string, attemptN: number): string {
+  return `task:${taskId}:attempt:${attemptN}`;
 }
 
 function dbTaskToWire(row: DbTask): Task {
@@ -135,12 +145,20 @@ export interface CreateTaskInput {
 
 interface TaskServiceDeps {
   taskRepository: TaskRepository;
+  diaryRepository: DiaryRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
+  logger: Logger;
 }
 
 export function createTaskService(deps: TaskServiceDeps) {
-  const { taskRepository, permissionChecker, relationshipWriter } = deps;
+  const {
+    taskRepository,
+    diaryRepository,
+    permissionChecker,
+    relationshipWriter,
+    logger,
+  } = deps;
 
   return {
     async create(input: CreateTaskInput): Promise<Task> {
@@ -172,6 +190,11 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError('invalid', 'diary_id is required');
       }
 
+      const diary = await diaryRepository.findById(input.diaryId);
+      if (!diary) {
+        throw new TaskServiceError('not_found', 'Diary not found');
+      }
+
       const canImpose = await permissionChecker.canImposeTask(
         input.diaryId,
         input.callerId,
@@ -192,7 +215,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Schema CID not found for: ${input.taskType}`,
         );
       }
-      const inputCid = await computeCid(input.inputPayload);
+      const inputCid = await computeJsonCid(input.inputPayload);
 
       const expiresAt = input.expiresInSec
         ? new Date(Date.now() + input.expiresInSec * 1000)
@@ -216,8 +239,33 @@ export function createTaskService(deps: TaskServiceDeps) {
       };
 
       const row = await taskRepository.create(newTask);
-      await relationshipWriter.grantTaskParent(row.id, input.diaryId);
 
+      try {
+        await relationshipWriter.grantTaskParent(row.id, input.diaryId);
+      } catch (err) {
+        logger.error(
+          { taskId: row.id, diaryId: input.diaryId, err },
+          'task.create.grant_failed — rolling back task',
+        );
+        await taskRepository
+          .updateStatus(row.id, 'cancelled', {
+            cancelReason: 'Keto grant failed during creation',
+            cancelledByAgentId: null,
+            cancelledByHumanId: null,
+          })
+          .catch((rollbackErr: unknown) => {
+            logger.error(
+              { taskId: row.id, err: rollbackErr },
+              'task.create.rollback_failed',
+            );
+          });
+        throw new TaskServiceError(
+          'conflict',
+          'Failed to register task ownership — task was rolled back',
+        );
+      }
+
+      logger.info({ taskId: row.id, taskType: row.taskType }, 'task.created');
       return dbTaskToWire(row);
     },
 
@@ -230,7 +278,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       cursor?: string;
       callerId: string;
       callerNs: KetoNamespace;
-    }): Promise<{ items: Task[]; next_cursor?: string }> {
+    }): Promise<{ items: Task[]; total: number; next_cursor?: string }> {
       const canAccess = await permissionChecker.canAccessTeam(
         opts.teamId,
         opts.callerId,
@@ -252,6 +300,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       });
       return {
         items: items.map(dbTaskToWire),
+        total: items.length,
         next_cursor: nextCursor,
       };
     },
@@ -316,7 +365,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
 
       const attemptN = attemptCount + 1;
-      const workflowId = `task:${taskId}:attempt:${attemptN}`;
+      const workflowId = taskWorkflowId(taskId, attemptN);
 
       try {
         await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
@@ -347,6 +396,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         taskRepository.findAttempt(taskId, attemptN),
       ]);
 
+      logger.info({ taskId, attemptN, callerId }, 'task.claimed');
       return {
         task: dbTaskToWire(updatedTask!),
         attempt: dbAttemptToWire(attempt!),
@@ -381,12 +431,13 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const workflowId = `task:${taskId}:attempt:${attemptN}`;
+      const workflowId = taskWorkflowId(taskId, attemptN);
       await DBOS.send(workflowId, true, 'started');
 
       const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
       await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
 
+      logger.debug({ taskId, attemptN }, 'task.heartbeat');
       return { claim_expires_at: claimExpiresAt.toISOString() };
     },
 
@@ -423,7 +474,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const workflowId = `task:${taskId}:attempt:${attemptN}`;
+      const workflowId = taskWorkflowId(taskId, attemptN);
       await DBOS.send(
         workflowId,
         {
@@ -436,15 +487,13 @@ export function createTaskService(deps: TaskServiceDeps) {
       );
 
       const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
-      const terminalStatuses = new Set<DbTask['status']>([
-        'completed',
-        'failed',
-        'cancelled',
-        'expired',
-      ]);
-      for (;;) {
+      while (true) {
         const updated = await taskRepository.findById(taskId);
-        if (updated && terminalStatuses.has(updated.status)) {
+        if (updated && TERMINAL_STATUSES.has(updated.status)) {
+          logger.info(
+            { taskId, attemptN, status: updated.status },
+            'task.completed',
+          );
           return dbTaskToWire(updated);
         }
         if (Date.now() >= deadline) {
@@ -487,19 +536,17 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const workflowId = `task:${taskId}:attempt:${attemptN}`;
+      const workflowId = taskWorkflowId(taskId, attemptN);
       await DBOS.send(workflowId, { kind: 'failed', error }, 'result');
 
       const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
-      const terminalStatuses = new Set<DbTask['status']>([
-        'completed',
-        'failed',
-        'cancelled',
-        'expired',
-      ]);
-      for (;;) {
+      while (true) {
         const updated = await taskRepository.findById(taskId);
-        if (updated && terminalStatuses.has(updated.status)) {
+        if (updated && TERMINAL_STATUSES.has(updated.status)) {
+          logger.info(
+            { taskId, attemptN, status: updated.status },
+            'task.failed',
+          );
           return dbTaskToWire(updated);
         }
         if (Date.now() >= deadline) {
@@ -558,15 +605,14 @@ export function createTaskService(deps: TaskServiceDeps) {
         await relationshipWriter
           .removeTaskClaimant(taskId, row.claimAgentId)
           .catch((err: unknown) => {
-            // eslint-disable-next-line no-console
-            console.warn('Failed to remove task claimant relationship', {
-              taskId,
-              claimAgentId: row.claimAgentId,
-              error: err,
-            });
+            logger.warn(
+              { taskId, claimAgentId: row.claimAgentId, err },
+              'task.cancel.remove_claimant_failed',
+            );
           });
       }
 
+      logger.info({ taskId, callerId, reason }, 'task.cancelled');
       return dbTaskToWire(updated!);
     },
 
@@ -664,6 +710,10 @@ export function createTaskService(deps: TaskServiceDeps) {
       }));
 
       await taskRepository.appendMessages(rows);
+      logger.debug(
+        { taskId, attemptN, count: messages.length },
+        'task.messages_appended',
+      );
       return { count: messages.length };
     },
   };

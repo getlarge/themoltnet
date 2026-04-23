@@ -133,7 +133,7 @@ describe('GET /tasks', () => {
   beforeEach(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
-    mocks.taskService.list.mockResolvedValue({ items: [MOCK_TASK] });
+    mocks.taskService.list.mockResolvedValue({ items: [MOCK_TASK], total: 1 });
   });
 
   it('returns 200 with task list', async () => {

@@ -401,8 +401,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   await initTaskTypeRegistry();
   const taskService = createTaskService({
     taskRepository,
+    diaryRepository,
     permissionChecker,
     relationshipWriter,
+    logger: app.log,
   });
 
   const diaryService = createDiaryService({

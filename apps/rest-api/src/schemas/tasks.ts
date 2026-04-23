@@ -124,6 +124,7 @@ export const AppendMessagesBodySchema = Type.Object(
 export const TaskListResponseSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(Task)),
+    total: Type.Integer({ minimum: 0 }),
     next_cursor: Type.Optional(Type.String()),
   },
   { $id: 'TaskListResponse' },

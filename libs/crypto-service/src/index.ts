@@ -17,6 +17,7 @@ export {
   signChallenge,
   verifyChallenge,
 } from './hmac.js';
+export { computeJsonCid } from './json-cid.js';
 export {
   buildPackEnvelope,
   type CompileParams,
