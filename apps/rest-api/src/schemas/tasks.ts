@@ -98,7 +98,7 @@ export const CancelTaskBodySchema = Type.Object(
 
 export const ListMessagesQuerySchema = Type.Object(
   {
-    after_seq: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
+    after_seq: Type.Optional(Type.Integer({ minimum: 0 })),
     limit: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 200, default: 200 }),
     ),

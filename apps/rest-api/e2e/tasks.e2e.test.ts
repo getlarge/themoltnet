@@ -338,6 +338,15 @@ describe('Tasks API', () => {
     });
 
     it('fails the task and DBOS workflow marks it failed', async () => {
+      // Heartbeat advances the workflow past the 'started' checkpoint so it
+      // can receive the 'result' event sent by fail().
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { lease_ttl_sec: 30 },
+      });
+
       const { error } = await failTask({
         client,
         auth: () => claimer.accessToken,
@@ -446,7 +455,7 @@ describe('Tasks API', () => {
         client,
         auth: () => imposer.accessToken,
         path: { id: taskId, n: attemptN },
-        query: { after_seq: 0 },
+        query: {},
       });
       expect(error).toBeUndefined();
       expect(data!.length).toBe(2);
@@ -474,13 +483,15 @@ describe('Tasks API', () => {
         body: { messages: [{ kind: 'text_delta', payload: { text: 'done' } }] },
       });
 
+      // Fetch all 3 messages (no afterSeq filter)
       const { data: all } = await listTaskMessages({
         client,
         auth: () => imposer.accessToken,
         path: { id: taskId, n: attemptN },
-        query: { after_seq: 0 },
+        query: {},
       });
 
+      // after_seq is exclusive — use seq of the second message to get only the third
       const secondSeq = all![1].seq;
 
       const { data: after } = await listTaskMessages({
