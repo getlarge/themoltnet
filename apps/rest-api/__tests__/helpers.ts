@@ -30,6 +30,8 @@ import type {
   HumanRepository,
   NonceRepository,
   SigningRequestRepository,
+  TaskRepository,
+  TaskService,
   TeamRepository,
   TransactionRunner,
   VerificationService,
@@ -50,6 +52,8 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitPublicVerify: 1000,
   rateLimitPublicSearch: 1000,
   rateLimitLegreffierStart: 1000,
+  rateLimitLegreffierStatus: 1000,
+  rateLimitRegistration: 1000,
   rateLimitReadiness: 1000,
   apiBaseUrl: 'http://localhost:8000',
 };
@@ -231,6 +235,8 @@ export interface MockServices {
   relationshipReader: {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
   };
+  taskRepository: { [K in keyof TaskRepository]: ReturnType<typeof vi.fn> };
+  taskService: { [K in keyof TaskService]: ReturnType<typeof vi.fn> };
 }
 
 export function createMockServices(): MockServices {
@@ -402,6 +408,11 @@ export function createMockServices(): MockServices {
       canManageTeam: vi.fn(),
       canWriteTeam: vi.fn().mockResolvedValue(true),
       canManageTeamMembers: vi.fn(),
+      canViewTask: vi.fn(),
+      canImposeTask: vi.fn(),
+      canClaimTask: vi.fn(),
+      canCancelTask: vi.fn(),
+      canReportTask: vi.fn(),
     },
     relationshipWriter: {
       grantDiaryTeam: vi.fn(),
@@ -422,6 +433,13 @@ export function createMockServices(): MockServices {
       removeEntryRelations: vi.fn(),
       removePackRelations: vi.fn(),
       removePackRelationsBatch: vi.fn(),
+      grantDiaryWriters: vi.fn(),
+      grantDiaryManagers: vi.fn(),
+      revokeDiaryWriter: vi.fn(),
+      revokeDiaryManager: vi.fn(),
+      grantTaskParent: vi.fn(),
+      grantTaskClaimant: vi.fn(),
+      removeTaskClaimant: vi.fn(),
     },
     dataSource: {
       client: { __mock: 'transactionalClient' },
@@ -462,6 +480,34 @@ export function createMockServices(): MockServices {
       listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
       listTeamMembers: vi.fn().mockResolvedValue([]),
       listGroupMembers: vi.fn().mockResolvedValue([]),
+    },
+    taskRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      list: vi.fn(),
+      updateStatus: vi.fn(),
+      createAttempt: vi.fn(),
+      findAttempt: vi.fn(),
+      updateAttempt: vi.fn(),
+      listAttempts: vi.fn().mockResolvedValue([]),
+      countAttempts: vi.fn().mockResolvedValue(0),
+      getMaxAttempts: vi.fn().mockResolvedValue(1),
+      findMaxMessageSeq: vi.fn().mockResolvedValue(-1),
+      appendMessages: vi.fn(),
+      listMessages: vi.fn().mockResolvedValue({ items: [], hasMore: false }),
+    },
+    taskService: {
+      create: vi.fn(),
+      list: vi.fn(),
+      get: vi.fn(),
+      claim: vi.fn(),
+      heartbeat: vi.fn(),
+      complete: vi.fn(),
+      fail: vi.fn(),
+      cancel: vi.fn(),
+      listAttempts: vi.fn(),
+      listMessages: vi.fn(),
+      appendMessages: vi.fn(),
     },
   };
 }
@@ -594,6 +640,8 @@ export async function createTestApp(
       findPersonalTeamId: async () => null,
     },
     teamRepository: mocks.teamRepository as never,
+    taskRepository: mocks.taskRepository as unknown as TaskRepository,
+    taskService: mocks.taskService as unknown as TaskService,
     diaryTransferRepository:
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
     groupRepository: mocks.groupRepository as never,

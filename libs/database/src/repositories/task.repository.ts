@@ -66,6 +66,15 @@ export function createTaskRepository(db: Database) {
       return { items, nextCursor };
     },
 
+    async claimIfQueued(id: string): Promise<Task | null> {
+      const [row] = await getExecutor(db)
+        .update(tasks)
+        .set({ status: 'dispatched', updatedAt: sql`now()` })
+        .where(and(eq(tasks.id, id), eq(tasks.status, 'queued')))
+        .returning();
+      return row ?? null;
+    },
+
     async updateStatus(
       id: string,
       status: Task['status'],
@@ -171,9 +180,58 @@ export function createTaskRepository(db: Database) {
       return row?.maxAttempts ?? 1;
     },
 
-    async appendMessages(messages: NewTaskMessage[]): Promise<void> {
+    async findMaxMessageSeq(taskId: string, attemptN: number): Promise<number> {
+      const [row] = await getExecutor(db)
+        .select({ maxSeq: sql<number | null>`max(${taskMessages.seq})` })
+        .from(taskMessages)
+        .where(
+          and(
+            eq(taskMessages.taskId, taskId),
+            eq(taskMessages.attemptN, attemptN),
+          ),
+        );
+      // MAX() always returns a row (with null when there are no rows), so `row`
+      // is never undefined — only `maxSeq` can be null when the table is empty.
+      return row.maxSeq ?? -1;
+    },
+
+    async appendMessages(
+      messages: Omit<NewTaskMessage, 'seq'>[],
+    ): Promise<void> {
       if (messages.length === 0) return;
-      await getExecutor(db).insert(taskMessages).values(messages);
+      // Seq numbers are generated atomically inside the DB to avoid the
+      // read-then-write race: two concurrent callers could read the same
+      // maxSeq and then try to insert rows with overlapping seq values.
+      //
+      // Strategy: INSERT ... SELECT from a VALUES list joined with a
+      // ROW_NUMBER() window function, offset by COALESCE(MAX(seq), -1).
+      // The correlated subquery for MAX(seq) is evaluated once per statement
+      // against the committed snapshot, so concurrent inserts get disjoint
+      // seq ranges (assuming a UNIQUE constraint on (task_id, attempt_n, seq)).
+      const taskId = messages[0].taskId;
+      const attemptN = messages[0].attemptN;
+
+      // Build the VALUES rows for the inline table: (kind, payload, timestamp)
+      const valuesTuples = messages
+        .map(
+          (m) =>
+            sql`(${m.kind}::text, ${JSON.stringify(m.payload)}::jsonb, ${m.timestamp ?? new Date()})`,
+        )
+        .reduce((acc, cur) => sql`${acc}, ${cur}`);
+
+      await getExecutor(db).execute(sql`
+        INSERT INTO task_messages (task_id, attempt_n, seq, timestamp, kind, payload)
+        SELECT
+          ${taskId}::uuid,
+          ${attemptN}::smallint,
+          (SELECT COALESCE(MAX(seq), -1) FROM task_messages
+            WHERE task_id = ${taskId}::uuid AND attempt_n = ${attemptN}::smallint)
+            + ROW_NUMBER() OVER (ORDER BY ts),
+          ts,
+          kind,
+          payload
+        FROM (VALUES ${valuesTuples}) AS v(kind, payload, ts)
+      `);
     },
 
     async listMessages(

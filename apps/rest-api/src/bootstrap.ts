@@ -64,6 +64,7 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
+import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import pkg from '../package.json' with { type: 'json' };
@@ -72,6 +73,7 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
+import { createTaskService } from './services/task.service.js';
 import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
@@ -366,9 +368,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
             taskRepository.updateAttempt(taskId, attemptN, fields),
           updateTaskStatus: (taskId, status, extra) =>
             taskRepository.updateStatus(taskId, status, extra),
-          removeClaimantTuple: async (_taskId, _agentId) => {
-            // Keto claimant tuple removal deferred to task service (Phase 3)
-          },
+          removeClaimantTuple: (taskId, agentId) =>
+            relationshipWriter.removeTaskClaimant(taskId, agentId),
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
           getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
         });
@@ -395,6 +396,15 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const transactionRunner = createDBOSTransactionRunner(dataSource);
   const verificationService = createVerificationService({
     verificationRepository,
+  });
+
+  await initTaskTypeRegistry();
+  const taskService = createTaskService({
+    taskRepository,
+    diaryRepository,
+    permissionChecker,
+    relationshipWriter,
+    logger: app.log,
   });
 
   const diaryService = createDiaryService({
@@ -462,6 +472,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     teamRepository,
     diaryTransferRepository,
     taskRepository,
+    taskService,
     signingRequestRepository,
     nonceRepository,
     dataSource,

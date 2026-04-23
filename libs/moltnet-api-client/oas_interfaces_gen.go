@@ -13,12 +13,28 @@ type AddGroupMemberRes interface {
 	addGroupMemberRes()
 }
 
+type AppendTaskMessagesRes interface {
+	appendTaskMessagesRes()
+}
+
+type CancelTaskRes interface {
+	cancelTaskRes()
+}
+
+type ClaimTaskRes interface {
+	claimTaskRes()
+}
+
 type ClaimVerificationRes interface {
 	claimVerificationRes()
 }
 
 type CompileDiaryRes interface {
 	compileDiaryRes()
+}
+
+type CompleteTaskRes interface {
+	completeTaskRes()
 }
 
 type ConsolidateDiaryRes interface {
@@ -51,6 +67,10 @@ type CreateGroupRes interface {
 
 type CreateSigningRequestRes interface {
 	createSigningRequestRes()
+}
+
+type CreateTaskRes interface {
+	createTaskRes()
 }
 
 type CreateTeamInviteRes interface {
@@ -91,6 +111,10 @@ type DiffContextPacksByCidRes interface {
 
 type DiffContextPacksByIdRes interface {
 	diffContextPacksByIdRes()
+}
+
+type FailTaskRes interface {
+	failTaskRes()
 }
 
 type GetAgentProfileRes interface {
@@ -155,6 +179,10 @@ type GetRenderedPackByIdRes interface {
 
 type GetSigningRequestRes interface {
 	getSigningRequestRes()
+}
+
+type GetTaskRes interface {
+	getTaskRes()
 }
 
 type GetTeamRes interface {
@@ -233,6 +261,18 @@ type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }
 
+type ListTaskAttemptsRes interface {
+	listTaskAttemptsRes()
+}
+
+type ListTaskMessagesRes interface {
+	listTaskMessagesRes()
+}
+
+type ListTasksRes interface {
+	listTasksRes()
+}
+
 type ListTeamInvitesRes interface {
 	listTeamInvitesRes()
 }
@@ -307,6 +347,10 @@ type SubmitSignatureRes interface {
 
 type SubmitVerificationRes interface {
 	submitVerificationRes()
+}
+
+type TaskHeartbeatRes interface {
+	taskHeartbeatRes()
 }
 
 type UpdateContextPackRes interface {

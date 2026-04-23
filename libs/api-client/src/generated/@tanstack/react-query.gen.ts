@@ -13,8 +13,12 @@ import {
   acceptTeamFounding,
   acceptTransfer,
   addGroupMember,
+  appendTaskMessages,
+  cancelTask,
+  claimTask,
   claimVerification,
   compileDiary,
+  completeTask,
   consolidateDiary,
   createDiary,
   createDiaryCustomPack,
@@ -23,6 +27,7 @@ import {
   createEntryRelation,
   createGroup,
   createSigningRequest,
+  createTask,
   createTeam,
   createTeamInvite,
   deleteDiary,
@@ -33,6 +38,7 @@ import {
   deleteTeamInvite,
   diffContextPacksByCid,
   diffContextPacksById,
+  failTask,
   getAgentProfile,
   getContextPackById,
   getContextPackProvenanceByCid,
@@ -53,6 +59,7 @@ import {
   getReadiness,
   getRenderedPackById,
   getSigningRequest,
+  getTask,
   getTeam,
   getTrustGraph,
   getWhoami,
@@ -73,6 +80,9 @@ import {
   listPendingTransfers,
   listProblemTypes,
   listSigningRequests,
+  listTaskAttempts,
+  listTaskMessages,
+  listTasks,
   listTeamInvites,
   listTeamMembers,
   listTeams,
@@ -93,6 +103,7 @@ import {
   startLegreffierOnboarding,
   submitSignature,
   submitVerification,
+  taskHeartbeat,
   updateContextPack,
   updateDiary,
   updateDiaryEntryById,
@@ -114,12 +125,24 @@ import type {
   AddGroupMemberData,
   AddGroupMemberError,
   AddGroupMemberResponse,
+  AppendTaskMessagesData,
+  AppendTaskMessagesError,
+  AppendTaskMessagesResponse,
+  CancelTaskData,
+  CancelTaskError,
+  CancelTaskResponse,
+  ClaimTaskData,
+  ClaimTaskError,
+  ClaimTaskResponse2,
   ClaimVerificationData,
   ClaimVerificationError,
   ClaimVerificationResponse2,
   CompileDiaryData,
   CompileDiaryError,
   CompileDiaryResponse,
+  CompleteTaskData,
+  CompleteTaskError,
+  CompleteTaskResponse,
   ConsolidateDiaryData,
   ConsolidateDiaryError,
   ConsolidateDiaryResponse,
@@ -144,6 +167,9 @@ import type {
   CreateSigningRequestData,
   CreateSigningRequestError,
   CreateSigningRequestResponse,
+  CreateTaskData,
+  CreateTaskError,
+  CreateTaskResponse,
   CreateTeamData,
   CreateTeamError,
   CreateTeamInviteData,
@@ -174,6 +200,9 @@ import type {
   DiffContextPacksByIdData,
   DiffContextPacksByIdError,
   DiffContextPacksByIdResponse,
+  FailTaskData,
+  FailTaskError,
+  FailTaskResponse,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileResponse,
@@ -229,6 +258,9 @@ import type {
   GetSigningRequestData,
   GetSigningRequestError,
   GetSigningRequestResponse,
+  GetTaskData,
+  GetTaskError,
+  GetTaskResponse,
   GetTeamData,
   GetTeamError,
   GetTeamResponse,
@@ -288,6 +320,15 @@ import type {
   ListSigningRequestsData,
   ListSigningRequestsError,
   ListSigningRequestsResponse,
+  ListTaskAttemptsData,
+  ListTaskAttemptsError,
+  ListTaskAttemptsResponse,
+  ListTaskMessagesData,
+  ListTaskMessagesError,
+  ListTaskMessagesResponse,
+  ListTasksData,
+  ListTasksError,
+  ListTasksResponse,
   ListTeamInvitesData,
   ListTeamInvitesError,
   ListTeamInvitesResponse,
@@ -345,6 +386,9 @@ import type {
   SubmitVerificationData,
   SubmitVerificationError,
   SubmitVerificationResponse2,
+  TaskHeartbeatData,
+  TaskHeartbeatError,
+  TaskHeartbeatResponse,
   UpdateContextPackData,
   UpdateContextPackError,
   UpdateContextPackResponse,
@@ -3263,6 +3307,349 @@ export const getLegreffierOnboardingStatusOptions = (
     },
     queryKey: getLegreffierOnboardingStatusQueryKey(options),
   });
+
+export const listTasksQueryKey = (options: Options<ListTasksData>) =>
+  createQueryKey('listTasks', options);
+
+/**
+ * List tasks for a team with optional filters.
+ */
+export const listTasksOptions = (options: Options<ListTasksData>) =>
+  queryOptions<
+    ListTasksResponse,
+    ListTasksError,
+    ListTasksResponse,
+    ReturnType<typeof listTasksQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTasks({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTasksQueryKey(options),
+  });
+
+export const listTasksInfiniteQueryKey = (
+  options: Options<ListTasksData>,
+): QueryKey<Options<ListTasksData>> =>
+  createQueryKey('listTasks', options, true);
+
+/**
+ * List tasks for a team with optional filters.
+ */
+export const listTasksInfiniteOptions = (options: Options<ListTasksData>) =>
+  infiniteQueryOptions<
+    ListTasksResponse,
+    ListTasksError,
+    InfiniteData<ListTasksResponse>,
+    QueryKey<Options<ListTasksData>>,
+    | string
+    | Pick<
+        QueryKey<Options<ListTasksData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListTasksData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  cursor: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listTasks({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listTasksInfiniteQueryKey(options),
+    },
+  );
+
+/**
+ * Create and enqueue a new task.
+ */
+export const createTaskMutation = (
+  options?: Partial<Options<CreateTaskData>>,
+): UseMutationOptions<
+  CreateTaskResponse,
+  CreateTaskError,
+  Options<CreateTaskData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateTaskResponse,
+    CreateTaskError,
+    Options<CreateTaskData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getTaskQueryKey = (options: Options<GetTaskData>) =>
+  createQueryKey('getTask', options);
+
+/**
+ * Get a task by ID.
+ */
+export const getTaskOptions = (options: Options<GetTaskData>) =>
+  queryOptions<
+    GetTaskResponse,
+    GetTaskError,
+    GetTaskResponse,
+    ReturnType<typeof getTaskQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getTask({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getTaskQueryKey(options),
+  });
+
+/**
+ * Claim a queued task and start an attempt.
+ */
+export const claimTaskMutation = (
+  options?: Partial<Options<ClaimTaskData>>,
+): UseMutationOptions<
+  ClaimTaskResponse2,
+  ClaimTaskError,
+  Options<ClaimTaskData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ClaimTaskResponse2,
+    ClaimTaskError,
+    Options<ClaimTaskData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await claimTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Send a heartbeat to keep the attempt lease alive.
+ */
+export const taskHeartbeatMutation = (
+  options?: Partial<Options<TaskHeartbeatData>>,
+): UseMutationOptions<
+  TaskHeartbeatResponse,
+  TaskHeartbeatError,
+  Options<TaskHeartbeatData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    TaskHeartbeatResponse,
+    TaskHeartbeatError,
+    Options<TaskHeartbeatData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await taskHeartbeat({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Mark an attempt as completed with output.
+ */
+export const completeTaskMutation = (
+  options?: Partial<Options<CompleteTaskData>>,
+): UseMutationOptions<
+  CompleteTaskResponse,
+  CompleteTaskError,
+  Options<CompleteTaskData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CompleteTaskResponse,
+    CompleteTaskError,
+    Options<CompleteTaskData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await completeTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Mark an attempt as failed with error details.
+ */
+export const failTaskMutation = (
+  options?: Partial<Options<FailTaskData>>,
+): UseMutationOptions<
+  FailTaskResponse,
+  FailTaskError,
+  Options<FailTaskData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    FailTaskResponse,
+    FailTaskError,
+    Options<FailTaskData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await failTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Cancel a task.
+ */
+export const cancelTaskMutation = (
+  options?: Partial<Options<CancelTaskData>>,
+): UseMutationOptions<
+  CancelTaskResponse,
+  CancelTaskError,
+  Options<CancelTaskData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CancelTaskResponse,
+    CancelTaskError,
+    Options<CancelTaskData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await cancelTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listTaskAttemptsQueryKey = (
+  options: Options<ListTaskAttemptsData>,
+) => createQueryKey('listTaskAttempts', options);
+
+/**
+ * List all attempts for a task.
+ */
+export const listTaskAttemptsOptions = (
+  options: Options<ListTaskAttemptsData>,
+) =>
+  queryOptions<
+    ListTaskAttemptsResponse,
+    ListTaskAttemptsError,
+    ListTaskAttemptsResponse,
+    ReturnType<typeof listTaskAttemptsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTaskAttempts({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTaskAttemptsQueryKey(options),
+  });
+
+export const listTaskMessagesQueryKey = (
+  options: Options<ListTaskMessagesData>,
+) => createQueryKey('listTaskMessages', options);
+
+/**
+ * List messages for a task attempt.
+ */
+export const listTaskMessagesOptions = (
+  options: Options<ListTaskMessagesData>,
+) =>
+  queryOptions<
+    ListTaskMessagesResponse,
+    ListTaskMessagesError,
+    ListTaskMessagesResponse,
+    ReturnType<typeof listTaskMessagesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTaskMessages({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTaskMessagesQueryKey(options),
+  });
+
+/**
+ * Append messages to a task attempt.
+ */
+export const appendTaskMessagesMutation = (
+  options?: Partial<Options<AppendTaskMessagesData>>,
+): UseMutationOptions<
+  AppendTaskMessagesResponse,
+  AppendTaskMessagesError,
+  Options<AppendTaskMessagesData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AppendTaskMessagesResponse,
+    AppendTaskMessagesError,
+    Options<AppendTaskMessagesData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await appendTaskMessages({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listProblemTypesQueryKey = (
   options?: Options<ListProblemTypesData>,

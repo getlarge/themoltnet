@@ -29,6 +29,8 @@ COPY libs/context-distill/package.json libs/context-distill/
 COPY libs/context-pack-service/package.json libs/context-pack-service/
 COPY libs/embedding-service/package.json libs/embedding-service/
 COPY libs/mcp-auth-proxy/package.json libs/mcp-auth-proxy/
+COPY libs/tasks/package.json libs/tasks/
+COPY libs/task-service/package.json libs/task-service/
 COPY tools/package.json tools/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \

@@ -357,6 +357,100 @@ func (s *AgentProfile) SetPublicKey(val string) {
 
 func (*AgentProfile) getAgentProfileRes() {}
 
+// Ref: #/components/schemas/AppendMessagesResponse
+type AppendMessagesResponse struct {
+	Count int `json:"count"`
+}
+
+// GetCount returns the value of Count.
+func (s *AppendMessagesResponse) GetCount() int {
+	return s.Count
+}
+
+// SetCount sets the value of Count.
+func (s *AppendMessagesResponse) SetCount(val int) {
+	s.Count = val
+}
+
+func (*AppendMessagesResponse) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesBadRequest ProblemDetails
+
+func (*AppendTaskMessagesBadRequest) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesForbidden ProblemDetails
+
+func (*AppendTaskMessagesForbidden) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesNotFound ProblemDetails
+
+func (*AppendTaskMessagesNotFound) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesReq struct {
+	Messages []AppendTaskMessagesReqMessagesItem `json:"messages"`
+}
+
+// GetMessages returns the value of Messages.
+func (s *AppendTaskMessagesReq) GetMessages() []AppendTaskMessagesReqMessagesItem {
+	return s.Messages
+}
+
+// SetMessages sets the value of Messages.
+func (s *AppendTaskMessagesReq) SetMessages(val []AppendTaskMessagesReqMessagesItem) {
+	s.Messages = val
+}
+
+type AppendTaskMessagesReqMessagesItem struct {
+	Kind      TaskMessageKind                          `json:"kind"`
+	Payload   AppendTaskMessagesReqMessagesItemPayload `json:"payload"`
+	Timestamp OptDateTime                              `json:"timestamp"`
+}
+
+// GetKind returns the value of Kind.
+func (s *AppendTaskMessagesReqMessagesItem) GetKind() TaskMessageKind {
+	return s.Kind
+}
+
+// GetPayload returns the value of Payload.
+func (s *AppendTaskMessagesReqMessagesItem) GetPayload() AppendTaskMessagesReqMessagesItemPayload {
+	return s.Payload
+}
+
+// GetTimestamp returns the value of Timestamp.
+func (s *AppendTaskMessagesReqMessagesItem) GetTimestamp() OptDateTime {
+	return s.Timestamp
+}
+
+// SetKind sets the value of Kind.
+func (s *AppendTaskMessagesReqMessagesItem) SetKind(val TaskMessageKind) {
+	s.Kind = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *AppendTaskMessagesReqMessagesItem) SetPayload(val AppendTaskMessagesReqMessagesItemPayload) {
+	s.Payload = val
+}
+
+// SetTimestamp sets the value of Timestamp.
+func (s *AppendTaskMessagesReqMessagesItem) SetTimestamp(val OptDateTime) {
+	s.Timestamp = val
+}
+
+type AppendTaskMessagesReqMessagesItemPayload map[string]jx.Raw
+
+func (s *AppendTaskMessagesReqMessagesItemPayload) init() AppendTaskMessagesReqMessagesItemPayload {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type AppendTaskMessagesUnauthorized ProblemDetails
+
+func (*AppendTaskMessagesUnauthorized) appendTaskMessagesRes() {}
+
 type BearerAuth struct {
 	Token string
 	Roles []string
@@ -381,6 +475,102 @@ func (s *BearerAuth) SetToken(val string) {
 func (s *BearerAuth) SetRoles(val []string) {
 	s.Roles = val
 }
+
+type CancelTaskBadRequest ProblemDetails
+
+func (*CancelTaskBadRequest) cancelTaskRes() {}
+
+type CancelTaskConflict ProblemDetails
+
+func (*CancelTaskConflict) cancelTaskRes() {}
+
+type CancelTaskForbidden ProblemDetails
+
+func (*CancelTaskForbidden) cancelTaskRes() {}
+
+type CancelTaskNotFound ProblemDetails
+
+func (*CancelTaskNotFound) cancelTaskRes() {}
+
+type CancelTaskReq struct {
+	Reason string `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *CancelTaskReq) GetReason() string {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *CancelTaskReq) SetReason(val string) {
+	s.Reason = val
+}
+
+type CancelTaskUnauthorized ProblemDetails
+
+func (*CancelTaskUnauthorized) cancelTaskRes() {}
+
+type ClaimTaskBadRequest ProblemDetails
+
+func (*ClaimTaskBadRequest) claimTaskRes() {}
+
+type ClaimTaskConflict ProblemDetails
+
+func (*ClaimTaskConflict) claimTaskRes() {}
+
+type ClaimTaskForbidden ProblemDetails
+
+func (*ClaimTaskForbidden) claimTaskRes() {}
+
+type ClaimTaskNotFound ProblemDetails
+
+func (*ClaimTaskNotFound) claimTaskRes() {}
+
+type ClaimTaskReq struct {
+	LeaseTTLSec OptInt `json:"lease_ttl_sec"`
+}
+
+// GetLeaseTTLSec returns the value of LeaseTTLSec.
+func (s *ClaimTaskReq) GetLeaseTTLSec() OptInt {
+	return s.LeaseTTLSec
+}
+
+// SetLeaseTTLSec sets the value of LeaseTTLSec.
+func (s *ClaimTaskReq) SetLeaseTTLSec(val OptInt) {
+	s.LeaseTTLSec = val
+}
+
+// Ref: #/components/schemas/ClaimTaskResponse
+type ClaimTaskResponse struct {
+	Attempt TaskAttempt `json:"attempt"`
+	Task    Task        `json:"task"`
+}
+
+// GetAttempt returns the value of Attempt.
+func (s *ClaimTaskResponse) GetAttempt() TaskAttempt {
+	return s.Attempt
+}
+
+// GetTask returns the value of Task.
+func (s *ClaimTaskResponse) GetTask() Task {
+	return s.Task
+}
+
+// SetAttempt sets the value of Attempt.
+func (s *ClaimTaskResponse) SetAttempt(val TaskAttempt) {
+	s.Attempt = val
+}
+
+// SetTask sets the value of Task.
+func (s *ClaimTaskResponse) SetTask(val Task) {
+	s.Task = val
+}
+
+func (*ClaimTaskResponse) claimTaskRes() {}
+
+type ClaimTaskUnauthorized ProblemDetails
+
+func (*ClaimTaskUnauthorized) claimTaskRes() {}
 
 type ClaimVerificationBadRequest ProblemDetails
 
@@ -1153,6 +1343,84 @@ func (s *CompileStats) SetEntriesIncluded(val float64) {
 func (s *CompileStats) SetTotalTokens(val float64) {
 	s.TotalTokens = val
 }
+
+type CompleteTaskBadRequest ProblemDetails
+
+func (*CompleteTaskBadRequest) completeTaskRes() {}
+
+type CompleteTaskConflict ProblemDetails
+
+func (*CompleteTaskConflict) completeTaskRes() {}
+
+type CompleteTaskForbidden ProblemDetails
+
+func (*CompleteTaskForbidden) completeTaskRes() {}
+
+type CompleteTaskNotFound ProblemDetails
+
+func (*CompleteTaskNotFound) completeTaskRes() {}
+
+type CompleteTaskReq struct {
+	ContentSignature OptString             `json:"content_signature"`
+	Output           CompleteTaskReqOutput `json:"output"`
+	OutputCid        string                `json:"output_cid"`
+	Usage            TaskUsage             `json:"usage"`
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *CompleteTaskReq) GetContentSignature() OptString {
+	return s.ContentSignature
+}
+
+// GetOutput returns the value of Output.
+func (s *CompleteTaskReq) GetOutput() CompleteTaskReqOutput {
+	return s.Output
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *CompleteTaskReq) GetOutputCid() string {
+	return s.OutputCid
+}
+
+// GetUsage returns the value of Usage.
+func (s *CompleteTaskReq) GetUsage() TaskUsage {
+	return s.Usage
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *CompleteTaskReq) SetContentSignature(val OptString) {
+	s.ContentSignature = val
+}
+
+// SetOutput sets the value of Output.
+func (s *CompleteTaskReq) SetOutput(val CompleteTaskReqOutput) {
+	s.Output = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *CompleteTaskReq) SetOutputCid(val string) {
+	s.OutputCid = val
+}
+
+// SetUsage sets the value of Usage.
+func (s *CompleteTaskReq) SetUsage(val TaskUsage) {
+	s.Usage = val
+}
+
+type CompleteTaskReqOutput map[string]jx.Raw
+
+func (s *CompleteTaskReqOutput) init() CompleteTaskReqOutput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type CompleteTaskUnauthorized ProblemDetails
+
+func (*CompleteTaskUnauthorized) completeTaskRes() {}
 
 type ConsolidateDiaryBadRequest ProblemDetails
 
@@ -2998,6 +3266,131 @@ func (s *CreateSigningRequestReq) SetMessage(val string) {
 type CreateSigningRequestUnauthorized ProblemDetails
 
 func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
+
+type CreateTaskBadRequest ProblemDetails
+
+func (*CreateTaskBadRequest) createTaskRes() {}
+
+type CreateTaskForbidden ProblemDetails
+
+func (*CreateTaskForbidden) createTaskRes() {}
+
+type CreateTaskReq struct {
+	CorrelationID OptUUID            `json:"correlation_id"`
+	CriteriaCid   OptString          `json:"criteria_cid"`
+	DiaryID       uuid.UUID          `json:"diary_id"`
+	ExpiresInSec  OptInt             `json:"expires_in_sec"`
+	Input         CreateTaskReqInput `json:"input"`
+	MaxAttempts   OptInt             `json:"max_attempts"`
+	References    []TaskRef          `json:"references"`
+	TaskType      string             `json:"task_type"`
+	TeamID        uuid.UUID          `json:"team_id"`
+}
+
+// GetCorrelationID returns the value of CorrelationID.
+func (s *CreateTaskReq) GetCorrelationID() OptUUID {
+	return s.CorrelationID
+}
+
+// GetCriteriaCid returns the value of CriteriaCid.
+func (s *CreateTaskReq) GetCriteriaCid() OptString {
+	return s.CriteriaCid
+}
+
+// GetDiaryID returns the value of DiaryID.
+func (s *CreateTaskReq) GetDiaryID() uuid.UUID {
+	return s.DiaryID
+}
+
+// GetExpiresInSec returns the value of ExpiresInSec.
+func (s *CreateTaskReq) GetExpiresInSec() OptInt {
+	return s.ExpiresInSec
+}
+
+// GetInput returns the value of Input.
+func (s *CreateTaskReq) GetInput() CreateTaskReqInput {
+	return s.Input
+}
+
+// GetMaxAttempts returns the value of MaxAttempts.
+func (s *CreateTaskReq) GetMaxAttempts() OptInt {
+	return s.MaxAttempts
+}
+
+// GetReferences returns the value of References.
+func (s *CreateTaskReq) GetReferences() []TaskRef {
+	return s.References
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *CreateTaskReq) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamID returns the value of TeamID.
+func (s *CreateTaskReq) GetTeamID() uuid.UUID {
+	return s.TeamID
+}
+
+// SetCorrelationID sets the value of CorrelationID.
+func (s *CreateTaskReq) SetCorrelationID(val OptUUID) {
+	s.CorrelationID = val
+}
+
+// SetCriteriaCid sets the value of CriteriaCid.
+func (s *CreateTaskReq) SetCriteriaCid(val OptString) {
+	s.CriteriaCid = val
+}
+
+// SetDiaryID sets the value of DiaryID.
+func (s *CreateTaskReq) SetDiaryID(val uuid.UUID) {
+	s.DiaryID = val
+}
+
+// SetExpiresInSec sets the value of ExpiresInSec.
+func (s *CreateTaskReq) SetExpiresInSec(val OptInt) {
+	s.ExpiresInSec = val
+}
+
+// SetInput sets the value of Input.
+func (s *CreateTaskReq) SetInput(val CreateTaskReqInput) {
+	s.Input = val
+}
+
+// SetMaxAttempts sets the value of MaxAttempts.
+func (s *CreateTaskReq) SetMaxAttempts(val OptInt) {
+	s.MaxAttempts = val
+}
+
+// SetReferences sets the value of References.
+func (s *CreateTaskReq) SetReferences(val []TaskRef) {
+	s.References = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *CreateTaskReq) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamID sets the value of TeamID.
+func (s *CreateTaskReq) SetTeamID(val uuid.UUID) {
+	s.TeamID = val
+}
+
+type CreateTaskReqInput map[string]jx.Raw
+
+func (s *CreateTaskReqInput) init() CreateTaskReqInput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type CreateTaskUnauthorized ProblemDetails
+
+func (*CreateTaskUnauthorized) createTaskRes() {}
 
 type CreateTeamAccepted struct {
 	// UUID v4 identifier.
@@ -7590,6 +7983,40 @@ func (s *ExpandedRelations) SetRequestedDepth(val int) {
 	s.RequestedDepth = val
 }
 
+type FailTaskBadRequest ProblemDetails
+
+func (*FailTaskBadRequest) failTaskRes() {}
+
+type FailTaskConflict ProblemDetails
+
+func (*FailTaskConflict) failTaskRes() {}
+
+type FailTaskForbidden ProblemDetails
+
+func (*FailTaskForbidden) failTaskRes() {}
+
+type FailTaskNotFound ProblemDetails
+
+func (*FailTaskNotFound) failTaskRes() {}
+
+type FailTaskReq struct {
+	Error TaskError `json:"error"`
+}
+
+// GetError returns the value of Error.
+func (s *FailTaskReq) GetError() TaskError {
+	return s.Error
+}
+
+// SetError sets the value of Error.
+func (s *FailTaskReq) SetError(val TaskError) {
+	s.Error = val
+}
+
+type FailTaskUnauthorized ProblemDetails
+
+func (*FailTaskUnauthorized) failTaskRes() {}
+
 type GetAgentProfileBadRequest ProblemDetails
 
 func (*GetAgentProfileBadRequest) getAgentProfileRes() {}
@@ -8899,6 +9326,18 @@ type GetSigningRequestUnauthorized ProblemDetails
 
 func (*GetSigningRequestUnauthorized) getSigningRequestRes() {}
 
+type GetTaskForbidden ProblemDetails
+
+func (*GetTaskForbidden) getTaskRes() {}
+
+type GetTaskNotFound ProblemDetails
+
+func (*GetTaskNotFound) getTaskRes() {}
+
+type GetTaskUnauthorized ProblemDetails
+
+func (*GetTaskUnauthorized) getTaskRes() {}
+
 type GetTeamBadRequest ProblemDetails
 
 func (*GetTeamBadRequest) getTeamRes() {}
@@ -9208,6 +9647,23 @@ func (s *Health) SetStatus(val string) {
 func (s *Health) SetTimestamp(val time.Time) {
 	s.Timestamp = val
 }
+
+// Ref: #/components/schemas/HeartbeatResponse
+type HeartbeatResponse struct {
+	ClaimExpiresAt time.Time `json:"claim_expires_at"`
+}
+
+// GetClaimExpiresAt returns the value of ClaimExpiresAt.
+func (s *HeartbeatResponse) GetClaimExpiresAt() time.Time {
+	return s.ClaimExpiresAt
+}
+
+// SetClaimExpiresAt sets the value of ClaimExpiresAt.
+func (s *HeartbeatResponse) SetClaimExpiresAt(val time.Time) {
+	s.ClaimExpiresAt = val
+}
+
+func (*HeartbeatResponse) taskHeartbeatRes() {}
 
 type InitiateTransferAccepted struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -10352,6 +10808,46 @@ func (s *ListSigningRequestsStatusItem) UnmarshalText(data []byte) error {
 type ListSigningRequestsUnauthorized ProblemDetails
 
 func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
+
+type ListTaskAttemptsForbidden ProblemDetails
+
+func (*ListTaskAttemptsForbidden) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsNotFound ProblemDetails
+
+func (*ListTaskAttemptsNotFound) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsOKApplicationJSON []TaskAttempt
+
+func (*ListTaskAttemptsOKApplicationJSON) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsUnauthorized ProblemDetails
+
+func (*ListTaskAttemptsUnauthorized) listTaskAttemptsRes() {}
+
+type ListTaskMessagesForbidden ProblemDetails
+
+func (*ListTaskMessagesForbidden) listTaskMessagesRes() {}
+
+type ListTaskMessagesNotFound ProblemDetails
+
+func (*ListTaskMessagesNotFound) listTaskMessagesRes() {}
+
+type ListTaskMessagesOKApplicationJSON []TaskMessage
+
+func (*ListTaskMessagesOKApplicationJSON) listTaskMessagesRes() {}
+
+type ListTaskMessagesUnauthorized ProblemDetails
+
+func (*ListTaskMessagesUnauthorized) listTaskMessagesRes() {}
+
+type ListTasksForbidden ProblemDetails
+
+func (*ListTasksForbidden) listTasksRes() {}
+
+type ListTasksUnauthorized ProblemDetails
+
+func (*ListTasksUnauthorized) listTasksRes() {}
 
 type ListTeamInvitesBadRequest ProblemDetails
 
@@ -12108,6 +12604,141 @@ func (o NilString) Or(d string) string {
 	return d
 }
 
+// NewNilTaskAttemptError returns new NilTaskAttemptError with value set to v.
+func NewNilTaskAttemptError(v TaskAttemptError) NilTaskAttemptError {
+	return NilTaskAttemptError{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptError is nullable TaskAttemptError.
+type NilTaskAttemptError struct {
+	Value TaskAttemptError
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptError) SetTo(v TaskAttemptError) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptError) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptError) SetToNull() {
+	o.Null = true
+	var v TaskAttemptError
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptError) Get() (v TaskAttemptError, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptError) Or(d TaskAttemptError) TaskAttemptError {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilTaskAttemptOutput returns new NilTaskAttemptOutput with value set to v.
+func NewNilTaskAttemptOutput(v TaskAttemptOutput) NilTaskAttemptOutput {
+	return NilTaskAttemptOutput{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptOutput is nullable TaskAttemptOutput.
+type NilTaskAttemptOutput struct {
+	Value TaskAttemptOutput
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptOutput) SetTo(v TaskAttemptOutput) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptOutput) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptOutput) SetToNull() {
+	o.Null = true
+	var v TaskAttemptOutput
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptOutput) Get() (v TaskAttemptOutput, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptOutput) Or(d TaskAttemptOutput) TaskAttemptOutput {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilTaskAttemptUsage returns new NilTaskAttemptUsage with value set to v.
+func NewNilTaskAttemptUsage(v TaskAttemptUsage) NilTaskAttemptUsage {
+	return NilTaskAttemptUsage{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptUsage is nullable TaskAttemptUsage.
+type NilTaskAttemptUsage struct {
+	Value TaskAttemptUsage
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptUsage) SetTo(v TaskAttemptUsage) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptUsage) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptUsage) SetToNull() {
+	o.Null = true
+	var v TaskAttemptUsage
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptUsage) Get() (v TaskAttemptUsage, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptUsage) Or(d TaskAttemptUsage) TaskAttemptUsage {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilUUID returns new NilUUID with value set to v.
 func NewNilUUID(v uuid.UUID) NilUUID {
 	return NilUUID{
@@ -12239,6 +12870,52 @@ func (o OptBool) Get() (v bool, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptClaimTaskReq returns new OptClaimTaskReq with value set to v.
+func NewOptClaimTaskReq(v ClaimTaskReq) OptClaimTaskReq {
+	return OptClaimTaskReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptClaimTaskReq is optional ClaimTaskReq.
+type OptClaimTaskReq struct {
+	Value ClaimTaskReq
+	Set   bool
+}
+
+// IsSet returns true if OptClaimTaskReq was set.
+func (o OptClaimTaskReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptClaimTaskReq) Reset() {
+	var v ClaimTaskReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptClaimTaskReq) SetTo(v ClaimTaskReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptClaimTaskReq) Get() (v ClaimTaskReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptClaimTaskReq) Or(d ClaimTaskReq) ClaimTaskReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -13377,6 +14054,190 @@ func (o OptString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskHeartbeatReq returns new OptTaskHeartbeatReq with value set to v.
+func NewOptTaskHeartbeatReq(v TaskHeartbeatReq) OptTaskHeartbeatReq {
+	return OptTaskHeartbeatReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskHeartbeatReq is optional TaskHeartbeatReq.
+type OptTaskHeartbeatReq struct {
+	Value TaskHeartbeatReq
+	Set   bool
+}
+
+// IsSet returns true if OptTaskHeartbeatReq was set.
+func (o OptTaskHeartbeatReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskHeartbeatReq) Reset() {
+	var v TaskHeartbeatReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskHeartbeatReq) SetTo(v TaskHeartbeatReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskHeartbeatReq) Get() (v TaskHeartbeatReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskHeartbeatReq) Or(d TaskHeartbeatReq) TaskHeartbeatReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskRefExternal returns new OptTaskRefExternal with value set to v.
+func NewOptTaskRefExternal(v TaskRefExternal) OptTaskRefExternal {
+	return OptTaskRefExternal{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskRefExternal is optional TaskRefExternal.
+type OptTaskRefExternal struct {
+	Value TaskRefExternal
+	Set   bool
+}
+
+// IsSet returns true if OptTaskRefExternal was set.
+func (o OptTaskRefExternal) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskRefExternal) Reset() {
+	var v TaskRefExternal
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskRefExternal) SetTo(v TaskRefExternal) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskRefExternal) Get() (v TaskRefExternal, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskRefExternal) Or(d TaskRefExternal) TaskRefExternal {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskReferencesItemExternal returns new OptTaskReferencesItemExternal with value set to v.
+func NewOptTaskReferencesItemExternal(v TaskReferencesItemExternal) OptTaskReferencesItemExternal {
+	return OptTaskReferencesItemExternal{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskReferencesItemExternal is optional TaskReferencesItemExternal.
+type OptTaskReferencesItemExternal struct {
+	Value TaskReferencesItemExternal
+	Set   bool
+}
+
+// IsSet returns true if OptTaskReferencesItemExternal was set.
+func (o OptTaskReferencesItemExternal) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskReferencesItemExternal) Reset() {
+	var v TaskReferencesItemExternal
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskReferencesItemExternal) SetTo(v TaskReferencesItemExternal) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskReferencesItemExternal) Get() (v TaskReferencesItemExternal, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskReferencesItemExternal) Or(d TaskReferencesItemExternal) TaskReferencesItemExternal {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskStatus returns new OptTaskStatus with value set to v.
+func NewOptTaskStatus(v TaskStatus) OptTaskStatus {
+	return OptTaskStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskStatus is optional TaskStatus.
+type OptTaskStatus struct {
+	Value TaskStatus
+	Set   bool
+}
+
+// IsSet returns true if OptTaskStatus was set.
+func (o OptTaskStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskStatus) Reset() {
+	var v TaskStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskStatus) SetTo(v TaskStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskStatus) Get() (v TaskStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskStatus) Or(d TaskStatus) TaskStatus {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -18040,6 +18901,1537 @@ func (s *Success) SetSuccess(val bool) {
 
 func (*Success) deleteDiaryEntryByIdRes() {}
 func (*Success) deleteDiaryRes()          {}
+
+// Ref: #/components/schemas/Task
+type Task struct {
+	AcceptedAttemptN   NilFloat64           `json:"accepted_attempt_n"`
+	CancelReason       NilString            `json:"cancel_reason"`
+	CancelledByAgentID NilUUID              `json:"cancelled_by_agent_id"`
+	CancelledByHumanID NilUUID              `json:"cancelled_by_human_id"`
+	CompletedAt        NilDateTime          `json:"completed_at"`
+	CorrelationID      NilUUID              `json:"correlation_id"`
+	CriteriaCid        NilString            `json:"criteria_cid"`
+	DiaryID            NilUUID              `json:"diary_id"`
+	ExpiresAt          NilDateTime          `json:"expires_at"`
+	ID                 uuid.UUID            `json:"id"`
+	ImposedByAgentID   NilUUID              `json:"imposed_by_agent_id"`
+	ImposedByHumanID   NilUUID              `json:"imposed_by_human_id"`
+	Input              TaskInput            `json:"input"`
+	InputCid           string               `json:"input_cid"`
+	InputSchemaCid     string               `json:"input_schema_cid"`
+	MaxAttempts        float64              `json:"max_attempts"`
+	OutputKind         TaskOutputKind       `json:"output_kind"`
+	QueuedAt           time.Time            `json:"queued_at"`
+	References         []TaskReferencesItem `json:"references"`
+	Status             TaskStatus           `json:"status"`
+	TaskType           string               `json:"task_type"`
+	TeamID             uuid.UUID            `json:"team_id"`
+}
+
+// GetAcceptedAttemptN returns the value of AcceptedAttemptN.
+func (s *Task) GetAcceptedAttemptN() NilFloat64 {
+	return s.AcceptedAttemptN
+}
+
+// GetCancelReason returns the value of CancelReason.
+func (s *Task) GetCancelReason() NilString {
+	return s.CancelReason
+}
+
+// GetCancelledByAgentID returns the value of CancelledByAgentID.
+func (s *Task) GetCancelledByAgentID() NilUUID {
+	return s.CancelledByAgentID
+}
+
+// GetCancelledByHumanID returns the value of CancelledByHumanID.
+func (s *Task) GetCancelledByHumanID() NilUUID {
+	return s.CancelledByHumanID
+}
+
+// GetCompletedAt returns the value of CompletedAt.
+func (s *Task) GetCompletedAt() NilDateTime {
+	return s.CompletedAt
+}
+
+// GetCorrelationID returns the value of CorrelationID.
+func (s *Task) GetCorrelationID() NilUUID {
+	return s.CorrelationID
+}
+
+// GetCriteriaCid returns the value of CriteriaCid.
+func (s *Task) GetCriteriaCid() NilString {
+	return s.CriteriaCid
+}
+
+// GetDiaryID returns the value of DiaryID.
+func (s *Task) GetDiaryID() NilUUID {
+	return s.DiaryID
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *Task) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *Task) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImposedByAgentID returns the value of ImposedByAgentID.
+func (s *Task) GetImposedByAgentID() NilUUID {
+	return s.ImposedByAgentID
+}
+
+// GetImposedByHumanID returns the value of ImposedByHumanID.
+func (s *Task) GetImposedByHumanID() NilUUID {
+	return s.ImposedByHumanID
+}
+
+// GetInput returns the value of Input.
+func (s *Task) GetInput() TaskInput {
+	return s.Input
+}
+
+// GetInputCid returns the value of InputCid.
+func (s *Task) GetInputCid() string {
+	return s.InputCid
+}
+
+// GetInputSchemaCid returns the value of InputSchemaCid.
+func (s *Task) GetInputSchemaCid() string {
+	return s.InputSchemaCid
+}
+
+// GetMaxAttempts returns the value of MaxAttempts.
+func (s *Task) GetMaxAttempts() float64 {
+	return s.MaxAttempts
+}
+
+// GetOutputKind returns the value of OutputKind.
+func (s *Task) GetOutputKind() TaskOutputKind {
+	return s.OutputKind
+}
+
+// GetQueuedAt returns the value of QueuedAt.
+func (s *Task) GetQueuedAt() time.Time {
+	return s.QueuedAt
+}
+
+// GetReferences returns the value of References.
+func (s *Task) GetReferences() []TaskReferencesItem {
+	return s.References
+}
+
+// GetStatus returns the value of Status.
+func (s *Task) GetStatus() TaskStatus {
+	return s.Status
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *Task) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamID returns the value of TeamID.
+func (s *Task) GetTeamID() uuid.UUID {
+	return s.TeamID
+}
+
+// SetAcceptedAttemptN sets the value of AcceptedAttemptN.
+func (s *Task) SetAcceptedAttemptN(val NilFloat64) {
+	s.AcceptedAttemptN = val
+}
+
+// SetCancelReason sets the value of CancelReason.
+func (s *Task) SetCancelReason(val NilString) {
+	s.CancelReason = val
+}
+
+// SetCancelledByAgentID sets the value of CancelledByAgentID.
+func (s *Task) SetCancelledByAgentID(val NilUUID) {
+	s.CancelledByAgentID = val
+}
+
+// SetCancelledByHumanID sets the value of CancelledByHumanID.
+func (s *Task) SetCancelledByHumanID(val NilUUID) {
+	s.CancelledByHumanID = val
+}
+
+// SetCompletedAt sets the value of CompletedAt.
+func (s *Task) SetCompletedAt(val NilDateTime) {
+	s.CompletedAt = val
+}
+
+// SetCorrelationID sets the value of CorrelationID.
+func (s *Task) SetCorrelationID(val NilUUID) {
+	s.CorrelationID = val
+}
+
+// SetCriteriaCid sets the value of CriteriaCid.
+func (s *Task) SetCriteriaCid(val NilString) {
+	s.CriteriaCid = val
+}
+
+// SetDiaryID sets the value of DiaryID.
+func (s *Task) SetDiaryID(val NilUUID) {
+	s.DiaryID = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *Task) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *Task) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImposedByAgentID sets the value of ImposedByAgentID.
+func (s *Task) SetImposedByAgentID(val NilUUID) {
+	s.ImposedByAgentID = val
+}
+
+// SetImposedByHumanID sets the value of ImposedByHumanID.
+func (s *Task) SetImposedByHumanID(val NilUUID) {
+	s.ImposedByHumanID = val
+}
+
+// SetInput sets the value of Input.
+func (s *Task) SetInput(val TaskInput) {
+	s.Input = val
+}
+
+// SetInputCid sets the value of InputCid.
+func (s *Task) SetInputCid(val string) {
+	s.InputCid = val
+}
+
+// SetInputSchemaCid sets the value of InputSchemaCid.
+func (s *Task) SetInputSchemaCid(val string) {
+	s.InputSchemaCid = val
+}
+
+// SetMaxAttempts sets the value of MaxAttempts.
+func (s *Task) SetMaxAttempts(val float64) {
+	s.MaxAttempts = val
+}
+
+// SetOutputKind sets the value of OutputKind.
+func (s *Task) SetOutputKind(val TaskOutputKind) {
+	s.OutputKind = val
+}
+
+// SetQueuedAt sets the value of QueuedAt.
+func (s *Task) SetQueuedAt(val time.Time) {
+	s.QueuedAt = val
+}
+
+// SetReferences sets the value of References.
+func (s *Task) SetReferences(val []TaskReferencesItem) {
+	s.References = val
+}
+
+// SetStatus sets the value of Status.
+func (s *Task) SetStatus(val TaskStatus) {
+	s.Status = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *Task) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamID sets the value of TeamID.
+func (s *Task) SetTeamID(val uuid.UUID) {
+	s.TeamID = val
+}
+
+func (*Task) cancelTaskRes()   {}
+func (*Task) completeTaskRes() {}
+func (*Task) createTaskRes()   {}
+func (*Task) failTaskRes()     {}
+func (*Task) getTaskRes()      {}
+
+// Ref: #/components/schemas/TaskAttempt
+type TaskAttempt struct {
+	AttemptN         float64              `json:"attempt_n"`
+	ClaimedAt        time.Time            `json:"claimed_at"`
+	ClaimedByAgentID uuid.UUID            `json:"claimed_by_agent_id"`
+	CompletedAt      NilDateTime          `json:"completed_at"`
+	ContentSignature NilString            `json:"content_signature"`
+	Error            NilTaskAttemptError  `json:"error"`
+	Output           NilTaskAttemptOutput `json:"output"`
+	OutputCid        NilString            `json:"output_cid"`
+	RuntimeID        NilUUID              `json:"runtime_id"`
+	SignedAt         NilDateTime          `json:"signed_at"`
+	StartedAt        NilDateTime          `json:"started_at"`
+	Status           TaskAttemptStatus    `json:"status"`
+	TaskID           uuid.UUID            `json:"task_id"`
+	Usage            NilTaskAttemptUsage  `json:"usage"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *TaskAttempt) GetAttemptN() float64 {
+	return s.AttemptN
+}
+
+// GetClaimedAt returns the value of ClaimedAt.
+func (s *TaskAttempt) GetClaimedAt() time.Time {
+	return s.ClaimedAt
+}
+
+// GetClaimedByAgentID returns the value of ClaimedByAgentID.
+func (s *TaskAttempt) GetClaimedByAgentID() uuid.UUID {
+	return s.ClaimedByAgentID
+}
+
+// GetCompletedAt returns the value of CompletedAt.
+func (s *TaskAttempt) GetCompletedAt() NilDateTime {
+	return s.CompletedAt
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *TaskAttempt) GetContentSignature() NilString {
+	return s.ContentSignature
+}
+
+// GetError returns the value of Error.
+func (s *TaskAttempt) GetError() NilTaskAttemptError {
+	return s.Error
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskAttempt) GetOutput() NilTaskAttemptOutput {
+	return s.Output
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *TaskAttempt) GetOutputCid() NilString {
+	return s.OutputCid
+}
+
+// GetRuntimeID returns the value of RuntimeID.
+func (s *TaskAttempt) GetRuntimeID() NilUUID {
+	return s.RuntimeID
+}
+
+// GetSignedAt returns the value of SignedAt.
+func (s *TaskAttempt) GetSignedAt() NilDateTime {
+	return s.SignedAt
+}
+
+// GetStartedAt returns the value of StartedAt.
+func (s *TaskAttempt) GetStartedAt() NilDateTime {
+	return s.StartedAt
+}
+
+// GetStatus returns the value of Status.
+func (s *TaskAttempt) GetStatus() TaskAttemptStatus {
+	return s.Status
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskAttempt) GetTaskID() uuid.UUID {
+	return s.TaskID
+}
+
+// GetUsage returns the value of Usage.
+func (s *TaskAttempt) GetUsage() NilTaskAttemptUsage {
+	return s.Usage
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *TaskAttempt) SetAttemptN(val float64) {
+	s.AttemptN = val
+}
+
+// SetClaimedAt sets the value of ClaimedAt.
+func (s *TaskAttempt) SetClaimedAt(val time.Time) {
+	s.ClaimedAt = val
+}
+
+// SetClaimedByAgentID sets the value of ClaimedByAgentID.
+func (s *TaskAttempt) SetClaimedByAgentID(val uuid.UUID) {
+	s.ClaimedByAgentID = val
+}
+
+// SetCompletedAt sets the value of CompletedAt.
+func (s *TaskAttempt) SetCompletedAt(val NilDateTime) {
+	s.CompletedAt = val
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *TaskAttempt) SetContentSignature(val NilString) {
+	s.ContentSignature = val
+}
+
+// SetError sets the value of Error.
+func (s *TaskAttempt) SetError(val NilTaskAttemptError) {
+	s.Error = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskAttempt) SetOutput(val NilTaskAttemptOutput) {
+	s.Output = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *TaskAttempt) SetOutputCid(val NilString) {
+	s.OutputCid = val
+}
+
+// SetRuntimeID sets the value of RuntimeID.
+func (s *TaskAttempt) SetRuntimeID(val NilUUID) {
+	s.RuntimeID = val
+}
+
+// SetSignedAt sets the value of SignedAt.
+func (s *TaskAttempt) SetSignedAt(val NilDateTime) {
+	s.SignedAt = val
+}
+
+// SetStartedAt sets the value of StartedAt.
+func (s *TaskAttempt) SetStartedAt(val NilDateTime) {
+	s.StartedAt = val
+}
+
+// SetStatus sets the value of Status.
+func (s *TaskAttempt) SetStatus(val TaskAttemptStatus) {
+	s.Status = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskAttempt) SetTaskID(val uuid.UUID) {
+	s.TaskID = val
+}
+
+// SetUsage sets the value of Usage.
+func (s *TaskAttempt) SetUsage(val NilTaskAttemptUsage) {
+	s.Usage = val
+}
+
+type TaskAttemptError struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Retryable OptBool   `json:"retryable"`
+	Stack     OptString `json:"stack"`
+}
+
+// GetCode returns the value of Code.
+func (s *TaskAttemptError) GetCode() string {
+	return s.Code
+}
+
+// GetMessage returns the value of Message.
+func (s *TaskAttemptError) GetMessage() string {
+	return s.Message
+}
+
+// GetRetryable returns the value of Retryable.
+func (s *TaskAttemptError) GetRetryable() OptBool {
+	return s.Retryable
+}
+
+// GetStack returns the value of Stack.
+func (s *TaskAttemptError) GetStack() OptString {
+	return s.Stack
+}
+
+// SetCode sets the value of Code.
+func (s *TaskAttemptError) SetCode(val string) {
+	s.Code = val
+}
+
+// SetMessage sets the value of Message.
+func (s *TaskAttemptError) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetRetryable sets the value of Retryable.
+func (s *TaskAttemptError) SetRetryable(val OptBool) {
+	s.Retryable = val
+}
+
+// SetStack sets the value of Stack.
+func (s *TaskAttemptError) SetStack(val OptString) {
+	s.Stack = val
+}
+
+type TaskAttemptOutput map[string]jx.Raw
+
+func (s *TaskAttemptOutput) init() TaskAttemptOutput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/TaskAttemptStatus
+type TaskAttemptStatus string
+
+const (
+	TaskAttemptStatusClaimed   TaskAttemptStatus = "claimed"
+	TaskAttemptStatusRunning   TaskAttemptStatus = "running"
+	TaskAttemptStatusCompleted TaskAttemptStatus = "completed"
+	TaskAttemptStatusFailed    TaskAttemptStatus = "failed"
+	TaskAttemptStatusCancelled TaskAttemptStatus = "cancelled"
+	TaskAttemptStatusTimedOut  TaskAttemptStatus = "timed_out"
+)
+
+// AllValues returns all TaskAttemptStatus values.
+func (TaskAttemptStatus) AllValues() []TaskAttemptStatus {
+	return []TaskAttemptStatus{
+		TaskAttemptStatusClaimed,
+		TaskAttemptStatusRunning,
+		TaskAttemptStatusCompleted,
+		TaskAttemptStatusFailed,
+		TaskAttemptStatusCancelled,
+		TaskAttemptStatusTimedOut,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptStatusClaimed:
+		return []byte(s), nil
+	case TaskAttemptStatusRunning:
+		return []byte(s), nil
+	case TaskAttemptStatusCompleted:
+		return []byte(s), nil
+	case TaskAttemptStatusFailed:
+		return []byte(s), nil
+	case TaskAttemptStatusCancelled:
+		return []byte(s), nil
+	case TaskAttemptStatusTimedOut:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptStatus) UnmarshalText(data []byte) error {
+	switch TaskAttemptStatus(data) {
+	case TaskAttemptStatusClaimed:
+		*s = TaskAttemptStatusClaimed
+		return nil
+	case TaskAttemptStatusRunning:
+		*s = TaskAttemptStatusRunning
+		return nil
+	case TaskAttemptStatusCompleted:
+		*s = TaskAttemptStatusCompleted
+		return nil
+	case TaskAttemptStatusFailed:
+		*s = TaskAttemptStatusFailed
+		return nil
+	case TaskAttemptStatusCancelled:
+		*s = TaskAttemptStatusCancelled
+		return nil
+	case TaskAttemptStatusTimedOut:
+		*s = TaskAttemptStatusTimedOut
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskAttemptUsage struct {
+	CacheReadTokens  OptInt    `json:"cache_read_tokens"`
+	CacheWriteTokens OptInt    `json:"cache_write_tokens"`
+	InputTokens      int       `json:"input_tokens"`
+	Model            OptString `json:"model"`
+	OutputTokens     int       `json:"output_tokens"`
+	Provider         OptString `json:"provider"`
+	ToolCalls        OptInt    `json:"tool_calls"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskAttemptUsage) GetCacheReadTokens() OptInt {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskAttemptUsage) GetCacheWriteTokens() OptInt {
+	return s.CacheWriteTokens
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskAttemptUsage) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *TaskAttemptUsage) GetModel() OptString {
+	return s.Model
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskAttemptUsage) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskAttemptUsage) GetProvider() OptString {
+	return s.Provider
+}
+
+// GetToolCalls returns the value of ToolCalls.
+func (s *TaskAttemptUsage) GetToolCalls() OptInt {
+	return s.ToolCalls
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskAttemptUsage) SetCacheReadTokens(val OptInt) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskAttemptUsage) SetCacheWriteTokens(val OptInt) {
+	s.CacheWriteTokens = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskAttemptUsage) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *TaskAttemptUsage) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskAttemptUsage) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskAttemptUsage) SetProvider(val OptString) {
+	s.Provider = val
+}
+
+// SetToolCalls sets the value of ToolCalls.
+func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
+	s.ToolCalls = val
+}
+
+// Ref: #/components/schemas/TaskError
+type TaskError struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Retryable OptBool   `json:"retryable"`
+	Stack     OptString `json:"stack"`
+}
+
+// GetCode returns the value of Code.
+func (s *TaskError) GetCode() string {
+	return s.Code
+}
+
+// GetMessage returns the value of Message.
+func (s *TaskError) GetMessage() string {
+	return s.Message
+}
+
+// GetRetryable returns the value of Retryable.
+func (s *TaskError) GetRetryable() OptBool {
+	return s.Retryable
+}
+
+// GetStack returns the value of Stack.
+func (s *TaskError) GetStack() OptString {
+	return s.Stack
+}
+
+// SetCode sets the value of Code.
+func (s *TaskError) SetCode(val string) {
+	s.Code = val
+}
+
+// SetMessage sets the value of Message.
+func (s *TaskError) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetRetryable sets the value of Retryable.
+func (s *TaskError) SetRetryable(val OptBool) {
+	s.Retryable = val
+}
+
+// SetStack sets the value of Stack.
+func (s *TaskError) SetStack(val OptString) {
+	s.Stack = val
+}
+
+type TaskHeartbeatForbidden ProblemDetails
+
+func (*TaskHeartbeatForbidden) taskHeartbeatRes() {}
+
+type TaskHeartbeatNotFound ProblemDetails
+
+func (*TaskHeartbeatNotFound) taskHeartbeatRes() {}
+
+type TaskHeartbeatReq struct {
+	LeaseTTLSec OptInt `json:"lease_ttl_sec"`
+}
+
+// GetLeaseTTLSec returns the value of LeaseTTLSec.
+func (s *TaskHeartbeatReq) GetLeaseTTLSec() OptInt {
+	return s.LeaseTTLSec
+}
+
+// SetLeaseTTLSec sets the value of LeaseTTLSec.
+func (s *TaskHeartbeatReq) SetLeaseTTLSec(val OptInt) {
+	s.LeaseTTLSec = val
+}
+
+type TaskHeartbeatUnauthorized ProblemDetails
+
+func (*TaskHeartbeatUnauthorized) taskHeartbeatRes() {}
+
+type TaskInput map[string]jx.Raw
+
+func (s *TaskInput) init() TaskInput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/TaskListResponse
+type TaskListResponse struct {
+	Items      []Task    `json:"items"`
+	NextCursor OptString `json:"next_cursor"`
+	Total      int       `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *TaskListResponse) GetItems() []Task {
+	return s.Items
+}
+
+// GetNextCursor returns the value of NextCursor.
+func (s *TaskListResponse) GetNextCursor() OptString {
+	return s.NextCursor
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskListResponse) GetTotal() int {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *TaskListResponse) SetItems(val []Task) {
+	s.Items = val
+}
+
+// SetNextCursor sets the value of NextCursor.
+func (s *TaskListResponse) SetNextCursor(val OptString) {
+	s.NextCursor = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskListResponse) SetTotal(val int) {
+	s.Total = val
+}
+
+func (*TaskListResponse) listTasksRes() {}
+
+// Ref: #/components/schemas/TaskMessage
+type TaskMessage struct {
+	AttemptN  float64            `json:"attempt_n"`
+	Kind      TaskMessageKind    `json:"kind"`
+	Payload   TaskMessagePayload `json:"payload"`
+	Seq       float64            `json:"seq"`
+	TaskID    uuid.UUID          `json:"task_id"`
+	Timestamp time.Time          `json:"timestamp"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *TaskMessage) GetAttemptN() float64 {
+	return s.AttemptN
+}
+
+// GetKind returns the value of Kind.
+func (s *TaskMessage) GetKind() TaskMessageKind {
+	return s.Kind
+}
+
+// GetPayload returns the value of Payload.
+func (s *TaskMessage) GetPayload() TaskMessagePayload {
+	return s.Payload
+}
+
+// GetSeq returns the value of Seq.
+func (s *TaskMessage) GetSeq() float64 {
+	return s.Seq
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskMessage) GetTaskID() uuid.UUID {
+	return s.TaskID
+}
+
+// GetTimestamp returns the value of Timestamp.
+func (s *TaskMessage) GetTimestamp() time.Time {
+	return s.Timestamp
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *TaskMessage) SetAttemptN(val float64) {
+	s.AttemptN = val
+}
+
+// SetKind sets the value of Kind.
+func (s *TaskMessage) SetKind(val TaskMessageKind) {
+	s.Kind = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *TaskMessage) SetPayload(val TaskMessagePayload) {
+	s.Payload = val
+}
+
+// SetSeq sets the value of Seq.
+func (s *TaskMessage) SetSeq(val float64) {
+	s.Seq = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskMessage) SetTaskID(val uuid.UUID) {
+	s.TaskID = val
+}
+
+// SetTimestamp sets the value of Timestamp.
+func (s *TaskMessage) SetTimestamp(val time.Time) {
+	s.Timestamp = val
+}
+
+// Ref: #/components/schemas/TaskMessageKind
+type TaskMessageKind string
+
+const (
+	TaskMessageKindTextDelta     TaskMessageKind = "text_delta"
+	TaskMessageKindToolCallStart TaskMessageKind = "tool_call_start"
+	TaskMessageKindToolCallEnd   TaskMessageKind = "tool_call_end"
+	TaskMessageKindTurnEnd       TaskMessageKind = "turn_end"
+	TaskMessageKindError         TaskMessageKind = "error"
+	TaskMessageKindInfo          TaskMessageKind = "info"
+)
+
+// AllValues returns all TaskMessageKind values.
+func (TaskMessageKind) AllValues() []TaskMessageKind {
+	return []TaskMessageKind{
+		TaskMessageKindTextDelta,
+		TaskMessageKindToolCallStart,
+		TaskMessageKindToolCallEnd,
+		TaskMessageKindTurnEnd,
+		TaskMessageKindError,
+		TaskMessageKindInfo,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskMessageKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskMessageKindTextDelta:
+		return []byte(s), nil
+	case TaskMessageKindToolCallStart:
+		return []byte(s), nil
+	case TaskMessageKindToolCallEnd:
+		return []byte(s), nil
+	case TaskMessageKindTurnEnd:
+		return []byte(s), nil
+	case TaskMessageKindError:
+		return []byte(s), nil
+	case TaskMessageKindInfo:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskMessageKind) UnmarshalText(data []byte) error {
+	switch TaskMessageKind(data) {
+	case TaskMessageKindTextDelta:
+		*s = TaskMessageKindTextDelta
+		return nil
+	case TaskMessageKindToolCallStart:
+		*s = TaskMessageKindToolCallStart
+		return nil
+	case TaskMessageKindToolCallEnd:
+		*s = TaskMessageKindToolCallEnd
+		return nil
+	case TaskMessageKindTurnEnd:
+		*s = TaskMessageKindTurnEnd
+		return nil
+	case TaskMessageKindError:
+		*s = TaskMessageKindError
+		return nil
+	case TaskMessageKindInfo:
+		*s = TaskMessageKindInfo
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskMessagePayload map[string]jx.Raw
+
+func (s *TaskMessagePayload) init() TaskMessagePayload {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type TaskOutputKind string
+
+const (
+	TaskOutputKindArtifact TaskOutputKind = "artifact"
+	TaskOutputKindJudgment TaskOutputKind = "judgment"
+)
+
+// AllValues returns all TaskOutputKind values.
+func (TaskOutputKind) AllValues() []TaskOutputKind {
+	return []TaskOutputKind{
+		TaskOutputKindArtifact,
+		TaskOutputKindJudgment,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskOutputKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskOutputKindArtifact:
+		return []byte(s), nil
+	case TaskOutputKindJudgment:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskOutputKind) UnmarshalText(data []byte) error {
+	switch TaskOutputKind(data) {
+	case TaskOutputKindArtifact:
+		*s = TaskOutputKindArtifact
+		return nil
+	case TaskOutputKindJudgment:
+		*s = TaskOutputKindJudgment
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TaskRef
+type TaskRef struct {
+	External  OptTaskRefExternal `json:"external"`
+	OutputCid string             `json:"output_cid"`
+	Role      TaskRefRole        `json:"role"`
+	TaskID    NilUUID            `json:"task_id"`
+}
+
+// GetExternal returns the value of External.
+func (s *TaskRef) GetExternal() OptTaskRefExternal {
+	return s.External
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *TaskRef) GetOutputCid() string {
+	return s.OutputCid
+}
+
+// GetRole returns the value of Role.
+func (s *TaskRef) GetRole() TaskRefRole {
+	return s.Role
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskRef) GetTaskID() NilUUID {
+	return s.TaskID
+}
+
+// SetExternal sets the value of External.
+func (s *TaskRef) SetExternal(val OptTaskRefExternal) {
+	s.External = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *TaskRef) SetOutputCid(val string) {
+	s.OutputCid = val
+}
+
+// SetRole sets the value of Role.
+func (s *TaskRef) SetRole(val TaskRefRole) {
+	s.Role = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskRef) SetTaskID(val NilUUID) {
+	s.TaskID = val
+}
+
+type TaskRefExternal struct {
+	CommitSha   OptString           `json:"commit_sha"`
+	Issue       OptFloat64          `json:"issue"`
+	Kind        TaskRefExternalKind `json:"kind"`
+	Pr          OptFloat64          `json:"pr"`
+	SnapshotCid OptString           `json:"snapshot_cid"`
+	URL         OptString           `json:"url"`
+}
+
+// GetCommitSha returns the value of CommitSha.
+func (s *TaskRefExternal) GetCommitSha() OptString {
+	return s.CommitSha
+}
+
+// GetIssue returns the value of Issue.
+func (s *TaskRefExternal) GetIssue() OptFloat64 {
+	return s.Issue
+}
+
+// GetKind returns the value of Kind.
+func (s *TaskRefExternal) GetKind() TaskRefExternalKind {
+	return s.Kind
+}
+
+// GetPr returns the value of Pr.
+func (s *TaskRefExternal) GetPr() OptFloat64 {
+	return s.Pr
+}
+
+// GetSnapshotCid returns the value of SnapshotCid.
+func (s *TaskRefExternal) GetSnapshotCid() OptString {
+	return s.SnapshotCid
+}
+
+// GetURL returns the value of URL.
+func (s *TaskRefExternal) GetURL() OptString {
+	return s.URL
+}
+
+// SetCommitSha sets the value of CommitSha.
+func (s *TaskRefExternal) SetCommitSha(val OptString) {
+	s.CommitSha = val
+}
+
+// SetIssue sets the value of Issue.
+func (s *TaskRefExternal) SetIssue(val OptFloat64) {
+	s.Issue = val
+}
+
+// SetKind sets the value of Kind.
+func (s *TaskRefExternal) SetKind(val TaskRefExternalKind) {
+	s.Kind = val
+}
+
+// SetPr sets the value of Pr.
+func (s *TaskRefExternal) SetPr(val OptFloat64) {
+	s.Pr = val
+}
+
+// SetSnapshotCid sets the value of SnapshotCid.
+func (s *TaskRefExternal) SetSnapshotCid(val OptString) {
+	s.SnapshotCid = val
+}
+
+// SetURL sets the value of URL.
+func (s *TaskRefExternal) SetURL(val OptString) {
+	s.URL = val
+}
+
+type TaskRefExternalKind string
+
+const (
+	TaskRefExternalKindGithubPr    TaskRefExternalKind = "github_pr"
+	TaskRefExternalKindGithubIssue TaskRefExternalKind = "github_issue"
+	TaskRefExternalKindHTTPURL     TaskRefExternalKind = "http_url"
+)
+
+// AllValues returns all TaskRefExternalKind values.
+func (TaskRefExternalKind) AllValues() []TaskRefExternalKind {
+	return []TaskRefExternalKind{
+		TaskRefExternalKindGithubPr,
+		TaskRefExternalKindGithubIssue,
+		TaskRefExternalKindHTTPURL,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskRefExternalKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskRefExternalKindGithubPr:
+		return []byte(s), nil
+	case TaskRefExternalKindGithubIssue:
+		return []byte(s), nil
+	case TaskRefExternalKindHTTPURL:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskRefExternalKind) UnmarshalText(data []byte) error {
+	switch TaskRefExternalKind(data) {
+	case TaskRefExternalKindGithubPr:
+		*s = TaskRefExternalKindGithubPr
+		return nil
+	case TaskRefExternalKindGithubIssue:
+		*s = TaskRefExternalKindGithubIssue
+		return nil
+	case TaskRefExternalKindHTTPURL:
+		*s = TaskRefExternalKindHTTPURL
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskRefRole string
+
+const (
+	TaskRefRoleJudgedWork   TaskRefRole = "judged_work"
+	TaskRefRoleReviewedDiff TaskRefRole = "reviewed_diff"
+	TaskRefRoleTargetSource TaskRefRole = "target_source"
+	TaskRefRoleContext      TaskRefRole = "context"
+)
+
+// AllValues returns all TaskRefRole values.
+func (TaskRefRole) AllValues() []TaskRefRole {
+	return []TaskRefRole{
+		TaskRefRoleJudgedWork,
+		TaskRefRoleReviewedDiff,
+		TaskRefRoleTargetSource,
+		TaskRefRoleContext,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskRefRole) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskRefRoleJudgedWork:
+		return []byte(s), nil
+	case TaskRefRoleReviewedDiff:
+		return []byte(s), nil
+	case TaskRefRoleTargetSource:
+		return []byte(s), nil
+	case TaskRefRoleContext:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskRefRole) UnmarshalText(data []byte) error {
+	switch TaskRefRole(data) {
+	case TaskRefRoleJudgedWork:
+		*s = TaskRefRoleJudgedWork
+		return nil
+	case TaskRefRoleReviewedDiff:
+		*s = TaskRefRoleReviewedDiff
+		return nil
+	case TaskRefRoleTargetSource:
+		*s = TaskRefRoleTargetSource
+		return nil
+	case TaskRefRoleContext:
+		*s = TaskRefRoleContext
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskReferencesItem struct {
+	External  OptTaskReferencesItemExternal `json:"external"`
+	OutputCid string                        `json:"output_cid"`
+	Role      TaskReferencesItemRole        `json:"role"`
+	TaskID    NilUUID                       `json:"task_id"`
+}
+
+// GetExternal returns the value of External.
+func (s *TaskReferencesItem) GetExternal() OptTaskReferencesItemExternal {
+	return s.External
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *TaskReferencesItem) GetOutputCid() string {
+	return s.OutputCid
+}
+
+// GetRole returns the value of Role.
+func (s *TaskReferencesItem) GetRole() TaskReferencesItemRole {
+	return s.Role
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskReferencesItem) GetTaskID() NilUUID {
+	return s.TaskID
+}
+
+// SetExternal sets the value of External.
+func (s *TaskReferencesItem) SetExternal(val OptTaskReferencesItemExternal) {
+	s.External = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *TaskReferencesItem) SetOutputCid(val string) {
+	s.OutputCid = val
+}
+
+// SetRole sets the value of Role.
+func (s *TaskReferencesItem) SetRole(val TaskReferencesItemRole) {
+	s.Role = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskReferencesItem) SetTaskID(val NilUUID) {
+	s.TaskID = val
+}
+
+type TaskReferencesItemExternal struct {
+	CommitSha   OptString                      `json:"commit_sha"`
+	Issue       OptFloat64                     `json:"issue"`
+	Kind        TaskReferencesItemExternalKind `json:"kind"`
+	Pr          OptFloat64                     `json:"pr"`
+	SnapshotCid OptString                      `json:"snapshot_cid"`
+	URL         OptString                      `json:"url"`
+}
+
+// GetCommitSha returns the value of CommitSha.
+func (s *TaskReferencesItemExternal) GetCommitSha() OptString {
+	return s.CommitSha
+}
+
+// GetIssue returns the value of Issue.
+func (s *TaskReferencesItemExternal) GetIssue() OptFloat64 {
+	return s.Issue
+}
+
+// GetKind returns the value of Kind.
+func (s *TaskReferencesItemExternal) GetKind() TaskReferencesItemExternalKind {
+	return s.Kind
+}
+
+// GetPr returns the value of Pr.
+func (s *TaskReferencesItemExternal) GetPr() OptFloat64 {
+	return s.Pr
+}
+
+// GetSnapshotCid returns the value of SnapshotCid.
+func (s *TaskReferencesItemExternal) GetSnapshotCid() OptString {
+	return s.SnapshotCid
+}
+
+// GetURL returns the value of URL.
+func (s *TaskReferencesItemExternal) GetURL() OptString {
+	return s.URL
+}
+
+// SetCommitSha sets the value of CommitSha.
+func (s *TaskReferencesItemExternal) SetCommitSha(val OptString) {
+	s.CommitSha = val
+}
+
+// SetIssue sets the value of Issue.
+func (s *TaskReferencesItemExternal) SetIssue(val OptFloat64) {
+	s.Issue = val
+}
+
+// SetKind sets the value of Kind.
+func (s *TaskReferencesItemExternal) SetKind(val TaskReferencesItemExternalKind) {
+	s.Kind = val
+}
+
+// SetPr sets the value of Pr.
+func (s *TaskReferencesItemExternal) SetPr(val OptFloat64) {
+	s.Pr = val
+}
+
+// SetSnapshotCid sets the value of SnapshotCid.
+func (s *TaskReferencesItemExternal) SetSnapshotCid(val OptString) {
+	s.SnapshotCid = val
+}
+
+// SetURL sets the value of URL.
+func (s *TaskReferencesItemExternal) SetURL(val OptString) {
+	s.URL = val
+}
+
+type TaskReferencesItemExternalKind string
+
+const (
+	TaskReferencesItemExternalKindGithubPr    TaskReferencesItemExternalKind = "github_pr"
+	TaskReferencesItemExternalKindGithubIssue TaskReferencesItemExternalKind = "github_issue"
+	TaskReferencesItemExternalKindHTTPURL     TaskReferencesItemExternalKind = "http_url"
+)
+
+// AllValues returns all TaskReferencesItemExternalKind values.
+func (TaskReferencesItemExternalKind) AllValues() []TaskReferencesItemExternalKind {
+	return []TaskReferencesItemExternalKind{
+		TaskReferencesItemExternalKindGithubPr,
+		TaskReferencesItemExternalKindGithubIssue,
+		TaskReferencesItemExternalKindHTTPURL,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskReferencesItemExternalKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskReferencesItemExternalKindGithubPr:
+		return []byte(s), nil
+	case TaskReferencesItemExternalKindGithubIssue:
+		return []byte(s), nil
+	case TaskReferencesItemExternalKindHTTPURL:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskReferencesItemExternalKind) UnmarshalText(data []byte) error {
+	switch TaskReferencesItemExternalKind(data) {
+	case TaskReferencesItemExternalKindGithubPr:
+		*s = TaskReferencesItemExternalKindGithubPr
+		return nil
+	case TaskReferencesItemExternalKindGithubIssue:
+		*s = TaskReferencesItemExternalKindGithubIssue
+		return nil
+	case TaskReferencesItemExternalKindHTTPURL:
+		*s = TaskReferencesItemExternalKindHTTPURL
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskReferencesItemRole string
+
+const (
+	TaskReferencesItemRoleJudgedWork   TaskReferencesItemRole = "judged_work"
+	TaskReferencesItemRoleReviewedDiff TaskReferencesItemRole = "reviewed_diff"
+	TaskReferencesItemRoleTargetSource TaskReferencesItemRole = "target_source"
+	TaskReferencesItemRoleContext      TaskReferencesItemRole = "context"
+)
+
+// AllValues returns all TaskReferencesItemRole values.
+func (TaskReferencesItemRole) AllValues() []TaskReferencesItemRole {
+	return []TaskReferencesItemRole{
+		TaskReferencesItemRoleJudgedWork,
+		TaskReferencesItemRoleReviewedDiff,
+		TaskReferencesItemRoleTargetSource,
+		TaskReferencesItemRoleContext,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskReferencesItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskReferencesItemRoleJudgedWork:
+		return []byte(s), nil
+	case TaskReferencesItemRoleReviewedDiff:
+		return []byte(s), nil
+	case TaskReferencesItemRoleTargetSource:
+		return []byte(s), nil
+	case TaskReferencesItemRoleContext:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskReferencesItemRole) UnmarshalText(data []byte) error {
+	switch TaskReferencesItemRole(data) {
+	case TaskReferencesItemRoleJudgedWork:
+		*s = TaskReferencesItemRoleJudgedWork
+		return nil
+	case TaskReferencesItemRoleReviewedDiff:
+		*s = TaskReferencesItemRoleReviewedDiff
+		return nil
+	case TaskReferencesItemRoleTargetSource:
+		*s = TaskReferencesItemRoleTargetSource
+		return nil
+	case TaskReferencesItemRoleContext:
+		*s = TaskReferencesItemRoleContext
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TaskStatus
+type TaskStatus string
+
+const (
+	TaskStatusQueued     TaskStatus = "queued"
+	TaskStatusDispatched TaskStatus = "dispatched"
+	TaskStatusRunning    TaskStatus = "running"
+	TaskStatusCompleted  TaskStatus = "completed"
+	TaskStatusFailed     TaskStatus = "failed"
+	TaskStatusCancelled  TaskStatus = "cancelled"
+	TaskStatusExpired    TaskStatus = "expired"
+)
+
+// AllValues returns all TaskStatus values.
+func (TaskStatus) AllValues() []TaskStatus {
+	return []TaskStatus{
+		TaskStatusQueued,
+		TaskStatusDispatched,
+		TaskStatusRunning,
+		TaskStatusCompleted,
+		TaskStatusFailed,
+		TaskStatusCancelled,
+		TaskStatusExpired,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskStatusQueued:
+		return []byte(s), nil
+	case TaskStatusDispatched:
+		return []byte(s), nil
+	case TaskStatusRunning:
+		return []byte(s), nil
+	case TaskStatusCompleted:
+		return []byte(s), nil
+	case TaskStatusFailed:
+		return []byte(s), nil
+	case TaskStatusCancelled:
+		return []byte(s), nil
+	case TaskStatusExpired:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskStatus) UnmarshalText(data []byte) error {
+	switch TaskStatus(data) {
+	case TaskStatusQueued:
+		*s = TaskStatusQueued
+		return nil
+	case TaskStatusDispatched:
+		*s = TaskStatusDispatched
+		return nil
+	case TaskStatusRunning:
+		*s = TaskStatusRunning
+		return nil
+	case TaskStatusCompleted:
+		*s = TaskStatusCompleted
+		return nil
+	case TaskStatusFailed:
+		*s = TaskStatusFailed
+		return nil
+	case TaskStatusCancelled:
+		*s = TaskStatusCancelled
+		return nil
+	case TaskStatusExpired:
+		*s = TaskStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TaskUsage
+type TaskUsage struct {
+	CacheReadTokens  OptInt    `json:"cache_read_tokens"`
+	CacheWriteTokens OptInt    `json:"cache_write_tokens"`
+	InputTokens      int       `json:"input_tokens"`
+	Model            OptString `json:"model"`
+	OutputTokens     int       `json:"output_tokens"`
+	Provider         OptString `json:"provider"`
+	ToolCalls        OptInt    `json:"tool_calls"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskUsage) GetCacheReadTokens() OptInt {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskUsage) GetCacheWriteTokens() OptInt {
+	return s.CacheWriteTokens
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskUsage) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *TaskUsage) GetModel() OptString {
+	return s.Model
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskUsage) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskUsage) GetProvider() OptString {
+	return s.Provider
+}
+
+// GetToolCalls returns the value of ToolCalls.
+func (s *TaskUsage) GetToolCalls() OptInt {
+	return s.ToolCalls
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskUsage) SetCacheReadTokens(val OptInt) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskUsage) SetCacheWriteTokens(val OptInt) {
+	s.CacheWriteTokens = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskUsage) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *TaskUsage) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskUsage) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskUsage) SetProvider(val OptString) {
+	s.Provider = val
+}
+
+// SetToolCalls sets the value of ToolCalls.
+func (s *TaskUsage) SetToolCalls(val OptInt) {
+	s.ToolCalls = val
+}
 
 type UpdateContextPackBadRequest ProblemDetails
 

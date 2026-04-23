@@ -1052,6 +1052,256 @@ export type DiaryEntryWithRelations = {
   relations?: ExpandedRelations;
 };
 
+export type TaskStatus =
+  | 'queued'
+  | 'dispatched'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'expired';
+
+export type TaskMessageKind =
+  | 'text_delta'
+  | 'tool_call_start'
+  | 'tool_call_end'
+  | 'turn_end'
+  | 'error'
+  | 'info';
+
+export type TaskRef = {
+  task_id: string | null;
+  output_cid: string;
+  role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
+  external?: {
+    kind: 'github_pr' | 'github_issue' | 'http_url';
+    pr?: number;
+    issue?: number;
+    url?: string;
+    commit_sha?: string;
+    snapshot_cid?: string;
+  };
+};
+
+export type TaskUsage = {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens?: number;
+  cache_write_tokens?: number;
+  tool_calls?: number;
+  model?: string;
+  provider?: string;
+};
+
+export type TaskError = {
+  code: string;
+  message: string;
+  stack?: string;
+  retryable?: boolean;
+};
+
+export type Task = {
+  id: string;
+  task_type: string;
+  team_id: string;
+  diary_id: string | null;
+  output_kind: 'artifact' | 'judgment';
+  input: {
+    [key: string]: unknown;
+  };
+  input_schema_cid: string;
+  input_cid: string;
+  criteria_cid: string | null;
+  references: Array<{
+    task_id: string | null;
+    output_cid: string;
+    role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
+    external?: {
+      kind: 'github_pr' | 'github_issue' | 'http_url';
+      pr?: number;
+      issue?: number;
+      url?: string;
+      commit_sha?: string;
+      snapshot_cid?: string;
+    };
+  }>;
+  correlation_id: string | null;
+  imposed_by_agent_id: string | null;
+  imposed_by_human_id: string | null;
+  accepted_attempt_n: number | null;
+  status:
+    | 'queued'
+    | 'dispatched'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'cancelled'
+    | 'expired';
+  queued_at: string;
+  completed_at: string | null;
+  expires_at: string | null;
+  cancelled_by_agent_id: string | null;
+  cancelled_by_human_id: string | null;
+  cancel_reason: string | null;
+  max_attempts: number;
+};
+
+export type OutputKind = 'artifact' | 'judgment';
+
+export type TaskAttempt = {
+  task_id: string;
+  attempt_n: number;
+  claimed_by_agent_id: string;
+  runtime_id: string | null;
+  claimed_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  status:
+    | 'claimed'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'cancelled'
+    | 'timed_out';
+  output: {
+    [key: string]: unknown;
+  } | null;
+  output_cid: string | null;
+  error: {
+    code: string;
+    message: string;
+    stack?: string;
+    retryable?: boolean;
+  } | null;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_tokens?: number;
+    cache_write_tokens?: number;
+    tool_calls?: number;
+    model?: string;
+    provider?: string;
+  } | null;
+  content_signature: string | null;
+  signed_at: string | null;
+};
+
+export type TaskAttemptStatus =
+  | 'claimed'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'timed_out';
+
+export type TaskMessage = {
+  task_id: string;
+  attempt_n: number;
+  seq: number;
+  timestamp: string;
+  kind:
+    | 'text_delta'
+    | 'tool_call_start'
+    | 'tool_call_end'
+    | 'turn_end'
+    | 'error'
+    | 'info';
+  payload: {
+    [key: string]: unknown;
+  };
+};
+
+export type TaskParams = {
+  id: string;
+};
+
+export type TaskAttemptParams = {
+  id: string;
+  n: number;
+};
+
+export type CreateTaskBody = {
+  task_type: string;
+  team_id: string;
+  diary_id: string;
+  input: {
+    [key: string]: unknown;
+  };
+  references?: Array<TaskRef>;
+  correlation_id?: string;
+  max_attempts?: number;
+  expires_in_sec?: number;
+  criteria_cid?: string;
+};
+
+export type ListTasksQuery = {
+  team_id: string;
+  status?: TaskStatus;
+  task_type?: string;
+  correlation_id?: string;
+  limit?: number;
+  cursor?: string;
+};
+
+export type ClaimTaskBody = {
+  lease_ttl_sec?: number;
+};
+
+export type HeartbeatBody = {
+  lease_ttl_sec?: number;
+};
+
+export type CompleteTaskBody = {
+  output: {
+    [key: string]: unknown;
+  };
+  output_cid: string;
+  usage: TaskUsage;
+  content_signature?: string;
+};
+
+export type FailTaskBody = {
+  error: TaskError;
+};
+
+export type CancelTaskBody = {
+  reason: string;
+};
+
+export type ListMessagesQuery = {
+  after_seq?: number;
+  limit?: number;
+};
+
+export type AppendMessagesBody = {
+  messages: Array<{
+    kind: TaskMessageKind;
+    payload: {
+      [key: string]: unknown;
+    };
+    timestamp?: string;
+  }>;
+};
+
+export type TaskListResponse = {
+  items: Array<Task>;
+  total: number;
+  next_cursor?: string;
+};
+
+export type ClaimTaskResponse = {
+  task: Task;
+  attempt: TaskAttempt;
+};
+
+export type HeartbeatResponse = {
+  claim_expires_at: string;
+};
+
+export type AppendMessagesResponse = {
+  count: number;
+};
+
 export type GetOAuth2TokenData = {
   body?: never;
   path?: never;
@@ -5750,6 +6000,477 @@ export type GetLegreffierOnboardingStatusResponses = {
 
 export type GetLegreffierOnboardingStatusResponse =
   GetLegreffierOnboardingStatusResponses[keyof GetLegreffierOnboardingStatusResponses];
+
+export type ListTasksData = {
+  body?: never;
+  path?: never;
+  query: {
+    team_id: string;
+    status?: TaskStatus;
+    task_type?: string;
+    correlation_id?: string;
+    limit?: number;
+    cursor?: string;
+  };
+  url: '/tasks';
+};
+
+export type ListTasksErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListTasksError = ListTasksErrors[keyof ListTasksErrors];
+
+export type ListTasksResponses = {
+  /**
+   * Default Response
+   */
+  200: TaskListResponse;
+};
+
+export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
+
+export type CreateTaskData = {
+  body: {
+    task_type: string;
+    team_id: string;
+    diary_id: string;
+    input: {
+      [key: string]: unknown;
+    };
+    references?: Array<TaskRef>;
+    correlation_id?: string;
+    max_attempts?: number;
+    expires_in_sec?: number;
+    criteria_cid?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tasks';
+};
+
+export type CreateTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type CreateTaskError = CreateTaskErrors[keyof CreateTaskErrors];
+
+export type CreateTaskResponses = {
+  /**
+   * Default Response
+   */
+  201: Task;
+};
+
+export type CreateTaskResponse = CreateTaskResponses[keyof CreateTaskResponses];
+
+export type GetTaskData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}';
+};
+
+export type GetTaskErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetTaskError = GetTaskErrors[keyof GetTaskErrors];
+
+export type GetTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
+
+export type ClaimTaskData = {
+  body?: {
+    lease_ttl_sec?: number;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/claim';
+};
+
+export type ClaimTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type ClaimTaskError = ClaimTaskErrors[keyof ClaimTaskErrors];
+
+export type ClaimTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: ClaimTaskResponse;
+};
+
+export type ClaimTaskResponse2 = ClaimTaskResponses[keyof ClaimTaskResponses];
+
+export type TaskHeartbeatData = {
+  body?: {
+    lease_ttl_sec?: number;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/heartbeat';
+};
+
+export type TaskHeartbeatErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type TaskHeartbeatError = TaskHeartbeatErrors[keyof TaskHeartbeatErrors];
+
+export type TaskHeartbeatResponses = {
+  /**
+   * Default Response
+   */
+  200: HeartbeatResponse;
+};
+
+export type TaskHeartbeatResponse =
+  TaskHeartbeatResponses[keyof TaskHeartbeatResponses];
+
+export type CompleteTaskData = {
+  body: {
+    output: {
+      [key: string]: unknown;
+    };
+    output_cid: string;
+    usage: TaskUsage;
+    content_signature?: string;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/complete';
+};
+
+export type CompleteTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CompleteTaskError = CompleteTaskErrors[keyof CompleteTaskErrors];
+
+export type CompleteTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type CompleteTaskResponse =
+  CompleteTaskResponses[keyof CompleteTaskResponses];
+
+export type FailTaskData = {
+  body: {
+    error: TaskError;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/fail';
+};
+
+export type FailTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type FailTaskError = FailTaskErrors[keyof FailTaskErrors];
+
+export type FailTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type FailTaskResponse = FailTaskResponses[keyof FailTaskResponses];
+
+export type CancelTaskData = {
+  body: {
+    reason: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/cancel';
+};
+
+export type CancelTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CancelTaskError = CancelTaskErrors[keyof CancelTaskErrors];
+
+export type CancelTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type CancelTaskResponse = CancelTaskResponses[keyof CancelTaskResponses];
+
+export type ListTaskAttemptsData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts';
+};
+
+export type ListTaskAttemptsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListTaskAttemptsError =
+  ListTaskAttemptsErrors[keyof ListTaskAttemptsErrors];
+
+export type ListTaskAttemptsResponses = {
+  /**
+   * Default Response
+   */
+  200: Array<TaskAttempt>;
+};
+
+export type ListTaskAttemptsResponse =
+  ListTaskAttemptsResponses[keyof ListTaskAttemptsResponses];
+
+export type ListTaskMessagesData = {
+  body?: never;
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: {
+    after_seq?: number;
+    limit?: number;
+  };
+  url: '/tasks/{id}/attempts/{n}/messages';
+};
+
+export type ListTaskMessagesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListTaskMessagesError =
+  ListTaskMessagesErrors[keyof ListTaskMessagesErrors];
+
+export type ListTaskMessagesResponses = {
+  /**
+   * Default Response
+   */
+  200: Array<TaskMessage>;
+};
+
+export type ListTaskMessagesResponse =
+  ListTaskMessagesResponses[keyof ListTaskMessagesResponses];
+
+export type AppendTaskMessagesData = {
+  body: {
+    messages: Array<{
+      kind: TaskMessageKind;
+      payload: {
+        [key: string]: unknown;
+      };
+      timestamp?: string;
+    }>;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/messages';
+};
+
+export type AppendTaskMessagesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type AppendTaskMessagesError =
+  AppendTaskMessagesErrors[keyof AppendTaskMessagesErrors];
+
+export type AppendTaskMessagesResponses = {
+  /**
+   * Default Response
+   */
+  200: AppendMessagesResponse;
+};
+
+export type AppendTaskMessagesResponse =
+  AppendTaskMessagesResponses[keyof AppendTaskMessagesResponses];
 
 export type ListProblemTypesData = {
   body?: never;

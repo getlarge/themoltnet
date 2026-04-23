@@ -1,5 +1,5 @@
 {
-  "name": "@moltnet/tasks",
+  "name": "@moltnet/task-service",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -14,15 +14,19 @@
   },
   "scripts": {
     "build": "tsc -b",
+    "dev": "tsc --watch",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@sinclair/typebox": "catalog:",
-    "multiformats": "catalog:"
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/tasks": "workspace:*"
   },
   "devDependencies": {
+    "@sinclair/typebox": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

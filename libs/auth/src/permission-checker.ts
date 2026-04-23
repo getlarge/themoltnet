@@ -14,6 +14,7 @@ import {
   DiaryEntryPermission,
   DiaryPermission,
   KetoNamespace,
+  TaskPermission,
   TeamPermission,
 } from './keto-constants.js';
 
@@ -90,6 +91,31 @@ export interface PermissionChecker {
   ): Promise<boolean>;
   canManageTeamMembers(
     teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
+  canViewTask(
+    taskId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
+  canImposeTask(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
+  canClaimTask(
+    taskId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
+  canCancelTask(
+    taskId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
+  canReportTask(
+    taskId: string,
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
@@ -396,6 +422,81 @@ export function createPermissionChecker(
         KetoNamespace.Team,
         teamId,
         TeamPermission.ManageMembers,
+        subjectNs,
+        subjectId,
+      );
+    },
+
+    canViewTask(
+      taskId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Task,
+        taskId,
+        TaskPermission.View,
+        subjectNs,
+        subjectId,
+      );
+    },
+
+    canImposeTask(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Diary,
+        diaryId,
+        DiaryPermission.Write,
+        subjectNs,
+        subjectId,
+      );
+    },
+
+    canClaimTask(
+      taskId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Task,
+        taskId,
+        TaskPermission.Claim,
+        subjectNs,
+        subjectId,
+      );
+    },
+
+    canCancelTask(
+      taskId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Task,
+        taskId,
+        TaskPermission.Cancel,
+        subjectNs,
+        subjectId,
+      );
+    },
+
+    canReportTask(
+      taskId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Task,
+        taskId,
+        TaskPermission.Report,
         subjectNs,
         subjectId,
       );

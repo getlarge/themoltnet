@@ -42,6 +42,7 @@ import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
+import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { verificationRoutes } from './routes/verification.js';
 import { vouchRoutes } from './routes/vouch.js';
@@ -64,6 +65,7 @@ import type {
   RenderedPackRepository,
   SigningRequestRepository,
   TaskRepository,
+  TaskService,
   TeamRepository,
   TransactionRunner,
   VerificationService,
@@ -122,6 +124,7 @@ export interface AppOptions {
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   taskRepository: TaskRepository;
+  taskService: TaskService;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
   nonceRepository: NonceRepository;
@@ -225,7 +228,13 @@ export async function registerApiRoutes(
 
   // Register shared schemas for $ref resolution
   for (const schema of sharedSchemas) {
-    app.addSchema(schema);
+    try {
+      app.addSchema(schema);
+    } catch (e) {
+      if (!(e instanceof Error) || !e.message.includes('already exists')) {
+        throw e;
+      }
+    }
   }
 
   // Register global error handler (RFC 9457 Problem Details)
@@ -285,6 +294,7 @@ export async function registerApiRoutes(
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
   decorateSafe('taskRepository', options.taskRepository);
+  decorateSafe('taskService', options.taskService);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);
@@ -326,6 +336,7 @@ export async function registerApiRoutes(
   await app.register(groupRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
+  await app.register(taskRoutes);
   await app.register(problemRoutes);
 }
 

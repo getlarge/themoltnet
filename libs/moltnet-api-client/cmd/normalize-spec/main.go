@@ -47,6 +47,12 @@ func main() {
 	// so that ogen can handle them (it requires $ref in oneOf+discriminator).
 	extractDiscriminatedUnionSchemas(normalized)
 
+	// Replace inline property schemas that would cause ogen type-name conflicts.
+	// ogen names inline properties as <ParentSchema><TitleCase(propName)>, so
+	// Task.status → TaskStatus conflicts with the TaskStatus component schema.
+	// We only replace cases where the property name matches that exact pattern.
+	deduplicateConflictingInlineSchemas(normalized)
+
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetIndent("", "  ")
@@ -57,6 +63,103 @@ func main() {
 	if err := os.WriteFile(os.Args[2], buf.Bytes(), 0o644); err != nil {
 		log.Fatalf("write output: %v", err)
 	}
+}
+
+// deduplicateConflictingInlineSchemas replaces inline property schemas that
+// would cause ogen type-name conflicts. ogen names an inline property schema
+// as <ParentSchemaName><TitleCase(propertyName)>, so Task.status becomes
+// "TaskStatus" — conflicting with the existing TaskStatus component schema.
+//
+// We only replace when the component schema name equals exactly
+// <parentName><titleCase(propName)> AND the inline schema is structurally
+// identical to the named component schema. This avoids the over-broad
+// replacement that broke unrelated types like CreateDiaryReqVisibility.
+func deduplicateConflictingInlineSchemas(spec any) {
+	root, ok := spec.(map[string]any)
+	if !ok {
+		return
+	}
+	components, ok := root["components"].(map[string]any)
+	if !ok {
+		return
+	}
+	schemas, ok := components["schemas"].(map[string]any)
+	if !ok {
+		return
+	}
+
+	// Build canonical JSON for each named schema.
+	canonicals := make(map[string]string, len(schemas))
+	for name, schema := range schemas {
+		b, err := json.Marshal(schema)
+		if err == nil {
+			canonicals[name] = string(b)
+		}
+	}
+
+	// Walk only the named component schemas, replacing conflicting inline
+	// property schemas with $refs. Don't touch paths or other sections.
+	for parentName, schema := range schemas {
+		m, ok := schema.(map[string]any)
+		if !ok {
+			continue
+		}
+		props, ok := m["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		changed := false
+		for propName, propSchema := range props {
+			propMap, ok := propSchema.(map[string]any)
+			if !ok {
+				continue
+			}
+			if _, isRef := propMap["$ref"]; isRef {
+				continue
+			}
+			// Compute the ogen-generated name for this inline property.
+			expectedName := parentName + titleCase(propName)
+			canonical, exists := canonicals[expectedName]
+			if !exists {
+				continue
+			}
+			b, err := json.Marshal(propMap)
+			if err != nil || string(b) != canonical {
+				continue
+			}
+			// Replace the inline schema with a $ref.
+			props[propName] = map[string]any{"$ref": "#/components/schemas/" + expectedName}
+			changed = true
+		}
+		if changed {
+			m["properties"] = props
+			schemas[parentName] = m
+		}
+	}
+}
+
+// titleCase converts a snake_case or camelCase property name to TitleCase,
+// matching ogen's naming convention for inline property schemas.
+// e.g. "status" → "Status", "task_type" → "TaskType", "outputKind" → "OutputKind"
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	var result strings.Builder
+	upper := true
+	for _, r := range s {
+		if r == '_' || r == '-' {
+			upper = true
+			continue
+		}
+		if upper {
+			result.WriteRune([]rune(strings.ToUpper(string(r)))[0])
+			upper = false
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }
 
 // extractDiscriminatedUnionSchemas walks the spec looking for oneOf+discriminator

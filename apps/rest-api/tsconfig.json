@@ -44,6 +44,12 @@
     },
     {
       "path": "../../libs/observability"
+    },
+    {
+      "path": "../../libs/task-service"
+    },
+    {
+      "path": "../../libs/tasks"
     }
   ]
 }
