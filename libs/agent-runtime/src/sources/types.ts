@@ -1,5 +1,12 @@
 import type { Task } from '@moltnet/tasks';
 
+export interface ClaimedTask {
+  /** The claimed task payload itself. */
+  task: Task;
+  /** Attempt number assigned by the source/queue. */
+  attemptN: number;
+}
+
 /**
  * A pull-based queue of tasks ready to execute.
  *
@@ -10,14 +17,15 @@ import type { Task } from '@moltnet/tasks';
  * PR 0 ↔ PR 7 swap, alongside `TaskReporter`).
  *
  * Sources are single-use unless documented otherwise: PR 0 sources yield
- * one task then return `null`. PR 7's `ApiTaskSource` will long-poll.
+ * one task then return `null`. PR 7's `ApiTaskSource` may long-poll and
+ * return an API-assigned attempt number.
  */
 export interface TaskSource {
   /**
    * Claim the next task, or resolve `null` when the source is exhausted.
    * Implementations MAY block (e.g. long-polling); callers drive the loop.
    */
-  claim(): Promise<Task | null>;
+  claim(): Promise<ClaimedTask | null>;
 
   /**
    * Release resources (file handles, HTTP clients). Called once by the

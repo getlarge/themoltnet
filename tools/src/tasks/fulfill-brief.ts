@@ -269,10 +269,10 @@ function buildFulfillBriefTask(
 class SingleTaskSource implements TaskSource {
   private yielded = false;
   constructor(private readonly task: Task) {}
-  async claim(): Promise<Task | null> {
+  async claim() {
     if (this.yielded) return null;
     this.yielded = true;
-    return this.task;
+    return { task: this.task, attemptN: 1 };
   }
   async close(): Promise<void> {
     /* no-op */

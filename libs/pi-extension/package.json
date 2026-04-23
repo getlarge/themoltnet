@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
+    "@moltnet/crypto-service": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "@themoltnet/sdk": "workspace:*"
   },

@@ -1162,6 +1162,9 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.7.0
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48

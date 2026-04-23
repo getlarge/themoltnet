@@ -30,11 +30,16 @@ import {
   SessionManager,
 } from '@mariozechner/pi-coding-agent';
 import {
+  BUILT_IN_TASK_TYPES,
   buildPromptForTask,
+  type ClaimedTask,
   type PromptContext,
   type TaskReporter,
-} from '@moltnet/agent-runtime';
-import { type Task, type TaskOutput, type TaskUsage } from '@moltnet/tasks';
+  type TaskOutput,
+  type TaskUsage,
+} from '@themoltnet/agent-runtime';
+import { computeJsonCid } from '@moltnet/crypto-service';
+import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { connect } from '@themoltnet/sdk';
 
 import {
@@ -84,10 +89,10 @@ export interface ExecutePiTaskOptions {
  */
 export function createPiTaskExecutor(
   opts: ExecutePiTaskOptions,
-): (task: Task, reporter: TaskReporter) => Promise<TaskOutput> {
+): (claimedTask: ClaimedTask, reporter: TaskReporter) => Promise<TaskOutput> {
   let cachedCheckpoint: string | null = opts.checkpointPath ?? null;
 
-  return async (task, reporter) => {
+  return async (claimedTask, reporter) => {
     if (!cachedCheckpoint) {
       cachedCheckpoint = await ensureSnapshot({
         config: opts.sandboxConfig?.snapshot,
@@ -98,7 +103,7 @@ export function createPiTaskExecutor(
           }),
       });
     }
-    return executePiTask(task, reporter, {
+    return executePiTask(claimedTask, reporter, {
       ...opts,
       checkpointPath: cachedCheckpoint,
     });
@@ -112,11 +117,12 @@ export function createPiTaskExecutor(
  * unrecoverable setup errors.
  */
 export async function executePiTask(
-  task: Task,
+  claimedTask: ClaimedTask,
   reporter: TaskReporter,
   opts: ExecutePiTaskOptions,
 ): Promise<TaskOutput> {
-  const attemptN = opts.attemptN ?? 1;
+  const task = claimedTask.task;
+  const attemptN = opts.attemptN ?? claimedTask.attemptN;
   const startTime = Date.now();
   const mountPath = opts.mountPath ?? process.cwd();
 
@@ -161,11 +167,12 @@ export async function executePiTask(
   let session:
     | Awaited<ReturnType<typeof createAgentSession>>['session']
     | null = null;
+  const finalUsage: TaskUsage = emptyUsage(opts.provider, opts.model);
 
   const makeFailedOutput = (
     code: string,
     message: string,
-    usage: TaskUsage = emptyUsage(opts.provider, opts.model),
+    usage: TaskUsage = finalUsage,
   ): TaskOutput => ({
     task_id: task.id,
     attempt_n: attemptN,
@@ -280,7 +287,7 @@ export async function executePiTask(
     let llmAbort = false;
     let assistantText = '';
     let reporterError: { code: string; message: string } | null = null;
-    const usage: TaskUsage = emptyUsage(opts.provider, opts.model);
+    const usage: TaskUsage = finalUsage;
     const recordingPromise: Promise<void>[] = [];
     const track = (p: Promise<void>) => {
       recordingPromise.push(
@@ -391,7 +398,8 @@ export async function executePiTask(
       attempt_n: attemptN,
       status,
       output: parsedOutput,
-      output_cid: parsedOutputCid,
+<<<<<<< HEAD
+      output_cid: parsedOutput ? await computeJsonCid(parsedOutput) : null,
       usage,
       duration_ms: Date.now() - startTime,
       ...(errorCode && errorMessage
@@ -413,7 +421,7 @@ export async function executePiTask(
     }
     if (reporterOpen) {
       try {
-        await reporter.finalize(emptyUsage(opts.provider, opts.model));
+        await reporter.finalize(finalUsage);
       } catch {
         /* swallow */
       }
