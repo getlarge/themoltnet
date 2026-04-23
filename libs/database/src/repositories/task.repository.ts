@@ -171,6 +171,19 @@ export function createTaskRepository(db: Database) {
       return row?.maxAttempts ?? 1;
     },
 
+    async findMaxMessageSeq(taskId: string, attemptN: number): Promise<number> {
+      const [row] = await getExecutor(db)
+        .select({ maxSeq: sql<number>`max(${taskMessages.seq})` })
+        .from(taskMessages)
+        .where(
+          and(
+            eq(taskMessages.taskId, taskId),
+            eq(taskMessages.attemptN, attemptN),
+          ),
+        );
+      return row?.maxSeq ?? -1;
+    },
+
     async appendMessages(messages: NewTaskMessage[]): Promise<void> {
       if (messages.length === 0) return;
       await getExecutor(db).insert(taskMessages).values(messages);

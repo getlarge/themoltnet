@@ -32,8 +32,12 @@ export function getTaskTypeRegistry(): Map<string, string> {
   return schemaCids;
 }
 
-export const TASK_TYPE_SCHEMA_CIDS = new Proxy({} as Record<string, string>, {
-  get(_, prop: string) {
-    return getTaskTypeRegistry().get(prop);
+export const TASK_TYPE_SCHEMA_CIDS = new Proxy(
+  {} as Record<string, string | undefined>,
+  {
+    get(_, prop: string | symbol) {
+      if (typeof prop !== 'string') return undefined;
+      return getTaskTypeRegistry().get(prop);
+    },
   },
-});
+);

@@ -488,7 +488,7 @@ describe('POST /tasks/:id/attempts/:n/messages', () => {
     expect(response.json()).toEqual({ count: 2 });
   });
 
-  it('returns 400 when messages is empty', async () => {
+  it('returns 200 when messages is empty (minItems not enforced by schema)', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages`,

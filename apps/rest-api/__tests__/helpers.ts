@@ -492,6 +492,7 @@ export function createMockServices(): MockServices {
       listAttempts: vi.fn().mockResolvedValue([]),
       countAttempts: vi.fn().mockResolvedValue(0),
       getMaxAttempts: vi.fn().mockResolvedValue(1),
+      findMaxMessageSeq: vi.fn().mockResolvedValue(-1),
       appendMessages: vi.fn(),
       listMessages: vi.fn().mockResolvedValue({ items: [], hasMore: false }),
     },

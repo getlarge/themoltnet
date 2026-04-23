@@ -231,6 +231,17 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string;
       callerNs: KetoNamespace;
     }): Promise<{ items: Task[]; next_cursor?: string }> {
+      const canAccess = await permissionChecker.canAccessTeam(
+        opts.teamId,
+        opts.callerId,
+        opts.callerNs,
+      );
+      if (!canAccess)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to list tasks for this team',
+        );
+
       const { items, nextCursor } = await taskRepository.list({
         teamId: opts.teamId,
         status: opts.status as DbTask['status'] | undefined,
@@ -424,20 +435,28 @@ export function createTaskService(deps: TaskServiceDeps) {
         'result',
       );
 
-      const finalEvent = await DBOS.getEvent<{ status: string }>(
-        workflowId,
-        'result',
-        EVENT_TIMEOUT_SECONDS,
-      );
-      if (!finalEvent) {
-        throw new TaskServiceError(
-          'timed_out',
-          'Complete workflow timed out waiting for result',
-        );
+      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
+      const terminalStatuses = new Set<DbTask['status']>([
+        'completed',
+        'failed',
+        'cancelled',
+        'expired',
+      ]);
+      for (;;) {
+        const updated = await taskRepository.findById(taskId);
+        if (updated && terminalStatuses.has(updated.status)) {
+          return dbTaskToWire(updated);
+        }
+        if (Date.now() >= deadline) {
+          throw new TaskServiceError(
+            'timed_out',
+            'Complete workflow timed out waiting for result',
+          );
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
       }
-
-      const updated = await taskRepository.findById(taskId);
-      return dbTaskToWire(updated!);
     },
 
     async fail(
@@ -471,20 +490,28 @@ export function createTaskService(deps: TaskServiceDeps) {
       const workflowId = `task:${taskId}:attempt:${attemptN}`;
       await DBOS.send(workflowId, { kind: 'failed', error }, 'result');
 
-      const finalEvent = await DBOS.getEvent<{ status: string }>(
-        workflowId,
-        'result',
-        EVENT_TIMEOUT_SECONDS,
-      );
-      if (!finalEvent) {
-        throw new TaskServiceError(
-          'timed_out',
-          'Fail workflow timed out waiting for result',
-        );
+      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
+      const terminalStatuses = new Set<DbTask['status']>([
+        'completed',
+        'failed',
+        'cancelled',
+        'expired',
+      ]);
+      for (;;) {
+        const updated = await taskRepository.findById(taskId);
+        if (updated && terminalStatuses.has(updated.status)) {
+          return dbTaskToWire(updated);
+        }
+        if (Date.now() >= deadline) {
+          throw new TaskServiceError(
+            'timed_out',
+            'Fail workflow timed out waiting for result',
+          );
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
       }
-
-      const updated = await taskRepository.findById(taskId);
-      return dbTaskToWire(updated!);
     },
 
     async cancel(
@@ -530,7 +557,14 @@ export function createTaskService(deps: TaskServiceDeps) {
       if (row.claimAgentId) {
         await relationshipWriter
           .removeTaskClaimant(taskId, row.claimAgentId)
-          .catch(() => {});
+          .catch((err: unknown) => {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to remove task claimant relationship', {
+              taskId,
+              claimAgentId: row.claimAgentId,
+              error: err,
+            });
+          });
       }
 
       return dbTaskToWire(updated!);
@@ -617,15 +651,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const { items: existing } = await taskRepository.listMessages(
-        taskId,
-        attemptN,
-        { limit: 50 },
-      );
-      const maxSeq =
-        existing.length > 0
-          ? Math.max(...existing.map((m) => Number(m.seq)))
-          : -1;
+      const maxSeq = await taskRepository.findMaxMessageSeq(taskId, attemptN);
       const baseSeq = maxSeq + 1;
 
       const rows: NewTaskMessage[] = messages.map((m, i) => ({
