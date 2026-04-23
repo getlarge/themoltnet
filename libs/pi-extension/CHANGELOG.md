@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.4.0...pi-extension-v0.4.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **curate-pack:** clarify packId vs id in creator prompt ([d0cfd9b](https://github.com/getlarge/themoltnet/commit/d0cfd9b169f375bdc59f6cd5bd011e4aec834780))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.3.0...pi-extension-v0.4.0) (2026-04-23)
 
 
