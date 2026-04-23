@@ -34,13 +34,7 @@ import {
   type PromptContext,
   type TaskReporter,
 } from '@moltnet/agent-runtime';
-import {
-  BUILT_IN_TASK_TYPES,
-  type Task,
-  type TaskOutput,
-  type TaskUsage,
-} from '@moltnet/tasks';
-import { TypeCompiler } from '@sinclair/typebox/compiler';
+import { type Task, type TaskOutput, type TaskUsage } from '@moltnet/tasks';
 import { connect } from '@themoltnet/sdk';
 
 import { createMoltNetTools } from '../moltnet/tools.js';
@@ -52,6 +46,7 @@ import {
   createGondolinWriteOps,
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
+import { parseStructuredTaskOutput } from './task-output.js';
 
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
@@ -347,40 +342,16 @@ export async function executePiTask(
     await Promise.all(recordingPromise);
 
     let parsedOutput: Record<string, unknown> | null = null;
+    let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
     if (!runError && !llmAbort) {
-      const extracted = extractJsonObject(assistantText);
-      if (!extracted) {
-        parseError = {
-          code: 'output_missing',
-          message:
-            'Agent did not emit a parseable JSON object as its final message.',
-        };
-      } else {
-        const entry =
-          BUILT_IN_TASK_TYPES[
-            task.task_type as keyof typeof BUILT_IN_TASK_TYPES
-          ];
-        if (!entry) {
-          parseError = {
-            code: 'unknown_task_type',
-            message: `No output schema registered for task_type=${task.task_type}`,
-          };
-        } else {
-          const check = TypeCompiler.Compile(entry.outputSchema);
-          if (check.Check(extracted)) {
-            parsedOutput = extracted as Record<string, unknown>;
-          } else {
-            const errors = [...check.Errors(extracted)]
-              .slice(0, 3)
-              .map((e) => `${e.path}: ${e.message}`);
-            parseError = {
-              code: 'output_validation_failed',
-              message: `Output failed schema validation: ${errors.join('; ')}`,
-            };
-          }
-        }
-      }
+      const parsed = await parseStructuredTaskOutput(
+        assistantText,
+        task.task_type,
+      );
+      parsedOutput = parsed.output;
+      parsedOutputCid = parsed.outputCid;
+      parseError = parsed.error;
       if (parseError) {
         await emit('error', {
           message: parseError.message,
@@ -409,7 +380,7 @@ export async function executePiTask(
       attempt_n: attemptN,
       status,
       output: parsedOutput,
-      output_cid: null,
+      output_cid: parsedOutputCid,
       usage,
       duration_ms: Date.now() - startTime,
       ...(errorCode && errorMessage
@@ -454,8 +425,6 @@ function emptyUsage(provider: string, model: string): TaskUsage {
   };
 }
 
-export const __testables = { extractJsonObject, truncateForWire };
-
 /**
  * Cap oversized tool-result payloads before embedding them in a
  * `task_messages.payload` row. Bodies above 4 KiB are replaced with a
@@ -481,63 +450,4 @@ function truncateForWire(value: unknown): unknown {
   } catch {
     return { truncated: '[unserializable]', original_size: -1 };
   }
-}
-
-/**
- * Find the last balanced top-level JSON object in `text` and parse it.
- * Tolerates markdown fences and leading prose. Returns null if parsing fails.
- */
-function extractJsonObject(text: string): unknown {
-  if (!text) return null;
-
-  const fenceMatch = /```(?:json)?\s*([\s\S]*?)```/gi;
-  const candidates: string[] = [];
-  for (const m of text.matchAll(fenceMatch)) {
-    candidates.push(m[1]);
-  }
-
-  const scanForObject = (s: string): string | null => {
-    let depth = 0;
-    let start = -1;
-    let lastComplete: string | null = null;
-    let inString = false;
-    let escape = false;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (inString) {
-        if (escape) escape = false;
-        else if (ch === '\\') escape = true;
-        else if (ch === '"') inString = false;
-        continue;
-      }
-      if (ch === '"') {
-        inString = true;
-        continue;
-      }
-      if (ch === '{') {
-        if (depth === 0) start = i;
-        depth++;
-      } else if (ch === '}') {
-        depth--;
-        if (depth === 0 && start !== -1) {
-          lastComplete = s.slice(start, i + 1);
-          start = -1;
-        }
-      }
-    }
-    return lastComplete;
-  };
-
-  candidates.push(text);
-
-  for (let i = candidates.length - 1; i >= 0; i--) {
-    const obj = scanForObject(candidates[i]);
-    if (!obj) continue;
-    try {
-      return JSON.parse(obj);
-    } catch {
-      /* try next */
-    }
-  }
-  return null;
 }

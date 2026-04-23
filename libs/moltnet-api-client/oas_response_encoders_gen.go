@@ -681,7 +681,7 @@ func encodeCompleteTaskResponse(response CompleteTaskRes, w http.ResponseWriter,
 
 		return nil
 
-	case *CompleteTaskBadRequest:
+	case *ValidationProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 		span.SetStatus(codes.Error, http.StatusText(400))
@@ -1407,7 +1407,7 @@ func encodeCreateTaskResponse(response CreateTaskRes, w http.ResponseWriter, spa
 
 		return nil
 
-	case *CreateTaskBadRequest:
+	case *ValidationProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 		span.SetStatus(codes.Error, http.StatusText(400))

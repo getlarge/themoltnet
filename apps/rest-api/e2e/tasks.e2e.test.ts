@@ -281,7 +281,19 @@ describe('Tasks API', () => {
     });
 
     it('completes the task and returns completed status', async () => {
-      const output = { summary: 'test output', score: 0.95 };
+      const output = {
+        pack_id: '11111111-1111-4111-8111-111111111111',
+        pack_cid: 'bafycuratepackreceipt',
+        entries: [
+          {
+            entry_id: '22222222-2222-4222-8222-222222222222',
+            rank: 1,
+            rationale: 'Most relevant entry for the requested pack.',
+          },
+        ],
+        recipe_params: { recipe: 'topic-focused-v1' },
+        summary: 'Created a pack receipt for the curated diary entries.',
+      };
       const outputCid = await computeJsonCid(output);
 
       const { data, error } = await completeTask({
@@ -309,6 +321,38 @@ describe('Tasks API', () => {
       );
       expect(final.status).toBe('completed');
       expect(data).toBeDefined();
+    });
+
+    it('rejects invalid output with field-level validation errors', async () => {
+      const { data } = await impose({
+        task_prompt: 'Produce a malformed completion.',
+      });
+      const invalidTaskId = data!.id;
+
+      const { data: claimed } = await claim(invalidTaskId);
+      const invalidAttemptN = claimed!.attempt.attempt_n;
+
+      const badOutput = { summary: 42 };
+      const badOutputCid = await computeJsonCid(badOutput);
+
+      const { response, error } = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: invalidTaskId, n: invalidAttemptN },
+        body: {
+          output: badOutput,
+          output_cid: badOutputCid,
+          usage: { model: 'test-model', input_tokens: 1, output_tokens: 1 },
+        },
+      });
+
+      expect(response.status).toBe(400);
+      expect(error).toMatchObject({
+        code: 'VALIDATION_FAILED',
+        errors: expect.arrayContaining([
+          expect.objectContaining({ field: 'output/pack_id' }),
+        ]),
+      });
     });
 
     it('lists the completed attempt', async () => {

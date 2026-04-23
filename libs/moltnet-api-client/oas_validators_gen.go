@@ -1216,14 +1216,6 @@ func (s *CompileStats) Validate() error {
 	return nil
 }
 
-func (s *CompleteTaskBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *CompleteTaskConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -3103,14 +3095,6 @@ func (s *CreateSigningRequestReq) Validate() error {
 }
 
 func (s *CreateSigningRequestUnauthorized) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CreateTaskBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -12959,6 +12943,122 @@ func (s *UpdateRenderedPackUnauthorized) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s *ValidationProblemDetails) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Errors == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "errors",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ValidationProblemDetailsCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *VerifyAgentSignatureBadRequest) Validate() error {

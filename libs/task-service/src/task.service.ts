@@ -21,9 +21,11 @@ import {
   type TaskError,
   type TaskMessage,
   type TaskUsage,
+  type TaskValidationError,
+  validateTaskCreateRequest,
+  validateTaskOutput,
 } from '@moltnet/tasks';
 import type { TSchema } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
 
 interface TaskTypeEntry {
   readonly name: string;
@@ -61,6 +63,7 @@ export class TaskServiceError extends Error {
       | 'timed_out'
       | 'unknown_task_type',
     message: string,
+    public readonly validationErrors?: TaskValidationError[],
   ) {
     super(message);
     this.name = 'TaskServiceError';
@@ -162,32 +165,47 @@ export function createTaskService(deps: TaskServiceDeps) {
 
   return {
     async create(input: CreateTaskInput): Promise<Task> {
-      const taskTypeDef = (
-        BUILT_IN_TASK_TYPES as Record<string, TaskTypeEntry | undefined>
-      )[input.taskType];
-      if (!taskTypeDef) {
-        throw new TaskServiceError(
-          'unknown_task_type',
-          `Unknown task type: ${input.taskType}`,
-        );
-      }
-
-      if (!Value.Check(taskTypeDef.inputSchema, input.inputPayload)) {
+      const createErrors = validateTaskCreateRequest({
+        taskType: input.taskType,
+        input: input.inputPayload,
+        criteriaCid: input.criteriaCid,
+        references: input.references as Task['references'] | undefined,
+      });
+      if (createErrors.length > 0) {
         throw new TaskServiceError(
           'invalid',
-          `Input does not match schema for task type: ${input.taskType}`,
+          `Task create payload failed validation for task type: ${input.taskType}`,
+          createErrors,
         );
       }
 
-      if (taskTypeDef.validateInput) {
-        const validationError = taskTypeDef.validateInput(input.inputPayload);
-        if (validationError) {
-          throw new TaskServiceError('invalid', validationError);
-        }
+      const taskTypes = BUILT_IN_TASK_TYPES as Record<
+        string,
+        TaskTypeEntry | undefined
+      >;
+      const taskTypeDef = Object.prototype.hasOwnProperty.call(
+        taskTypes,
+        input.taskType,
+      )
+        ? taskTypes[input.taskType]
+        : undefined;
+      if (!taskTypeDef) {
+        throw new TaskServiceError(
+          'invalid',
+          `Unknown task type: ${input.taskType}`,
+          [
+            {
+              field: 'task_type',
+              message: `Unknown task type: ${input.taskType}`,
+            },
+          ],
+        );
       }
 
       if (!input.diaryId) {
-        throw new TaskServiceError('invalid', 'diary_id is required');
+        throw new TaskServiceError('invalid', 'diary_id is required', [
+          { field: 'diary_id', message: 'diary_id is required' },
+        ]);
       }
 
       const diary = await diaryRepository.findById(input.diaryId);
@@ -211,8 +229,14 @@ export function createTaskService(deps: TaskServiceDeps) {
       const inputSchemaCid = schemaCids.get(input.taskType);
       if (!inputSchemaCid) {
         throw new TaskServiceError(
-          'unknown_task_type',
+          'invalid',
           `Schema CID not found for: ${input.taskType}`,
+          [
+            {
+              field: 'task_type',
+              message: `Schema CID not found for: ${input.taskType}`,
+            },
+          ],
         );
       }
       const inputCid = await computeJsonCid(input.inputPayload);
@@ -478,6 +502,9 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Not authorized to report on this task',
         );
 
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
         throw new TaskServiceError('not_found', 'Attempt not found');
@@ -485,6 +512,29 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError(
           'forbidden',
           'Only the claiming agent may complete this attempt',
+        );
+      }
+
+      const outputErrors = validateTaskOutput(task.taskType, body.output);
+      if (outputErrors.length > 0) {
+        throw new TaskServiceError(
+          'invalid',
+          `Task output failed validation for task type: ${task.taskType}`,
+          outputErrors,
+        );
+      }
+
+      const computedOutputCid = await computeJsonCid(body.output);
+      if (computedOutputCid !== body.outputCid) {
+        throw new TaskServiceError(
+          'invalid',
+          'output_cid does not match the canonical CID of output',
+          [
+            {
+              field: 'output_cid',
+              message: `Expected ${computedOutputCid} for the supplied output`,
+            },
+          ],
         );
       }
 

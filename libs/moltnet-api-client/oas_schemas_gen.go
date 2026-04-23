@@ -1344,10 +1344,6 @@ func (s *CompileStats) SetTotalTokens(val float64) {
 	s.TotalTokens = val
 }
 
-type CompleteTaskBadRequest ProblemDetails
-
-func (*CompleteTaskBadRequest) completeTaskRes() {}
-
 type CompleteTaskConflict ProblemDetails
 
 func (*CompleteTaskConflict) completeTaskRes() {}
@@ -3266,10 +3262,6 @@ func (s *CreateSigningRequestReq) SetMessage(val string) {
 type CreateSigningRequestUnauthorized ProblemDetails
 
 func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
-
-type CreateTaskBadRequest ProblemDetails
-
-func (*CreateTaskBadRequest) createTaskRes() {}
 
 type CreateTaskForbidden ProblemDetails
 
@@ -20816,6 +20808,332 @@ func (s *UpdateRenderedPackReq) SetPinned(val OptBool) {
 type UpdateRenderedPackUnauthorized ProblemDetails
 
 func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
+
+// Merged schema.
+// Ref: #/components/schemas/ValidationProblemDetails
+type ValidationProblemDetails struct {
+	Code     ValidationProblemDetailsCode         `json:"code"`
+	Detail   OptString                            `json:"detail"`
+	Instance OptString                            `json:"instance"`
+	Status   int                                  `json:"status"`
+	Title    string                               `json:"title"`
+	Type     url.URL                              `json:"type"`
+	Errors   []ValidationProblemDetailsErrorsItem `json:"errors"`
+}
+
+// GetCode returns the value of Code.
+func (s *ValidationProblemDetails) GetCode() ValidationProblemDetailsCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *ValidationProblemDetails) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *ValidationProblemDetails) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *ValidationProblemDetails) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *ValidationProblemDetails) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *ValidationProblemDetails) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *ValidationProblemDetails) GetErrors() []ValidationProblemDetailsErrorsItem {
+	return s.Errors
+}
+
+// SetCode sets the value of Code.
+func (s *ValidationProblemDetails) SetCode(val ValidationProblemDetailsCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ValidationProblemDetails) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *ValidationProblemDetails) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ValidationProblemDetails) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ValidationProblemDetails) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *ValidationProblemDetails) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *ValidationProblemDetails) SetErrors(val []ValidationProblemDetailsErrorsItem) {
+	s.Errors = val
+}
+
+func (*ValidationProblemDetails) completeTaskRes() {}
+func (*ValidationProblemDetails) createTaskRes()   {}
+
+type ValidationProblemDetailsCode string
+
+const (
+	ValidationProblemDetailsCodeUNAUTHORIZED                   ValidationProblemDetailsCode = "UNAUTHORIZED"
+	ValidationProblemDetailsCodeFORBIDDEN                      ValidationProblemDetailsCode = "FORBIDDEN"
+	ValidationProblemDetailsCodeNOTFOUND                       ValidationProblemDetailsCode = "NOT_FOUND"
+	ValidationProblemDetailsCodeCONFLICT                       ValidationProblemDetailsCode = "CONFLICT"
+	ValidationProblemDetailsCodeVALIDATIONFAILED               ValidationProblemDetailsCode = "VALIDATION_FAILED"
+	ValidationProblemDetailsCodeINVALIDCHALLENGE               ValidationProblemDetailsCode = "INVALID_CHALLENGE"
+	ValidationProblemDetailsCodeINVALIDSIGNATURE               ValidationProblemDetailsCode = "INVALID_SIGNATURE"
+	ValidationProblemDetailsCodeVOUCHERLIMIT                   ValidationProblemDetailsCode = "VOUCHER_LIMIT"
+	ValidationProblemDetailsCodeRATELIMITEXCEEDED              ValidationProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
+	ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED         ValidationProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
+	ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED          ValidationProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
+	ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED ValidationProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ValidationProblemDetailsCodeREGISTRATIONFAILED             ValidationProblemDetailsCode = "REGISTRATION_FAILED"
+	ValidationProblemDetailsCodeUPSTREAMERROR                  ValidationProblemDetailsCode = "UPSTREAM_ERROR"
+	ValidationProblemDetailsCodeSERVICEUNAVAILABLE             ValidationProblemDetailsCode = "SERVICE_UNAVAILABLE"
+	ValidationProblemDetailsCodeINTERNALSERVERERROR            ValidationProblemDetailsCode = "INTERNAL_SERVER_ERROR"
+	ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE          ValidationProblemDetailsCode = "TEAM_PERSONAL_IMMUTABLE"
+	ValidationProblemDetailsCodeTEAMNOTACTIVE                  ValidationProblemDetailsCode = "TEAM_NOT_ACTIVE"
+	ValidationProblemDetailsCodeINVITEEXPIRED                  ValidationProblemDetailsCode = "INVITE_EXPIRED"
+	ValidationProblemDetailsCodeINVITEEXHAUSTED                ValidationProblemDetailsCode = "INVITE_EXHAUSTED"
+	ValidationProblemDetailsCodeTEAMLASTOWNER                  ValidationProblemDetailsCode = "TEAM_LAST_OWNER"
+	ValidationProblemDetailsCodeTEAMALREADYACTIVE              ValidationProblemDetailsCode = "TEAM_ALREADY_ACTIVE"
+	ValidationProblemDetailsCodeTEAMNOTFOUNDING                ValidationProblemDetailsCode = "TEAM_NOT_FOUNDING"
+	ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED        ValidationProblemDetailsCode = "FOUNDING_ALREADY_ACCEPTED"
+	ValidationProblemDetailsCodeDIARYTRANSFERPENDING           ValidationProblemDetailsCode = "DIARY_TRANSFER_PENDING"
+	ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND          ValidationProblemDetailsCode = "DIARY_TRANSFER_NOT_FOUND"
+	ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED   ValidationProblemDetailsCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all ValidationProblemDetailsCode values.
+func (ValidationProblemDetailsCode) AllValues() []ValidationProblemDetailsCode {
+	return []ValidationProblemDetailsCode{
+		ValidationProblemDetailsCodeUNAUTHORIZED,
+		ValidationProblemDetailsCodeFORBIDDEN,
+		ValidationProblemDetailsCodeNOTFOUND,
+		ValidationProblemDetailsCodeCONFLICT,
+		ValidationProblemDetailsCodeVALIDATIONFAILED,
+		ValidationProblemDetailsCodeINVALIDCHALLENGE,
+		ValidationProblemDetailsCodeINVALIDSIGNATURE,
+		ValidationProblemDetailsCodeVOUCHERLIMIT,
+		ValidationProblemDetailsCodeRATELIMITEXCEEDED,
+		ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED,
+		ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED,
+		ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ValidationProblemDetailsCodeREGISTRATIONFAILED,
+		ValidationProblemDetailsCodeUPSTREAMERROR,
+		ValidationProblemDetailsCodeSERVICEUNAVAILABLE,
+		ValidationProblemDetailsCodeINTERNALSERVERERROR,
+		ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE,
+		ValidationProblemDetailsCodeTEAMNOTACTIVE,
+		ValidationProblemDetailsCodeINVITEEXPIRED,
+		ValidationProblemDetailsCodeINVITEEXHAUSTED,
+		ValidationProblemDetailsCodeTEAMLASTOWNER,
+		ValidationProblemDetailsCodeTEAMALREADYACTIVE,
+		ValidationProblemDetailsCodeTEAMNOTFOUNDING,
+		ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED,
+		ValidationProblemDetailsCodeDIARYTRANSFERPENDING,
+		ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND,
+		ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ValidationProblemDetailsCode) MarshalText() ([]byte, error) {
+	switch s {
+	case ValidationProblemDetailsCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeFORBIDDEN:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeNOTFOUND:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeCONFLICT:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ValidationProblemDetailsCode) UnmarshalText(data []byte) error {
+	switch ValidationProblemDetailsCode(data) {
+	case ValidationProblemDetailsCodeUNAUTHORIZED:
+		*s = ValidationProblemDetailsCodeUNAUTHORIZED
+		return nil
+	case ValidationProblemDetailsCodeFORBIDDEN:
+		*s = ValidationProblemDetailsCodeFORBIDDEN
+		return nil
+	case ValidationProblemDetailsCodeNOTFOUND:
+		*s = ValidationProblemDetailsCodeNOTFOUND
+		return nil
+	case ValidationProblemDetailsCodeCONFLICT:
+		*s = ValidationProblemDetailsCodeCONFLICT
+		return nil
+	case ValidationProblemDetailsCodeVALIDATIONFAILED:
+		*s = ValidationProblemDetailsCodeVALIDATIONFAILED
+		return nil
+	case ValidationProblemDetailsCodeINVALIDCHALLENGE:
+		*s = ValidationProblemDetailsCodeINVALIDCHALLENGE
+		return nil
+	case ValidationProblemDetailsCodeINVALIDSIGNATURE:
+		*s = ValidationProblemDetailsCodeINVALIDSIGNATURE
+		return nil
+	case ValidationProblemDetailsCodeVOUCHERLIMIT:
+		*s = ValidationProblemDetailsCodeVOUCHERLIMIT
+		return nil
+	case ValidationProblemDetailsCodeRATELIMITEXCEEDED:
+		*s = ValidationProblemDetailsCodeRATELIMITEXCEEDED
+		return nil
+	case ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		*s = ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		*s = ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ValidationProblemDetailsCodeREGISTRATIONFAILED:
+		*s = ValidationProblemDetailsCodeREGISTRATIONFAILED
+		return nil
+	case ValidationProblemDetailsCodeUPSTREAMERROR:
+		*s = ValidationProblemDetailsCodeUPSTREAMERROR
+		return nil
+	case ValidationProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = ValidationProblemDetailsCodeSERVICEUNAVAILABLE
+		return nil
+	case ValidationProblemDetailsCodeINTERNALSERVERERROR:
+		*s = ValidationProblemDetailsCodeINTERNALSERVERERROR
+		return nil
+	case ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = ValidationProblemDetailsCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ValidationProblemDetailsCodeTEAMNOTACTIVE:
+		*s = ValidationProblemDetailsCodeTEAMNOTACTIVE
+		return nil
+	case ValidationProblemDetailsCodeINVITEEXPIRED:
+		*s = ValidationProblemDetailsCodeINVITEEXPIRED
+		return nil
+	case ValidationProblemDetailsCodeINVITEEXHAUSTED:
+		*s = ValidationProblemDetailsCodeINVITEEXHAUSTED
+		return nil
+	case ValidationProblemDetailsCodeTEAMLASTOWNER:
+		*s = ValidationProblemDetailsCodeTEAMLASTOWNER
+		return nil
+	case ValidationProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = ValidationProblemDetailsCodeTEAMALREADYACTIVE
+		return nil
+	case ValidationProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = ValidationProblemDetailsCodeTEAMNOTFOUNDING
+		return nil
+	case ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = ValidationProblemDetailsCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ValidationProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = ValidationProblemDetailsCodeDIARYTRANSFERPENDING
+		return nil
+	case ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = ValidationProblemDetailsCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ValidationProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ValidationProblemDetailsErrorsItem struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// GetField returns the value of Field.
+func (s *ValidationProblemDetailsErrorsItem) GetField() string {
+	return s.Field
+}
+
+// GetMessage returns the value of Message.
+func (s *ValidationProblemDetailsErrorsItem) GetMessage() string {
+	return s.Message
+}
+
+// SetField sets the value of Field.
+func (s *ValidationProblemDetailsErrorsItem) SetField(val string) {
+	s.Field = val
+}
+
+// SetMessage sets the value of Message.
+func (s *ValidationProblemDetailsErrorsItem) SetMessage(val string) {
+	s.Message = val
+}
 
 type VerifyAgentSignatureBadRequest ProblemDetails
 

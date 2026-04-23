@@ -1178,6 +1178,9 @@ importers:
       '@moltnet/agent-runtime':
         specifier: workspace:*
         version: link:../agent-runtime
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
