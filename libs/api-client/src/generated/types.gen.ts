@@ -6066,7 +6066,7 @@ export type CreateTaskErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */
@@ -6228,7 +6228,7 @@ export type CompleteTaskErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */

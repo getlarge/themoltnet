@@ -6,11 +6,7 @@
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { describe, expect, it } from 'vitest';
 
-// Re-export of a private helper for testing. We reach into the compiled
-// module via a named import added specifically for this test surface.
-import { __testables } from './execute-pi-task.js';
-
-const { extractJsonObject, parseStructuredTaskOutput } = __testables;
+import { extractJsonObject, parseStructuredTaskOutput } from './task-output.js';
 
 describe('extractJsonObject', () => {
   it('returns null for empty input', () => {
