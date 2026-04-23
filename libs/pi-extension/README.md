@@ -69,13 +69,6 @@ After the VM starts, the same env vars are applied to the host process
 and pack tools that run on the host — to authenticate as the same agent
 without a second login.
 
-### Known limitation
-
-`moltnet.json.github.private_key_path` still points at a host-only PEM
-path. `moltnet github token` therefore fails inside the VM. `git push` and
-`gh pr` still work because those use the injected SSH key + gitconfig
-credential helper. Tracked in [#907](https://github.com/getlarge/themoltnet/issues/907).
-
 ## Tool split: VM vs host
 
 Credentials are intentionally available in **both** contexts. The VM has the

@@ -35,6 +35,10 @@ export class ApiTaskReporter implements TaskReporter {
   }
 
   async open(ctx: { taskId: string; attemptN: number }): Promise<void> {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
     this.taskId = ctx.taskId;
     this.attemptN = ctx.attemptN;
 
@@ -107,9 +111,7 @@ export class ApiTaskReporter implements TaskReporter {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          this.opts.leaseTtlSec
-            ? { lease_ttl_sec: this.opts.leaseTtlSec }
-            : {},
+          this.opts.leaseTtlSec ? { lease_ttl_sec: this.opts.leaseTtlSec } : {},
         ),
       },
     );

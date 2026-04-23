@@ -63,9 +63,19 @@ if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 0) {
 
 async function main() {
   const cwd = process.cwd();
-  const sandboxConfig = JSON.parse(
-    readFileSync(join(cwd, 'sandbox.json'), 'utf8'),
-  ) as SandboxConfig;
+  const sandboxJsonPath = join(cwd, 'sandbox.json');
+  let sandboxConfig: SandboxConfig;
+  try {
+    sandboxConfig = JSON.parse(readFileSync(sandboxJsonPath, 'utf8'));
+  } catch (err) {
+    const isEnoent =
+      err instanceof Error && 'code' in err && err.code === 'ENOENT';
+    throw new Error(
+      isEnoent
+        ? `sandbox.json not found at ${sandboxJsonPath}. Run work-task from the worktree root.`
+        : `Failed to read sandbox.json: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',

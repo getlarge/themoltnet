@@ -35,7 +35,6 @@ export class ApiTaskSource implements TaskSource {
 
   async claim(): Promise<ClaimedTask | null> {
     if (this.claimed) return null;
-    this.claimed = true;
 
     const token = await this.opts.auth();
     const response = await this.fetchImpl(
@@ -47,9 +46,7 @@ export class ApiTaskSource implements TaskSource {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          this.opts.leaseTtlSec
-            ? { lease_ttl_sec: this.opts.leaseTtlSec }
-            : {},
+          this.opts.leaseTtlSec ? { lease_ttl_sec: this.opts.leaseTtlSec } : {},
         ),
       },
     );
@@ -60,6 +57,7 @@ export class ApiTaskSource implements TaskSource {
           `${response.status} ${response.statusText}`,
       );
     }
+    this.claimed = true;
 
     const body = (await response.json()) as ClaimTaskResponse;
     if (!Value.Check(Task, body.task)) {
