@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.19.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.19.0...moltnet-api-client-v1.19.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **ci:** regenerate go task api client ([0a5939d](https://github.com/getlarge/themoltnet/commit/0a5939d1c3b7123b6c8e8df91155cf1630ba8eb7))
+* **rest-api:** regenerate OpenAPI spec and API clients after after_seq schema change ([ce34c1c](https://github.com/getlarge/themoltnet/commit/ce34c1c23fc3c69b0ed3dbc839197f0d9af8ed2f))
+* **tasks:** camelCase task contracts and expose tasks SDK ([ccbf203](https://github.com/getlarge/themoltnet/commit/ccbf203de6b1cce86c7e38ef27ac3c5d0954f13c))
+
+
+### Codegen
+
+* **api:** regenerate task client artifacts ([ab5088c](https://github.com/getlarge/themoltnet/commit/ab5088cc80b363a68ade3ed3d062b9a840b3f3a8))
+
 ## [1.19.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.18.0...moltnet-api-client-v1.19.0) (2026-04-23)
 
 
