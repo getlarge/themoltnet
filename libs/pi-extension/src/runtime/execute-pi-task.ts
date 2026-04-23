@@ -43,7 +43,10 @@ import {
 import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { connect } from '@themoltnet/sdk';
 
-import { createMoltNetTools } from '../moltnet/tools.js';
+import {
+  createMoltNetTools,
+  HOST_EXEC_DEFAULT_BASE_ENV,
+} from '../moltnet/tools.js';
 import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
@@ -234,6 +237,12 @@ export async function executePiTask(
 
     try {
       const moltnetAgent = await connect({ configDir: managed.agentDir });
+      // Build the host-exec env allowlist: default keys + all agent env keys
+      // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
+      const hostExecBaseEnv = new Set([
+        ...HOST_EXEC_DEFAULT_BASE_ENV,
+        ...Object.keys(managed.credentials.agentEnv),
+      ]);
       const moltnetTools = createMoltNetTools({
         getAgent: () => moltnetAgent,
         getDiaryId: () => diaryId,
@@ -242,6 +251,7 @@ export async function executePiTask(
           /* no-op in headless mode */
         },
         getHostCwd: () => mountPath,
+        hostExecBaseEnv,
       });
 
       const piAuthDir = join(homedir(), '.pi', 'agent');

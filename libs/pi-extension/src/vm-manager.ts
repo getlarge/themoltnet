@@ -112,18 +112,20 @@ export function loadCredentials(agentDir: string): VmCredentials {
   // injecting the JSON into the guest — done in resumeVm.
   let githubAppPem: string | null = null;
   let githubAppPemFilename: string | null = null;
-  try {
-    const moltnetConfig = JSON.parse(moltnetJson) as {
-      github?: { private_key_path?: string };
-    };
-    const pemPath = moltnetConfig.github?.private_key_path;
-    if (pemPath && existsSync(pemPath)) {
+  const moltnetConfigParsed = JSON.parse(moltnetJson) as {
+    github?: { private_key_path?: string };
+  };
+  const pemPath = moltnetConfigParsed.github?.private_key_path;
+  if (pemPath) {
+    if (!existsSync(pemPath)) {
+      process.stderr.write(
+        `[pi-extension] Warning: github.private_key_path not found at ${pemPath} — ` +
+          'moltnet github token will fail inside the guest\n',
+      );
+    } else {
       githubAppPem = readFileSync(pemPath, 'utf8');
       githubAppPemFilename = path.basename(pemPath);
     }
-  } catch {
-    // moltnet.json parse failure or missing PEM is non-fatal; token derivation
-    // will simply fail inside the guest if the file is absent.
   }
 
   return {
@@ -365,12 +367,14 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
  * Rewrite host-absolute paths inside moltnet.json to VM-local equivalents.
  *
  * Fields rewritten:
- *   ssh.private_key_path  → <vmSshDir>/id_ed25519
- *   ssh.public_key_path   → <vmSshDir>/id_ed25519.pub
+ *   ssh.private_key_path  → <vmSshDir>/<basename of original>
+ *   ssh.public_key_path   → <vmSshDir>/<basename of original>
  *   git.config_path       → <vmAgentDir>/gitconfig
  *   github.private_key_path → <vmAgentDir>/<pemFilename>  (if present)
  *
  * All other fields are passed through unchanged.
+ * Throws if moltnetJson is not valid JSON — callers must not inject a broken
+ * moltnet.json into the guest.
  */
 export function rewriteMoltnetJsonPaths(
   moltnetJson: string,
@@ -378,18 +382,23 @@ export function rewriteMoltnetJsonPaths(
   vmSshDir: string,
   githubAppPemFilename: string | null,
 ): string {
-  let config: Record<string, unknown>;
-  try {
-    config = JSON.parse(moltnetJson) as Record<string, unknown>;
-  } catch {
-    return moltnetJson;
-  }
+  const config = JSON.parse(moltnetJson) as Record<string, unknown>;
 
   if (config.ssh && typeof config.ssh === 'object') {
-    const ssh = { ...(config.ssh as Record<string, unknown>) };
-    ssh.private_key_path = `${vmSshDir}/id_ed25519`;
-    ssh.public_key_path = `${vmSshDir}/id_ed25519.pub`;
-    config.ssh = ssh;
+    const ssh = config.ssh as Record<string, unknown>;
+    const origPrivate =
+      typeof ssh.private_key_path === 'string' ? ssh.private_key_path : null;
+    const origPublic =
+      typeof ssh.public_key_path === 'string' ? ssh.public_key_path : null;
+    config.ssh = {
+      ...ssh,
+      ...(origPrivate !== null && {
+        private_key_path: `${vmSshDir}/${path.basename(origPrivate)}`,
+      }),
+      ...(origPublic !== null && {
+        public_key_path: `${vmSshDir}/${path.basename(origPublic)}`,
+      }),
+    };
   }
 
   if (config.git && typeof config.git === 'object') {

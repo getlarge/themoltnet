@@ -1,12 +1,18 @@
 /**
  * Unit tests for vm-manager helpers:
  *   - rewriteMoltnetJsonPaths: portability of host-absolute paths into VM
+ *   - loadCredentials: PEM reading and filename extraction
  *   - ensureRelativeWorktreePaths: gitconfig mutation (pre-existing)
  */
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
   ensureRelativeWorktreePaths,
+  loadCredentials,
   rewriteMoltnetJsonPaths,
 } from './vm-manager.js';
 
@@ -18,7 +24,7 @@ describe('rewriteMoltnetJsonPaths', () => {
   const vmAgentDir = '/home/agent/.moltnet/legreffier';
   const vmSshDir = `${vmAgentDir}/ssh`;
 
-  it('rewrites ssh paths to VM-local equivalents', () => {
+  it('rewrites ssh paths to VM-local equivalents, preserving basename', () => {
     const input = JSON.stringify({
       identity_id: 'abc',
       ssh: {
@@ -34,6 +40,22 @@ describe('rewriteMoltnetJsonPaths', () => {
     expect(output.ssh.private_key_path).toBe(`${vmSshDir}/id_ed25519`);
     expect(output.ssh.public_key_path).toBe(`${vmSshDir}/id_ed25519.pub`);
     expect(output.identity_id).toBe('abc');
+  });
+
+  it('preserves custom SSH key basename (e.g. id_ecdsa)', () => {
+    const input = JSON.stringify({
+      ssh: {
+        private_key_path: '/Users/ed/.moltnet/myagent/ssh/id_ecdsa',
+        public_key_path: '/Users/ed/.moltnet/myagent/ssh/id_ecdsa.pub',
+      },
+    });
+
+    const output = JSON.parse(
+      rewriteMoltnetJsonPaths(input, vmAgentDir, vmSshDir, null),
+    );
+
+    expect(output.ssh.private_key_path).toBe(`${vmSshDir}/id_ecdsa`);
+    expect(output.ssh.public_key_path).toBe(`${vmSshDir}/id_ecdsa.pub`);
   });
 
   it('rewrites git.config_path to VM-local gitconfig', () => {
@@ -101,9 +123,10 @@ describe('rewriteMoltnetJsonPaths', () => {
     expect(output.endpoints.api).toBe('https://api.themolt.net');
   });
 
-  it('returns the original string if JSON.parse throws', () => {
-    const bad = 'not json {{{';
-    expect(rewriteMoltnetJsonPaths(bad, vmAgentDir, vmSshDir, null)).toBe(bad);
+  it('throws if moltnetJson is not valid JSON', () => {
+    expect(() =>
+      rewriteMoltnetJsonPaths('not json {{{', vmAgentDir, vmSshDir, null),
+    ).toThrow();
   });
 
   it('handles a full moltnet.json fixture end-to-end', () => {
@@ -151,6 +174,135 @@ describe('rewriteMoltnetJsonPaths', () => {
     );
     expect(output.github.app_id).toBe('2878569');
     expect(output.github.installation_id).toBe('110518607');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// loadCredentials — PEM reading (finding 7)
+// ---------------------------------------------------------------------------
+
+describe('loadCredentials PEM reading', () => {
+  function makeAgentDir(opts: {
+    pemContent?: string;
+    pemFilename?: string;
+    moltnetJsonGithub?: object | null;
+  }): string {
+    const dir = mkdtempSync(path.join(tmpdir(), 'pi-test-'));
+
+    // Minimal moltnet.json
+    const github =
+      opts.moltnetJsonGithub !== undefined
+        ? opts.moltnetJsonGithub
+        : opts.pemFilename
+          ? {
+              app_id: '123',
+              private_key_path: path.join(dir, opts.pemFilename),
+            }
+          : undefined;
+    writeFileSync(
+      path.join(dir, 'moltnet.json'),
+      JSON.stringify({
+        identity_id: 'test',
+        endpoints: { api: 'https://api.themolt.net' },
+        ...(github !== null && github !== undefined ? { github } : {}),
+      }),
+    );
+    writeFileSync(path.join(dir, 'env'), 'MOLTNET_AGENT_NAME=test\n');
+
+    if (opts.pemContent && opts.pemFilename) {
+      writeFileSync(path.join(dir, opts.pemFilename), opts.pemContent);
+    }
+
+    // Minimal SSH dir (loadCredentials won't throw if files are absent)
+    mkdirSync(path.join(dir, 'ssh'), { recursive: true });
+
+    return dir;
+  }
+
+  it('loads PEM content and filename when configured and file exists', () => {
+    const dir = makeAgentDir({
+      pemContent:
+        '-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n',
+      pemFilename: 'app.pem',
+    });
+    try {
+      // loadCredentials requires pi auth.json; stub HOME to a temp dir
+      const oldHome = process.env.HOME;
+      const fakeHome = mkdtempSync(path.join(tmpdir(), 'pi-home-'));
+      mkdirSync(path.join(fakeHome, '.pi', 'agent'), { recursive: true });
+      writeFileSync(
+        path.join(fakeHome, '.pi', 'agent', 'auth.json'),
+        JSON.stringify({ token: 'fake' }),
+      );
+      process.env.HOME = fakeHome;
+      try {
+        const creds = loadCredentials(dir);
+        expect(creds.githubAppPem).toContain('BEGIN RSA PRIVATE KEY');
+        expect(creds.githubAppPemFilename).toBe('app.pem');
+      } finally {
+        process.env.HOME = oldHome;
+        rmSync(fakeHome, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('sets githubAppPem/Filename to null when no github config in moltnet.json', () => {
+    const dir = makeAgentDir({ moltnetJsonGithub: null });
+    const oldHome = process.env.HOME;
+    const fakeHome = mkdtempSync(path.join(tmpdir(), 'pi-home-'));
+    mkdirSync(path.join(fakeHome, '.pi', 'agent'), { recursive: true });
+    writeFileSync(
+      path.join(fakeHome, '.pi', 'agent', 'auth.json'),
+      JSON.stringify({ token: 'fake' }),
+    );
+    process.env.HOME = fakeHome;
+    try {
+      const creds = loadCredentials(dir);
+      expect(creds.githubAppPem).toBeNull();
+      expect(creds.githubAppPemFilename).toBeNull();
+    } finally {
+      process.env.HOME = oldHome;
+      rmSync(fakeHome, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('sets githubAppPem to null and writes a warning when PEM file is missing', () => {
+    const missingPemPath = path.join(tmpdir(), 'nonexistent-pem-sentinel.pem');
+    const dir = makeAgentDir({
+      moltnetJsonGithub: {
+        app_id: '123',
+        private_key_path: missingPemPath,
+      },
+    });
+    const oldHome = process.env.HOME;
+    const fakeHome = mkdtempSync(path.join(tmpdir(), 'pi-home-'));
+    mkdirSync(path.join(fakeHome, '.pi', 'agent'), { recursive: true });
+    writeFileSync(
+      path.join(fakeHome, '.pi', 'agent', 'auth.json'),
+      JSON.stringify({ token: 'fake' }),
+    );
+    process.env.HOME = fakeHome;
+    const stderrChunks: string[] = [];
+    const origWrite = process.stderr.write.bind(process.stderr);
+    process.stderr.write = (chunk: unknown) => {
+      stderrChunks.push(String(chunk));
+      return true;
+    };
+    try {
+      const creds = loadCredentials(dir);
+      expect(creds.githubAppPem).toBeNull();
+      expect(stderrChunks.join('')).toMatch(
+        /Warning.*nonexistent-pem-sentinel/,
+      );
+    } finally {
+      process.stderr.write = origWrite;
+      process.env.HOME = oldHome;
+      rmSync(fakeHome, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
