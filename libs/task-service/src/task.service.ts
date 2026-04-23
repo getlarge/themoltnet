@@ -20,10 +20,12 @@ import {
   type TaskAttempt,
   type TaskError,
   type TaskMessage,
+  type TaskValidationError,
   type TaskUsage,
+  validateTaskCreateRequest,
+  validateTaskOutput,
 } from '@moltnet/tasks';
 import type { TSchema } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
 
 interface TaskTypeEntry {
   readonly name: string;
@@ -61,6 +63,7 @@ export class TaskServiceError extends Error {
       | 'timed_out'
       | 'unknown_task_type',
     message: string,
+    public readonly validationErrors?: TaskValidationError[],
   ) {
     super(message);
     this.name = 'TaskServiceError';
@@ -172,18 +175,18 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      if (!Value.Check(taskTypeDef.inputSchema, input.inputPayload)) {
+      const createErrors = validateTaskCreateRequest({
+        taskType: input.taskType,
+        input: input.inputPayload,
+        criteriaCid: input.criteriaCid,
+        references: input.references as Task['references'] | undefined,
+      });
+      if (createErrors.length > 0) {
         throw new TaskServiceError(
           'invalid',
-          `Input does not match schema for task type: ${input.taskType}`,
+          `Task create payload failed validation for task type: ${input.taskType}`,
+          createErrors,
         );
-      }
-
-      if (taskTypeDef.validateInput) {
-        const validationError = taskTypeDef.validateInput(input.inputPayload);
-        if (validationError) {
-          throw new TaskServiceError('invalid', validationError);
-        }
       }
 
       if (!input.diaryId) {
@@ -478,6 +481,9 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Not authorized to report on this task',
         );
 
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
         throw new TaskServiceError('not_found', 'Attempt not found');
@@ -485,6 +491,29 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError(
           'forbidden',
           'Only the claiming agent may complete this attempt',
+        );
+      }
+
+      const outputErrors = validateTaskOutput(task.taskType, body.output);
+      if (outputErrors.length > 0) {
+        throw new TaskServiceError(
+          'invalid',
+          `Task output failed validation for task type: ${task.taskType}`,
+          outputErrors,
+        );
+      }
+
+      const computedOutputCid = await computeJsonCid(body.output);
+      if (computedOutputCid !== body.outputCid) {
+        throw new TaskServiceError(
+          'invalid',
+          'output_cid does not match the canonical CID of output',
+          [
+            {
+              field: 'output_cid',
+              message: `Expected ${computedOutputCid} for the supplied output`,
+            },
+          ],
         );
       }
 

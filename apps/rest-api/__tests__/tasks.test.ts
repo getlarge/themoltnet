@@ -16,11 +16,11 @@ const ATTEMPT_N = 1;
 
 const MOCK_TASK = {
   id: TASK_ID,
-  task_type: 'context_distill',
+  task_type: 'fulfill_brief',
   team_id: TEAM_ID,
   diary_id: DIARY_ID,
   output_kind: 'artifact' as const,
-  input: { token_budget: 1000 },
+  input: { brief: 'Ship a task worker.' },
   input_schema_cid: 'bafy1',
   input_cid: 'bafy2',
   criteria_cid: null,
@@ -72,17 +72,17 @@ describe('POST /tasks', () => {
       url: '/tasks',
       headers: { authorization: 'Bearer test-token' },
       payload: {
-        task_type: 'context_distill',
+        task_type: 'fulfill_brief',
         team_id: TEAM_ID,
         diary_id: DIARY_ID,
-        input: { token_budget: 1000 },
+        input: { brief: 'Ship a task worker.' },
       },
     });
 
     expect(response.statusCode).toBe(201);
     expect(response.json()).toMatchObject({
       id: TASK_ID,
-      task_type: 'context_distill',
+      task_type: 'fulfill_brief',
     });
     expect(mocks.taskService.create).toHaveBeenCalledOnce();
   });
@@ -93,7 +93,7 @@ describe('POST /tasks', () => {
       method: 'POST',
       url: '/tasks',
       payload: {
-        task_type: 'context_distill',
+        task_type: 'fulfill_brief',
         team_id: TEAM_ID,
         diary_id: DIARY_ID,
         input: {},
@@ -118,7 +118,7 @@ describe('POST /tasks', () => {
       url: '/tasks',
       headers: { authorization: 'Bearer test-token' },
       payload: {
-        task_type: 'context_distill',
+        task_type: 'fulfill_brief',
         team_id: 'not-a-uuid',
         input: {},
       },
@@ -306,7 +306,13 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/complete`,
       headers: { authorization: 'Bearer test-token' },
       payload: {
-        output: { result: 'done' },
+        output: {
+          branch: 'feat/tasks-api',
+          commits: [],
+          pull_request_url: null,
+          diary_entry_ids: [],
+          summary: 'Completed the task successfully.',
+        },
         output_cid: 'bafy-output',
         usage: { input_tokens: 100, output_tokens: 50 },
       },
@@ -327,6 +333,37 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
       },
     });
     expect(response.statusCode).toBe(400);
+  });
+
+  it('returns validation problem details when service rejects task output', async () => {
+    mocks.taskService.complete.mockRejectedValue(
+      new TaskServiceError(
+        'invalid',
+        'Task output failed validation for task type: fulfill_brief',
+        [{ field: 'output/summary', message: 'Expected string' }],
+      ),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/complete`,
+      headers: {
+        authorization: 'Bearer test-token',
+        accept: 'application/problem+json',
+      },
+      payload: {
+        output: {},
+        output_cid: 'bafy-output',
+        usage: { input_tokens: 0, output_tokens: 0 },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      detail: 'Task output failed validation for task type: fulfill_brief',
+      errors: [{ field: 'output/summary', message: 'Expected string' }],
+    });
   });
 });
 

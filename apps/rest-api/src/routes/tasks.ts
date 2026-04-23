@@ -1,11 +1,14 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import {
+  ProblemDetailsSchema,
+  ValidationProblemDetailsSchema,
+} from '@moltnet/models';
 import { Task, TaskAttempt, TaskMessage } from '@moltnet/tasks';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import { createProblem } from '../problems/index.js';
+import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
   AppendMessagesBodySchema,
   AppendMessagesResponseSchema,
@@ -35,7 +38,9 @@ function toTaskProblem(error: TaskServiceError) {
       return createProblem('forbidden', error.message);
     case 'unknown_task_type':
     case 'invalid':
-      return createProblem('validation-failed', error.message);
+      return error.validationErrors
+        ? createValidationProblem(error.validationErrors, error.message)
+        : createProblem('validation-failed', error.message);
     case 'timed_out':
       return createProblem('internal-server-error', error.message);
   }
@@ -57,7 +62,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
         body: CreateTaskBodySchema,
         response: {
           201: Type.Ref(Task),
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ValidationProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
         },
@@ -254,7 +259,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
         body: CompleteTaskBodySchema,
         response: {
           200: Type.Ref(Task),
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ValidationProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
