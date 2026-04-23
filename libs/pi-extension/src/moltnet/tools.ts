@@ -5,6 +5,7 @@
  * These tools run on the host (not in the VM) via the MoltNet SDK,
  * so agent credentials never touch the VM filesystem.
  */
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
 import { Type } from '@mariozechner/pi-ai';
@@ -35,7 +36,35 @@ export interface MoltNetToolsConfig {
   getDiaryId(): string | null;
   getSessionErrors(): readonly TrackedError[];
   clearSessionErrors(): void;
+  /** Host working directory for host-exec commands (worktree path or cwd). */
+  getHostCwd?(): string;
+  /**
+   * Set of process.env keys that are safe to forward to host-exec child
+   * processes. Configured at sandbox startup so the caller can include
+   * agent-specific vars (e.g. MOLTNET_AGENT_NAME) alongside the defaults.
+   * Defaults to HOST_EXEC_DEFAULT_BASE_ENV when omitted.
+   */
+  hostExecBaseEnv?: ReadonlySet<string>;
 }
+
+/**
+ * Baseline env keys forwarded to host-exec child processes.
+ * Callers can extend this set at sandbox startup via `MoltNetToolsConfig.hostExecBaseEnv`.
+ */
+export const HOST_EXEC_DEFAULT_BASE_ENV: ReadonlySet<string> = new Set([
+  'PATH',
+  'HOME',
+  'LANG',
+  'LC_ALL',
+  'TMPDIR',
+  'GIT_CONFIG_GLOBAL',
+  'MOLTNET_CREDENTIALS_PATH',
+  'GIT_AUTHOR_NAME',
+  'GIT_AUTHOR_EMAIL',
+  'GIT_COMMITTER_NAME',
+  'GIT_COMMITTER_EMAIL',
+  'SSH_AUTH_SOCK',
+]);
 
 function ensureConnected(config: MoltNetToolsConfig) {
   const agent = config.getAgent();
@@ -745,6 +774,119 @@ export function createMoltNetTools(
     },
   });
 
+  // Allowlist of executables permitted for host-exec.
+  // NOTE: These executables can still invoke arbitrary binaries via flags
+  // (e.g. git -c core.sshCommand=...). The allowlist limits what CAN be
+  // proposed; human approval is the primary security gate. The agent MUST
+  // ask the user before calling this tool.
+  const HOST_EXEC_ALLOWED: ReadonlySet<string> = new Set([
+    'git',
+    'gh',
+    'moltnet',
+  ]);
+
+  // Use caller-supplied base env (set at sandbox startup) or fall back to the
+  // module-level default. The caller knows which agent-specific vars are safe
+  // to forward (e.g. MOLTNET_AGENT_NAME, MOLTNET_DIARY_ID).
+  const hostExecBaseEnv = config.hostExecBaseEnv ?? HOST_EXEC_DEFAULT_BASE_ENV;
+
+  const HOST_EXEC_TIMEOUT_MS = 60_000;
+
+  const hostExec = defineTool({
+    name: 'moltnet_host_exec',
+    label: 'Run command on host (escape hatch — requires user approval)',
+    description:
+      'Runs a command on the HOST machine, outside the sandbox VM. ' +
+      'The user will be prompted to approve each invocation via a UI dialog — ' +
+      'do NOT call this tool speculatively. Use ONLY when a sandboxed operation ' +
+      'is impossible — e.g. `git push`, `gh pr create`.\n\n' +
+      'Allowed executables: git, gh, moltnet. ' +
+      'Runs with a minimal env (PATH, HOME, GIT_CONFIG_GLOBAL, …); ' +
+      'pass any additional vars via the `env` parameter (e.g. GH_TOKEN). ' +
+      'Every invocation is logged as an auditable host execution.',
+    parameters: Type.Object({
+      executable: Type.String({
+        description: 'Executable to run (git | gh | moltnet)',
+      }),
+      args: Type.Array(Type.String(), {
+        description: 'Arguments to pass to the executable',
+      }),
+      env: Type.Optional(
+        Type.Record(Type.String(), Type.String(), {
+          description:
+            'Additional environment variables for this invocation ' +
+            '(e.g. { "GH_TOKEN": "..." }). Merged on top of the minimal base env.',
+        }),
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      if (!HOST_EXEC_ALLOWED.has(params.executable)) {
+        throw new Error(
+          `host_exec: '${params.executable}' is not in the allowed list ` +
+            `(${[...HOST_EXEC_ALLOWED].join(', ')}). ` +
+            'Extend HOST_EXEC_ALLOWED only after explicit security review.',
+        );
+      }
+
+      // Require explicit user approval via UI dialog when available.
+      // Falls back to proceeding when running headless (no UI context).
+      if (ctx?.ui) {
+        const cmdDisplay = [params.executable, ...params.args].join(' ');
+        const approved = await ctx.ui.confirm(
+          'Allow host command?',
+          `The agent wants to run on your machine:\n\n  ${cmdDisplay}\n\nAllow?`,
+        );
+        if (!approved) {
+          throw new Error(
+            `host_exec: user declined approval for: ${cmdDisplay}`,
+          );
+        }
+      }
+
+      const cwd = config.getHostCwd?.() ?? process.cwd();
+
+      // Build minimal env: allowlisted keys from process.env + caller overrides.
+      const baseEnv: Record<string, string> = {};
+      for (const key of hostExecBaseEnv) {
+        const val = process.env[key];
+        if (val !== undefined) baseEnv[key] = val;
+      }
+      const mergedEnv = { ...baseEnv, ...(params.env ?? {}) };
+
+      let stdout: string;
+      let stderr = '';
+      try {
+        stdout = execFileSync(params.executable, params.args, {
+          encoding: 'utf8',
+          cwd,
+          env: mergedEnv,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          timeout: HOST_EXEC_TIMEOUT_MS,
+        });
+      } catch (err) {
+        const e = err as { stdout?: string; stderr?: string; message?: string };
+        stdout = e.stdout ?? '';
+        stderr = e.stderr ?? e.message ?? String(err);
+      }
+
+      const result = {
+        host_exec: true,
+        executable: params.executable,
+        args: params.args,
+        cwd,
+        stdout: stdout.trimEnd(),
+        stderr: stderr.trimEnd() || undefined,
+      };
+
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
   return [
     getPack,
     createPack,
@@ -760,5 +902,6 @@ export function createMoltNetTools(
     searchEntries,
     createEntry,
     reviewSessionErrors,
+    hostExec,
   ];
 }

@@ -43,7 +43,10 @@ import {
   registerResolveIssueCommand,
   registerSandboxCommand,
 } from './commands/index.js';
-import { createMoltNetTools } from './moltnet/tools.js';
+import {
+  createMoltNetTools,
+  HOST_EXEC_DEFAULT_BASE_ENV,
+} from './moltnet/tools.js';
 import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
   createGondolinBashOps,
@@ -113,6 +116,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   let worktreePath: string | null = null;
   let moltnetAgent: Awaited<ReturnType<typeof connect>> | null = null;
   let diaryId: string | null = null;
+  let hostExecBaseEnv: ReadonlySet<string> = HOST_EXEC_DEFAULT_BASE_ENV;
 
   // -- VM bootstrap -----------------------------------------------------------
 
@@ -206,6 +210,10 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       // 5. Connect to MoltNet on the host side (for custom tools)
       moltnetAgent = await connect({ configDir: managed.agentDir });
       diaryId = managed.credentials.agentEnv.MOLTNET_DIARY_ID ?? null;
+      hostExecBaseEnv = new Set([
+        ...HOST_EXEC_DEFAULT_BASE_ENV,
+        ...Object.keys(managed.credentials.agentEnv),
+      ]);
 
       vm = managed.vm;
 
@@ -314,6 +322,8 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     clearSessionErrors: () => {
       sessionErrors.length = 0;
     },
+    getHostCwd: () => worktreePath ?? localCwd,
+    hostExecBaseEnv,
   });
 
   for (const tool of moltnetTools) {
@@ -444,7 +454,10 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 }
 
 // Re-export modules for programmatic use
-export { createMoltNetTools } from './moltnet/tools.js';
+export {
+  createMoltNetTools,
+  HOST_EXEC_DEFAULT_BASE_ENV,
+} from './moltnet/tools.js';
 export type {
   EnsureSnapshotOptions,
   SandboxConfig,
