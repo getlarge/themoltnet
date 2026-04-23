@@ -646,6 +646,9 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -715,6 +718,9 @@ importers:
       fastify-plugin:
         specifier: 'catalog:'
         version: 5.1.0
+      multiformats:
+        specifier: 'catalog:'
+        version: 13.4.2
       pino:
         specifier: 'catalog:'
         version: 10.3.1
@@ -1230,6 +1236,9 @@ importers:
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
+      multiformats:
+        specifier: 'catalog:'
+        version: 13.4.2
     devDependencies:
       typescript:
         specifier: 'catalog:'
