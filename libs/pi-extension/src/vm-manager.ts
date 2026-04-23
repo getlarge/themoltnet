@@ -1,6 +1,11 @@
 /**
- * VM lifecycle manager: resume checkpoint, inject credentials, configure
- * egress, fix TLS, and provide clean shutdown.
+ * VM lifecycle: resume a Gondolin checkpoint, inject the agent's MoltNet
+ * credentials into the guest, configure egress policy, and expose a clean
+ * shutdown handle.
+ *
+ * See README.md — "Credential injection" section — for the full host→guest
+ * path mapping, env var remapping, and known limitations (e.g. GitHub App
+ * PEM not yet portable into the guest, tracked in #907).
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
