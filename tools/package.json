@@ -33,7 +33,7 @@
     "@huggingface/transformers": "catalog:",
     "@mariozechner/pi-ai": "catalog:",
     "@mariozechner/pi-coding-agent": "catalog:",
-    "@moltnet/agent-runtime": "workspace:*",
+    "@themoltnet/agent-runtime": "workspace:*",
     "@moltnet/auth": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",

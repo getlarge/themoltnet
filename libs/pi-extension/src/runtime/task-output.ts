@@ -1,5 +1,5 @@
 import { computeJsonCid } from '@moltnet/crypto-service';
-import { validateTaskOutput } from '@moltnet/tasks';
+import { validateTaskOutput } from '@themoltnet/agent-runtime';
 
 export interface ParsedTaskOutputResult {
   output: Record<string, unknown> | null;

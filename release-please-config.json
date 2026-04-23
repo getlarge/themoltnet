@@ -10,6 +10,10 @@
       "component": "cli",
       "release-type": "go"
     },
+    "libs/agent-runtime": {
+      "component": "agent-runtime",
+      "release-type": "node"
+    },
     "libs/design-system": {
       "component": "design-system",
       "release-type": "node"

@@ -34,7 +34,7 @@ import {
   AgentRuntime,
   FileTaskSource,
   StdoutReporter,
-} from '@moltnet/agent-runtime';
+} from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   type SandboxConfig,

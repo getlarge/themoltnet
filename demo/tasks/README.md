@@ -13,12 +13,16 @@ still matters for prompt-builder regression tests and quick local runs.
 
 ## Recommended: API-backed pack pipeline demo
 
+> **Prerequisites:** the REST API and database must be running.
+> From the repo root: `docker compose --env-file .env.local up -d && pnpm run dev:api`
+> (or point `MOLTNET_API_URL` at a deployed instance via `moltnet.json`).
+
 These fixtures are **create payloads**, not full `tasks` table rows. The
 server owns queue metadata such as status, timestamps, attempt numbers,
 `input_cid`, and `input_schema_cid`.
 
-| File                                  | Task type     | Purpose                                      |
-| ------------------------------------- | ------------- | -------------------------------------------- |
+| File                                   | Task type     | Purpose                                      |
+| -------------------------------------- | ------------- | -------------------------------------------- |
 | `api/curate-pack.create.template.json` | `curate_pack` | Create a curator task through `POST /tasks`. |
 | `api/render-pack.create.template.json` | `render_pack` | Create a renderer task from a live pack id.  |
 | `api/judge-pack.create.template.json`  | `judge_pack`  | Create a judge task from live render output. |
@@ -27,11 +31,17 @@ server owns queue metadata such as status, timestamps, attempt numbers,
 
 - `tools/src/tasks/create-task.ts` — loads a create-payload fixture,
   applies `--set key=value`, and `POST`s it to `/tasks`.
+  Pass `--dry-run` to print the substituted payload without creating anything.
 - `tools/src/tasks/work-task.ts` — claims a task via `/tasks/:id/claim`,
   runs it with `AgentRuntime` + `createPiTaskExecutor`, streams attempt
   messages, then calls `/complete` or `/fail`.
+  Pass `--stdout-reporter` to print attempt messages to stdout instead of
+  posting them to the API (useful when the API is local and you want live output).
 
 ### API pipeline run
+
+> Run all commands from the worktree root (`.worktrees/tasks-api-runtime-demo/`).
+> `work-task.ts` reads `sandbox.json` from `process.cwd()`.
 
 Common vars:
 

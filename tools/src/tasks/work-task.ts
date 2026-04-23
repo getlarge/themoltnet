@@ -3,13 +3,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import type { Task, TaskError } from '@themoltnet/agent-runtime';
 import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
   StdoutReporter,
-} from '@moltnet/agent-runtime';
-import type { Task, TaskError } from '@moltnet/tasks';
+} from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   type SandboxConfig,
@@ -111,17 +111,21 @@ async function main() {
   }
 
   if (output.status === 'completed' && output.output && output.output_cid) {
-    await taskApiFetch<Task>(api, `/tasks/${taskId}/attempts/${output.attempt_n}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({
-        output: output.output,
-        output_cid: output.output_cid,
-        usage: output.usage,
-        ...(output.content_signature
-          ? { content_signature: output.content_signature }
-          : {}),
-      }),
-    });
+    await taskApiFetch<Task>(
+      api,
+      `/tasks/${taskId}/attempts/${output.attempt_n}/complete`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          output: output.output,
+          output_cid: output.output_cid,
+          usage: output.usage,
+          ...(output.content_signature
+            ? { content_signature: output.content_signature }
+            : {}),
+        }),
+      },
+    );
   } else {
     const error: TaskError = output.error ?? {
       code: output.status === 'cancelled' ? 'task_cancelled' : 'task_failed',
@@ -131,10 +135,14 @@ async function main() {
           : 'Task execution failed before producing a valid output.',
       retryable: false,
     };
-    await taskApiFetch<Task>(api, `/tasks/${taskId}/attempts/${output.attempt_n}/fail`, {
-      method: 'POST',
-      body: JSON.stringify({ error }),
-    });
+    await taskApiFetch<Task>(
+      api,
+      `/tasks/${taskId}/attempts/${output.attempt_n}/fail`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ error }),
+      },
+    );
   }
 
   console.log('\n[done] TaskOutput:');

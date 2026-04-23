@@ -29,17 +29,17 @@ import {
   DefaultResourceLoader,
   SessionManager,
 } from '@mariozechner/pi-coding-agent';
+import { computeJsonCid } from '@moltnet/crypto-service';
+import { TypeCompiler } from '@sinclair/typebox/compiler';
 import {
   BUILT_IN_TASK_TYPES,
   buildPromptForTask,
   type ClaimedTask,
   type PromptContext,
-  type TaskReporter,
   type TaskOutput,
+  type TaskReporter,
   type TaskUsage,
 } from '@themoltnet/agent-runtime';
-import { computeJsonCid } from '@moltnet/crypto-service';
-import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { connect } from '@themoltnet/sdk';
 
 import {
@@ -398,7 +398,6 @@ export async function executePiTask(
       attempt_n: attemptN,
       status,
       output: parsedOutput,
-<<<<<<< HEAD
       output_cid: parsedOutput ? await computeJsonCid(parsedOutput) : null,
       usage,
       duration_ms: Date.now() - startTime,
