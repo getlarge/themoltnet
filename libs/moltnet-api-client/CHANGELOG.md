@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.19.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.18.0...moltnet-api-client-v1.19.0) (2026-04-23)
+
+
+### Features
+
+* **api-client:** regenerate TS and Go clients for task routes ([5093fad](https://github.com/getlarge/themoltnet/commit/5093fad92dfdb17e4bb3f8ecb0631e83b53a2f3c))
+* **packs:** pack diff API — compare two context packs ([b706e37](https://github.com/getlarge/themoltnet/commit/b706e37c6d476f030a534c4c643433045c9ebfc2))
+* **tasks:** Phase 3 REST API — task routes, service, and tests ([7d38ab8](https://github.com/getlarge/themoltnet/commit/7d38ab80ad4862306db22f9e63b1f270a64c58b5))
+
+
+### Bug Fixes
+
+* **moltnet-api-client:** narrow dedup to conflict-only inline schemas ([cfbed43](https://github.com/getlarge/themoltnet/commit/cfbed438217eeb93ab96bbec728269ac34f7d923))
+* **rest-api:** address all reviewer security and correctness issues ([9b1dbfd](https://github.com/getlarge/themoltnet/commit/9b1dbfd79200a69ede7c720a5bf2077df08ae0e8))
+
+
+### Codegen
+
+* **generated:** regenerate TS and Go API clients for pack diff endpoints ([6b06b19](https://github.com/getlarge/themoltnet/commit/6b06b193b542c3d7103988169e0a1008995fa9f3))
+
 ## [1.18.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.17.2...moltnet-api-client-v1.18.0) (2026-04-22)
 
 

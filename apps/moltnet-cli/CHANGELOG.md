@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.31.0](https://github.com/getlarge/themoltnet/compare/cli-v1.30.0...cli-v1.31.0) (2026-04-23)
+
+
+### Features
+
+* **packs:** pack diff API — compare two context packs ([b706e37](https://github.com/getlarge/themoltnet/commit/b706e37c6d476f030a534c4c643433045c9ebfc2))
+
+
+### Bug Fixes
+
+* **packs:** address PR review — mixed identifiers, auth order, tokenDelta, token-only diff ([4704f1a](https://github.com/getlarge/themoltnet/commit/4704f1ad6d6903a939a5f2504cc715dc644ecb96))
+
 ## [1.30.0](https://github.com/getlarge/themoltnet/compare/cli-v1.29.0...cli-v1.30.0) (2026-04-21)
 
 
