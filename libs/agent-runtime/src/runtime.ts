@@ -90,15 +90,15 @@ export class AgentRuntime {
           // (snapshot build, VM resume, unexpected bugs). Convert those into
           // a structured failure so the loop drains the source predictably.
           const message = err instanceof Error ? err.message : String(err);
-          const usage: TaskUsage = { input_tokens: 0, output_tokens: 0 };
+          const usage: TaskUsage = { inputTokens: 0, outputTokens: 0 };
           output = {
-            task_id: claimedTask.task.id,
-            attempt_n: claimedTask.attemptN,
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
             status: 'failed',
             output: null,
-            output_cid: null,
+            outputCid: null,
             usage,
-            duration_ms: Date.now() - taskStart,
+            durationMs: Date.now() - taskStart,
             error: {
               code: 'executor_threw',
               message,

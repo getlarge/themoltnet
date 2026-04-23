@@ -59,12 +59,10 @@ export class FileTaskSource implements TaskSource {
         );
       }
       const entry =
-        BUILT_IN_TASK_TYPES[
-          candidate.task_type as keyof typeof BUILT_IN_TASK_TYPES
-        ];
+        BUILT_IN_TASK_TYPES[candidate.taskType as keyof typeof BUILT_IN_TASK_TYPES];
       if (!entry) {
         throw new Error(
-          `FileTaskSource: task[${i}] in ${this.filePath} has unknown task_type="${candidate.task_type}". ` +
+          `FileTaskSource: task[${i}] in ${this.filePath} has unknown taskType="${candidate.taskType}". ` +
             `Known types: ${Object.keys(BUILT_IN_TASK_TYPES).join(', ')}`,
         );
       }
@@ -76,7 +74,7 @@ export class FileTaskSource implements TaskSource {
           ? `${firstError.path} ${firstError.message}`
           : 'unknown';
         throw new Error(
-          `FileTaskSource: task[${i}].input in ${this.filePath} does not match ${candidate.task_type} input schema: ${where}`,
+          `FileTaskSource: task[${i}].input in ${this.filePath} does not match ${candidate.taskType} input schema: ${where}`,
         );
       }
       const validateInput = (
@@ -86,7 +84,7 @@ export class FileTaskSource implements TaskSource {
         const err = validateInput(candidate.input);
         if (err) {
           throw new Error(
-            `FileTaskSource: task[${i}].input in ${this.filePath} failed ${candidate.task_type} cross-field validation: ${err}`,
+            `FileTaskSource: task[${i}].input in ${this.filePath} failed ${candidate.taskType} cross-field validation: ${err}`,
           );
         }
       }

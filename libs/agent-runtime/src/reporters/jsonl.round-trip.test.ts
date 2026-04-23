@@ -3,7 +3,7 @@
  *
  * This is the PR 0 ↔ PR 1 contract. If this test passes, PR 1's Drizzle
  * `task_messages` rows can be produced from JSONL lines without
- * transformation — `task_id`, `attempt_n`, `seq`, `timestamp`, `kind`,
+ * transformation — `taskId`, `attemptN`, `seq`, `timestamp`, `kind`,
  * `payload` are already the right names and types.
  *
  * If PR 1 renames a column, this test is the first thing that breaks,
@@ -56,7 +56,7 @@ describe('JsonlReporter round-trip', () => {
 
       await reporter.record({
         kind: 'info',
-        payload: { event: 'execute_start', task_type: 'fulfill_brief' },
+        payload: { event: 'execute_start', taskType: 'fulfill_brief' },
       });
       await reporter.record({
         kind: 'text_delta',
@@ -80,8 +80,8 @@ describe('JsonlReporter round-trip', () => {
       });
 
       await reporter.finalize({
-        input_tokens: 42,
-        output_tokens: 17,
+        inputTokens: 42,
+        outputTokens: 17,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
       });
@@ -104,15 +104,15 @@ describe('JsonlReporter round-trip', () => {
         }
       }
 
-      // seq is monotonic starting at 1, per-(task_id, attempt_n)
+      // seq is monotonic starting at 1, per-(taskId, attemptN)
       const seqs = records.map((r) => (r as { seq: number }).seq);
       expect(seqs).toEqual([1, 2, 3, 4, 5, 6, 7]);
 
       // Every row carries the reporter-owned identity fields.
       for (const row of records) {
-        const r = row as { task_id: string; attempt_n: number };
-        expect(r.task_id).toBe('11111111-1111-4111-8111-111111111111');
-        expect(r.attempt_n).toBe(1);
+        const r = row as { taskId: string; attemptN: number };
+        expect(r.taskId).toBe('11111111-1111-4111-8111-111111111111');
+        expect(r.attemptN).toBe(1);
       }
 
       // finalize() emits an `info` row with a usage payload.
@@ -123,8 +123,8 @@ describe('JsonlReporter round-trip', () => {
       expect(last.kind).toBe('info');
       expect(last.payload).toMatchObject({
         event: 'usage',
-        input_tokens: 42,
-        output_tokens: 17,
+        inputTokens: 42,
+        outputTokens: 17,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
       });

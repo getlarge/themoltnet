@@ -81,12 +81,12 @@ describe('Tasks API', () => {
       client,
       auth: () => imposer.accessToken,
       body: {
-        task_type: 'curate_pack',
-        team_id: imposer.personalTeamId,
-        diary_id: imposer.privateDiaryId,
+        taskType: 'curate_pack',
+        teamId: imposer.personalTeamId,
+        diaryId: imposer.privateDiaryId,
         input: {
-          diary_id: imposer.privateDiaryId,
-          task_prompt: 'e2e test curation',
+          diaryId: imposer.privateDiaryId,
+          taskPrompt: 'e2e test curation',
           ...input,
         },
         ...overrides,
@@ -99,7 +99,7 @@ describe('Tasks API', () => {
       client,
       auth: () => claimer.accessToken,
       path: { id: taskId },
-      body: { lease_ttl_sec: leaseTtlSec },
+      body: { leaseTtlSec: leaseTtlSec },
     });
   }
 
@@ -109,16 +109,16 @@ describe('Tasks API', () => {
     it('returns 401 without a token', async () => {
       const { response } = await listTasks({
         client,
-        query: { team_id: imposer.personalTeamId },
+        query: { teamId: imposer.personalTeamId },
       });
       expect(response.status).toBe(401);
     });
 
-    it('returns 400 when team_id is missing from list', async () => {
+    it('returns 400 when teamId is missing from list', async () => {
       const { response } = await listTasks({
         client,
         auth: () => imposer.accessToken,
-        // @ts-expect-error intentionally omitting required team_id
+        // @ts-expect-error intentionally omitting required teamId
         query: {},
       });
       expect(response.status).toBe(400);
@@ -133,21 +133,21 @@ describe('Tasks API', () => {
       expect(error).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.status).toBe('queued');
-      expect(data!.task_type).toBe('curate_pack');
-      expect(data!.diary_id).toBe(imposer.privateDiaryId);
-      expect(data!.team_id).toBe(imposer.personalTeamId);
-      expect(data!.input_schema_cid).toBeTruthy();
-      expect(data!.input_cid).toBeTruthy();
+      expect(data!.taskType).toBe('curate_pack');
+      expect(data!.diaryId).toBe(imposer.privateDiaryId);
+      expect(data!.teamId).toBe(imposer.personalTeamId);
+      expect(data!.inputSchemaCid).toBeTruthy();
+      expect(data!.inputCid).toBeTruthy();
     });
 
-    it('returns 400 for unknown task_type', async () => {
+    it('returns 400 for unknown taskType', async () => {
       const { response } = await createTask({
         client,
         auth: () => imposer.accessToken,
         body: {
-          task_type: 'does_not_exist',
-          team_id: imposer.personalTeamId,
-          diary_id: imposer.privateDiaryId,
+          taskType: 'does_not_exist',
+          teamId: imposer.personalTeamId,
+          diaryId: imposer.privateDiaryId,
           input: {},
         },
       });
@@ -160,12 +160,12 @@ describe('Tasks API', () => {
         client,
         auth: () => imposer.accessToken,
         body: {
-          task_type: 'curate_pack',
-          team_id: imposer.personalTeamId,
-          diary_id: claimer.privateDiaryId,
+          taskType: 'curate_pack',
+          teamId: imposer.personalTeamId,
+          diaryId: claimer.privateDiaryId,
           input: {
-            diary_id: claimer.privateDiaryId,
-            task_prompt: 'unauthorized curation attempt',
+            diaryId: claimer.privateDiaryId,
+            taskPrompt: 'unauthorized curation attempt',
           },
         },
       });
@@ -187,7 +187,7 @@ describe('Tasks API', () => {
       const { data, error } = await listTasks({
         client,
         auth: () => imposer.accessToken,
-        query: { team_id: imposer.personalTeamId },
+        query: { teamId: imposer.personalTeamId },
       });
       expect(error).toBeUndefined();
       expect(data!.items.length).toBeGreaterThan(0);
@@ -200,7 +200,7 @@ describe('Tasks API', () => {
       const { response } = await listTasks({
         client,
         auth: () => claimer.accessToken,
-        query: { team_id: imposer.personalTeamId },
+        query: { teamId: imposer.personalTeamId },
       });
       expect(response.status).toBe(403);
     });
@@ -240,7 +240,7 @@ describe('Tasks API', () => {
 
       const { data: claimed, error } = await claim(taskId);
       expect(error).toBeUndefined();
-      attemptN = claimed!.attempt.attempt_n;
+      attemptN = claimed!.attempt.attemptN;
     });
 
     it('task is dispatched after claim', async () => {
@@ -262,19 +262,19 @@ describe('Tasks API', () => {
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
-        body: { lease_ttl_sec: 30 },
+        body: { leaseTtlSec: 30 },
       });
       expect(err1).toBeUndefined();
-      const firstExpiry = new Date(hb1!.claim_expires_at).getTime();
+      const firstExpiry = new Date(hb1!.claimExpiresAt).getTime();
 
       const { data: hb2, error: err2 } = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
-        body: { lease_ttl_sec: 120 },
+        body: { leaseTtlSec: 120 },
       });
       expect(err2).toBeUndefined();
-      const secondExpiry = new Date(hb2!.claim_expires_at).getTime();
+      const secondExpiry = new Date(hb2!.claimExpiresAt).getTime();
 
       expect(secondExpiry).toBeGreaterThan(firstExpiry);
       expect(secondExpiry).toBeGreaterThan(Date.now());
@@ -282,16 +282,16 @@ describe('Tasks API', () => {
 
     it('completes the task and returns completed status', async () => {
       const output = {
-        pack_id: '11111111-1111-4111-8111-111111111111',
-        pack_cid: 'bafycuratepackreceipt',
+        packId: '11111111-1111-4111-8111-111111111111',
+        packCid: 'bafycuratepackreceipt',
         entries: [
           {
-            entry_id: '22222222-2222-4222-8222-222222222222',
+            entryId: '22222222-2222-4222-8222-222222222222',
             rank: 1,
             rationale: 'Most relevant entry for the requested pack.',
           },
         ],
-        recipe_params: { recipe: 'topic-focused-v1' },
+        recipeParams: { recipe: 'topic-focused-v1' },
         summary: 'Created a pack receipt for the curated diary entries.',
       };
       const outputCid = await computeJsonCid(output);
@@ -302,8 +302,8 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attemptN },
         body: {
           output,
-          output_cid: outputCid,
-          usage: { model: 'test-model', input_tokens: 100, output_tokens: 50 },
+          outputCid: outputCid,
+          usage: { model: 'test-model', inputTokens: 100, outputTokens: 50 },
         },
       });
       expect(error).toBeUndefined();
@@ -325,12 +325,12 @@ describe('Tasks API', () => {
 
     it('rejects invalid output with field-level validation errors', async () => {
       const { data } = await impose({
-        task_prompt: 'Produce a malformed completion.',
+        taskPrompt: 'Produce a malformed completion.',
       });
       const invalidTaskId = data!.id;
 
       const { data: claimed } = await claim(invalidTaskId);
-      const invalidAttemptN = claimed!.attempt.attempt_n;
+      const invalidAttemptN = claimed!.attempt.attemptN;
 
       const badOutput = { summary: 42 };
       const badOutputCid = await computeJsonCid(badOutput);
@@ -341,8 +341,8 @@ describe('Tasks API', () => {
         path: { id: invalidTaskId, n: invalidAttemptN },
         body: {
           output: badOutput,
-          output_cid: badOutputCid,
-          usage: { model: 'test-model', input_tokens: 1, output_tokens: 1 },
+          outputCid: badOutputCid,
+          usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
         },
       });
 
@@ -350,7 +350,7 @@ describe('Tasks API', () => {
       expect(error).toMatchObject({
         code: 'VALIDATION_FAILED',
         errors: expect.arrayContaining([
-          expect.objectContaining({ field: 'output/pack_id' }),
+          expect.objectContaining({ field: 'output/packId' }),
         ]),
       });
     });
@@ -363,7 +363,7 @@ describe('Tasks API', () => {
       });
       expect(error).toBeUndefined();
       expect(data!.length).toBe(1);
-      expect(data![0].attempt_n).toBe(attemptN);
+      expect(data![0].attemptN).toBe(attemptN);
       expect(data![0].status).toBe('completed');
     });
   });
@@ -375,10 +375,10 @@ describe('Tasks API', () => {
     let attemptN: number;
 
     beforeAll(async () => {
-      const { data } = await impose({}, { max_attempts: 1 });
+      const { data } = await impose({}, { maxAttempts: 1 });
       taskId = data!.id;
       const { data: claimed } = await claim(taskId);
-      attemptN = claimed!.attempt.attempt_n;
+      attemptN = claimed!.attempt.attemptN;
     });
 
     it('fails the task and DBOS workflow marks it failed', async () => {
@@ -388,7 +388,7 @@ describe('Tasks API', () => {
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
-        body: { lease_ttl_sec: 30 },
+        body: { leaseTtlSec: 30 },
       });
 
       const { error } = await failTask({
@@ -411,7 +411,7 @@ describe('Tasks API', () => {
         (t) => t.status === 'failed' || t.status === 'queued',
         { label: 'task.fail', maxAttempts: 20, intervalMs: 500 },
       );
-      // max_attempts=1 so no retry — should be permanently failed
+      // maxAttempts=1 so no retry — should be permanently failed
       expect(final.status).toBe('failed');
     });
   });
@@ -437,7 +437,7 @@ describe('Tasks API', () => {
         path: { id: taskId },
       });
       expect(updated!.status).toBe('cancelled');
-      expect(updated!.cancel_reason).toBe('no longer needed');
+      expect(updated!.cancelReason).toBe('no longer needed');
     });
 
     it('returns 403 when a non-owner tries to cancel', async () => {
@@ -446,12 +446,12 @@ describe('Tasks API', () => {
         client,
         auth: () => claimer.accessToken,
         body: {
-          task_type: 'curate_pack',
-          team_id: claimer.personalTeamId,
-          diary_id: claimer.privateDiaryId,
+          taskType: 'curate_pack',
+          teamId: claimer.personalTeamId,
+          diaryId: claimer.privateDiaryId,
           input: {
-            diary_id: claimer.privateDiaryId,
-            task_prompt: 'claimer-owned task',
+            diaryId: claimer.privateDiaryId,
+            taskPrompt: 'claimer-owned task',
           },
         },
       });
@@ -475,7 +475,7 @@ describe('Tasks API', () => {
       const { data } = await impose();
       taskId = data!.id;
       const { data: claimed } = await claim(taskId);
-      attemptN = claimed!.attempt.attempt_n;
+      attemptN = claimed!.attempt.attemptN;
     });
 
     it('appends messages and returns count', async () => {
@@ -535,14 +535,14 @@ describe('Tasks API', () => {
         query: {},
       });
 
-      // after_seq is exclusive — use seq of the second message to get only the third
+      // afterSeq is exclusive — use seq of the second message to get only the third
       const secondSeq = all![1].seq;
 
       const { data: after } = await listTaskMessages({
         client,
         auth: () => imposer.accessToken,
         path: { id: taskId, n: attemptN },
-        query: { after_seq: secondSeq },
+        query: { afterSeq: secondSeq },
       });
 
       expect(after!.length).toBe(1);
@@ -564,13 +564,13 @@ describe('Tasks API', () => {
           client,
           auth: () => claimer.accessToken,
           path: { id: taskId },
-          body: { lease_ttl_sec: 30 },
+          body: { leaseTtlSec: 30 },
         }),
         claimTask({
           client,
           auth: () => imposer.accessToken,
           path: { id: taskId },
-          body: { lease_ttl_sec: 30 },
+          body: { leaseTtlSec: 30 },
         }),
       ]);
 

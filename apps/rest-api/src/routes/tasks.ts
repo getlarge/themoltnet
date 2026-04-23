@@ -41,7 +41,7 @@ function toTaskProblem(error: TaskServiceError) {
       return createValidationProblem(
         error.validationErrors ?? [
           {
-            field: error.code === 'unknown_task_type' ? 'task_type' : 'request',
+            field: error.code === 'unknown_task_type' ? 'taskType' : 'request',
             message: error.message,
           },
         ],
@@ -80,15 +80,15 @@ export async function taskRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         const task = await fastify.taskService.create({
-          taskType: request.body.task_type,
-          teamId: request.body.team_id,
-          diaryId: request.body.diary_id,
+          taskType: request.body.taskType,
+          teamId: request.body.teamId,
+          diaryId: request.body.diaryId,
           inputPayload: request.body.input,
           references: request.body.references,
-          correlationId: request.body.correlation_id,
-          maxAttempts: request.body.max_attempts,
-          expiresInSec: request.body.expires_in_sec,
-          criteriaCid: request.body.criteria_cid,
+          correlationId: request.body.correlationId,
+          maxAttempts: request.body.maxAttempts,
+          expiresInSec: request.body.expiresInSec,
+          criteriaCid: request.body.criteriaCid,
           callerId: identityId,
           callerNs,
           callerIsAgent: subjectType === 'agent',
@@ -124,10 +124,10 @@ export async function taskRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         return await fastify.taskService.list({
-          teamId: request.query.team_id,
+          teamId: request.query.teamId,
           status: request.query.status,
-          taskType: request.query.task_type,
-          correlationId: request.query.correlation_id,
+          taskType: request.query.taskType,
+          correlationId: request.query.correlationId,
           limit: request.query.limit,
           cursor: request.query.cursor,
           callerId: identityId,
@@ -205,7 +205,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
           request.params.id,
           identityId,
           callerNs,
-          request.body.lease_ttl_sec,
+          request.body.leaseTtlSec,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -243,7 +243,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
           request.params.n,
           identityId,
           callerNs,
-          request.body.lease_ttl_sec,
+          request.body.leaseTtlSec,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -285,9 +285,9 @@ export async function taskRoutes(fastify: FastifyInstance) {
           callerNs,
           {
             output: request.body.output,
-            outputCid: request.body.output_cid,
+            outputCid: request.body.outputCid,
             usage: request.body.usage,
-            contentSignature: request.body.content_signature,
+            contentSignature: request.body.contentSignature,
           },
         );
       } catch (error) {
@@ -441,7 +441,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           {
-            afterSeq: request.query.after_seq,
+            afterSeq: request.query.afterSeq,
             limit: request.query.limit,
           },
         );

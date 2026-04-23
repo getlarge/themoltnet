@@ -7,7 +7,7 @@ import type { TaskReporter } from './types.js';
 
 /**
  * Append records as newline-delimited JSON. Each line is a complete
- * `TaskMessage` (snake_case wire shape).
+ * `TaskMessage` (camelCase wire shape).
  *
  * PR 1 invariant: these lines must round-trip into the `task_messages`
  * DB table without transformation. That's tested in #9.
@@ -31,13 +31,13 @@ export class JsonlReporter implements TaskReporter {
   }
 
   async record(
-    body: Omit<TaskMessage, 'task_id' | 'attempt_n' | 'seq' | 'timestamp'>,
+    body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void> {
     if (!this.stream) throw new Error('JsonlReporter: open() not called');
     this.seq += 1;
     const record: TaskMessage = {
-      task_id: this.taskId,
-      attempt_n: this.attemptN,
+      taskId: this.taskId,
+      attemptN: this.attemptN,
       seq: this.seq,
       timestamp: new Date().toISOString(),
       kind: body.kind,
@@ -50,8 +50,8 @@ export class JsonlReporter implements TaskReporter {
     if (!this.stream) return;
     this.seq += 1;
     const record: TaskMessage = {
-      task_id: this.taskId,
-      attempt_n: this.attemptN,
+      taskId: this.taskId,
+      attemptN: this.attemptN,
       seq: this.seq,
       timestamp: new Date().toISOString(),
       kind: 'info',

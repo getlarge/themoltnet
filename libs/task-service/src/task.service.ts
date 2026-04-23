@@ -77,53 +77,53 @@ function taskWorkflowId(taskId: string, attemptN: number): string {
 function dbTaskToWire(row: DbTask): Task {
   return {
     id: row.id,
-    task_type: row.taskType,
-    team_id: row.teamId,
-    diary_id: row.diaryId ?? null,
-    output_kind: row.outputKind,
+    taskType: row.taskType,
+    teamId: row.teamId,
+    diaryId: row.diaryId ?? null,
+    outputKind: row.outputKind,
     input: row.input as Record<string, unknown>,
-    input_schema_cid: row.inputSchemaCid,
-    input_cid: row.inputCid,
-    criteria_cid: row.criteriaCid ?? null,
+    inputSchemaCid: row.inputSchemaCid,
+    inputCid: row.inputCid,
+    criteriaCid: row.criteriaCid ?? null,
     references: row.taskRefs as unknown[] as Task['references'],
-    correlation_id: row.correlationId ?? null,
-    imposed_by_agent_id: row.imposedByAgentId ?? null,
-    imposed_by_human_id: row.imposedByHumanId ?? null,
-    accepted_attempt_n: row.acceptedAttemptN ?? null,
+    correlationId: row.correlationId ?? null,
+    imposedByAgentId: row.imposedByAgentId ?? null,
+    imposedByHumanId: row.imposedByHumanId ?? null,
+    acceptedAttemptN: row.acceptedAttemptN ?? null,
     status: row.status,
-    queued_at: row.queuedAt.toISOString(),
-    completed_at: row.completedAt?.toISOString() ?? null,
-    expires_at: row.expiresAt?.toISOString() ?? null,
-    cancelled_by_agent_id: row.cancelledByAgentId ?? null,
-    cancelled_by_human_id: row.cancelledByHumanId ?? null,
-    cancel_reason: row.cancelReason ?? null,
-    max_attempts: row.maxAttempts,
+    queuedAt: row.queuedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    cancelledByAgentId: row.cancelledByAgentId ?? null,
+    cancelledByHumanId: row.cancelledByHumanId ?? null,
+    cancelReason: row.cancelReason ?? null,
+    maxAttempts: row.maxAttempts,
   };
 }
 
 function dbAttemptToWire(row: DbTaskAttempt): TaskAttempt {
   return {
-    task_id: row.taskId,
-    attempt_n: row.attemptN,
-    claimed_by_agent_id: row.claimedByAgentId,
-    runtime_id: row.runtimeId ?? null,
-    claimed_at: row.claimedAt.toISOString(),
-    started_at: row.startedAt?.toISOString() ?? null,
-    completed_at: row.completedAt?.toISOString() ?? null,
+    taskId: row.taskId,
+    attemptN: row.attemptN,
+    claimedByAgentId: row.claimedByAgentId,
+    runtimeId: row.runtimeId ?? null,
+    claimedAt: row.claimedAt.toISOString(),
+    startedAt: row.startedAt?.toISOString() ?? null,
+    completedAt: row.completedAt?.toISOString() ?? null,
     status: row.status,
     output: (row.output as Record<string, unknown>) ?? null,
-    output_cid: row.outputCid ?? null,
+    outputCid: row.outputCid ?? null,
     error: (row.error as TaskError) ?? null,
     usage: (row.usage as TaskUsage) ?? null,
-    content_signature: row.contentSignature ?? null,
-    signed_at: row.signedAt?.toISOString() ?? null,
+    contentSignature: row.contentSignature ?? null,
+    signedAt: row.signedAt?.toISOString() ?? null,
   };
 }
 
 function dbMessageToWire(row: DbTaskMessage): TaskMessage {
   return {
-    task_id: row.taskId,
-    attempt_n: row.attemptN,
+    taskId: row.taskId,
+    attemptN: row.attemptN,
     seq: Number(row.seq),
     timestamp: row.timestamp.toISOString(),
     kind: row.kind,
@@ -195,7 +195,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Unknown task type: ${input.taskType}`,
           [
             {
-              field: 'task_type',
+              field: 'taskType',
               message: `Unknown task type: ${input.taskType}`,
             },
           ],
@@ -203,8 +203,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       if (!input.diaryId) {
-        throw new TaskServiceError('invalid', 'diary_id is required', [
-          { field: 'diary_id', message: 'diary_id is required' },
+        throw new TaskServiceError('invalid', 'diaryId is required', [
+          { field: 'diaryId', message: 'diaryId is required' },
         ]);
       }
 
@@ -233,7 +233,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Schema CID not found for: ${input.taskType}`,
           [
             {
-              field: 'task_type',
+              field: 'taskType',
               message: `Schema CID not found for: ${input.taskType}`,
             },
           ],
@@ -302,7 +302,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       cursor?: string;
       callerId: string;
       callerNs: KetoNamespace;
-    }): Promise<{ items: Task[]; total: number; next_cursor?: string }> {
+    }): Promise<{ items: Task[]; total: number; nextCursor?: string }> {
       const canAccess = await permissionChecker.canAccessTeam(
         opts.teamId,
         opts.callerId,
@@ -325,7 +325,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       return {
         items: items.map(dbTaskToWire),
         total: items.length,
-        next_cursor: nextCursor,
+        nextCursor,
       };
     },
 
@@ -438,7 +438,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
-    ): Promise<{ claim_expires_at: string }> {
+    ): Promise<{ claimExpiresAt: string }> {
       const canReport = await permissionChecker.canReportTask(
         taskId,
         callerId,
@@ -476,7 +476,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
 
       logger.debug({ taskId, attemptN }, 'task.heartbeat');
-      return { claim_expires_at: claimExpiresAt.toISOString() };
+      return { claimExpiresAt: claimExpiresAt.toISOString() };
     },
 
     async complete(
@@ -528,10 +528,10 @@ export function createTaskService(deps: TaskServiceDeps) {
       if (computedOutputCid !== body.outputCid) {
         throw new TaskServiceError(
           'invalid',
-          'output_cid does not match the canonical CID of output',
+          'outputCid does not match the canonical CID of output',
           [
             {
-              field: 'output_cid',
+              field: 'outputCid',
               message: `Expected ${computedOutputCid} for the supplied output`,
             },
           ],

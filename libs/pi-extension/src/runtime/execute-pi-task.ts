@@ -157,7 +157,7 @@ export async function executePiTask(
     sandboxConfig: opts.sandboxConfig,
   });
 
-  const diaryId = task.diary_id ?? '';
+  const diaryId = task.diaryId ?? '';
   let reporterOpen = false;
   let session:
     | Awaited<ReturnType<typeof createAgentSession>>['session']
@@ -169,13 +169,13 @@ export async function executePiTask(
     message: string,
     usage: TaskUsage = finalUsage,
   ): TaskOutput => ({
-    task_id: task.id,
-    attempt_n: attemptN,
+    taskId: task.id,
+    attemptN: attemptN,
     status: 'failed',
     output: null,
-    output_cid: null,
+    outputCid: null,
     usage,
-    duration_ms: Date.now() - startTime,
+    durationMs: Date.now() - startTime,
     error: { code, message, retryable: false },
   });
 
@@ -193,8 +193,8 @@ export async function executePiTask(
 
     await emit('info', {
       event: 'execute_start',
-      task_type: task.task_type,
-      team_id: task.team_id,
+      taskType: task.taskType,
+      teamId: task.teamId,
       provider: opts.provider,
       model: opts.model,
     });
@@ -325,13 +325,13 @@ export async function executePiTask(
           };
         };
         if (msg?.role === 'assistant' && msg.usage) {
-          usage.input_tokens += Math.max(0, msg.usage.input ?? 0);
-          usage.output_tokens += Math.max(0, msg.usage.output ?? 0);
+          usage.inputTokens += Math.max(0, msg.usage.input ?? 0);
+          usage.outputTokens += Math.max(0, msg.usage.output ?? 0);
           const cr = Math.max(0, msg.usage.cacheRead ?? 0);
           const cw = Math.max(0, msg.usage.cacheWrite ?? 0);
-          if (cr) usage.cache_read_tokens = (usage.cache_read_tokens ?? 0) + cr;
+          if (cr) usage.cacheReadTokens = (usage.cacheReadTokens ?? 0) + cr;
           if (cw)
-            usage.cache_write_tokens = (usage.cache_write_tokens ?? 0) + cw;
+            usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
         }
         track(emit('turn_end', { stop_reason: msg?.stopReason ?? 'end_turn' }));
         // Reflect ONLY the final turn's stop reason. pi emits turn_end per
@@ -360,7 +360,7 @@ export async function executePiTask(
     if (!runError && !llmAbort) {
       const parsed = await parseStructuredTaskOutput(
         assistantText,
-        task.task_type,
+        task.taskType,
       );
       parsedOutput = parsed.output;
       parsedOutputCid = parsed.outputCid; // already computed in parseStructuredTaskOutput
@@ -389,13 +389,13 @@ export async function executePiTask(
       (llmAbort ? 'LLM API error during turn' : undefined);
 
     return {
-      task_id: task.id,
-      attempt_n: attemptN,
+      taskId: task.id,
+      attemptN: attemptN,
       status,
       output: parsedOutput,
-      output_cid: parsedOutputCid,
+      outputCid: parsedOutputCid,
       usage,
-      duration_ms: Date.now() - startTime,
+      durationMs: Date.now() - startTime,
       ...(errorCode && errorMessage
         ? {
             error: { code: errorCode, message: errorMessage, retryable: false },
@@ -431,8 +431,8 @@ export async function executePiTask(
 
 function emptyUsage(provider: string, model: string): TaskUsage {
   return {
-    input_tokens: 0,
-    output_tokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
     provider,
     model,
   };

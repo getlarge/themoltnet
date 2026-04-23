@@ -22,16 +22,16 @@ export const FulfillBriefInput = Type.Object(
      * the claiming agent. Any formal rubric lives in a separate
      * `assess_brief` task, not here.
      */
-    acceptance_criteria: Type.Optional(Type.Array(Type.String())),
+    acceptanceCriteria: Type.Optional(Type.Array(Type.String())),
 
     /**
      * Seed files the agent should read before starting. Paths relative
      * to the repo root. Optional — the agent is free to explore.
      */
-    seed_files: Type.Optional(Type.Array(Type.String())),
+    seedFiles: Type.Optional(Type.Array(Type.String())),
 
     /** Conventional commit scope hint (e.g. "tasks", "agent-runtime"). */
-    scope_hint: Type.Optional(Type.String()),
+    scopeHint: Type.Optional(Type.String()),
   },
   { $id: 'FulfillBriefInput', additionalProperties: false },
 );
@@ -52,7 +52,7 @@ export const FulfillBriefOutput = Type.Object(
         {
           sha: Type.String({ minLength: 7 }),
           message: Type.String(),
-          diary_entry_id: Type.Union([
+          diaryEntryId: Type.Union([
             Type.String({ format: 'uuid' }),
             Type.Null(),
           ]),
@@ -62,10 +62,10 @@ export const FulfillBriefOutput = Type.Object(
     ),
 
     /** PR URL if one was opened. Null if the attempt only pushed a branch. */
-    pull_request_url: Type.Union([Type.String(), Type.Null()]),
+    pullRequestUrl: Type.Union([Type.String(), Type.Null()]),
 
     /** Diary entries produced during the attempt (ordered). */
-    diary_entry_ids: Type.Array(Type.String({ format: 'uuid' })),
+    diaryEntryIds: Type.Array(Type.String({ format: 'uuid' })),
 
     /** 2–5 sentence summary the agent writes on completion. */
     summary: Type.String({ minLength: 1 }),

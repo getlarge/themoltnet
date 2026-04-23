@@ -8,7 +8,7 @@
  *   - `TaskReporter` output records (PR 0)
  *
  * Invariant: every property on `Task` is type-neutral (applies to all
- * `task_type`s). Type-specific payloads live inside `input` / `output`
+ * `taskType`s). Type-specific payloads live inside `input` / `output`
  * JSONB, validated against schemas registered under `task_types`.
  *
  * Identity rule:
@@ -83,8 +83,8 @@ const IsoTimestamp = Type.String({ format: 'date-time' });
  */
 export const TaskRef = Type.Object(
   {
-    task_id: Type.Union([Uuid, Type.Null()]),
-    output_cid: Cid,
+    taskId: Type.Union([Uuid, Type.Null()]),
+    outputCid: Cid,
     role: Type.Union([
       Type.Literal('judged_work'),
       Type.Literal('reviewed_diff'),
@@ -117,11 +117,11 @@ export type TaskRef = Static<typeof TaskRef>;
  */
 export const TaskUsage = Type.Object(
   {
-    input_tokens: Type.Integer({ minimum: 0 }),
-    output_tokens: Type.Integer({ minimum: 0 }),
-    cache_read_tokens: Type.Optional(Type.Integer({ minimum: 0 })),
-    cache_write_tokens: Type.Optional(Type.Integer({ minimum: 0 })),
-    tool_calls: Type.Optional(Type.Integer({ minimum: 0 })),
+    inputTokens: Type.Integer({ minimum: 0 }),
+    outputTokens: Type.Integer({ minimum: 0 }),
+    cacheReadTokens: Type.Optional(Type.Integer({ minimum: 0 })),
+    cacheWriteTokens: Type.Optional(Type.Integer({ minimum: 0 })),
+    toolCalls: Type.Optional(Type.Integer({ minimum: 0 })),
     model: Type.Optional(Type.String()),
     provider: Type.Optional(Type.String()),
   },
@@ -159,8 +159,8 @@ export type TaskError = Static<typeof TaskError>;
  */
 export const ActorPair = Type.Object(
   {
-    agent_id: Type.Union([Uuid, Type.Null()]),
-    human_id: Type.Union([Uuid, Type.Null()]),
+    agentId: Type.Union([Uuid, Type.Null()]),
+    humanId: Type.Union([Uuid, Type.Null()]),
   },
   { $id: 'ActorPair', additionalProperties: false },
 );
@@ -170,47 +170,47 @@ export type ActorPair = Static<typeof ActorPair>;
  * The Task promise body.
  *
  * Type-neutrality invariant: no property on this type is specific to one
- * `task_type`. Type-specific payload lives inside `input` (validated
- * against the schema registered for `task_type`).
+ * `taskType`. Type-specific payload lives inside `input` (validated
+ * against the schema registered for `taskType`).
  */
 export const Task = Type.Object(
   {
     id: Uuid,
-    task_type: Type.String({ minLength: 1 }),
-    team_id: Uuid,
-    diary_id: Type.Union([Uuid, Type.Null()]),
+    taskType: Type.String({ minLength: 1 }),
+    teamId: Uuid,
+    diaryId: Type.Union([Uuid, Type.Null()]),
 
     // Discriminator
-    output_kind: OutputKind,
+    outputKind: OutputKind,
 
     // Promise body (immutable once an accepted attempt is signed)
     input: Type.Record(Type.String(), Type.Unknown()),
-    input_schema_cid: Cid,
-    input_cid: Cid,
-    criteria_cid: Type.Union([Cid, Type.Null()]),
+    inputSchemaCid: Cid,
+    inputCid: Cid,
+    criteriaCid: Type.Union([Cid, Type.Null()]),
     references: Type.Array(TaskRef),
 
     // Grouping (type-neutral)
-    correlation_id: Type.Union([Uuid, Type.Null()]),
+    correlationId: Type.Union([Uuid, Type.Null()]),
 
     // Attribution — imposer is agent XOR human
-    imposed_by_agent_id: Type.Union([Uuid, Type.Null()]),
-    imposed_by_human_id: Type.Union([Uuid, Type.Null()]),
-    accepted_attempt_n: Type.Union([Type.Number(), Type.Null()]),
+    imposedByAgentId: Type.Union([Uuid, Type.Null()]),
+    imposedByHumanId: Type.Union([Uuid, Type.Null()]),
+    acceptedAttemptN: Type.Union([Type.Number(), Type.Null()]),
 
     // Lifecycle
     status: TaskStatus,
-    queued_at: IsoTimestamp,
-    completed_at: Type.Union([IsoTimestamp, Type.Null()]),
-    expires_at: Type.Union([IsoTimestamp, Type.Null()]),
+    queuedAt: IsoTimestamp,
+    completedAt: Type.Union([IsoTimestamp, Type.Null()]),
+    expiresAt: Type.Union([IsoTimestamp, Type.Null()]),
 
     // Cancellation — canceller is agent XOR human
-    cancelled_by_agent_id: Type.Union([Uuid, Type.Null()]),
-    cancelled_by_human_id: Type.Union([Uuid, Type.Null()]),
-    cancel_reason: Type.Union([Type.String(), Type.Null()]),
+    cancelledByAgentId: Type.Union([Uuid, Type.Null()]),
+    cancelledByHumanId: Type.Union([Uuid, Type.Null()]),
+    cancelReason: Type.Union([Type.String(), Type.Null()]),
 
     // Retry policy
-    max_attempts: Type.Number({ minimum: 1 }),
+    maxAttempts: Type.Number({ minimum: 1 }),
   },
   { $id: 'Task', additionalProperties: false },
 );
@@ -221,28 +221,28 @@ export type Task = Static<typeof Task>;
 // ---------------------------------------------------------------------------
 
 /**
- * A single attempt at fulfilling a task. `(task_id, attempt_n)` is the
+ * A single attempt at fulfilling a task. `(taskId, attemptN)` is the
  * primary key. `tasks.accepted_attempt_n` points at the winning row.
  */
 export const TaskAttempt = Type.Object(
   {
-    task_id: Uuid,
-    attempt_n: Type.Number({ minimum: 1 }),
-    claimed_by_agent_id: Uuid,
-    runtime_id: Type.Union([Uuid, Type.Null()]),
-    claimed_at: IsoTimestamp,
-    started_at: Type.Union([IsoTimestamp, Type.Null()]),
-    completed_at: Type.Union([IsoTimestamp, Type.Null()]),
+    taskId: Uuid,
+    attemptN: Type.Number({ minimum: 1 }),
+    claimedByAgentId: Uuid,
+    runtimeId: Type.Union([Uuid, Type.Null()]),
+    claimedAt: IsoTimestamp,
+    startedAt: Type.Union([IsoTimestamp, Type.Null()]),
+    completedAt: Type.Union([IsoTimestamp, Type.Null()]),
     status: TaskAttemptStatus,
     output: Type.Union([
       Type.Record(Type.String(), Type.Unknown()),
       Type.Null(),
     ]),
-    output_cid: Type.Union([Cid, Type.Null()]),
+    outputCid: Type.Union([Cid, Type.Null()]),
     error: Type.Union([TaskError, Type.Null()]),
     usage: Type.Union([TaskUsage, Type.Null()]),
-    content_signature: Type.Union([Type.String(), Type.Null()]),
-    signed_at: Type.Union([IsoTimestamp, Type.Null()]),
+    contentSignature: Type.Union([Type.String(), Type.Null()]),
+    signedAt: Type.Union([IsoTimestamp, Type.Null()]),
   },
   { $id: 'TaskAttempt', additionalProperties: false },
 );
@@ -254,12 +254,12 @@ export type TaskAttempt = Static<typeof TaskAttempt>;
 
 export const TaskMessage = Type.Object(
   {
-    task_id: Uuid,
-    attempt_n: Type.Number({ minimum: 1 }),
+    taskId: Uuid,
+    attemptN: Type.Number({ minimum: 1 }),
     seq: Type.Number({
       minimum: 0,
       description:
-        'Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.',
+        'Monotonically increasing integer assigned by the server. Use as the afterSeq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.',
     }),
     timestamp: IsoTimestamp,
     kind: TaskMessageKind,
@@ -280,8 +280,8 @@ export type TaskMessage = Static<typeof TaskMessage>;
  */
 export const TaskOutput = Type.Object(
   {
-    task_id: Uuid,
-    attempt_n: Type.Number({ minimum: 1 }),
+    taskId: Uuid,
+    attemptN: Type.Number({ minimum: 1 }),
     status: Type.Union([
       Type.Literal('completed'),
       Type.Literal('failed'),
@@ -291,11 +291,11 @@ export const TaskOutput = Type.Object(
       Type.Record(Type.String(), Type.Unknown()),
       Type.Null(),
     ]),
-    output_cid: Type.Union([Cid, Type.Null()]),
+    outputCid: Type.Union([Cid, Type.Null()]),
     usage: TaskUsage,
-    duration_ms: Type.Number({ minimum: 0 }),
+    durationMs: Type.Number({ minimum: 0 }),
     error: Type.Optional(TaskError),
-    content_signature: Type.Optional(Type.String()),
+    contentSignature: Type.Optional(Type.String()),
   },
   { $id: 'TaskOutput', additionalProperties: false },
 );
@@ -308,16 +308,16 @@ export type TaskOutput = Static<typeof TaskOutput>;
 
 export const RuntimeHeartbeat = Type.Object(
   {
-    runtime_id: Uuid,
-    agent_id: Uuid,
+    runtimeId: Uuid,
+    agentId: Uuid,
     timestamp: IsoTimestamp,
     status: Type.Union([
       Type.Literal('idle'),
       Type.Literal('busy'),
       Type.Literal('draining'),
     ]),
-    active_task_ids: Type.Array(Uuid),
-    supported_task_types: Type.Array(Type.String()),
+    activeTaskIds: Type.Array(Uuid),
+    supportedTaskTypes: Type.Array(Type.String()),
   },
   { $id: 'RuntimeHeartbeat', additionalProperties: false },
 );

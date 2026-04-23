@@ -7,8 +7,8 @@ interface Ctx {
 
 export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
   const {
-    rendered_pack_id: renderedPackId,
-    source_pack_id: sourcePackId,
+    renderedPackId,
+    sourcePackId,
     rubric,
   } = input;
 
@@ -38,7 +38,7 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
     '',
     `- **Rendered pack**: \`${renderedPackId}\``,
     `- **Source pack**: \`${sourcePackId}\``,
-    `- **Rubric**: \`${rubric.rubric_id}\` v${rubric.version}`,
+    `- **Rubric**: \`${rubric.rubricId}\` v${rubric.version}`,
     '',
     preambleSection,
     '## Workflow',
@@ -77,12 +77,12 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
     '  non-empty `contentSignature`. If `required_signed_total` is 0,',
     '  score = 1. Populate `evidence` with `{ entries_verified,',
     '  entries_total, required_signed_total, required_signed_ok,',
-    '  signature_failures: [entry_ids] }` where `signature_failures` lists',
+    '  signatureFailures: [entryIds] }` where `signatureFailures` lists',
     '  ONLY the REQUIRED-SIGNED entries that lack a signature.',
     '- `deterministic_coverage_check`: for every source entry, check',
-    '  whether its `entry_id` (or a stable reference like title + CID',
+    '  whether its `entryId` (or a stable reference like title + CID',
     '  prefix) appears in the rendered `content`. Score 1 iff coverage is',
-    '  complete; otherwise 0. Populate `evidence` with `{ covered, total, missing: [entry_ids] }`.',
+    '  complete; otherwise 0. Populate `evidence` with `{ covered, total, missing: [entryIds] }`.',
     '',
     '## Constraints',
     '',
@@ -96,18 +96,18 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
     'Write to stdout a JSON object matching `JudgePackOutput`:',
     '```',
     '{',
-    '  "scores": [{"criterion_id": "...", "score": 0.0, "rationale": "...", "evidence": {...}}],',
+    '  "scores": [{"criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {...}}],',
     '  "composite": <sum-of-weighted-scores>,',
     '  "verdict": "<1-3 sentence overall>",',
-    '  "judge_model": "<provider:model>",',
-    '  "renderer_binary_cid": "<cid-string-only-if-available>"',
+    '  "judgeModel": "<provider:model>",',
+    '  "rendererBinaryCid": "<cid-string-only-if-available>"',
     '}',
     '```',
-    'Omit `renderer_binary_cid` entirely when no binary CID is exposed by',
+    'Omit `rendererBinaryCid` entirely when no binary CID is exposed by',
     '`moltnet_rendered_pack_get`. Do NOT emit `null` — the field is optional',
     'and absence is the correct representation when unavailable.',
     'Write a signed diary entry (tags: `judgment`, `judge_pack`, ' +
-      `\`rubric:${rubric.rubric_id}\`) capturing the rationale before`,
+      `\`rubric:${rubric.rubricId}\`) capturing the rationale before`,
     'emitting the JSON.',
   ];
 

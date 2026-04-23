@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { type Rubric, validateRubricWeights } from './rubric.js';
 
 const base: Rubric = {
-  rubric_id: 'test',
+  rubricId: 'test',
   version: 'v1',
   criteria: [],
 };

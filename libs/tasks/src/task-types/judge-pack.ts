@@ -28,13 +28,13 @@ export const JUDGE_PACK_TYPE = 'judge_pack' as const;
 export const JudgePackInput = Type.Object(
   {
     /** Rendered pack to judge. */
-    rendered_pack_id: Type.String({ format: 'uuid' }),
+    renderedPackId: Type.String({ format: 'uuid' }),
 
     /**
      * Pack the rendering came from. The judge reads source entries from
      * here to ground grounding / coverage / faithfulness assessments.
      */
-    source_pack_id: Type.String({ format: 'uuid' }),
+    sourcePackId: Type.String({ format: 'uuid' }),
 
     /**
      * Full rubric body, inlined. See #852 amendment for rationale.
@@ -50,7 +50,7 @@ export type JudgePackInput = Static<typeof JudgePackInput>;
 /** One scored criterion. Mirrors `AssessBriefScore`. */
 export const JudgePackScore = Type.Object(
   {
-    criterion_id: Type.String({ minLength: 1 }),
+    criterionId: Type.String({ minLength: 1 }),
     /** 0..1 continuous for `llm_judged`, exactly 0 or 1 for deterministic/boolean. */
     score: Type.Number({ minimum: 0, maximum: 1 }),
     /** Required for `llm_judged`, optional otherwise. */
@@ -78,7 +78,7 @@ export const JudgePackOutput = Type.Object(
     verdict: Type.String({ minLength: 1 }),
 
     /** Model id used for `llm_judged` criteria. */
-    judge_model: Type.Optional(Type.String()),
+    judgeModel: Type.Optional(Type.String()),
 
     /**
      * CIDv1 of the renderer binary the judge evaluated (when available
@@ -87,7 +87,7 @@ export const JudgePackOutput = Type.Object(
      * attestations. `null` is accepted and treated as "unavailable"
      * equivalent to omission.
      */
-    renderer_binary_cid: Type.Optional(
+    rendererBinaryCid: Type.Optional(
       Type.Union([Type.String(), Type.Null()]),
     ),
   },

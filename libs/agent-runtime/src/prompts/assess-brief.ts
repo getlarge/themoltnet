@@ -46,8 +46,8 @@ export function buildAssessBriefPrompt(
       ].join('\n')
     : '';
 
-  const preambleSection = input.rubric_preamble
-    ? ['### Rubric preamble', '', input.rubric_preamble, ''].join('\n')
+  const preambleSection = input.rubricPreamble
+    ? ['### Rubric preamble', '', input.rubricPreamble, ''].join('\n')
     : '';
 
   const lines = [
@@ -78,12 +78,12 @@ export function buildAssessBriefPrompt(
     '',
     '- `llm_judged`: score 0..1 continuous. `rationale` REQUIRED (2–4 sentences).',
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
-    '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry listed above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commits_verified`, `evidence.commits_total`, `evidence.signature_failures`.',
+    '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry listed above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
     '',
     '### Final output',
     '',
     'Emit a JSON object matching `AssessBriefOutput`:',
-    '  { "scores": [{criterion_id, score, rationale?, evidence?}], "composite", "verdict", "judge_model"? }',
+    '  { "scores": [{criterionId, score, rationale?, evidence?}], "composite", "verdict", "judgeModel"? }',
     '`composite` = Σ(weight_i × score_i) recomputed. The runtime will reject a mismatch.',
     'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before emitting the JSON.',
   ];

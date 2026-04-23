@@ -20,7 +20,7 @@ interface Ctx {
  * N isolated `createAgentSession` children (one per tag cluster or
  * entry_type axis the curator picks after recon), each with a narrow
  * tool subset and a turn cap, and returns compressed summaries. Parent
- * curator keeps a warm context and only sees {candidate_ids, notes}
+ * curator keeps a warm context and only sees {candidateIds, notes}
  * per probe — mirrors the fan-out pattern pi-mono SDK example #13
  * (session runtime) + #05 (custom tools) makes possible. Until that
  * lands, the `checkpoints[]` output field is the fallback: curator
@@ -32,11 +32,11 @@ export function buildCuratePackPrompt(
   ctx: Ctx,
 ): string {
   const {
-    diary_id: diaryId,
-    task_prompt: taskPrompt,
-    entry_types: entryTypes,
-    tag_filters: tagFilters,
-    token_budget: tokenBudget,
+    diaryId,
+    taskPrompt,
+    entryTypes,
+    tagFilters,
+    tokenBudget,
     recipe,
   } = input;
 
@@ -143,7 +143,7 @@ export function buildCuratePackPrompt(
     '',
     'The tool returns a JSON payload whose top-level fields are `packId` and',
     '`packCid` (NOT `id`). Copy those exact UUID/CID strings verbatim into',
-    '`pack_id` and `pack_cid` in your final output — do not substitute an',
+    '`packId` and `packCid` in your final output — do not substitute an',
     'entry id, do not reformat, do not fabricate a UUID.',
     '',
     '## Hard constraints',
@@ -160,14 +160,14 @@ export function buildCuratePackPrompt(
     'Write to stdout a JSON object matching `CuratePackOutput`:',
     '```',
     '{',
-    '  "pack_id": "<uuid>",',
-    '  "pack_cid": "<cid>",',
+    '  "packId": "<uuid>",',
+    '  "packCid": "<cid>",',
     '  "entries": [',
-    '    { "entry_id": "<uuid>", "rank": 1, "rationale": "<why>" }',
+    '    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }',
     '  ],',
-    '  "recipe_params": { "recipe": "...", "prompt": "...", ... },',
+    '  "recipeParams": { "recipe": "...", "prompt": "...", ... },',
     '  "checkpoints": [',
-    '    { "phase": "recon", "candidate_ids": [...], "dropped_ids": [...], "notes": "..." }',
+    '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
     '  ],',
     '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>"',
     '}',

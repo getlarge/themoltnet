@@ -11,7 +11,7 @@ describe('validateTaskCreateRequest', () => {
 
     expect(errors).toEqual([
       {
-        field: 'task_type',
+        field: 'taskType',
         message: 'Unknown task type: constructor',
       },
     ]);
@@ -21,10 +21,10 @@ describe('validateTaskCreateRequest', () => {
     const errors = validateTaskCreateRequest({
       taskType: 'judge_pack',
       input: {
-        rendered_pack_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        source_pack_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
         rubric: {
-          rubric_id: 'pack-fidelity-v2',
+          rubricId: 'pack-fidelity-v2',
           version: 'v2',
           scope: 'packs',
           preamble: 'Judge the pack faithfully.',
@@ -56,7 +56,7 @@ describe('validateTaskOutput', () => {
 
     expect(errors).toEqual([
       {
-        field: 'task_type',
+        field: 'taskType',
         message: 'Unknown task type: toString',
       },
     ]);
@@ -72,11 +72,11 @@ describe('validateTaskOutput', () => {
     expect(errors).toEqual(
       expect.arrayContaining([
         {
-          field: 'output/pull_request_url',
+          field: 'output/pullRequestUrl',
           message: 'Expected union value',
         },
         {
-          field: 'output/diary_entry_ids',
+          field: 'output/diaryEntryIds',
           message: 'Expected array',
         },
       ]),

@@ -38,13 +38,13 @@ class RecordingReporter implements TaskReporter {
 
 function makeOutput(task: Task, status: TaskOutput['status']): TaskOutput {
   return {
-    task_id: task.id,
-    attempt_n: 1,
+    taskId: task.id,
+    attemptN: 1,
     status,
     output: null,
-    output_cid: null,
-    usage: { input_tokens: 0, output_tokens: 0 },
-    duration_ms: 1,
+    outputCid: null,
+    usage: { inputTokens: 0, outputTokens: 0 },
+    durationMs: 1,
   };
 }
 

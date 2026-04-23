@@ -13,7 +13,7 @@ export function buildRenderPackPrompt(
   input: RenderPackInput,
   ctx: Ctx,
 ): string {
-  const { pack_id: packId, persist = true, pinned = false } = input;
+  const { packId, persist = true, pinned = false } = input;
 
   const lines = [
     '# Render Pack Agent',
@@ -54,11 +54,11 @@ export function buildRenderPackPrompt(
     'Write to stdout a JSON object matching `RenderPackOutput`:',
     '```',
     '{',
-    '  "rendered_pack_id": "<uuid-or-null>",',
-    '  "rendered_cid": "<cid>",',
-    '  "render_method": "<label>",',
-    '  "byte_size": <int>,',
-    '  "entries_rendered": <int>,',
+    '  "renderedPackId": "<uuid-or-null>",',
+    '  "renderedCid": "<cid>",',
+    '  "renderMethod": "<label>",',
+    '  "byteSize": <int>,',
+    '  "entriesRendered": <int>,',
     '  "summary": "<1-3 sentence recap>"',
     '}',
     '```',

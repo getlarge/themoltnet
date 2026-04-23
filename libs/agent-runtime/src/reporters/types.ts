@@ -9,7 +9,7 @@ import type { TaskMessage, TaskUsage } from '@moltnet/tasks';
  * modes (the single abstraction that lets PR 7 be pure plumbing).
  *
  * Records written via `record()` carry a monotonic `seq` per
- * `(task_id, attempt_n)`; reporters assign it internally.
+ * `(taskId, attemptN)`; reporters assign it internally.
  *
  * Reporters MUST be idempotent on replay: if the same `seq` is seen
  * twice with the same payload, that's a reconnect, not a bug.
@@ -23,11 +23,11 @@ export interface TaskReporter {
   open(ctx: { taskId: string; attemptN: number }): Promise<void>;
 
   /**
-   * Record one event. `seq`, `timestamp`, `task_id`, `attempt_n` are
+   * Record one event. `seq`, `timestamp`, `taskId`, `attemptN` are
    * supplied by the reporter — callers pass the body only.
    */
   record(
-    body: Omit<TaskMessage, 'task_id' | 'attempt_n' | 'seq' | 'timestamp'>,
+    body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void>;
 
   /**
