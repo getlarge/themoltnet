@@ -215,13 +215,16 @@ describe('Tasks API', () => {
       expect(data!.id).toBe(taskId);
     });
 
-    it('returns 404 for non-existent task id', async () => {
+    it('returns 403 for non-existent task id', async () => {
+      // Task.view traverses Task→Diary→read; a non-existent task has no
+      // parent diary tuple, so Keto returns "not permitted" (403) rather
+      // than leaking existence via 404.
       const { response } = await getTask({
         client,
         auth: () => imposer.accessToken,
         path: { id: '00000000-0000-0000-0000-000000000000' },
       });
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(403);
     });
   });
 
@@ -385,10 +388,23 @@ describe('Tasks API', () => {
     });
 
     it('returns 403 when a non-owner tries to cancel', async () => {
-      const { data } = await impose();
-      const { response } = await cancelTask({
+      // Create a task in claimer's own diary; imposer has no access to it.
+      const { data } = await createTask({
         client,
         auth: () => claimer.accessToken,
+        body: {
+          task_type: 'curate_pack',
+          team_id: claimer.personalTeamId,
+          diary_id: claimer.privateDiaryId,
+          input: {
+            diary_id: claimer.privateDiaryId,
+            task_prompt: 'claimer-owned task',
+          },
+        },
+      });
+      const { response } = await cancelTask({
+        client,
+        auth: () => imposer.accessToken,
         path: { id: data!.id },
         body: { reason: 'unauthorized cancel attempt' },
       });
@@ -416,8 +432,8 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attemptN },
         body: {
           messages: [
-            { kind: 'progress', payload: { step: 'start', pct: 0 } },
-            { kind: 'log', payload: { text: 'processing...' } },
+            { kind: 'info', payload: { step: 'start', pct: 0 } },
+            { kind: 'text_delta', payload: { text: 'processing...' } },
           ],
         },
       });
@@ -434,8 +450,8 @@ describe('Tasks API', () => {
       });
       expect(error).toBeUndefined();
       expect(data!.length).toBe(2);
-      expect(data![0].kind).toBe('progress');
-      expect(data![1].kind).toBe('log');
+      expect(data![0].kind).toBe('info');
+      expect(data![1].kind).toBe('text_delta');
       expect(data![0].seq).toBeLessThan(data![1].seq);
     });
 
@@ -455,7 +471,7 @@ describe('Tasks API', () => {
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
-        body: { messages: [{ kind: 'log', payload: { text: 'done' } }] },
+        body: { messages: [{ kind: 'text_delta', payload: { text: 'done' } }] },
       });
 
       const { data: all } = await listTaskMessages({
@@ -475,7 +491,7 @@ describe('Tasks API', () => {
       });
 
       expect(after!.length).toBe(1);
-      expect(after![0].kind).toBe('log');
+      expect(after![0].kind).toBe('text_delta');
       expect(after![0].payload).toEqual({ text: 'done' });
     });
   });
