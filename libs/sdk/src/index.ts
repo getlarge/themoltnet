@@ -13,6 +13,7 @@ export type {
   RecoveryNamespace,
   SigningRequestsNamespace,
   TeamsNamespace,
+  TasksNamespace,
   VouchNamespace,
 } from './agent.js';
 export { createAgent } from './agent.js';
