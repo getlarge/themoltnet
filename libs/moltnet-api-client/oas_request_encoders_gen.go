@@ -41,7 +41,7 @@ func encodeAddGroupMemberRequest(
 }
 
 func encodeAppendTaskMessagesRequest(
-	req *AppendMessagesBody,
+	req *AppendTaskMessagesReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -55,7 +55,7 @@ func encodeAppendTaskMessagesRequest(
 }
 
 func encodeCancelTaskRequest(
-	req *CancelTaskBody,
+	req *CancelTaskReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -69,7 +69,7 @@ func encodeCancelTaskRequest(
 }
 
 func encodeClaimTaskRequest(
-	req OptClaimTaskBody,
+	req OptClaimTaskReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -103,7 +103,7 @@ func encodeCompileDiaryRequest(
 }
 
 func encodeCompleteTaskRequest(
-	req *CompleteTaskBody,
+	req *CompleteTaskReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -235,7 +235,7 @@ func encodeCreateSigningRequestRequest(
 }
 
 func encodeCreateTaskRequest(
-	req *CreateTaskBody,
+	req *CreateTaskReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -283,7 +283,7 @@ func encodeCreateTeamInviteRequest(
 }
 
 func encodeFailTaskRequest(
-	req *FailTaskBody,
+	req *FailTaskReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -471,7 +471,7 @@ func encodeSubmitVerificationRequest(
 }
 
 func encodeTaskHeartbeatRequest(
-	req OptHeartbeatBody,
+	req OptTaskHeartbeatReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

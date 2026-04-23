@@ -31,19 +31,19 @@ type Handler interface {
 	// Append messages to a task attempt.
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
-	AppendTaskMessages(ctx context.Context, req *AppendMessagesBody, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	AppendTaskMessages(ctx context.Context, req *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
 	// CancelTask implements cancelTask operation.
 	//
 	// Cancel a task.
 	//
 	// POST /tasks/{id}/cancel
-	CancelTask(ctx context.Context, req *CancelTaskBody, params CancelTaskParams) (CancelTaskRes, error)
+	CancelTask(ctx context.Context, req *CancelTaskReq, params CancelTaskParams) (CancelTaskRes, error)
 	// ClaimTask implements claimTask operation.
 	//
 	// Claim a queued task and start an attempt.
 	//
 	// POST /tasks/{id}/claim
-	ClaimTask(ctx context.Context, req OptClaimTaskBody, params ClaimTaskParams) (ClaimTaskRes, error)
+	ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
 	// ClaimVerification implements claimVerification operation.
 	//
 	// Judge claims verification payload (source entries, rendered content, and rubric).
@@ -61,7 +61,7 @@ type Handler interface {
 	// Mark an attempt as completed with output.
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
-	CompleteTask(ctx context.Context, req *CompleteTaskBody, params CompleteTaskParams) (CompleteTaskRes, error)
+	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
 	// ConsolidateDiary implements consolidateDiary operation.
 	//
 	// Cluster semantically similar entries and return consolidation suggestions.
@@ -117,7 +117,7 @@ type Handler interface {
 	// Create and enqueue a new task.
 	//
 	// POST /tasks
-	CreateTask(ctx context.Context, req *CreateTaskBody) (CreateTaskRes, error)
+	CreateTask(ctx context.Context, req *CreateTaskReq) (CreateTaskRes, error)
 	// CreateTeam implements createTeam operation.
 	//
 	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
@@ -184,7 +184,7 @@ type Handler interface {
 	// Mark an attempt as failed with error details.
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
-	FailTask(ctx context.Context, req *FailTaskBody, params FailTaskParams) (FailTaskRes, error)
+	FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
 	// GetAgentProfile implements getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -583,7 +583,7 @@ type Handler interface {
 	// Send a heartbeat to keep the attempt lease alive.
 	//
 	// POST /tasks/{id}/attempts/{n}/heartbeat
-	TaskHeartbeat(ctx context.Context, req OptHeartbeatBody, params TaskHeartbeatParams) (TaskHeartbeatRes, error)
+	TaskHeartbeat(ctx context.Context, req OptTaskHeartbeatReq, params TaskHeartbeatParams) (TaskHeartbeatRes, error)
 	// UpdateContextPack implements updateContextPack operation.
 	//
 	// Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.

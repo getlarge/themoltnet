@@ -47,10 +47,11 @@ func main() {
 	// so that ogen can handle them (it requires $ref in oneOf+discriminator).
 	extractDiscriminatedUnionSchemas(normalized)
 
-	// Replace inline schemas that are structurally identical to a named
-	// components/schemas entry with a $ref. This prevents ogen from generating
-	// conflicting type names (e.g. Task.status inline enum vs TaskStatus schema).
-	deduplicateInlineSchemas(normalized)
+	// Replace inline property schemas that would cause ogen type-name conflicts.
+	// ogen names inline properties as <ParentSchema><TitleCase(propName)>, so
+	// Task.status → TaskStatus conflicts with the TaskStatus component schema.
+	// We only replace cases where the property name matches that exact pattern.
+	deduplicateConflictingInlineSchemas(normalized)
 
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -64,12 +65,16 @@ func main() {
 	}
 }
 
-// deduplicateInlineSchemas replaces inline schemas that are structurally
-// identical to a named entry in components/schemas with a $ref to that entry.
-// This prevents ogen from generating conflicting type names when the same enum
-// or object appears both as a named schema and inlined inside another schema
-// (e.g. Task.status inline enum vs TaskStatus component schema).
-func deduplicateInlineSchemas(spec any) {
+// deduplicateConflictingInlineSchemas replaces inline property schemas that
+// would cause ogen type-name conflicts. ogen names an inline property schema
+// as <ParentSchemaName><TitleCase(propertyName)>, so Task.status becomes
+// "TaskStatus" — conflicting with the existing TaskStatus component schema.
+//
+// We only replace when the component schema name equals exactly
+// <parentName><titleCase(propName)> AND the inline schema is structurally
+// identical to the named component schema. This avoids the over-broad
+// replacement that broke unrelated types like CreateDiaryReqVisibility.
+func deduplicateConflictingInlineSchemas(spec any) {
 	root, ok := spec.(map[string]any)
 	if !ok {
 		return
@@ -92,63 +97,69 @@ func deduplicateInlineSchemas(spec any) {
 		}
 	}
 
-	// Walk paths and other non-components keys.
-	for k, v := range root {
-		if k != "components" {
-			root[k] = walkDedup(v, schemas, canonicals)
-		}
-	}
-
-	// Walk inside each named schema's properties/fields without replacing the
-	// top-level named schemas themselves (to avoid self-referential $refs).
-	for name, schema := range schemas {
+	// Walk only the named component schemas, replacing conflicting inline
+	// property schemas with $refs. Don't touch paths or other sections.
+	for parentName, schema := range schemas {
 		m, ok := schema.(map[string]any)
 		if !ok {
 			continue
 		}
-		out := make(map[string]any, len(m))
-		for k, v := range m {
-			out[k] = walkDedup(v, schemas, canonicals)
+		props, ok := m["properties"].(map[string]any)
+		if !ok {
+			continue
 		}
-		schemas[name] = out
+		changed := false
+		for propName, propSchema := range props {
+			propMap, ok := propSchema.(map[string]any)
+			if !ok {
+				continue
+			}
+			if _, isRef := propMap["$ref"]; isRef {
+				continue
+			}
+			// Compute the ogen-generated name for this inline property.
+			expectedName := parentName + titleCase(propName)
+			canonical, exists := canonicals[expectedName]
+			if !exists {
+				continue
+			}
+			b, err := json.Marshal(propMap)
+			if err != nil || string(b) != canonical {
+				continue
+			}
+			// Replace the inline schema with a $ref.
+			props[propName] = map[string]any{"$ref": "#/components/schemas/" + expectedName}
+			changed = true
+		}
+		if changed {
+			m["properties"] = props
+			schemas[parentName] = m
+		}
 	}
 }
 
-// walkDedup recursively replaces inline schemas with $refs where they match a
-// named component schema. It skips the components/schemas subtree itself to
-// avoid replacing the originals.
-func walkDedup(v any, schemas map[string]any, canonicals map[string]string) any {
-	switch val := v.(type) {
-	case map[string]any:
-		// Don't replace $ref nodes or the schemas registry itself.
-		if _, isRef := val["$ref"]; isRef {
-			return v
-		}
-		// Try to match this map against a named schema (skip if it has properties
-		// that indicate it's a container rather than a leaf schema).
-		b, err := json.Marshal(val)
-		if err == nil {
-			canonical := string(b)
-			for name, c := range canonicals {
-				if c == canonical {
-					return map[string]any{"$ref": "#/components/schemas/" + name}
-				}
-			}
-		}
-		out := make(map[string]any, len(val))
-		for k, child := range val {
-			out[k] = walkDedup(child, schemas, canonicals)
-		}
-		return out
-	case []any:
-		out := make([]any, len(val))
-		for i, child := range val {
-			out[i] = walkDedup(child, schemas, canonicals)
-		}
-		return out
-	default:
-		return v
+// titleCase converts a snake_case or camelCase property name to TitleCase,
+// matching ogen's naming convention for inline property schemas.
+// e.g. "status" → "Status", "task_type" → "TaskType", "outputKind" → "OutputKind"
+func titleCase(s string) string {
+	if s == "" {
+		return s
 	}
+	var result strings.Builder
+	upper := true
+	for _, r := range s {
+		if r == '_' || r == '-' {
+			upper = true
+			continue
+		}
+		if upper {
+			result.WriteRune([]rune(strings.ToUpper(string(r)))[0])
+			upper = false
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }
 
 // extractDiscriminatedUnionSchemas walks the spec looking for oneOf+discriminator

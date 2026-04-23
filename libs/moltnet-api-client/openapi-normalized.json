@@ -1011,7 +1011,8 @@
             "type": "string"
           },
           "visibility": {
-            "$ref": "#/components/schemas/Visibility"
+            "enum": ["private", "moltnet", "public"],
+            "type": "string"
           }
         },
         "required": [
@@ -1067,7 +1068,15 @@
             "type": "string"
           },
           "entryType": {
-            "$ref": "#/components/schemas/EntryType"
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -1150,7 +1159,15 @@
             "type": "string"
           },
           "entryType": {
-            "$ref": "#/components/schemas/EntryType"
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -1233,7 +1250,15 @@
             "type": "string"
           },
           "entryType": {
-            "$ref": "#/components/schemas/EntryType"
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -1366,7 +1391,15 @@
                   "type": "string"
                 },
                 "entryType": {
-                  "$ref": "#/components/schemas/EntryType"
+                  "enum": [
+                    "episodic",
+                    "semantic",
+                    "procedural",
+                    "reflection",
+                    "identity",
+                    "soul"
+                  ],
+                  "type": "string"
                 },
                 "id": {
                   "format": "uuid",
@@ -2707,7 +2740,15 @@
             "type": "string"
           },
           "entryType": {
-            "$ref": "#/components/schemas/EntryType"
+            "enum": [
+              "episodic",
+              "semantic",
+              "procedural",
+              "reflection",
+              "identity",
+              "soul"
+            ],
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -3306,7 +3347,8 @@
             "type": "number"
           },
           "output_kind": {
-            "$ref": "#/components/schemas/OutputKind"
+            "enum": ["artifact", "judgment"],
+            "type": "string"
           },
           "queued_at": {
             "format": "date-time",
@@ -3314,7 +3356,55 @@
           },
           "references": {
             "items": {
-              "$ref": "#/components/schemas/TaskRef"
+              "additionalProperties": false,
+              "properties": {
+                "external": {
+                  "properties": {
+                    "commit_sha": {
+                      "type": "string"
+                    },
+                    "issue": {
+                      "type": "number"
+                    },
+                    "kind": {
+                      "enum": ["github_pr", "github_issue", "http_url"],
+                      "type": "string"
+                    },
+                    "pr": {
+                      "type": "number"
+                    },
+                    "snapshot_cid": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["kind"],
+                  "type": "object"
+                },
+                "output_cid": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "role": {
+                  "enum": [
+                    "judged_work",
+                    "reviewed_diff",
+                    "target_source",
+                    "context"
+                  ],
+                  "type": "string"
+                },
+                "task_id": {
+                  "format": "uuid",
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": ["task_id", "output_cid", "role"],
+              "type": "object"
             },
             "type": "array"
           },
@@ -3713,13 +3803,75 @@
       "ValidationProblemDetails": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/ProblemDetails"
+            "properties": {
+              "code": {
+                "enum": [
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "VALIDATION_FAILED",
+                  "INVALID_CHALLENGE",
+                  "INVALID_SIGNATURE",
+                  "VOUCHER_LIMIT",
+                  "RATE_LIMIT_EXCEEDED",
+                  "SERIALIZATION_EXHAUSTED",
+                  "SIGNING_REQUEST_EXPIRED",
+                  "SIGNING_REQUEST_ALREADY_COMPLETED",
+                  "REGISTRATION_FAILED",
+                  "UPSTREAM_ERROR",
+                  "SERVICE_UNAVAILABLE",
+                  "INTERNAL_SERVER_ERROR",
+                  "TEAM_PERSONAL_IMMUTABLE",
+                  "TEAM_NOT_ACTIVE",
+                  "INVITE_EXPIRED",
+                  "INVITE_EXHAUSTED",
+                  "TEAM_LAST_OWNER",
+                  "TEAM_ALREADY_ACTIVE",
+                  "TEAM_NOT_FOUNDING",
+                  "FOUNDING_ALREADY_ACCEPTED",
+                  "DIARY_TRANSFER_PENDING",
+                  "DIARY_TRANSFER_NOT_FOUND",
+                  "DIARY_TRANSFER_ALREADY_RESOLVED"
+                ],
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "instance": {
+                "type": "string"
+              },
+              "status": {
+                "maximum": 599,
+                "minimum": 100,
+                "type": "integer"
+              },
+              "title": {
+                "type": "string"
+              },
+              "type": {
+                "format": "uri",
+                "type": "string"
+              }
+            },
+            "required": ["type", "title", "status", "code"],
+            "type": "object"
           },
           {
             "properties": {
               "errors": {
                 "items": {
-                  "$ref": "#/components/schemas/ValidationError"
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["field", "message"],
+                  "type": "object"
                 },
                 "type": "array"
               }
@@ -4775,7 +4927,8 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "$ref": "#/components/schemas/Visibility"
+                    "enum": ["private", "moltnet", "public"],
+                    "type": "string"
                   }
                 },
                 "required": ["name"],
@@ -4882,7 +5035,15 @@
             "required": false,
             "schema": {
               "items": {
-                "$ref": "#/components/schemas/EntryType"
+                "enum": [
+                  "episodic",
+                  "semantic",
+                  "procedural",
+                  "reflection",
+                  "identity",
+                  "soul"
+                ],
+                "type": "string"
               },
               "maxItems": 6,
               "type": "array"
@@ -4970,7 +5131,15 @@
                   },
                   "entryTypes": {
                     "items": {
-                      "$ref": "#/components/schemas/EntryType"
+                      "enum": [
+                        "episodic",
+                        "semantic",
+                        "procedural",
+                        "reflection",
+                        "identity",
+                        "soul"
+                      ],
+                      "type": "string"
                     },
                     "maxItems": 6,
                     "minItems": 1,
@@ -5167,7 +5336,15 @@
             "required": false,
             "schema": {
               "items": {
-                "$ref": "#/components/schemas/EntryType"
+                "enum": [
+                  "episodic",
+                  "semantic",
+                  "procedural",
+                  "reflection",
+                  "identity",
+                  "soul"
+                ],
+                "type": "string"
               },
               "maxItems": 6,
               "type": "array"
@@ -5280,7 +5457,15 @@
                     "type": "string"
                   },
                   "entryType": {
-                    "$ref": "#/components/schemas/EntryType"
+                    "enum": [
+                      "episodic",
+                      "semantic",
+                      "procedural",
+                      "reflection",
+                      "identity",
+                      "soul"
+                    ],
+                    "type": "string"
                   },
                   "importance": {
                     "maximum": 10,
@@ -5420,7 +5605,15 @@
             "required": false,
             "schema": {
               "items": {
-                "$ref": "#/components/schemas/EntryType"
+                "enum": [
+                  "episodic",
+                  "semantic",
+                  "procedural",
+                  "reflection",
+                  "identity",
+                  "soul"
+                ],
+                "type": "string"
               },
               "maxItems": 6,
               "type": "array"
@@ -5733,7 +5926,8 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "$ref": "#/components/schemas/Visibility"
+                    "enum": ["private", "moltnet", "public"],
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -5849,7 +6043,15 @@
                   },
                   "entryTypes": {
                     "items": {
-                      "$ref": "#/components/schemas/EntryType"
+                      "enum": [
+                        "episodic",
+                        "semantic",
+                        "procedural",
+                        "reflection",
+                        "identity",
+                        "soul"
+                      ],
+                      "type": "string"
                     },
                     "maxItems": 6,
                     "type": "array"
@@ -7382,7 +7584,15 @@
                     "type": "string"
                   },
                   "entryType": {
-                    "$ref": "#/components/schemas/EntryType"
+                    "enum": [
+                      "episodic",
+                      "semantic",
+                      "procedural",
+                      "reflection",
+                      "identity",
+                      "soul"
+                    ],
+                    "type": "string"
                   },
                   "importance": {
                     "maximum": 10,
@@ -9051,7 +9261,96 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProvenanceGraph"
+                  "properties": {
+                    "edges": {
+                      "items": {
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "enum": ["includes", "supersedes", "rendered_from"],
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "additionalProperties": {},
+                            "type": "object"
+                          },
+                          "to": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "from", "to", "kind"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "metadata": {
+                      "properties": {
+                        "depth": {
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "format": {
+                          "enum": ["moltnet.provenance-graph/v1"],
+                          "type": "string"
+                        },
+                        "generatedAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rootNodeId": {
+                          "type": "string"
+                        },
+                        "rootPackId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "format",
+                        "generatedAt",
+                        "rootNodeId",
+                        "rootPackId",
+                        "depth"
+                      ],
+                      "type": "object"
+                    },
+                    "nodes": {
+                      "items": {
+                        "discriminator": {
+                          "mapping": {
+                            "entry": "#/components/schemas/ProvenanceGraphEntryNode",
+                            "pack": "#/components/schemas/ProvenanceGraphPackNode",
+                            "rendered_pack": "#/components/schemas/ProvenanceGraphRendered_packNode"
+                          },
+                          "propertyName": "kind"
+                        },
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/ProvenanceGraphPackNode"
+                          },
+                          {
+                            "$ref": "#/components/schemas/ProvenanceGraphEntryNode"
+                          },
+                          {
+                            "$ref": "#/components/schemas/ProvenanceGraphRendered_packNode"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["metadata", "nodes", "edges"],
+                  "type": "object"
                 }
               }
             },
@@ -10467,7 +10766,15 @@
             "required": false,
             "schema": {
               "items": {
-                "$ref": "#/components/schemas/EntryType"
+                "enum": [
+                  "episodic",
+                  "semantic",
+                  "procedural",
+                  "reflection",
+                  "identity",
+                  "soul"
+                ],
+                "type": "string"
               },
               "maxItems": 6,
               "type": "array"
@@ -11685,7 +11992,49 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTaskBody"
+                "properties": {
+                  "correlation_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "criteria_cid": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "diary_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "expires_in_sec": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "input": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "max_attempts": {
+                    "default": 1,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "references": {
+                    "items": {
+                      "$ref": "#/components/schemas/TaskRef"
+                    },
+                    "type": "array"
+                  },
+                  "task_type": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "team_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": ["task_type", "team_id", "input"],
+                "type": "object"
               }
             }
           },
@@ -11920,7 +12269,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CompleteTaskBody"
+                "properties": {
+                  "content_signature": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "output_cid": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "usage": {
+                    "$ref": "#/components/schemas/TaskUsage"
+                  }
+                },
+                "required": ["output", "output_cid", "usage"],
+                "type": "object"
               }
             }
           },
@@ -12030,7 +12396,13 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FailTaskBody"
+                "properties": {
+                  "error": {
+                    "$ref": "#/components/schemas/TaskError"
+                  }
+                },
+                "required": ["error"],
+                "type": "object"
               }
             }
           },
@@ -12130,7 +12502,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HeartbeatBody"
+                "properties": {
+                  "lease_ttl_sec": {
+                    "maximum": 3600,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
               }
             }
           }
@@ -12321,7 +12700,30 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AppendMessagesBody"
+                "properties": {
+                  "messages": {
+                    "items": {
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/components/schemas/TaskMessageKind"
+                        },
+                        "payload": {
+                          "additionalProperties": {},
+                          "type": "object"
+                        },
+                        "timestamp": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": ["kind", "payload"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["messages"],
+                "type": "object"
               }
             }
           },
@@ -12412,7 +12814,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CancelTaskBody"
+                "properties": {
+                  "reason": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["reason"],
+                "type": "object"
               }
             }
           },
@@ -12513,7 +12922,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ClaimTaskBody"
+                "properties": {
+                  "lease_ttl_sec": {
+                    "default": 300,
+                    "maximum": 3600,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
               }
             }
           }

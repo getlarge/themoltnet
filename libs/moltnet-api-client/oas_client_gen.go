@@ -51,19 +51,19 @@ type Invoker interface {
 	// Append messages to a task attempt.
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
-	AppendTaskMessages(ctx context.Context, request *AppendMessagesBody, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	AppendTaskMessages(ctx context.Context, request *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
 	// CancelTask invokes cancelTask operation.
 	//
 	// Cancel a task.
 	//
 	// POST /tasks/{id}/cancel
-	CancelTask(ctx context.Context, request *CancelTaskBody, params CancelTaskParams) (CancelTaskRes, error)
+	CancelTask(ctx context.Context, request *CancelTaskReq, params CancelTaskParams) (CancelTaskRes, error)
 	// ClaimTask invokes claimTask operation.
 	//
 	// Claim a queued task and start an attempt.
 	//
 	// POST /tasks/{id}/claim
-	ClaimTask(ctx context.Context, request OptClaimTaskBody, params ClaimTaskParams) (ClaimTaskRes, error)
+	ClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
 	// ClaimVerification invokes claimVerification operation.
 	//
 	// Judge claims verification payload (source entries, rendered content, and rubric).
@@ -81,7 +81,7 @@ type Invoker interface {
 	// Mark an attempt as completed with output.
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
-	CompleteTask(ctx context.Context, request *CompleteTaskBody, params CompleteTaskParams) (CompleteTaskRes, error)
+	CompleteTask(ctx context.Context, request *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
 	// ConsolidateDiary invokes consolidateDiary operation.
 	//
 	// Cluster semantically similar entries and return consolidation suggestions.
@@ -137,7 +137,7 @@ type Invoker interface {
 	// Create and enqueue a new task.
 	//
 	// POST /tasks
-	CreateTask(ctx context.Context, request *CreateTaskBody) (CreateTaskRes, error)
+	CreateTask(ctx context.Context, request *CreateTaskReq) (CreateTaskRes, error)
 	// CreateTeam invokes createTeam operation.
 	//
 	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
@@ -204,7 +204,7 @@ type Invoker interface {
 	// Mark an attempt as failed with error details.
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
-	FailTask(ctx context.Context, request *FailTaskBody, params FailTaskParams) (FailTaskRes, error)
+	FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
 	// GetAgentProfile invokes getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -603,7 +603,7 @@ type Invoker interface {
 	// Send a heartbeat to keep the attempt lease alive.
 	//
 	// POST /tasks/{id}/attempts/{n}/heartbeat
-	TaskHeartbeat(ctx context.Context, request OptHeartbeatBody, params TaskHeartbeatParams) (TaskHeartbeatRes, error)
+	TaskHeartbeat(ctx context.Context, request OptTaskHeartbeatReq, params TaskHeartbeatParams) (TaskHeartbeatRes, error)
 	// UpdateContextPack invokes updateContextPack operation.
 	//
 	// Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
@@ -1169,12 +1169,12 @@ func (c *Client) sendAddGroupMember(ctx context.Context, request *AddGroupMember
 // Append messages to a task attempt.
 //
 // POST /tasks/{id}/attempts/{n}/messages
-func (c *Client) AppendTaskMessages(ctx context.Context, request *AppendMessagesBody, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error) {
+func (c *Client) AppendTaskMessages(ctx context.Context, request *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error) {
 	res, err := c.sendAppendTaskMessages(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendMessagesBody, params AppendTaskMessagesParams) (res AppendTaskMessagesRes, err error) {
+func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTaskMessagesReq, params AppendTaskMessagesParams) (res AppendTaskMessagesRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("appendTaskMessages"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -1341,12 +1341,12 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendMess
 // Cancel a task.
 //
 // POST /tasks/{id}/cancel
-func (c *Client) CancelTask(ctx context.Context, request *CancelTaskBody, params CancelTaskParams) (CancelTaskRes, error) {
+func (c *Client) CancelTask(ctx context.Context, request *CancelTaskReq, params CancelTaskParams) (CancelTaskRes, error) {
 	res, err := c.sendCancelTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendCancelTask(ctx context.Context, request *CancelTaskBody, params CancelTaskParams) (res CancelTaskRes, err error) {
+func (c *Client) sendCancelTask(ctx context.Context, request *CancelTaskReq, params CancelTaskParams) (res CancelTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("cancelTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -1494,12 +1494,12 @@ func (c *Client) sendCancelTask(ctx context.Context, request *CancelTaskBody, pa
 // Claim a queued task and start an attempt.
 //
 // POST /tasks/{id}/claim
-func (c *Client) ClaimTask(ctx context.Context, request OptClaimTaskBody, params ClaimTaskParams) (ClaimTaskRes, error) {
+func (c *Client) ClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error) {
 	res, err := c.sendClaimTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskBody, params ClaimTaskParams) (res ClaimTaskRes, err error) {
+func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (res ClaimTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("claimTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -1950,12 +1950,12 @@ func (c *Client) sendCompileDiary(ctx context.Context, request *CompileDiaryReq,
 // Mark an attempt as completed with output.
 //
 // POST /tasks/{id}/attempts/{n}/complete
-func (c *Client) CompleteTask(ctx context.Context, request *CompleteTaskBody, params CompleteTaskParams) (CompleteTaskRes, error) {
+func (c *Client) CompleteTask(ctx context.Context, request *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error) {
 	res, err := c.sendCompleteTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskBody, params CompleteTaskParams) (res CompleteTaskRes, err error) {
+func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskReq, params CompleteTaskParams) (res CompleteTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("completeTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -3324,12 +3324,12 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 // Create and enqueue a new task.
 //
 // POST /tasks
-func (c *Client) CreateTask(ctx context.Context, request *CreateTaskBody) (CreateTaskRes, error) {
+func (c *Client) CreateTask(ctx context.Context, request *CreateTaskReq) (CreateTaskRes, error) {
 	res, err := c.sendCreateTask(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskBody) (res CreateTaskRes, err error) {
+func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq) (res CreateTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -5012,12 +5012,12 @@ func (c *Client) sendDiffContextPacksById(ctx context.Context, params DiffContex
 // Mark an attempt as failed with error details.
 //
 // POST /tasks/{id}/attempts/{n}/fail
-func (c *Client) FailTask(ctx context.Context, request *FailTaskBody, params FailTaskParams) (FailTaskRes, error) {
+func (c *Client) FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error) {
 	res, err := c.sendFailTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendFailTask(ctx context.Context, request *FailTaskBody, params FailTaskParams) (res FailTaskRes, err error) {
+func (c *Client) sendFailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (res FailTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("failTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -14508,12 +14508,12 @@ func (c *Client) sendSubmitVerification(ctx context.Context, request *SubmitVeri
 // Send a heartbeat to keep the attempt lease alive.
 //
 // POST /tasks/{id}/attempts/{n}/heartbeat
-func (c *Client) TaskHeartbeat(ctx context.Context, request OptHeartbeatBody, params TaskHeartbeatParams) (TaskHeartbeatRes, error) {
+func (c *Client) TaskHeartbeat(ctx context.Context, request OptTaskHeartbeatReq, params TaskHeartbeatParams) (TaskHeartbeatRes, error) {
 	res, err := c.sendTaskHeartbeat(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendTaskHeartbeat(ctx context.Context, request OptHeartbeatBody, params TaskHeartbeatParams) (res TaskHeartbeatRes, err error) {
+func (c *Client) sendTaskHeartbeat(ctx context.Context, request OptTaskHeartbeatReq, params TaskHeartbeatParams) (res TaskHeartbeatRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("taskHeartbeat"),
 		semconv.HTTPRequestMethodKey.String("POST"),

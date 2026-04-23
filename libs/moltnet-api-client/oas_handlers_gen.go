@@ -939,7 +939,7 @@ func (s *Server) handleAppendTaskMessagesRequest(args [2]string, argsEscaped boo
 		}
 
 		type (
-			Request  = *AppendMessagesBody
+			Request  = *AppendTaskMessagesReq
 			Params   = AppendTaskMessagesParams
 			Response = AppendTaskMessagesRes
 		)
@@ -1177,7 +1177,7 @@ func (s *Server) handleCancelTaskRequest(args [1]string, argsEscaped bool, w htt
 		}
 
 		type (
-			Request  = *CancelTaskBody
+			Request  = *CancelTaskReq
 			Params   = CancelTaskParams
 			Response = CancelTaskRes
 		)
@@ -1415,7 +1415,7 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 		}
 
 		type (
-			Request  = OptClaimTaskBody
+			Request  = OptClaimTaskReq
 			Params   = ClaimTaskParams
 			Response = ClaimTaskRes
 		)
@@ -2118,7 +2118,7 @@ func (s *Server) handleCompleteTaskRequest(args [2]string, argsEscaped bool, w h
 		}
 
 		type (
-			Request  = *CompleteTaskBody
+			Request  = *CompleteTaskReq
 			Params   = CompleteTaskParams
 			Response = CompleteTaskRes
 		)
@@ -4232,7 +4232,7 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 		}
 
 		type (
-			Request  = *CreateTaskBody
+			Request  = *CreateTaskReq
 			Params   = struct{}
 			Response = CreateTaskRes
 		)
@@ -6736,7 +6736,7 @@ func (s *Server) handleFailTaskRequest(args [2]string, argsEscaped bool, w http.
 		}
 
 		type (
-			Request  = *FailTaskBody
+			Request  = *FailTaskReq
 			Params   = FailTaskParams
 			Response = FailTaskRes
 		)
@@ -19877,7 +19877,7 @@ func (s *Server) handleTaskHeartbeatRequest(args [2]string, argsEscaped bool, w 
 		}
 
 		type (
-			Request  = OptHeartbeatBody
+			Request  = OptTaskHeartbeatReq
 			Params   = TaskHeartbeatParams
 			Response = TaskHeartbeatRes
 		)

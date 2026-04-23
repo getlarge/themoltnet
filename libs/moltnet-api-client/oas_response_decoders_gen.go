@@ -7582,7 +7582,7 @@ func decodeGetContextPackProvenanceByCidResponse(resp *http.Response) (res GetCo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ProvenanceGraph
+			var response GetContextPackProvenanceByCidOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

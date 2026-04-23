@@ -171,7 +171,7 @@ func (s *Server) decodeAddGroupMemberRequest(r *http.Request) (
 }
 
 func (s *Server) decodeAppendTaskMessagesRequest(r *http.Request) (
-	req *AppendMessagesBody,
+	req *AppendTaskMessagesReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -218,7 +218,7 @@ func (s *Server) decodeAppendTaskMessagesRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request AppendMessagesBody
+		var request AppendTaskMessagesReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -250,7 +250,7 @@ func (s *Server) decodeAppendTaskMessagesRequest(r *http.Request) (
 }
 
 func (s *Server) decodeCancelTaskRequest(r *http.Request) (
-	req *CancelTaskBody,
+	req *CancelTaskReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -297,7 +297,7 @@ func (s *Server) decodeCancelTaskRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request CancelTaskBody
+		var request CancelTaskReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -329,7 +329,7 @@ func (s *Server) decodeCancelTaskRequest(r *http.Request) (
 }
 
 func (s *Server) decodeClaimTaskRequest(r *http.Request) (
-	req OptClaimTaskBody,
+	req OptClaimTaskReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -379,7 +379,7 @@ func (s *Server) decodeClaimTaskRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request OptClaimTaskBody
+		var request OptClaimTaskReq
 		if err := func() error {
 			request.Reset()
 			if err := request.Decode(d); err != nil {
@@ -498,7 +498,7 @@ func (s *Server) decodeCompileDiaryRequest(r *http.Request) (
 }
 
 func (s *Server) decodeCompleteTaskRequest(r *http.Request) (
-	req *CompleteTaskBody,
+	req *CompleteTaskReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -545,7 +545,7 @@ func (s *Server) decodeCompleteTaskRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request CompleteTaskBody
+		var request CompleteTaskReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -1220,7 +1220,7 @@ func (s *Server) decodeCreateSigningRequestRequest(r *http.Request) (
 }
 
 func (s *Server) decodeCreateTaskRequest(r *http.Request) (
-	req *CreateTaskBody,
+	req *CreateTaskReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -1267,7 +1267,7 @@ func (s *Server) decodeCreateTaskRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request CreateTaskBody
+		var request CreateTaskReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -1468,7 +1468,7 @@ func (s *Server) decodeCreateTeamInviteRequest(r *http.Request) (
 }
 
 func (s *Server) decodeFailTaskRequest(r *http.Request) (
-	req *FailTaskBody,
+	req *FailTaskReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -1515,7 +1515,7 @@ func (s *Server) decodeFailTaskRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request FailTaskBody
+		var request FailTaskReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -2490,7 +2490,7 @@ func (s *Server) decodeSubmitVerificationRequest(r *http.Request) (
 }
 
 func (s *Server) decodeTaskHeartbeatRequest(r *http.Request) (
-	req OptHeartbeatBody,
+	req OptTaskHeartbeatReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -2540,7 +2540,7 @@ func (s *Server) decodeTaskHeartbeatRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request OptHeartbeatBody
+		var request OptTaskHeartbeatReq
 		if err := func() error {
 			request.Reset()
 			if err := request.Decode(d); err != nil {

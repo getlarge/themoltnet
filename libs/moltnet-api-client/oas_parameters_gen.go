@@ -4562,7 +4562,7 @@ type ListDiaryEntriesParams struct {
 	// Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each).
 	ExcludeTags []string `json:",omitempty"`
 	// Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
-	EntryType []EntryType `json:",omitempty"`
+	EntryType []ListDiaryEntriesEntryTypeItem `json:",omitempty"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
 }
@@ -4619,7 +4619,7 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryType = v.([]EntryType)
+			params.EntryType = v.([]ListDiaryEntriesEntryTypeItem)
 		}
 	}
 	{
@@ -5012,7 +5012,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
 				return d.DecodeArray(func(d uri.Decoder) error {
-					var paramsDotEntryTypeVal EntryType
+					var paramsDotEntryTypeVal ListDiaryEntriesEntryTypeItem
 					if err := func() error {
 						val, err := d.DecodeValue()
 						if err != nil {
@@ -5024,7 +5024,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 							return err
 						}
 
-						paramsDotEntryTypeVal = EntryType(c)
+						paramsDotEntryTypeVal = ListDiaryEntriesEntryTypeItem(c)
 						return nil
 					}(); err != nil {
 						return err
@@ -5806,7 +5806,7 @@ type ListDiaryTagsParams struct {
 	// Exclude tags with fewer than this many entries.
 	MinCount OptInt `json:",omitempty,omitzero"`
 	// Repeated entry types to scope the tag count. Single value also accepted.
-	EntryTypes []EntryType `json:",omitempty"`
+	EntryTypes []ListDiaryTagsEntryTypesItem `json:",omitempty"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
 }
@@ -5836,7 +5836,7 @@ func unpackListDiaryTagsParams(packed middleware.Parameters) (params ListDiaryTa
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryTypes = v.([]EntryType)
+			params.EntryTypes = v.([]ListDiaryTagsEntryTypesItem)
 		}
 	}
 	{
@@ -5996,7 +5996,7 @@ func decodeListDiaryTagsParams(args [1]string, argsEscaped bool, r *http.Request
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
 				return d.DecodeArray(func(d uri.Decoder) error {
-					var paramsDotEntryTypesVal EntryType
+					var paramsDotEntryTypesVal ListDiaryTagsEntryTypesItem
 					if err := func() error {
 						val, err := d.DecodeValue()
 						if err != nil {
@@ -6008,7 +6008,7 @@ func decodeListDiaryTagsParams(args [1]string, argsEscaped bool, r *http.Request
 							return err
 						}
 
-						paramsDotEntryTypesVal = EntryType(c)
+						paramsDotEntryTypesVal = ListDiaryTagsEntryTypesItem(c)
 						return nil
 					}(); err != nil {
 						return err
@@ -7982,7 +7982,7 @@ type ReflectDiaryParams struct {
 	Days       OptFloat64 `json:",omitempty,omitzero"`
 	MaxEntries OptFloat64 `json:",omitempty,omitzero"`
 	// Repeated entry type filter. Single value also accepted.
-	EntryTypes []EntryType `json:",omitempty"`
+	EntryTypes []ReflectDiaryEntryTypesItem `json:",omitempty"`
 }
 
 func unpackReflectDiaryParams(packed middleware.Parameters) (params ReflectDiaryParams) {
@@ -8017,7 +8017,7 @@ func unpackReflectDiaryParams(packed middleware.Parameters) (params ReflectDiary
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryTypes = v.([]EntryType)
+			params.EntryTypes = v.([]ReflectDiaryEntryTypesItem)
 		}
 	}
 	return params
@@ -8204,7 +8204,7 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
 				return d.DecodeArray(func(d uri.Decoder) error {
-					var paramsDotEntryTypesVal EntryType
+					var paramsDotEntryTypesVal ReflectDiaryEntryTypesItem
 					if err := func() error {
 						val, err := d.DecodeValue()
 						if err != nil {
@@ -8216,7 +8216,7 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 							return err
 						}
 
-						paramsDotEntryTypesVal = EntryType(c)
+						paramsDotEntryTypesVal = ReflectDiaryEntryTypesItem(c)
 						return nil
 					}(); err != nil {
 						return err
@@ -8715,9 +8715,9 @@ type SearchPublicFeedParams struct {
 	Limit OptFloat64 `json:",omitempty,omitzero"`
 	Tag   OptString  `json:",omitempty,omitzero"`
 	// Repeated entry type filter. Single value also accepted.
-	EntryTypes        []EntryType `json:",omitempty"`
-	ExcludeSuperseded OptBool     `json:",omitempty,omitzero"`
-	IncludeSuspicious OptBool     `json:",omitempty,omitzero"`
+	EntryTypes        []SearchPublicFeedEntryTypesItem `json:",omitempty"`
+	ExcludeSuperseded OptBool                          `json:",omitempty,omitzero"`
+	IncludeSuspicious OptBool                          `json:",omitempty,omitzero"`
 }
 
 func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPublicFeedParams) {
@@ -8752,7 +8752,7 @@ func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPu
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryTypes = v.([]EntryType)
+			params.EntryTypes = v.([]SearchPublicFeedEntryTypesItem)
 		}
 	}
 	{
@@ -8984,7 +8984,7 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
 				return d.DecodeArray(func(d uri.Decoder) error {
-					var paramsDotEntryTypesVal EntryType
+					var paramsDotEntryTypesVal SearchPublicFeedEntryTypesItem
 					if err := func() error {
 						val, err := d.DecodeValue()
 						if err != nil {
@@ -8996,7 +8996,7 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 							return err
 						}
 
-						paramsDotEntryTypesVal = EntryType(c)
+						paramsDotEntryTypesVal = SearchPublicFeedEntryTypesItem(c)
 						return nil
 					}(); err != nil {
 						return err

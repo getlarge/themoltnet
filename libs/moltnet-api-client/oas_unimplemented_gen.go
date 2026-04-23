@@ -45,7 +45,7 @@ func (UnimplementedHandler) AddGroupMember(ctx context.Context, req *AddGroupMem
 // Append messages to a task attempt.
 //
 // POST /tasks/{id}/attempts/{n}/messages
-func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendMessagesBody, params AppendTaskMessagesParams) (r AppendTaskMessagesRes, _ error) {
+func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendTaskMessagesReq, params AppendTaskMessagesParams) (r AppendTaskMessagesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -54,7 +54,7 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendM
 // Cancel a task.
 //
 // POST /tasks/{id}/cancel
-func (UnimplementedHandler) CancelTask(ctx context.Context, req *CancelTaskBody, params CancelTaskParams) (r CancelTaskRes, _ error) {
+func (UnimplementedHandler) CancelTask(ctx context.Context, req *CancelTaskReq, params CancelTaskParams) (r CancelTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -63,7 +63,7 @@ func (UnimplementedHandler) CancelTask(ctx context.Context, req *CancelTaskBody,
 // Claim a queued task and start an attempt.
 //
 // POST /tasks/{id}/claim
-func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskBody, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
+func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -90,7 +90,7 @@ func (UnimplementedHandler) CompileDiary(ctx context.Context, req *CompileDiaryR
 // Mark an attempt as completed with output.
 //
 // POST /tasks/{id}/attempts/{n}/complete
-func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskBody, params CompleteTaskParams) (r CompleteTaskRes, _ error) {
+func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (r CompleteTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -173,7 +173,7 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 // Create and enqueue a new task.
 //
 // POST /tasks
-func (UnimplementedHandler) CreateTask(ctx context.Context, req *CreateTaskBody) (r CreateTaskRes, _ error) {
+func (UnimplementedHandler) CreateTask(ctx context.Context, req *CreateTaskReq) (r CreateTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -273,7 +273,7 @@ func (UnimplementedHandler) DiffContextPacksById(ctx context.Context, params Dif
 // Mark an attempt as failed with error details.
 //
 // POST /tasks/{id}/attempts/{n}/fail
-func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskBody, params FailTaskParams) (r FailTaskRes, _ error) {
+func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (r FailTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -865,7 +865,7 @@ func (UnimplementedHandler) SubmitVerification(ctx context.Context, req *SubmitV
 // Send a heartbeat to keep the attempt lease alive.
 //
 // POST /tasks/{id}/attempts/{n}/heartbeat
-func (UnimplementedHandler) TaskHeartbeat(ctx context.Context, req OptHeartbeatBody, params TaskHeartbeatParams) (r TaskHeartbeatRes, _ error) {
+func (UnimplementedHandler) TaskHeartbeat(ctx context.Context, req OptTaskHeartbeatReq, params TaskHeartbeatParams) (r TaskHeartbeatRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -220,69 +220,6 @@ func (s *AgentIdentity) Validate() error {
 	return nil
 }
 
-func (s *AppendMessagesBody) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if s.Messages == nil {
-			return errors.New("nil is invalid value")
-		}
-		var failures []validate.FieldError
-		for i, elem := range s.Messages {
-			if err := func() error {
-				if err := elem.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				failures = append(failures, validate.FieldError{
-					Name:  fmt.Sprintf("[%d]", i),
-					Error: err,
-				})
-			}
-		}
-		if len(failures) > 0 {
-			return &validate.Error{Fields: failures}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "messages",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *AppendMessagesBodyMessagesItem) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Kind.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "kind",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
 func (s *AppendMessagesResponse) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -340,6 +277,69 @@ func (s *AppendTaskMessagesNotFound) Validate() error {
 	return nil
 }
 
+func (s *AppendTaskMessagesReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Messages == nil {
+			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Messages {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "messages",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *AppendTaskMessagesReqMessagesItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Kind.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *AppendTaskMessagesUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -356,7 +356,31 @@ func (s *CancelTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CancelTaskBody) Validate() error {
+func (s *CancelTaskConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CancelTaskForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CancelTaskNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CancelTaskReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -391,30 +415,6 @@ func (s *CancelTaskBody) Validate() error {
 	return nil
 }
 
-func (s *CancelTaskConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CancelTaskForbidden) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CancelTaskNotFound) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *CancelTaskUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -431,7 +431,31 @@ func (s *ClaimTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *ClaimTaskBody) Validate() error {
+func (s *ClaimTaskConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ClaimTaskForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ClaimTaskNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ClaimTaskReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -467,30 +491,6 @@ func (s *ClaimTaskBody) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *ClaimTaskConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ClaimTaskForbidden) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ClaimTaskNotFound) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -911,6 +911,25 @@ func (s *CompileDiaryReq) Validate() error {
 	return nil
 }
 
+func (s CompileDiaryReqEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *CompileDiaryUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -1197,7 +1216,31 @@ func (s *CompleteTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CompleteTaskBody) Validate() error {
+func (s *CompleteTaskConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CompleteTaskForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CompleteTaskNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CompleteTaskReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -1239,30 +1282,6 @@ func (s *CompleteTaskBody) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *CompleteTaskConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CompleteTaskForbidden) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CompleteTaskNotFound) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -2576,6 +2595,25 @@ func (s *CreateDiaryEntryReq) Validate() error {
 	return nil
 }
 
+func (s CreateDiaryEntryReqEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *CreateDiaryEntryUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -2799,6 +2837,19 @@ func (s *CreateDiaryReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s CreateDiaryReqVisibility) Validate() error {
+	switch s {
+	case "private":
+		return nil
+	case "moltnet":
+		return nil
+	case "public":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *CreateDiaryUnauthorized) Validate() error {
@@ -3059,7 +3110,15 @@ func (s *CreateTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CreateTaskBody) Validate() error {
+func (s *CreateTaskForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateTaskReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -3201,14 +3260,6 @@ func (s *CreateTaskBody) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *CreateTaskForbidden) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -3932,6 +3983,19 @@ func (s *DiaryCatalogList) Validate() error {
 	return nil
 }
 
+func (s DiaryCatalogVisibility) Validate() error {
+	switch s {
+	case "private":
+		return nil
+	case "moltnet":
+		return nil
+	case "public":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *DiaryEntry) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -3985,6 +4049,25 @@ func (s *DiaryEntry) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s DiaryEntryEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *DiaryEntryWithCreator) Validate() error {
@@ -4051,6 +4134,25 @@ func (s *DiaryEntryWithCreator) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s DiaryEntryWithCreatorEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *DiaryEntryWithRelations) Validate() error {
@@ -4124,6 +4226,25 @@ func (s *DiaryEntryWithRelations) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s DiaryEntryWithRelationsEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *DiaryList) Validate() error {
@@ -5348,6 +5469,25 @@ func (s *DigestEntriesItem) Validate() error {
 	return nil
 }
 
+func (s DigestEntriesItemEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *EntryRelation) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -5580,25 +5720,6 @@ func (s *EntryRelationWithDepth) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s EntryType) Validate() error {
-	switch s {
-	case "episodic":
-		return nil
-	case "semantic":
-		return nil
-	case "procedural":
-		return nil
-	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
 
 func (s *ExpandedPackEntry) Validate() error {
@@ -5901,6 +6022,196 @@ func (s *GetContextPackProvenanceByCidNotFound) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s *GetContextPackProvenanceByCidOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Edges == nil {
+			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Edges {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "edges",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Metadata.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "metadata",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Nodes == nil {
+			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Nodes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "nodes",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *GetContextPackProvenanceByCidOKEdgesItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Kind.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s GetContextPackProvenanceByCidOKEdgesItemKind) Validate() error {
+	switch s {
+	case "includes":
+		return nil
+	case "supersedes":
+		return nil
+	case "rendered_from":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *GetContextPackProvenanceByCidOKMetadata) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Float{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    nil,
+			Pattern:       nil,
+		}).Validate(float64(s.Depth)); err != nil {
+			return errors.Wrap(err, "float")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "depth",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Format.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "format",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s GetContextPackProvenanceByCidOKMetadataFormat) Validate() error {
+	switch s {
+	case "moltnet.provenance-graph/v1":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s GetContextPackProvenanceByCidOKNodesItem) Validate() error {
+	switch s.Type {
+	case ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem:
+		if err := s.ProvenanceGraphPackNode.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem:
+		if err := s.ProvenanceGraphEntryNode.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem:
+		if err := s.ProvenanceGraphRenderedPackNode.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s *GetContextPackProvenanceByCidUnauthorized) Validate() error {
@@ -6624,46 +6935,6 @@ func (s *GetWhoamiUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *HeartbeatBody) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if value, ok := s.LeaseTTLSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           3600,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "lease_ttl_sec",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
 func (s *InitiateTransferBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -6939,6 +7210,25 @@ func (s *ListDiaryEntriesBadRequest) Validate() error {
 	return nil
 }
 
+func (s ListDiaryEntriesEntryTypeItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ListDiaryEntriesInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -7188,6 +7478,25 @@ func (s *ListDiaryTagsBadRequest) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s ListDiaryTagsEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ListDiaryTagsInternalServerError) Validate() error {
@@ -8166,17 +8475,6 @@ func (s *NetworkInfoRulesVouchers) Validate() error {
 	return nil
 }
 
-func (s OutputKind) Validate() error {
-	switch s {
-	case "artifact":
-		return nil
-	case "judgment":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s *PreviewDiaryCustomPackBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9138,6 +9436,25 @@ func (s *PublicFeedEntry) Validate() error {
 	return nil
 }
 
+func (s PublicFeedEntryEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *PublicFeedResponse) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -9393,6 +9710,25 @@ func (s *ReflectDiaryBadRequest) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s ReflectDiaryEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ReflectDiaryInternalServerError) Validate() error {
@@ -10301,6 +10637,25 @@ func (s *SearchDiaryReq) Validate() error {
 	return nil
 }
 
+func (s SearchDiaryReqEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *SearchDiaryUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -10315,6 +10670,25 @@ func (s *SearchPublicFeedBadRequest) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s SearchPublicFeedEntryTypesItem) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *SearchPublicFeedInternalServerError) Validate() error {
@@ -11341,6 +11715,46 @@ func (s *TaskHeartbeatNotFound) Validate() error {
 	return nil
 }
 
+func (s *TaskHeartbeatReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.LeaseTTLSec.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           3600,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "lease_ttl_sec",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *TaskHeartbeatUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -11467,6 +11881,17 @@ func (s TaskMessageKind) Validate() error {
 	case "error":
 		return nil
 	case "info":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s TaskOutputKind) Validate() error {
+	switch s {
+	case "artifact":
+		return nil
+	case "judgment":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -11640,6 +12065,187 @@ func (s TaskRefExternalKind) Validate() error {
 }
 
 func (s TaskRefRole) Validate() error {
+	switch s {
+	case "judged_work":
+		return nil
+	case "reviewed_diff":
+		return nil
+	case "target_source":
+		return nil
+	case "context":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *TaskReferencesItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.External.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "external",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.OutputCid)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "output_cid",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Role.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "role",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *TaskReferencesItemExternal) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Issue.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "issue",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Kind.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Pr.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "pr",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.SnapshotCid.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "snapshot_cid",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s TaskReferencesItemExternalKind) Validate() error {
+	switch s {
+	case "github_pr":
+		return nil
+	case "github_issue":
+		return nil
+	case "http_url":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s TaskReferencesItemRole) Validate() error {
 	switch s {
 	case "judged_work":
 		return nil
@@ -12075,6 +12681,25 @@ func (s *UpdateDiaryEntryByIdReq) Validate() error {
 	return nil
 }
 
+func (s UpdateDiaryEntryByIdReqEntryType) Validate() error {
+	switch s {
+	case "episodic":
+		return nil
+	case "semantic":
+		return nil
+	case "procedural":
+		return nil
+	case "reflection":
+		return nil
+	case "identity":
+		return nil
+	case "soul":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *UpdateDiaryEntryByIdUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -12165,6 +12790,19 @@ func (s *UpdateDiaryReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s UpdateDiaryReqVisibility) Validate() error {
+	switch s {
+	case "private":
+		return nil
+	case "moltnet":
+		return nil
+	case "public":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *UpdateDiaryUnauthorized) Validate() error {
@@ -12594,17 +13232,4 @@ func (s *VerifyRenderedPackUnauthorized) Validate() error {
 		return err
 	}
 	return nil
-}
-
-func (s Visibility) Validate() error {
-	switch s {
-	case "private":
-		return nil
-	case "moltnet":
-		return nil
-	case "public":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
