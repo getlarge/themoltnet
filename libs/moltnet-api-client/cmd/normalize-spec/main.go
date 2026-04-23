@@ -47,6 +47,11 @@ func main() {
 	// so that ogen can handle them (it requires $ref in oneOf+discriminator).
 	extractDiscriminatedUnionSchemas(normalized)
 
+	// Replace inline schemas that are structurally identical to a named
+	// components/schemas entry with a $ref. This prevents ogen from generating
+	// conflicting type names (e.g. Task.status inline enum vs TaskStatus schema).
+	deduplicateInlineSchemas(normalized)
+
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetIndent("", "  ")
@@ -56,6 +61,93 @@ func main() {
 
 	if err := os.WriteFile(os.Args[2], buf.Bytes(), 0o644); err != nil {
 		log.Fatalf("write output: %v", err)
+	}
+}
+
+// deduplicateInlineSchemas replaces inline schemas that are structurally
+// identical to a named entry in components/schemas with a $ref to that entry.
+// This prevents ogen from generating conflicting type names when the same enum
+// or object appears both as a named schema and inlined inside another schema
+// (e.g. Task.status inline enum vs TaskStatus component schema).
+func deduplicateInlineSchemas(spec any) {
+	root, ok := spec.(map[string]any)
+	if !ok {
+		return
+	}
+	components, ok := root["components"].(map[string]any)
+	if !ok {
+		return
+	}
+	schemas, ok := components["schemas"].(map[string]any)
+	if !ok {
+		return
+	}
+
+	// Build canonical JSON for each named schema.
+	canonicals := make(map[string]string, len(schemas))
+	for name, schema := range schemas {
+		b, err := json.Marshal(schema)
+		if err == nil {
+			canonicals[name] = string(b)
+		}
+	}
+
+	// Walk paths and other non-components keys.
+	for k, v := range root {
+		if k != "components" {
+			root[k] = walkDedup(v, schemas, canonicals)
+		}
+	}
+
+	// Walk inside each named schema's properties/fields without replacing the
+	// top-level named schemas themselves (to avoid self-referential $refs).
+	for name, schema := range schemas {
+		m, ok := schema.(map[string]any)
+		if !ok {
+			continue
+		}
+		out := make(map[string]any, len(m))
+		for k, v := range m {
+			out[k] = walkDedup(v, schemas, canonicals)
+		}
+		schemas[name] = out
+	}
+}
+
+// walkDedup recursively replaces inline schemas with $refs where they match a
+// named component schema. It skips the components/schemas subtree itself to
+// avoid replacing the originals.
+func walkDedup(v any, schemas map[string]any, canonicals map[string]string) any {
+	switch val := v.(type) {
+	case map[string]any:
+		// Don't replace $ref nodes or the schemas registry itself.
+		if _, isRef := val["$ref"]; isRef {
+			return v
+		}
+		// Try to match this map against a named schema (skip if it has properties
+		// that indicate it's a container rather than a leaf schema).
+		b, err := json.Marshal(val)
+		if err == nil {
+			canonical := string(b)
+			for name, c := range canonicals {
+				if c == canonical {
+					return map[string]any{"$ref": "#/components/schemas/" + name}
+				}
+			}
+		}
+		out := make(map[string]any, len(val))
+		for k, child := range val {
+			out[k] = walkDedup(child, schemas, canonicals)
+		}
+		return out
+	case []any:
+		out := make([]any, len(val))
+		for i, child := range val {
+			out[i] = walkDedup(child, schemas, canonicals)
+		}
+		return out
+	default:
+		return v
 	}
 }
 

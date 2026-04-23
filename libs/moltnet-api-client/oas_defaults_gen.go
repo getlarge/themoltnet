@@ -3,6 +3,22 @@
 package moltnetapi
 
 // setDefaults set default value of fields.
+func (s *ClaimTaskBody) setDefaults() {
+	{
+		val := int(300)
+		s.LeaseTTLSec.SetTo(val)
+	}
+}
+
+// setDefaults set default value of fields.
+func (s *CreateTaskBody) setDefaults() {
+	{
+		val := int(1)
+		s.MaxAttempts.SetTo(val)
+	}
+}
+
+// setDefaults set default value of fields.
 func (s *CreateTeamInviteReq) setDefaults() {
 	{
 		val := int(168)

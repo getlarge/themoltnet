@@ -12,12 +12,24 @@ import type {
   AddGroupMemberData,
   AddGroupMemberErrors,
   AddGroupMemberResponses,
+  AppendTaskMessagesData,
+  AppendTaskMessagesErrors,
+  AppendTaskMessagesResponses,
+  CancelTaskData,
+  CancelTaskErrors,
+  CancelTaskResponses,
+  ClaimTaskData,
+  ClaimTaskErrors,
+  ClaimTaskResponses,
   ClaimVerificationData,
   ClaimVerificationErrors,
   ClaimVerificationResponses,
   CompileDiaryData,
   CompileDiaryErrors,
   CompileDiaryResponses,
+  CompleteTaskData,
+  CompleteTaskErrors,
+  CompleteTaskResponses,
   ConsolidateDiaryData,
   ConsolidateDiaryErrors,
   ConsolidateDiaryResponses,
@@ -42,6 +54,9 @@ import type {
   CreateSigningRequestData,
   CreateSigningRequestErrors,
   CreateSigningRequestResponses,
+  CreateTaskData,
+  CreateTaskErrors,
+  CreateTaskResponses,
   CreateTeamData,
   CreateTeamErrors,
   CreateTeamInviteData,
@@ -72,6 +87,9 @@ import type {
   DiffContextPacksByIdData,
   DiffContextPacksByIdErrors,
   DiffContextPacksByIdResponses,
+  FailTaskData,
+  FailTaskErrors,
+  FailTaskResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -128,6 +146,9 @@ import type {
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
+  GetTaskData,
+  GetTaskErrors,
+  GetTaskResponses,
   GetTeamData,
   GetTeamErrors,
   GetTeamResponses,
@@ -187,6 +208,15 @@ import type {
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
+  ListTaskAttemptsData,
+  ListTaskAttemptsErrors,
+  ListTaskAttemptsResponses,
+  ListTaskMessagesData,
+  ListTaskMessagesErrors,
+  ListTaskMessagesResponses,
+  ListTasksData,
+  ListTasksErrors,
+  ListTasksResponses,
   ListTeamInvitesData,
   ListTeamInvitesErrors,
   ListTeamInvitesResponses,
@@ -244,6 +274,9 @@ import type {
   SubmitVerificationData,
   SubmitVerificationErrors,
   SubmitVerificationResponses,
+  TaskHeartbeatData,
+  TaskHeartbeatErrors,
+  TaskHeartbeatResponses,
   UpdateContextPackData,
   UpdateContextPackErrors,
   UpdateContextPackResponses,
@@ -2404,6 +2437,296 @@ export const getLegreffierOnboardingStatus = <
     GetLegreffierOnboardingStatusErrors,
     ThrowOnError
   >({ url: '/public/legreffier/status/{workflowId}', ...options });
+
+/**
+ * List tasks for a team with optional filters.
+ */
+export const listTasks = <ThrowOnError extends boolean = false>(
+  options: Options<ListTasksData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTasksResponses,
+    ListTasksErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks',
+    ...options,
+  });
+
+/**
+ * Create and enqueue a new task.
+ */
+export const createTask = <ThrowOnError extends boolean = false>(
+  options: Options<CreateTaskData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateTaskResponses,
+    CreateTaskErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Get a task by ID.
+ */
+export const getTask = <ThrowOnError extends boolean = false>(
+  options: Options<GetTaskData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<GetTaskResponses, GetTaskErrors, ThrowOnError>(
+    {
+      security: [
+        { scheme: 'bearer', type: 'http' },
+        { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+        {
+          in: 'cookie',
+          name: 'ory_kratos_session',
+          type: 'apiKey',
+        },
+      ],
+      url: '/tasks/{id}',
+      ...options,
+    },
+  );
+
+/**
+ * Claim a queued task and start an attempt.
+ */
+export const claimTask = <ThrowOnError extends boolean = false>(
+  options: Options<ClaimTaskData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ClaimTaskResponses,
+    ClaimTaskErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/claim',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Send a heartbeat to keep the attempt lease alive.
+ */
+export const taskHeartbeat = <ThrowOnError extends boolean = false>(
+  options: Options<TaskHeartbeatData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    TaskHeartbeatResponses,
+    TaskHeartbeatErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/heartbeat',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Mark an attempt as completed with output.
+ */
+export const completeTask = <ThrowOnError extends boolean = false>(
+  options: Options<CompleteTaskData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompleteTaskResponses,
+    CompleteTaskErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/complete',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Mark an attempt as failed with error details.
+ */
+export const failTask = <ThrowOnError extends boolean = false>(
+  options: Options<FailTaskData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    FailTaskResponses,
+    FailTaskErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/fail',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Cancel a task.
+ */
+export const cancelTask = <ThrowOnError extends boolean = false>(
+  options: Options<CancelTaskData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CancelTaskResponses,
+    CancelTaskErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/cancel',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List all attempts for a task.
+ */
+export const listTaskAttempts = <ThrowOnError extends boolean = false>(
+  options: Options<ListTaskAttemptsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTaskAttemptsResponses,
+    ListTaskAttemptsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts',
+    ...options,
+  });
+
+/**
+ * List messages for a task attempt.
+ */
+export const listTaskMessages = <ThrowOnError extends boolean = false>(
+  options: Options<ListTaskMessagesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTaskMessagesResponses,
+    ListTaskMessagesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/messages',
+    ...options,
+  });
+
+/**
+ * Append messages to a task attempt.
+ */
+export const appendTaskMessages = <ThrowOnError extends boolean = false>(
+  options: Options<AppendTaskMessagesData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AppendTaskMessagesResponses,
+    AppendTaskMessagesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/messages',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * List all problem types used in API error responses (RFC 9457).

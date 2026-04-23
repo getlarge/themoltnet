@@ -40,6 +40,33 @@ func (UnimplementedHandler) AddGroupMember(ctx context.Context, req *AddGroupMem
 	return r, ht.ErrNotImplemented
 }
 
+// AppendTaskMessages implements appendTaskMessages operation.
+//
+// Append messages to a task attempt.
+//
+// POST /tasks/{id}/attempts/{n}/messages
+func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendMessagesBody, params AppendTaskMessagesParams) (r AppendTaskMessagesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CancelTask implements cancelTask operation.
+//
+// Cancel a task.
+//
+// POST /tasks/{id}/cancel
+func (UnimplementedHandler) CancelTask(ctx context.Context, req *CancelTaskBody, params CancelTaskParams) (r CancelTaskRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ClaimTask implements claimTask operation.
+//
+// Claim a queued task and start an attempt.
+//
+// POST /tasks/{id}/claim
+func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskBody, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ClaimVerification implements claimVerification operation.
 //
 // Judge claims verification payload (source entries, rendered content, and rubric).
@@ -55,6 +82,15 @@ func (UnimplementedHandler) ClaimVerification(ctx context.Context, params ClaimV
 //
 // POST /diaries/{id}/compile
 func (UnimplementedHandler) CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (r CompileDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CompleteTask implements completeTask operation.
+//
+// Mark an attempt as completed with output.
+//
+// POST /tasks/{id}/attempts/{n}/complete
+func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskBody, params CompleteTaskParams) (r CompleteTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -129,6 +165,15 @@ func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq
 //
 // POST /crypto/signing-requests
 func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *CreateSigningRequestReq) (r CreateSigningRequestRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateTask implements createTask operation.
+//
+// Create and enqueue a new task.
+//
+// POST /tasks
+func (UnimplementedHandler) CreateTask(ctx context.Context, req *CreateTaskBody) (r CreateTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -220,6 +265,15 @@ func (UnimplementedHandler) DiffContextPacksByCid(ctx context.Context, params Di
 //
 // GET /packs/{id}/diff/{otherId}
 func (UnimplementedHandler) DiffContextPacksById(ctx context.Context, params DiffContextPacksByIdParams) (r DiffContextPacksByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// FailTask implements failTask operation.
+//
+// Mark an attempt as failed with error details.
+//
+// POST /tasks/{id}/attempts/{n}/fail
+func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskBody, params FailTaskParams) (r FailTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -404,6 +458,15 @@ func (UnimplementedHandler) GetRenderedPackById(ctx context.Context, params GetR
 //
 // GET /crypto/signing-requests/{id}
 func (UnimplementedHandler) GetSigningRequest(ctx context.Context, params GetSigningRequestParams) (r GetSigningRequestRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetTask implements getTask operation.
+//
+// Get a task by ID.
+//
+// GET /tasks/{id}
+func (UnimplementedHandler) GetTask(ctx context.Context, params GetTaskParams) (r GetTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -593,6 +656,33 @@ func (UnimplementedHandler) ListSigningRequests(ctx context.Context, params List
 	return r, ht.ErrNotImplemented
 }
 
+// ListTaskAttempts implements listTaskAttempts operation.
+//
+// List all attempts for a task.
+//
+// GET /tasks/{id}/attempts
+func (UnimplementedHandler) ListTaskAttempts(ctx context.Context, params ListTaskAttemptsParams) (r ListTaskAttemptsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListTaskMessages implements listTaskMessages operation.
+//
+// List messages for a task attempt.
+//
+// GET /tasks/{id}/attempts/{n}/messages
+func (UnimplementedHandler) ListTaskMessages(ctx context.Context, params ListTaskMessagesParams) (r ListTaskMessagesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListTasks implements listTasks operation.
+//
+// List tasks for a team with optional filters.
+//
+// GET /tasks
+func (UnimplementedHandler) ListTasks(ctx context.Context, params ListTasksParams) (r ListTasksRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListTeamInvites implements listTeamInvites operation.
 //
 // List invite codes. Requires manage_members permission.
@@ -767,6 +857,15 @@ func (UnimplementedHandler) SubmitSignature(ctx context.Context, req *SubmitSign
 //
 // POST /rendered-packs/{id}/verify/submit
 func (UnimplementedHandler) SubmitVerification(ctx context.Context, req *SubmitVerificationReq, params SubmitVerificationParams) (r SubmitVerificationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// TaskHeartbeat implements taskHeartbeat operation.
+//
+// Send a heartbeat to keep the attempt lease alive.
+//
+// POST /tasks/{id}/attempts/{n}/heartbeat
+func (UnimplementedHandler) TaskHeartbeat(ctx context.Context, req OptHeartbeatBody, params TaskHeartbeatParams) (r TaskHeartbeatRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

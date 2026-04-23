@@ -357,6 +357,101 @@ func (s *AgentProfile) SetPublicKey(val string) {
 
 func (*AgentProfile) getAgentProfileRes() {}
 
+// Ref: #/components/schemas/AppendMessagesBody
+type AppendMessagesBody struct {
+	Messages []AppendMessagesBodyMessagesItem `json:"messages"`
+}
+
+// GetMessages returns the value of Messages.
+func (s *AppendMessagesBody) GetMessages() []AppendMessagesBodyMessagesItem {
+	return s.Messages
+}
+
+// SetMessages sets the value of Messages.
+func (s *AppendMessagesBody) SetMessages(val []AppendMessagesBodyMessagesItem) {
+	s.Messages = val
+}
+
+type AppendMessagesBodyMessagesItem struct {
+	Kind      TaskMessageKind                       `json:"kind"`
+	Payload   AppendMessagesBodyMessagesItemPayload `json:"payload"`
+	Timestamp OptDateTime                           `json:"timestamp"`
+}
+
+// GetKind returns the value of Kind.
+func (s *AppendMessagesBodyMessagesItem) GetKind() TaskMessageKind {
+	return s.Kind
+}
+
+// GetPayload returns the value of Payload.
+func (s *AppendMessagesBodyMessagesItem) GetPayload() AppendMessagesBodyMessagesItemPayload {
+	return s.Payload
+}
+
+// GetTimestamp returns the value of Timestamp.
+func (s *AppendMessagesBodyMessagesItem) GetTimestamp() OptDateTime {
+	return s.Timestamp
+}
+
+// SetKind sets the value of Kind.
+func (s *AppendMessagesBodyMessagesItem) SetKind(val TaskMessageKind) {
+	s.Kind = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *AppendMessagesBodyMessagesItem) SetPayload(val AppendMessagesBodyMessagesItemPayload) {
+	s.Payload = val
+}
+
+// SetTimestamp sets the value of Timestamp.
+func (s *AppendMessagesBodyMessagesItem) SetTimestamp(val OptDateTime) {
+	s.Timestamp = val
+}
+
+type AppendMessagesBodyMessagesItemPayload map[string]jx.Raw
+
+func (s *AppendMessagesBodyMessagesItemPayload) init() AppendMessagesBodyMessagesItemPayload {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/AppendMessagesResponse
+type AppendMessagesResponse struct {
+	Count int `json:"count"`
+}
+
+// GetCount returns the value of Count.
+func (s *AppendMessagesResponse) GetCount() int {
+	return s.Count
+}
+
+// SetCount sets the value of Count.
+func (s *AppendMessagesResponse) SetCount(val int) {
+	s.Count = val
+}
+
+func (*AppendMessagesResponse) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesBadRequest ProblemDetails
+
+func (*AppendTaskMessagesBadRequest) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesForbidden ProblemDetails
+
+func (*AppendTaskMessagesForbidden) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesNotFound ProblemDetails
+
+func (*AppendTaskMessagesNotFound) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesUnauthorized ProblemDetails
+
+func (*AppendTaskMessagesUnauthorized) appendTaskMessagesRes() {}
+
 type BearerAuth struct {
 	Token string
 	Roles []string
@@ -381,6 +476,104 @@ func (s *BearerAuth) SetToken(val string) {
 func (s *BearerAuth) SetRoles(val []string) {
 	s.Roles = val
 }
+
+type CancelTaskBadRequest ProblemDetails
+
+func (*CancelTaskBadRequest) cancelTaskRes() {}
+
+// Ref: #/components/schemas/CancelTaskBody
+type CancelTaskBody struct {
+	Reason string `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *CancelTaskBody) GetReason() string {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *CancelTaskBody) SetReason(val string) {
+	s.Reason = val
+}
+
+type CancelTaskConflict ProblemDetails
+
+func (*CancelTaskConflict) cancelTaskRes() {}
+
+type CancelTaskForbidden ProblemDetails
+
+func (*CancelTaskForbidden) cancelTaskRes() {}
+
+type CancelTaskNotFound ProblemDetails
+
+func (*CancelTaskNotFound) cancelTaskRes() {}
+
+type CancelTaskUnauthorized ProblemDetails
+
+func (*CancelTaskUnauthorized) cancelTaskRes() {}
+
+type ClaimTaskBadRequest ProblemDetails
+
+func (*ClaimTaskBadRequest) claimTaskRes() {}
+
+// Ref: #/components/schemas/ClaimTaskBody
+type ClaimTaskBody struct {
+	LeaseTTLSec OptInt `json:"lease_ttl_sec"`
+}
+
+// GetLeaseTTLSec returns the value of LeaseTTLSec.
+func (s *ClaimTaskBody) GetLeaseTTLSec() OptInt {
+	return s.LeaseTTLSec
+}
+
+// SetLeaseTTLSec sets the value of LeaseTTLSec.
+func (s *ClaimTaskBody) SetLeaseTTLSec(val OptInt) {
+	s.LeaseTTLSec = val
+}
+
+type ClaimTaskConflict ProblemDetails
+
+func (*ClaimTaskConflict) claimTaskRes() {}
+
+type ClaimTaskForbidden ProblemDetails
+
+func (*ClaimTaskForbidden) claimTaskRes() {}
+
+type ClaimTaskNotFound ProblemDetails
+
+func (*ClaimTaskNotFound) claimTaskRes() {}
+
+// Ref: #/components/schemas/ClaimTaskResponse
+type ClaimTaskResponse struct {
+	Attempt TaskAttempt `json:"attempt"`
+	Task    Task        `json:"task"`
+}
+
+// GetAttempt returns the value of Attempt.
+func (s *ClaimTaskResponse) GetAttempt() TaskAttempt {
+	return s.Attempt
+}
+
+// GetTask returns the value of Task.
+func (s *ClaimTaskResponse) GetTask() Task {
+	return s.Task
+}
+
+// SetAttempt sets the value of Attempt.
+func (s *ClaimTaskResponse) SetAttempt(val TaskAttempt) {
+	s.Attempt = val
+}
+
+// SetTask sets the value of Task.
+func (s *ClaimTaskResponse) SetTask(val Task) {
+	s.Task = val
+}
+
+func (*ClaimTaskResponse) claimTaskRes() {}
+
+type ClaimTaskUnauthorized ProblemDetails
+
+func (*ClaimTaskUnauthorized) claimTaskRes() {}
 
 type ClaimVerificationBadRequest ProblemDetails
 
@@ -494,16 +687,16 @@ type CompileDiaryNotFound ProblemDetails
 func (*CompileDiaryNotFound) compileDiaryRes() {}
 
 type CompileDiaryReq struct {
-	CreatedAfter  OptDateTime                     `json:"createdAfter"`
-	CreatedBefore OptDateTime                     `json:"createdBefore"`
-	EntryTypes    []CompileDiaryReqEntryTypesItem `json:"entryTypes"`
-	ExcludeTags   []string                        `json:"excludeTags"`
-	IncludeTags   []string                        `json:"includeTags"`
-	Lambda        OptFloat64                      `json:"lambda"`
-	TaskPrompt    OptString                       `json:"taskPrompt"`
-	TokenBudget   int                             `json:"tokenBudget"`
-	WImportance   OptFloat64                      `json:"wImportance"`
-	WRecency      OptFloat64                      `json:"wRecency"`
+	CreatedAfter  OptDateTime `json:"createdAfter"`
+	CreatedBefore OptDateTime `json:"createdBefore"`
+	EntryTypes    []EntryType `json:"entryTypes"`
+	ExcludeTags   []string    `json:"excludeTags"`
+	IncludeTags   []string    `json:"includeTags"`
+	Lambda        OptFloat64  `json:"lambda"`
+	TaskPrompt    OptString   `json:"taskPrompt"`
+	TokenBudget   int         `json:"tokenBudget"`
+	WImportance   OptFloat64  `json:"wImportance"`
+	WRecency      OptFloat64  `json:"wRecency"`
 }
 
 // GetCreatedAfter returns the value of CreatedAfter.
@@ -517,7 +710,7 @@ func (s *CompileDiaryReq) GetCreatedBefore() OptDateTime {
 }
 
 // GetEntryTypes returns the value of EntryTypes.
-func (s *CompileDiaryReq) GetEntryTypes() []CompileDiaryReqEntryTypesItem {
+func (s *CompileDiaryReq) GetEntryTypes() []EntryType {
 	return s.EntryTypes
 }
 
@@ -567,7 +760,7 @@ func (s *CompileDiaryReq) SetCreatedBefore(val OptDateTime) {
 }
 
 // SetEntryTypes sets the value of EntryTypes.
-func (s *CompileDiaryReq) SetEntryTypes(val []CompileDiaryReqEntryTypesItem) {
+func (s *CompileDiaryReq) SetEntryTypes(val []EntryType) {
 	s.EntryTypes = val
 }
 
@@ -604,75 +797,6 @@ func (s *CompileDiaryReq) SetWImportance(val OptFloat64) {
 // SetWRecency sets the value of WRecency.
 func (s *CompileDiaryReq) SetWRecency(val OptFloat64) {
 	s.WRecency = val
-}
-
-type CompileDiaryReqEntryTypesItem string
-
-const (
-	CompileDiaryReqEntryTypesItemEpisodic   CompileDiaryReqEntryTypesItem = "episodic"
-	CompileDiaryReqEntryTypesItemSemantic   CompileDiaryReqEntryTypesItem = "semantic"
-	CompileDiaryReqEntryTypesItemProcedural CompileDiaryReqEntryTypesItem = "procedural"
-	CompileDiaryReqEntryTypesItemReflection CompileDiaryReqEntryTypesItem = "reflection"
-	CompileDiaryReqEntryTypesItemIdentity   CompileDiaryReqEntryTypesItem = "identity"
-	CompileDiaryReqEntryTypesItemSoul       CompileDiaryReqEntryTypesItem = "soul"
-)
-
-// AllValues returns all CompileDiaryReqEntryTypesItem values.
-func (CompileDiaryReqEntryTypesItem) AllValues() []CompileDiaryReqEntryTypesItem {
-	return []CompileDiaryReqEntryTypesItem{
-		CompileDiaryReqEntryTypesItemEpisodic,
-		CompileDiaryReqEntryTypesItemSemantic,
-		CompileDiaryReqEntryTypesItemProcedural,
-		CompileDiaryReqEntryTypesItemReflection,
-		CompileDiaryReqEntryTypesItemIdentity,
-		CompileDiaryReqEntryTypesItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CompileDiaryReqEntryTypesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case CompileDiaryReqEntryTypesItemEpisodic:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemSemantic:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemProcedural:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemReflection:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemIdentity:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CompileDiaryReqEntryTypesItem) UnmarshalText(data []byte) error {
-	switch CompileDiaryReqEntryTypesItem(data) {
-	case CompileDiaryReqEntryTypesItemEpisodic:
-		*s = CompileDiaryReqEntryTypesItemEpisodic
-		return nil
-	case CompileDiaryReqEntryTypesItemSemantic:
-		*s = CompileDiaryReqEntryTypesItemSemantic
-		return nil
-	case CompileDiaryReqEntryTypesItemProcedural:
-		*s = CompileDiaryReqEntryTypesItemProcedural
-		return nil
-	case CompileDiaryReqEntryTypesItemReflection:
-		*s = CompileDiaryReqEntryTypesItemReflection
-		return nil
-	case CompileDiaryReqEntryTypesItemIdentity:
-		*s = CompileDiaryReqEntryTypesItemIdentity
-		return nil
-	case CompileDiaryReqEntryTypesItemSoul:
-		*s = CompileDiaryReqEntryTypesItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type CompileDiaryUnauthorized ProblemDetails
@@ -1153,6 +1277,85 @@ func (s *CompileStats) SetEntriesIncluded(val float64) {
 func (s *CompileStats) SetTotalTokens(val float64) {
 	s.TotalTokens = val
 }
+
+type CompleteTaskBadRequest ProblemDetails
+
+func (*CompleteTaskBadRequest) completeTaskRes() {}
+
+// Ref: #/components/schemas/CompleteTaskBody
+type CompleteTaskBody struct {
+	ContentSignature OptString              `json:"content_signature"`
+	Output           CompleteTaskBodyOutput `json:"output"`
+	OutputCid        string                 `json:"output_cid"`
+	Usage            TaskUsage              `json:"usage"`
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *CompleteTaskBody) GetContentSignature() OptString {
+	return s.ContentSignature
+}
+
+// GetOutput returns the value of Output.
+func (s *CompleteTaskBody) GetOutput() CompleteTaskBodyOutput {
+	return s.Output
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *CompleteTaskBody) GetOutputCid() string {
+	return s.OutputCid
+}
+
+// GetUsage returns the value of Usage.
+func (s *CompleteTaskBody) GetUsage() TaskUsage {
+	return s.Usage
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *CompleteTaskBody) SetContentSignature(val OptString) {
+	s.ContentSignature = val
+}
+
+// SetOutput sets the value of Output.
+func (s *CompleteTaskBody) SetOutput(val CompleteTaskBodyOutput) {
+	s.Output = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *CompleteTaskBody) SetOutputCid(val string) {
+	s.OutputCid = val
+}
+
+// SetUsage sets the value of Usage.
+func (s *CompleteTaskBody) SetUsage(val TaskUsage) {
+	s.Usage = val
+}
+
+type CompleteTaskBodyOutput map[string]jx.Raw
+
+func (s *CompleteTaskBodyOutput) init() CompleteTaskBodyOutput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type CompleteTaskConflict ProblemDetails
+
+func (*CompleteTaskConflict) completeTaskRes() {}
+
+type CompleteTaskForbidden ProblemDetails
+
+func (*CompleteTaskForbidden) completeTaskRes() {}
+
+type CompleteTaskNotFound ProblemDetails
+
+func (*CompleteTaskNotFound) completeTaskRes() {}
+
+type CompleteTaskUnauthorized ProblemDetails
+
+func (*CompleteTaskUnauthorized) completeTaskRes() {}
 
 type ConsolidateDiaryBadRequest ProblemDetails
 
@@ -2286,9 +2489,9 @@ type CreateDiaryEntryReq struct {
 	Content string `json:"content"`
 	// CIDv1 content identifier (base32lower). Only allowed together with signingRequestId — the server
 	// computes it from entry fields. If provided, it is validated against the computed CID.
-	ContentHash OptString                       `json:"contentHash"`
-	EntryType   OptCreateDiaryEntryReqEntryType `json:"entryType"`
-	Importance  OptInt                          `json:"importance"`
+	ContentHash OptString    `json:"contentHash"`
+	EntryType   OptEntryType `json:"entryType"`
+	Importance  OptInt       `json:"importance"`
 	// ID of a completed signing request. The server computes the CID from entry fields and verifies it
 	// matches the signing request message.
 	SigningRequestId OptUUID   `json:"signingRequestId"`
@@ -2307,7 +2510,7 @@ func (s *CreateDiaryEntryReq) GetContentHash() OptString {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *CreateDiaryEntryReq) GetEntryType() OptCreateDiaryEntryReqEntryType {
+func (s *CreateDiaryEntryReq) GetEntryType() OptEntryType {
 	return s.EntryType
 }
 
@@ -2342,7 +2545,7 @@ func (s *CreateDiaryEntryReq) SetContentHash(val OptString) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *CreateDiaryEntryReq) SetEntryType(val OptCreateDiaryEntryReqEntryType) {
+func (s *CreateDiaryEntryReq) SetEntryType(val OptEntryType) {
 	s.EntryType = val
 }
 
@@ -2364,75 +2567,6 @@ func (s *CreateDiaryEntryReq) SetTags(val []string) {
 // SetTitle sets the value of Title.
 func (s *CreateDiaryEntryReq) SetTitle(val OptString) {
 	s.Title = val
-}
-
-type CreateDiaryEntryReqEntryType string
-
-const (
-	CreateDiaryEntryReqEntryTypeEpisodic   CreateDiaryEntryReqEntryType = "episodic"
-	CreateDiaryEntryReqEntryTypeSemantic   CreateDiaryEntryReqEntryType = "semantic"
-	CreateDiaryEntryReqEntryTypeProcedural CreateDiaryEntryReqEntryType = "procedural"
-	CreateDiaryEntryReqEntryTypeReflection CreateDiaryEntryReqEntryType = "reflection"
-	CreateDiaryEntryReqEntryTypeIdentity   CreateDiaryEntryReqEntryType = "identity"
-	CreateDiaryEntryReqEntryTypeSoul       CreateDiaryEntryReqEntryType = "soul"
-)
-
-// AllValues returns all CreateDiaryEntryReqEntryType values.
-func (CreateDiaryEntryReqEntryType) AllValues() []CreateDiaryEntryReqEntryType {
-	return []CreateDiaryEntryReqEntryType{
-		CreateDiaryEntryReqEntryTypeEpisodic,
-		CreateDiaryEntryReqEntryTypeSemantic,
-		CreateDiaryEntryReqEntryTypeProcedural,
-		CreateDiaryEntryReqEntryTypeReflection,
-		CreateDiaryEntryReqEntryTypeIdentity,
-		CreateDiaryEntryReqEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDiaryEntryReqEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDiaryEntryReqEntryTypeEpisodic:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeSemantic:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeProcedural:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeReflection:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeIdentity:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDiaryEntryReqEntryType) UnmarshalText(data []byte) error {
-	switch CreateDiaryEntryReqEntryType(data) {
-	case CreateDiaryEntryReqEntryTypeEpisodic:
-		*s = CreateDiaryEntryReqEntryTypeEpisodic
-		return nil
-	case CreateDiaryEntryReqEntryTypeSemantic:
-		*s = CreateDiaryEntryReqEntryTypeSemantic
-		return nil
-	case CreateDiaryEntryReqEntryTypeProcedural:
-		*s = CreateDiaryEntryReqEntryTypeProcedural
-		return nil
-	case CreateDiaryEntryReqEntryTypeReflection:
-		*s = CreateDiaryEntryReqEntryTypeReflection
-		return nil
-	case CreateDiaryEntryReqEntryTypeIdentity:
-		*s = CreateDiaryEntryReqEntryTypeIdentity
-		return nil
-	case CreateDiaryEntryReqEntryTypeSoul:
-		*s = CreateDiaryEntryReqEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type CreateDiaryEntryUnauthorized ProblemDetails
@@ -2718,8 +2852,8 @@ type CreateDiaryInternalServerError ProblemDetails
 func (*CreateDiaryInternalServerError) createDiaryRes() {}
 
 type CreateDiaryReq struct {
-	Name       string                      `json:"name"`
-	Visibility OptCreateDiaryReqVisibility `json:"visibility"`
+	Name       string        `json:"name"`
+	Visibility OptVisibility `json:"visibility"`
 }
 
 // GetName returns the value of Name.
@@ -2728,7 +2862,7 @@ func (s *CreateDiaryReq) GetName() string {
 }
 
 // GetVisibility returns the value of Visibility.
-func (s *CreateDiaryReq) GetVisibility() OptCreateDiaryReqVisibility {
+func (s *CreateDiaryReq) GetVisibility() OptVisibility {
 	return s.Visibility
 }
 
@@ -2738,56 +2872,8 @@ func (s *CreateDiaryReq) SetName(val string) {
 }
 
 // SetVisibility sets the value of Visibility.
-func (s *CreateDiaryReq) SetVisibility(val OptCreateDiaryReqVisibility) {
+func (s *CreateDiaryReq) SetVisibility(val OptVisibility) {
 	s.Visibility = val
-}
-
-type CreateDiaryReqVisibility string
-
-const (
-	CreateDiaryReqVisibilityPrivate CreateDiaryReqVisibility = "private"
-	CreateDiaryReqVisibilityMoltnet CreateDiaryReqVisibility = "moltnet"
-	CreateDiaryReqVisibilityPublic  CreateDiaryReqVisibility = "public"
-)
-
-// AllValues returns all CreateDiaryReqVisibility values.
-func (CreateDiaryReqVisibility) AllValues() []CreateDiaryReqVisibility {
-	return []CreateDiaryReqVisibility{
-		CreateDiaryReqVisibilityPrivate,
-		CreateDiaryReqVisibilityMoltnet,
-		CreateDiaryReqVisibilityPublic,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDiaryReqVisibility) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDiaryReqVisibilityPrivate:
-		return []byte(s), nil
-	case CreateDiaryReqVisibilityMoltnet:
-		return []byte(s), nil
-	case CreateDiaryReqVisibilityPublic:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDiaryReqVisibility) UnmarshalText(data []byte) error {
-	switch CreateDiaryReqVisibility(data) {
-	case CreateDiaryReqVisibilityPrivate:
-		*s = CreateDiaryReqVisibilityPrivate
-		return nil
-	case CreateDiaryReqVisibilityMoltnet:
-		*s = CreateDiaryReqVisibilityMoltnet
-		return nil
-	case CreateDiaryReqVisibilityPublic:
-		*s = CreateDiaryReqVisibilityPublic
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type CreateDiaryUnauthorized ProblemDetails
@@ -2998,6 +3084,132 @@ func (s *CreateSigningRequestReq) SetMessage(val string) {
 type CreateSigningRequestUnauthorized ProblemDetails
 
 func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
+
+type CreateTaskBadRequest ProblemDetails
+
+func (*CreateTaskBadRequest) createTaskRes() {}
+
+// Ref: #/components/schemas/CreateTaskBody
+type CreateTaskBody struct {
+	CorrelationID OptUUID             `json:"correlation_id"`
+	CriteriaCid   OptString           `json:"criteria_cid"`
+	DiaryID       OptUUID             `json:"diary_id"`
+	ExpiresInSec  OptInt              `json:"expires_in_sec"`
+	Input         CreateTaskBodyInput `json:"input"`
+	MaxAttempts   OptInt              `json:"max_attempts"`
+	References    []TaskRef           `json:"references"`
+	TaskType      string              `json:"task_type"`
+	TeamID        uuid.UUID           `json:"team_id"`
+}
+
+// GetCorrelationID returns the value of CorrelationID.
+func (s *CreateTaskBody) GetCorrelationID() OptUUID {
+	return s.CorrelationID
+}
+
+// GetCriteriaCid returns the value of CriteriaCid.
+func (s *CreateTaskBody) GetCriteriaCid() OptString {
+	return s.CriteriaCid
+}
+
+// GetDiaryID returns the value of DiaryID.
+func (s *CreateTaskBody) GetDiaryID() OptUUID {
+	return s.DiaryID
+}
+
+// GetExpiresInSec returns the value of ExpiresInSec.
+func (s *CreateTaskBody) GetExpiresInSec() OptInt {
+	return s.ExpiresInSec
+}
+
+// GetInput returns the value of Input.
+func (s *CreateTaskBody) GetInput() CreateTaskBodyInput {
+	return s.Input
+}
+
+// GetMaxAttempts returns the value of MaxAttempts.
+func (s *CreateTaskBody) GetMaxAttempts() OptInt {
+	return s.MaxAttempts
+}
+
+// GetReferences returns the value of References.
+func (s *CreateTaskBody) GetReferences() []TaskRef {
+	return s.References
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *CreateTaskBody) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamID returns the value of TeamID.
+func (s *CreateTaskBody) GetTeamID() uuid.UUID {
+	return s.TeamID
+}
+
+// SetCorrelationID sets the value of CorrelationID.
+func (s *CreateTaskBody) SetCorrelationID(val OptUUID) {
+	s.CorrelationID = val
+}
+
+// SetCriteriaCid sets the value of CriteriaCid.
+func (s *CreateTaskBody) SetCriteriaCid(val OptString) {
+	s.CriteriaCid = val
+}
+
+// SetDiaryID sets the value of DiaryID.
+func (s *CreateTaskBody) SetDiaryID(val OptUUID) {
+	s.DiaryID = val
+}
+
+// SetExpiresInSec sets the value of ExpiresInSec.
+func (s *CreateTaskBody) SetExpiresInSec(val OptInt) {
+	s.ExpiresInSec = val
+}
+
+// SetInput sets the value of Input.
+func (s *CreateTaskBody) SetInput(val CreateTaskBodyInput) {
+	s.Input = val
+}
+
+// SetMaxAttempts sets the value of MaxAttempts.
+func (s *CreateTaskBody) SetMaxAttempts(val OptInt) {
+	s.MaxAttempts = val
+}
+
+// SetReferences sets the value of References.
+func (s *CreateTaskBody) SetReferences(val []TaskRef) {
+	s.References = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *CreateTaskBody) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamID sets the value of TeamID.
+func (s *CreateTaskBody) SetTeamID(val uuid.UUID) {
+	s.TeamID = val
+}
+
+type CreateTaskBodyInput map[string]jx.Raw
+
+func (s *CreateTaskBodyInput) init() CreateTaskBodyInput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type CreateTaskForbidden ProblemDetails
+
+func (*CreateTaskForbidden) createTaskRes() {}
+
+type CreateTaskUnauthorized ProblemDetails
+
+func (*CreateTaskUnauthorized) createTaskRes() {}
 
 type CreateTeamAccepted struct {
 	// UUID v4 identifier.
@@ -3871,14 +4083,14 @@ func (*DeleteTeamUnauthorized) deleteTeamRes() {}
 
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
-	CreatedAt  time.Time              `json:"createdAt"`
-	CreatedBy  uuid.UUID              `json:"createdBy"`
-	ID         uuid.UUID              `json:"id"`
-	Name       string                 `json:"name"`
-	Signed     bool                   `json:"signed"`
-	TeamId     uuid.UUID              `json:"teamId"`
-	UpdatedAt  time.Time              `json:"updatedAt"`
-	Visibility DiaryCatalogVisibility `json:"visibility"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	CreatedBy  uuid.UUID  `json:"createdBy"`
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	Signed     bool       `json:"signed"`
+	TeamId     uuid.UUID  `json:"teamId"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	Visibility Visibility `json:"visibility"`
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -3917,7 +4129,7 @@ func (s *DiaryCatalog) GetUpdatedAt() time.Time {
 }
 
 // GetVisibility returns the value of Visibility.
-func (s *DiaryCatalog) GetVisibility() DiaryCatalogVisibility {
+func (s *DiaryCatalog) GetVisibility() Visibility {
 	return s.Visibility
 }
 
@@ -3957,7 +4169,7 @@ func (s *DiaryCatalog) SetUpdatedAt(val time.Time) {
 }
 
 // SetVisibility sets the value of Visibility.
-func (s *DiaryCatalog) SetVisibility(val DiaryCatalogVisibility) {
+func (s *DiaryCatalog) SetVisibility(val Visibility) {
 	s.Visibility = val
 }
 
@@ -3982,71 +4194,23 @@ func (s *DiaryCatalogList) SetItems(val []DiaryCatalog) {
 
 func (*DiaryCatalogList) listDiariesRes() {}
 
-type DiaryCatalogVisibility string
-
-const (
-	DiaryCatalogVisibilityPrivate DiaryCatalogVisibility = "private"
-	DiaryCatalogVisibilityMoltnet DiaryCatalogVisibility = "moltnet"
-	DiaryCatalogVisibilityPublic  DiaryCatalogVisibility = "public"
-)
-
-// AllValues returns all DiaryCatalogVisibility values.
-func (DiaryCatalogVisibility) AllValues() []DiaryCatalogVisibility {
-	return []DiaryCatalogVisibility{
-		DiaryCatalogVisibilityPrivate,
-		DiaryCatalogVisibilityMoltnet,
-		DiaryCatalogVisibilityPublic,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DiaryCatalogVisibility) MarshalText() ([]byte, error) {
-	switch s {
-	case DiaryCatalogVisibilityPrivate:
-		return []byte(s), nil
-	case DiaryCatalogVisibilityMoltnet:
-		return []byte(s), nil
-	case DiaryCatalogVisibilityPublic:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DiaryCatalogVisibility) UnmarshalText(data []byte) error {
-	switch DiaryCatalogVisibility(data) {
-	case DiaryCatalogVisibilityPrivate:
-		*s = DiaryCatalogVisibilityPrivate
-		return nil
-	case DiaryCatalogVisibilityMoltnet:
-		*s = DiaryCatalogVisibilityMoltnet
-		return nil
-	case DiaryCatalogVisibilityPublic:
-		*s = DiaryCatalogVisibilityPublic
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/DiaryEntry
 type DiaryEntry struct {
-	AccessCount      float64             `json:"accessCount"`
-	Content          string              `json:"content"`
-	ContentHash      NilString           `json:"contentHash"`
-	ContentSignature NilString           `json:"contentSignature"`
-	CreatedAt        time.Time           `json:"createdAt"`
-	CreatedBy        uuid.UUID           `json:"createdBy"`
-	DiaryId          uuid.UUID           `json:"diaryId"`
-	EntryType        DiaryEntryEntryType `json:"entryType"`
-	ID               uuid.UUID           `json:"id"`
-	Importance       float64             `json:"importance"`
-	InjectionRisk    bool                `json:"injectionRisk"`
-	LastAccessedAt   NilDateTime         `json:"lastAccessedAt"`
-	Tags             []string            `json:"tags"`
-	Title            NilString           `json:"title"`
-	UpdatedAt        time.Time           `json:"updatedAt"`
+	AccessCount      float64     `json:"accessCount"`
+	Content          string      `json:"content"`
+	ContentHash      NilString   `json:"contentHash"`
+	ContentSignature NilString   `json:"contentSignature"`
+	CreatedAt        time.Time   `json:"createdAt"`
+	CreatedBy        uuid.UUID   `json:"createdBy"`
+	DiaryId          uuid.UUID   `json:"diaryId"`
+	EntryType        EntryType   `json:"entryType"`
+	ID               uuid.UUID   `json:"id"`
+	Importance       float64     `json:"importance"`
+	InjectionRisk    bool        `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime `json:"lastAccessedAt"`
+	Tags             []string    `json:"tags"`
+	Title            NilString   `json:"title"`
+	UpdatedAt        time.Time   `json:"updatedAt"`
 }
 
 // GetAccessCount returns the value of AccessCount.
@@ -4085,7 +4249,7 @@ func (s *DiaryEntry) GetDiaryId() uuid.UUID {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *DiaryEntry) GetEntryType() DiaryEntryEntryType {
+func (s *DiaryEntry) GetEntryType() EntryType {
 	return s.EntryType
 }
 
@@ -4160,7 +4324,7 @@ func (s *DiaryEntry) SetDiaryId(val uuid.UUID) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *DiaryEntry) SetEntryType(val DiaryEntryEntryType) {
+func (s *DiaryEntry) SetEntryType(val EntryType) {
 	s.EntryType = val
 }
 
@@ -4202,92 +4366,23 @@ func (s *DiaryEntry) SetUpdatedAt(val time.Time) {
 func (*DiaryEntry) createDiaryEntryRes()     {}
 func (*DiaryEntry) updateDiaryEntryByIdRes() {}
 
-type DiaryEntryEntryType string
-
-const (
-	DiaryEntryEntryTypeEpisodic   DiaryEntryEntryType = "episodic"
-	DiaryEntryEntryTypeSemantic   DiaryEntryEntryType = "semantic"
-	DiaryEntryEntryTypeProcedural DiaryEntryEntryType = "procedural"
-	DiaryEntryEntryTypeReflection DiaryEntryEntryType = "reflection"
-	DiaryEntryEntryTypeIdentity   DiaryEntryEntryType = "identity"
-	DiaryEntryEntryTypeSoul       DiaryEntryEntryType = "soul"
-)
-
-// AllValues returns all DiaryEntryEntryType values.
-func (DiaryEntryEntryType) AllValues() []DiaryEntryEntryType {
-	return []DiaryEntryEntryType{
-		DiaryEntryEntryTypeEpisodic,
-		DiaryEntryEntryTypeSemantic,
-		DiaryEntryEntryTypeProcedural,
-		DiaryEntryEntryTypeReflection,
-		DiaryEntryEntryTypeIdentity,
-		DiaryEntryEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DiaryEntryEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case DiaryEntryEntryTypeEpisodic:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeSemantic:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeProcedural:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeReflection:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeIdentity:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DiaryEntryEntryType) UnmarshalText(data []byte) error {
-	switch DiaryEntryEntryType(data) {
-	case DiaryEntryEntryTypeEpisodic:
-		*s = DiaryEntryEntryTypeEpisodic
-		return nil
-	case DiaryEntryEntryTypeSemantic:
-		*s = DiaryEntryEntryTypeSemantic
-		return nil
-	case DiaryEntryEntryTypeProcedural:
-		*s = DiaryEntryEntryTypeProcedural
-		return nil
-	case DiaryEntryEntryTypeReflection:
-		*s = DiaryEntryEntryTypeReflection
-		return nil
-	case DiaryEntryEntryTypeIdentity:
-		*s = DiaryEntryEntryTypeIdentity
-		return nil
-	case DiaryEntryEntryTypeSoul:
-		*s = DiaryEntryEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/DiaryEntryWithCreator
 type DiaryEntryWithCreator struct {
-	AccessCount      float64                        `json:"accessCount"`
-	Content          string                         `json:"content"`
-	ContentHash      NilString                      `json:"contentHash"`
-	ContentSignature NilString                      `json:"contentSignature"`
-	CreatedAt        time.Time                      `json:"createdAt"`
-	Creator          AgentIdentity                  `json:"creator"`
-	DiaryId          uuid.UUID                      `json:"diaryId"`
-	EntryType        DiaryEntryWithCreatorEntryType `json:"entryType"`
-	ID               uuid.UUID                      `json:"id"`
-	Importance       float64                        `json:"importance"`
-	InjectionRisk    bool                           `json:"injectionRisk"`
-	LastAccessedAt   NilDateTime                    `json:"lastAccessedAt"`
-	Tags             []string                       `json:"tags"`
-	Title            NilString                      `json:"title"`
-	UpdatedAt        time.Time                      `json:"updatedAt"`
+	AccessCount      float64       `json:"accessCount"`
+	Content          string        `json:"content"`
+	ContentHash      NilString     `json:"contentHash"`
+	ContentSignature NilString     `json:"contentSignature"`
+	CreatedAt        time.Time     `json:"createdAt"`
+	Creator          AgentIdentity `json:"creator"`
+	DiaryId          uuid.UUID     `json:"diaryId"`
+	EntryType        EntryType     `json:"entryType"`
+	ID               uuid.UUID     `json:"id"`
+	Importance       float64       `json:"importance"`
+	InjectionRisk    bool          `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime   `json:"lastAccessedAt"`
+	Tags             []string      `json:"tags"`
+	Title            NilString     `json:"title"`
+	UpdatedAt        time.Time     `json:"updatedAt"`
 }
 
 // GetAccessCount returns the value of AccessCount.
@@ -4326,7 +4421,7 @@ func (s *DiaryEntryWithCreator) GetDiaryId() uuid.UUID {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *DiaryEntryWithCreator) GetEntryType() DiaryEntryWithCreatorEntryType {
+func (s *DiaryEntryWithCreator) GetEntryType() EntryType {
 	return s.EntryType
 }
 
@@ -4401,7 +4496,7 @@ func (s *DiaryEntryWithCreator) SetDiaryId(val uuid.UUID) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *DiaryEntryWithCreator) SetEntryType(val DiaryEntryWithCreatorEntryType) {
+func (s *DiaryEntryWithCreator) SetEntryType(val EntryType) {
 	s.EntryType = val
 }
 
@@ -4440,93 +4535,24 @@ func (s *DiaryEntryWithCreator) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
 }
 
-type DiaryEntryWithCreatorEntryType string
-
-const (
-	DiaryEntryWithCreatorEntryTypeEpisodic   DiaryEntryWithCreatorEntryType = "episodic"
-	DiaryEntryWithCreatorEntryTypeSemantic   DiaryEntryWithCreatorEntryType = "semantic"
-	DiaryEntryWithCreatorEntryTypeProcedural DiaryEntryWithCreatorEntryType = "procedural"
-	DiaryEntryWithCreatorEntryTypeReflection DiaryEntryWithCreatorEntryType = "reflection"
-	DiaryEntryWithCreatorEntryTypeIdentity   DiaryEntryWithCreatorEntryType = "identity"
-	DiaryEntryWithCreatorEntryTypeSoul       DiaryEntryWithCreatorEntryType = "soul"
-)
-
-// AllValues returns all DiaryEntryWithCreatorEntryType values.
-func (DiaryEntryWithCreatorEntryType) AllValues() []DiaryEntryWithCreatorEntryType {
-	return []DiaryEntryWithCreatorEntryType{
-		DiaryEntryWithCreatorEntryTypeEpisodic,
-		DiaryEntryWithCreatorEntryTypeSemantic,
-		DiaryEntryWithCreatorEntryTypeProcedural,
-		DiaryEntryWithCreatorEntryTypeReflection,
-		DiaryEntryWithCreatorEntryTypeIdentity,
-		DiaryEntryWithCreatorEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DiaryEntryWithCreatorEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case DiaryEntryWithCreatorEntryTypeEpisodic:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeSemantic:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeProcedural:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeReflection:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeIdentity:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
-	switch DiaryEntryWithCreatorEntryType(data) {
-	case DiaryEntryWithCreatorEntryTypeEpisodic:
-		*s = DiaryEntryWithCreatorEntryTypeEpisodic
-		return nil
-	case DiaryEntryWithCreatorEntryTypeSemantic:
-		*s = DiaryEntryWithCreatorEntryTypeSemantic
-		return nil
-	case DiaryEntryWithCreatorEntryTypeProcedural:
-		*s = DiaryEntryWithCreatorEntryTypeProcedural
-		return nil
-	case DiaryEntryWithCreatorEntryTypeReflection:
-		*s = DiaryEntryWithCreatorEntryTypeReflection
-		return nil
-	case DiaryEntryWithCreatorEntryTypeIdentity:
-		*s = DiaryEntryWithCreatorEntryTypeIdentity
-		return nil
-	case DiaryEntryWithCreatorEntryTypeSoul:
-		*s = DiaryEntryWithCreatorEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/DiaryEntryWithRelations
 type DiaryEntryWithRelations struct {
-	AccessCount      float64                          `json:"accessCount"`
-	Content          string                           `json:"content"`
-	ContentHash      NilString                        `json:"contentHash"`
-	ContentSignature NilString                        `json:"contentSignature"`
-	CreatedAt        time.Time                        `json:"createdAt"`
-	CreatedBy        uuid.UUID                        `json:"createdBy"`
-	DiaryId          uuid.UUID                        `json:"diaryId"`
-	EntryType        DiaryEntryWithRelationsEntryType `json:"entryType"`
-	ID               uuid.UUID                        `json:"id"`
-	Importance       float64                          `json:"importance"`
-	InjectionRisk    bool                             `json:"injectionRisk"`
-	LastAccessedAt   NilDateTime                      `json:"lastAccessedAt"`
-	Relations        OptExpandedRelations             `json:"relations"`
-	Tags             []string                         `json:"tags"`
-	Title            NilString                        `json:"title"`
-	UpdatedAt        time.Time                        `json:"updatedAt"`
+	AccessCount      float64              `json:"accessCount"`
+	Content          string               `json:"content"`
+	ContentHash      NilString            `json:"contentHash"`
+	ContentSignature NilString            `json:"contentSignature"`
+	CreatedAt        time.Time            `json:"createdAt"`
+	CreatedBy        uuid.UUID            `json:"createdBy"`
+	DiaryId          uuid.UUID            `json:"diaryId"`
+	EntryType        EntryType            `json:"entryType"`
+	ID               uuid.UUID            `json:"id"`
+	Importance       float64              `json:"importance"`
+	InjectionRisk    bool                 `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime          `json:"lastAccessedAt"`
+	Relations        OptExpandedRelations `json:"relations"`
+	Tags             []string             `json:"tags"`
+	Title            NilString            `json:"title"`
+	UpdatedAt        time.Time            `json:"updatedAt"`
 }
 
 // GetAccessCount returns the value of AccessCount.
@@ -4565,7 +4591,7 @@ func (s *DiaryEntryWithRelations) GetDiaryId() uuid.UUID {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *DiaryEntryWithRelations) GetEntryType() DiaryEntryWithRelationsEntryType {
+func (s *DiaryEntryWithRelations) GetEntryType() EntryType {
 	return s.EntryType
 }
 
@@ -4645,7 +4671,7 @@ func (s *DiaryEntryWithRelations) SetDiaryId(val uuid.UUID) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *DiaryEntryWithRelations) SetEntryType(val DiaryEntryWithRelationsEntryType) {
+func (s *DiaryEntryWithRelations) SetEntryType(val EntryType) {
 	s.EntryType = val
 }
 
@@ -4690,75 +4716,6 @@ func (s *DiaryEntryWithRelations) SetUpdatedAt(val time.Time) {
 }
 
 func (*DiaryEntryWithRelations) getDiaryEntryByIdRes() {}
-
-type DiaryEntryWithRelationsEntryType string
-
-const (
-	DiaryEntryWithRelationsEntryTypeEpisodic   DiaryEntryWithRelationsEntryType = "episodic"
-	DiaryEntryWithRelationsEntryTypeSemantic   DiaryEntryWithRelationsEntryType = "semantic"
-	DiaryEntryWithRelationsEntryTypeProcedural DiaryEntryWithRelationsEntryType = "procedural"
-	DiaryEntryWithRelationsEntryTypeReflection DiaryEntryWithRelationsEntryType = "reflection"
-	DiaryEntryWithRelationsEntryTypeIdentity   DiaryEntryWithRelationsEntryType = "identity"
-	DiaryEntryWithRelationsEntryTypeSoul       DiaryEntryWithRelationsEntryType = "soul"
-)
-
-// AllValues returns all DiaryEntryWithRelationsEntryType values.
-func (DiaryEntryWithRelationsEntryType) AllValues() []DiaryEntryWithRelationsEntryType {
-	return []DiaryEntryWithRelationsEntryType{
-		DiaryEntryWithRelationsEntryTypeEpisodic,
-		DiaryEntryWithRelationsEntryTypeSemantic,
-		DiaryEntryWithRelationsEntryTypeProcedural,
-		DiaryEntryWithRelationsEntryTypeReflection,
-		DiaryEntryWithRelationsEntryTypeIdentity,
-		DiaryEntryWithRelationsEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DiaryEntryWithRelationsEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case DiaryEntryWithRelationsEntryTypeEpisodic:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeSemantic:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeProcedural:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeReflection:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeIdentity:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DiaryEntryWithRelationsEntryType) UnmarshalText(data []byte) error {
-	switch DiaryEntryWithRelationsEntryType(data) {
-	case DiaryEntryWithRelationsEntryTypeEpisodic:
-		*s = DiaryEntryWithRelationsEntryTypeEpisodic
-		return nil
-	case DiaryEntryWithRelationsEntryTypeSemantic:
-		*s = DiaryEntryWithRelationsEntryTypeSemantic
-		return nil
-	case DiaryEntryWithRelationsEntryTypeProcedural:
-		*s = DiaryEntryWithRelationsEntryTypeProcedural
-		return nil
-	case DiaryEntryWithRelationsEntryTypeReflection:
-		*s = DiaryEntryWithRelationsEntryTypeReflection
-		return nil
-	case DiaryEntryWithRelationsEntryTypeIdentity:
-		*s = DiaryEntryWithRelationsEntryTypeIdentity
-		return nil
-	case DiaryEntryWithRelationsEntryTypeSoul:
-		*s = DiaryEntryWithRelationsEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 // Ref: #/components/schemas/DiaryList
 type DiaryList struct {
@@ -6831,12 +6788,12 @@ func (s *Digest) SetTotalEntries(val float64) {
 func (*Digest) reflectDiaryRes() {}
 
 type DigestEntriesItem struct {
-	Content    string                     `json:"content"`
-	CreatedAt  time.Time                  `json:"createdAt"`
-	EntryType  DigestEntriesItemEntryType `json:"entryType"`
-	ID         uuid.UUID                  `json:"id"`
-	Importance float64                    `json:"importance"`
-	Tags       []string                   `json:"tags"`
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"createdAt"`
+	EntryType  EntryType `json:"entryType"`
+	ID         uuid.UUID `json:"id"`
+	Importance float64   `json:"importance"`
+	Tags       []string  `json:"tags"`
 }
 
 // GetContent returns the value of Content.
@@ -6850,7 +6807,7 @@ func (s *DigestEntriesItem) GetCreatedAt() time.Time {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *DigestEntriesItem) GetEntryType() DigestEntriesItemEntryType {
+func (s *DigestEntriesItem) GetEntryType() EntryType {
 	return s.EntryType
 }
 
@@ -6880,7 +6837,7 @@ func (s *DigestEntriesItem) SetCreatedAt(val time.Time) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *DigestEntriesItem) SetEntryType(val DigestEntriesItemEntryType) {
+func (s *DigestEntriesItem) SetEntryType(val EntryType) {
 	s.EntryType = val
 }
 
@@ -6897,75 +6854,6 @@ func (s *DigestEntriesItem) SetImportance(val float64) {
 // SetTags sets the value of Tags.
 func (s *DigestEntriesItem) SetTags(val []string) {
 	s.Tags = val
-}
-
-type DigestEntriesItemEntryType string
-
-const (
-	DigestEntriesItemEntryTypeEpisodic   DigestEntriesItemEntryType = "episodic"
-	DigestEntriesItemEntryTypeSemantic   DigestEntriesItemEntryType = "semantic"
-	DigestEntriesItemEntryTypeProcedural DigestEntriesItemEntryType = "procedural"
-	DigestEntriesItemEntryTypeReflection DigestEntriesItemEntryType = "reflection"
-	DigestEntriesItemEntryTypeIdentity   DigestEntriesItemEntryType = "identity"
-	DigestEntriesItemEntryTypeSoul       DigestEntriesItemEntryType = "soul"
-)
-
-// AllValues returns all DigestEntriesItemEntryType values.
-func (DigestEntriesItemEntryType) AllValues() []DigestEntriesItemEntryType {
-	return []DigestEntriesItemEntryType{
-		DigestEntriesItemEntryTypeEpisodic,
-		DigestEntriesItemEntryTypeSemantic,
-		DigestEntriesItemEntryTypeProcedural,
-		DigestEntriesItemEntryTypeReflection,
-		DigestEntriesItemEntryTypeIdentity,
-		DigestEntriesItemEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DigestEntriesItemEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case DigestEntriesItemEntryTypeEpisodic:
-		return []byte(s), nil
-	case DigestEntriesItemEntryTypeSemantic:
-		return []byte(s), nil
-	case DigestEntriesItemEntryTypeProcedural:
-		return []byte(s), nil
-	case DigestEntriesItemEntryTypeReflection:
-		return []byte(s), nil
-	case DigestEntriesItemEntryTypeIdentity:
-		return []byte(s), nil
-	case DigestEntriesItemEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DigestEntriesItemEntryType) UnmarshalText(data []byte) error {
-	switch DigestEntriesItemEntryType(data) {
-	case DigestEntriesItemEntryTypeEpisodic:
-		*s = DigestEntriesItemEntryTypeEpisodic
-		return nil
-	case DigestEntriesItemEntryTypeSemantic:
-		*s = DigestEntriesItemEntryTypeSemantic
-		return nil
-	case DigestEntriesItemEntryTypeProcedural:
-		*s = DigestEntriesItemEntryTypeProcedural
-		return nil
-	case DigestEntriesItemEntryTypeReflection:
-		*s = DigestEntriesItemEntryTypeReflection
-		return nil
-	case DigestEntriesItemEntryTypeIdentity:
-		*s = DigestEntriesItemEntryTypeIdentity
-		return nil
-	case DigestEntriesItemEntryTypeSoul:
-		*s = DigestEntriesItemEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 // Ref: #/components/schemas/EntryRelation
@@ -7318,6 +7206,76 @@ func (s *EntryRelationWithDepth) SetWorkflowId(val NilString) {
 	s.WorkflowId = val
 }
 
+// Ref: #/components/schemas/EntryType
+type EntryType string
+
+const (
+	EntryTypeEpisodic   EntryType = "episodic"
+	EntryTypeSemantic   EntryType = "semantic"
+	EntryTypeProcedural EntryType = "procedural"
+	EntryTypeReflection EntryType = "reflection"
+	EntryTypeIdentity   EntryType = "identity"
+	EntryTypeSoul       EntryType = "soul"
+)
+
+// AllValues returns all EntryType values.
+func (EntryType) AllValues() []EntryType {
+	return []EntryType{
+		EntryTypeEpisodic,
+		EntryTypeSemantic,
+		EntryTypeProcedural,
+		EntryTypeReflection,
+		EntryTypeIdentity,
+		EntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s EntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case EntryTypeEpisodic:
+		return []byte(s), nil
+	case EntryTypeSemantic:
+		return []byte(s), nil
+	case EntryTypeProcedural:
+		return []byte(s), nil
+	case EntryTypeReflection:
+		return []byte(s), nil
+	case EntryTypeIdentity:
+		return []byte(s), nil
+	case EntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *EntryType) UnmarshalText(data []byte) error {
+	switch EntryType(data) {
+	case EntryTypeEpisodic:
+		*s = EntryTypeEpisodic
+		return nil
+	case EntryTypeSemantic:
+		*s = EntryTypeSemantic
+		return nil
+	case EntryTypeProcedural:
+		*s = EntryTypeProcedural
+		return nil
+	case EntryTypeReflection:
+		*s = EntryTypeReflection
+		return nil
+	case EntryTypeIdentity:
+		*s = EntryTypeIdentity
+		return nil
+	case EntryTypeSoul:
+		*s = EntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/EntryVerifyResult
 type EntryVerifyResult struct {
 	AgentFingerprint NilString `json:"agentFingerprint"`
@@ -7590,6 +7548,37 @@ func (s *ExpandedRelations) SetRequestedDepth(val int) {
 	s.RequestedDepth = val
 }
 
+type FailTaskBadRequest ProblemDetails
+
+func (*FailTaskBadRequest) failTaskRes() {}
+
+// Ref: #/components/schemas/FailTaskBody
+type FailTaskBody struct {
+	Error TaskError `json:"error"`
+}
+
+// GetError returns the value of Error.
+func (s *FailTaskBody) GetError() TaskError {
+	return s.Error
+}
+
+// SetError sets the value of Error.
+func (s *FailTaskBody) SetError(val TaskError) {
+	s.Error = val
+}
+
+type FailTaskForbidden ProblemDetails
+
+func (*FailTaskForbidden) failTaskRes() {}
+
+type FailTaskNotFound ProblemDetails
+
+func (*FailTaskNotFound) failTaskRes() {}
+
+type FailTaskUnauthorized ProblemDetails
+
+func (*FailTaskUnauthorized) failTaskRes() {}
+
 type GetAgentProfileBadRequest ProblemDetails
 
 func (*GetAgentProfileBadRequest) getAgentProfileRes() {}
@@ -7671,362 +7660,6 @@ func (*GetContextPackProvenanceByCidInternalServerError) getContextPackProvenanc
 type GetContextPackProvenanceByCidNotFound ProblemDetails
 
 func (*GetContextPackProvenanceByCidNotFound) getContextPackProvenanceByCidRes() {}
-
-type GetContextPackProvenanceByCidOK struct {
-	Edges    []GetContextPackProvenanceByCidOKEdgesItem `json:"edges"`
-	Metadata GetContextPackProvenanceByCidOKMetadata    `json:"metadata"`
-	Nodes    []GetContextPackProvenanceByCidOKNodesItem `json:"nodes"`
-}
-
-// GetEdges returns the value of Edges.
-func (s *GetContextPackProvenanceByCidOK) GetEdges() []GetContextPackProvenanceByCidOKEdgesItem {
-	return s.Edges
-}
-
-// GetMetadata returns the value of Metadata.
-func (s *GetContextPackProvenanceByCidOK) GetMetadata() GetContextPackProvenanceByCidOKMetadata {
-	return s.Metadata
-}
-
-// GetNodes returns the value of Nodes.
-func (s *GetContextPackProvenanceByCidOK) GetNodes() []GetContextPackProvenanceByCidOKNodesItem {
-	return s.Nodes
-}
-
-// SetEdges sets the value of Edges.
-func (s *GetContextPackProvenanceByCidOK) SetEdges(val []GetContextPackProvenanceByCidOKEdgesItem) {
-	s.Edges = val
-}
-
-// SetMetadata sets the value of Metadata.
-func (s *GetContextPackProvenanceByCidOK) SetMetadata(val GetContextPackProvenanceByCidOKMetadata) {
-	s.Metadata = val
-}
-
-// SetNodes sets the value of Nodes.
-func (s *GetContextPackProvenanceByCidOK) SetNodes(val []GetContextPackProvenanceByCidOKNodesItem) {
-	s.Nodes = val
-}
-
-func (*GetContextPackProvenanceByCidOK) getContextPackProvenanceByCidRes() {}
-
-type GetContextPackProvenanceByCidOKEdgesItem struct {
-	From  string                                          `json:"from"`
-	ID    string                                          `json:"id"`
-	Kind  GetContextPackProvenanceByCidOKEdgesItemKind    `json:"kind"`
-	Label OptString                                       `json:"label"`
-	Meta  OptGetContextPackProvenanceByCidOKEdgesItemMeta `json:"meta"`
-	To    string                                          `json:"to"`
-}
-
-// GetFrom returns the value of From.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) GetFrom() string {
-	return s.From
-}
-
-// GetID returns the value of ID.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) GetID() string {
-	return s.ID
-}
-
-// GetKind returns the value of Kind.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) GetKind() GetContextPackProvenanceByCidOKEdgesItemKind {
-	return s.Kind
-}
-
-// GetLabel returns the value of Label.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) GetLabel() OptString {
-	return s.Label
-}
-
-// GetMeta returns the value of Meta.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) GetMeta() OptGetContextPackProvenanceByCidOKEdgesItemMeta {
-	return s.Meta
-}
-
-// GetTo returns the value of To.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) GetTo() string {
-	return s.To
-}
-
-// SetFrom sets the value of From.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) SetFrom(val string) {
-	s.From = val
-}
-
-// SetID sets the value of ID.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) SetID(val string) {
-	s.ID = val
-}
-
-// SetKind sets the value of Kind.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) SetKind(val GetContextPackProvenanceByCidOKEdgesItemKind) {
-	s.Kind = val
-}
-
-// SetLabel sets the value of Label.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) SetLabel(val OptString) {
-	s.Label = val
-}
-
-// SetMeta sets the value of Meta.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) SetMeta(val OptGetContextPackProvenanceByCidOKEdgesItemMeta) {
-	s.Meta = val
-}
-
-// SetTo sets the value of To.
-func (s *GetContextPackProvenanceByCidOKEdgesItem) SetTo(val string) {
-	s.To = val
-}
-
-type GetContextPackProvenanceByCidOKEdgesItemKind string
-
-const (
-	GetContextPackProvenanceByCidOKEdgesItemKindIncludes     GetContextPackProvenanceByCidOKEdgesItemKind = "includes"
-	GetContextPackProvenanceByCidOKEdgesItemKindSupersedes   GetContextPackProvenanceByCidOKEdgesItemKind = "supersedes"
-	GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom GetContextPackProvenanceByCidOKEdgesItemKind = "rendered_from"
-)
-
-// AllValues returns all GetContextPackProvenanceByCidOKEdgesItemKind values.
-func (GetContextPackProvenanceByCidOKEdgesItemKind) AllValues() []GetContextPackProvenanceByCidOKEdgesItemKind {
-	return []GetContextPackProvenanceByCidOKEdgesItemKind{
-		GetContextPackProvenanceByCidOKEdgesItemKindIncludes,
-		GetContextPackProvenanceByCidOKEdgesItemKindSupersedes,
-		GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s GetContextPackProvenanceByCidOKEdgesItemKind) MarshalText() ([]byte, error) {
-	switch s {
-	case GetContextPackProvenanceByCidOKEdgesItemKindIncludes:
-		return []byte(s), nil
-	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
-		return []byte(s), nil
-	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *GetContextPackProvenanceByCidOKEdgesItemKind) UnmarshalText(data []byte) error {
-	switch GetContextPackProvenanceByCidOKEdgesItemKind(data) {
-	case GetContextPackProvenanceByCidOKEdgesItemKindIncludes:
-		*s = GetContextPackProvenanceByCidOKEdgesItemKindIncludes
-		return nil
-	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
-		*s = GetContextPackProvenanceByCidOKEdgesItemKindSupersedes
-		return nil
-	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
-		*s = GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type GetContextPackProvenanceByCidOKEdgesItemMeta map[string]jx.Raw
-
-func (s *GetContextPackProvenanceByCidOKEdgesItemMeta) init() GetContextPackProvenanceByCidOKEdgesItemMeta {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-type GetContextPackProvenanceByCidOKMetadata struct {
-	Depth  float64                                       `json:"depth"`
-	Format GetContextPackProvenanceByCidOKMetadataFormat `json:"format"`
-	// ISO 8601 timestamp.
-	GeneratedAt time.Time `json:"generatedAt"`
-	RootNodeId  string    `json:"rootNodeId"`
-	// UUID v4 identifier.
-	RootPackId uuid.UUID `json:"rootPackId"`
-}
-
-// GetDepth returns the value of Depth.
-func (s *GetContextPackProvenanceByCidOKMetadata) GetDepth() float64 {
-	return s.Depth
-}
-
-// GetFormat returns the value of Format.
-func (s *GetContextPackProvenanceByCidOKMetadata) GetFormat() GetContextPackProvenanceByCidOKMetadataFormat {
-	return s.Format
-}
-
-// GetGeneratedAt returns the value of GeneratedAt.
-func (s *GetContextPackProvenanceByCidOKMetadata) GetGeneratedAt() time.Time {
-	return s.GeneratedAt
-}
-
-// GetRootNodeId returns the value of RootNodeId.
-func (s *GetContextPackProvenanceByCidOKMetadata) GetRootNodeId() string {
-	return s.RootNodeId
-}
-
-// GetRootPackId returns the value of RootPackId.
-func (s *GetContextPackProvenanceByCidOKMetadata) GetRootPackId() uuid.UUID {
-	return s.RootPackId
-}
-
-// SetDepth sets the value of Depth.
-func (s *GetContextPackProvenanceByCidOKMetadata) SetDepth(val float64) {
-	s.Depth = val
-}
-
-// SetFormat sets the value of Format.
-func (s *GetContextPackProvenanceByCidOKMetadata) SetFormat(val GetContextPackProvenanceByCidOKMetadataFormat) {
-	s.Format = val
-}
-
-// SetGeneratedAt sets the value of GeneratedAt.
-func (s *GetContextPackProvenanceByCidOKMetadata) SetGeneratedAt(val time.Time) {
-	s.GeneratedAt = val
-}
-
-// SetRootNodeId sets the value of RootNodeId.
-func (s *GetContextPackProvenanceByCidOKMetadata) SetRootNodeId(val string) {
-	s.RootNodeId = val
-}
-
-// SetRootPackId sets the value of RootPackId.
-func (s *GetContextPackProvenanceByCidOKMetadata) SetRootPackId(val uuid.UUID) {
-	s.RootPackId = val
-}
-
-type GetContextPackProvenanceByCidOKMetadataFormat string
-
-const (
-	GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1 GetContextPackProvenanceByCidOKMetadataFormat = "moltnet.provenance-graph/v1"
-)
-
-// AllValues returns all GetContextPackProvenanceByCidOKMetadataFormat values.
-func (GetContextPackProvenanceByCidOKMetadataFormat) AllValues() []GetContextPackProvenanceByCidOKMetadataFormat {
-	return []GetContextPackProvenanceByCidOKMetadataFormat{
-		GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s GetContextPackProvenanceByCidOKMetadataFormat) MarshalText() ([]byte, error) {
-	switch s {
-	case GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *GetContextPackProvenanceByCidOKMetadataFormat) UnmarshalText(data []byte) error {
-	switch GetContextPackProvenanceByCidOKMetadataFormat(data) {
-	case GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1:
-		*s = GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-// GetContextPackProvenanceByCidOKNodesItem represents sum type.
-type GetContextPackProvenanceByCidOKNodesItem struct {
-	Type                            GetContextPackProvenanceByCidOKNodesItemType // switch on this field
-	ProvenanceGraphPackNode         ProvenanceGraphPackNode
-	ProvenanceGraphEntryNode        ProvenanceGraphEntryNode
-	ProvenanceGraphRenderedPackNode ProvenanceGraphRenderedPackNode
-}
-
-// GetContextPackProvenanceByCidOKNodesItemType is oneOf type of GetContextPackProvenanceByCidOKNodesItem.
-type GetContextPackProvenanceByCidOKNodesItemType string
-
-// Possible values for GetContextPackProvenanceByCidOKNodesItemType.
-const (
-	ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem         GetContextPackProvenanceByCidOKNodesItemType = "pack"
-	ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem        GetContextPackProvenanceByCidOKNodesItemType = "entry"
-	ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem GetContextPackProvenanceByCidOKNodesItemType = "rendered_pack"
-)
-
-// IsProvenanceGraphPackNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphPackNode.
-func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphPackNode() bool {
-	return s.Type == ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem
-}
-
-// IsProvenanceGraphEntryNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphEntryNode.
-func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphEntryNode() bool {
-	return s.Type == ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem
-}
-
-// IsProvenanceGraphRenderedPackNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphRenderedPackNode.
-func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphRenderedPackNode() bool {
-	return s.Type == ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem
-}
-
-// SetProvenanceGraphPackNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphPackNode.
-func (s *GetContextPackProvenanceByCidOKNodesItem) SetProvenanceGraphPackNode(v ProvenanceGraphPackNode) {
-	s.Type = ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem
-	s.ProvenanceGraphPackNode = v
-}
-
-// GetProvenanceGraphPackNode returns ProvenanceGraphPackNode and true boolean if GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphPackNode.
-func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphPackNode() (v ProvenanceGraphPackNode, ok bool) {
-	if !s.IsProvenanceGraphPackNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphPackNode, true
-}
-
-// NewProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem returns new GetContextPackProvenanceByCidOKNodesItem from ProvenanceGraphPackNode.
-func NewProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphPackNode) GetContextPackProvenanceByCidOKNodesItem {
-	var s GetContextPackProvenanceByCidOKNodesItem
-	s.SetProvenanceGraphPackNode(v)
-	return s
-}
-
-// SetProvenanceGraphEntryNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphEntryNode.
-func (s *GetContextPackProvenanceByCidOKNodesItem) SetProvenanceGraphEntryNode(v ProvenanceGraphEntryNode) {
-	s.Type = ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem
-	s.ProvenanceGraphEntryNode = v
-}
-
-// GetProvenanceGraphEntryNode returns ProvenanceGraphEntryNode and true boolean if GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphEntryNode.
-func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphEntryNode() (v ProvenanceGraphEntryNode, ok bool) {
-	if !s.IsProvenanceGraphEntryNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphEntryNode, true
-}
-
-// NewProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem returns new GetContextPackProvenanceByCidOKNodesItem from ProvenanceGraphEntryNode.
-func NewProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphEntryNode) GetContextPackProvenanceByCidOKNodesItem {
-	var s GetContextPackProvenanceByCidOKNodesItem
-	s.SetProvenanceGraphEntryNode(v)
-	return s
-}
-
-// SetProvenanceGraphRenderedPackNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphRenderedPackNode.
-func (s *GetContextPackProvenanceByCidOKNodesItem) SetProvenanceGraphRenderedPackNode(v ProvenanceGraphRenderedPackNode) {
-	s.Type = ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem
-	s.ProvenanceGraphRenderedPackNode = v
-}
-
-// GetProvenanceGraphRenderedPackNode returns ProvenanceGraphRenderedPackNode and true boolean if GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphRenderedPackNode.
-func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphRenderedPackNode() (v ProvenanceGraphRenderedPackNode, ok bool) {
-	if !s.IsProvenanceGraphRenderedPackNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphRenderedPackNode, true
-}
-
-// NewProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem returns new GetContextPackProvenanceByCidOKNodesItem from ProvenanceGraphRenderedPackNode.
-func NewProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphRenderedPackNode) GetContextPackProvenanceByCidOKNodesItem {
-	var s GetContextPackProvenanceByCidOKNodesItem
-	s.SetProvenanceGraphRenderedPackNode(v)
-	return s
-}
 
 type GetContextPackProvenanceByCidUnauthorized ProblemDetails
 
@@ -8899,6 +8532,18 @@ type GetSigningRequestUnauthorized ProblemDetails
 
 func (*GetSigningRequestUnauthorized) getSigningRequestRes() {}
 
+type GetTaskForbidden ProblemDetails
+
+func (*GetTaskForbidden) getTaskRes() {}
+
+type GetTaskNotFound ProblemDetails
+
+func (*GetTaskNotFound) getTaskRes() {}
+
+type GetTaskUnauthorized ProblemDetails
+
+func (*GetTaskUnauthorized) getTaskRes() {}
+
 type GetTeamBadRequest ProblemDetails
 
 func (*GetTeamBadRequest) getTeamRes() {}
@@ -9209,6 +8854,38 @@ func (s *Health) SetTimestamp(val time.Time) {
 	s.Timestamp = val
 }
 
+// Ref: #/components/schemas/HeartbeatBody
+type HeartbeatBody struct {
+	LeaseTTLSec OptInt `json:"lease_ttl_sec"`
+}
+
+// GetLeaseTTLSec returns the value of LeaseTTLSec.
+func (s *HeartbeatBody) GetLeaseTTLSec() OptInt {
+	return s.LeaseTTLSec
+}
+
+// SetLeaseTTLSec sets the value of LeaseTTLSec.
+func (s *HeartbeatBody) SetLeaseTTLSec(val OptInt) {
+	s.LeaseTTLSec = val
+}
+
+// Ref: #/components/schemas/HeartbeatResponse
+type HeartbeatResponse struct {
+	ClaimExpiresAt time.Time `json:"claim_expires_at"`
+}
+
+// GetClaimExpiresAt returns the value of ClaimExpiresAt.
+func (s *HeartbeatResponse) GetClaimExpiresAt() time.Time {
+	return s.ClaimExpiresAt
+}
+
+// SetClaimExpiresAt sets the value of ClaimExpiresAt.
+func (s *HeartbeatResponse) SetClaimExpiresAt(val time.Time) {
+	s.ClaimExpiresAt = val
+}
+
+func (*HeartbeatResponse) taskHeartbeatRes() {}
+
 type InitiateTransferAccepted struct {
 	CreatedAt time.Time `json:"createdAt"`
 	// UUID v4 identifier.
@@ -9518,75 +9195,6 @@ type ListDiaryEntriesBadRequest ProblemDetails
 
 func (*ListDiaryEntriesBadRequest) listDiaryEntriesRes() {}
 
-type ListDiaryEntriesEntryTypeItem string
-
-const (
-	ListDiaryEntriesEntryTypeItemEpisodic   ListDiaryEntriesEntryTypeItem = "episodic"
-	ListDiaryEntriesEntryTypeItemSemantic   ListDiaryEntriesEntryTypeItem = "semantic"
-	ListDiaryEntriesEntryTypeItemProcedural ListDiaryEntriesEntryTypeItem = "procedural"
-	ListDiaryEntriesEntryTypeItemReflection ListDiaryEntriesEntryTypeItem = "reflection"
-	ListDiaryEntriesEntryTypeItemIdentity   ListDiaryEntriesEntryTypeItem = "identity"
-	ListDiaryEntriesEntryTypeItemSoul       ListDiaryEntriesEntryTypeItem = "soul"
-)
-
-// AllValues returns all ListDiaryEntriesEntryTypeItem values.
-func (ListDiaryEntriesEntryTypeItem) AllValues() []ListDiaryEntriesEntryTypeItem {
-	return []ListDiaryEntriesEntryTypeItem{
-		ListDiaryEntriesEntryTypeItemEpisodic,
-		ListDiaryEntriesEntryTypeItemSemantic,
-		ListDiaryEntriesEntryTypeItemProcedural,
-		ListDiaryEntriesEntryTypeItemReflection,
-		ListDiaryEntriesEntryTypeItemIdentity,
-		ListDiaryEntriesEntryTypeItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ListDiaryEntriesEntryTypeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case ListDiaryEntriesEntryTypeItemEpisodic:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemSemantic:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemProcedural:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemReflection:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemIdentity:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ListDiaryEntriesEntryTypeItem) UnmarshalText(data []byte) error {
-	switch ListDiaryEntriesEntryTypeItem(data) {
-	case ListDiaryEntriesEntryTypeItemEpisodic:
-		*s = ListDiaryEntriesEntryTypeItemEpisodic
-		return nil
-	case ListDiaryEntriesEntryTypeItemSemantic:
-		*s = ListDiaryEntriesEntryTypeItemSemantic
-		return nil
-	case ListDiaryEntriesEntryTypeItemProcedural:
-		*s = ListDiaryEntriesEntryTypeItemProcedural
-		return nil
-	case ListDiaryEntriesEntryTypeItemReflection:
-		*s = ListDiaryEntriesEntryTypeItemReflection
-		return nil
-	case ListDiaryEntriesEntryTypeItemIdentity:
-		*s = ListDiaryEntriesEntryTypeItemIdentity
-		return nil
-	case ListDiaryEntriesEntryTypeItemSoul:
-		*s = ListDiaryEntriesEntryTypeItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type ListDiaryEntriesInternalServerError ProblemDetails
 
 func (*ListDiaryEntriesInternalServerError) listDiaryEntriesRes() {}
@@ -9834,75 +9442,6 @@ func (*ListDiaryRenderedPacksUnauthorized) listDiaryRenderedPacksRes() {}
 type ListDiaryTagsBadRequest ProblemDetails
 
 func (*ListDiaryTagsBadRequest) listDiaryTagsRes() {}
-
-type ListDiaryTagsEntryTypesItem string
-
-const (
-	ListDiaryTagsEntryTypesItemEpisodic   ListDiaryTagsEntryTypesItem = "episodic"
-	ListDiaryTagsEntryTypesItemSemantic   ListDiaryTagsEntryTypesItem = "semantic"
-	ListDiaryTagsEntryTypesItemProcedural ListDiaryTagsEntryTypesItem = "procedural"
-	ListDiaryTagsEntryTypesItemReflection ListDiaryTagsEntryTypesItem = "reflection"
-	ListDiaryTagsEntryTypesItemIdentity   ListDiaryTagsEntryTypesItem = "identity"
-	ListDiaryTagsEntryTypesItemSoul       ListDiaryTagsEntryTypesItem = "soul"
-)
-
-// AllValues returns all ListDiaryTagsEntryTypesItem values.
-func (ListDiaryTagsEntryTypesItem) AllValues() []ListDiaryTagsEntryTypesItem {
-	return []ListDiaryTagsEntryTypesItem{
-		ListDiaryTagsEntryTypesItemEpisodic,
-		ListDiaryTagsEntryTypesItemSemantic,
-		ListDiaryTagsEntryTypesItemProcedural,
-		ListDiaryTagsEntryTypesItemReflection,
-		ListDiaryTagsEntryTypesItemIdentity,
-		ListDiaryTagsEntryTypesItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ListDiaryTagsEntryTypesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case ListDiaryTagsEntryTypesItemEpisodic:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemSemantic:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemProcedural:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemReflection:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemIdentity:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ListDiaryTagsEntryTypesItem) UnmarshalText(data []byte) error {
-	switch ListDiaryTagsEntryTypesItem(data) {
-	case ListDiaryTagsEntryTypesItemEpisodic:
-		*s = ListDiaryTagsEntryTypesItemEpisodic
-		return nil
-	case ListDiaryTagsEntryTypesItemSemantic:
-		*s = ListDiaryTagsEntryTypesItemSemantic
-		return nil
-	case ListDiaryTagsEntryTypesItemProcedural:
-		*s = ListDiaryTagsEntryTypesItemProcedural
-		return nil
-	case ListDiaryTagsEntryTypesItemReflection:
-		*s = ListDiaryTagsEntryTypesItemReflection
-		return nil
-	case ListDiaryTagsEntryTypesItemIdentity:
-		*s = ListDiaryTagsEntryTypesItemIdentity
-		return nil
-	case ListDiaryTagsEntryTypesItemSoul:
-		*s = ListDiaryTagsEntryTypesItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 type ListDiaryTagsInternalServerError ProblemDetails
 
@@ -10352,6 +9891,46 @@ func (s *ListSigningRequestsStatusItem) UnmarshalText(data []byte) error {
 type ListSigningRequestsUnauthorized ProblemDetails
 
 func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
+
+type ListTaskAttemptsForbidden ProblemDetails
+
+func (*ListTaskAttemptsForbidden) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsNotFound ProblemDetails
+
+func (*ListTaskAttemptsNotFound) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsOKApplicationJSON []TaskAttempt
+
+func (*ListTaskAttemptsOKApplicationJSON) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsUnauthorized ProblemDetails
+
+func (*ListTaskAttemptsUnauthorized) listTaskAttemptsRes() {}
+
+type ListTaskMessagesForbidden ProblemDetails
+
+func (*ListTaskMessagesForbidden) listTaskMessagesRes() {}
+
+type ListTaskMessagesNotFound ProblemDetails
+
+func (*ListTaskMessagesNotFound) listTaskMessagesRes() {}
+
+type ListTaskMessagesOKApplicationJSON []TaskMessage
+
+func (*ListTaskMessagesOKApplicationJSON) listTaskMessagesRes() {}
+
+type ListTaskMessagesUnauthorized ProblemDetails
+
+func (*ListTaskMessagesUnauthorized) listTaskMessagesRes() {}
+
+type ListTasksForbidden ProblemDetails
+
+func (*ListTasksForbidden) listTasksRes() {}
+
+type ListTasksUnauthorized ProblemDetails
+
+func (*ListTasksUnauthorized) listTasksRes() {}
 
 type ListTeamInvitesBadRequest ProblemDetails
 
@@ -12108,6 +11687,141 @@ func (o NilString) Or(d string) string {
 	return d
 }
 
+// NewNilTaskAttemptError returns new NilTaskAttemptError with value set to v.
+func NewNilTaskAttemptError(v TaskAttemptError) NilTaskAttemptError {
+	return NilTaskAttemptError{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptError is nullable TaskAttemptError.
+type NilTaskAttemptError struct {
+	Value TaskAttemptError
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptError) SetTo(v TaskAttemptError) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptError) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptError) SetToNull() {
+	o.Null = true
+	var v TaskAttemptError
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptError) Get() (v TaskAttemptError, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptError) Or(d TaskAttemptError) TaskAttemptError {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilTaskAttemptOutput returns new NilTaskAttemptOutput with value set to v.
+func NewNilTaskAttemptOutput(v TaskAttemptOutput) NilTaskAttemptOutput {
+	return NilTaskAttemptOutput{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptOutput is nullable TaskAttemptOutput.
+type NilTaskAttemptOutput struct {
+	Value TaskAttemptOutput
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptOutput) SetTo(v TaskAttemptOutput) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptOutput) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptOutput) SetToNull() {
+	o.Null = true
+	var v TaskAttemptOutput
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptOutput) Get() (v TaskAttemptOutput, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptOutput) Or(d TaskAttemptOutput) TaskAttemptOutput {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilTaskAttemptUsage returns new NilTaskAttemptUsage with value set to v.
+func NewNilTaskAttemptUsage(v TaskAttemptUsage) NilTaskAttemptUsage {
+	return NilTaskAttemptUsage{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptUsage is nullable TaskAttemptUsage.
+type NilTaskAttemptUsage struct {
+	Value TaskAttemptUsage
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptUsage) SetTo(v TaskAttemptUsage) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptUsage) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptUsage) SetToNull() {
+	o.Null = true
+	var v TaskAttemptUsage
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptUsage) Get() (v TaskAttemptUsage, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptUsage) Or(d TaskAttemptUsage) TaskAttemptUsage {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilUUID returns new NilUUID with value set to v.
 func NewNilUUID(v uuid.UUID) NilUUID {
 	return NilUUID{
@@ -12245,6 +11959,52 @@ func (o OptBool) Or(d bool) bool {
 	return d
 }
 
+// NewOptClaimTaskBody returns new OptClaimTaskBody with value set to v.
+func NewOptClaimTaskBody(v ClaimTaskBody) OptClaimTaskBody {
+	return OptClaimTaskBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptClaimTaskBody is optional ClaimTaskBody.
+type OptClaimTaskBody struct {
+	Value ClaimTaskBody
+	Set   bool
+}
+
+// IsSet returns true if OptClaimTaskBody was set.
+func (o OptClaimTaskBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptClaimTaskBody) Reset() {
+	var v ClaimTaskBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptClaimTaskBody) SetTo(v ClaimTaskBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptClaimTaskBody) Get() (v ClaimTaskBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptClaimTaskBody) Or(d ClaimTaskBody) ClaimTaskBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptConsolidateDiaryReq returns new OptConsolidateDiaryReq with value set to v.
 func NewOptConsolidateDiaryReq(v ConsolidateDiaryReq) OptConsolidateDiaryReq {
 	return OptConsolidateDiaryReq{
@@ -12331,98 +12091,6 @@ func (o OptConsolidateDiaryReqStrategy) Get() (v ConsolidateDiaryReqStrategy, ok
 
 // Or returns value if set, or given parameter if does not.
 func (o OptConsolidateDiaryReqStrategy) Or(d ConsolidateDiaryReqStrategy) ConsolidateDiaryReqStrategy {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDiaryEntryReqEntryType returns new OptCreateDiaryEntryReqEntryType with value set to v.
-func NewOptCreateDiaryEntryReqEntryType(v CreateDiaryEntryReqEntryType) OptCreateDiaryEntryReqEntryType {
-	return OptCreateDiaryEntryReqEntryType{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDiaryEntryReqEntryType is optional CreateDiaryEntryReqEntryType.
-type OptCreateDiaryEntryReqEntryType struct {
-	Value CreateDiaryEntryReqEntryType
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDiaryEntryReqEntryType was set.
-func (o OptCreateDiaryEntryReqEntryType) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDiaryEntryReqEntryType) Reset() {
-	var v CreateDiaryEntryReqEntryType
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDiaryEntryReqEntryType) SetTo(v CreateDiaryEntryReqEntryType) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDiaryEntryReqEntryType) Get() (v CreateDiaryEntryReqEntryType, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDiaryEntryReqEntryType) Or(d CreateDiaryEntryReqEntryType) CreateDiaryEntryReqEntryType {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDiaryReqVisibility returns new OptCreateDiaryReqVisibility with value set to v.
-func NewOptCreateDiaryReqVisibility(v CreateDiaryReqVisibility) OptCreateDiaryReqVisibility {
-	return OptCreateDiaryReqVisibility{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDiaryReqVisibility is optional CreateDiaryReqVisibility.
-type OptCreateDiaryReqVisibility struct {
-	Value CreateDiaryReqVisibility
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDiaryReqVisibility was set.
-func (o OptCreateDiaryReqVisibility) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDiaryReqVisibility) Reset() {
-	var v CreateDiaryReqVisibility
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDiaryReqVisibility) SetTo(v CreateDiaryReqVisibility) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDiaryReqVisibility) Get() (v CreateDiaryReqVisibility, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDiaryReqVisibility) Or(d CreateDiaryReqVisibility) CreateDiaryReqVisibility {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -12613,6 +12281,52 @@ func (o OptDateTime) Or(d time.Time) time.Time {
 	return d
 }
 
+// NewOptEntryType returns new OptEntryType with value set to v.
+func NewOptEntryType(v EntryType) OptEntryType {
+	return OptEntryType{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptEntryType is optional EntryType.
+type OptEntryType struct {
+	Value EntryType
+	Set   bool
+}
+
+// IsSet returns true if OptEntryType was set.
+func (o OptEntryType) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptEntryType) Reset() {
+	var v EntryType
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptEntryType) SetTo(v EntryType) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptEntryType) Get() (v EntryType, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptEntryType) Or(d EntryType) EntryType {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptExpandedRelations returns new OptExpandedRelations with value set to v.
 func NewOptExpandedRelations(v ExpandedRelations) OptExpandedRelations {
 	return OptExpandedRelations{
@@ -12751,52 +12465,6 @@ func (o OptGetContextPackByIdExpand) Or(d GetContextPackByIdExpand) GetContextPa
 	return d
 }
 
-// NewOptGetContextPackProvenanceByCidOKEdgesItemMeta returns new OptGetContextPackProvenanceByCidOKEdgesItemMeta with value set to v.
-func NewOptGetContextPackProvenanceByCidOKEdgesItemMeta(v GetContextPackProvenanceByCidOKEdgesItemMeta) OptGetContextPackProvenanceByCidOKEdgesItemMeta {
-	return OptGetContextPackProvenanceByCidOKEdgesItemMeta{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptGetContextPackProvenanceByCidOKEdgesItemMeta is optional GetContextPackProvenanceByCidOKEdgesItemMeta.
-type OptGetContextPackProvenanceByCidOKEdgesItemMeta struct {
-	Value GetContextPackProvenanceByCidOKEdgesItemMeta
-	Set   bool
-}
-
-// IsSet returns true if OptGetContextPackProvenanceByCidOKEdgesItemMeta was set.
-func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptGetContextPackProvenanceByCidOKEdgesItemMeta) Reset() {
-	var v GetContextPackProvenanceByCidOKEdgesItemMeta
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptGetContextPackProvenanceByCidOKEdgesItemMeta) SetTo(v GetContextPackProvenanceByCidOKEdgesItemMeta) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) Get() (v GetContextPackProvenanceByCidOKEdgesItemMeta, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) Or(d GetContextPackProvenanceByCidOKEdgesItemMeta) GetContextPackProvenanceByCidOKEdgesItemMeta {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptGetDiaryEntryByIdExpand returns new OptGetDiaryEntryByIdExpand with value set to v.
 func NewOptGetDiaryEntryByIdExpand(v GetDiaryEntryByIdExpand) OptGetDiaryEntryByIdExpand {
 	return OptGetDiaryEntryByIdExpand{
@@ -12837,6 +12505,52 @@ func (o OptGetDiaryEntryByIdExpand) Get() (v GetDiaryEntryByIdExpand, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptGetDiaryEntryByIdExpand) Or(d GetDiaryEntryByIdExpand) GetDiaryEntryByIdExpand {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptHeartbeatBody returns new OptHeartbeatBody with value set to v.
+func NewOptHeartbeatBody(v HeartbeatBody) OptHeartbeatBody {
+	return OptHeartbeatBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptHeartbeatBody is optional HeartbeatBody.
+type OptHeartbeatBody struct {
+	Value HeartbeatBody
+	Set   bool
+}
+
+// IsSet returns true if OptHeartbeatBody was set.
+func (o OptHeartbeatBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptHeartbeatBody) Reset() {
+	var v HeartbeatBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptHeartbeatBody) SetTo(v HeartbeatBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptHeartbeatBody) Get() (v HeartbeatBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptHeartbeatBody) Or(d HeartbeatBody) HeartbeatBody {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -13383,6 +13097,98 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// NewOptTaskRefExternal returns new OptTaskRefExternal with value set to v.
+func NewOptTaskRefExternal(v TaskRefExternal) OptTaskRefExternal {
+	return OptTaskRefExternal{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskRefExternal is optional TaskRefExternal.
+type OptTaskRefExternal struct {
+	Value TaskRefExternal
+	Set   bool
+}
+
+// IsSet returns true if OptTaskRefExternal was set.
+func (o OptTaskRefExternal) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskRefExternal) Reset() {
+	var v TaskRefExternal
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskRefExternal) SetTo(v TaskRefExternal) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskRefExternal) Get() (v TaskRefExternal, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskRefExternal) Or(d TaskRefExternal) TaskRefExternal {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskStatus returns new OptTaskStatus with value set to v.
+func NewOptTaskStatus(v TaskStatus) OptTaskStatus {
+	return OptTaskStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskStatus is optional TaskStatus.
+type OptTaskStatus struct {
+	Value TaskStatus
+	Set   bool
+}
+
+// IsSet returns true if OptTaskStatus was set.
+func (o OptTaskStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskStatus) Reset() {
+	var v TaskStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskStatus) SetTo(v TaskStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskStatus) Get() (v TaskStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskStatus) Or(d TaskStatus) TaskStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptURI returns new OptURI with value set to v.
 func NewOptURI(v url.URL) OptURI {
 	return OptURI{
@@ -13567,52 +13373,6 @@ func (o OptUpdateDiaryEntryByIdReq) Or(d UpdateDiaryEntryByIdReq) UpdateDiaryEnt
 	return d
 }
 
-// NewOptUpdateDiaryEntryByIdReqEntryType returns new OptUpdateDiaryEntryByIdReqEntryType with value set to v.
-func NewOptUpdateDiaryEntryByIdReqEntryType(v UpdateDiaryEntryByIdReqEntryType) OptUpdateDiaryEntryByIdReqEntryType {
-	return OptUpdateDiaryEntryByIdReqEntryType{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDiaryEntryByIdReqEntryType is optional UpdateDiaryEntryByIdReqEntryType.
-type OptUpdateDiaryEntryByIdReqEntryType struct {
-	Value UpdateDiaryEntryByIdReqEntryType
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDiaryEntryByIdReqEntryType was set.
-func (o OptUpdateDiaryEntryByIdReqEntryType) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDiaryEntryByIdReqEntryType) Reset() {
-	var v UpdateDiaryEntryByIdReqEntryType
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDiaryEntryByIdReqEntryType) SetTo(v UpdateDiaryEntryByIdReqEntryType) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDiaryEntryByIdReqEntryType) Get() (v UpdateDiaryEntryByIdReqEntryType, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDiaryEntryByIdReqEntryType) Or(d UpdateDiaryEntryByIdReqEntryType) UpdateDiaryEntryByIdReqEntryType {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptUpdateDiaryReq returns new OptUpdateDiaryReq with value set to v.
 func NewOptUpdateDiaryReq(v UpdateDiaryReq) OptUpdateDiaryReq {
 	return OptUpdateDiaryReq{
@@ -13653,52 +13413,6 @@ func (o OptUpdateDiaryReq) Get() (v UpdateDiaryReq, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateDiaryReq) Or(d UpdateDiaryReq) UpdateDiaryReq {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDiaryReqVisibility returns new OptUpdateDiaryReqVisibility with value set to v.
-func NewOptUpdateDiaryReqVisibility(v UpdateDiaryReqVisibility) OptUpdateDiaryReqVisibility {
-	return OptUpdateDiaryReqVisibility{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDiaryReqVisibility is optional UpdateDiaryReqVisibility.
-type OptUpdateDiaryReqVisibility struct {
-	Value UpdateDiaryReqVisibility
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDiaryReqVisibility was set.
-func (o OptUpdateDiaryReqVisibility) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDiaryReqVisibility) Reset() {
-	var v UpdateDiaryReqVisibility
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDiaryReqVisibility) SetTo(v UpdateDiaryReqVisibility) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDiaryReqVisibility) Get() (v UpdateDiaryReqVisibility, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDiaryReqVisibility) Or(d UpdateDiaryReqVisibility) UpdateDiaryReqVisibility {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -13795,6 +13509,94 @@ func (o OptVerifyResultSigner) Or(d VerifyResultSigner) VerifyResultSigner {
 		return v
 	}
 	return d
+}
+
+// NewOptVisibility returns new OptVisibility with value set to v.
+func NewOptVisibility(v Visibility) OptVisibility {
+	return OptVisibility{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptVisibility is optional Visibility.
+type OptVisibility struct {
+	Value Visibility
+	Set   bool
+}
+
+// IsSet returns true if OptVisibility was set.
+func (o OptVisibility) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptVisibility) Reset() {
+	var v Visibility
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptVisibility) SetTo(v Visibility) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptVisibility) Get() (v Visibility, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptVisibility) Or(d Visibility) Visibility {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// Ref: #/components/schemas/OutputKind
+type OutputKind string
+
+const (
+	OutputKindArtifact OutputKind = "artifact"
+	OutputKindJudgment OutputKind = "judgment"
+)
+
+// AllValues returns all OutputKind values.
+func (OutputKind) AllValues() []OutputKind {
+	return []OutputKind{
+		OutputKindArtifact,
+		OutputKindJudgment,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s OutputKind) MarshalText() ([]byte, error) {
+	switch s {
+	case OutputKindArtifact:
+		return []byte(s), nil
+	case OutputKindJudgment:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *OutputKind) UnmarshalText(data []byte) error {
+	switch OutputKind(data) {
+	case OutputKindArtifact:
+		*s = OutputKindArtifact
+		return nil
+	case OutputKindJudgment:
+		*s = OutputKindJudgment
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type PreviewDiaryCustomPackBadRequest ProblemDetails
@@ -14321,7 +14123,8 @@ func (s *ProvenanceGraph) SetNodes(val []ProvenanceGraphNodesItem) {
 	s.Nodes = val
 }
 
-func (*ProvenanceGraph) getContextPackProvenanceByIdRes() {}
+func (*ProvenanceGraph) getContextPackProvenanceByCidRes() {}
+func (*ProvenanceGraph) getContextPackProvenanceByIdRes()  {}
 
 type ProvenanceGraphEdgesItem struct {
 	From  string                          `json:"from"`
@@ -15413,14 +15216,14 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) SetTotalTokens(val float64) {
 
 // Ref: #/components/schemas/PublicFeedEntry
 type PublicFeedEntry struct {
-	Author        PublicFeedEntryAuthor    `json:"author"`
-	Content       string                   `json:"content"`
-	CreatedAt     time.Time                `json:"createdAt"`
-	EntryType     PublicFeedEntryEntryType `json:"entryType"`
-	ID            uuid.UUID                `json:"id"`
-	InjectionRisk bool                     `json:"injectionRisk"`
-	Tags          []string                 `json:"tags"`
-	Title         NilString                `json:"title"`
+	Author        PublicFeedEntryAuthor `json:"author"`
+	Content       string                `json:"content"`
+	CreatedAt     time.Time             `json:"createdAt"`
+	EntryType     EntryType             `json:"entryType"`
+	ID            uuid.UUID             `json:"id"`
+	InjectionRisk bool                  `json:"injectionRisk"`
+	Tags          []string              `json:"tags"`
+	Title         NilString             `json:"title"`
 }
 
 // GetAuthor returns the value of Author.
@@ -15439,7 +15242,7 @@ func (s *PublicFeedEntry) GetCreatedAt() time.Time {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *PublicFeedEntry) GetEntryType() PublicFeedEntryEntryType {
+func (s *PublicFeedEntry) GetEntryType() EntryType {
 	return s.EntryType
 }
 
@@ -15479,7 +15282,7 @@ func (s *PublicFeedEntry) SetCreatedAt(val time.Time) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *PublicFeedEntry) SetEntryType(val PublicFeedEntryEntryType) {
+func (s *PublicFeedEntry) SetEntryType(val EntryType) {
 	s.EntryType = val
 }
 
@@ -15528,75 +15331,6 @@ func (s *PublicFeedEntryAuthor) SetFingerprint(val string) {
 // SetPublicKey sets the value of PublicKey.
 func (s *PublicFeedEntryAuthor) SetPublicKey(val string) {
 	s.PublicKey = val
-}
-
-type PublicFeedEntryEntryType string
-
-const (
-	PublicFeedEntryEntryTypeEpisodic   PublicFeedEntryEntryType = "episodic"
-	PublicFeedEntryEntryTypeSemantic   PublicFeedEntryEntryType = "semantic"
-	PublicFeedEntryEntryTypeProcedural PublicFeedEntryEntryType = "procedural"
-	PublicFeedEntryEntryTypeReflection PublicFeedEntryEntryType = "reflection"
-	PublicFeedEntryEntryTypeIdentity   PublicFeedEntryEntryType = "identity"
-	PublicFeedEntryEntryTypeSoul       PublicFeedEntryEntryType = "soul"
-)
-
-// AllValues returns all PublicFeedEntryEntryType values.
-func (PublicFeedEntryEntryType) AllValues() []PublicFeedEntryEntryType {
-	return []PublicFeedEntryEntryType{
-		PublicFeedEntryEntryTypeEpisodic,
-		PublicFeedEntryEntryTypeSemantic,
-		PublicFeedEntryEntryTypeProcedural,
-		PublicFeedEntryEntryTypeReflection,
-		PublicFeedEntryEntryTypeIdentity,
-		PublicFeedEntryEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s PublicFeedEntryEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case PublicFeedEntryEntryTypeEpisodic:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeSemantic:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeProcedural:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeReflection:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeIdentity:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *PublicFeedEntryEntryType) UnmarshalText(data []byte) error {
-	switch PublicFeedEntryEntryType(data) {
-	case PublicFeedEntryEntryTypeEpisodic:
-		*s = PublicFeedEntryEntryTypeEpisodic
-		return nil
-	case PublicFeedEntryEntryTypeSemantic:
-		*s = PublicFeedEntryEntryTypeSemantic
-		return nil
-	case PublicFeedEntryEntryTypeProcedural:
-		*s = PublicFeedEntryEntryTypeProcedural
-		return nil
-	case PublicFeedEntryEntryTypeReflection:
-		*s = PublicFeedEntryEntryTypeReflection
-		return nil
-	case PublicFeedEntryEntryTypeIdentity:
-		*s = PublicFeedEntryEntryTypeIdentity
-		return nil
-	case PublicFeedEntryEntryTypeSoul:
-		*s = PublicFeedEntryEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 // Ref: #/components/schemas/PublicFeedResponse
@@ -15975,75 +15709,6 @@ func (*RecoveryVerifyResponse) verifyRecoveryChallengeRes() {}
 type ReflectDiaryBadRequest ProblemDetails
 
 func (*ReflectDiaryBadRequest) reflectDiaryRes() {}
-
-type ReflectDiaryEntryTypesItem string
-
-const (
-	ReflectDiaryEntryTypesItemEpisodic   ReflectDiaryEntryTypesItem = "episodic"
-	ReflectDiaryEntryTypesItemSemantic   ReflectDiaryEntryTypesItem = "semantic"
-	ReflectDiaryEntryTypesItemProcedural ReflectDiaryEntryTypesItem = "procedural"
-	ReflectDiaryEntryTypesItemReflection ReflectDiaryEntryTypesItem = "reflection"
-	ReflectDiaryEntryTypesItemIdentity   ReflectDiaryEntryTypesItem = "identity"
-	ReflectDiaryEntryTypesItemSoul       ReflectDiaryEntryTypesItem = "soul"
-)
-
-// AllValues returns all ReflectDiaryEntryTypesItem values.
-func (ReflectDiaryEntryTypesItem) AllValues() []ReflectDiaryEntryTypesItem {
-	return []ReflectDiaryEntryTypesItem{
-		ReflectDiaryEntryTypesItemEpisodic,
-		ReflectDiaryEntryTypesItemSemantic,
-		ReflectDiaryEntryTypesItemProcedural,
-		ReflectDiaryEntryTypesItemReflection,
-		ReflectDiaryEntryTypesItemIdentity,
-		ReflectDiaryEntryTypesItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ReflectDiaryEntryTypesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case ReflectDiaryEntryTypesItemEpisodic:
-		return []byte(s), nil
-	case ReflectDiaryEntryTypesItemSemantic:
-		return []byte(s), nil
-	case ReflectDiaryEntryTypesItemProcedural:
-		return []byte(s), nil
-	case ReflectDiaryEntryTypesItemReflection:
-		return []byte(s), nil
-	case ReflectDiaryEntryTypesItemIdentity:
-		return []byte(s), nil
-	case ReflectDiaryEntryTypesItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ReflectDiaryEntryTypesItem) UnmarshalText(data []byte) error {
-	switch ReflectDiaryEntryTypesItem(data) {
-	case ReflectDiaryEntryTypesItemEpisodic:
-		*s = ReflectDiaryEntryTypesItemEpisodic
-		return nil
-	case ReflectDiaryEntryTypesItemSemantic:
-		*s = ReflectDiaryEntryTypesItemSemantic
-		return nil
-	case ReflectDiaryEntryTypesItemProcedural:
-		*s = ReflectDiaryEntryTypesItemProcedural
-		return nil
-	case ReflectDiaryEntryTypesItemReflection:
-		*s = ReflectDiaryEntryTypesItemReflection
-		return nil
-	case ReflectDiaryEntryTypesItemIdentity:
-		*s = ReflectDiaryEntryTypesItemIdentity
-		return nil
-	case ReflectDiaryEntryTypesItemSoul:
-		*s = ReflectDiaryEntryTypesItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 type ReflectDiaryInternalServerError ProblemDetails
 
@@ -17236,17 +16901,17 @@ type SearchDiaryInternalServerError ProblemDetails
 func (*SearchDiaryInternalServerError) searchDiaryRes() {}
 
 type SearchDiaryReq struct {
-	DiaryId           OptUUID                        `json:"diaryId"`
-	EntryTypes        []SearchDiaryReqEntryTypesItem `json:"entryTypes"`
-	ExcludeSuperseded OptBool                        `json:"excludeSuperseded"`
-	ExcludeTags       []string                       `json:"excludeTags"`
-	Limit             OptFloat64                     `json:"limit"`
-	Offset            OptFloat64                     `json:"offset"`
-	Query             OptString                      `json:"query"`
-	Tags              []string                       `json:"tags"`
-	WImportance       OptFloat64                     `json:"wImportance"`
-	WRecency          OptFloat64                     `json:"wRecency"`
-	WRelevance        OptFloat64                     `json:"wRelevance"`
+	DiaryId           OptUUID     `json:"diaryId"`
+	EntryTypes        []EntryType `json:"entryTypes"`
+	ExcludeSuperseded OptBool     `json:"excludeSuperseded"`
+	ExcludeTags       []string    `json:"excludeTags"`
+	Limit             OptFloat64  `json:"limit"`
+	Offset            OptFloat64  `json:"offset"`
+	Query             OptString   `json:"query"`
+	Tags              []string    `json:"tags"`
+	WImportance       OptFloat64  `json:"wImportance"`
+	WRecency          OptFloat64  `json:"wRecency"`
+	WRelevance        OptFloat64  `json:"wRelevance"`
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -17255,7 +16920,7 @@ func (s *SearchDiaryReq) GetDiaryId() OptUUID {
 }
 
 // GetEntryTypes returns the value of EntryTypes.
-func (s *SearchDiaryReq) GetEntryTypes() []SearchDiaryReqEntryTypesItem {
+func (s *SearchDiaryReq) GetEntryTypes() []EntryType {
 	return s.EntryTypes
 }
 
@@ -17310,7 +16975,7 @@ func (s *SearchDiaryReq) SetDiaryId(val OptUUID) {
 }
 
 // SetEntryTypes sets the value of EntryTypes.
-func (s *SearchDiaryReq) SetEntryTypes(val []SearchDiaryReqEntryTypesItem) {
+func (s *SearchDiaryReq) SetEntryTypes(val []EntryType) {
 	s.EntryTypes = val
 }
 
@@ -17359,75 +17024,6 @@ func (s *SearchDiaryReq) SetWRelevance(val OptFloat64) {
 	s.WRelevance = val
 }
 
-type SearchDiaryReqEntryTypesItem string
-
-const (
-	SearchDiaryReqEntryTypesItemEpisodic   SearchDiaryReqEntryTypesItem = "episodic"
-	SearchDiaryReqEntryTypesItemSemantic   SearchDiaryReqEntryTypesItem = "semantic"
-	SearchDiaryReqEntryTypesItemProcedural SearchDiaryReqEntryTypesItem = "procedural"
-	SearchDiaryReqEntryTypesItemReflection SearchDiaryReqEntryTypesItem = "reflection"
-	SearchDiaryReqEntryTypesItemIdentity   SearchDiaryReqEntryTypesItem = "identity"
-	SearchDiaryReqEntryTypesItemSoul       SearchDiaryReqEntryTypesItem = "soul"
-)
-
-// AllValues returns all SearchDiaryReqEntryTypesItem values.
-func (SearchDiaryReqEntryTypesItem) AllValues() []SearchDiaryReqEntryTypesItem {
-	return []SearchDiaryReqEntryTypesItem{
-		SearchDiaryReqEntryTypesItemEpisodic,
-		SearchDiaryReqEntryTypesItemSemantic,
-		SearchDiaryReqEntryTypesItemProcedural,
-		SearchDiaryReqEntryTypesItemReflection,
-		SearchDiaryReqEntryTypesItemIdentity,
-		SearchDiaryReqEntryTypesItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s SearchDiaryReqEntryTypesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case SearchDiaryReqEntryTypesItemEpisodic:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemSemantic:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemProcedural:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemReflection:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemIdentity:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *SearchDiaryReqEntryTypesItem) UnmarshalText(data []byte) error {
-	switch SearchDiaryReqEntryTypesItem(data) {
-	case SearchDiaryReqEntryTypesItemEpisodic:
-		*s = SearchDiaryReqEntryTypesItemEpisodic
-		return nil
-	case SearchDiaryReqEntryTypesItemSemantic:
-		*s = SearchDiaryReqEntryTypesItemSemantic
-		return nil
-	case SearchDiaryReqEntryTypesItemProcedural:
-		*s = SearchDiaryReqEntryTypesItemProcedural
-		return nil
-	case SearchDiaryReqEntryTypesItemReflection:
-		*s = SearchDiaryReqEntryTypesItemReflection
-		return nil
-	case SearchDiaryReqEntryTypesItemIdentity:
-		*s = SearchDiaryReqEntryTypesItemIdentity
-		return nil
-	case SearchDiaryReqEntryTypesItemSoul:
-		*s = SearchDiaryReqEntryTypesItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type SearchDiaryUnauthorized ProblemDetails
 
 func (*SearchDiaryUnauthorized) searchDiaryRes() {}
@@ -17435,75 +17031,6 @@ func (*SearchDiaryUnauthorized) searchDiaryRes() {}
 type SearchPublicFeedBadRequest ProblemDetails
 
 func (*SearchPublicFeedBadRequest) searchPublicFeedRes() {}
-
-type SearchPublicFeedEntryTypesItem string
-
-const (
-	SearchPublicFeedEntryTypesItemEpisodic   SearchPublicFeedEntryTypesItem = "episodic"
-	SearchPublicFeedEntryTypesItemSemantic   SearchPublicFeedEntryTypesItem = "semantic"
-	SearchPublicFeedEntryTypesItemProcedural SearchPublicFeedEntryTypesItem = "procedural"
-	SearchPublicFeedEntryTypesItemReflection SearchPublicFeedEntryTypesItem = "reflection"
-	SearchPublicFeedEntryTypesItemIdentity   SearchPublicFeedEntryTypesItem = "identity"
-	SearchPublicFeedEntryTypesItemSoul       SearchPublicFeedEntryTypesItem = "soul"
-)
-
-// AllValues returns all SearchPublicFeedEntryTypesItem values.
-func (SearchPublicFeedEntryTypesItem) AllValues() []SearchPublicFeedEntryTypesItem {
-	return []SearchPublicFeedEntryTypesItem{
-		SearchPublicFeedEntryTypesItemEpisodic,
-		SearchPublicFeedEntryTypesItemSemantic,
-		SearchPublicFeedEntryTypesItemProcedural,
-		SearchPublicFeedEntryTypesItemReflection,
-		SearchPublicFeedEntryTypesItemIdentity,
-		SearchPublicFeedEntryTypesItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s SearchPublicFeedEntryTypesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case SearchPublicFeedEntryTypesItemEpisodic:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemSemantic:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemProcedural:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemReflection:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemIdentity:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *SearchPublicFeedEntryTypesItem) UnmarshalText(data []byte) error {
-	switch SearchPublicFeedEntryTypesItem(data) {
-	case SearchPublicFeedEntryTypesItemEpisodic:
-		*s = SearchPublicFeedEntryTypesItemEpisodic
-		return nil
-	case SearchPublicFeedEntryTypesItemSemantic:
-		*s = SearchPublicFeedEntryTypesItemSemantic
-		return nil
-	case SearchPublicFeedEntryTypesItemProcedural:
-		*s = SearchPublicFeedEntryTypesItemProcedural
-		return nil
-	case SearchPublicFeedEntryTypesItemReflection:
-		*s = SearchPublicFeedEntryTypesItemReflection
-		return nil
-	case SearchPublicFeedEntryTypesItemIdentity:
-		*s = SearchPublicFeedEntryTypesItemIdentity
-		return nil
-	case SearchPublicFeedEntryTypesItemSoul:
-		*s = SearchPublicFeedEntryTypesItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 type SearchPublicFeedInternalServerError ProblemDetails
 
@@ -18041,6 +17568,1252 @@ func (s *Success) SetSuccess(val bool) {
 func (*Success) deleteDiaryEntryByIdRes() {}
 func (*Success) deleteDiaryRes()          {}
 
+// Ref: #/components/schemas/Task
+type Task struct {
+	AcceptedAttemptN   NilFloat64  `json:"accepted_attempt_n"`
+	CancelReason       NilString   `json:"cancel_reason"`
+	CancelledByAgentID NilUUID     `json:"cancelled_by_agent_id"`
+	CancelledByHumanID NilUUID     `json:"cancelled_by_human_id"`
+	CompletedAt        NilDateTime `json:"completed_at"`
+	CorrelationID      NilUUID     `json:"correlation_id"`
+	CriteriaCid        NilString   `json:"criteria_cid"`
+	DiaryID            NilUUID     `json:"diary_id"`
+	ExpiresAt          NilDateTime `json:"expires_at"`
+	ID                 uuid.UUID   `json:"id"`
+	ImposedByAgentID   NilUUID     `json:"imposed_by_agent_id"`
+	ImposedByHumanID   NilUUID     `json:"imposed_by_human_id"`
+	Input              TaskInput   `json:"input"`
+	InputCid           string      `json:"input_cid"`
+	InputSchemaCid     string      `json:"input_schema_cid"`
+	MaxAttempts        float64     `json:"max_attempts"`
+	OutputKind         OutputKind  `json:"output_kind"`
+	QueuedAt           time.Time   `json:"queued_at"`
+	References         []TaskRef   `json:"references"`
+	Status             TaskStatus  `json:"status"`
+	TaskType           string      `json:"task_type"`
+	TeamID             uuid.UUID   `json:"team_id"`
+}
+
+// GetAcceptedAttemptN returns the value of AcceptedAttemptN.
+func (s *Task) GetAcceptedAttemptN() NilFloat64 {
+	return s.AcceptedAttemptN
+}
+
+// GetCancelReason returns the value of CancelReason.
+func (s *Task) GetCancelReason() NilString {
+	return s.CancelReason
+}
+
+// GetCancelledByAgentID returns the value of CancelledByAgentID.
+func (s *Task) GetCancelledByAgentID() NilUUID {
+	return s.CancelledByAgentID
+}
+
+// GetCancelledByHumanID returns the value of CancelledByHumanID.
+func (s *Task) GetCancelledByHumanID() NilUUID {
+	return s.CancelledByHumanID
+}
+
+// GetCompletedAt returns the value of CompletedAt.
+func (s *Task) GetCompletedAt() NilDateTime {
+	return s.CompletedAt
+}
+
+// GetCorrelationID returns the value of CorrelationID.
+func (s *Task) GetCorrelationID() NilUUID {
+	return s.CorrelationID
+}
+
+// GetCriteriaCid returns the value of CriteriaCid.
+func (s *Task) GetCriteriaCid() NilString {
+	return s.CriteriaCid
+}
+
+// GetDiaryID returns the value of DiaryID.
+func (s *Task) GetDiaryID() NilUUID {
+	return s.DiaryID
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *Task) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *Task) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImposedByAgentID returns the value of ImposedByAgentID.
+func (s *Task) GetImposedByAgentID() NilUUID {
+	return s.ImposedByAgentID
+}
+
+// GetImposedByHumanID returns the value of ImposedByHumanID.
+func (s *Task) GetImposedByHumanID() NilUUID {
+	return s.ImposedByHumanID
+}
+
+// GetInput returns the value of Input.
+func (s *Task) GetInput() TaskInput {
+	return s.Input
+}
+
+// GetInputCid returns the value of InputCid.
+func (s *Task) GetInputCid() string {
+	return s.InputCid
+}
+
+// GetInputSchemaCid returns the value of InputSchemaCid.
+func (s *Task) GetInputSchemaCid() string {
+	return s.InputSchemaCid
+}
+
+// GetMaxAttempts returns the value of MaxAttempts.
+func (s *Task) GetMaxAttempts() float64 {
+	return s.MaxAttempts
+}
+
+// GetOutputKind returns the value of OutputKind.
+func (s *Task) GetOutputKind() OutputKind {
+	return s.OutputKind
+}
+
+// GetQueuedAt returns the value of QueuedAt.
+func (s *Task) GetQueuedAt() time.Time {
+	return s.QueuedAt
+}
+
+// GetReferences returns the value of References.
+func (s *Task) GetReferences() []TaskRef {
+	return s.References
+}
+
+// GetStatus returns the value of Status.
+func (s *Task) GetStatus() TaskStatus {
+	return s.Status
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *Task) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamID returns the value of TeamID.
+func (s *Task) GetTeamID() uuid.UUID {
+	return s.TeamID
+}
+
+// SetAcceptedAttemptN sets the value of AcceptedAttemptN.
+func (s *Task) SetAcceptedAttemptN(val NilFloat64) {
+	s.AcceptedAttemptN = val
+}
+
+// SetCancelReason sets the value of CancelReason.
+func (s *Task) SetCancelReason(val NilString) {
+	s.CancelReason = val
+}
+
+// SetCancelledByAgentID sets the value of CancelledByAgentID.
+func (s *Task) SetCancelledByAgentID(val NilUUID) {
+	s.CancelledByAgentID = val
+}
+
+// SetCancelledByHumanID sets the value of CancelledByHumanID.
+func (s *Task) SetCancelledByHumanID(val NilUUID) {
+	s.CancelledByHumanID = val
+}
+
+// SetCompletedAt sets the value of CompletedAt.
+func (s *Task) SetCompletedAt(val NilDateTime) {
+	s.CompletedAt = val
+}
+
+// SetCorrelationID sets the value of CorrelationID.
+func (s *Task) SetCorrelationID(val NilUUID) {
+	s.CorrelationID = val
+}
+
+// SetCriteriaCid sets the value of CriteriaCid.
+func (s *Task) SetCriteriaCid(val NilString) {
+	s.CriteriaCid = val
+}
+
+// SetDiaryID sets the value of DiaryID.
+func (s *Task) SetDiaryID(val NilUUID) {
+	s.DiaryID = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *Task) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *Task) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImposedByAgentID sets the value of ImposedByAgentID.
+func (s *Task) SetImposedByAgentID(val NilUUID) {
+	s.ImposedByAgentID = val
+}
+
+// SetImposedByHumanID sets the value of ImposedByHumanID.
+func (s *Task) SetImposedByHumanID(val NilUUID) {
+	s.ImposedByHumanID = val
+}
+
+// SetInput sets the value of Input.
+func (s *Task) SetInput(val TaskInput) {
+	s.Input = val
+}
+
+// SetInputCid sets the value of InputCid.
+func (s *Task) SetInputCid(val string) {
+	s.InputCid = val
+}
+
+// SetInputSchemaCid sets the value of InputSchemaCid.
+func (s *Task) SetInputSchemaCid(val string) {
+	s.InputSchemaCid = val
+}
+
+// SetMaxAttempts sets the value of MaxAttempts.
+func (s *Task) SetMaxAttempts(val float64) {
+	s.MaxAttempts = val
+}
+
+// SetOutputKind sets the value of OutputKind.
+func (s *Task) SetOutputKind(val OutputKind) {
+	s.OutputKind = val
+}
+
+// SetQueuedAt sets the value of QueuedAt.
+func (s *Task) SetQueuedAt(val time.Time) {
+	s.QueuedAt = val
+}
+
+// SetReferences sets the value of References.
+func (s *Task) SetReferences(val []TaskRef) {
+	s.References = val
+}
+
+// SetStatus sets the value of Status.
+func (s *Task) SetStatus(val TaskStatus) {
+	s.Status = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *Task) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamID sets the value of TeamID.
+func (s *Task) SetTeamID(val uuid.UUID) {
+	s.TeamID = val
+}
+
+func (*Task) cancelTaskRes()   {}
+func (*Task) completeTaskRes() {}
+func (*Task) createTaskRes()   {}
+func (*Task) failTaskRes()     {}
+func (*Task) getTaskRes()      {}
+
+// Ref: #/components/schemas/TaskAttempt
+type TaskAttempt struct {
+	AttemptN         float64              `json:"attempt_n"`
+	ClaimedAt        time.Time            `json:"claimed_at"`
+	ClaimedByAgentID uuid.UUID            `json:"claimed_by_agent_id"`
+	CompletedAt      NilDateTime          `json:"completed_at"`
+	ContentSignature NilString            `json:"content_signature"`
+	Error            NilTaskAttemptError  `json:"error"`
+	Output           NilTaskAttemptOutput `json:"output"`
+	OutputCid        NilString            `json:"output_cid"`
+	RuntimeID        NilUUID              `json:"runtime_id"`
+	SignedAt         NilDateTime          `json:"signed_at"`
+	StartedAt        NilDateTime          `json:"started_at"`
+	Status           TaskAttemptStatus    `json:"status"`
+	TaskID           uuid.UUID            `json:"task_id"`
+	Usage            NilTaskAttemptUsage  `json:"usage"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *TaskAttempt) GetAttemptN() float64 {
+	return s.AttemptN
+}
+
+// GetClaimedAt returns the value of ClaimedAt.
+func (s *TaskAttempt) GetClaimedAt() time.Time {
+	return s.ClaimedAt
+}
+
+// GetClaimedByAgentID returns the value of ClaimedByAgentID.
+func (s *TaskAttempt) GetClaimedByAgentID() uuid.UUID {
+	return s.ClaimedByAgentID
+}
+
+// GetCompletedAt returns the value of CompletedAt.
+func (s *TaskAttempt) GetCompletedAt() NilDateTime {
+	return s.CompletedAt
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *TaskAttempt) GetContentSignature() NilString {
+	return s.ContentSignature
+}
+
+// GetError returns the value of Error.
+func (s *TaskAttempt) GetError() NilTaskAttemptError {
+	return s.Error
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskAttempt) GetOutput() NilTaskAttemptOutput {
+	return s.Output
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *TaskAttempt) GetOutputCid() NilString {
+	return s.OutputCid
+}
+
+// GetRuntimeID returns the value of RuntimeID.
+func (s *TaskAttempt) GetRuntimeID() NilUUID {
+	return s.RuntimeID
+}
+
+// GetSignedAt returns the value of SignedAt.
+func (s *TaskAttempt) GetSignedAt() NilDateTime {
+	return s.SignedAt
+}
+
+// GetStartedAt returns the value of StartedAt.
+func (s *TaskAttempt) GetStartedAt() NilDateTime {
+	return s.StartedAt
+}
+
+// GetStatus returns the value of Status.
+func (s *TaskAttempt) GetStatus() TaskAttemptStatus {
+	return s.Status
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskAttempt) GetTaskID() uuid.UUID {
+	return s.TaskID
+}
+
+// GetUsage returns the value of Usage.
+func (s *TaskAttempt) GetUsage() NilTaskAttemptUsage {
+	return s.Usage
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *TaskAttempt) SetAttemptN(val float64) {
+	s.AttemptN = val
+}
+
+// SetClaimedAt sets the value of ClaimedAt.
+func (s *TaskAttempt) SetClaimedAt(val time.Time) {
+	s.ClaimedAt = val
+}
+
+// SetClaimedByAgentID sets the value of ClaimedByAgentID.
+func (s *TaskAttempt) SetClaimedByAgentID(val uuid.UUID) {
+	s.ClaimedByAgentID = val
+}
+
+// SetCompletedAt sets the value of CompletedAt.
+func (s *TaskAttempt) SetCompletedAt(val NilDateTime) {
+	s.CompletedAt = val
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *TaskAttempt) SetContentSignature(val NilString) {
+	s.ContentSignature = val
+}
+
+// SetError sets the value of Error.
+func (s *TaskAttempt) SetError(val NilTaskAttemptError) {
+	s.Error = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskAttempt) SetOutput(val NilTaskAttemptOutput) {
+	s.Output = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *TaskAttempt) SetOutputCid(val NilString) {
+	s.OutputCid = val
+}
+
+// SetRuntimeID sets the value of RuntimeID.
+func (s *TaskAttempt) SetRuntimeID(val NilUUID) {
+	s.RuntimeID = val
+}
+
+// SetSignedAt sets the value of SignedAt.
+func (s *TaskAttempt) SetSignedAt(val NilDateTime) {
+	s.SignedAt = val
+}
+
+// SetStartedAt sets the value of StartedAt.
+func (s *TaskAttempt) SetStartedAt(val NilDateTime) {
+	s.StartedAt = val
+}
+
+// SetStatus sets the value of Status.
+func (s *TaskAttempt) SetStatus(val TaskAttemptStatus) {
+	s.Status = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskAttempt) SetTaskID(val uuid.UUID) {
+	s.TaskID = val
+}
+
+// SetUsage sets the value of Usage.
+func (s *TaskAttempt) SetUsage(val NilTaskAttemptUsage) {
+	s.Usage = val
+}
+
+type TaskAttemptError struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Retryable OptBool   `json:"retryable"`
+	Stack     OptString `json:"stack"`
+}
+
+// GetCode returns the value of Code.
+func (s *TaskAttemptError) GetCode() string {
+	return s.Code
+}
+
+// GetMessage returns the value of Message.
+func (s *TaskAttemptError) GetMessage() string {
+	return s.Message
+}
+
+// GetRetryable returns the value of Retryable.
+func (s *TaskAttemptError) GetRetryable() OptBool {
+	return s.Retryable
+}
+
+// GetStack returns the value of Stack.
+func (s *TaskAttemptError) GetStack() OptString {
+	return s.Stack
+}
+
+// SetCode sets the value of Code.
+func (s *TaskAttemptError) SetCode(val string) {
+	s.Code = val
+}
+
+// SetMessage sets the value of Message.
+func (s *TaskAttemptError) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetRetryable sets the value of Retryable.
+func (s *TaskAttemptError) SetRetryable(val OptBool) {
+	s.Retryable = val
+}
+
+// SetStack sets the value of Stack.
+func (s *TaskAttemptError) SetStack(val OptString) {
+	s.Stack = val
+}
+
+type TaskAttemptOutput map[string]jx.Raw
+
+func (s *TaskAttemptOutput) init() TaskAttemptOutput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/TaskAttemptStatus
+type TaskAttemptStatus string
+
+const (
+	TaskAttemptStatusClaimed   TaskAttemptStatus = "claimed"
+	TaskAttemptStatusRunning   TaskAttemptStatus = "running"
+	TaskAttemptStatusCompleted TaskAttemptStatus = "completed"
+	TaskAttemptStatusFailed    TaskAttemptStatus = "failed"
+	TaskAttemptStatusCancelled TaskAttemptStatus = "cancelled"
+	TaskAttemptStatusTimedOut  TaskAttemptStatus = "timed_out"
+)
+
+// AllValues returns all TaskAttemptStatus values.
+func (TaskAttemptStatus) AllValues() []TaskAttemptStatus {
+	return []TaskAttemptStatus{
+		TaskAttemptStatusClaimed,
+		TaskAttemptStatusRunning,
+		TaskAttemptStatusCompleted,
+		TaskAttemptStatusFailed,
+		TaskAttemptStatusCancelled,
+		TaskAttemptStatusTimedOut,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptStatusClaimed:
+		return []byte(s), nil
+	case TaskAttemptStatusRunning:
+		return []byte(s), nil
+	case TaskAttemptStatusCompleted:
+		return []byte(s), nil
+	case TaskAttemptStatusFailed:
+		return []byte(s), nil
+	case TaskAttemptStatusCancelled:
+		return []byte(s), nil
+	case TaskAttemptStatusTimedOut:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptStatus) UnmarshalText(data []byte) error {
+	switch TaskAttemptStatus(data) {
+	case TaskAttemptStatusClaimed:
+		*s = TaskAttemptStatusClaimed
+		return nil
+	case TaskAttemptStatusRunning:
+		*s = TaskAttemptStatusRunning
+		return nil
+	case TaskAttemptStatusCompleted:
+		*s = TaskAttemptStatusCompleted
+		return nil
+	case TaskAttemptStatusFailed:
+		*s = TaskAttemptStatusFailed
+		return nil
+	case TaskAttemptStatusCancelled:
+		*s = TaskAttemptStatusCancelled
+		return nil
+	case TaskAttemptStatusTimedOut:
+		*s = TaskAttemptStatusTimedOut
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskAttemptUsage struct {
+	CacheReadTokens  OptInt    `json:"cache_read_tokens"`
+	CacheWriteTokens OptInt    `json:"cache_write_tokens"`
+	InputTokens      int       `json:"input_tokens"`
+	Model            OptString `json:"model"`
+	OutputTokens     int       `json:"output_tokens"`
+	Provider         OptString `json:"provider"`
+	ToolCalls        OptInt    `json:"tool_calls"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskAttemptUsage) GetCacheReadTokens() OptInt {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskAttemptUsage) GetCacheWriteTokens() OptInt {
+	return s.CacheWriteTokens
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskAttemptUsage) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *TaskAttemptUsage) GetModel() OptString {
+	return s.Model
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskAttemptUsage) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskAttemptUsage) GetProvider() OptString {
+	return s.Provider
+}
+
+// GetToolCalls returns the value of ToolCalls.
+func (s *TaskAttemptUsage) GetToolCalls() OptInt {
+	return s.ToolCalls
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskAttemptUsage) SetCacheReadTokens(val OptInt) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskAttemptUsage) SetCacheWriteTokens(val OptInt) {
+	s.CacheWriteTokens = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskAttemptUsage) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *TaskAttemptUsage) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskAttemptUsage) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskAttemptUsage) SetProvider(val OptString) {
+	s.Provider = val
+}
+
+// SetToolCalls sets the value of ToolCalls.
+func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
+	s.ToolCalls = val
+}
+
+// Ref: #/components/schemas/TaskError
+type TaskError struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Retryable OptBool   `json:"retryable"`
+	Stack     OptString `json:"stack"`
+}
+
+// GetCode returns the value of Code.
+func (s *TaskError) GetCode() string {
+	return s.Code
+}
+
+// GetMessage returns the value of Message.
+func (s *TaskError) GetMessage() string {
+	return s.Message
+}
+
+// GetRetryable returns the value of Retryable.
+func (s *TaskError) GetRetryable() OptBool {
+	return s.Retryable
+}
+
+// GetStack returns the value of Stack.
+func (s *TaskError) GetStack() OptString {
+	return s.Stack
+}
+
+// SetCode sets the value of Code.
+func (s *TaskError) SetCode(val string) {
+	s.Code = val
+}
+
+// SetMessage sets the value of Message.
+func (s *TaskError) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetRetryable sets the value of Retryable.
+func (s *TaskError) SetRetryable(val OptBool) {
+	s.Retryable = val
+}
+
+// SetStack sets the value of Stack.
+func (s *TaskError) SetStack(val OptString) {
+	s.Stack = val
+}
+
+type TaskHeartbeatForbidden ProblemDetails
+
+func (*TaskHeartbeatForbidden) taskHeartbeatRes() {}
+
+type TaskHeartbeatNotFound ProblemDetails
+
+func (*TaskHeartbeatNotFound) taskHeartbeatRes() {}
+
+type TaskHeartbeatUnauthorized ProblemDetails
+
+func (*TaskHeartbeatUnauthorized) taskHeartbeatRes() {}
+
+type TaskInput map[string]jx.Raw
+
+func (s *TaskInput) init() TaskInput {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/TaskListResponse
+type TaskListResponse struct {
+	Items      []Task    `json:"items"`
+	NextCursor OptString `json:"next_cursor"`
+}
+
+// GetItems returns the value of Items.
+func (s *TaskListResponse) GetItems() []Task {
+	return s.Items
+}
+
+// GetNextCursor returns the value of NextCursor.
+func (s *TaskListResponse) GetNextCursor() OptString {
+	return s.NextCursor
+}
+
+// SetItems sets the value of Items.
+func (s *TaskListResponse) SetItems(val []Task) {
+	s.Items = val
+}
+
+// SetNextCursor sets the value of NextCursor.
+func (s *TaskListResponse) SetNextCursor(val OptString) {
+	s.NextCursor = val
+}
+
+func (*TaskListResponse) listTasksRes() {}
+
+// Ref: #/components/schemas/TaskMessage
+type TaskMessage struct {
+	AttemptN  float64            `json:"attempt_n"`
+	Kind      TaskMessageKind    `json:"kind"`
+	Payload   TaskMessagePayload `json:"payload"`
+	Seq       float64            `json:"seq"`
+	TaskID    uuid.UUID          `json:"task_id"`
+	Timestamp time.Time          `json:"timestamp"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *TaskMessage) GetAttemptN() float64 {
+	return s.AttemptN
+}
+
+// GetKind returns the value of Kind.
+func (s *TaskMessage) GetKind() TaskMessageKind {
+	return s.Kind
+}
+
+// GetPayload returns the value of Payload.
+func (s *TaskMessage) GetPayload() TaskMessagePayload {
+	return s.Payload
+}
+
+// GetSeq returns the value of Seq.
+func (s *TaskMessage) GetSeq() float64 {
+	return s.Seq
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskMessage) GetTaskID() uuid.UUID {
+	return s.TaskID
+}
+
+// GetTimestamp returns the value of Timestamp.
+func (s *TaskMessage) GetTimestamp() time.Time {
+	return s.Timestamp
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *TaskMessage) SetAttemptN(val float64) {
+	s.AttemptN = val
+}
+
+// SetKind sets the value of Kind.
+func (s *TaskMessage) SetKind(val TaskMessageKind) {
+	s.Kind = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *TaskMessage) SetPayload(val TaskMessagePayload) {
+	s.Payload = val
+}
+
+// SetSeq sets the value of Seq.
+func (s *TaskMessage) SetSeq(val float64) {
+	s.Seq = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskMessage) SetTaskID(val uuid.UUID) {
+	s.TaskID = val
+}
+
+// SetTimestamp sets the value of Timestamp.
+func (s *TaskMessage) SetTimestamp(val time.Time) {
+	s.Timestamp = val
+}
+
+// Ref: #/components/schemas/TaskMessageKind
+type TaskMessageKind string
+
+const (
+	TaskMessageKindTextDelta     TaskMessageKind = "text_delta"
+	TaskMessageKindToolCallStart TaskMessageKind = "tool_call_start"
+	TaskMessageKindToolCallEnd   TaskMessageKind = "tool_call_end"
+	TaskMessageKindTurnEnd       TaskMessageKind = "turn_end"
+	TaskMessageKindError         TaskMessageKind = "error"
+	TaskMessageKindInfo          TaskMessageKind = "info"
+)
+
+// AllValues returns all TaskMessageKind values.
+func (TaskMessageKind) AllValues() []TaskMessageKind {
+	return []TaskMessageKind{
+		TaskMessageKindTextDelta,
+		TaskMessageKindToolCallStart,
+		TaskMessageKindToolCallEnd,
+		TaskMessageKindTurnEnd,
+		TaskMessageKindError,
+		TaskMessageKindInfo,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskMessageKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskMessageKindTextDelta:
+		return []byte(s), nil
+	case TaskMessageKindToolCallStart:
+		return []byte(s), nil
+	case TaskMessageKindToolCallEnd:
+		return []byte(s), nil
+	case TaskMessageKindTurnEnd:
+		return []byte(s), nil
+	case TaskMessageKindError:
+		return []byte(s), nil
+	case TaskMessageKindInfo:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskMessageKind) UnmarshalText(data []byte) error {
+	switch TaskMessageKind(data) {
+	case TaskMessageKindTextDelta:
+		*s = TaskMessageKindTextDelta
+		return nil
+	case TaskMessageKindToolCallStart:
+		*s = TaskMessageKindToolCallStart
+		return nil
+	case TaskMessageKindToolCallEnd:
+		*s = TaskMessageKindToolCallEnd
+		return nil
+	case TaskMessageKindTurnEnd:
+		*s = TaskMessageKindTurnEnd
+		return nil
+	case TaskMessageKindError:
+		*s = TaskMessageKindError
+		return nil
+	case TaskMessageKindInfo:
+		*s = TaskMessageKindInfo
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskMessagePayload map[string]jx.Raw
+
+func (s *TaskMessagePayload) init() TaskMessagePayload {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/TaskRef
+type TaskRef struct {
+	External  OptTaskRefExternal `json:"external"`
+	OutputCid string             `json:"output_cid"`
+	Role      TaskRefRole        `json:"role"`
+	TaskID    NilUUID            `json:"task_id"`
+}
+
+// GetExternal returns the value of External.
+func (s *TaskRef) GetExternal() OptTaskRefExternal {
+	return s.External
+}
+
+// GetOutputCid returns the value of OutputCid.
+func (s *TaskRef) GetOutputCid() string {
+	return s.OutputCid
+}
+
+// GetRole returns the value of Role.
+func (s *TaskRef) GetRole() TaskRefRole {
+	return s.Role
+}
+
+// GetTaskID returns the value of TaskID.
+func (s *TaskRef) GetTaskID() NilUUID {
+	return s.TaskID
+}
+
+// SetExternal sets the value of External.
+func (s *TaskRef) SetExternal(val OptTaskRefExternal) {
+	s.External = val
+}
+
+// SetOutputCid sets the value of OutputCid.
+func (s *TaskRef) SetOutputCid(val string) {
+	s.OutputCid = val
+}
+
+// SetRole sets the value of Role.
+func (s *TaskRef) SetRole(val TaskRefRole) {
+	s.Role = val
+}
+
+// SetTaskID sets the value of TaskID.
+func (s *TaskRef) SetTaskID(val NilUUID) {
+	s.TaskID = val
+}
+
+type TaskRefExternal struct {
+	CommitSha   OptString           `json:"commit_sha"`
+	Issue       OptFloat64          `json:"issue"`
+	Kind        TaskRefExternalKind `json:"kind"`
+	Pr          OptFloat64          `json:"pr"`
+	SnapshotCid OptString           `json:"snapshot_cid"`
+	URL         OptString           `json:"url"`
+}
+
+// GetCommitSha returns the value of CommitSha.
+func (s *TaskRefExternal) GetCommitSha() OptString {
+	return s.CommitSha
+}
+
+// GetIssue returns the value of Issue.
+func (s *TaskRefExternal) GetIssue() OptFloat64 {
+	return s.Issue
+}
+
+// GetKind returns the value of Kind.
+func (s *TaskRefExternal) GetKind() TaskRefExternalKind {
+	return s.Kind
+}
+
+// GetPr returns the value of Pr.
+func (s *TaskRefExternal) GetPr() OptFloat64 {
+	return s.Pr
+}
+
+// GetSnapshotCid returns the value of SnapshotCid.
+func (s *TaskRefExternal) GetSnapshotCid() OptString {
+	return s.SnapshotCid
+}
+
+// GetURL returns the value of URL.
+func (s *TaskRefExternal) GetURL() OptString {
+	return s.URL
+}
+
+// SetCommitSha sets the value of CommitSha.
+func (s *TaskRefExternal) SetCommitSha(val OptString) {
+	s.CommitSha = val
+}
+
+// SetIssue sets the value of Issue.
+func (s *TaskRefExternal) SetIssue(val OptFloat64) {
+	s.Issue = val
+}
+
+// SetKind sets the value of Kind.
+func (s *TaskRefExternal) SetKind(val TaskRefExternalKind) {
+	s.Kind = val
+}
+
+// SetPr sets the value of Pr.
+func (s *TaskRefExternal) SetPr(val OptFloat64) {
+	s.Pr = val
+}
+
+// SetSnapshotCid sets the value of SnapshotCid.
+func (s *TaskRefExternal) SetSnapshotCid(val OptString) {
+	s.SnapshotCid = val
+}
+
+// SetURL sets the value of URL.
+func (s *TaskRefExternal) SetURL(val OptString) {
+	s.URL = val
+}
+
+type TaskRefExternalKind string
+
+const (
+	TaskRefExternalKindGithubPr    TaskRefExternalKind = "github_pr"
+	TaskRefExternalKindGithubIssue TaskRefExternalKind = "github_issue"
+	TaskRefExternalKindHTTPURL     TaskRefExternalKind = "http_url"
+)
+
+// AllValues returns all TaskRefExternalKind values.
+func (TaskRefExternalKind) AllValues() []TaskRefExternalKind {
+	return []TaskRefExternalKind{
+		TaskRefExternalKindGithubPr,
+		TaskRefExternalKindGithubIssue,
+		TaskRefExternalKindHTTPURL,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskRefExternalKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskRefExternalKindGithubPr:
+		return []byte(s), nil
+	case TaskRefExternalKindGithubIssue:
+		return []byte(s), nil
+	case TaskRefExternalKindHTTPURL:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskRefExternalKind) UnmarshalText(data []byte) error {
+	switch TaskRefExternalKind(data) {
+	case TaskRefExternalKindGithubPr:
+		*s = TaskRefExternalKindGithubPr
+		return nil
+	case TaskRefExternalKindGithubIssue:
+		*s = TaskRefExternalKindGithubIssue
+		return nil
+	case TaskRefExternalKindHTTPURL:
+		*s = TaskRefExternalKindHTTPURL
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskRefRole string
+
+const (
+	TaskRefRoleJudgedWork   TaskRefRole = "judged_work"
+	TaskRefRoleReviewedDiff TaskRefRole = "reviewed_diff"
+	TaskRefRoleTargetSource TaskRefRole = "target_source"
+	TaskRefRoleContext      TaskRefRole = "context"
+)
+
+// AllValues returns all TaskRefRole values.
+func (TaskRefRole) AllValues() []TaskRefRole {
+	return []TaskRefRole{
+		TaskRefRoleJudgedWork,
+		TaskRefRoleReviewedDiff,
+		TaskRefRoleTargetSource,
+		TaskRefRoleContext,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskRefRole) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskRefRoleJudgedWork:
+		return []byte(s), nil
+	case TaskRefRoleReviewedDiff:
+		return []byte(s), nil
+	case TaskRefRoleTargetSource:
+		return []byte(s), nil
+	case TaskRefRoleContext:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskRefRole) UnmarshalText(data []byte) error {
+	switch TaskRefRole(data) {
+	case TaskRefRoleJudgedWork:
+		*s = TaskRefRoleJudgedWork
+		return nil
+	case TaskRefRoleReviewedDiff:
+		*s = TaskRefRoleReviewedDiff
+		return nil
+	case TaskRefRoleTargetSource:
+		*s = TaskRefRoleTargetSource
+		return nil
+	case TaskRefRoleContext:
+		*s = TaskRefRoleContext
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TaskStatus
+type TaskStatus string
+
+const (
+	TaskStatusQueued     TaskStatus = "queued"
+	TaskStatusDispatched TaskStatus = "dispatched"
+	TaskStatusRunning    TaskStatus = "running"
+	TaskStatusCompleted  TaskStatus = "completed"
+	TaskStatusFailed     TaskStatus = "failed"
+	TaskStatusCancelled  TaskStatus = "cancelled"
+	TaskStatusExpired    TaskStatus = "expired"
+)
+
+// AllValues returns all TaskStatus values.
+func (TaskStatus) AllValues() []TaskStatus {
+	return []TaskStatus{
+		TaskStatusQueued,
+		TaskStatusDispatched,
+		TaskStatusRunning,
+		TaskStatusCompleted,
+		TaskStatusFailed,
+		TaskStatusCancelled,
+		TaskStatusExpired,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskStatusQueued:
+		return []byte(s), nil
+	case TaskStatusDispatched:
+		return []byte(s), nil
+	case TaskStatusRunning:
+		return []byte(s), nil
+	case TaskStatusCompleted:
+		return []byte(s), nil
+	case TaskStatusFailed:
+		return []byte(s), nil
+	case TaskStatusCancelled:
+		return []byte(s), nil
+	case TaskStatusExpired:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskStatus) UnmarshalText(data []byte) error {
+	switch TaskStatus(data) {
+	case TaskStatusQueued:
+		*s = TaskStatusQueued
+		return nil
+	case TaskStatusDispatched:
+		*s = TaskStatusDispatched
+		return nil
+	case TaskStatusRunning:
+		*s = TaskStatusRunning
+		return nil
+	case TaskStatusCompleted:
+		*s = TaskStatusCompleted
+		return nil
+	case TaskStatusFailed:
+		*s = TaskStatusFailed
+		return nil
+	case TaskStatusCancelled:
+		*s = TaskStatusCancelled
+		return nil
+	case TaskStatusExpired:
+		*s = TaskStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TaskUsage
+type TaskUsage struct {
+	CacheReadTokens  OptInt    `json:"cache_read_tokens"`
+	CacheWriteTokens OptInt    `json:"cache_write_tokens"`
+	InputTokens      int       `json:"input_tokens"`
+	Model            OptString `json:"model"`
+	OutputTokens     int       `json:"output_tokens"`
+	Provider         OptString `json:"provider"`
+	ToolCalls        OptInt    `json:"tool_calls"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskUsage) GetCacheReadTokens() OptInt {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskUsage) GetCacheWriteTokens() OptInt {
+	return s.CacheWriteTokens
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskUsage) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *TaskUsage) GetModel() OptString {
+	return s.Model
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskUsage) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskUsage) GetProvider() OptString {
+	return s.Provider
+}
+
+// GetToolCalls returns the value of ToolCalls.
+func (s *TaskUsage) GetToolCalls() OptInt {
+	return s.ToolCalls
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskUsage) SetCacheReadTokens(val OptInt) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskUsage) SetCacheWriteTokens(val OptInt) {
+	s.CacheWriteTokens = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskUsage) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *TaskUsage) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskUsage) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskUsage) SetProvider(val OptString) {
+	s.Provider = val
+}
+
+// SetToolCalls sets the value of ToolCalls.
+func (s *TaskUsage) SetToolCalls(val OptInt) {
+	s.ToolCalls = val
+}
+
 type UpdateContextPackBadRequest ProblemDetails
 
 func (*UpdateContextPackBadRequest) updateContextPackRes() {}
@@ -18118,11 +18891,11 @@ func (*UpdateDiaryEntryByIdNotFound) updateDiaryEntryByIdRes() {}
 
 // At least one of title, content, tags, importance, or entryType must be provided.
 type UpdateDiaryEntryByIdReq struct {
-	Content    OptString                           `json:"content"`
-	EntryType  OptUpdateDiaryEntryByIdReqEntryType `json:"entryType"`
-	Importance OptInt                              `json:"importance"`
-	Tags       []string                            `json:"tags"`
-	Title      OptString                           `json:"title"`
+	Content    OptString    `json:"content"`
+	EntryType  OptEntryType `json:"entryType"`
+	Importance OptInt       `json:"importance"`
+	Tags       []string     `json:"tags"`
+	Title      OptString    `json:"title"`
 }
 
 // GetContent returns the value of Content.
@@ -18131,7 +18904,7 @@ func (s *UpdateDiaryEntryByIdReq) GetContent() OptString {
 }
 
 // GetEntryType returns the value of EntryType.
-func (s *UpdateDiaryEntryByIdReq) GetEntryType() OptUpdateDiaryEntryByIdReqEntryType {
+func (s *UpdateDiaryEntryByIdReq) GetEntryType() OptEntryType {
 	return s.EntryType
 }
 
@@ -18156,7 +18929,7 @@ func (s *UpdateDiaryEntryByIdReq) SetContent(val OptString) {
 }
 
 // SetEntryType sets the value of EntryType.
-func (s *UpdateDiaryEntryByIdReq) SetEntryType(val OptUpdateDiaryEntryByIdReqEntryType) {
+func (s *UpdateDiaryEntryByIdReq) SetEntryType(val OptEntryType) {
 	s.EntryType = val
 }
 
@@ -18173,75 +18946,6 @@ func (s *UpdateDiaryEntryByIdReq) SetTags(val []string) {
 // SetTitle sets the value of Title.
 func (s *UpdateDiaryEntryByIdReq) SetTitle(val OptString) {
 	s.Title = val
-}
-
-type UpdateDiaryEntryByIdReqEntryType string
-
-const (
-	UpdateDiaryEntryByIdReqEntryTypeEpisodic   UpdateDiaryEntryByIdReqEntryType = "episodic"
-	UpdateDiaryEntryByIdReqEntryTypeSemantic   UpdateDiaryEntryByIdReqEntryType = "semantic"
-	UpdateDiaryEntryByIdReqEntryTypeProcedural UpdateDiaryEntryByIdReqEntryType = "procedural"
-	UpdateDiaryEntryByIdReqEntryTypeReflection UpdateDiaryEntryByIdReqEntryType = "reflection"
-	UpdateDiaryEntryByIdReqEntryTypeIdentity   UpdateDiaryEntryByIdReqEntryType = "identity"
-	UpdateDiaryEntryByIdReqEntryTypeSoul       UpdateDiaryEntryByIdReqEntryType = "soul"
-)
-
-// AllValues returns all UpdateDiaryEntryByIdReqEntryType values.
-func (UpdateDiaryEntryByIdReqEntryType) AllValues() []UpdateDiaryEntryByIdReqEntryType {
-	return []UpdateDiaryEntryByIdReqEntryType{
-		UpdateDiaryEntryByIdReqEntryTypeEpisodic,
-		UpdateDiaryEntryByIdReqEntryTypeSemantic,
-		UpdateDiaryEntryByIdReqEntryTypeProcedural,
-		UpdateDiaryEntryByIdReqEntryTypeReflection,
-		UpdateDiaryEntryByIdReqEntryTypeIdentity,
-		UpdateDiaryEntryByIdReqEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDiaryEntryByIdReqEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDiaryEntryByIdReqEntryTypeEpisodic:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeSemantic:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeProcedural:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeReflection:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDiaryEntryByIdReqEntryType) UnmarshalText(data []byte) error {
-	switch UpdateDiaryEntryByIdReqEntryType(data) {
-	case UpdateDiaryEntryByIdReqEntryTypeEpisodic:
-		*s = UpdateDiaryEntryByIdReqEntryTypeEpisodic
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeSemantic:
-		*s = UpdateDiaryEntryByIdReqEntryTypeSemantic
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeProcedural:
-		*s = UpdateDiaryEntryByIdReqEntryTypeProcedural
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeReflection:
-		*s = UpdateDiaryEntryByIdReqEntryTypeReflection
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
-		*s = UpdateDiaryEntryByIdReqEntryTypeIdentity
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeSoul:
-		*s = UpdateDiaryEntryByIdReqEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type UpdateDiaryEntryByIdUnauthorized ProblemDetails
@@ -18262,8 +18966,8 @@ func (*UpdateDiaryNotFound) updateDiaryRes() {}
 
 // At least one of name or visibility must be provided.
 type UpdateDiaryReq struct {
-	Name       OptString                   `json:"name"`
-	Visibility OptUpdateDiaryReqVisibility `json:"visibility"`
+	Name       OptString     `json:"name"`
+	Visibility OptVisibility `json:"visibility"`
 }
 
 // GetName returns the value of Name.
@@ -18272,7 +18976,7 @@ func (s *UpdateDiaryReq) GetName() OptString {
 }
 
 // GetVisibility returns the value of Visibility.
-func (s *UpdateDiaryReq) GetVisibility() OptUpdateDiaryReqVisibility {
+func (s *UpdateDiaryReq) GetVisibility() OptVisibility {
 	return s.Visibility
 }
 
@@ -18282,56 +18986,8 @@ func (s *UpdateDiaryReq) SetName(val OptString) {
 }
 
 // SetVisibility sets the value of Visibility.
-func (s *UpdateDiaryReq) SetVisibility(val OptUpdateDiaryReqVisibility) {
+func (s *UpdateDiaryReq) SetVisibility(val OptVisibility) {
 	s.Visibility = val
-}
-
-type UpdateDiaryReqVisibility string
-
-const (
-	UpdateDiaryReqVisibilityPrivate UpdateDiaryReqVisibility = "private"
-	UpdateDiaryReqVisibilityMoltnet UpdateDiaryReqVisibility = "moltnet"
-	UpdateDiaryReqVisibilityPublic  UpdateDiaryReqVisibility = "public"
-)
-
-// AllValues returns all UpdateDiaryReqVisibility values.
-func (UpdateDiaryReqVisibility) AllValues() []UpdateDiaryReqVisibility {
-	return []UpdateDiaryReqVisibility{
-		UpdateDiaryReqVisibilityPrivate,
-		UpdateDiaryReqVisibilityMoltnet,
-		UpdateDiaryReqVisibilityPublic,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDiaryReqVisibility) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDiaryReqVisibilityPrivate:
-		return []byte(s), nil
-	case UpdateDiaryReqVisibilityMoltnet:
-		return []byte(s), nil
-	case UpdateDiaryReqVisibilityPublic:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDiaryReqVisibility) UnmarshalText(data []byte) error {
-	switch UpdateDiaryReqVisibility(data) {
-	case UpdateDiaryReqVisibilityPrivate:
-		*s = UpdateDiaryReqVisibilityPrivate
-		return nil
-	case UpdateDiaryReqVisibilityMoltnet:
-		*s = UpdateDiaryReqVisibilityMoltnet
-		return nil
-	case UpdateDiaryReqVisibilityPublic:
-		*s = UpdateDiaryReqVisibilityPublic
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type UpdateDiaryUnauthorized ProblemDetails
@@ -18653,6 +19309,55 @@ func (s *VerifyResultSigner) GetFingerprint() string {
 // SetFingerprint sets the value of Fingerprint.
 func (s *VerifyResultSigner) SetFingerprint(val string) {
 	s.Fingerprint = val
+}
+
+// Ref: #/components/schemas/Visibility
+type Visibility string
+
+const (
+	VisibilityPrivate Visibility = "private"
+	VisibilityMoltnet Visibility = "moltnet"
+	VisibilityPublic  Visibility = "public"
+)
+
+// AllValues returns all Visibility values.
+func (Visibility) AllValues() []Visibility {
+	return []Visibility{
+		VisibilityPrivate,
+		VisibilityMoltnet,
+		VisibilityPublic,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s Visibility) MarshalText() ([]byte, error) {
+	switch s {
+	case VisibilityPrivate:
+		return []byte(s), nil
+	case VisibilityMoltnet:
+		return []byte(s), nil
+	case VisibilityPublic:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *Visibility) UnmarshalText(data []byte) error {
+	switch Visibility(data) {
+	case VisibilityPrivate:
+		*s = VisibilityPrivate
+		return nil
+	case VisibilityMoltnet:
+		*s = VisibilityMoltnet
+		return nil
+	case VisibilityPublic:
+		*s = VisibilityPublic
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/Voucher

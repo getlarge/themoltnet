@@ -26,6 +26,24 @@ type Handler interface {
 	//
 	// POST /groups/{groupId}/members
 	AddGroupMember(ctx context.Context, req *AddGroupMemberReq, params AddGroupMemberParams) (AddGroupMemberRes, error)
+	// AppendTaskMessages implements appendTaskMessages operation.
+	//
+	// Append messages to a task attempt.
+	//
+	// POST /tasks/{id}/attempts/{n}/messages
+	AppendTaskMessages(ctx context.Context, req *AppendMessagesBody, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	// CancelTask implements cancelTask operation.
+	//
+	// Cancel a task.
+	//
+	// POST /tasks/{id}/cancel
+	CancelTask(ctx context.Context, req *CancelTaskBody, params CancelTaskParams) (CancelTaskRes, error)
+	// ClaimTask implements claimTask operation.
+	//
+	// Claim a queued task and start an attempt.
+	//
+	// POST /tasks/{id}/claim
+	ClaimTask(ctx context.Context, req OptClaimTaskBody, params ClaimTaskParams) (ClaimTaskRes, error)
 	// ClaimVerification implements claimVerification operation.
 	//
 	// Judge claims verification payload (source entries, rendered content, and rubric).
@@ -38,6 +56,12 @@ type Handler interface {
 	//
 	// POST /diaries/{id}/compile
 	CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (CompileDiaryRes, error)
+	// CompleteTask implements completeTask operation.
+	//
+	// Mark an attempt as completed with output.
+	//
+	// POST /tasks/{id}/attempts/{n}/complete
+	CompleteTask(ctx context.Context, req *CompleteTaskBody, params CompleteTaskParams) (CompleteTaskRes, error)
 	// ConsolidateDiary implements consolidateDiary operation.
 	//
 	// Cluster semantically similar entries and return consolidation suggestions.
@@ -88,6 +112,12 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests
 	CreateSigningRequest(ctx context.Context, req *CreateSigningRequestReq) (CreateSigningRequestRes, error)
+	// CreateTask implements createTask operation.
+	//
+	// Create and enqueue a new task.
+	//
+	// POST /tasks
+	CreateTask(ctx context.Context, req *CreateTaskBody) (CreateTaskRes, error)
 	// CreateTeam implements createTeam operation.
 	//
 	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
@@ -149,6 +179,12 @@ type Handler interface {
 	//
 	// GET /packs/{id}/diff/{otherId}
 	DiffContextPacksById(ctx context.Context, params DiffContextPacksByIdParams) (DiffContextPacksByIdRes, error)
+	// FailTask implements failTask operation.
+	//
+	// Mark an attempt as failed with error details.
+	//
+	// POST /tasks/{id}/attempts/{n}/fail
+	FailTask(ctx context.Context, req *FailTaskBody, params FailTaskParams) (FailTaskRes, error)
 	// GetAgentProfile implements getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -273,6 +309,12 @@ type Handler interface {
 	//
 	// GET /crypto/signing-requests/{id}
 	GetSigningRequest(ctx context.Context, params GetSigningRequestParams) (GetSigningRequestRes, error)
+	// GetTask implements getTask operation.
+	//
+	// Get a task by ID.
+	//
+	// GET /tasks/{id}
+	GetTask(ctx context.Context, params GetTaskParams) (GetTaskRes, error)
 	// GetTeam implements getTeam operation.
 	//
 	// Get team details. Requires team access.
@@ -398,6 +440,24 @@ type Handler interface {
 	//
 	// GET /crypto/signing-requests
 	ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (ListSigningRequestsRes, error)
+	// ListTaskAttempts implements listTaskAttempts operation.
+	//
+	// List all attempts for a task.
+	//
+	// GET /tasks/{id}/attempts
+	ListTaskAttempts(ctx context.Context, params ListTaskAttemptsParams) (ListTaskAttemptsRes, error)
+	// ListTaskMessages implements listTaskMessages operation.
+	//
+	// List messages for a task attempt.
+	//
+	// GET /tasks/{id}/attempts/{n}/messages
+	ListTaskMessages(ctx context.Context, params ListTaskMessagesParams) (ListTaskMessagesRes, error)
+	// ListTasks implements listTasks operation.
+	//
+	// List tasks for a team with optional filters.
+	//
+	// GET /tasks
+	ListTasks(ctx context.Context, params ListTasksParams) (ListTasksRes, error)
 	// ListTeamInvites implements listTeamInvites operation.
 	//
 	// List invite codes. Requires manage_members permission.
@@ -518,6 +578,12 @@ type Handler interface {
 	//
 	// POST /rendered-packs/{id}/verify/submit
 	SubmitVerification(ctx context.Context, req *SubmitVerificationReq, params SubmitVerificationParams) (SubmitVerificationRes, error)
+	// TaskHeartbeat implements taskHeartbeat operation.
+	//
+	// Send a heartbeat to keep the attempt lease alive.
+	//
+	// POST /tasks/{id}/attempts/{n}/heartbeat
+	TaskHeartbeat(ctx context.Context, req OptHeartbeatBody, params TaskHeartbeatParams) (TaskHeartbeatRes, error)
 	// UpdateContextPack implements updateContextPack operation.
 	//
 	// Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.

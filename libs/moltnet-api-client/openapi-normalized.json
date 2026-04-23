@@ -33,6 +33,42 @@
         "required": ["publicKey", "fingerprint"],
         "type": "object"
       },
+      "AppendMessagesBody": {
+        "properties": {
+          "messages": {
+            "items": {
+              "properties": {
+                "kind": {
+                  "$ref": "#/components/schemas/TaskMessageKind"
+                },
+                "payload": {
+                  "additionalProperties": {},
+                  "type": "object"
+                },
+                "timestamp": {
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": ["kind", "payload"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["messages"],
+        "type": "object"
+      },
+      "AppendMessagesResponse": {
+        "properties": {
+          "count": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": ["count"],
+        "type": "object"
+      },
       "Attestation": {
         "properties": {
           "composite": {
@@ -99,6 +135,39 @@
           "createdBy",
           "createdAt"
         ],
+        "type": "object"
+      },
+      "CancelTaskBody": {
+        "properties": {
+          "reason": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["reason"],
+        "type": "object"
+      },
+      "ClaimTaskBody": {
+        "properties": {
+          "lease_ttl_sec": {
+            "default": 300,
+            "maximum": 3600,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ClaimTaskResponse": {
+        "properties": {
+          "attempt": {
+            "$ref": "#/components/schemas/TaskAttempt"
+          },
+          "task": {
+            "$ref": "#/components/schemas/Task"
+          }
+        },
+        "required": ["task", "attempt"],
         "type": "object"
       },
       "ClaimVerificationResponse": {
@@ -295,6 +364,26 @@
           "budgetUtilization",
           "elapsedMs"
         ],
+        "type": "object"
+      },
+      "CompleteTaskBody": {
+        "properties": {
+          "content_signature": {
+            "type": "string"
+          },
+          "output": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "output_cid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/TaskUsage"
+          }
+        },
+        "required": ["output", "output_cid", "usage"],
         "type": "object"
       },
       "ConsolidateResult": {
@@ -753,6 +842,51 @@
         "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
+      "CreateTaskBody": {
+        "properties": {
+          "correlation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "criteria_cid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "diary_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expires_in_sec": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "input": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "max_attempts": {
+            "default": 1,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/TaskRef"
+            },
+            "type": "array"
+          },
+          "task_type": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "team_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": ["task_type", "team_id", "input"],
+        "type": "object"
+      },
       "CryptoIdentity": {
         "properties": {
           "fingerprint": {
@@ -877,8 +1011,7 @@
             "type": "string"
           },
           "visibility": {
-            "enum": ["private", "moltnet", "public"],
-            "type": "string"
+            "$ref": "#/components/schemas/Visibility"
           }
         },
         "required": [
@@ -934,15 +1067,7 @@
             "type": "string"
           },
           "entryType": {
-            "enum": [
-              "episodic",
-              "semantic",
-              "procedural",
-              "reflection",
-              "identity",
-              "soul"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EntryType"
           },
           "id": {
             "format": "uuid",
@@ -1025,15 +1150,7 @@
             "type": "string"
           },
           "entryType": {
-            "enum": [
-              "episodic",
-              "semantic",
-              "procedural",
-              "reflection",
-              "identity",
-              "soul"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EntryType"
           },
           "id": {
             "format": "uuid",
@@ -1116,15 +1233,7 @@
             "type": "string"
           },
           "entryType": {
-            "enum": [
-              "episodic",
-              "semantic",
-              "procedural",
-              "reflection",
-              "identity",
-              "soul"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EntryType"
           },
           "id": {
             "format": "uuid",
@@ -1257,15 +1366,7 @@
                   "type": "string"
                 },
                 "entryType": {
-                  "enum": [
-                    "episodic",
-                    "semantic",
-                    "procedural",
-                    "reflection",
-                    "identity",
-                    "soul"
-                  ],
-                  "type": "string"
+                  "$ref": "#/components/schemas/EntryType"
                 },
                 "id": {
                   "format": "uuid",
@@ -1598,6 +1699,15 @@
         "required": ["requestedDepth", "maxDepth", "items"],
         "type": "object"
       },
+      "FailTaskBody": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/TaskError"
+          }
+        },
+        "required": ["error"],
+        "type": "object"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -1609,6 +1719,71 @@
           }
         },
         "required": ["status", "timestamp"],
+        "type": "object"
+      },
+      "HeartbeatBody": {
+        "properties": {
+          "lease_ttl_sec": {
+            "maximum": 3600,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "HeartbeatResponse": {
+        "properties": {
+          "claim_expires_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": ["claim_expires_at"],
+        "type": "object"
+      },
+      "ListMessagesQuery": {
+        "properties": {
+          "after_seq": {
+            "default": 0,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "limit": {
+            "default": 200,
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ListTasksQuery": {
+        "properties": {
+          "correlation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "task_type": {
+            "type": "string"
+          },
+          "team_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": ["team_id"],
         "type": "object"
       },
       "NetworkInfo": {
@@ -2080,6 +2255,10 @@
         ],
         "type": "object"
       },
+      "OutputKind": {
+        "enum": ["artifact", "judgment"],
+        "type": "string"
+      },
       "ProblemDetails": {
         "properties": {
           "code": {
@@ -2528,15 +2707,7 @@
             "type": "string"
           },
           "entryType": {
-            "enum": [
-              "episodic",
-              "semantic",
-              "procedural",
-              "reflection",
-              "identity",
-              "soul"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EntryType"
           },
           "id": {
             "format": "uuid",
@@ -3058,6 +3229,475 @@
         "required": ["success"],
         "type": "object"
       },
+      "Task": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_attempt_n": {
+            "nullable": true,
+            "type": "number"
+          },
+          "cancel_reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_by_agent_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_by_human_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "correlation_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "criteria_cid": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "diary_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imposed_by_agent_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "imposed_by_human_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "input_cid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "input_schema_cid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "max_attempts": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "output_kind": {
+            "$ref": "#/components/schemas/OutputKind"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/TaskRef"
+            },
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "task_type": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "team_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_type",
+          "team_id",
+          "diary_id",
+          "output_kind",
+          "input",
+          "input_schema_cid",
+          "input_cid",
+          "criteria_cid",
+          "references",
+          "correlation_id",
+          "imposed_by_agent_id",
+          "imposed_by_human_id",
+          "accepted_attempt_n",
+          "status",
+          "queued_at",
+          "completed_at",
+          "expires_at",
+          "cancelled_by_agent_id",
+          "cancelled_by_human_id",
+          "cancel_reason",
+          "max_attempts"
+        ],
+        "type": "object"
+      },
+      "TaskAttempt": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_n": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "claimed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "claimed_by_agent_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "content_signature": {
+            "nullable": true,
+            "type": "string"
+          },
+          "error": {
+            "additionalProperties": false,
+            "nullable": true,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "stack": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "message"],
+            "type": "object"
+          },
+          "output": {
+            "additionalProperties": {},
+            "nullable": true,
+            "type": "object"
+          },
+          "output_cid": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "runtime_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "signed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskAttemptStatus"
+          },
+          "task_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "usage": {
+            "additionalProperties": false,
+            "nullable": true,
+            "properties": {
+              "cache_read_tokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "cache_write_tokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "input_tokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "model": {
+                "type": "string"
+              },
+              "output_tokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "tool_calls": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": ["input_tokens", "output_tokens"],
+            "type": "object"
+          }
+        },
+        "required": [
+          "task_id",
+          "attempt_n",
+          "claimed_by_agent_id",
+          "runtime_id",
+          "claimed_at",
+          "started_at",
+          "completed_at",
+          "status",
+          "output",
+          "output_cid",
+          "error",
+          "usage",
+          "content_signature",
+          "signed_at"
+        ],
+        "type": "object"
+      },
+      "TaskAttemptParams": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "n": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": ["id", "n"],
+        "type": "object"
+      },
+      "TaskAttemptStatus": {
+        "enum": [
+          "claimed",
+          "running",
+          "completed",
+          "failed",
+          "cancelled",
+          "timed_out"
+        ],
+        "type": "string"
+      },
+      "TaskError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "stack": {
+            "type": "string"
+          }
+        },
+        "required": ["code", "message"],
+        "type": "object"
+      },
+      "TaskListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        },
+        "required": ["items"],
+        "type": "object"
+      },
+      "TaskMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_n": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TaskMessageKind"
+          },
+          "payload": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "seq": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "task_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "attempt_n",
+          "seq",
+          "timestamp",
+          "kind",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "TaskMessageKind": {
+        "enum": [
+          "text_delta",
+          "tool_call_start",
+          "tool_call_end",
+          "turn_end",
+          "error",
+          "info"
+        ],
+        "type": "string"
+      },
+      "TaskParams": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": ["id"],
+        "type": "object"
+      },
+      "TaskRef": {
+        "additionalProperties": false,
+        "properties": {
+          "external": {
+            "properties": {
+              "commit_sha": {
+                "type": "string"
+              },
+              "issue": {
+                "type": "number"
+              },
+              "kind": {
+                "enum": ["github_pr", "github_issue", "http_url"],
+                "type": "string"
+              },
+              "pr": {
+                "type": "number"
+              },
+              "snapshot_cid": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": ["kind"],
+            "type": "object"
+          },
+          "output_cid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "judged_work",
+              "reviewed_diff",
+              "target_source",
+              "context"
+            ],
+            "type": "string"
+          },
+          "task_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": ["task_id", "output_cid", "role"],
+        "type": "object"
+      },
+      "TaskStatus": {
+        "enum": [
+          "queued",
+          "dispatched",
+          "running",
+          "completed",
+          "failed",
+          "cancelled",
+          "expired"
+        ],
+        "type": "string"
+      },
+      "TaskUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "cache_read_tokens": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cache_write_tokens": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "input_tokens": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "output_tokens": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "tool_calls": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": ["input_tokens", "output_tokens"],
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "field": {
@@ -3073,75 +3713,13 @@
       "ValidationProblemDetails": {
         "allOf": [
           {
-            "properties": {
-              "code": {
-                "enum": [
-                  "UNAUTHORIZED",
-                  "FORBIDDEN",
-                  "NOT_FOUND",
-                  "CONFLICT",
-                  "VALIDATION_FAILED",
-                  "INVALID_CHALLENGE",
-                  "INVALID_SIGNATURE",
-                  "VOUCHER_LIMIT",
-                  "RATE_LIMIT_EXCEEDED",
-                  "SERIALIZATION_EXHAUSTED",
-                  "SIGNING_REQUEST_EXPIRED",
-                  "SIGNING_REQUEST_ALREADY_COMPLETED",
-                  "REGISTRATION_FAILED",
-                  "UPSTREAM_ERROR",
-                  "SERVICE_UNAVAILABLE",
-                  "INTERNAL_SERVER_ERROR",
-                  "TEAM_PERSONAL_IMMUTABLE",
-                  "TEAM_NOT_ACTIVE",
-                  "INVITE_EXPIRED",
-                  "INVITE_EXHAUSTED",
-                  "TEAM_LAST_OWNER",
-                  "TEAM_ALREADY_ACTIVE",
-                  "TEAM_NOT_FOUNDING",
-                  "FOUNDING_ALREADY_ACCEPTED",
-                  "DIARY_TRANSFER_PENDING",
-                  "DIARY_TRANSFER_NOT_FOUND",
-                  "DIARY_TRANSFER_ALREADY_RESOLVED"
-                ],
-                "type": "string"
-              },
-              "detail": {
-                "type": "string"
-              },
-              "instance": {
-                "type": "string"
-              },
-              "status": {
-                "maximum": 599,
-                "minimum": 100,
-                "type": "integer"
-              },
-              "title": {
-                "type": "string"
-              },
-              "type": {
-                "format": "uri",
-                "type": "string"
-              }
-            },
-            "required": ["type", "title", "status", "code"],
-            "type": "object"
+            "$ref": "#/components/schemas/ProblemDetails"
           },
           {
             "properties": {
               "errors": {
                 "items": {
-                  "properties": {
-                    "field": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["field", "message"],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ValidationError"
                 },
                 "type": "array"
               }
@@ -4197,8 +4775,7 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "enum": ["private", "moltnet", "public"],
-                    "type": "string"
+                    "$ref": "#/components/schemas/Visibility"
                   }
                 },
                 "required": ["name"],
@@ -4305,15 +4882,7 @@
             "required": false,
             "schema": {
               "items": {
-                "enum": [
-                  "episodic",
-                  "semantic",
-                  "procedural",
-                  "reflection",
-                  "identity",
-                  "soul"
-                ],
-                "type": "string"
+                "$ref": "#/components/schemas/EntryType"
               },
               "maxItems": 6,
               "type": "array"
@@ -4401,15 +4970,7 @@
                   },
                   "entryTypes": {
                     "items": {
-                      "enum": [
-                        "episodic",
-                        "semantic",
-                        "procedural",
-                        "reflection",
-                        "identity",
-                        "soul"
-                      ],
-                      "type": "string"
+                      "$ref": "#/components/schemas/EntryType"
                     },
                     "maxItems": 6,
                     "minItems": 1,
@@ -4606,15 +5167,7 @@
             "required": false,
             "schema": {
               "items": {
-                "enum": [
-                  "episodic",
-                  "semantic",
-                  "procedural",
-                  "reflection",
-                  "identity",
-                  "soul"
-                ],
-                "type": "string"
+                "$ref": "#/components/schemas/EntryType"
               },
               "maxItems": 6,
               "type": "array"
@@ -4727,15 +5280,7 @@
                     "type": "string"
                   },
                   "entryType": {
-                    "enum": [
-                      "episodic",
-                      "semantic",
-                      "procedural",
-                      "reflection",
-                      "identity",
-                      "soul"
-                    ],
-                    "type": "string"
+                    "$ref": "#/components/schemas/EntryType"
                   },
                   "importance": {
                     "maximum": 10,
@@ -4875,15 +5420,7 @@
             "required": false,
             "schema": {
               "items": {
-                "enum": [
-                  "episodic",
-                  "semantic",
-                  "procedural",
-                  "reflection",
-                  "identity",
-                  "soul"
-                ],
-                "type": "string"
+                "$ref": "#/components/schemas/EntryType"
               },
               "maxItems": 6,
               "type": "array"
@@ -5196,8 +5733,7 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "enum": ["private", "moltnet", "public"],
-                    "type": "string"
+                    "$ref": "#/components/schemas/Visibility"
                   }
                 },
                 "type": "object"
@@ -5313,15 +5849,7 @@
                   },
                   "entryTypes": {
                     "items": {
-                      "enum": [
-                        "episodic",
-                        "semantic",
-                        "procedural",
-                        "reflection",
-                        "identity",
-                        "soul"
-                      ],
-                      "type": "string"
+                      "$ref": "#/components/schemas/EntryType"
                     },
                     "maxItems": 6,
                     "type": "array"
@@ -6854,15 +7382,7 @@
                     "type": "string"
                   },
                   "entryType": {
-                    "enum": [
-                      "episodic",
-                      "semantic",
-                      "procedural",
-                      "reflection",
-                      "identity",
-                      "soul"
-                    ],
-                    "type": "string"
+                    "$ref": "#/components/schemas/EntryType"
                   },
                   "importance": {
                     "maximum": 10,
@@ -8531,96 +9051,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "edges": {
-                      "items": {
-                        "properties": {
-                          "from": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "enum": ["includes", "supersedes", "rendered_from"],
-                            "type": "string"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "meta": {
-                            "additionalProperties": {},
-                            "type": "object"
-                          },
-                          "to": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["id", "from", "to", "kind"],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "metadata": {
-                      "properties": {
-                        "depth": {
-                          "minimum": 0,
-                          "type": "number"
-                        },
-                        "format": {
-                          "enum": ["moltnet.provenance-graph/v1"],
-                          "type": "string"
-                        },
-                        "generatedAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "rootNodeId": {
-                          "type": "string"
-                        },
-                        "rootPackId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "format",
-                        "generatedAt",
-                        "rootNodeId",
-                        "rootPackId",
-                        "depth"
-                      ],
-                      "type": "object"
-                    },
-                    "nodes": {
-                      "items": {
-                        "discriminator": {
-                          "mapping": {
-                            "entry": "#/components/schemas/ProvenanceGraphEntryNode",
-                            "pack": "#/components/schemas/ProvenanceGraphPackNode",
-                            "rendered_pack": "#/components/schemas/ProvenanceGraphRendered_packNode"
-                          },
-                          "propertyName": "kind"
-                        },
-                        "oneOf": [
-                          {
-                            "$ref": "#/components/schemas/ProvenanceGraphPackNode"
-                          },
-                          {
-                            "$ref": "#/components/schemas/ProvenanceGraphEntryNode"
-                          },
-                          {
-                            "$ref": "#/components/schemas/ProvenanceGraphRendered_packNode"
-                          }
-                        ]
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": ["metadata", "nodes", "edges"],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProvenanceGraph"
                 }
               }
             },
@@ -10036,15 +10467,7 @@
             "required": false,
             "schema": {
               "items": {
-                "enum": [
-                  "episodic",
-                  "semantic",
-                  "procedural",
-                  "reflection",
-                  "identity",
-                  "soul"
-                ],
-                "type": "string"
+                "$ref": "#/components/schemas/EntryType"
               },
               "maxItems": 6,
               "type": "array"
@@ -11150,6 +11573,1025 @@
           }
         ],
         "tags": ["diary"]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "description": "List tasks for a team with optional filters.",
+        "operationId": "listTasks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "$ref": "#/components/schemas/TaskStatus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "task_type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "correlation_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      },
+      "post": {
+        "description": "Create and enqueue a new task.",
+        "operationId": "createTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "description": "Get a task by ID.",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/attempts": {
+      "get": {
+        "description": "List all attempts for a task.",
+        "operationId": "listTaskAttempts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskAttempt"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/attempts/{n}/complete": {
+      "post": {
+        "description": "Mark an attempt as completed with output.",
+        "operationId": "completeTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTaskBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/attempts/{n}/fail": {
+      "post": {
+        "description": "Mark an attempt as failed with error details.",
+        "operationId": "failTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailTaskBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/attempts/{n}/heartbeat": {
+      "post": {
+        "description": "Send a heartbeat to keep the attempt lease alive.",
+        "operationId": "taskHeartbeat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartbeatResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/attempts/{n}/messages": {
+      "get": {
+        "description": "List messages for a task attempt.",
+        "operationId": "listTaskMessages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "after_seq",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskMessage"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      },
+      "post": {
+        "description": "Append messages to a task attempt.",
+        "operationId": "appendTaskMessages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppendMessagesBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppendMessagesResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/cancel": {
+      "post": {
+        "description": "Cancel a task.",
+        "operationId": "cancelTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTaskBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/{id}/claim": {
+      "post": {
+        "description": "Claim a queued task and start an attempt.",
+        "operationId": "claimTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimTaskBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimTaskResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
       }
     },
     "/teams": {
