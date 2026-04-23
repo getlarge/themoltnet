@@ -2413,15 +2413,15 @@ func (s *ClaimTaskReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 	{
-		if s.LeaseTTLSec.Set {
-			e.FieldStart("lease_ttl_sec")
-			s.LeaseTTLSec.Encode(e)
+		if s.LeaseTtlSec.Set {
+			e.FieldStart("leaseTtlSec")
+			s.LeaseTtlSec.Encode(e)
 		}
 	}
 }
 
 var jsonFieldsNameOfClaimTaskReq = [1]string{
-	0: "lease_ttl_sec",
+	0: "leaseTtlSec",
 }
 
 // Decode decodes ClaimTaskReq from json.
@@ -2433,15 +2433,15 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "lease_ttl_sec":
+		case "leaseTtlSec":
 			if err := func() error {
-				s.LeaseTTLSec.Reset()
-				if err := s.LeaseTTLSec.Decode(d); err != nil {
+				s.LeaseTtlSec.Reset()
+				if err := s.LeaseTtlSec.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lease_ttl_sec\"")
+				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
 		default:
 			return d.Skip()
@@ -4683,7 +4683,7 @@ func (s *CompleteTaskReq) Encode(e *jx.Encoder) {
 func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 	{
 		if s.ContentSignature.Set {
-			e.FieldStart("content_signature")
+			e.FieldStart("contentSignature")
 			s.ContentSignature.Encode(e)
 		}
 	}
@@ -4692,7 +4692,7 @@ func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 		s.Output.Encode(e)
 	}
 	{
-		e.FieldStart("output_cid")
+		e.FieldStart("outputCid")
 		e.Str(s.OutputCid)
 	}
 	{
@@ -4702,9 +4702,9 @@ func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 }
 
 var jsonFieldsNameOfCompleteTaskReq = [4]string{
-	0: "content_signature",
+	0: "contentSignature",
 	1: "output",
-	2: "output_cid",
+	2: "outputCid",
 	3: "usage",
 }
 
@@ -4717,7 +4717,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "content_signature":
+		case "contentSignature":
 			if err := func() error {
 				s.ContentSignature.Reset()
 				if err := s.ContentSignature.Decode(d); err != nil {
@@ -4725,7 +4725,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"content_signature\"")
+				return errors.Wrap(err, "decode field \"contentSignature\"")
 			}
 		case "output":
 			requiredBitSet[0] |= 1 << 1
@@ -4737,7 +4737,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"output\"")
 			}
-		case "output_cid":
+		case "outputCid":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
@@ -4747,7 +4747,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_cid\"")
+				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
 		case "usage":
 			requiredBitSet[0] |= 1 << 3
@@ -10169,24 +10169,24 @@ func (s *CreateTaskReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	{
-		if s.CorrelationID.Set {
-			e.FieldStart("correlation_id")
-			s.CorrelationID.Encode(e)
+		if s.CorrelationId.Set {
+			e.FieldStart("correlationId")
+			s.CorrelationId.Encode(e)
 		}
 	}
 	{
 		if s.CriteriaCid.Set {
-			e.FieldStart("criteria_cid")
+			e.FieldStart("criteriaCid")
 			s.CriteriaCid.Encode(e)
 		}
 	}
 	{
-		e.FieldStart("diary_id")
-		json.EncodeUUID(e, s.DiaryID)
+		e.FieldStart("diaryId")
+		json.EncodeUUID(e, s.DiaryId)
 	}
 	{
 		if s.ExpiresInSec.Set {
-			e.FieldStart("expires_in_sec")
+			e.FieldStart("expiresInSec")
 			s.ExpiresInSec.Encode(e)
 		}
 	}
@@ -10196,7 +10196,7 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	}
 	{
 		if s.MaxAttempts.Set {
-			e.FieldStart("max_attempts")
+			e.FieldStart("maxAttempts")
 			s.MaxAttempts.Encode(e)
 		}
 	}
@@ -10211,25 +10211,25 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("task_type")
+		e.FieldStart("taskType")
 		e.Str(s.TaskType)
 	}
 	{
-		e.FieldStart("team_id")
-		json.EncodeUUID(e, s.TeamID)
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
 	}
 }
 
 var jsonFieldsNameOfCreateTaskReq = [9]string{
-	0: "correlation_id",
-	1: "criteria_cid",
-	2: "diary_id",
-	3: "expires_in_sec",
+	0: "correlationId",
+	1: "criteriaCid",
+	2: "diaryId",
+	3: "expiresInSec",
 	4: "input",
-	5: "max_attempts",
+	5: "maxAttempts",
 	6: "references",
-	7: "task_type",
-	8: "team_id",
+	7: "taskType",
+	8: "teamId",
 }
 
 // Decode decodes CreateTaskReq from json.
@@ -10242,17 +10242,17 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "correlation_id":
+		case "correlationId":
 			if err := func() error {
-				s.CorrelationID.Reset()
-				if err := s.CorrelationID.Decode(d); err != nil {
+				s.CorrelationId.Reset()
+				if err := s.CorrelationId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"correlation_id\"")
+				return errors.Wrap(err, "decode field \"correlationId\"")
 			}
-		case "criteria_cid":
+		case "criteriaCid":
 			if err := func() error {
 				s.CriteriaCid.Reset()
 				if err := s.CriteriaCid.Decode(d); err != nil {
@@ -10260,21 +10260,21 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"criteria_cid\"")
+				return errors.Wrap(err, "decode field \"criteriaCid\"")
 			}
-		case "diary_id":
+		case "diaryId":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
-				s.DiaryID = v
+				s.DiaryId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"diary_id\"")
+				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
-		case "expires_in_sec":
+		case "expiresInSec":
 			if err := func() error {
 				s.ExpiresInSec.Reset()
 				if err := s.ExpiresInSec.Decode(d); err != nil {
@@ -10282,7 +10282,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"expires_in_sec\"")
+				return errors.Wrap(err, "decode field \"expiresInSec\"")
 			}
 		case "input":
 			requiredBitSet[0] |= 1 << 4
@@ -10294,7 +10294,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"input\"")
 			}
-		case "max_attempts":
+		case "maxAttempts":
 			if err := func() error {
 				s.MaxAttempts.Reset()
 				if err := s.MaxAttempts.Decode(d); err != nil {
@@ -10302,7 +10302,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"max_attempts\"")
+				return errors.Wrap(err, "decode field \"maxAttempts\"")
 			}
 		case "references":
 			if err := func() error {
@@ -10321,7 +10321,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"references\"")
 			}
-		case "task_type":
+		case "taskType":
 			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
@@ -10331,19 +10331,19 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"task_type\"")
+				return errors.Wrap(err, "decode field \"taskType\"")
 			}
-		case "team_id":
+		case "teamId":
 			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
-				s.TeamID = v
+				s.TeamId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"team_id\"")
+				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		default:
 			return d.Skip()
@@ -26874,13 +26874,13 @@ func (s *HeartbeatResponse) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *HeartbeatResponse) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("claim_expires_at")
+		e.FieldStart("claimExpiresAt")
 		json.EncodeDateTime(e, s.ClaimExpiresAt)
 	}
 }
 
 var jsonFieldsNameOfHeartbeatResponse = [1]string{
-	0: "claim_expires_at",
+	0: "claimExpiresAt",
 }
 
 // Decode decodes HeartbeatResponse from json.
@@ -26892,7 +26892,7 @@ func (s *HeartbeatResponse) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "claim_expires_at":
+		case "claimExpiresAt":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
@@ -26902,7 +26902,7 @@ func (s *HeartbeatResponse) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"claim_expires_at\"")
+				return errors.Wrap(err, "decode field \"claimExpiresAt\"")
 			}
 		default:
 			return d.Skip()
@@ -49600,39 +49600,39 @@ func (s *Task) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *Task) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("accepted_attempt_n")
+		e.FieldStart("acceptedAttemptN")
 		s.AcceptedAttemptN.Encode(e)
 	}
 	{
-		e.FieldStart("cancel_reason")
+		e.FieldStart("cancelReason")
 		s.CancelReason.Encode(e)
 	}
 	{
-		e.FieldStart("cancelled_by_agent_id")
-		s.CancelledByAgentID.Encode(e)
+		e.FieldStart("cancelledByAgentId")
+		s.CancelledByAgentId.Encode(e)
 	}
 	{
-		e.FieldStart("cancelled_by_human_id")
-		s.CancelledByHumanID.Encode(e)
+		e.FieldStart("cancelledByHumanId")
+		s.CancelledByHumanId.Encode(e)
 	}
 	{
-		e.FieldStart("completed_at")
+		e.FieldStart("completedAt")
 		s.CompletedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		e.FieldStart("correlation_id")
-		s.CorrelationID.Encode(e)
+		e.FieldStart("correlationId")
+		s.CorrelationId.Encode(e)
 	}
 	{
-		e.FieldStart("criteria_cid")
+		e.FieldStart("criteriaCid")
 		s.CriteriaCid.Encode(e)
 	}
 	{
-		e.FieldStart("diary_id")
-		s.DiaryID.Encode(e)
+		e.FieldStart("diaryId")
+		s.DiaryId.Encode(e)
 	}
 	{
-		e.FieldStart("expires_at")
+		e.FieldStart("expiresAt")
 		s.ExpiresAt.Encode(e, json.EncodeDateTime)
 	}
 	{
@@ -49640,35 +49640,35 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.ID)
 	}
 	{
-		e.FieldStart("imposed_by_agent_id")
-		s.ImposedByAgentID.Encode(e)
+		e.FieldStart("imposedByAgentId")
+		s.ImposedByAgentId.Encode(e)
 	}
 	{
-		e.FieldStart("imposed_by_human_id")
-		s.ImposedByHumanID.Encode(e)
+		e.FieldStart("imposedByHumanId")
+		s.ImposedByHumanId.Encode(e)
 	}
 	{
 		e.FieldStart("input")
 		s.Input.Encode(e)
 	}
 	{
-		e.FieldStart("input_cid")
+		e.FieldStart("inputCid")
 		e.Str(s.InputCid)
 	}
 	{
-		e.FieldStart("input_schema_cid")
+		e.FieldStart("inputSchemaCid")
 		e.Str(s.InputSchemaCid)
 	}
 	{
-		e.FieldStart("max_attempts")
+		e.FieldStart("maxAttempts")
 		e.Float64(s.MaxAttempts)
 	}
 	{
-		e.FieldStart("output_kind")
+		e.FieldStart("outputKind")
 		s.OutputKind.Encode(e)
 	}
 	{
-		e.FieldStart("queued_at")
+		e.FieldStart("queuedAt")
 		json.EncodeDateTime(e, s.QueuedAt)
 	}
 	{
@@ -49684,38 +49684,38 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		s.Status.Encode(e)
 	}
 	{
-		e.FieldStart("task_type")
+		e.FieldStart("taskType")
 		e.Str(s.TaskType)
 	}
 	{
-		e.FieldStart("team_id")
-		json.EncodeUUID(e, s.TeamID)
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
 	}
 }
 
 var jsonFieldsNameOfTask = [22]string{
-	0:  "accepted_attempt_n",
-	1:  "cancel_reason",
-	2:  "cancelled_by_agent_id",
-	3:  "cancelled_by_human_id",
-	4:  "completed_at",
-	5:  "correlation_id",
-	6:  "criteria_cid",
-	7:  "diary_id",
-	8:  "expires_at",
+	0:  "acceptedAttemptN",
+	1:  "cancelReason",
+	2:  "cancelledByAgentId",
+	3:  "cancelledByHumanId",
+	4:  "completedAt",
+	5:  "correlationId",
+	6:  "criteriaCid",
+	7:  "diaryId",
+	8:  "expiresAt",
 	9:  "id",
-	10: "imposed_by_agent_id",
-	11: "imposed_by_human_id",
+	10: "imposedByAgentId",
+	11: "imposedByHumanId",
 	12: "input",
-	13: "input_cid",
-	14: "input_schema_cid",
-	15: "max_attempts",
-	16: "output_kind",
-	17: "queued_at",
+	13: "inputCid",
+	14: "inputSchemaCid",
+	15: "maxAttempts",
+	16: "outputKind",
+	17: "queuedAt",
 	18: "references",
 	19: "status",
-	20: "task_type",
-	21: "team_id",
+	20: "taskType",
+	21: "teamId",
 }
 
 // Decode decodes Task from json.
@@ -49727,7 +49727,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "accepted_attempt_n":
+		case "acceptedAttemptN":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				if err := s.AcceptedAttemptN.Decode(d); err != nil {
@@ -49735,9 +49735,9 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"accepted_attempt_n\"")
+				return errors.Wrap(err, "decode field \"acceptedAttemptN\"")
 			}
-		case "cancel_reason":
+		case "cancelReason":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.CancelReason.Decode(d); err != nil {
@@ -49745,29 +49745,29 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cancel_reason\"")
+				return errors.Wrap(err, "decode field \"cancelReason\"")
 			}
-		case "cancelled_by_agent_id":
+		case "cancelledByAgentId":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				if err := s.CancelledByAgentID.Decode(d); err != nil {
+				if err := s.CancelledByAgentId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cancelled_by_agent_id\"")
+				return errors.Wrap(err, "decode field \"cancelledByAgentId\"")
 			}
-		case "cancelled_by_human_id":
+		case "cancelledByHumanId":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				if err := s.CancelledByHumanID.Decode(d); err != nil {
+				if err := s.CancelledByHumanId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cancelled_by_human_id\"")
+				return errors.Wrap(err, "decode field \"cancelledByHumanId\"")
 			}
-		case "completed_at":
+		case "completedAt":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.CompletedAt.Decode(d, json.DecodeDateTime); err != nil {
@@ -49775,19 +49775,19 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"completed_at\"")
+				return errors.Wrap(err, "decode field \"completedAt\"")
 			}
-		case "correlation_id":
+		case "correlationId":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				if err := s.CorrelationID.Decode(d); err != nil {
+				if err := s.CorrelationId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"correlation_id\"")
+				return errors.Wrap(err, "decode field \"correlationId\"")
 			}
-		case "criteria_cid":
+		case "criteriaCid":
 			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.CriteriaCid.Decode(d); err != nil {
@@ -49795,19 +49795,19 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"criteria_cid\"")
+				return errors.Wrap(err, "decode field \"criteriaCid\"")
 			}
-		case "diary_id":
+		case "diaryId":
 			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
-				if err := s.DiaryID.Decode(d); err != nil {
+				if err := s.DiaryId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"diary_id\"")
+				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
-		case "expires_at":
+		case "expiresAt":
 			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
@@ -49815,7 +49815,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"expires_at\"")
+				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
 			requiredBitSet[1] |= 1 << 1
@@ -49829,25 +49829,25 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "imposed_by_agent_id":
+		case "imposedByAgentId":
 			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
-				if err := s.ImposedByAgentID.Decode(d); err != nil {
+				if err := s.ImposedByAgentId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"imposed_by_agent_id\"")
+				return errors.Wrap(err, "decode field \"imposedByAgentId\"")
 			}
-		case "imposed_by_human_id":
+		case "imposedByHumanId":
 			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
-				if err := s.ImposedByHumanID.Decode(d); err != nil {
+				if err := s.ImposedByHumanId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"imposed_by_human_id\"")
+				return errors.Wrap(err, "decode field \"imposedByHumanId\"")
 			}
 		case "input":
 			requiredBitSet[1] |= 1 << 4
@@ -49859,7 +49859,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"input\"")
 			}
-		case "input_cid":
+		case "inputCid":
 			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
@@ -49869,9 +49869,9 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"input_cid\"")
+				return errors.Wrap(err, "decode field \"inputCid\"")
 			}
-		case "input_schema_cid":
+		case "inputSchemaCid":
 			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
@@ -49881,9 +49881,9 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"input_schema_cid\"")
+				return errors.Wrap(err, "decode field \"inputSchemaCid\"")
 			}
-		case "max_attempts":
+		case "maxAttempts":
 			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Float64()
@@ -49893,9 +49893,9 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"max_attempts\"")
+				return errors.Wrap(err, "decode field \"maxAttempts\"")
 			}
-		case "output_kind":
+		case "outputKind":
 			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.OutputKind.Decode(d); err != nil {
@@ -49903,9 +49903,9 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_kind\"")
+				return errors.Wrap(err, "decode field \"outputKind\"")
 			}
-		case "queued_at":
+		case "queuedAt":
 			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
@@ -49915,7 +49915,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"queued_at\"")
+				return errors.Wrap(err, "decode field \"queuedAt\"")
 			}
 		case "references":
 			requiredBitSet[2] |= 1 << 2
@@ -49945,7 +49945,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
-		case "task_type":
+		case "taskType":
 			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
@@ -49955,19 +49955,19 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"task_type\"")
+				return errors.Wrap(err, "decode field \"taskType\"")
 			}
-		case "team_id":
+		case "teamId":
 			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
-				s.TeamID = v
+				s.TeamId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"team_id\"")
+				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -50037,23 +50037,23 @@ func (s *TaskAttempt) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("attempt_n")
+		e.FieldStart("attemptN")
 		e.Float64(s.AttemptN)
 	}
 	{
-		e.FieldStart("claimed_at")
+		e.FieldStart("claimedAt")
 		json.EncodeDateTime(e, s.ClaimedAt)
 	}
 	{
-		e.FieldStart("claimed_by_agent_id")
-		json.EncodeUUID(e, s.ClaimedByAgentID)
+		e.FieldStart("claimedByAgentId")
+		json.EncodeUUID(e, s.ClaimedByAgentId)
 	}
 	{
-		e.FieldStart("completed_at")
+		e.FieldStart("completedAt")
 		s.CompletedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		e.FieldStart("content_signature")
+		e.FieldStart("contentSignature")
 		s.ContentSignature.Encode(e)
 	}
 	{
@@ -50065,19 +50065,19 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 		s.Output.Encode(e)
 	}
 	{
-		e.FieldStart("output_cid")
+		e.FieldStart("outputCid")
 		s.OutputCid.Encode(e)
 	}
 	{
-		e.FieldStart("runtime_id")
-		s.RuntimeID.Encode(e)
+		e.FieldStart("runtimeId")
+		s.RuntimeId.Encode(e)
 	}
 	{
-		e.FieldStart("signed_at")
+		e.FieldStart("signedAt")
 		s.SignedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		e.FieldStart("started_at")
+		e.FieldStart("startedAt")
 		s.StartedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
@@ -50085,8 +50085,8 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 		s.Status.Encode(e)
 	}
 	{
-		e.FieldStart("task_id")
-		json.EncodeUUID(e, s.TaskID)
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
 	}
 	{
 		e.FieldStart("usage")
@@ -50095,19 +50095,19 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 }
 
 var jsonFieldsNameOfTaskAttempt = [14]string{
-	0:  "attempt_n",
-	1:  "claimed_at",
-	2:  "claimed_by_agent_id",
-	3:  "completed_at",
-	4:  "content_signature",
+	0:  "attemptN",
+	1:  "claimedAt",
+	2:  "claimedByAgentId",
+	3:  "completedAt",
+	4:  "contentSignature",
 	5:  "error",
 	6:  "output",
-	7:  "output_cid",
-	8:  "runtime_id",
-	9:  "signed_at",
-	10: "started_at",
+	7:  "outputCid",
+	8:  "runtimeId",
+	9:  "signedAt",
+	10: "startedAt",
 	11: "status",
-	12: "task_id",
+	12: "taskId",
 	13: "usage",
 }
 
@@ -50120,7 +50120,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "attempt_n":
+		case "attemptN":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Float64()
@@ -50130,9 +50130,9 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"attempt_n\"")
+				return errors.Wrap(err, "decode field \"attemptN\"")
 			}
-		case "claimed_at":
+		case "claimedAt":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
@@ -50142,21 +50142,21 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"claimed_at\"")
+				return errors.Wrap(err, "decode field \"claimedAt\"")
 			}
-		case "claimed_by_agent_id":
+		case "claimedByAgentId":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
-				s.ClaimedByAgentID = v
+				s.ClaimedByAgentId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"claimed_by_agent_id\"")
+				return errors.Wrap(err, "decode field \"claimedByAgentId\"")
 			}
-		case "completed_at":
+		case "completedAt":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.CompletedAt.Decode(d, json.DecodeDateTime); err != nil {
@@ -50164,9 +50164,9 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"completed_at\"")
+				return errors.Wrap(err, "decode field \"completedAt\"")
 			}
-		case "content_signature":
+		case "contentSignature":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.ContentSignature.Decode(d); err != nil {
@@ -50174,7 +50174,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"content_signature\"")
+				return errors.Wrap(err, "decode field \"contentSignature\"")
 			}
 		case "error":
 			requiredBitSet[0] |= 1 << 5
@@ -50196,7 +50196,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"output\"")
 			}
-		case "output_cid":
+		case "outputCid":
 			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.OutputCid.Decode(d); err != nil {
@@ -50204,19 +50204,19 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_cid\"")
+				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
-		case "runtime_id":
+		case "runtimeId":
 			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
-				if err := s.RuntimeID.Decode(d); err != nil {
+				if err := s.RuntimeId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"runtime_id\"")
+				return errors.Wrap(err, "decode field \"runtimeId\"")
 			}
-		case "signed_at":
+		case "signedAt":
 			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				if err := s.SignedAt.Decode(d, json.DecodeDateTime); err != nil {
@@ -50224,9 +50224,9 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"signed_at\"")
+				return errors.Wrap(err, "decode field \"signedAt\"")
 			}
-		case "started_at":
+		case "startedAt":
 			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.StartedAt.Decode(d, json.DecodeDateTime); err != nil {
@@ -50234,7 +50234,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"started_at\"")
+				return errors.Wrap(err, "decode field \"startedAt\"")
 			}
 		case "status":
 			requiredBitSet[1] |= 1 << 3
@@ -50246,17 +50246,17 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
-		case "task_id":
+		case "taskId":
 			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
-				s.TaskID = v
+				s.TaskId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"task_id\"")
+				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		case "usage":
 			requiredBitSet[1] |= 1 << 5
@@ -50589,18 +50589,18 @@ func (s *TaskAttemptUsage) Encode(e *jx.Encoder) {
 func (s *TaskAttemptUsage) encodeFields(e *jx.Encoder) {
 	{
 		if s.CacheReadTokens.Set {
-			e.FieldStart("cache_read_tokens")
+			e.FieldStart("cacheReadTokens")
 			s.CacheReadTokens.Encode(e)
 		}
 	}
 	{
 		if s.CacheWriteTokens.Set {
-			e.FieldStart("cache_write_tokens")
+			e.FieldStart("cacheWriteTokens")
 			s.CacheWriteTokens.Encode(e)
 		}
 	}
 	{
-		e.FieldStart("input_tokens")
+		e.FieldStart("inputTokens")
 		e.Int(s.InputTokens)
 	}
 	{
@@ -50610,7 +50610,7 @@ func (s *TaskAttemptUsage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("output_tokens")
+		e.FieldStart("outputTokens")
 		e.Int(s.OutputTokens)
 	}
 	{
@@ -50621,20 +50621,20 @@ func (s *TaskAttemptUsage) encodeFields(e *jx.Encoder) {
 	}
 	{
 		if s.ToolCalls.Set {
-			e.FieldStart("tool_calls")
+			e.FieldStart("toolCalls")
 			s.ToolCalls.Encode(e)
 		}
 	}
 }
 
 var jsonFieldsNameOfTaskAttemptUsage = [7]string{
-	0: "cache_read_tokens",
-	1: "cache_write_tokens",
-	2: "input_tokens",
+	0: "cacheReadTokens",
+	1: "cacheWriteTokens",
+	2: "inputTokens",
 	3: "model",
-	4: "output_tokens",
+	4: "outputTokens",
 	5: "provider",
-	6: "tool_calls",
+	6: "toolCalls",
 }
 
 // Decode decodes TaskAttemptUsage from json.
@@ -50646,7 +50646,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "cache_read_tokens":
+		case "cacheReadTokens":
 			if err := func() error {
 				s.CacheReadTokens.Reset()
 				if err := s.CacheReadTokens.Decode(d); err != nil {
@@ -50654,9 +50654,9 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cache_read_tokens\"")
+				return errors.Wrap(err, "decode field \"cacheReadTokens\"")
 			}
-		case "cache_write_tokens":
+		case "cacheWriteTokens":
 			if err := func() error {
 				s.CacheWriteTokens.Reset()
 				if err := s.CacheWriteTokens.Decode(d); err != nil {
@@ -50664,9 +50664,9 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cache_write_tokens\"")
+				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
 			}
-		case "input_tokens":
+		case "inputTokens":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
@@ -50676,7 +50676,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"input_tokens\"")
+				return errors.Wrap(err, "decode field \"inputTokens\"")
 			}
 		case "model":
 			if err := func() error {
@@ -50688,7 +50688,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
-		case "output_tokens":
+		case "outputTokens":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
@@ -50698,7 +50698,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_tokens\"")
+				return errors.Wrap(err, "decode field \"outputTokens\"")
 			}
 		case "provider":
 			if err := func() error {
@@ -50710,7 +50710,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
-		case "tool_calls":
+		case "toolCalls":
 			if err := func() error {
 				s.ToolCalls.Reset()
 				if err := s.ToolCalls.Decode(d); err != nil {
@@ -50718,7 +50718,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"tool_calls\"")
+				return errors.Wrap(err, "decode field \"toolCalls\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -51009,15 +51009,15 @@ func (s *TaskHeartbeatReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskHeartbeatReq) encodeFields(e *jx.Encoder) {
 	{
-		if s.LeaseTTLSec.Set {
-			e.FieldStart("lease_ttl_sec")
-			s.LeaseTTLSec.Encode(e)
+		if s.LeaseTtlSec.Set {
+			e.FieldStart("leaseTtlSec")
+			s.LeaseTtlSec.Encode(e)
 		}
 	}
 }
 
 var jsonFieldsNameOfTaskHeartbeatReq = [1]string{
-	0: "lease_ttl_sec",
+	0: "leaseTtlSec",
 }
 
 // Decode decodes TaskHeartbeatReq from json.
@@ -51028,15 +51028,15 @@ func (s *TaskHeartbeatReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "lease_ttl_sec":
+		case "leaseTtlSec":
 			if err := func() error {
-				s.LeaseTTLSec.Reset()
-				if err := s.LeaseTTLSec.Decode(d); err != nil {
+				s.LeaseTtlSec.Reset()
+				if err := s.LeaseTtlSec.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lease_ttl_sec\"")
+				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
 		default:
 			return d.Skip()
@@ -51177,7 +51177,7 @@ func (s *TaskListResponse) encodeFields(e *jx.Encoder) {
 	}
 	{
 		if s.NextCursor.Set {
-			e.FieldStart("next_cursor")
+			e.FieldStart("nextCursor")
 			s.NextCursor.Encode(e)
 		}
 	}
@@ -51189,7 +51189,7 @@ func (s *TaskListResponse) encodeFields(e *jx.Encoder) {
 
 var jsonFieldsNameOfTaskListResponse = [3]string{
 	0: "items",
-	1: "next_cursor",
+	1: "nextCursor",
 	2: "total",
 }
 
@@ -51220,7 +51220,7 @@ func (s *TaskListResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
-		case "next_cursor":
+		case "nextCursor":
 			if err := func() error {
 				s.NextCursor.Reset()
 				if err := s.NextCursor.Decode(d); err != nil {
@@ -51228,7 +51228,7 @@ func (s *TaskListResponse) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"next_cursor\"")
+				return errors.Wrap(err, "decode field \"nextCursor\"")
 			}
 		case "total":
 			requiredBitSet[0] |= 1 << 2
@@ -51308,7 +51308,7 @@ func (s *TaskMessage) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskMessage) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("attempt_n")
+		e.FieldStart("attemptN")
 		e.Float64(s.AttemptN)
 	}
 	{
@@ -51324,8 +51324,8 @@ func (s *TaskMessage) encodeFields(e *jx.Encoder) {
 		e.Float64(s.Seq)
 	}
 	{
-		e.FieldStart("task_id")
-		json.EncodeUUID(e, s.TaskID)
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
 	}
 	{
 		e.FieldStart("timestamp")
@@ -51334,11 +51334,11 @@ func (s *TaskMessage) encodeFields(e *jx.Encoder) {
 }
 
 var jsonFieldsNameOfTaskMessage = [6]string{
-	0: "attempt_n",
+	0: "attemptN",
 	1: "kind",
 	2: "payload",
 	3: "seq",
-	4: "task_id",
+	4: "taskId",
 	5: "timestamp",
 }
 
@@ -51351,7 +51351,7 @@ func (s *TaskMessage) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "attempt_n":
+		case "attemptN":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Float64()
@@ -51361,7 +51361,7 @@ func (s *TaskMessage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"attempt_n\"")
+				return errors.Wrap(err, "decode field \"attemptN\"")
 			}
 		case "kind":
 			requiredBitSet[0] |= 1 << 1
@@ -51395,17 +51395,17 @@ func (s *TaskMessage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"seq\"")
 			}
-		case "task_id":
+		case "taskId":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
-				s.TaskID = v
+				s.TaskId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"task_id\"")
+				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		case "timestamp":
 			requiredBitSet[0] |= 1 << 5
@@ -51637,7 +51637,7 @@ func (s *TaskRef) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("output_cid")
+		e.FieldStart("outputCid")
 		e.Str(s.OutputCid)
 	}
 	{
@@ -51645,16 +51645,16 @@ func (s *TaskRef) encodeFields(e *jx.Encoder) {
 		s.Role.Encode(e)
 	}
 	{
-		e.FieldStart("task_id")
-		s.TaskID.Encode(e)
+		e.FieldStart("taskId")
+		s.TaskId.Encode(e)
 	}
 }
 
 var jsonFieldsNameOfTaskRef = [4]string{
 	0: "external",
-	1: "output_cid",
+	1: "outputCid",
 	2: "role",
-	3: "task_id",
+	3: "taskId",
 }
 
 // Decode decodes TaskRef from json.
@@ -51676,7 +51676,7 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"external\"")
 			}
-		case "output_cid":
+		case "outputCid":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
@@ -51686,7 +51686,7 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_cid\"")
+				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
 		case "role":
 			requiredBitSet[0] |= 1 << 2
@@ -51698,15 +51698,15 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
-		case "task_id":
+		case "taskId":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				if err := s.TaskID.Decode(d); err != nil {
+				if err := s.TaskId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"task_id\"")
+				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -52045,7 +52045,7 @@ func (s *TaskReferencesItem) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("output_cid")
+		e.FieldStart("outputCid")
 		e.Str(s.OutputCid)
 	}
 	{
@@ -52053,16 +52053,16 @@ func (s *TaskReferencesItem) encodeFields(e *jx.Encoder) {
 		s.Role.Encode(e)
 	}
 	{
-		e.FieldStart("task_id")
-		s.TaskID.Encode(e)
+		e.FieldStart("taskId")
+		s.TaskId.Encode(e)
 	}
 }
 
 var jsonFieldsNameOfTaskReferencesItem = [4]string{
 	0: "external",
-	1: "output_cid",
+	1: "outputCid",
 	2: "role",
-	3: "task_id",
+	3: "taskId",
 }
 
 // Decode decodes TaskReferencesItem from json.
@@ -52084,7 +52084,7 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"external\"")
 			}
-		case "output_cid":
+		case "outputCid":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
@@ -52094,7 +52094,7 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_cid\"")
+				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
 		case "role":
 			requiredBitSet[0] |= 1 << 2
@@ -52106,15 +52106,15 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
-		case "task_id":
+		case "taskId":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				if err := s.TaskID.Decode(d); err != nil {
+				if err := s.TaskId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"task_id\"")
+				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -52498,18 +52498,18 @@ func (s *TaskUsage) Encode(e *jx.Encoder) {
 func (s *TaskUsage) encodeFields(e *jx.Encoder) {
 	{
 		if s.CacheReadTokens.Set {
-			e.FieldStart("cache_read_tokens")
+			e.FieldStart("cacheReadTokens")
 			s.CacheReadTokens.Encode(e)
 		}
 	}
 	{
 		if s.CacheWriteTokens.Set {
-			e.FieldStart("cache_write_tokens")
+			e.FieldStart("cacheWriteTokens")
 			s.CacheWriteTokens.Encode(e)
 		}
 	}
 	{
-		e.FieldStart("input_tokens")
+		e.FieldStart("inputTokens")
 		e.Int(s.InputTokens)
 	}
 	{
@@ -52519,7 +52519,7 @@ func (s *TaskUsage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("output_tokens")
+		e.FieldStart("outputTokens")
 		e.Int(s.OutputTokens)
 	}
 	{
@@ -52530,20 +52530,20 @@ func (s *TaskUsage) encodeFields(e *jx.Encoder) {
 	}
 	{
 		if s.ToolCalls.Set {
-			e.FieldStart("tool_calls")
+			e.FieldStart("toolCalls")
 			s.ToolCalls.Encode(e)
 		}
 	}
 }
 
 var jsonFieldsNameOfTaskUsage = [7]string{
-	0: "cache_read_tokens",
-	1: "cache_write_tokens",
-	2: "input_tokens",
+	0: "cacheReadTokens",
+	1: "cacheWriteTokens",
+	2: "inputTokens",
 	3: "model",
-	4: "output_tokens",
+	4: "outputTokens",
 	5: "provider",
-	6: "tool_calls",
+	6: "toolCalls",
 }
 
 // Decode decodes TaskUsage from json.
@@ -52555,7 +52555,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "cache_read_tokens":
+		case "cacheReadTokens":
 			if err := func() error {
 				s.CacheReadTokens.Reset()
 				if err := s.CacheReadTokens.Decode(d); err != nil {
@@ -52563,9 +52563,9 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cache_read_tokens\"")
+				return errors.Wrap(err, "decode field \"cacheReadTokens\"")
 			}
-		case "cache_write_tokens":
+		case "cacheWriteTokens":
 			if err := func() error {
 				s.CacheWriteTokens.Reset()
 				if err := s.CacheWriteTokens.Decode(d); err != nil {
@@ -52573,9 +52573,9 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"cache_write_tokens\"")
+				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
 			}
-		case "input_tokens":
+		case "inputTokens":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
@@ -52585,7 +52585,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"input_tokens\"")
+				return errors.Wrap(err, "decode field \"inputTokens\"")
 			}
 		case "model":
 			if err := func() error {
@@ -52597,7 +52597,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
-		case "output_tokens":
+		case "outputTokens":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
@@ -52607,7 +52607,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"output_tokens\"")
+				return errors.Wrap(err, "decode field \"outputTokens\"")
 			}
 		case "provider":
 			if err := func() error {
@@ -52619,7 +52619,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
-		case "tool_calls":
+		case "toolCalls":
 			if err := func() error {
 				s.ToolCalls.Reset()
 				if err := s.ToolCalls.Decode(d); err != nil {
@@ -52627,7 +52627,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"tool_calls\"")
+				return errors.Wrap(err, "decode field \"toolCalls\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)

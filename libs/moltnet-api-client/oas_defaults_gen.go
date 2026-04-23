@@ -6,7 +6,7 @@ package moltnetapi
 func (s *ClaimTaskReq) setDefaults() {
 	{
 		val := int(300)
-		s.LeaseTTLSec.SetTo(val)
+		s.LeaseTtlSec.SetTo(val)
 	}
 }
 

@@ -15349,7 +15349,7 @@ func (s *Server) handleListTaskMessagesRequest(args [2]string, argsEscaped bool,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "after_seq",
+					Name: "afterSeq",
 					In:   "query",
 				}: params.AfterSeq,
 				{
@@ -15584,21 +15584,21 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "team_id",
+					Name: "teamId",
 					In:   "query",
-				}: params.TeamID,
+				}: params.TeamId,
 				{
 					Name: "status",
 					In:   "query",
 				}: params.Status,
 				{
-					Name: "task_type",
+					Name: "taskType",
 					In:   "query",
 				}: params.TaskType,
 				{
-					Name: "correlation_id",
+					Name: "correlationId",
 					In:   "query",
-				}: params.CorrelationID,
+				}: params.CorrelationId,
 				{
 					Name: "limit",
 					In:   "query",

@@ -1070,8 +1070,8 @@ export type TaskMessageKind =
   | 'info';
 
 export type TaskRef = {
-  task_id: string | null;
-  output_cid: string;
+  taskId: string | null;
+  outputCid: string;
   role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
   external?: {
     kind: 'github_pr' | 'github_issue' | 'http_url';
@@ -1084,11 +1084,11 @@ export type TaskRef = {
 };
 
 export type TaskUsage = {
-  input_tokens: number;
-  output_tokens: number;
-  cache_read_tokens?: number;
-  cache_write_tokens?: number;
-  tool_calls?: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  toolCalls?: number;
   model?: string;
   provider?: string;
 };
@@ -1102,19 +1102,19 @@ export type TaskError = {
 
 export type Task = {
   id: string;
-  task_type: string;
-  team_id: string;
-  diary_id: string | null;
-  output_kind: 'artifact' | 'judgment';
+  taskType: string;
+  teamId: string;
+  diaryId: string | null;
+  outputKind: 'artifact' | 'judgment';
   input: {
     [key: string]: unknown;
   };
-  input_schema_cid: string;
-  input_cid: string;
-  criteria_cid: string | null;
+  inputSchemaCid: string;
+  inputCid: string;
+  criteriaCid: string | null;
   references: Array<{
-    task_id: string | null;
-    output_cid: string;
+    taskId: string | null;
+    outputCid: string;
     role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
     external?: {
       kind: 'github_pr' | 'github_issue' | 'http_url';
@@ -1125,10 +1125,10 @@ export type Task = {
       snapshot_cid?: string;
     };
   }>;
-  correlation_id: string | null;
-  imposed_by_agent_id: string | null;
-  imposed_by_human_id: string | null;
-  accepted_attempt_n: number | null;
+  correlationId: string | null;
+  imposedByAgentId: string | null;
+  imposedByHumanId: string | null;
+  acceptedAttemptN: number | null;
   status:
     | 'queued'
     | 'dispatched'
@@ -1137,25 +1137,25 @@ export type Task = {
     | 'failed'
     | 'cancelled'
     | 'expired';
-  queued_at: string;
-  completed_at: string | null;
-  expires_at: string | null;
-  cancelled_by_agent_id: string | null;
-  cancelled_by_human_id: string | null;
-  cancel_reason: string | null;
-  max_attempts: number;
+  queuedAt: string;
+  completedAt: string | null;
+  expiresAt: string | null;
+  cancelledByAgentId: string | null;
+  cancelledByHumanId: string | null;
+  cancelReason: string | null;
+  maxAttempts: number;
 };
 
 export type OutputKind = 'artifact' | 'judgment';
 
 export type TaskAttempt = {
-  task_id: string;
-  attempt_n: number;
-  claimed_by_agent_id: string;
-  runtime_id: string | null;
-  claimed_at: string;
-  started_at: string | null;
-  completed_at: string | null;
+  taskId: string;
+  attemptN: number;
+  claimedByAgentId: string;
+  runtimeId: string | null;
+  claimedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
   status:
     | 'claimed'
     | 'running'
@@ -1166,7 +1166,7 @@ export type TaskAttempt = {
   output: {
     [key: string]: unknown;
   } | null;
-  output_cid: string | null;
+  outputCid: string | null;
   error: {
     code: string;
     message: string;
@@ -1174,16 +1174,16 @@ export type TaskAttempt = {
     retryable?: boolean;
   } | null;
   usage: {
-    input_tokens: number;
-    output_tokens: number;
-    cache_read_tokens?: number;
-    cache_write_tokens?: number;
-    tool_calls?: number;
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+    toolCalls?: number;
     model?: string;
     provider?: string;
   } | null;
-  content_signature: string | null;
-  signed_at: string | null;
+  contentSignature: string | null;
+  signedAt: string | null;
 };
 
 export type TaskAttemptStatus =
@@ -1195,10 +1195,10 @@ export type TaskAttemptStatus =
   | 'timed_out';
 
 export type TaskMessage = {
-  task_id: string;
-  attempt_n: number;
+  taskId: string;
+  attemptN: number;
   /**
-   * Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.
+   * Monotonically increasing integer assigned by the server. Use as the afterSeq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.
    */
   seq: number;
   timestamp: string;
@@ -1224,43 +1224,43 @@ export type TaskAttemptParams = {
 };
 
 export type CreateTaskBody = {
-  task_type: string;
-  team_id: string;
-  diary_id: string;
+  taskType: string;
+  teamId: string;
+  diaryId: string;
   input: {
     [key: string]: unknown;
   };
   references?: Array<TaskRef>;
-  correlation_id?: string;
-  max_attempts?: number;
-  expires_in_sec?: number;
-  criteria_cid?: string;
+  correlationId?: string;
+  maxAttempts?: number;
+  expiresInSec?: number;
+  criteriaCid?: string;
 };
 
 export type ListTasksQuery = {
-  team_id: string;
+  teamId: string;
   status?: TaskStatus;
-  task_type?: string;
-  correlation_id?: string;
+  taskType?: string;
+  correlationId?: string;
   limit?: number;
   cursor?: string;
 };
 
 export type ClaimTaskBody = {
-  lease_ttl_sec?: number;
+  leaseTtlSec?: number;
 };
 
 export type HeartbeatBody = {
-  lease_ttl_sec?: number;
+  leaseTtlSec?: number;
 };
 
 export type CompleteTaskBody = {
   output: {
     [key: string]: unknown;
   };
-  output_cid: string;
+  outputCid: string;
   usage: TaskUsage;
-  content_signature?: string;
+  contentSignature?: string;
 };
 
 export type FailTaskBody = {
@@ -1275,7 +1275,7 @@ export type ListMessagesQuery = {
   /**
    * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
    */
-  after_seq?: number;
+  afterSeq?: number;
   limit?: number;
 };
 
@@ -1292,7 +1292,7 @@ export type AppendMessagesBody = {
 export type TaskListResponse = {
   items: Array<Task>;
   total: number;
-  next_cursor?: string;
+  nextCursor?: string;
 };
 
 export type ClaimTaskResponse = {
@@ -1301,7 +1301,7 @@ export type ClaimTaskResponse = {
 };
 
 export type HeartbeatResponse = {
-  claim_expires_at: string;
+  claimExpiresAt: string;
 };
 
 export type AppendMessagesResponse = {
@@ -6011,10 +6011,10 @@ export type ListTasksData = {
   body?: never;
   path?: never;
   query: {
-    team_id: string;
+    teamId: string;
     status?: TaskStatus;
-    task_type?: string;
-    correlation_id?: string;
+    taskType?: string;
+    correlationId?: string;
     limit?: number;
     cursor?: string;
   };
@@ -6045,17 +6045,17 @@ export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
 
 export type CreateTaskData = {
   body: {
-    task_type: string;
-    team_id: string;
-    diary_id: string;
+    taskType: string;
+    teamId: string;
+    diaryId: string;
     input: {
       [key: string]: unknown;
     };
     references?: Array<TaskRef>;
-    correlation_id?: string;
-    max_attempts?: number;
-    expires_in_sec?: number;
-    criteria_cid?: string;
+    correlationId?: string;
+    maxAttempts?: number;
+    expiresInSec?: number;
+    criteriaCid?: string;
   };
   path?: never;
   query?: never;
@@ -6125,7 +6125,7 @@ export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
 
 export type ClaimTaskData = {
   body?: {
-    lease_ttl_sec?: number;
+    leaseTtlSec?: number;
   };
   path: {
     id: string;
@@ -6170,7 +6170,7 @@ export type ClaimTaskResponse2 = ClaimTaskResponses[keyof ClaimTaskResponses];
 
 export type TaskHeartbeatData = {
   body?: {
-    lease_ttl_sec?: number;
+    leaseTtlSec?: number;
   };
   path: {
     id: string;
@@ -6212,9 +6212,9 @@ export type CompleteTaskData = {
     output: {
       [key: string]: unknown;
     };
-    output_cid: string;
+    outputCid: string;
     usage: TaskUsage;
-    content_signature?: string;
+    contentSignature?: string;
   };
   path: {
     id: string;
@@ -6397,7 +6397,7 @@ export type ListTaskMessagesData = {
     /**
      * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
      */
-    after_seq?: number;
+    afterSeq?: number;
     limit?: number;
   };
   url: '/tasks/{id}/attempts/{n}/messages';

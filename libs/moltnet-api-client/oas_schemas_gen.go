@@ -527,17 +527,17 @@ type ClaimTaskNotFound ProblemDetails
 func (*ClaimTaskNotFound) claimTaskRes() {}
 
 type ClaimTaskReq struct {
-	LeaseTTLSec OptInt `json:"lease_ttl_sec"`
+	LeaseTtlSec OptInt `json:"leaseTtlSec"`
 }
 
-// GetLeaseTTLSec returns the value of LeaseTTLSec.
-func (s *ClaimTaskReq) GetLeaseTTLSec() OptInt {
-	return s.LeaseTTLSec
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *ClaimTaskReq) GetLeaseTtlSec() OptInt {
+	return s.LeaseTtlSec
 }
 
-// SetLeaseTTLSec sets the value of LeaseTTLSec.
-func (s *ClaimTaskReq) SetLeaseTTLSec(val OptInt) {
-	s.LeaseTTLSec = val
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *ClaimTaskReq) SetLeaseTtlSec(val OptInt) {
+	s.LeaseTtlSec = val
 }
 
 // Ref: #/components/schemas/ClaimTaskResponse
@@ -1357,9 +1357,9 @@ type CompleteTaskNotFound ProblemDetails
 func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
-	ContentSignature OptString             `json:"content_signature"`
+	ContentSignature OptString             `json:"contentSignature"`
 	Output           CompleteTaskReqOutput `json:"output"`
-	OutputCid        string                `json:"output_cid"`
+	OutputCid        string                `json:"outputCid"`
 	Usage            TaskUsage             `json:"usage"`
 }
 
@@ -3268,20 +3268,20 @@ type CreateTaskForbidden ProblemDetails
 func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
-	CorrelationID OptUUID            `json:"correlation_id"`
-	CriteriaCid   OptString          `json:"criteria_cid"`
-	DiaryID       uuid.UUID          `json:"diary_id"`
-	ExpiresInSec  OptInt             `json:"expires_in_sec"`
+	CorrelationId OptUUID            `json:"correlationId"`
+	CriteriaCid   OptString          `json:"criteriaCid"`
+	DiaryId       uuid.UUID          `json:"diaryId"`
+	ExpiresInSec  OptInt             `json:"expiresInSec"`
 	Input         CreateTaskReqInput `json:"input"`
-	MaxAttempts   OptInt             `json:"max_attempts"`
+	MaxAttempts   OptInt             `json:"maxAttempts"`
 	References    []TaskRef          `json:"references"`
-	TaskType      string             `json:"task_type"`
-	TeamID        uuid.UUID          `json:"team_id"`
+	TaskType      string             `json:"taskType"`
+	TeamId        uuid.UUID          `json:"teamId"`
 }
 
-// GetCorrelationID returns the value of CorrelationID.
-func (s *CreateTaskReq) GetCorrelationID() OptUUID {
-	return s.CorrelationID
+// GetCorrelationId returns the value of CorrelationId.
+func (s *CreateTaskReq) GetCorrelationId() OptUUID {
+	return s.CorrelationId
 }
 
 // GetCriteriaCid returns the value of CriteriaCid.
@@ -3289,9 +3289,9 @@ func (s *CreateTaskReq) GetCriteriaCid() OptString {
 	return s.CriteriaCid
 }
 
-// GetDiaryID returns the value of DiaryID.
-func (s *CreateTaskReq) GetDiaryID() uuid.UUID {
-	return s.DiaryID
+// GetDiaryId returns the value of DiaryId.
+func (s *CreateTaskReq) GetDiaryId() uuid.UUID {
+	return s.DiaryId
 }
 
 // GetExpiresInSec returns the value of ExpiresInSec.
@@ -3319,14 +3319,14 @@ func (s *CreateTaskReq) GetTaskType() string {
 	return s.TaskType
 }
 
-// GetTeamID returns the value of TeamID.
-func (s *CreateTaskReq) GetTeamID() uuid.UUID {
-	return s.TeamID
+// GetTeamId returns the value of TeamId.
+func (s *CreateTaskReq) GetTeamId() uuid.UUID {
+	return s.TeamId
 }
 
-// SetCorrelationID sets the value of CorrelationID.
-func (s *CreateTaskReq) SetCorrelationID(val OptUUID) {
-	s.CorrelationID = val
+// SetCorrelationId sets the value of CorrelationId.
+func (s *CreateTaskReq) SetCorrelationId(val OptUUID) {
+	s.CorrelationId = val
 }
 
 // SetCriteriaCid sets the value of CriteriaCid.
@@ -3334,9 +3334,9 @@ func (s *CreateTaskReq) SetCriteriaCid(val OptString) {
 	s.CriteriaCid = val
 }
 
-// SetDiaryID sets the value of DiaryID.
-func (s *CreateTaskReq) SetDiaryID(val uuid.UUID) {
-	s.DiaryID = val
+// SetDiaryId sets the value of DiaryId.
+func (s *CreateTaskReq) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
 }
 
 // SetExpiresInSec sets the value of ExpiresInSec.
@@ -3364,9 +3364,9 @@ func (s *CreateTaskReq) SetTaskType(val string) {
 	s.TaskType = val
 }
 
-// SetTeamID sets the value of TeamID.
-func (s *CreateTaskReq) SetTeamID(val uuid.UUID) {
-	s.TeamID = val
+// SetTeamId sets the value of TeamId.
+func (s *CreateTaskReq) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
 }
 
 type CreateTaskReqInput map[string]jx.Raw
@@ -9642,7 +9642,7 @@ func (s *Health) SetTimestamp(val time.Time) {
 
 // Ref: #/components/schemas/HeartbeatResponse
 type HeartbeatResponse struct {
-	ClaimExpiresAt time.Time `json:"claim_expires_at"`
+	ClaimExpiresAt time.Time `json:"claimExpiresAt"`
 }
 
 // GetClaimExpiresAt returns the value of ClaimExpiresAt.
@@ -18896,28 +18896,28 @@ func (*Success) deleteDiaryRes()          {}
 
 // Ref: #/components/schemas/Task
 type Task struct {
-	AcceptedAttemptN   NilFloat64           `json:"accepted_attempt_n"`
-	CancelReason       NilString            `json:"cancel_reason"`
-	CancelledByAgentID NilUUID              `json:"cancelled_by_agent_id"`
-	CancelledByHumanID NilUUID              `json:"cancelled_by_human_id"`
-	CompletedAt        NilDateTime          `json:"completed_at"`
-	CorrelationID      NilUUID              `json:"correlation_id"`
-	CriteriaCid        NilString            `json:"criteria_cid"`
-	DiaryID            NilUUID              `json:"diary_id"`
-	ExpiresAt          NilDateTime          `json:"expires_at"`
+	AcceptedAttemptN   NilFloat64           `json:"acceptedAttemptN"`
+	CancelReason       NilString            `json:"cancelReason"`
+	CancelledByAgentId NilUUID              `json:"cancelledByAgentId"`
+	CancelledByHumanId NilUUID              `json:"cancelledByHumanId"`
+	CompletedAt        NilDateTime          `json:"completedAt"`
+	CorrelationId      NilUUID              `json:"correlationId"`
+	CriteriaCid        NilString            `json:"criteriaCid"`
+	DiaryId            NilUUID              `json:"diaryId"`
+	ExpiresAt          NilDateTime          `json:"expiresAt"`
 	ID                 uuid.UUID            `json:"id"`
-	ImposedByAgentID   NilUUID              `json:"imposed_by_agent_id"`
-	ImposedByHumanID   NilUUID              `json:"imposed_by_human_id"`
+	ImposedByAgentId   NilUUID              `json:"imposedByAgentId"`
+	ImposedByHumanId   NilUUID              `json:"imposedByHumanId"`
 	Input              TaskInput            `json:"input"`
-	InputCid           string               `json:"input_cid"`
-	InputSchemaCid     string               `json:"input_schema_cid"`
-	MaxAttempts        float64              `json:"max_attempts"`
-	OutputKind         TaskOutputKind       `json:"output_kind"`
-	QueuedAt           time.Time            `json:"queued_at"`
+	InputCid           string               `json:"inputCid"`
+	InputSchemaCid     string               `json:"inputSchemaCid"`
+	MaxAttempts        float64              `json:"maxAttempts"`
+	OutputKind         TaskOutputKind       `json:"outputKind"`
+	QueuedAt           time.Time            `json:"queuedAt"`
 	References         []TaskReferencesItem `json:"references"`
 	Status             TaskStatus           `json:"status"`
-	TaskType           string               `json:"task_type"`
-	TeamID             uuid.UUID            `json:"team_id"`
+	TaskType           string               `json:"taskType"`
+	TeamId             uuid.UUID            `json:"teamId"`
 }
 
 // GetAcceptedAttemptN returns the value of AcceptedAttemptN.
@@ -18930,14 +18930,14 @@ func (s *Task) GetCancelReason() NilString {
 	return s.CancelReason
 }
 
-// GetCancelledByAgentID returns the value of CancelledByAgentID.
-func (s *Task) GetCancelledByAgentID() NilUUID {
-	return s.CancelledByAgentID
+// GetCancelledByAgentId returns the value of CancelledByAgentId.
+func (s *Task) GetCancelledByAgentId() NilUUID {
+	return s.CancelledByAgentId
 }
 
-// GetCancelledByHumanID returns the value of CancelledByHumanID.
-func (s *Task) GetCancelledByHumanID() NilUUID {
-	return s.CancelledByHumanID
+// GetCancelledByHumanId returns the value of CancelledByHumanId.
+func (s *Task) GetCancelledByHumanId() NilUUID {
+	return s.CancelledByHumanId
 }
 
 // GetCompletedAt returns the value of CompletedAt.
@@ -18945,9 +18945,9 @@ func (s *Task) GetCompletedAt() NilDateTime {
 	return s.CompletedAt
 }
 
-// GetCorrelationID returns the value of CorrelationID.
-func (s *Task) GetCorrelationID() NilUUID {
-	return s.CorrelationID
+// GetCorrelationId returns the value of CorrelationId.
+func (s *Task) GetCorrelationId() NilUUID {
+	return s.CorrelationId
 }
 
 // GetCriteriaCid returns the value of CriteriaCid.
@@ -18955,9 +18955,9 @@ func (s *Task) GetCriteriaCid() NilString {
 	return s.CriteriaCid
 }
 
-// GetDiaryID returns the value of DiaryID.
-func (s *Task) GetDiaryID() NilUUID {
-	return s.DiaryID
+// GetDiaryId returns the value of DiaryId.
+func (s *Task) GetDiaryId() NilUUID {
+	return s.DiaryId
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -18970,14 +18970,14 @@ func (s *Task) GetID() uuid.UUID {
 	return s.ID
 }
 
-// GetImposedByAgentID returns the value of ImposedByAgentID.
-func (s *Task) GetImposedByAgentID() NilUUID {
-	return s.ImposedByAgentID
+// GetImposedByAgentId returns the value of ImposedByAgentId.
+func (s *Task) GetImposedByAgentId() NilUUID {
+	return s.ImposedByAgentId
 }
 
-// GetImposedByHumanID returns the value of ImposedByHumanID.
-func (s *Task) GetImposedByHumanID() NilUUID {
-	return s.ImposedByHumanID
+// GetImposedByHumanId returns the value of ImposedByHumanId.
+func (s *Task) GetImposedByHumanId() NilUUID {
+	return s.ImposedByHumanId
 }
 
 // GetInput returns the value of Input.
@@ -19025,9 +19025,9 @@ func (s *Task) GetTaskType() string {
 	return s.TaskType
 }
 
-// GetTeamID returns the value of TeamID.
-func (s *Task) GetTeamID() uuid.UUID {
-	return s.TeamID
+// GetTeamId returns the value of TeamId.
+func (s *Task) GetTeamId() uuid.UUID {
+	return s.TeamId
 }
 
 // SetAcceptedAttemptN sets the value of AcceptedAttemptN.
@@ -19040,14 +19040,14 @@ func (s *Task) SetCancelReason(val NilString) {
 	s.CancelReason = val
 }
 
-// SetCancelledByAgentID sets the value of CancelledByAgentID.
-func (s *Task) SetCancelledByAgentID(val NilUUID) {
-	s.CancelledByAgentID = val
+// SetCancelledByAgentId sets the value of CancelledByAgentId.
+func (s *Task) SetCancelledByAgentId(val NilUUID) {
+	s.CancelledByAgentId = val
 }
 
-// SetCancelledByHumanID sets the value of CancelledByHumanID.
-func (s *Task) SetCancelledByHumanID(val NilUUID) {
-	s.CancelledByHumanID = val
+// SetCancelledByHumanId sets the value of CancelledByHumanId.
+func (s *Task) SetCancelledByHumanId(val NilUUID) {
+	s.CancelledByHumanId = val
 }
 
 // SetCompletedAt sets the value of CompletedAt.
@@ -19055,9 +19055,9 @@ func (s *Task) SetCompletedAt(val NilDateTime) {
 	s.CompletedAt = val
 }
 
-// SetCorrelationID sets the value of CorrelationID.
-func (s *Task) SetCorrelationID(val NilUUID) {
-	s.CorrelationID = val
+// SetCorrelationId sets the value of CorrelationId.
+func (s *Task) SetCorrelationId(val NilUUID) {
+	s.CorrelationId = val
 }
 
 // SetCriteriaCid sets the value of CriteriaCid.
@@ -19065,9 +19065,9 @@ func (s *Task) SetCriteriaCid(val NilString) {
 	s.CriteriaCid = val
 }
 
-// SetDiaryID sets the value of DiaryID.
-func (s *Task) SetDiaryID(val NilUUID) {
-	s.DiaryID = val
+// SetDiaryId sets the value of DiaryId.
+func (s *Task) SetDiaryId(val NilUUID) {
+	s.DiaryId = val
 }
 
 // SetExpiresAt sets the value of ExpiresAt.
@@ -19080,14 +19080,14 @@ func (s *Task) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
-// SetImposedByAgentID sets the value of ImposedByAgentID.
-func (s *Task) SetImposedByAgentID(val NilUUID) {
-	s.ImposedByAgentID = val
+// SetImposedByAgentId sets the value of ImposedByAgentId.
+func (s *Task) SetImposedByAgentId(val NilUUID) {
+	s.ImposedByAgentId = val
 }
 
-// SetImposedByHumanID sets the value of ImposedByHumanID.
-func (s *Task) SetImposedByHumanID(val NilUUID) {
-	s.ImposedByHumanID = val
+// SetImposedByHumanId sets the value of ImposedByHumanId.
+func (s *Task) SetImposedByHumanId(val NilUUID) {
+	s.ImposedByHumanId = val
 }
 
 // SetInput sets the value of Input.
@@ -19135,9 +19135,9 @@ func (s *Task) SetTaskType(val string) {
 	s.TaskType = val
 }
 
-// SetTeamID sets the value of TeamID.
-func (s *Task) SetTeamID(val uuid.UUID) {
-	s.TeamID = val
+// SetTeamId sets the value of TeamId.
+func (s *Task) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
 }
 
 func (*Task) cancelTaskRes()   {}
@@ -19148,19 +19148,19 @@ func (*Task) getTaskRes()      {}
 
 // Ref: #/components/schemas/TaskAttempt
 type TaskAttempt struct {
-	AttemptN         float64              `json:"attempt_n"`
-	ClaimedAt        time.Time            `json:"claimed_at"`
-	ClaimedByAgentID uuid.UUID            `json:"claimed_by_agent_id"`
-	CompletedAt      NilDateTime          `json:"completed_at"`
-	ContentSignature NilString            `json:"content_signature"`
+	AttemptN         float64              `json:"attemptN"`
+	ClaimedAt        time.Time            `json:"claimedAt"`
+	ClaimedByAgentId uuid.UUID            `json:"claimedByAgentId"`
+	CompletedAt      NilDateTime          `json:"completedAt"`
+	ContentSignature NilString            `json:"contentSignature"`
 	Error            NilTaskAttemptError  `json:"error"`
 	Output           NilTaskAttemptOutput `json:"output"`
-	OutputCid        NilString            `json:"output_cid"`
-	RuntimeID        NilUUID              `json:"runtime_id"`
-	SignedAt         NilDateTime          `json:"signed_at"`
-	StartedAt        NilDateTime          `json:"started_at"`
+	OutputCid        NilString            `json:"outputCid"`
+	RuntimeId        NilUUID              `json:"runtimeId"`
+	SignedAt         NilDateTime          `json:"signedAt"`
+	StartedAt        NilDateTime          `json:"startedAt"`
 	Status           TaskAttemptStatus    `json:"status"`
-	TaskID           uuid.UUID            `json:"task_id"`
+	TaskId           uuid.UUID            `json:"taskId"`
 	Usage            NilTaskAttemptUsage  `json:"usage"`
 }
 
@@ -19174,9 +19174,9 @@ func (s *TaskAttempt) GetClaimedAt() time.Time {
 	return s.ClaimedAt
 }
 
-// GetClaimedByAgentID returns the value of ClaimedByAgentID.
-func (s *TaskAttempt) GetClaimedByAgentID() uuid.UUID {
-	return s.ClaimedByAgentID
+// GetClaimedByAgentId returns the value of ClaimedByAgentId.
+func (s *TaskAttempt) GetClaimedByAgentId() uuid.UUID {
+	return s.ClaimedByAgentId
 }
 
 // GetCompletedAt returns the value of CompletedAt.
@@ -19204,9 +19204,9 @@ func (s *TaskAttempt) GetOutputCid() NilString {
 	return s.OutputCid
 }
 
-// GetRuntimeID returns the value of RuntimeID.
-func (s *TaskAttempt) GetRuntimeID() NilUUID {
-	return s.RuntimeID
+// GetRuntimeId returns the value of RuntimeId.
+func (s *TaskAttempt) GetRuntimeId() NilUUID {
+	return s.RuntimeId
 }
 
 // GetSignedAt returns the value of SignedAt.
@@ -19224,9 +19224,9 @@ func (s *TaskAttempt) GetStatus() TaskAttemptStatus {
 	return s.Status
 }
 
-// GetTaskID returns the value of TaskID.
-func (s *TaskAttempt) GetTaskID() uuid.UUID {
-	return s.TaskID
+// GetTaskId returns the value of TaskId.
+func (s *TaskAttempt) GetTaskId() uuid.UUID {
+	return s.TaskId
 }
 
 // GetUsage returns the value of Usage.
@@ -19244,9 +19244,9 @@ func (s *TaskAttempt) SetClaimedAt(val time.Time) {
 	s.ClaimedAt = val
 }
 
-// SetClaimedByAgentID sets the value of ClaimedByAgentID.
-func (s *TaskAttempt) SetClaimedByAgentID(val uuid.UUID) {
-	s.ClaimedByAgentID = val
+// SetClaimedByAgentId sets the value of ClaimedByAgentId.
+func (s *TaskAttempt) SetClaimedByAgentId(val uuid.UUID) {
+	s.ClaimedByAgentId = val
 }
 
 // SetCompletedAt sets the value of CompletedAt.
@@ -19274,9 +19274,9 @@ func (s *TaskAttempt) SetOutputCid(val NilString) {
 	s.OutputCid = val
 }
 
-// SetRuntimeID sets the value of RuntimeID.
-func (s *TaskAttempt) SetRuntimeID(val NilUUID) {
-	s.RuntimeID = val
+// SetRuntimeId sets the value of RuntimeId.
+func (s *TaskAttempt) SetRuntimeId(val NilUUID) {
+	s.RuntimeId = val
 }
 
 // SetSignedAt sets the value of SignedAt.
@@ -19294,9 +19294,9 @@ func (s *TaskAttempt) SetStatus(val TaskAttemptStatus) {
 	s.Status = val
 }
 
-// SetTaskID sets the value of TaskID.
-func (s *TaskAttempt) SetTaskID(val uuid.UUID) {
-	s.TaskID = val
+// SetTaskId sets the value of TaskId.
+func (s *TaskAttempt) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
 }
 
 // SetUsage sets the value of Usage.
@@ -19433,13 +19433,13 @@ func (s *TaskAttemptStatus) UnmarshalText(data []byte) error {
 }
 
 type TaskAttemptUsage struct {
-	CacheReadTokens  OptInt    `json:"cache_read_tokens"`
-	CacheWriteTokens OptInt    `json:"cache_write_tokens"`
-	InputTokens      int       `json:"input_tokens"`
+	CacheReadTokens  OptInt    `json:"cacheReadTokens"`
+	CacheWriteTokens OptInt    `json:"cacheWriteTokens"`
+	InputTokens      int       `json:"inputTokens"`
 	Model            OptString `json:"model"`
-	OutputTokens     int       `json:"output_tokens"`
+	OutputTokens     int       `json:"outputTokens"`
 	Provider         OptString `json:"provider"`
-	ToolCalls        OptInt    `json:"tool_calls"`
+	ToolCalls        OptInt    `json:"toolCalls"`
 }
 
 // GetCacheReadTokens returns the value of CacheReadTokens.
@@ -19569,17 +19569,17 @@ type TaskHeartbeatNotFound ProblemDetails
 func (*TaskHeartbeatNotFound) taskHeartbeatRes() {}
 
 type TaskHeartbeatReq struct {
-	LeaseTTLSec OptInt `json:"lease_ttl_sec"`
+	LeaseTtlSec OptInt `json:"leaseTtlSec"`
 }
 
-// GetLeaseTTLSec returns the value of LeaseTTLSec.
-func (s *TaskHeartbeatReq) GetLeaseTTLSec() OptInt {
-	return s.LeaseTTLSec
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *TaskHeartbeatReq) GetLeaseTtlSec() OptInt {
+	return s.LeaseTtlSec
 }
 
-// SetLeaseTTLSec sets the value of LeaseTTLSec.
-func (s *TaskHeartbeatReq) SetLeaseTTLSec(val OptInt) {
-	s.LeaseTTLSec = val
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *TaskHeartbeatReq) SetLeaseTtlSec(val OptInt) {
+	s.LeaseTtlSec = val
 }
 
 type TaskHeartbeatUnauthorized ProblemDetails
@@ -19600,7 +19600,7 @@ func (s *TaskInput) init() TaskInput {
 // Ref: #/components/schemas/TaskListResponse
 type TaskListResponse struct {
 	Items      []Task    `json:"items"`
-	NextCursor OptString `json:"next_cursor"`
+	NextCursor OptString `json:"nextCursor"`
 	Total      int       `json:"total"`
 }
 
@@ -19638,13 +19638,13 @@ func (*TaskListResponse) listTasksRes() {}
 
 // Ref: #/components/schemas/TaskMessage
 type TaskMessage struct {
-	AttemptN float64            `json:"attempt_n"`
+	AttemptN float64            `json:"attemptN"`
 	Kind     TaskMessageKind    `json:"kind"`
 	Payload  TaskMessagePayload `json:"payload"`
-	// Monotonically increasing integer assigned by the server. Use as the after_seq cursor on the
+	// Monotonically increasing integer assigned by the server. Use as the afterSeq cursor on the
 	// list-messages endpoint to poll for new messages without re-fetching earlier ones.
 	Seq       float64   `json:"seq"`
-	TaskID    uuid.UUID `json:"task_id"`
+	TaskId    uuid.UUID `json:"taskId"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -19668,9 +19668,9 @@ func (s *TaskMessage) GetSeq() float64 {
 	return s.Seq
 }
 
-// GetTaskID returns the value of TaskID.
-func (s *TaskMessage) GetTaskID() uuid.UUID {
-	return s.TaskID
+// GetTaskId returns the value of TaskId.
+func (s *TaskMessage) GetTaskId() uuid.UUID {
+	return s.TaskId
 }
 
 // GetTimestamp returns the value of Timestamp.
@@ -19698,9 +19698,9 @@ func (s *TaskMessage) SetSeq(val float64) {
 	s.Seq = val
 }
 
-// SetTaskID sets the value of TaskID.
-func (s *TaskMessage) SetTaskID(val uuid.UUID) {
-	s.TaskID = val
+// SetTaskId sets the value of TaskId.
+func (s *TaskMessage) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
 }
 
 // SetTimestamp sets the value of Timestamp.
@@ -19833,9 +19833,9 @@ func (s *TaskOutputKind) UnmarshalText(data []byte) error {
 // Ref: #/components/schemas/TaskRef
 type TaskRef struct {
 	External  OptTaskRefExternal `json:"external"`
-	OutputCid string             `json:"output_cid"`
+	OutputCid string             `json:"outputCid"`
 	Role      TaskRefRole        `json:"role"`
-	TaskID    NilUUID            `json:"task_id"`
+	TaskId    NilUUID            `json:"taskId"`
 }
 
 // GetExternal returns the value of External.
@@ -19853,9 +19853,9 @@ func (s *TaskRef) GetRole() TaskRefRole {
 	return s.Role
 }
 
-// GetTaskID returns the value of TaskID.
-func (s *TaskRef) GetTaskID() NilUUID {
-	return s.TaskID
+// GetTaskId returns the value of TaskId.
+func (s *TaskRef) GetTaskId() NilUUID {
+	return s.TaskId
 }
 
 // SetExternal sets the value of External.
@@ -19873,9 +19873,9 @@ func (s *TaskRef) SetRole(val TaskRefRole) {
 	s.Role = val
 }
 
-// SetTaskID sets the value of TaskID.
-func (s *TaskRef) SetTaskID(val NilUUID) {
-	s.TaskID = val
+// SetTaskId sets the value of TaskId.
+func (s *TaskRef) SetTaskId(val NilUUID) {
+	s.TaskId = val
 }
 
 type TaskRefExternal struct {
@@ -20052,9 +20052,9 @@ func (s *TaskRefRole) UnmarshalText(data []byte) error {
 
 type TaskReferencesItem struct {
 	External  OptTaskReferencesItemExternal `json:"external"`
-	OutputCid string                        `json:"output_cid"`
+	OutputCid string                        `json:"outputCid"`
 	Role      TaskReferencesItemRole        `json:"role"`
-	TaskID    NilUUID                       `json:"task_id"`
+	TaskId    NilUUID                       `json:"taskId"`
 }
 
 // GetExternal returns the value of External.
@@ -20072,9 +20072,9 @@ func (s *TaskReferencesItem) GetRole() TaskReferencesItemRole {
 	return s.Role
 }
 
-// GetTaskID returns the value of TaskID.
-func (s *TaskReferencesItem) GetTaskID() NilUUID {
-	return s.TaskID
+// GetTaskId returns the value of TaskId.
+func (s *TaskReferencesItem) GetTaskId() NilUUID {
+	return s.TaskId
 }
 
 // SetExternal sets the value of External.
@@ -20092,9 +20092,9 @@ func (s *TaskReferencesItem) SetRole(val TaskReferencesItemRole) {
 	s.Role = val
 }
 
-// SetTaskID sets the value of TaskID.
-func (s *TaskReferencesItem) SetTaskID(val NilUUID) {
-	s.TaskID = val
+// SetTaskId sets the value of TaskId.
+func (s *TaskReferencesItem) SetTaskId(val NilUUID) {
+	s.TaskId = val
 }
 
 type TaskReferencesItemExternal struct {
@@ -20348,13 +20348,13 @@ func (s *TaskStatus) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/TaskUsage
 type TaskUsage struct {
-	CacheReadTokens  OptInt    `json:"cache_read_tokens"`
-	CacheWriteTokens OptInt    `json:"cache_write_tokens"`
-	InputTokens      int       `json:"input_tokens"`
+	CacheReadTokens  OptInt    `json:"cacheReadTokens"`
+	CacheWriteTokens OptInt    `json:"cacheWriteTokens"`
+	InputTokens      int       `json:"inputTokens"`
 	Model            OptString `json:"model"`
-	OutputTokens     int       `json:"output_tokens"`
+	OutputTokens     int       `json:"outputTokens"`
 	Provider         OptString `json:"provider"`
-	ToolCalls        OptInt    `json:"tool_calls"`
+	ToolCalls        OptInt    `json:"toolCalls"`
 }
 
 // GetCacheReadTokens returns the value of CacheReadTokens.

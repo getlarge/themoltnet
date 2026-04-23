@@ -7071,7 +7071,7 @@ type ListTaskMessagesParams struct {
 func unpackListTaskMessagesParams(packed middleware.Parameters) (params ListTaskMessagesParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "after_seq",
+			Name: "afterSeq",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
@@ -7106,10 +7106,10 @@ func unpackListTaskMessagesParams(packed middleware.Parameters) (params ListTask
 
 func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Request) (params ListTaskMessagesParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode query: after_seq.
+	// Decode query: afterSeq.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "after_seq",
+			Name:    "afterSeq",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
@@ -7167,7 +7167,7 @@ func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Requ
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "after_seq",
+			Name: "afterSeq",
 			In:   "query",
 			Err:  err,
 		}
@@ -7356,10 +7356,10 @@ func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Requ
 
 // ListTasksParams is parameters of listTasks operation.
 type ListTasksParams struct {
-	TeamID        uuid.UUID
+	TeamId        uuid.UUID
 	Status        OptTaskStatus `json:",omitempty,omitzero"`
 	TaskType      OptString     `json:",omitempty,omitzero"`
-	CorrelationID OptUUID       `json:",omitempty,omitzero"`
+	CorrelationId OptUUID       `json:",omitempty,omitzero"`
 	Limit         OptInt        `json:",omitempty,omitzero"`
 	Cursor        OptString     `json:",omitempty,omitzero"`
 }
@@ -7367,10 +7367,10 @@ type ListTasksParams struct {
 func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "team_id",
+			Name: "teamId",
 			In:   "query",
 		}
-		params.TeamID = packed[key].(uuid.UUID)
+		params.TeamId = packed[key].(uuid.UUID)
 	}
 	{
 		key := middleware.ParameterKey{
@@ -7383,7 +7383,7 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "task_type",
+			Name: "taskType",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
@@ -7392,11 +7392,11 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "correlation_id",
+			Name: "correlationId",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.CorrelationID = v.(OptUUID)
+			params.CorrelationId = v.(OptUUID)
 		}
 	}
 	{
@@ -7422,10 +7422,10 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 
 func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (params ListTasksParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode query: team_id.
+	// Decode query: teamId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "team_id",
+			Name:    "teamId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
@@ -7442,7 +7442,7 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 					return err
 				}
 
-				params.TeamID = c
+				params.TeamId = c
 				return nil
 			}); err != nil {
 				return err
@@ -7453,7 +7453,7 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "team_id",
+			Name: "teamId",
 			In:   "query",
 			Err:  err,
 		}
@@ -7514,10 +7514,10 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 			Err:  err,
 		}
 	}
-	// Decode query: task_type.
+	// Decode query: taskType.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "task_type",
+			Name:    "taskType",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
@@ -7550,22 +7550,22 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "task_type",
+			Name: "taskType",
 			In:   "query",
 			Err:  err,
 		}
 	}
-	// Decode query: correlation_id.
+	// Decode query: correlationId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "correlation_id",
+			Name:    "correlationId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotCorrelationIDVal uuid.UUID
+				var paramsDotCorrelationIdVal uuid.UUID
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
@@ -7577,12 +7577,12 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 						return err
 					}
 
-					paramsDotCorrelationIDVal = c
+					paramsDotCorrelationIdVal = c
 					return nil
 				}(); err != nil {
 					return err
 				}
-				params.CorrelationID.SetTo(paramsDotCorrelationIDVal)
+				params.CorrelationId.SetTo(paramsDotCorrelationIdVal)
 				return nil
 			}); err != nil {
 				return err
@@ -7591,7 +7591,7 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "correlation_id",
+			Name: "correlationId",
 			In:   "query",
 			Err:  err,
 		}
