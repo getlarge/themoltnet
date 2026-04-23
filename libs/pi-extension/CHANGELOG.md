@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.4.0...pi-extension-v0.5.0) (2026-04-23)
+
+
+### Features
+
+* **agent-runtime:** add tasks api source and reporter ([b4986c0](https://github.com/getlarge/themoltnet/commit/b4986c076ec337e54b345e299083cf383c96169d))
+* **agent-runtime:** publish as @themoltnet/agent-runtime ([bb71b3e](https://github.com/getlarge/themoltnet/commit/bb71b3e0e6e210195c5ebe4ceffb704d5adcd512))
+* **pi-extension:** enforce host-exec approval via ctx.ui.confirm() ([b4b2a46](https://github.com/getlarge/themoltnet/commit/b4b2a463000f4ef4688d05062a577b16b0563987))
+* run task demos through the Tasks API ([1adea18](https://github.com/getlarge/themoltnet/commit/1adea18c30ecf2e32617f8aebeb4f23094fd581d))
+* **sandbox:** inject GitHub App PEM into VM + add host-exec escape hatch ([9cd3e09](https://github.com/getlarge/themoltnet/commit/9cd3e096427971caa94ec4da712ea6dfe599707e))
+* **sandbox:** inject GitHub App PEM into VM + host-exec escape hatch ([#907](https://github.com/getlarge/themoltnet/issues/907)) ([1ea74fb](https://github.com/getlarge/themoltnet/commit/1ea74fbec547e6842d4077f42348361d89a72a92))
+
+
+### Bug Fixes
+
+* **ci:** remove __testables and refresh task artifacts ([113c8bc](https://github.com/getlarge/themoltnet/commit/113c8bcd30344b4bfafc3ef7a85bd026df204c68))
+* **curate-pack:** clarify packId vs id in creator prompt ([d0cfd9b](https://github.com/getlarge/themoltnet/commit/d0cfd9b169f375bdc59f6cd5bd011e4aec834780))
+* **pi-extension:** address getlarge PR [#905](https://github.com/getlarge/themoltnet/issues/905) review ([ce98073](https://github.com/getlarge/themoltnet/commit/ce98073a60be7467fb303190a218632c675eb1e3))
+* **pi-extension:** address PR [#905](https://github.com/getlarge/themoltnet/issues/905) review issues ([7f35783](https://github.com/getlarge/themoltnet/commit/7f3578324bb7f412b19aec9457b748bc84db0322))
+* **pi-extension:** set MOLTNET_CREDENTIALS_PATH in guest VM env ([dee0080](https://github.com/getlarge/themoltnet/commit/dee008003d7a40bebece8ccac0f3e1c7679a32a3))
+* **pi-extension:** validate task outputs locally ([ce3e2f1](https://github.com/getlarge/themoltnet/commit/ce3e2f10dcc67ce46a84afffcf4287184644fcf8))
+* **tasks:** camelCase task contracts and expose tasks SDK ([ccbf203](https://github.com/getlarge/themoltnet/commit/ccbf203de6b1cce86c7e38ef27ac3c5d0954f13c))
+* **tasks:** camelcase task payload contracts ([525f094](https://github.com/getlarge/themoltnet/commit/525f094bbabda641c49ea5e65822bf6af9edb681))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.3.0...pi-extension-v0.4.0) (2026-04-23)
 
 

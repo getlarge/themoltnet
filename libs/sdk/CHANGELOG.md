@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.94.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.93.0...sdk-v0.94.0) (2026-04-23)
+
+
+### Features
+
+* **sdk:** expose tasks namespace ([c5f3a68](https://github.com/getlarge/themoltnet/commit/c5f3a68e8da5589f8fbd6eafd9b066193bcf0275))
+
+
+### Bug Fixes
+
+* **tasks:** camelCase task contracts and expose tasks SDK ([ccbf203](https://github.com/getlarge/themoltnet/commit/ccbf203de6b1cce86c7e38ef27ac3c5d0954f13c))
+
 ## [0.93.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.92.0...sdk-v0.93.0) (2026-04-22)
 
 
