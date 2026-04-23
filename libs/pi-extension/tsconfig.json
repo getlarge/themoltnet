@@ -15,6 +15,9 @@
       "path": "../agent-runtime"
     },
     {
+      "path": "../crypto-service"
+    },
+    {
       "path": "../sdk"
     },
     {

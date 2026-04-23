@@ -1,16 +1,16 @@
 /**
- * Focused tests for `extractJsonObject` — the parser that recovers the
- * agent's final structured output from a stream of chat text. The rest of
+ * Focused tests for the final-output parsing helpers. The rest of
  * `executePiTask` needs a booted Gondolin VM and is covered by the
  * integration demo.
  */
+import { computeJsonCid } from '@moltnet/crypto-service';
 import { describe, expect, it } from 'vitest';
 
 // Re-export of a private helper for testing. We reach into the compiled
 // module via a named import added specifically for this test surface.
 import { __testables } from './execute-pi-task.js';
 
-const { extractJsonObject } = __testables;
+const { extractJsonObject, parseStructuredTaskOutput } = __testables;
 
 describe('extractJsonObject', () => {
   it('returns null for empty input', () => {
@@ -59,5 +59,67 @@ describe('extractJsonObject', () => {
   it('falls back from malformed fence to raw text scan', () => {
     const txt = '```json\nnot json\n```\n\n{"real":true}';
     expect(extractJsonObject(txt)).toEqual({ real: true });
+  });
+});
+
+describe('parseStructuredTaskOutput', () => {
+  it('returns validated output and canonical CID for a valid task payload', async () => {
+    const output = {
+      branch: 'feat/tasks-api-output-validation',
+      commits: [
+        {
+          sha: 'abcdef1',
+          message: 'fix(tasks): validate output locally',
+          diary_entry_id: '1851828e-b3a7-4130-a938-db6dd16477bd',
+        },
+      ],
+      pull_request_url: null,
+      diary_entry_ids: ['1851828e-b3a7-4130-a938-db6dd16477bd'],
+      summary: 'Validated output before sending completion payloads.',
+    };
+
+    const result = await parseStructuredTaskOutput(
+      JSON.stringify(output),
+      'fulfill_brief',
+    );
+
+    expect(result).toEqual({
+      output,
+      outputCid: await computeJsonCid(output),
+      error: null,
+    });
+  });
+
+  it('returns a schema validation error for the wrong output shape', async () => {
+    const result = await parseStructuredTaskOutput(
+      JSON.stringify({
+        branch: 123,
+        commits: [],
+        pull_request_url: null,
+        diary_entry_ids: [],
+      }),
+      'fulfill_brief',
+    );
+
+    expect(result.output).toBeNull();
+    expect(result.outputCid).toBeNull();
+    expect(result.error).toEqual({
+      code: 'output_validation_failed',
+      message: expect.stringContaining('output/branch'),
+    });
+  });
+
+  it('returns an unknown task type error when no schema is registered', async () => {
+    const result = await parseStructuredTaskOutput(
+      JSON.stringify({ anything: true }),
+      'unknown_task_type',
+    );
+
+    expect(result.output).toBeNull();
+    expect(result.outputCid).toBeNull();
+    expect(result.error).toEqual({
+      code: 'unknown_task_type',
+      message: expect.stringContaining('Unknown task type'),
+    });
   });
 });

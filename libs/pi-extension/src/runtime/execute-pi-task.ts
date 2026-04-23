@@ -34,13 +34,13 @@ import {
   type PromptContext,
   type TaskReporter,
 } from '@moltnet/agent-runtime';
+import { computeJsonCid } from '@moltnet/crypto-service';
 import {
-  BUILT_IN_TASK_TYPES,
   type Task,
   type TaskOutput,
   type TaskUsage,
+  validateTaskOutput,
 } from '@moltnet/tasks';
-import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { connect } from '@themoltnet/sdk';
 
 import { createMoltNetTools } from '../moltnet/tools.js';
@@ -347,40 +347,16 @@ export async function executePiTask(
     await Promise.all(recordingPromise);
 
     let parsedOutput: Record<string, unknown> | null = null;
+    let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
     if (!runError && !llmAbort) {
-      const extracted = extractJsonObject(assistantText);
-      if (!extracted) {
-        parseError = {
-          code: 'output_missing',
-          message:
-            'Agent did not emit a parseable JSON object as its final message.',
-        };
-      } else {
-        const entry =
-          BUILT_IN_TASK_TYPES[
-            task.task_type as keyof typeof BUILT_IN_TASK_TYPES
-          ];
-        if (!entry) {
-          parseError = {
-            code: 'unknown_task_type',
-            message: `No output schema registered for task_type=${task.task_type}`,
-          };
-        } else {
-          const check = TypeCompiler.Compile(entry.outputSchema);
-          if (check.Check(extracted)) {
-            parsedOutput = extracted as Record<string, unknown>;
-          } else {
-            const errors = [...check.Errors(extracted)]
-              .slice(0, 3)
-              .map((e) => `${e.path}: ${e.message}`);
-            parseError = {
-              code: 'output_validation_failed',
-              message: `Output failed schema validation: ${errors.join('; ')}`,
-            };
-          }
-        }
-      }
+      const parsed = await parseStructuredTaskOutput(
+        assistantText,
+        task.task_type,
+      );
+      parsedOutput = parsed.output;
+      parsedOutputCid = parsed.outputCid;
+      parseError = parsed.error;
       if (parseError) {
         await emit('error', {
           message: parseError.message,
@@ -409,7 +385,7 @@ export async function executePiTask(
       attempt_n: attemptN,
       status,
       output: parsedOutput,
-      output_cid: null,
+      output_cid: parsedOutputCid,
       usage,
       duration_ms: Date.now() - startTime,
       ...(errorCode && errorMessage
@@ -454,7 +430,70 @@ function emptyUsage(provider: string, model: string): TaskUsage {
   };
 }
 
-export const __testables = { extractJsonObject, truncateForWire };
+async function parseStructuredTaskOutput(
+  assistantText: string,
+  taskType: string,
+): Promise<{
+  output: Record<string, unknown> | null;
+  outputCid: string | null;
+  error: { code: string; message: string } | null;
+}> {
+  const extracted = extractJsonObject(assistantText);
+  if (!extracted) {
+    return {
+      output: null,
+      outputCid: null,
+      error: {
+        code: 'output_missing',
+        message:
+          'Agent did not emit a parseable JSON object as its final message.',
+      },
+    };
+  }
+
+  const errors = validateTaskOutput(taskType, extracted);
+  if (errors.length > 0) {
+    const details = errors
+      .slice(0, 3)
+      .map((error) => `${error.field}: ${error.message}`);
+    const [firstError] = errors;
+    return {
+      output: null,
+      outputCid: null,
+      error: {
+        code:
+          firstError?.field === 'task_type'
+            ? 'unknown_task_type'
+            : 'output_validation_failed',
+        message: `Output failed schema validation: ${details.join('; ')}`,
+      },
+    };
+  }
+
+  try {
+    return {
+      output: extracted as Record<string, unknown>,
+      outputCid: await computeJsonCid(extracted),
+      error: null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      output: null,
+      outputCid: null,
+      error: {
+        code: 'output_cid_compute_failed',
+        message: `Validated output could not be canonicalized: ${message}`,
+      },
+    };
+  }
+}
+
+export const __testables = {
+  extractJsonObject,
+  parseStructuredTaskOutput,
+  truncateForWire,
+};
 
 /**
  * Cap oversized tool-result payloads before embedding them in a
