@@ -10,10 +10,10 @@
  * PR 7's daemon mode swaps `TaskSource` (file → HTTP long-poll) and
  * `TaskReporter` (stdout/jsonl → HTTP POST). The executor is unchanged.
  */
-import type { Task, TaskOutput, TaskUsage } from '@moltnet/tasks';
+import type { TaskOutput, TaskUsage } from '@moltnet/tasks';
 
 import type { TaskReporter } from './reporters/index.js';
-import type { TaskSource } from './sources/index.js';
+import type { ClaimedTask, TaskSource } from './sources/index.js';
 
 /**
  * Runs one task attempt. Concrete implementations own the VM, the LLM
@@ -21,7 +21,7 @@ import type { TaskSource } from './sources/index.js';
  * `TaskOutput`; failures surface as `status: 'failed'`, not thrown errors.
  */
 export type TaskExecutor = (
-  task: Task,
+  claimedTask: ClaimedTask,
   reporter: TaskReporter,
 ) => Promise<TaskOutput>;
 
@@ -32,7 +32,7 @@ export interface AgentRuntimeOptions {
    * Factory for per-task reporters. Called once per claimed task so
    * reporters can own a fresh file / stream / connection.
    */
-  makeReporter: (task: Task) => TaskReporter;
+  makeReporter: (claimedTask: ClaimedTask) => TaskReporter;
   /**
    * Runs one attempt of the claimed task. Injected by the caller so this
    * package stays free of pi / Gondolin / SDK dependencies.
@@ -75,15 +75,15 @@ export class AgentRuntime {
     const outputs: TaskOutput[] = [];
     try {
       while (!this.stopRequested) {
-        const task = await this.opts.source.claim();
-        if (!task) break;
+        const claimedTask = await this.opts.source.claim();
+        if (!claimedTask) break;
 
-        this.status.currentTaskId = task.id;
-        const reporter = this.opts.makeReporter(task);
+        this.status.currentTaskId = claimedTask.task.id;
+        const reporter = this.opts.makeReporter(claimedTask);
         const taskStart = Date.now();
         let output: TaskOutput;
         try {
-          output = await this.opts.executeTask(task, reporter);
+          output = await this.opts.executeTask(claimedTask, reporter);
         } catch (err) {
           // Contract: executors resolve with `status: 'failed'` on agent
           // failure, but they may still throw on unrecoverable setup errors
@@ -92,8 +92,8 @@ export class AgentRuntime {
           const message = err instanceof Error ? err.message : String(err);
           const usage: TaskUsage = { input_tokens: 0, output_tokens: 0 };
           output = {
-            task_id: task.id,
-            attempt_n: 1,
+            task_id: claimedTask.task.id,
+            attempt_n: claimedTask.attemptN,
             status: 'failed',
             output: null,
             output_cid: null,

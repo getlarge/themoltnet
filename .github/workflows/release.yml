@@ -12,7 +12,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension
+          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime
         required: false
         type: string
 
@@ -44,6 +44,8 @@ jobs:
       skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
       legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
+      agent-runtime-release-created: ${{ steps.release.outputs['libs/agent-runtime--release_created'] }}
+      agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
@@ -81,6 +83,8 @@ jobs:
       skill-version: ${{ steps.resolve.outputs.skill-version }}
       legreffier: ${{ steps.resolve.outputs.legreffier }}
       legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
+      agent-runtime: ${{ steps.resolve.outputs.agent-runtime }}
+      agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
       pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
       design-system: ${{ steps.resolve.outputs.design-system }}
@@ -109,6 +113,8 @@ jobs:
           RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
           RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
           RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
+          RP_AGENT_RUNTIME_CREATED: ${{ needs.release-please.outputs.agent-runtime-release-created }}
+          RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
           RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
           RP_DESIGN_SYSTEM_CREATED: ${{ needs.release-please.outputs.design-system-release-created }}
@@ -165,6 +171,7 @@ jobs:
           resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
+          resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
 
           # Forward version outputs
@@ -676,9 +683,51 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-agent-runtime:
+    name: Publish Agent Runtime to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.agent-runtime == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @moltnet/tasks build
+
+      - run: pnpm --filter @themoltnet/agent-runtime build
+
+      - run: pnpm --filter @themoltnet/agent-runtime test
+
+      - run: pnpm --filter @themoltnet/agent-runtime run check:pack
+
+      - name: Publish @themoltnet/agent-runtime
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/agent-runtime publish --no-git-checks --access public --provenance
+
+      - name: Publish Agent Runtime release
+        run: gh release edit "${{ needs.resolve-publish.outputs.agent-runtime-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-pi-extension:
     name: Publish Pi Extension to npm
-    needs: resolve-publish
+    needs: [resolve-publish, publish-agent-runtime]
     if: ${{ always() && needs.resolve-publish.outputs.pi-extension == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -700,6 +749,10 @@ jobs:
       - run: pnpm --filter @moltnet/api-client build
 
       - run: pnpm --filter @moltnet/crypto-service build
+
+      - run: pnpm --filter @moltnet/tasks build
+
+      - run: pnpm --filter @themoltnet/agent-runtime build
 
       - run: pnpm --filter @themoltnet/sdk build
 

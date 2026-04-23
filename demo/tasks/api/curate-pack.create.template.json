@@ -1,0 +1,14 @@
+{
+  "task_type": "curate_pack",
+  "team_id": "{{team_id}}",
+  "diary_id": "{{diary_id}}",
+  "input": {
+    "diary_id": "{{diary_id}}",
+    "entry_types": ["episodic", "procedural"],
+    "recipe": "topic-focused-v1",
+    "tag_filters": { "prefix": "scope:" },
+    "task_prompt": "{{task_prompt}}"
+  },
+  "references": [],
+  "max_attempts": 1
+}

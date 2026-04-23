@@ -31,10 +31,12 @@ import {
 } from '@mariozechner/pi-coding-agent';
 import {
   buildPromptForTask,
+  type ClaimedTask,
   type PromptContext,
+  type TaskOutput,
   type TaskReporter,
-} from '@moltnet/agent-runtime';
-import { type Task, type TaskOutput, type TaskUsage } from '@moltnet/tasks';
+  type TaskUsage,
+} from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
 
 import {
@@ -67,8 +69,6 @@ export interface ExecutePiTaskOptions {
   promptExtras?: Record<string, unknown>;
   /** Snapshot progress callback; defaults to stderr logging. */
   onSnapshotProgress?: (message: string) => void;
-  /** Attempt number; defaults to 1. */
-  attemptN?: number;
   /**
    * Optional pre-resolved checkpoint path. If omitted, `ensureSnapshot` is
    * invoked. Useful for batch execution where the caller wants to cache
@@ -84,10 +84,10 @@ export interface ExecutePiTaskOptions {
  */
 export function createPiTaskExecutor(
   opts: ExecutePiTaskOptions,
-): (task: Task, reporter: TaskReporter) => Promise<TaskOutput> {
+): (claimedTask: ClaimedTask, reporter: TaskReporter) => Promise<TaskOutput> {
   let cachedCheckpoint: string | null = opts.checkpointPath ?? null;
 
-  return async (task, reporter) => {
+  return async (claimedTask, reporter) => {
     if (!cachedCheckpoint) {
       cachedCheckpoint = await ensureSnapshot({
         config: opts.sandboxConfig?.snapshot,
@@ -98,7 +98,7 @@ export function createPiTaskExecutor(
           }),
       });
     }
-    return executePiTask(task, reporter, {
+    return executePiTask(claimedTask, reporter, {
       ...opts,
       checkpointPath: cachedCheckpoint,
     });
@@ -112,11 +112,12 @@ export function createPiTaskExecutor(
  * unrecoverable setup errors.
  */
 export async function executePiTask(
-  task: Task,
+  claimedTask: ClaimedTask,
   reporter: TaskReporter,
   opts: ExecutePiTaskOptions,
 ): Promise<TaskOutput> {
-  const attemptN = opts.attemptN ?? 1;
+  const task = claimedTask.task;
+  const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
   const mountPath = opts.mountPath ?? process.cwd();
 
@@ -161,11 +162,12 @@ export async function executePiTask(
   let session:
     | Awaited<ReturnType<typeof createAgentSession>>['session']
     | null = null;
+  const finalUsage: TaskUsage = emptyUsage(opts.provider, opts.model);
 
   const makeFailedOutput = (
     code: string,
     message: string,
-    usage: TaskUsage = emptyUsage(opts.provider, opts.model),
+    usage: TaskUsage = finalUsage,
   ): TaskOutput => ({
     task_id: task.id,
     attempt_n: attemptN,
@@ -280,7 +282,7 @@ export async function executePiTask(
     let llmAbort = false;
     let assistantText = '';
     let reporterError: { code: string; message: string } | null = null;
-    const usage: TaskUsage = emptyUsage(opts.provider, opts.model);
+    const usage: TaskUsage = finalUsage;
     const recordingPromise: Promise<void>[] = [];
     const track = (p: Promise<void>) => {
       recordingPromise.push(
@@ -361,7 +363,7 @@ export async function executePiTask(
         task.task_type,
       );
       parsedOutput = parsed.output;
-      parsedOutputCid = parsed.outputCid;
+      parsedOutputCid = parsed.outputCid; // already computed in parseStructuredTaskOutput
       parseError = parsed.error;
       if (parseError) {
         await emit('error', {
@@ -413,7 +415,7 @@ export async function executePiTask(
     }
     if (reporterOpen) {
       try {
-        await reporter.finalize(emptyUsage(opts.provider, opts.model));
+        await reporter.finalize(finalUsage);
       } catch {
         /* swallow */
       }

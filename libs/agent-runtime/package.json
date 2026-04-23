@@ -1,9 +1,15 @@
 {
-  "name": "@moltnet/agent-runtime",
+  "name": "@themoltnet/agent-runtime",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "private": true,
   "type": "module",
+  "description": "MoltNet agent runtime — coding-agent-agnostic Task execution loop",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/agent-runtime"
+  },
+  "homepage": "https://themolt.net",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,19 +18,34 @@
       "types": "./src/index.ts"
     }
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/.dts"
+  ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "vite build",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
-    "@moltnet/tasks": "workspace:*",
     "@sinclair/typebox": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {

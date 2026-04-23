@@ -1,5 +1,5 @@
 /**
- * fulfill-brief.ts — GitHub-issue convenience shim over `@moltnet/agent-runtime`.
+ * fulfill-brief.ts — GitHub-issue convenience shim over `@themoltnet/agent-runtime`.
  *
  * What it does
  * ------------
@@ -87,12 +87,12 @@ import {
   AgentRuntime,
   StdoutReporter,
   type TaskSource,
-} from '@moltnet/agent-runtime';
+} from '@themoltnet/agent-runtime';
 import {
   FULFILL_BRIEF_TYPE,
   type FulfillBriefInput,
   type Task,
-} from '@moltnet/tasks';
+} from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   type SandboxConfig,
@@ -269,10 +269,10 @@ function buildFulfillBriefTask(
 class SingleTaskSource implements TaskSource {
   private yielded = false;
   constructor(private readonly task: Task) {}
-  async claim(): Promise<Task | null> {
+  async claim() {
     if (this.yielded) return null;
     this.yielded = true;
-    return this.task;
+    return { task: this.task, attemptN: 1 };
   }
   async close(): Promise<void> {
     /* no-op */

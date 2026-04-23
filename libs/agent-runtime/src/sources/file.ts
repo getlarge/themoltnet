@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { BUILT_IN_TASK_TYPES, Task } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
-import type { TaskSource } from './types.js';
+import type { ClaimedTask, TaskSource } from './types.js';
 
 /**
  * Read one or more `Task` records from a JSON file.
@@ -20,9 +20,11 @@ export class FileTaskSource implements TaskSource {
 
   constructor(private readonly filePath: string) {}
 
-  async claim(): Promise<Task | null> {
+  async claim(): Promise<ClaimedTask | null> {
     if (!this.loaded) await this.load();
-    return this.queue.shift() ?? null;
+    const task = this.queue.shift() ?? null;
+    if (!task) return null;
+    return { task, attemptN: 1 };
   }
 
   async close(): Promise<void> {

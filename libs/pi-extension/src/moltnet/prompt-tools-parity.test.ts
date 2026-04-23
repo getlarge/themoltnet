@@ -1,5 +1,5 @@
-import { buildPromptForTask } from '@moltnet/agent-runtime';
-import type { Task } from '@moltnet/tasks';
+import type { Task } from '@themoltnet/agent-runtime';
+import { buildPromptForTask } from '@themoltnet/agent-runtime';
 import { describe, expect, it } from 'vitest';
 
 import { createMoltNetTools, type MoltNetToolsConfig } from './tools.js';

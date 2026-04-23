@@ -1,24 +1,11 @@
 /**
  * @themoltnet/pi-extension — MoltNet pi extension
  *
- * Sandboxes tool execution in a Gondolin VM with:
- *   - Auto-built and cached VM snapshots
- *   - Credential injection (pi OAuth + MoltNet identity)
- *   - Egress policy (only LLM provider + MoltNet API)
- *   - Tool redirection (read/write/edit/bash → VM)
- *   - MoltNet custom tools (diary entries — run on host via SDK)
- *   - Optional git worktree per session
+ * Runs pi coding-agent sessions inside a Gondolin VM with the agent's
+ * MoltNet identity fully available inside the sandbox.
  *
- * Usage:
- *   pi -e @themoltnet/pi-extension
- *   pi -e @themoltnet/pi-extension --agent legreffier
- *   pi -e @themoltnet/pi-extension --worktree-branch feat/my-task
- *   pi -e @themoltnet/pi-extension --sandbox-config ./sandbox.json
- *
- * Sandbox config resolution (first match):
- *   1. --sandbox-config flag (explicit path to JSON)
- *   2. sandbox.json in cwd (convention)
- *   3. Base only (git, gh, moltnet CLI, agent user)
+ * See README.md for credential injection flow, tool split, sandbox.json
+ * reference, and headless/programmatic usage.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';

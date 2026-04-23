@@ -37,7 +37,7 @@ describe('FileTaskSource', () => {
   it('yields a single Task then null', async () => {
     const task = makeFulfillBriefTask();
     const src = new FileTaskSource(write(task));
-    expect(await src.claim()).toMatchObject({ id: task.id });
+    expect(await src.claim()).toMatchObject({ task: { id: task.id }, attemptN: 1 });
     expect(await src.claim()).toBeNull();
     await src.close();
   });
@@ -50,8 +50,8 @@ describe('FileTaskSource', () => {
       id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     });
     const src = new FileTaskSource(write([a, b]));
-    expect((await src.claim())?.id).toBe(a.id);
-    expect((await src.claim())?.id).toBe(b.id);
+    expect((await src.claim())?.task.id).toBe(a.id);
+    expect((await src.claim())?.task.id).toBe(b.id);
     expect(await src.claim()).toBeNull();
   });
 

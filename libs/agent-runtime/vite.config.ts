@@ -5,12 +5,13 @@ export default defineConfig({
   plugins: [
     dts({
       rollupTypes: true,
+      bundledPackages: ['@moltnet/tasks'],
       tsconfigPath: './tsconfig.json',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
       compilerOptions: {
         paths: {
-          '@themoltnet/agent-runtime': ['../agent-runtime/dist/index.d.ts'],
+          '@moltnet/tasks': ['../tasks/dist/index.d.ts'],
         },
       },
     }),
@@ -21,9 +22,6 @@ export default defineConfig({
     emptyOutDir: true,
   },
   ssr: {
-    // Bundle private workspace packages (@moltnet/crypto-service) into the
-    // JS output. @themoltnet/agent-runtime and @themoltnet/sdk are published
-    // packages and stay external.
-    noExternal: [/^@moltnet\//],
+    noExternal: [/@moltnet\//],
   },
 });

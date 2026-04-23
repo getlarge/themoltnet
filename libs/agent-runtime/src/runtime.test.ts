@@ -3,16 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { TaskReporter } from './reporters/index.js';
 import { AgentRuntime } from './runtime.js';
-import type { TaskSource } from './sources/index.js';
+import type { ClaimedTask, TaskSource } from './sources/index.js';
 import { makeFulfillBriefTask } from './test-fixtures.js';
 
 class ArraySource implements TaskSource {
   readonly events: string[] = [];
   private i = 0;
   constructor(private readonly tasks: Task[]) {}
-  async claim(): Promise<Task | null> {
+  async claim(): Promise<ClaimedTask | null> {
     this.events.push('claim');
-    return this.tasks[this.i++] ?? null;
+    const task = this.tasks[this.i++] ?? null;
+    return task ? { task, attemptN: 1 } : null;
   }
   async close(): Promise<void> {
     this.events.push('close');
@@ -60,7 +61,7 @@ describe('AgentRuntime', () => {
     const runtime = new AgentRuntime({
       source,
       makeReporter: () => new RecordingReporter(),
-      executeTask: async (task) => {
+      executeTask: async ({ task }) => {
         claimed.push(task.id);
         return makeOutput(task, 'completed');
       },
@@ -98,7 +99,7 @@ describe('AgentRuntime', () => {
     const runtime = new AgentRuntime({
       source,
       makeReporter: () => new RecordingReporter(),
-      executeTask: async (task) => {
+      executeTask: async ({ task }) => {
         runtime.stop();
         return makeOutput(task, 'completed');
       },
