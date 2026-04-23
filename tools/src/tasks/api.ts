@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { connect, type Agent } from '@themoltnet/sdk';
+import { type Agent,connect } from '@themoltnet/sdk';
 
 interface MoltNetConfig {
   endpoints?: { api?: string };

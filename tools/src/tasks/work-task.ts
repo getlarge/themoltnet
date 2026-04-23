@@ -9,11 +9,11 @@ import {
   ApiTaskSource,
   StdoutReporter,
 } from '@themoltnet/agent-runtime';
-import type { TasksNamespace } from '@themoltnet/sdk';
 import {
   createPiTaskExecutor,
   type SandboxConfig,
 } from '@themoltnet/pi-extension';
+import type { TasksNamespace } from '@themoltnet/sdk';
 
 import { resolveTasksApiContext } from './api.js';
 

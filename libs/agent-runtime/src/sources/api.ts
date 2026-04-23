@@ -1,9 +1,4 @@
-import {
-  Task,
-  TaskAttempt,
-  type Task as TaskRow,
-  type TaskAttempt as TaskAttemptRow,
-} from '@moltnet/tasks';
+import { Task, TaskAttempt } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
 import type { ClaimedTask, TaskSource } from './types.js';
@@ -17,8 +12,8 @@ export interface ApiTaskSourceOptions {
 }
 
 interface ClaimTaskResponse {
-  task: unknown;
-  attempt: unknown;
+  task: Task;
+  attempt: TaskAttempt;
 }
 
 /**
@@ -84,12 +79,9 @@ export class ApiTaskSource implements TaskSource {
       );
     }
 
-    const task = body.task as TaskRow;
-    const attempt = body.attempt as TaskAttemptRow;
-
     return {
-      task,
-      attemptN: attempt.attemptN,
+      task: body.task,
+      attemptN: body.attempt.attemptN,
     };
   }
 

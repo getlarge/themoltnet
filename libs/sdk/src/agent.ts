@@ -1,9 +1,14 @@
 import type {
   AgentProfile,
+  AppendTaskMessagesData,
+  CancelTaskData,
+  ClaimTaskData,
+  ClaimTaskResponse,
   ClaimVerificationResponse,
   Client,
   CompileDiaryData,
   CompileResult,
+  CompleteTaskData,
   ConsolidateDiaryData,
   ConsolidateResult,
   ContextPackResponse,
@@ -31,6 +36,7 @@ import type {
   DiaryTagsResponse,
   Digest,
   EntryVerifyResult,
+  FailTaskData,
   GetContextPackByIdData,
   GetContextPackProvenanceByCidData,
   GetContextPackProvenanceByIdData,
@@ -42,8 +48,8 @@ import type {
   GetRenderedPackByIdData,
   GetTeamResponse,
   GetTrustGraphData,
-  HeartbeatResponse,
   Health,
+  HeartbeatResponse,
   JoinTeamResponse,
   ListContextPacksData,
   ListDiariesData,
@@ -54,11 +60,11 @@ import type {
   ListDiaryTagsData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
+  ListTaskMessagesData,
+  ListTasksData,
   ListTeamInvitesResponse,
   ListTeamMembersResponse,
   ListTeamsResponse,
-  ListTaskMessagesData,
-  ListTasksData,
   NetworkInfo,
   PreviewDiaryCustomPackData,
   PreviewRenderedPackData,
@@ -89,15 +95,9 @@ import type {
   Success,
   Task,
   TaskAttempt,
+  TaskHeartbeatData,
   TaskListResponse,
   TaskMessage,
-  ClaimTaskData,
-  ClaimTaskResponse,
-  CompleteTaskData,
-  FailTaskData,
-  CancelTaskData,
-  AppendTaskMessagesData,
-  TaskHeartbeatData,
   UpdateContextPackData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
@@ -121,8 +121,8 @@ import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
-import { createTeamsNamespace } from './namespaces/teams.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
+import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
 import type { TokenManager } from './token.js';
 
