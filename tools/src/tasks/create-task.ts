@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { Task } from '@moltnet/tasks';
+import type { Task } from '@themoltnet/agent-runtime';
 
 import {
   parseSetArgs,

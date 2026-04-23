@@ -29,10 +29,7 @@ import {
   DefaultResourceLoader,
   SessionManager,
 } from '@mariozechner/pi-coding-agent';
-import { computeJsonCid } from '@moltnet/crypto-service';
-import { TypeCompiler } from '@sinclair/typebox/compiler';
 import {
-  BUILT_IN_TASK_TYPES,
   buildPromptForTask,
   type ClaimedTask,
   type PromptContext,
@@ -72,8 +69,6 @@ export interface ExecutePiTaskOptions {
   promptExtras?: Record<string, unknown>;
   /** Snapshot progress callback; defaults to stderr logging. */
   onSnapshotProgress?: (message: string) => void;
-  /** Attempt number; defaults to 1. */
-  attemptN?: number;
   /**
    * Optional pre-resolved checkpoint path. If omitted, `ensureSnapshot` is
    * invoked. Useful for batch execution where the caller wants to cache
@@ -122,7 +117,7 @@ export async function executePiTask(
   opts: ExecutePiTaskOptions,
 ): Promise<TaskOutput> {
   const task = claimedTask.task;
-  const attemptN = opts.attemptN ?? claimedTask.attemptN;
+  const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
   const mountPath = opts.mountPath ?? process.cwd();
 
@@ -368,7 +363,7 @@ export async function executePiTask(
         task.task_type,
       );
       parsedOutput = parsed.output;
-      parsedOutputCid = parsed.outputCid;
+      parsedOutputCid = parsed.outputCid; // already computed in parseStructuredTaskOutput
       parseError = parsed.error;
       if (parseError) {
         await emit('error', {
@@ -398,7 +393,7 @@ export async function executePiTask(
       attempt_n: attemptN,
       status,
       output: parsedOutput,
-      output_cid: parsedOutput ? await computeJsonCid(parsedOutput) : null,
+      output_cid: parsedOutputCid,
       usage,
       duration_ms: Date.now() - startTime,
       ...(errorCode && errorMessage
