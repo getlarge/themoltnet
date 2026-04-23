@@ -81,10 +81,14 @@ describe('Tasks API', () => {
       client,
       auth: () => imposer.accessToken,
       body: {
-        task_type: 'context_distill',
+        task_type: 'curate_pack',
         team_id: imposer.personalTeamId,
         diary_id: imposer.privateDiaryId,
-        input: { diary_id: imposer.privateDiaryId, ...input },
+        input: {
+          diary_id: imposer.privateDiaryId,
+          task_prompt: 'e2e test curation',
+          ...input,
+        },
         ...overrides,
       },
     });
@@ -129,7 +133,7 @@ describe('Tasks API', () => {
       expect(error).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.status).toBe('queued');
-      expect(data!.task_type).toBe('context_distill');
+      expect(data!.task_type).toBe('curate_pack');
       expect(data!.diary_id).toBe(imposer.privateDiaryId);
       expect(data!.team_id).toBe(imposer.personalTeamId);
       expect(data!.input_schema_cid).toBeTruthy();
@@ -151,15 +155,18 @@ describe('Tasks API', () => {
     });
 
     it('returns 403 when imposing on a diary the caller cannot write', async () => {
-      // claimer tries to impose against imposer diary without manager permission
+      // imposer has no write access to claimer's private diary
       const { response } = await createTask({
         client,
-        auth: () => claimer.accessToken,
+        auth: () => imposer.accessToken,
         body: {
-          task_type: 'context_distill',
-          team_id: claimer.personalTeamId,
-          diary_id: imposer.privateDiaryId,
-          input: { diary_id: imposer.privateDiaryId },
+          task_type: 'curate_pack',
+          team_id: imposer.personalTeamId,
+          diary_id: claimer.privateDiaryId,
+          input: {
+            diary_id: claimer.privateDiaryId,
+            task_prompt: 'unauthorized curation attempt',
+          },
         },
       });
       expect(response.status).toBe(403);
