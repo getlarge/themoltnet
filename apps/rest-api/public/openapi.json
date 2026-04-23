@@ -2271,7 +2271,6 @@
       "ListMessagesQuery": {
         "properties": {
           "after_seq": {
-            "default": 0,
             "minimum": 0,
             "type": "integer"
           },
@@ -14877,7 +14876,6 @@
             "name": "after_seq",
             "required": false,
             "schema": {
-              "default": 0,
               "minimum": 0,
               "type": "integer"
             }

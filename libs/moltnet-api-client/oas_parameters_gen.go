@@ -7103,11 +7103,6 @@ func unpackListTaskMessagesParams(packed middleware.Parameters) (params ListTask
 
 func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Request) (params ListTaskMessagesParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
-	// Set default value for query: after_seq.
-	{
-		val := int(0)
-		params.AfterSeq.SetTo(val)
-	}
 	// Decode query: after_seq.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
