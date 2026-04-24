@@ -8,7 +8,6 @@
  */
 
 export type { TaskService } from './services/task.service.js';
-export type { VerificationService } from './services/verification.service.js';
 export type {
   AuthContext,
   PermissionChecker,
@@ -19,7 +18,6 @@ export type { ContextPackService } from '@moltnet/context-pack-service';
 export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
-  AttestationRepository,
   ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
@@ -47,7 +45,6 @@ import type { ContextPackService } from '@moltnet/context-pack-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
-  AttestationRepository,
   ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
@@ -68,7 +65,6 @@ import type { EmbeddingService } from '@moltnet/embedding-service';
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
 import type { TaskService } from './services/task.service.js';
-import type { VerificationService } from './services/verification.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -78,9 +74,7 @@ declare module 'fastify' {
     diaryEntryRepository: DiaryEntryRepository;
     contextPackRepository: ContextPackRepository;
     renderedPackRepository: RenderedPackRepository;
-    attestationRepository: AttestationRepository;
     contextPackService: ContextPackService;
-    verificationService: VerificationService;
     entryRelationRepository: EntryRelationRepository;
     embeddingService: EmbeddingService;
     agentRepository: AgentRepository;

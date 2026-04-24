@@ -34,10 +34,6 @@ export {
   createAgentRepository,
 } from './repositories/agent.repository.js';
 export {
-  type AttestationRepository,
-  createAttestationRepository,
-} from './repositories/attestation.repository.js';
-export {
   type ContextPackRepository,
   type ContextPackWithCreator,
   createContextPackRepository,
@@ -107,11 +103,6 @@ export {
   type TeamRepository,
 } from './repositories/team.repository.js';
 export {
-  createVerificationRepository,
-  type RenderedPackVerificationStatus,
-  type VerificationRepository,
-} from './repositories/verification.repository.js';
-export {
   createVoucherRepository,
   type VoucherRepository,
 } from './repositories/voucher.repository.js';
@@ -124,17 +115,14 @@ export {
 } from './transaction-context.js';
 export {
   _resetTaskWorkflowsForTesting,
-  _resetVerificationWorkflowsForTesting,
   type AgentKeyLookup,
   initSigningWorkflows,
   initTaskWorkflows,
-  initVerificationWorkflows,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningTimeoutSeconds,
   setSigningVerifier,
   setTaskWorkflowDeps,
-  setVerificationWorkflowDeps,
   type SignatureVerifier,
   type SigningEnvelope,
   type SigningRequestPersistence,
@@ -146,10 +134,4 @@ export {
   TaskWorkflowConfigurationError,
   type TaskWorkflowDeps,
   taskWorkflows,
-  type VerificationPayload,
-  type VerificationResult,
-  type VerificationSubmission,
-  VerificationWorkflowConfigurationError,
-  type VerificationWorkflowDeps,
-  verificationWorkflows,
 } from './workflows/index.js';

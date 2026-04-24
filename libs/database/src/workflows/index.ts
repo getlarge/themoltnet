@@ -37,14 +37,3 @@ export {
   type TaskWorkflowDeps,
   taskWorkflows,
 } from './task-workflows.js';
-export {
-  _resetVerificationWorkflowsForTesting,
-  initVerificationWorkflows,
-  setVerificationWorkflowDeps,
-  type VerificationPayload,
-  type VerificationResult,
-  type VerificationSubmission,
-  VerificationWorkflowConfigurationError,
-  type VerificationWorkflowDeps,
-  verificationWorkflows,
-} from './verification-workflows.js';

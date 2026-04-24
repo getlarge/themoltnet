@@ -188,6 +188,19 @@ export function createRenderedPackRepository(db: Database) {
 
       return rows.length;
     },
+
+    async setVerifiedTask(
+      id: string,
+      verifiedTaskId: string,
+    ): Promise<RenderedPack | null> {
+      const [row] = await getExecutor(db)
+        .update(renderedPacks)
+        .set({ verifiedTaskId })
+        .where(eq(renderedPacks.id, id))
+        .returning();
+
+      return row ?? null;
+    },
   };
 }
 

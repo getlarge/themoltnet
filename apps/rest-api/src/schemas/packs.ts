@@ -358,12 +358,19 @@ export const RenderedPackUpdateBodySchema = Type.Object(
   {
     pinned: Type.Optional(Type.Boolean()),
     expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+    verifiedTaskId: Type.Optional(
+      Type.String({
+        format: 'uuid',
+        description:
+          'ID of a completed judge_pack task that verified this rendered pack.',
+      }),
+    ),
   },
   {
     minProperties: 1,
     additionalProperties: false,
     description:
-      'At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.',
+      'At least one field must be provided. See route handler for field-combination constraints.',
   },
 );
 
@@ -511,6 +518,9 @@ export const RenderedPackWithContentSchema = Type.Object(
     pinned: Type.Boolean(),
     expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,
+    verifiedTaskId: Type.Optional(
+      Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    ),
   },
   { $id: 'RenderedPackWithContent' },
 );
