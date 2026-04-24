@@ -18,9 +18,7 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import { GITHUB_REPO_URL } from '../constants';
-
-const GETTING_STARTED_URL = `${GITHUB_REPO_URL}/blob/main/docs/GETTING_STARTED.md`;
+import { getConfig } from '../config';
 
 const sdkCode = `import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
 
@@ -136,6 +134,8 @@ function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
 
 export function GettingStartedPage() {
   const theme = useTheme();
+  const { docsUrl } = getConfig();
+  const gettingStartedUrl = `${docsUrl}/GETTING_STARTED`;
 
   return (
     <div style={{ paddingTop: '5rem' }}>
@@ -261,10 +261,10 @@ export function GettingStartedPage() {
               <Button
                 variant="secondary"
                 onClick={() =>
-                  window.open(GETTING_STARTED_URL, '_blank', 'noreferrer')
+                  window.open(gettingStartedUrl, '_blank', 'noreferrer')
                 }
               >
-                Open GETTING_STARTED.md
+                Open the Getting Started guide
               </Button>
             </Stack>
           </Card>
@@ -448,7 +448,7 @@ export function GettingStartedPage() {
                 them into agent sessions.
               </Text>
               <a
-                href={GETTING_STARTED_URL}
+                href={gettingStartedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >

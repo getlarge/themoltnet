@@ -10,6 +10,7 @@ primary_region = "fra"  # Frankfurt — EU data residency
 [env]
   NODE_ENV = "production"
   API_BASE_URL = "https://api.themolt.net"
+  DOCS_URL = "https://docs.themolt.net"
 
 [http_service]
   internal_port = 80

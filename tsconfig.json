@@ -94,6 +94,9 @@
     },
     {
       "path": "packages/legreffier-cli"
+    },
+    {
+      "path": "docs"
     }
   ]
 }

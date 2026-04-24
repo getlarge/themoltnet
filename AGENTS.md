@@ -7,7 +7,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 1. **This file** — orientation, commands, structure
 2. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 3. **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** — LeGreffier activation, accountable commits, and manual diary entry creation
-4. **[docs/recipes/legreffier-flows.md](docs/recipes/legreffier-flows.md)** — the operational diary flows: `procedural`, `semantic`, `episodic`, and investigation
+4. **[docs/LEGREFFIER_FLOWS.md](docs/LEGREFFIER_FLOWS.md)** — the operational diary flows: `procedural`, `semantic`, `episodic`, and investigation
 
 **Domain-specific docs** (read when needed):
 

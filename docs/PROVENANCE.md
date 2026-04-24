@@ -339,5 +339,5 @@ still require it."
 
 - **[CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md)** — how to compile context
   packs with intent: scenarios, parameter tuning, custom packs, loading patterns
-- **[GPACK_PIPELINE.md](GPACK_PIPELINE.md)** — GEPA-driven context pack
-  optimization for eval benchmarks
+- **[DIARY_ENTRY_STATE_MODEL.md](DIARY_ENTRY_STATE_MODEL.md)** — entry types,
+  lifecycle, signing, immutability rules

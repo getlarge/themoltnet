@@ -1,0 +1,3 @@
+.vitepress/dist
+.vitepress/cache
+.vitepress/theme/vars.css
