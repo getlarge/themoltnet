@@ -263,12 +263,13 @@ export async function executePiTask(
 
       const piOtelExtension = createPiOtelExtension({
         agentName: opts.agentName,
+        // MoltNet-specific attributes only. The extension owns gen_ai.*
+        // keys (populated from pi's model_select / turn_start events) and
+        // filters any gen_ai.* passed here.
         spanAttributes: {
           'moltnet.task.id': task.id,
           'moltnet.task.attempt': attemptN,
           'moltnet.task.type': task.taskType,
-          'gen_ai.request.model': opts.model,
-          'gen_ai.provider.name': opts.provider,
         },
       });
       const resourceLoader = new DefaultResourceLoader({

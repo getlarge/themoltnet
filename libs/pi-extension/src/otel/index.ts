@@ -58,22 +58,36 @@ interface ToolExecutionEndEvent {
 }
 
 const TRACER_NAME = '@themoltnet/pi-extension/otel';
-const TRACER_VERSION = '1.0.0';
 
 export interface PiOtelOptions {
   /** Agent name for `gen_ai.agent.name` on the root span. */
   agentName?: string;
-  /** Extra attributes merged onto every span (e.g. `moltnet.task.id`). */
+  /**
+   * Extra attributes merged onto every span. Use MoltNet-specific keys
+   * like `moltnet.task.id` — any `gen_ai.*` keys here are filtered out
+   * since the extension is authoritative for those.
+   */
   spanAttributes?: Record<string, string | number | boolean>;
+}
+
+function stripReservedAttrs(
+  attrs: Record<string, string | number | boolean>,
+): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith('gen_ai.')) continue;
+    out[k] = v;
+  }
+  return out;
 }
 
 export function createPiOtelExtension(options: PiOtelOptions = {}) {
   return function piOtelExtension(pi: ExtensionAPI): void {
-    const tracer: Tracer = trace.getTracer(TRACER_NAME, TRACER_VERSION);
-    const extraAttrs = options.spanAttributes ?? {};
+    const tracer: Tracer = trace.getTracer(TRACER_NAME);
+    const extraAttrs = stripReservedAttrs(options.spanAttributes ?? {});
 
-    // Per-session state. The session_start → session_shutdown pair is the
-    // lifecycle of one pi session; re-entering on /reload starts fresh.
+    // Per-session state. Must be reset on every session_start because a
+    // /reload can fire session_start again without a preceding shutdown.
     let sessionSpan: Span | undefined;
     let sessionCtx: Context = otelContext.active();
     let turnSpan: Span | undefined;
@@ -81,47 +95,67 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
     let currentModel: { provider: string; id: string } | undefined;
     const toolSpans = new Map<string, { span: Span; startedAt: number }>();
 
+    // Drain any open tool spans with an error status. Used when a parent
+    // (turn or session) ends before all children have reported — without
+    // this, tool spans reference a finished parent and most backends drop
+    // them.
+    function drainToolSpans(reason: string) {
+      for (const [, entry] of toolSpans) {
+        entry.span.setStatus({ code: SpanStatusCode.ERROR, message: reason });
+        entry.span.end();
+      }
+      toolSpans.clear();
+    }
+
+    function endTurnSpan() {
+      if (!turnSpan) return;
+      drainToolSpans('tool span not closed before turn end');
+      turnSpan.end();
+      turnSpan = undefined;
+      turnCtx = sessionCtx;
+    }
+
+    function endSessionSpan() {
+      drainToolSpans('tool span not closed before session shutdown');
+      endTurnSpan();
+      if (sessionSpan) {
+        sessionSpan.setStatus({ code: SpanStatusCode.OK });
+        sessionSpan.end();
+        sessionSpan = undefined;
+        sessionCtx = otelContext.active();
+      }
+      currentModel = undefined;
+    }
+
     pi.on(
       'session_start',
       (event: SessionStartEvent, ctx: ExtensionContext) => {
+        // Defensive: if a previous session_start wasn't matched by a
+        // session_shutdown (e.g. /reload path), tear down first so we
+        // don't leak a dangling root span.
+        endSessionSpan();
+
         const agentName = options.agentName ?? 'pi';
         sessionSpan = tracer.startSpan(
           `invoke_agent ${agentName}`,
           {
             attributes: {
+              ...extraAttrs,
               'gen_ai.operation.name': 'invoke_agent',
               'gen_ai.agent.name': agentName,
               'session.reason': event.reason,
               'session.cwd': ctx.cwd,
-              ...extraAttrs,
             },
           },
           otelContext.active(),
         );
         sessionCtx = trace.setSpan(otelContext.active(), sessionSpan);
+        turnCtx = sessionCtx;
       },
     );
 
     pi.on('session_shutdown', () => {
-      // Close any dangling tool spans first so they end before the session.
-      for (const [, entry] of toolSpans) {
-        entry.span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: 'tool span not closed before session shutdown',
-        });
-        entry.span.end();
-      }
-      toolSpans.clear();
-
-      if (turnSpan) {
-        turnSpan.end();
-        turnSpan = undefined;
-      }
-      if (sessionSpan) {
-        sessionSpan.setStatus({ code: SpanStatusCode.OK });
-        sessionSpan.end();
-        sessionSpan = undefined;
-      }
+      endSessionSpan();
     });
 
     pi.on('model_select', (event: ModelSelectEvent) => {
@@ -139,11 +173,11 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
         `chat ${modelLabel}`,
         {
           attributes: {
+            ...extraAttrs,
             'gen_ai.operation.name': 'chat',
             'gen_ai.request.model': currentModel?.id ?? 'unknown',
             'gen_ai.provider.name': currentModel?.provider ?? 'unknown',
             'turn.index': event.turnIndex,
-            ...extraAttrs,
           },
         },
         sessionCtx,
@@ -155,6 +189,8 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
       if (!turnSpan) return;
       const usage = extractUsage(event.message);
       if (usage) {
+        // gen-ai semconv 1.28+ names (replaced older prompt_tokens /
+        // completion_tokens).
         turnSpan.setAttribute('gen_ai.usage.input_tokens', usage.input);
         turnSpan.setAttribute('gen_ai.usage.output_tokens', usage.output);
       }
@@ -163,8 +199,7 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
         event.toolResults?.length ?? 0,
       );
       turnSpan.setStatus({ code: SpanStatusCode.OK });
-      turnSpan.end();
-      turnSpan = undefined;
+      endTurnSpan();
     });
 
     pi.on('tool_execution_start', (event: ToolExecutionStartEvent) => {
@@ -173,10 +208,10 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
         `execute_tool ${event.toolName}`,
         {
           attributes: {
+            ...extraAttrs,
             'gen_ai.operation.name': 'execute_tool',
             'gen_ai.tool.name': event.toolName,
             'gen_ai.tool.call.id': event.toolCallId,
-            ...extraAttrs,
           },
         },
         parentCtx,
