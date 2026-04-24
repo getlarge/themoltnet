@@ -25,7 +25,6 @@
  * no-op tracers when no provider is registered, so not wiring up here
  * just means "no telemetry export, zero runtime cost."
  */
-import { trace } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
@@ -126,17 +125,31 @@ export async function initWorkerOtel(
     spanProcessors: [new BatchSpanProcessor(exporter)],
   });
 
-  // Register globally so @opentelemetry/api's `trace.getTracer(...)`
-  // calls in libraries (the pi OTel extension, agent-runtime) pick
-  // this provider up.
-  trace.setGlobalTracerProvider(provider);
+  // `register()` installs both the global tracer provider AND the Node
+  // AsyncLocalStorage context manager + W3C propagator. Without the
+  // context manager, parent/child span relationships break across
+  // await boundaries — spans that should be children end up orphaned.
+  // `trace.setGlobalTracerProvider()` alone is NOT sufficient.
+  provider.register();
 
   return async () => {
     // forceFlush + shutdown so in-flight batches drain before the
     // process exits. shutdown() on NodeTracerProvider also calls
     // shutdown on all registered processors, which handle exporter
     // cleanup — no need to call it separately.
-    await provider.forceFlush().catch(() => {});
-    await provider.shutdown().catch(() => {});
+    //
+    // Log failures to stderr instead of swallowing silently: if spans
+    // can't reach the collector during shutdown, the operator needs to
+    // know (that's exactly when end-of-task telemetry matters most).
+    await provider.forceFlush().catch((err) => {
+      process.stderr.write(
+        `[otel-bootstrap] forceFlush failed: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+    });
+    await provider.shutdown().catch((err) => {
+      process.stderr.write(
+        `[otel-bootstrap] shutdown failed: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+    });
   };
 }

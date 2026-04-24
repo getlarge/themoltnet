@@ -74,8 +74,8 @@ func TestAuthenticate_HappyPath(t *testing.T) {
 	ext := newExtension(&Config{
 		IntrospectionEndpoint: hydra.URL,
 		RequiredScopes:        []string{"telemetry:write"},
-		CacheTTL:              1 * time.Minute,
-		CacheMaxEntries:       100,
+		CacheTTL:              durPtr(1 * time.Minute),
+		CacheMaxEntries:       intPtr(100),
 	}, zaptest.NewLogger(t))
 
 	ctx, err := ext.Authenticate(context.Background(), map[string][]string{
@@ -165,8 +165,8 @@ func TestAuthenticate_CacheHit(t *testing.T) {
 
 	ext := newExtension(&Config{
 		IntrospectionEndpoint: hydra.URL,
-		CacheTTL:              1 * time.Minute,
-		CacheMaxEntries:       100,
+		CacheTTL:              durPtr(1 * time.Minute),
+		CacheMaxEntries:       intPtr(100),
 	}, zaptest.NewLogger(t))
 
 	for i := 0; i < 5; i++ {
@@ -189,21 +189,85 @@ func TestAuthenticate_CacheExpires(t *testing.T) {
 	}, "", &calls)
 	defer hydra.Close()
 
+	// Use a wide sleep/TTL ratio (10× rather than 2.5×) to keep this
+	// test stable under CI scheduling jitter — `time.Sleep` guarantees
+	// AT LEAST the given duration, and noisy CIs can stretch a 50ms
+	// sleep enough to race a 20ms TTL if they're too close together.
 	ext := newExtension(&Config{
 		IntrospectionEndpoint: hydra.URL,
-		CacheTTL:              20 * time.Millisecond,
-		CacheMaxEntries:       100,
+		CacheTTL:              durPtr(20 * time.Millisecond),
+		CacheMaxEntries:       intPtr(100),
 	}, zaptest.NewLogger(t))
 
 	_, _ = ext.Authenticate(context.Background(), map[string][]string{
 		"Authorization": {"Bearer ttl-token"},
 	})
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	_, _ = ext.Authenticate(context.Background(), map[string][]string{
 		"Authorization": {"Bearer ttl-token"},
 	})
 	if got := atomic.LoadInt32(&calls); got != 2 {
 		t.Errorf("expected 2 introspection calls after TTL expiry, got %d", got)
+	}
+}
+
+// TestAuthenticate_CacheRespectsTokenExp confirms that when a token's
+// `exp` claim is sooner than the configured CacheTTL, we honor the
+// token's expiry — not the TTL. Without this, a token that Hydra would
+// reject on re-check could keep being served from cache.
+func TestAuthenticate_CacheRespectsTokenExp(t *testing.T) {
+	var calls int32
+	// Token expires in 30ms (now + 30ms rounded to whole seconds won't
+	// work because Exp is unix seconds). Use a past-boundary trick:
+	// set exp = now+1 so the next read is on the verge; sleep 1.1s;
+	// the cache must evict on the second read even though CacheTTL is
+	// 1 minute.
+	tokenExp := time.Now().Add(1 * time.Second).Unix()
+	hydra := newMockHydra(t, map[string]introspectionResponse{
+		"short-lived": {Sub: "agent-s", Exp: tokenExp},
+	}, "", &calls)
+	defer hydra.Close()
+
+	ext := newExtension(&Config{
+		IntrospectionEndpoint: hydra.URL,
+		CacheTTL:              durPtr(1 * time.Minute),
+		CacheMaxEntries:       intPtr(100),
+	}, zaptest.NewLogger(t))
+
+	_, _ = ext.Authenticate(context.Background(), map[string][]string{
+		"Authorization": {"Bearer short-lived"},
+	})
+	// Past the token's exp but well within CacheTTL.
+	time.Sleep(1100 * time.Millisecond)
+	_, _ = ext.Authenticate(context.Background(), map[string][]string{
+		"Authorization": {"Bearer short-lived"},
+	})
+	if got := atomic.LoadInt32(&calls); got != 2 {
+		t.Errorf("expected 2 introspection calls (cache must honor exp), got %d", got)
+	}
+}
+
+// TestAuthenticate_CacheDisabled confirms that CacheTTL=0 makes every
+// request introspect fresh — no caching at all.
+func TestAuthenticate_CacheDisabled(t *testing.T) {
+	var calls int32
+	hydra := newMockHydra(t, map[string]introspectionResponse{
+		"no-cache-token": {Sub: "agent-n"},
+	}, "", &calls)
+	defer hydra.Close()
+
+	ext := newExtension(&Config{
+		IntrospectionEndpoint: hydra.URL,
+		CacheTTL:              durPtr(0),
+	}, zaptest.NewLogger(t))
+
+	for i := 0; i < 3; i++ {
+		_, _ = ext.Authenticate(context.Background(), map[string][]string{
+			"Authorization": {"Bearer no-cache-token"},
+		})
+	}
+	if got := atomic.LoadInt32(&calls); got != 3 {
+		t.Errorf("expected 3 introspection calls (cache disabled), got %d", got)
 	}
 }
 

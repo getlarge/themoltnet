@@ -65,7 +65,7 @@ func newExtension(cfg *Config, logger *zap.Logger) *oryAuth {
 			// keeps failing-closed behavior snappy when Hydra is dead.
 			Timeout: 5 * time.Second,
 		},
-		cache: newTokenCache(cfg.CacheMaxEntries),
+		cache: newTokenCache(cfg.effectiveCacheMaxEntries()),
 	}
 }
 
@@ -77,7 +77,7 @@ func (o *oryAuth) Start(_ context.Context, _ component.Host) error {
 		zap.String("introspection_endpoint", o.cfg.IntrospectionEndpoint),
 		zap.String("auth_type", o.cfg.IntrospectionAuth.Type),
 		zap.Strings("required_scopes", o.cfg.RequiredScopes),
-		zap.Duration("cache_ttl", o.cfg.CacheTTL),
+		zap.Duration("cache_ttl", o.cfg.effectiveCacheTTL()),
 	)
 	return nil
 }
@@ -101,8 +101,8 @@ func (o *oryAuth) Authenticate(
 		return ctx, err
 	}
 
-	// Fast path: recent successful introspection within TTL.
-	if cached, ok := o.cache.get(token, o.cfg.CacheTTL); ok {
+	// Fast path: recent successful introspection within its cache window.
+	if cached, ok := o.cache.get(token); ok {
 		return enrichContext(ctx, cached), nil
 	}
 
@@ -122,11 +122,13 @@ func (o *oryAuth) Authenticate(
 		return ctx, err
 	}
 
-	// Only cache if TTL > 0. Respect the token's own exp if it's
-	// sooner than our configured TTL — there's no point caching past
-	// the point where Hydra would reject it anyway.
-	if o.cfg.CacheTTL > 0 {
-		o.cache.set(token, resp)
+	// Cache unless disabled (TTL == 0). The cache's set() respects both
+	// the configured TTL and the token's own `exp` claim — whichever
+	// comes first — so we never return an already-expired token from the
+	// fast path.
+	ttl := o.cfg.effectiveCacheTTL()
+	if ttl > 0 {
+		o.cache.set(token, resp, ttl)
 	}
 
 	return enrichContext(ctx, resp), nil
@@ -292,9 +294,17 @@ var (
 	_ component.Component  = (*oryAuth)(nil)
 )
 
-// tokenCache is a tiny FIFO-ish TTL cache. Nothing fancy — we don't
-// need LRU precision for this workload (token churn is low, and if we
-// evict a hot token we just do one extra introspection call).
+// tokenCache is a bounded FIFO-ish TTL cache keyed by raw bearer token.
+//
+// Entries store an absolute `expiresAt` rather than an insertion time so
+// we can cap each entry's lifetime by the *min* of (configured TTL,
+// token's own `exp`). Without that, an accepted token could stay in the
+// cache for up to CacheTTL past the point where Hydra would have
+// rejected it.
+//
+// Eviction is insertion-order FIFO — we don't need LRU precision
+// (evicting a hot token just triggers one extra introspection call).
+// A `max` of 0 means unbounded.
 type tokenCache struct {
 	mu      sync.Mutex
 	entries map[string]cacheEntry
@@ -303,8 +313,8 @@ type tokenCache struct {
 }
 
 type cacheEntry struct {
-	resp     *introspectionResponse
-	insertAt time.Time
+	resp      *introspectionResponse
+	expiresAt time.Time
 }
 
 func newTokenCache(max int) *tokenCache {
@@ -314,32 +324,61 @@ func newTokenCache(max int) *tokenCache {
 	}
 }
 
-func (c *tokenCache) get(token string, ttl time.Duration) (*introspectionResponse, bool) {
+// get returns the cached response if still within its entry-level expiry
+// window. Expired entries are evicted lazily on read (keyed delete — the
+// `order` slice is compacted during the next set()'s eviction pass).
+func (c *tokenCache) get(token string) (*introspectionResponse, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	entry, ok := c.entries[token]
 	if !ok {
 		return nil, false
 	}
-	if time.Since(entry.insertAt) > ttl {
+	if time.Now().After(entry.expiresAt) {
 		delete(c.entries, token)
 		return nil, false
 	}
 	return entry.resp, true
 }
 
-func (c *tokenCache) set(token string, resp *introspectionResponse) {
+// set stores an entry with an expiry = min(ttl, time-until-token-exp).
+// Callers pass the configured TTL; we reconcile it with the token's
+// own `exp` claim (if present) so we never cache past what Hydra would
+// accept on re-check.
+func (c *tokenCache) set(token string, resp *introspectionResponse, ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	expiresAt := time.Now().Add(ttl)
+	if resp.Exp > 0 {
+		tokenExp := time.Unix(resp.Exp, 0)
+		if tokenExp.Before(expiresAt) {
+			expiresAt = tokenExp
+		}
+	}
+
 	if _, exists := c.entries[token]; !exists {
 		c.order = append(c.order, token)
 	}
-	c.entries[token] = cacheEntry{resp: resp, insertAt: time.Now()}
-	// Trim oldest entries when over capacity. FIFO-ish — we accept
-	// that a recently-accessed-but-not-re-inserted token can be evicted.
-	for len(c.order) > c.max {
-		old := c.order[0]
-		c.order = c.order[1:]
-		delete(c.entries, old)
+	c.entries[token] = cacheEntry{resp: resp, expiresAt: expiresAt}
+
+	// Compact stale `order` references left behind by lazy get()-time
+	// eviction, then trim oldest entries when over capacity. Compacting
+	// here (rather than every read) amortizes the cost across writes.
+	// max == 0 means unbounded — skip eviction entirely.
+	if c.max > 0 {
+		compacted := c.order[:0]
+		for _, key := range c.order {
+			if _, present := c.entries[key]; present {
+				compacted = append(compacted, key)
+			}
+		}
+		c.order = compacted
+
+		for len(c.order) > c.max {
+			old := c.order[0]
+			c.order = c.order[1:]
+			delete(c.entries, old)
+		}
 	}
 }

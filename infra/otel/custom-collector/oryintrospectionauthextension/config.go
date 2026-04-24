@@ -53,15 +53,16 @@ type Config struct {
 	RequiredScopes []string `mapstructure:"required_scopes"`
 
 	// CacheTTL is how long a successful introspection result is cached
-	// keyed by token value. Set to 0 to disable caching (not recommended
-	// — each OTLP request would trigger an introspection round-trip).
-	// Default: 30s.
-	CacheTTL time.Duration `mapstructure:"cache_ttl"`
+	// keyed by token value. Pointer so we can distinguish "unset"
+	// (apply the 30s default) from "explicitly 0" (disable caching —
+	// every OTLP request triggers a fresh introspection).
+	CacheTTL *time.Duration `mapstructure:"cache_ttl"`
 
 	// CacheMaxEntries caps the in-memory cache size to prevent unbounded
-	// growth under token churn. Older entries are evicted when full.
-	// Default: 10000.
-	CacheMaxEntries int `mapstructure:"cache_max_entries"`
+	// growth under token churn. Pointer so we can distinguish "unset"
+	// (apply the 10000 default) from "explicitly 0" (unbounded cache —
+	// use with care).
+	CacheMaxEntries *int `mapstructure:"cache_max_entries"`
 }
 
 // IntrospectionAuthConfig is a tagged union describing how the extension
@@ -139,10 +140,10 @@ func (c *Config) Validate() error {
 		return fmt.Errorf(`introspection_auth.type must be "bearer", "basic", or "none"; got %q`, c.IntrospectionAuth.Type)
 	}
 
-	if c.CacheTTL < 0 {
+	if c.CacheTTL != nil && *c.CacheTTL < 0 {
 		return errors.New("cache_ttl must be non-negative")
 	}
-	if c.CacheMaxEntries < 0 {
+	if c.CacheMaxEntries != nil && *c.CacheMaxEntries < 0 {
 		return errors.New("cache_max_entries must be non-negative")
 	}
 
@@ -151,11 +152,31 @@ func (c *Config) Validate() error {
 
 // withDefaults applies default values for optional fields. Called from
 // the factory after Validate() so defaults don't mask validation errors.
+// Only fills in defaults for fields left UNSET (nil) — an explicit zero
+// is a valid operator choice and must be preserved.
 func (c *Config) withDefaults() {
-	if c.CacheTTL == 0 {
-		c.CacheTTL = 30 * time.Second
+	if c.CacheTTL == nil {
+		d := 30 * time.Second
+		c.CacheTTL = &d
 	}
-	if c.CacheMaxEntries == 0 {
-		c.CacheMaxEntries = 10000
+	if c.CacheMaxEntries == nil {
+		d := 10000
+		c.CacheMaxEntries = &d
 	}
+}
+
+// effectiveCacheTTL returns the resolved TTL (never nil after withDefaults).
+func (c *Config) effectiveCacheTTL() time.Duration {
+	if c.CacheTTL == nil {
+		return 30 * time.Second
+	}
+	return *c.CacheTTL
+}
+
+// effectiveCacheMaxEntries returns the resolved max entries.
+func (c *Config) effectiveCacheMaxEntries() int {
+	if c.CacheMaxEntries == nil {
+		return 10000
+	}
+	return *c.CacheMaxEntries
 }

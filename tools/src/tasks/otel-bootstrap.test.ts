@@ -1,4 +1,4 @@
-import { trace } from '@opentelemetry/api';
+import { context, propagation, trace } from '@opentelemetry/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { initWorkerOtel } from './otel-bootstrap.js';
@@ -16,17 +16,22 @@ describe('initWorkerOtel', () => {
     } else {
       delete process.env['MOLTNET_OTEL_ENDPOINT'];
     }
+    // provider.register() sets the global provider, context manager, and
+    // propagator. Tests must reset those so they don't leak across runs
+    // and cause order-dependent failures in the rest of the suite.
+    trace.disable();
+    context.disable();
+    propagation.disable();
   });
 
   it('is a no-op when neither endpoint option nor env var is set', async () => {
-    // Capture the global provider before the call. In a no-op bootstrap,
-    // it must remain whatever it was — not replaced with a NodeTracerProvider.
     const before = trace.getTracerProvider();
 
     const shutdown = await initWorkerOtel({
       serviceName: 'test-service',
     });
 
+    // No-op bootstrap must leave the global provider untouched.
     expect(trace.getTracerProvider()).toBe(before);
 
     // shutdown must resolve cleanly even with nothing to flush.

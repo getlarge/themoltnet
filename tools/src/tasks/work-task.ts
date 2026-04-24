@@ -175,11 +175,16 @@ async function main() {
 
     console.log('\n[done] TaskOutput:');
     console.log(JSON.stringify(output, null, 2));
-    if (output.status !== 'completed') process.exit(1);
+    // Set the exit code instead of calling process.exit(1) here —
+    // process.exit() terminates the process immediately at the OS level
+    // without unwinding the JS stack, which would SKIP the finally block
+    // below and drop buffered spans from the BatchSpanProcessor. We exit
+    // after shutdown runs, not before.
+    if (output.status !== 'completed') process.exitCode = 1;
   } finally {
     // Drain pending span batches before the process exits so the final
-    // span of the task (invoke_agent end, heartbeat errors, etc.) isn't
-    // dropped on the floor when `process.exit()` runs.
+    // spans of the task (invoke_agent end, heartbeat errors, etc.) reach
+    // the collector. Must run to completion even on failure.
     await otelShutdown();
   }
 }

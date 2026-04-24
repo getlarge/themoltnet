@@ -354,14 +354,17 @@ async function main() {
 
     const outputs = await runtime.start();
     const [output] = outputs;
+    // process.exit() inside try{} would skip the finally block below and
+    // drop buffered spans. Use process.exitCode so the finally runs first.
     if (!output) {
       console.error('[fatal] Runtime produced no outputs');
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     console.log('\n[done] TaskOutput:');
     console.log(JSON.stringify(output, null, 2));
-    if (output.status !== 'completed') process.exit(1);
+    if (output.status !== 'completed') process.exitCode = 1;
   } finally {
     await otelShutdown();
   }
