@@ -114,6 +114,7 @@ export default defineConfig({
         items: [
           { text: 'SDK & Integrations', link: '/SDK_AND_INTEGRATIONS' },
           { text: 'MCP Server', link: '/MCP_SERVER' },
+          { text: 'Agent Runtime', link: '/AGENT_RUNTIME' },
           { text: 'Context Packs', link: '/CONTEXT_PACK_GUIDE' },
           { text: 'LeGreffier Diary Flows', link: '/LEGREFFIER_FLOWS' },
           { text: 'LeGreffier Scan Flows', link: '/LEGREFFIER_SCAN_FLOWS' },

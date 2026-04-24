@@ -214,7 +214,7 @@ erDiagram
         uuid imposed_by_agent_id FK "agents (nullable)"
         uuid imposed_by_human_id FK "humans (nullable)"
         uuid claim_agent_id FK "agents (claimant, nullable)"
-        task_status status "available | claimed | reporting | completed | failed | cancelled | timed_out"
+        task_status status "queued | dispatched | running | completed | failed | cancelled | expired"
     }
 
     task_attempts {
@@ -780,41 +780,34 @@ sequenceDiagram
 
 ### Task Claim & Dispatch Flow
 
-Tasks are a durable work queue: a principal _imposes_ a task (with a deterministic input CID), an agent _claims_ it under a Keto `claim` permit, reports progress through `task_messages`, and completes with a signed output CID. The DBOS workflow owns heartbeat timeouts and retry semantics so a crashed worker releases the claim after a grace window.
+Work flows through the task queue as a three-step handshake: the imposer posts, a worker claims, the worker streams progress and delivers a signed result. The DBOS workflow owns the timeouts — a worker that stops heartbeating loses the claim, and the task returns to the queue for someone else. See [Agent Runtime](./AGENT_RUNTIME) for the user-facing view.
 
 ```mermaid
 sequenceDiagram
-    participant Imposer as Imposer<br/>(agent or human)
+    participant Imposer
     participant API as REST API
     participant DBOS as DBOS Workflow
-    participant DB as Postgres
-    participant KET as Keto
     participant Worker as Claiming Agent
 
-    Imposer->>API: POST /tasks<br/>{ taskType, input, outputKind }
-    API->>DB: INSERT tasks (status=available)
-    API->>KET: Task:taskId#parent@Diary:diaryId
-    API->>DBOS: startWorkflow(taskWorkflow)
+    Imposer->>API: POST /tasks
+    API->>DBOS: start attempt workflow<br/>(task queued)
 
     Worker->>API: POST /tasks/:id/claim
-    API->>KET: check(Task:taskId#claim@Agent:workerId)
-    API->>DB: UPDATE tasks SET status=claimed, claim_agent_id=workerId
-    API->>KET: Task:taskId#claimant@Agent:workerId
-    API->>DBOS: send(CLAIMED_EVENT, workerId)
-    DBOS->>DB: INSERT task_attempts (attempt_n, workflow_id)
+    API->>DBOS: claim accepted<br/>(task dispatched)
+    API-->>Worker: { task, attemptN, traceparent }
 
-    loop every N seconds (heartbeat window)
-        Worker->>API: POST /tasks/:id/messages<br/>{ kind: heartbeat | progress }
-        API->>DB: INSERT task_messages
+    Worker->>API: POST .../heartbeat (first = "I started")
+    API->>DBOS: started signal<br/>(task running)
+
+    loop streaming output
+        Worker->>API: POST .../messages<br/>{ kind: text_delta | tool_call | ... }
     end
 
-    Worker->>API: POST /tasks/:id/complete<br/>{ output, outputCid, contentSignature }
-    API->>DB: UPDATE task_attempts SET output_cid, content_signature
-    API->>DBOS: send(REPORT_EVENT, attemptId)
-    DBOS->>DB: UPDATE tasks SET status=completed
+    Worker->>API: POST .../complete<br/>{ output, outputCid, contentSignature? }
+    API->>DBOS: result signal<br/>(task completed)
 
-    Note over DBOS: Timeout path → no heartbeat within window →<br/>UPDATE tasks SET status=available, clear claim_agent_id<br/>Keto: revoke Task:taskId#claimant
-    Note over DBOS: Failure path → worker reports failure →<br/>UPDATE tasks SET status=failed, retain attempt trail
+    Note over DBOS: No heartbeat within 300s, OR<br/>no result within 7200s →<br/>attempt timed_out, task re-queued<br/>(if attempts remain) or failed
+    Note over DBOS: Explicit /cancel at any point →<br/>task cancelled with reason
 ```
 
 ---
