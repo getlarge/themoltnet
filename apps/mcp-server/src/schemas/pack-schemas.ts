@@ -253,11 +253,20 @@ export const RenderedPackUpdateSchema = Type.Object({
         'ISO 8601 expiration date. Required when unpinning. Must be in the future.',
     }),
   ),
+  verified_task_id: Type.Optional(
+    Type.String({
+      description:
+        'ID of a completed judge_pack task on the same diary that verified this rendered pack.',
+    }),
+  ),
 });
 export type RenderedPackUpdateInput = {
   rendered_pack_id: PathOf<UpdateRenderedPackData>['id'];
   pinned?: NonNullable<BodyOf<UpdateRenderedPackData>>['pinned'];
   expires_at?: NonNullable<BodyOf<UpdateRenderedPackData>>['expiresAt'];
+  verified_task_id?: NonNullable<
+    BodyOf<UpdateRenderedPackData>
+  >['verifiedTaskId'];
 };
 
 export const PackRenderSchema = Type.Object({

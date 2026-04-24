@@ -804,6 +804,9 @@ export const renderedPacks = pgTable(
     index('rendered_packs_expires_at_idx')
       .on(table.expiresAt)
       .where(sql`pinned = false`),
+    index('rendered_packs_verified_task_idx')
+      .on(table.verifiedTaskId)
+      .where(sql`verified_task_id IS NOT NULL`),
   ],
 );
 

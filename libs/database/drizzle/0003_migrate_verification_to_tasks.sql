@@ -3,4 +3,5 @@ ALTER TABLE "rendered_pack_verifications" DISABLE ROW LEVEL SECURITY;--> stateme
 DROP TABLE "rendered_pack_attestations" CASCADE;--> statement-breakpoint
 DROP TABLE "rendered_pack_verifications" CASCADE;--> statement-breakpoint
 ALTER TABLE "rendered_packs" ADD COLUMN "verified_task_id" uuid;--> statement-breakpoint
-ALTER TABLE "rendered_packs" ADD CONSTRAINT "rendered_packs_verified_task_id_tasks_id_fk" FOREIGN KEY ("verified_task_id") REFERENCES "public"."tasks"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "rendered_packs" ADD CONSTRAINT "rendered_packs_verified_task_id_tasks_id_fk" FOREIGN KEY ("verified_task_id") REFERENCES "public"."tasks"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "rendered_packs_verified_task_idx" ON "rendered_packs" ("verified_task_id") WHERE "verified_task_id" IS NOT NULL;

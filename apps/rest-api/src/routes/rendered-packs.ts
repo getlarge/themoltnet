@@ -393,8 +393,24 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
             'verifiedTaskId must reference a judge_pack task',
           );
         }
-        const taskInput = task.input as { renderedPackId?: string };
-        if (taskInput.renderedPackId !== rendered.id) {
+        if (task.diaryId !== rendered.diaryId) {
+          throw createProblem(
+            'validation-failed',
+            'Task must belong to the same diary as this rendered pack',
+          );
+        }
+        const taskInput = task.input;
+        if (
+          typeof taskInput !== 'object' ||
+          taskInput === null ||
+          Array.isArray(taskInput)
+        ) {
+          throw createProblem('validation-failed', 'Task input is malformed');
+        }
+        const inputPackId = (taskInput as Record<string, unknown>)[
+          'renderedPackId'
+        ];
+        if (inputPackId !== rendered.id) {
           throw createProblem(
             'validation-failed',
             'Task does not reference this rendered pack',
@@ -409,17 +425,24 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
             'Task has no completed attempt',
           );
         }
-        const updated = await fastify.renderedPackRepository.setVerifiedTask(
-          rendered.id,
-          verifiedTaskId,
-        );
-        if (!updated) {
+        const afterVerify =
+          await fastify.renderedPackRepository.setVerifiedTask(
+            rendered.id,
+            verifiedTaskId,
+          );
+        if (!afterVerify) {
           throw createProblem(
             'not-found',
             'Rendered pack not found after update',
           );
         }
-        return updated;
+        // If only verifiedTaskId was sent, return now; otherwise fall through
+        // to process pinned / expiresAt on the updated state.
+        if (pinned === undefined && expiresAt === undefined) {
+          return afterVerify;
+        }
+        // Refresh rendered so the pin/expiry logic below sees the latest state.
+        Object.assign(rendered, afterVerify);
       }
 
       if (pinned === false && !expiresAt) {
