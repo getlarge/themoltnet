@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.95.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.94.0...sdk-v0.95.0) (2026-04-24)
+
+
+### Features
+
+* **database,rest-api:** migrate rendered pack verification to Tasks API ([455fd04](https://github.com/getlarge/themoltnet/commit/455fd041f839d351d0bc3b3986ab805f529a0a33))
+
+
+### Bug Fixes
+
+* **sdk:** remove verifyRendered/claimVerification/submitVerification already dropped in main ([fcfcd1d](https://github.com/getlarge/themoltnet/commit/fcfcd1ddc7e1265b3f838b0e8cb8534e68b60933))
+* **tasks:** heartbeat on open, timed_out→409, traceparent propagation ([aaf524f](https://github.com/getlarge/themoltnet/commit/aaf524fe88a08233860bf59f72407522b38fde5a))
+* **tasks:** map timed_out to 409, return traceparent on claim, propagate trace in SDK ([8d9e006](https://github.com/getlarge/themoltnet/commit/8d9e006d34cca117038cf5b7005a69a092575c52))
+
 ## [0.94.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.93.0...sdk-v0.94.0) (2026-04-23)
 
 
