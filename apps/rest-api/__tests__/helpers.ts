@@ -19,7 +19,6 @@ import { buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
-  AttestationRepository,
   CryptoService,
   DataSource,
   DiaryEntryRepository,
@@ -34,7 +33,6 @@ import type {
   TaskService,
   TeamRepository,
   TransactionRunner,
-  VerificationService,
   VoucherRepository,
 } from '../src/types.js';
 
@@ -196,12 +194,6 @@ export interface MockServices {
     unpin: ReturnType<typeof vi.fn>;
     updateExpiry: ReturnType<typeof vi.fn>;
   };
-  attestationRepository: {
-    [K in keyof AttestationRepository]: ReturnType<typeof vi.fn>;
-  };
-  verificationService: {
-    [K in keyof VerificationService]: ReturnType<typeof vi.fn>;
-  };
   contextPackService: {
     createCustomPack: ReturnType<typeof vi.fn>;
     createRenderedPack: ReturnType<typeof vi.fn>;
@@ -301,16 +293,7 @@ export function createMockServices(): MockServices {
       pin: vi.fn(),
       unpin: vi.fn(),
       updateExpiry: vi.fn(),
-    },
-    attestationRepository: {
-      create: vi.fn(),
-      findByRenderedPackId: vi.fn().mockResolvedValue([]),
-      findBestByRenderedPackId: vi.fn().mockResolvedValue(null),
-    },
-    verificationService: {
-      createVerification: vi.fn(),
-      claim: vi.fn(),
-      submit: vi.fn(),
+      setVerifiedTask: vi.fn(),
     },
     contextPackService: {
       createCustomPack: vi.fn(),
@@ -616,12 +599,8 @@ export async function createTestApp(
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
     contextPackRepository: mocks.contextPackRepository as never,
     renderedPackRepository: mocks.renderedPackRepository as never,
-    attestationRepository:
-      mocks.attestationRepository as unknown as AttestationRepository,
     entryRelationRepository: mocks.entryRelationRepository as never,
     contextPackService: serviceProxy as never,
-    verificationService:
-      mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     humanRepository: mocks.humanRepository as unknown as HumanRepository,
