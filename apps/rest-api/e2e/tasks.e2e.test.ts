@@ -549,6 +549,62 @@ describe('Tasks API', () => {
       expect(after![0].kind).toBe('text_delta');
       expect(after![0].payload).toEqual({ text: 'done' });
     });
+
+    // Regression test for issue #921: concurrent appendMessages calls for the
+    // same (taskId, attemptN) race on seq generation. Under READ COMMITTED two
+    // in-flight statements both read MAX(seq)=N and both INSERT seq=N+1,
+    // violating the (task_id, attempt_n, seq) primary key and surfacing as 500s.
+    // All calls must succeed and the resulting seqs must form a contiguous
+    // monotonically-increasing range with no duplicates.
+    it('handles N concurrent appendMessages without PK collisions', async () => {
+      // Fresh task + attempt so we don't have to reason about pre-existing
+      // messages from sibling tests in this describe block.
+      const { data: task } = await impose();
+      const concurrentTaskId = task!.id;
+      const { data: claimed } = await claim(concurrentTaskId);
+      const concurrentAttemptN = claimed!.attempt.attemptN;
+
+      const CONCURRENCY = 20;
+      const results = await Promise.all(
+        Array.from({ length: CONCURRENCY }, (_, i) =>
+          appendTaskMessages({
+            client,
+            auth: () => claimer.accessToken,
+            path: { id: concurrentTaskId, n: concurrentAttemptN },
+            body: {
+              messages: [
+                {
+                  kind: 'text_delta',
+                  payload: { index: i, text: `chunk-${i}` },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+
+      const statuses = results.map((r) => r.response.status);
+      expect(
+        statuses,
+        `expected all ${CONCURRENCY} concurrent appends to return 200, got ${JSON.stringify(statuses)}`,
+      ).toEqual(Array.from({ length: CONCURRENCY }, () => 200));
+
+      const { data: messages, error } = await listTaskMessages({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: concurrentTaskId, n: concurrentAttemptN },
+        query: {},
+      });
+      expect(error).toBeUndefined();
+      expect(messages!.length).toBe(CONCURRENCY);
+
+      const seqs = messages!.map((m) => m.seq).sort((a, b) => a - b);
+      const uniqueSeqs = new Set(seqs);
+      expect(uniqueSeqs.size).toBe(CONCURRENCY);
+      // seq is per-(task,attempt) dense and zero-based, so a brand-new attempt
+      // with N appends must produce exactly 0..N-1.
+      expect(seqs).toEqual(Array.from({ length: CONCURRENCY }, (_, i) => i));
+    });
   });
 
   // ── Concurrent claim (CAS gate) ────────────────────────────────────────────

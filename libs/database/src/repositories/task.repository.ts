@@ -12,7 +12,7 @@ import {
   taskMessages,
   tasks,
 } from '../schema.js';
-import { getExecutor } from '../transaction-context.js';
+import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 
 const PAGE_SIZE = 50;
 
@@ -199,15 +199,19 @@ export function createTaskRepository(db: Database) {
       messages: Omit<NewTaskMessage, 'seq'>[],
     ): Promise<void> {
       if (messages.length === 0) return;
-      // Seq numbers are generated atomically inside the DB to avoid the
-      // read-then-write race: two concurrent callers could read the same
-      // maxSeq and then try to insert rows with overlapping seq values.
+      // Seq numbers must be dense and monotonic per (task_id, attempt_n).
+      // The naive `INSERT ... SELECT MAX(seq) + ROW_NUMBER()` pattern races
+      // under READ COMMITTED: two concurrent statements both observe the
+      // same MAX(seq) (they can't see each other's uncommitted rows) and
+      // both compute the same seq range, colliding on the primary key
+      // (task_id, attempt_n, seq).
       //
-      // Strategy: INSERT ... SELECT from a VALUES list joined with a
-      // ROW_NUMBER() window function, offset by COALESCE(MAX(seq), -1).
-      // The correlated subquery for MAX(seq) is evaluated once per statement
-      // against the committed snapshot, so concurrent inserts get disjoint
-      // seq ranges (assuming a UNIQUE constraint on (task_id, attempt_n, seq)).
+      // Strategy: take a transactional advisory lock scoped to the
+      // (task_id, attempt_n) pair. The lock auto-releases on commit/rollback,
+      // serialises only writers for this specific attempt, and leaves
+      // readers and other tasks/attempts unaffected. See entry
+      // 6973382c-202a-4659-b148-345601ff6e84 for the same pattern used on
+      // createDiaryGrant.
       const taskId = messages[0].taskId;
       const attemptN = messages[0].attemptN;
 
@@ -219,19 +223,42 @@ export function createTaskRepository(db: Database) {
         )
         .reduce((acc, cur) => sql`${acc}, ${cur}`);
 
-      await getExecutor(db).execute(sql`
-        INSERT INTO task_messages (task_id, attempt_n, seq, timestamp, kind, payload)
-        SELECT
-          ${taskId}::uuid,
-          ${attemptN}::smallint,
-          (SELECT COALESCE(MAX(seq), -1) FROM task_messages
-            WHERE task_id = ${taskId}::uuid AND attempt_n = ${attemptN}::smallint)
-            + ROW_NUMBER() OVER (ORDER BY ts),
-          ts,
-          kind,
-          payload
-        FROM (VALUES ${valuesTuples}) AS v(kind, payload, ts)
-      `);
+      // hashtextextended(text, bigint) → bigint gives a stable signed int64
+      // derived from (task_id, attempt_n). Postgres only exposes the
+      // single-arg bigint overload of pg_advisory_xact_lock (the two-arg
+      // form is int4 + int4, too narrow), so we fold attempt_n into the
+      // hash's second argument. Different attempts of the same task get
+      // disjoint lock keys and do NOT contend with each other.
+      const lockAndInsert = async (exec: Database) => {
+        await exec.execute(
+          sql`SELECT pg_advisory_xact_lock(hashtextextended(${taskId}::text, ${attemptN}::bigint))`,
+        );
+        await exec.execute(sql`
+          INSERT INTO task_messages (task_id, attempt_n, seq, timestamp, kind, payload)
+          SELECT
+            ${taskId}::uuid,
+            ${attemptN}::smallint,
+            (SELECT COALESCE(MAX(seq), -1) FROM task_messages
+              WHERE task_id = ${taskId}::uuid AND attempt_n = ${attemptN}::smallint)
+              + ROW_NUMBER() OVER (ORDER BY ts),
+            ts,
+            kind,
+            payload
+          FROM (VALUES ${valuesTuples}) AS v(kind, payload, ts)
+        `);
+      };
+
+      // pg_advisory_xact_lock needs a transaction so the lock auto-releases
+      // on commit/rollback. If an outer TransactionRunner-managed tx is
+      // already active (DBOS or Drizzle), ride it — its executor is stored
+      // in AsyncLocalStorage and getExecutor(db) returns the tx client.
+      // Otherwise open a fresh db.transaction so the lock has a tx to attach
+      // to and doesn't leak past the statement.
+      if (hasActiveTransaction()) {
+        await lockAndInsert(getExecutor(db));
+      } else {
+        await db.transaction((tx) => lockAndInsert(tx as unknown as Database));
+      }
     },
 
     async listMessages(
