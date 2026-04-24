@@ -527,7 +527,25 @@ type ClaimTaskNotFound ProblemDetails
 func (*ClaimTaskNotFound) claimTaskRes() {}
 
 type ClaimTaskReq struct {
-	LeaseTtlSec OptInt `json:"leaseTtlSec"`
+	ExecutorFingerprint OptString                       `json:"executorFingerprint"`
+	ExecutorManifest    OptClaimTaskReqExecutorManifest `json:"executorManifest"`
+	ExecutorSignature   OptString                       `json:"executorSignature"`
+	LeaseTtlSec         OptInt                          `json:"leaseTtlSec"`
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *ClaimTaskReq) GetExecutorFingerprint() OptString {
+	return s.ExecutorFingerprint
+}
+
+// GetExecutorManifest returns the value of ExecutorManifest.
+func (s *ClaimTaskReq) GetExecutorManifest() OptClaimTaskReqExecutorManifest {
+	return s.ExecutorManifest
+}
+
+// GetExecutorSignature returns the value of ExecutorSignature.
+func (s *ClaimTaskReq) GetExecutorSignature() OptString {
+	return s.ExecutorSignature
 }
 
 // GetLeaseTtlSec returns the value of LeaseTtlSec.
@@ -535,9 +553,35 @@ func (s *ClaimTaskReq) GetLeaseTtlSec() OptInt {
 	return s.LeaseTtlSec
 }
 
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *ClaimTaskReq) SetExecutorFingerprint(val OptString) {
+	s.ExecutorFingerprint = val
+}
+
+// SetExecutorManifest sets the value of ExecutorManifest.
+func (s *ClaimTaskReq) SetExecutorManifest(val OptClaimTaskReqExecutorManifest) {
+	s.ExecutorManifest = val
+}
+
+// SetExecutorSignature sets the value of ExecutorSignature.
+func (s *ClaimTaskReq) SetExecutorSignature(val OptString) {
+	s.ExecutorSignature = val
+}
+
 // SetLeaseTtlSec sets the value of LeaseTtlSec.
 func (s *ClaimTaskReq) SetLeaseTtlSec(val OptInt) {
 	s.LeaseTtlSec = val
+}
+
+type ClaimTaskReqExecutorManifest map[string]jx.Raw
+
+func (s *ClaimTaskReqExecutorManifest) init() ClaimTaskReqExecutorManifest {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
 }
 
 // Ref: #/components/schemas/ClaimTaskResponse
@@ -1299,15 +1343,33 @@ type CompleteTaskNotFound ProblemDetails
 func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
-	ContentSignature OptString             `json:"contentSignature"`
-	Output           CompleteTaskReqOutput `json:"output"`
-	OutputCid        string                `json:"outputCid"`
-	Usage            TaskUsage             `json:"usage"`
+	ContentSignature    OptString                          `json:"contentSignature"`
+	ExecutorFingerprint OptString                          `json:"executorFingerprint"`
+	ExecutorManifest    OptCompleteTaskReqExecutorManifest `json:"executorManifest"`
+	ExecutorSignature   OptString                          `json:"executorSignature"`
+	Output              CompleteTaskReqOutput              `json:"output"`
+	OutputCid           string                             `json:"outputCid"`
+	Usage               TaskUsage                          `json:"usage"`
 }
 
 // GetContentSignature returns the value of ContentSignature.
 func (s *CompleteTaskReq) GetContentSignature() OptString {
 	return s.ContentSignature
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *CompleteTaskReq) GetExecutorFingerprint() OptString {
+	return s.ExecutorFingerprint
+}
+
+// GetExecutorManifest returns the value of ExecutorManifest.
+func (s *CompleteTaskReq) GetExecutorManifest() OptCompleteTaskReqExecutorManifest {
+	return s.ExecutorManifest
+}
+
+// GetExecutorSignature returns the value of ExecutorSignature.
+func (s *CompleteTaskReq) GetExecutorSignature() OptString {
+	return s.ExecutorSignature
 }
 
 // GetOutput returns the value of Output.
@@ -1330,6 +1392,21 @@ func (s *CompleteTaskReq) SetContentSignature(val OptString) {
 	s.ContentSignature = val
 }
 
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *CompleteTaskReq) SetExecutorFingerprint(val OptString) {
+	s.ExecutorFingerprint = val
+}
+
+// SetExecutorManifest sets the value of ExecutorManifest.
+func (s *CompleteTaskReq) SetExecutorManifest(val OptCompleteTaskReqExecutorManifest) {
+	s.ExecutorManifest = val
+}
+
+// SetExecutorSignature sets the value of ExecutorSignature.
+func (s *CompleteTaskReq) SetExecutorSignature(val OptString) {
+	s.ExecutorSignature = val
+}
+
 // SetOutput sets the value of Output.
 func (s *CompleteTaskReq) SetOutput(val CompleteTaskReqOutput) {
 	s.Output = val
@@ -1343,6 +1420,17 @@ func (s *CompleteTaskReq) SetOutputCid(val string) {
 // SetUsage sets the value of Usage.
 func (s *CompleteTaskReq) SetUsage(val TaskUsage) {
 	s.Usage = val
+}
+
+type CompleteTaskReqExecutorManifest map[string]jx.Raw
+
+func (s *CompleteTaskReqExecutorManifest) init() CompleteTaskReqExecutorManifest {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
 }
 
 type CompleteTaskReqOutput map[string]jx.Raw
@@ -3210,15 +3298,16 @@ type CreateTaskForbidden ProblemDetails
 func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
-	CorrelationId OptUUID            `json:"correlationId"`
-	CriteriaCid   OptString          `json:"criteriaCid"`
-	DiaryId       uuid.UUID          `json:"diaryId"`
-	ExpiresInSec  OptInt             `json:"expiresInSec"`
-	Input         CreateTaskReqInput `json:"input"`
-	MaxAttempts   OptInt             `json:"maxAttempts"`
-	References    []TaskRef          `json:"references"`
-	TaskType      string             `json:"taskType"`
-	TeamId        uuid.UUID          `json:"teamId"`
+	CorrelationId              OptUUID               `json:"correlationId"`
+	CriteriaCid                OptString             `json:"criteriaCid"`
+	DiaryId                    uuid.UUID             `json:"diaryId"`
+	ExpiresInSec               OptInt                `json:"expiresInSec"`
+	Input                      CreateTaskReqInput    `json:"input"`
+	MaxAttempts                OptInt                `json:"maxAttempts"`
+	References                 []TaskRef             `json:"references"`
+	RequiredExecutorTrustLevel OptExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
+	TaskType                   string                `json:"taskType"`
+	TeamId                     uuid.UUID             `json:"teamId"`
 }
 
 // GetCorrelationId returns the value of CorrelationId.
@@ -3254,6 +3343,11 @@ func (s *CreateTaskReq) GetMaxAttempts() OptInt {
 // GetReferences returns the value of References.
 func (s *CreateTaskReq) GetReferences() []TaskRef {
 	return s.References
+}
+
+// GetRequiredExecutorTrustLevel returns the value of RequiredExecutorTrustLevel.
+func (s *CreateTaskReq) GetRequiredExecutorTrustLevel() OptExecutorTrustLevel {
+	return s.RequiredExecutorTrustLevel
 }
 
 // GetTaskType returns the value of TaskType.
@@ -3299,6 +3393,11 @@ func (s *CreateTaskReq) SetMaxAttempts(val OptInt) {
 // SetReferences sets the value of References.
 func (s *CreateTaskReq) SetReferences(val []TaskRef) {
 	s.References = val
+}
+
+// SetRequiredExecutorTrustLevel sets the value of RequiredExecutorTrustLevel.
+func (s *CreateTaskReq) SetRequiredExecutorTrustLevel(val OptExecutorTrustLevel) {
+	s.RequiredExecutorTrustLevel = val
 }
 
 // SetTaskType sets the value of TaskType.
@@ -7716,6 +7815,62 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
+
+// Ref: #/components/schemas/ExecutorTrustLevel
+type ExecutorTrustLevel string
+
+const (
+	ExecutorTrustLevelSelfDeclared        ExecutorTrustLevel = "selfDeclared"
+	ExecutorTrustLevelAgentSigned         ExecutorTrustLevel = "agentSigned"
+	ExecutorTrustLevelReleaseVerifiedTool ExecutorTrustLevel = "releaseVerifiedTool"
+	ExecutorTrustLevelSandboxAttested     ExecutorTrustLevel = "sandboxAttested"
+)
+
+// AllValues returns all ExecutorTrustLevel values.
+func (ExecutorTrustLevel) AllValues() []ExecutorTrustLevel {
+	return []ExecutorTrustLevel{
+		ExecutorTrustLevelSelfDeclared,
+		ExecutorTrustLevelAgentSigned,
+		ExecutorTrustLevelReleaseVerifiedTool,
+		ExecutorTrustLevelSandboxAttested,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ExecutorTrustLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case ExecutorTrustLevelSelfDeclared:
+		return []byte(s), nil
+	case ExecutorTrustLevelAgentSigned:
+		return []byte(s), nil
+	case ExecutorTrustLevelReleaseVerifiedTool:
+		return []byte(s), nil
+	case ExecutorTrustLevelSandboxAttested:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ExecutorTrustLevel) UnmarshalText(data []byte) error {
+	switch ExecutorTrustLevel(data) {
+	case ExecutorTrustLevelSelfDeclared:
+		*s = ExecutorTrustLevelSelfDeclared
+		return nil
+	case ExecutorTrustLevelAgentSigned:
+		*s = ExecutorTrustLevelAgentSigned
+		return nil
+	case ExecutorTrustLevelReleaseVerifiedTool:
+		*s = ExecutorTrustLevelReleaseVerifiedTool
+		return nil
+	case ExecutorTrustLevelSandboxAttested:
+		*s = ExecutorTrustLevelSandboxAttested
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/ExpandedPackEntry
 type ExpandedPackEntry struct {
@@ -12538,6 +12693,96 @@ func (o NilString) Or(d string) string {
 	return d
 }
 
+// NewNilTaskAttemptClaimedExecutorManifest returns new NilTaskAttemptClaimedExecutorManifest with value set to v.
+func NewNilTaskAttemptClaimedExecutorManifest(v TaskAttemptClaimedExecutorManifest) NilTaskAttemptClaimedExecutorManifest {
+	return NilTaskAttemptClaimedExecutorManifest{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptClaimedExecutorManifest is nullable TaskAttemptClaimedExecutorManifest.
+type NilTaskAttemptClaimedExecutorManifest struct {
+	Value TaskAttemptClaimedExecutorManifest
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptClaimedExecutorManifest) SetTo(v TaskAttemptClaimedExecutorManifest) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptClaimedExecutorManifest) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptClaimedExecutorManifest) SetToNull() {
+	o.Null = true
+	var v TaskAttemptClaimedExecutorManifest
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptClaimedExecutorManifest) Get() (v TaskAttemptClaimedExecutorManifest, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptClaimedExecutorManifest) Or(d TaskAttemptClaimedExecutorManifest) TaskAttemptClaimedExecutorManifest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilTaskAttemptCompletedExecutorManifest returns new NilTaskAttemptCompletedExecutorManifest with value set to v.
+func NewNilTaskAttemptCompletedExecutorManifest(v TaskAttemptCompletedExecutorManifest) NilTaskAttemptCompletedExecutorManifest {
+	return NilTaskAttemptCompletedExecutorManifest{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptCompletedExecutorManifest is nullable TaskAttemptCompletedExecutorManifest.
+type NilTaskAttemptCompletedExecutorManifest struct {
+	Value TaskAttemptCompletedExecutorManifest
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptCompletedExecutorManifest) SetTo(v TaskAttemptCompletedExecutorManifest) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptCompletedExecutorManifest) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptCompletedExecutorManifest) SetToNull() {
+	o.Null = true
+	var v TaskAttemptCompletedExecutorManifest
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptCompletedExecutorManifest) Get() (v TaskAttemptCompletedExecutorManifest, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptCompletedExecutorManifest) Or(d TaskAttemptCompletedExecutorManifest) TaskAttemptCompletedExecutorManifest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilTaskAttemptError returns new NilTaskAttemptError with value set to v.
 func NewNilTaskAttemptError(v TaskAttemptError) NilTaskAttemptError {
 	return NilTaskAttemptError{
@@ -12850,6 +13095,98 @@ func (o OptClaimTaskReq) Get() (v ClaimTaskReq, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptClaimTaskReq) Or(d ClaimTaskReq) ClaimTaskReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptClaimTaskReqExecutorManifest returns new OptClaimTaskReqExecutorManifest with value set to v.
+func NewOptClaimTaskReqExecutorManifest(v ClaimTaskReqExecutorManifest) OptClaimTaskReqExecutorManifest {
+	return OptClaimTaskReqExecutorManifest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptClaimTaskReqExecutorManifest is optional ClaimTaskReqExecutorManifest.
+type OptClaimTaskReqExecutorManifest struct {
+	Value ClaimTaskReqExecutorManifest
+	Set   bool
+}
+
+// IsSet returns true if OptClaimTaskReqExecutorManifest was set.
+func (o OptClaimTaskReqExecutorManifest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptClaimTaskReqExecutorManifest) Reset() {
+	var v ClaimTaskReqExecutorManifest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptClaimTaskReqExecutorManifest) SetTo(v ClaimTaskReqExecutorManifest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptClaimTaskReqExecutorManifest) Get() (v ClaimTaskReqExecutorManifest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptClaimTaskReqExecutorManifest) Or(d ClaimTaskReqExecutorManifest) ClaimTaskReqExecutorManifest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCompleteTaskReqExecutorManifest returns new OptCompleteTaskReqExecutorManifest with value set to v.
+func NewOptCompleteTaskReqExecutorManifest(v CompleteTaskReqExecutorManifest) OptCompleteTaskReqExecutorManifest {
+	return OptCompleteTaskReqExecutorManifest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCompleteTaskReqExecutorManifest is optional CompleteTaskReqExecutorManifest.
+type OptCompleteTaskReqExecutorManifest struct {
+	Value CompleteTaskReqExecutorManifest
+	Set   bool
+}
+
+// IsSet returns true if OptCompleteTaskReqExecutorManifest was set.
+func (o OptCompleteTaskReqExecutorManifest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCompleteTaskReqExecutorManifest) Reset() {
+	var v CompleteTaskReqExecutorManifest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCompleteTaskReqExecutorManifest) SetTo(v CompleteTaskReqExecutorManifest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCompleteTaskReqExecutorManifest) Get() (v CompleteTaskReqExecutorManifest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCompleteTaskReqExecutorManifest) Or(d CompleteTaskReqExecutorManifest) CompleteTaskReqExecutorManifest {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -13218,6 +13555,52 @@ func (o OptDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptExecutorTrustLevel returns new OptExecutorTrustLevel with value set to v.
+func NewOptExecutorTrustLevel(v ExecutorTrustLevel) OptExecutorTrustLevel {
+	return OptExecutorTrustLevel{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptExecutorTrustLevel is optional ExecutorTrustLevel.
+type OptExecutorTrustLevel struct {
+	Value ExecutorTrustLevel
+	Set   bool
+}
+
+// IsSet returns true if OptExecutorTrustLevel was set.
+func (o OptExecutorTrustLevel) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptExecutorTrustLevel) Reset() {
+	var v ExecutorTrustLevel
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptExecutorTrustLevel) SetTo(v ExecutorTrustLevel) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptExecutorTrustLevel) Get() (v ExecutorTrustLevel, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptExecutorTrustLevel) Or(d ExecutorTrustLevel) ExecutorTrustLevel {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -18776,28 +19159,29 @@ func (*Success) deleteDiaryRes()          {}
 
 // Ref: #/components/schemas/Task
 type Task struct {
-	AcceptedAttemptN   NilFloat64           `json:"acceptedAttemptN"`
-	CancelReason       NilString            `json:"cancelReason"`
-	CancelledByAgentId NilUUID              `json:"cancelledByAgentId"`
-	CancelledByHumanId NilUUID              `json:"cancelledByHumanId"`
-	CompletedAt        NilDateTime          `json:"completedAt"`
-	CorrelationId      NilUUID              `json:"correlationId"`
-	CriteriaCid        NilString            `json:"criteriaCid"`
-	DiaryId            NilUUID              `json:"diaryId"`
-	ExpiresAt          NilDateTime          `json:"expiresAt"`
-	ID                 uuid.UUID            `json:"id"`
-	ImposedByAgentId   NilUUID              `json:"imposedByAgentId"`
-	ImposedByHumanId   NilUUID              `json:"imposedByHumanId"`
-	Input              TaskInput            `json:"input"`
-	InputCid           string               `json:"inputCid"`
-	InputSchemaCid     string               `json:"inputSchemaCid"`
-	MaxAttempts        float64              `json:"maxAttempts"`
-	OutputKind         TaskOutputKind       `json:"outputKind"`
-	QueuedAt           time.Time            `json:"queuedAt"`
-	References         []TaskReferencesItem `json:"references"`
-	Status             TaskStatus           `json:"status"`
-	TaskType           string               `json:"taskType"`
-	TeamId             uuid.UUID            `json:"teamId"`
+	AcceptedAttemptN           NilFloat64                     `json:"acceptedAttemptN"`
+	CancelReason               NilString                      `json:"cancelReason"`
+	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
+	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
+	CompletedAt                NilDateTime                    `json:"completedAt"`
+	CorrelationId              NilUUID                        `json:"correlationId"`
+	CriteriaCid                NilString                      `json:"criteriaCid"`
+	DiaryId                    NilUUID                        `json:"diaryId"`
+	ExpiresAt                  NilDateTime                    `json:"expiresAt"`
+	ID                         uuid.UUID                      `json:"id"`
+	ImposedByAgentId           NilUUID                        `json:"imposedByAgentId"`
+	ImposedByHumanId           NilUUID                        `json:"imposedByHumanId"`
+	Input                      TaskInput                      `json:"input"`
+	InputCid                   string                         `json:"inputCid"`
+	InputSchemaCid             string                         `json:"inputSchemaCid"`
+	MaxAttempts                float64                        `json:"maxAttempts"`
+	OutputKind                 TaskOutputKind                 `json:"outputKind"`
+	QueuedAt                   time.Time                      `json:"queuedAt"`
+	References                 []TaskReferencesItem           `json:"references"`
+	RequiredExecutorTrustLevel TaskRequiredExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
+	Status                     TaskStatus                     `json:"status"`
+	TaskType                   string                         `json:"taskType"`
+	TeamId                     uuid.UUID                      `json:"teamId"`
 }
 
 // GetAcceptedAttemptN returns the value of AcceptedAttemptN.
@@ -18893,6 +19277,11 @@ func (s *Task) GetQueuedAt() time.Time {
 // GetReferences returns the value of References.
 func (s *Task) GetReferences() []TaskReferencesItem {
 	return s.References
+}
+
+// GetRequiredExecutorTrustLevel returns the value of RequiredExecutorTrustLevel.
+func (s *Task) GetRequiredExecutorTrustLevel() TaskRequiredExecutorTrustLevel {
+	return s.RequiredExecutorTrustLevel
 }
 
 // GetStatus returns the value of Status.
@@ -19005,6 +19394,11 @@ func (s *Task) SetReferences(val []TaskReferencesItem) {
 	s.References = val
 }
 
+// SetRequiredExecutorTrustLevel sets the value of RequiredExecutorTrustLevel.
+func (s *Task) SetRequiredExecutorTrustLevel(val TaskRequiredExecutorTrustLevel) {
+	s.RequiredExecutorTrustLevel = val
+}
+
 // SetStatus sets the value of Status.
 func (s *Task) SetStatus(val TaskStatus) {
 	s.Status = val
@@ -19028,20 +19422,24 @@ func (*Task) getTaskRes()      {}
 
 // Ref: #/components/schemas/TaskAttempt
 type TaskAttempt struct {
-	AttemptN         float64              `json:"attemptN"`
-	ClaimedAt        time.Time            `json:"claimedAt"`
-	ClaimedByAgentId uuid.UUID            `json:"claimedByAgentId"`
-	CompletedAt      NilDateTime          `json:"completedAt"`
-	ContentSignature NilString            `json:"contentSignature"`
-	Error            NilTaskAttemptError  `json:"error"`
-	Output           NilTaskAttemptOutput `json:"output"`
-	OutputCid        NilString            `json:"outputCid"`
-	RuntimeId        NilUUID              `json:"runtimeId"`
-	SignedAt         NilDateTime          `json:"signedAt"`
-	StartedAt        NilDateTime          `json:"startedAt"`
-	Status           TaskAttemptStatus    `json:"status"`
-	TaskId           uuid.UUID            `json:"taskId"`
-	Usage            NilTaskAttemptUsage  `json:"usage"`
+	AttemptN                     float64                                 `json:"attemptN"`
+	ClaimedAt                    time.Time                               `json:"claimedAt"`
+	ClaimedByAgentId             uuid.UUID                               `json:"claimedByAgentId"`
+	ClaimedExecutorFingerprint   NilString                               `json:"claimedExecutorFingerprint"`
+	ClaimedExecutorManifest      NilTaskAttemptClaimedExecutorManifest   `json:"claimedExecutorManifest"`
+	CompletedAt                  NilDateTime                             `json:"completedAt"`
+	CompletedExecutorFingerprint NilString                               `json:"completedExecutorFingerprint"`
+	CompletedExecutorManifest    NilTaskAttemptCompletedExecutorManifest `json:"completedExecutorManifest"`
+	ContentSignature             NilString                               `json:"contentSignature"`
+	Error                        NilTaskAttemptError                     `json:"error"`
+	Output                       NilTaskAttemptOutput                    `json:"output"`
+	OutputCid                    NilString                               `json:"outputCid"`
+	RuntimeId                    NilUUID                                 `json:"runtimeId"`
+	SignedAt                     NilDateTime                             `json:"signedAt"`
+	StartedAt                    NilDateTime                             `json:"startedAt"`
+	Status                       TaskAttemptStatus                       `json:"status"`
+	TaskId                       uuid.UUID                               `json:"taskId"`
+	Usage                        NilTaskAttemptUsage                     `json:"usage"`
 }
 
 // GetAttemptN returns the value of AttemptN.
@@ -19059,9 +19457,29 @@ func (s *TaskAttempt) GetClaimedByAgentId() uuid.UUID {
 	return s.ClaimedByAgentId
 }
 
+// GetClaimedExecutorFingerprint returns the value of ClaimedExecutorFingerprint.
+func (s *TaskAttempt) GetClaimedExecutorFingerprint() NilString {
+	return s.ClaimedExecutorFingerprint
+}
+
+// GetClaimedExecutorManifest returns the value of ClaimedExecutorManifest.
+func (s *TaskAttempt) GetClaimedExecutorManifest() NilTaskAttemptClaimedExecutorManifest {
+	return s.ClaimedExecutorManifest
+}
+
 // GetCompletedAt returns the value of CompletedAt.
 func (s *TaskAttempt) GetCompletedAt() NilDateTime {
 	return s.CompletedAt
+}
+
+// GetCompletedExecutorFingerprint returns the value of CompletedExecutorFingerprint.
+func (s *TaskAttempt) GetCompletedExecutorFingerprint() NilString {
+	return s.CompletedExecutorFingerprint
+}
+
+// GetCompletedExecutorManifest returns the value of CompletedExecutorManifest.
+func (s *TaskAttempt) GetCompletedExecutorManifest() NilTaskAttemptCompletedExecutorManifest {
+	return s.CompletedExecutorManifest
 }
 
 // GetContentSignature returns the value of ContentSignature.
@@ -19129,9 +19547,29 @@ func (s *TaskAttempt) SetClaimedByAgentId(val uuid.UUID) {
 	s.ClaimedByAgentId = val
 }
 
+// SetClaimedExecutorFingerprint sets the value of ClaimedExecutorFingerprint.
+func (s *TaskAttempt) SetClaimedExecutorFingerprint(val NilString) {
+	s.ClaimedExecutorFingerprint = val
+}
+
+// SetClaimedExecutorManifest sets the value of ClaimedExecutorManifest.
+func (s *TaskAttempt) SetClaimedExecutorManifest(val NilTaskAttemptClaimedExecutorManifest) {
+	s.ClaimedExecutorManifest = val
+}
+
 // SetCompletedAt sets the value of CompletedAt.
 func (s *TaskAttempt) SetCompletedAt(val NilDateTime) {
 	s.CompletedAt = val
+}
+
+// SetCompletedExecutorFingerprint sets the value of CompletedExecutorFingerprint.
+func (s *TaskAttempt) SetCompletedExecutorFingerprint(val NilString) {
+	s.CompletedExecutorFingerprint = val
+}
+
+// SetCompletedExecutorManifest sets the value of CompletedExecutorManifest.
+func (s *TaskAttempt) SetCompletedExecutorManifest(val NilTaskAttemptCompletedExecutorManifest) {
+	s.CompletedExecutorManifest = val
 }
 
 // SetContentSignature sets the value of ContentSignature.
@@ -19182,6 +19620,28 @@ func (s *TaskAttempt) SetTaskId(val uuid.UUID) {
 // SetUsage sets the value of Usage.
 func (s *TaskAttempt) SetUsage(val NilTaskAttemptUsage) {
 	s.Usage = val
+}
+
+type TaskAttemptClaimedExecutorManifest map[string]jx.Raw
+
+func (s *TaskAttemptClaimedExecutorManifest) init() TaskAttemptClaimedExecutorManifest {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type TaskAttemptCompletedExecutorManifest map[string]jx.Raw
+
+func (s *TaskAttemptCompletedExecutorManifest) init() TaskAttemptCompletedExecutorManifest {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
 }
 
 type TaskAttemptError struct {
@@ -20143,6 +20603,61 @@ func (s *TaskReferencesItemRole) UnmarshalText(data []byte) error {
 		return nil
 	case TaskReferencesItemRoleContext:
 		*s = TaskReferencesItemRoleContext
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskRequiredExecutorTrustLevel string
+
+const (
+	TaskRequiredExecutorTrustLevelSelfDeclared        TaskRequiredExecutorTrustLevel = "selfDeclared"
+	TaskRequiredExecutorTrustLevelAgentSigned         TaskRequiredExecutorTrustLevel = "agentSigned"
+	TaskRequiredExecutorTrustLevelReleaseVerifiedTool TaskRequiredExecutorTrustLevel = "releaseVerifiedTool"
+	TaskRequiredExecutorTrustLevelSandboxAttested     TaskRequiredExecutorTrustLevel = "sandboxAttested"
+)
+
+// AllValues returns all TaskRequiredExecutorTrustLevel values.
+func (TaskRequiredExecutorTrustLevel) AllValues() []TaskRequiredExecutorTrustLevel {
+	return []TaskRequiredExecutorTrustLevel{
+		TaskRequiredExecutorTrustLevelSelfDeclared,
+		TaskRequiredExecutorTrustLevelAgentSigned,
+		TaskRequiredExecutorTrustLevelReleaseVerifiedTool,
+		TaskRequiredExecutorTrustLevelSandboxAttested,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskRequiredExecutorTrustLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskRequiredExecutorTrustLevelSelfDeclared:
+		return []byte(s), nil
+	case TaskRequiredExecutorTrustLevelAgentSigned:
+		return []byte(s), nil
+	case TaskRequiredExecutorTrustLevelReleaseVerifiedTool:
+		return []byte(s), nil
+	case TaskRequiredExecutorTrustLevelSandboxAttested:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskRequiredExecutorTrustLevel) UnmarshalText(data []byte) error {
+	switch TaskRequiredExecutorTrustLevel(data) {
+	case TaskRequiredExecutorTrustLevelSelfDeclared:
+		*s = TaskRequiredExecutorTrustLevelSelfDeclared
+		return nil
+	case TaskRequiredExecutorTrustLevelAgentSigned:
+		*s = TaskRequiredExecutorTrustLevelAgentSigned
+		return nil
+	case TaskRequiredExecutorTrustLevelReleaseVerifiedTool:
+		*s = TaskRequiredExecutorTrustLevelReleaseVerifiedTool
+		return nil
+	case TaskRequiredExecutorTrustLevelSandboxAttested:
+		*s = TaskRequiredExecutorTrustLevelSandboxAttested
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

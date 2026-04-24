@@ -2413,6 +2413,24 @@ func (s *ClaimTaskReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 	{
+		if s.ExecutorFingerprint.Set {
+			e.FieldStart("executorFingerprint")
+			s.ExecutorFingerprint.Encode(e)
+		}
+	}
+	{
+		if s.ExecutorManifest.Set {
+			e.FieldStart("executorManifest")
+			s.ExecutorManifest.Encode(e)
+		}
+	}
+	{
+		if s.ExecutorSignature.Set {
+			e.FieldStart("executorSignature")
+			s.ExecutorSignature.Encode(e)
+		}
+	}
+	{
 		if s.LeaseTtlSec.Set {
 			e.FieldStart("leaseTtlSec")
 			s.LeaseTtlSec.Encode(e)
@@ -2420,8 +2438,11 @@ func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfClaimTaskReq = [1]string{
-	0: "leaseTtlSec",
+var jsonFieldsNameOfClaimTaskReq = [4]string{
+	0: "executorFingerprint",
+	1: "executorManifest",
+	2: "executorSignature",
+	3: "leaseTtlSec",
 }
 
 // Decode decodes ClaimTaskReq from json.
@@ -2433,6 +2454,36 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "executorFingerprint":
+			if err := func() error {
+				s.ExecutorFingerprint.Reset()
+				if err := s.ExecutorFingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "executorManifest":
+			if err := func() error {
+				s.ExecutorManifest.Reset()
+				if err := s.ExecutorManifest.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorManifest\"")
+			}
+		case "executorSignature":
+			if err := func() error {
+				s.ExecutorSignature.Reset()
+				if err := s.ExecutorSignature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorSignature\"")
+			}
 		case "leaseTtlSec":
 			if err := func() error {
 				s.LeaseTtlSec.Reset()
@@ -2463,6 +2514,64 @@ func (s *ClaimTaskReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ClaimTaskReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s ClaimTaskReqExecutorManifest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s ClaimTaskReqExecutorManifest) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes ClaimTaskReqExecutorManifest from json.
+func (s *ClaimTaskReqExecutorManifest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimTaskReqExecutorManifest to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ClaimTaskReqExecutorManifest")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ClaimTaskReqExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -4228,6 +4337,24 @@ func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ExecutorFingerprint.Set {
+			e.FieldStart("executorFingerprint")
+			s.ExecutorFingerprint.Encode(e)
+		}
+	}
+	{
+		if s.ExecutorManifest.Set {
+			e.FieldStart("executorManifest")
+			s.ExecutorManifest.Encode(e)
+		}
+	}
+	{
+		if s.ExecutorSignature.Set {
+			e.FieldStart("executorSignature")
+			s.ExecutorSignature.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("output")
 		s.Output.Encode(e)
 	}
@@ -4241,11 +4368,14 @@ func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCompleteTaskReq = [4]string{
+var jsonFieldsNameOfCompleteTaskReq = [7]string{
 	0: "contentSignature",
-	1: "output",
-	2: "outputCid",
-	3: "usage",
+	1: "executorFingerprint",
+	2: "executorManifest",
+	3: "executorSignature",
+	4: "output",
+	5: "outputCid",
+	6: "usage",
 }
 
 // Decode decodes CompleteTaskReq from json.
@@ -4267,8 +4397,38 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"contentSignature\"")
 			}
+		case "executorFingerprint":
+			if err := func() error {
+				s.ExecutorFingerprint.Reset()
+				if err := s.ExecutorFingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "executorManifest":
+			if err := func() error {
+				s.ExecutorManifest.Reset()
+				if err := s.ExecutorManifest.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorManifest\"")
+			}
+		case "executorSignature":
+			if err := func() error {
+				s.ExecutorSignature.Reset()
+				if err := s.ExecutorSignature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorSignature\"")
+			}
 		case "output":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Output.Decode(d); err != nil {
 					return err
@@ -4278,7 +4438,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"output\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.OutputCid = string(v)
@@ -4290,7 +4450,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
 		case "usage":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.Usage.Decode(d); err != nil {
 					return err
@@ -4309,7 +4469,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001110,
+		0b01110000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -4351,6 +4511,64 @@ func (s *CompleteTaskReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CompleteTaskReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s CompleteTaskReqExecutorManifest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s CompleteTaskReqExecutorManifest) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes CompleteTaskReqExecutorManifest from json.
+func (s *CompleteTaskReqExecutorManifest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CompleteTaskReqExecutorManifest to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CompleteTaskReqExecutorManifest")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CompleteTaskReqExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CompleteTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -9751,6 +9969,12 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RequiredExecutorTrustLevel.Set {
+			e.FieldStart("requiredExecutorTrustLevel")
+			s.RequiredExecutorTrustLevel.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("taskType")
 		e.Str(s.TaskType)
 	}
@@ -9760,7 +9984,7 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateTaskReq = [9]string{
+var jsonFieldsNameOfCreateTaskReq = [10]string{
 	0: "correlationId",
 	1: "criteriaCid",
 	2: "diaryId",
@@ -9768,8 +9992,9 @@ var jsonFieldsNameOfCreateTaskReq = [9]string{
 	4: "input",
 	5: "maxAttempts",
 	6: "references",
-	7: "taskType",
-	8: "teamId",
+	7: "requiredExecutorTrustLevel",
+	8: "taskType",
+	9: "teamId",
 }
 
 // Decode decodes CreateTaskReq from json.
@@ -9861,8 +10086,18 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"references\"")
 			}
+		case "requiredExecutorTrustLevel":
+			if err := func() error {
+				s.RequiredExecutorTrustLevel.Reset()
+				if err := s.RequiredExecutorTrustLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredExecutorTrustLevel\"")
+			}
 		case "taskType":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -9874,7 +10109,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -9895,8 +10130,8 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b10010100,
-		0b00000001,
+		0b00010100,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -20627,6 +20862,50 @@ func (s *EntryVerifyResult) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *EntryVerifyResult) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ExecutorTrustLevel as json.
+func (s ExecutorTrustLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ExecutorTrustLevel from json.
+func (s *ExecutorTrustLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ExecutorTrustLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ExecutorTrustLevel(v) {
+	case ExecutorTrustLevelSelfDeclared:
+		*s = ExecutorTrustLevelSelfDeclared
+	case ExecutorTrustLevelAgentSigned:
+		*s = ExecutorTrustLevelAgentSigned
+	case ExecutorTrustLevelReleaseVerifiedTool:
+		*s = ExecutorTrustLevelReleaseVerifiedTool
+	case ExecutorTrustLevelSandboxAttested:
+		*s = ExecutorTrustLevelSandboxAttested
+	default:
+		*s = ExecutorTrustLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ExecutorTrustLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ExecutorTrustLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -36705,6 +36984,96 @@ func (s *NilString) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes TaskAttemptClaimedExecutorManifest as json.
+func (o NilTaskAttemptClaimedExecutorManifest) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskAttemptClaimedExecutorManifest from json.
+func (o *NilTaskAttemptClaimedExecutorManifest) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilTaskAttemptClaimedExecutorManifest to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v TaskAttemptClaimedExecutorManifest
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	o.Value = make(TaskAttemptClaimedExecutorManifest)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilTaskAttemptClaimedExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilTaskAttemptClaimedExecutorManifest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskAttemptCompletedExecutorManifest as json.
+func (o NilTaskAttemptCompletedExecutorManifest) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskAttemptCompletedExecutorManifest from json.
+func (o *NilTaskAttemptCompletedExecutorManifest) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilTaskAttemptCompletedExecutorManifest to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v TaskAttemptCompletedExecutorManifest
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	o.Value = make(TaskAttemptCompletedExecutorManifest)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilTaskAttemptCompletedExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilTaskAttemptCompletedExecutorManifest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes TaskAttemptError as json.
 func (o NilTaskAttemptError) Encode(e *jx.Encoder) {
 	if o.Null {
@@ -36985,6 +37354,74 @@ func (s *OptClaimTaskReq) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ClaimTaskReqExecutorManifest as json.
+func (o OptClaimTaskReqExecutorManifest) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ClaimTaskReqExecutorManifest from json.
+func (o *OptClaimTaskReqExecutorManifest) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptClaimTaskReqExecutorManifest to nil")
+	}
+	o.Set = true
+	o.Value = make(ClaimTaskReqExecutorManifest)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptClaimTaskReqExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptClaimTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CompleteTaskReqExecutorManifest as json.
+func (o OptCompleteTaskReqExecutorManifest) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CompleteTaskReqExecutorManifest from json.
+func (o *OptCompleteTaskReqExecutorManifest) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCompleteTaskReqExecutorManifest to nil")
+	}
+	o.Set = true
+	o.Value = make(CompleteTaskReqExecutorManifest)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCompleteTaskReqExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCompleteTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ConsolidateDiaryReq as json.
 func (o OptConsolidateDiaryReq) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -37249,6 +37686,39 @@ func (s OptDateTime) MarshalJSON() ([]byte, error) {
 func (s *OptDateTime) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d, json.DecodeDateTime)
+}
+
+// Encode encodes ExecutorTrustLevel as json.
+func (o OptExecutorTrustLevel) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes ExecutorTrustLevel from json.
+func (o *OptExecutorTrustLevel) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptExecutorTrustLevel to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptExecutorTrustLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptExecutorTrustLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
 }
 
 // Encode encodes ExpandedRelations as json.
@@ -48808,6 +49278,10 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		e.FieldStart("requiredExecutorTrustLevel")
+		s.RequiredExecutorTrustLevel.Encode(e)
+	}
+	{
 		e.FieldStart("status")
 		s.Status.Encode(e)
 	}
@@ -48821,7 +49295,7 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTask = [22]string{
+var jsonFieldsNameOfTask = [23]string{
 	0:  "acceptedAttemptN",
 	1:  "cancelReason",
 	2:  "cancelledByAgentId",
@@ -48841,9 +49315,10 @@ var jsonFieldsNameOfTask = [22]string{
 	16: "outputKind",
 	17: "queuedAt",
 	18: "references",
-	19: "status",
-	20: "taskType",
-	21: "teamId",
+	19: "requiredExecutorTrustLevel",
+	20: "status",
+	21: "taskType",
+	22: "teamId",
 }
 
 // Decode decodes Task from json.
@@ -49063,8 +49538,18 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"references\"")
 			}
-		case "status":
+		case "requiredExecutorTrustLevel":
 			requiredBitSet[2] |= 1 << 3
+			if err := func() error {
+				if err := s.RequiredExecutorTrustLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredExecutorTrustLevel\"")
+			}
+		case "status":
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -49074,7 +49559,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "taskType":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -49086,7 +49571,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -49109,7 +49594,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -49177,8 +49662,24 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.ClaimedByAgentId)
 	}
 	{
+		e.FieldStart("claimedExecutorFingerprint")
+		s.ClaimedExecutorFingerprint.Encode(e)
+	}
+	{
+		e.FieldStart("claimedExecutorManifest")
+		s.ClaimedExecutorManifest.Encode(e)
+	}
+	{
 		e.FieldStart("completedAt")
 		s.CompletedAt.Encode(e, json.EncodeDateTime)
+	}
+	{
+		e.FieldStart("completedExecutorFingerprint")
+		s.CompletedExecutorFingerprint.Encode(e)
+	}
+	{
+		e.FieldStart("completedExecutorManifest")
+		s.CompletedExecutorManifest.Encode(e)
 	}
 	{
 		e.FieldStart("contentSignature")
@@ -49222,21 +49723,25 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTaskAttempt = [14]string{
+var jsonFieldsNameOfTaskAttempt = [18]string{
 	0:  "attemptN",
 	1:  "claimedAt",
 	2:  "claimedByAgentId",
-	3:  "completedAt",
-	4:  "contentSignature",
-	5:  "error",
-	6:  "output",
-	7:  "outputCid",
-	8:  "runtimeId",
-	9:  "signedAt",
-	10: "startedAt",
-	11: "status",
-	12: "taskId",
-	13: "usage",
+	3:  "claimedExecutorFingerprint",
+	4:  "claimedExecutorManifest",
+	5:  "completedAt",
+	6:  "completedExecutorFingerprint",
+	7:  "completedExecutorManifest",
+	8:  "contentSignature",
+	9:  "error",
+	10: "output",
+	11: "outputCid",
+	12: "runtimeId",
+	13: "signedAt",
+	14: "startedAt",
+	15: "status",
+	16: "taskId",
+	17: "usage",
 }
 
 // Decode decodes TaskAttempt from json.
@@ -49244,7 +49749,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode TaskAttempt to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -49284,8 +49789,28 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"claimedByAgentId\"")
 			}
-		case "completedAt":
+		case "claimedExecutorFingerprint":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.ClaimedExecutorFingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"claimedExecutorFingerprint\"")
+			}
+		case "claimedExecutorManifest":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.ClaimedExecutorManifest.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"claimedExecutorManifest\"")
+			}
+		case "completedAt":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.CompletedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -49294,8 +49819,28 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"completedAt\"")
 			}
+		case "completedExecutorFingerprint":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.CompletedExecutorFingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"completedExecutorFingerprint\"")
+			}
+		case "completedExecutorManifest":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.CompletedExecutorManifest.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"completedExecutorManifest\"")
+			}
 		case "contentSignature":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.ContentSignature.Decode(d); err != nil {
 					return err
@@ -49305,7 +49850,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"contentSignature\"")
 			}
 		case "error":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				if err := s.Error.Decode(d); err != nil {
 					return err
@@ -49315,7 +49860,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"error\"")
 			}
 		case "output":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.Output.Decode(d); err != nil {
 					return err
@@ -49325,7 +49870,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"output\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.OutputCid.Decode(d); err != nil {
 					return err
@@ -49335,7 +49880,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
 		case "runtimeId":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.RuntimeId.Decode(d); err != nil {
 					return err
@@ -49345,7 +49890,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeId\"")
 			}
 		case "signedAt":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.SignedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -49355,7 +49900,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"signedAt\"")
 			}
 		case "startedAt":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.StartedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -49365,7 +49910,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"startedAt\"")
 			}
 		case "status":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -49375,7 +49920,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "taskId":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TaskId = v
@@ -49387,7 +49932,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		case "usage":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				if err := s.Usage.Decode(d); err != nil {
 					return err
@@ -49405,9 +49950,10 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
+	for i, mask := range [3]uint8{
 		0b11111111,
-		0b00111111,
+		0b11111111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -49449,6 +49995,122 @@ func (s *TaskAttempt) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskAttempt) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s TaskAttemptClaimedExecutorManifest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s TaskAttemptClaimedExecutorManifest) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes TaskAttemptClaimedExecutorManifest from json.
+func (s *TaskAttemptClaimedExecutorManifest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptClaimedExecutorManifest to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptClaimedExecutorManifest")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskAttemptClaimedExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptClaimedExecutorManifest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s TaskAttemptCompletedExecutorManifest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s TaskAttemptCompletedExecutorManifest) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes TaskAttemptCompletedExecutorManifest from json.
+func (s *TaskAttemptCompletedExecutorManifest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptCompletedExecutorManifest to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptCompletedExecutorManifest")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskAttemptCompletedExecutorManifest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptCompletedExecutorManifest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -51561,6 +52223,50 @@ func (s TaskReferencesItemRole) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskReferencesItemRole) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskRequiredExecutorTrustLevel as json.
+func (s TaskRequiredExecutorTrustLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskRequiredExecutorTrustLevel from json.
+func (s *TaskRequiredExecutorTrustLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskRequiredExecutorTrustLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskRequiredExecutorTrustLevel(v) {
+	case TaskRequiredExecutorTrustLevelSelfDeclared:
+		*s = TaskRequiredExecutorTrustLevelSelfDeclared
+	case TaskRequiredExecutorTrustLevelAgentSigned:
+		*s = TaskRequiredExecutorTrustLevelAgentSigned
+	case TaskRequiredExecutorTrustLevelReleaseVerifiedTool:
+		*s = TaskRequiredExecutorTrustLevelReleaseVerifiedTool
+	case TaskRequiredExecutorTrustLevelSandboxAttested:
+		*s = TaskRequiredExecutorTrustLevelSandboxAttested
+	default:
+		*s = TaskRequiredExecutorTrustLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskRequiredExecutorTrustLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskRequiredExecutorTrustLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

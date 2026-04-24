@@ -376,6 +376,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const taskService = createTaskService({
     taskRepository,
     diaryRepository,
+    agentRepository,
     permissionChecker,
     relationshipWriter,
     logger: app.log,

@@ -4,6 +4,7 @@
  * Ed25519 cryptographic operations for MoltNet agents
  */
 
+export { canonicalJson, canonicalJsonBytes } from './canonical-json.js';
 export { computeCanonicalHash, computeContentCid } from './content-cid.js';
 export {
   buildSigningBytes,
@@ -12,6 +13,23 @@ export {
   type KeyPair,
   type SignedMessage,
 } from './crypto.service.js';
+export {
+  assertExecutorManifestObject,
+  buildExecutorAttestationSigningBytes,
+  buildExecutorClaimAttestationPayload,
+  buildExecutorCompleteAttestationPayload,
+  canonicalizeExecutorAttestationPayload,
+  computeExecutorManifestCid,
+  EXECUTOR_ATTESTATION_DOMAIN,
+  EXECUTOR_ATTESTATION_PAYLOAD_VERSION,
+  EXECUTOR_MANIFEST_SCHEMA_VERSION,
+  type ExecutorAttestationPayload,
+  type ExecutorClaimAttestationPayload,
+  type ExecutorCompleteAttestationPayload,
+  type ExecutorTrustLevel,
+  signExecutorAttestation,
+  verifyExecutorAttestation,
+} from './executor-attestation.js';
 export {
   generateRecoveryChallenge,
   signChallenge,

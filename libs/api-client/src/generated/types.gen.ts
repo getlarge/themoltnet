@@ -1027,6 +1027,12 @@ export type TaskStatus =
   | 'cancelled'
   | 'expired';
 
+export type ExecutorTrustLevel =
+  | 'selfDeclared'
+  | 'agentSigned'
+  | 'releaseVerifiedTool'
+  | 'sandboxAttested';
+
 export type TaskMessageKind =
   | 'text_delta'
   | 'tool_call_start'
@@ -1095,6 +1101,11 @@ export type Task = {
   imposedByAgentId: string | null;
   imposedByHumanId: string | null;
   acceptedAttemptN: number | null;
+  requiredExecutorTrustLevel:
+    | 'selfDeclared'
+    | 'agentSigned'
+    | 'releaseVerifiedTool'
+    | 'sandboxAttested';
   status:
     | 'queued'
     | 'dispatched'
@@ -1133,6 +1144,14 @@ export type TaskAttempt = {
     [key: string]: unknown;
   } | null;
   outputCid: string | null;
+  claimedExecutorFingerprint: string | null;
+  claimedExecutorManifest: {
+    [key: string]: unknown;
+  } | null;
+  completedExecutorFingerprint: string | null;
+  completedExecutorManifest: {
+    [key: string]: unknown;
+  } | null;
   error: {
     code: string;
     message: string;
@@ -1201,6 +1220,7 @@ export type CreateTaskBody = {
   maxAttempts?: number;
   expiresInSec?: number;
   criteriaCid?: string;
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
 };
 
 export type ListTasksQuery = {
@@ -1214,6 +1234,11 @@ export type ListTasksQuery = {
 
 export type ClaimTaskBody = {
   leaseTtlSec?: number;
+  executorManifest?: {
+    [key: string]: unknown;
+  };
+  executorFingerprint?: string;
+  executorSignature?: string;
 };
 
 export type HeartbeatBody = {
@@ -1227,6 +1252,11 @@ export type CompleteTaskBody = {
   outputCid: string;
   usage: TaskUsage;
   contentSignature?: string;
+  executorManifest?: {
+    [key: string]: unknown;
+  };
+  executorFingerprint?: string;
+  executorSignature?: string;
 };
 
 export type FailTaskBody = {
@@ -5875,6 +5905,7 @@ export type CreateTaskData = {
     maxAttempts?: number;
     expiresInSec?: number;
     criteriaCid?: string;
+    requiredExecutorTrustLevel?: ExecutorTrustLevel;
   };
   path?: never;
   query?: never;
@@ -5945,6 +5976,11 @@ export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
 export type ClaimTaskData = {
   body?: {
     leaseTtlSec?: number;
+    executorManifest?: {
+      [key: string]: unknown;
+    };
+    executorFingerprint?: string;
+    executorSignature?: string;
   };
   path: {
     id: string;
@@ -6034,6 +6070,11 @@ export type CompleteTaskData = {
     outputCid: string;
     usage: TaskUsage;
     contentSignature?: string;
+    executorManifest?: {
+      [key: string]: unknown;
+    };
+    executorFingerprint?: string;
+    executorSignature?: string;
   };
   path: {
     id: string;

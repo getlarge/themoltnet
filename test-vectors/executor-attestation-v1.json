@@ -1,0 +1,31 @@
+{
+  "domain": "moltnet-task-executor-attestation-v1",
+  "vectors": [
+    {
+      "canonical": "{\"executorFingerprint\":\"bafkclaim\",\"phase\":\"claim\",\"taskId\":\"11111111-1111-4111-8111-111111111111\",\"v\":\"moltnet:task-executor-attestation:v1\"}",
+      "name": "claim-basic",
+      "payload": {
+        "executorFingerprint": "bafkclaim",
+        "phase": "claim",
+        "taskId": "11111111-1111-4111-8111-111111111111",
+        "v": "moltnet:task-executor-attestation:v1"
+      },
+      "sha256": "29c481bd6dc7fd39d0b121df4a61254d7b11140e0a05421e58050970a9ee1bd2",
+      "signingBytesHex": "6d6f6c746e65742d7461736b2d6578656375746f722d6174746573746174696f6e2d76310000002029c481bd6dc7fd39d0b121df4a61254d7b11140e0a05421e58050970a9ee1bd2"
+    },
+    {
+      "canonical": "{\"attemptN\":1,\"executorFingerprint\":\"bafkcomplete\",\"outputCid\":\"bafkoutput\",\"phase\":\"complete\",\"taskId\":\"11111111-1111-4111-8111-111111111111\",\"v\":\"moltnet:task-executor-attestation:v1\"}",
+      "name": "complete-basic",
+      "payload": {
+        "attemptN": 1,
+        "executorFingerprint": "bafkcomplete",
+        "outputCid": "bafkoutput",
+        "phase": "complete",
+        "taskId": "11111111-1111-4111-8111-111111111111",
+        "v": "moltnet:task-executor-attestation:v1"
+      },
+      "sha256": "7076a32ee1a148a1a951885737eea8009e01fb87dc9f522f4fc3751a6cf3ee16",
+      "signingBytesHex": "6d6f6c746e65742d7461736b2d6578656375746f722d6174746573746174696f6e2d7631000000207076a32ee1a148a1a951885737eea8009e01fb87dc9f522f4fc3751a6cf3ee16"
+    }
+  ]
+}

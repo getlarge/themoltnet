@@ -182,6 +182,7 @@ const mockTask = {
   imposedByAgentId: null,
   imposedByHumanId: null,
   acceptedAttemptN: null,
+  requiredExecutorTrustLevel: 'selfDeclared',
   status: 'queued',
   queuedAt: '2024-01-01T00:00:00Z',
   completedAt: null,

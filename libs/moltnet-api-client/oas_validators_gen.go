@@ -470,6 +470,66 @@ func (s *ClaimTaskReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if value, ok := s.ExecutorFingerprint.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ExecutorSignature.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorSignature",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.LeaseTtlSec.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -1206,6 +1266,66 @@ func (s *CompleteTaskReq) Validate() error {
 	}
 
 	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.ExecutorFingerprint.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ExecutorSignature.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorSignature",
+			Error: err,
+		})
+	}
 	if err := func() error {
 		if err := (validate.String{
 			MinLength:     1,
@@ -3184,6 +3304,24 @@ func (s *CreateTaskReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "references",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.RequiredExecutorTrustLevel.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "requiredExecutorTrustLevel",
 			Error: err,
 		})
 	}
@@ -5672,6 +5810,21 @@ func (s *EntryRelationWithDepth) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s ExecutorTrustLevel) Validate() error {
+	switch s {
+	case "selfDeclared":
+		return nil
+	case "agentSigned":
+		return nil
+	case "releaseVerifiedTool":
+		return nil
+	case "sandboxAttested":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ExpandedPackEntry) Validate() error {
@@ -11139,6 +11292,17 @@ func (s *Task) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := s.RequiredExecutorTrustLevel.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "requiredExecutorTrustLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Status.Validate(); err != nil {
 			return err
 		}
@@ -11202,6 +11366,66 @@ func (s *TaskAttempt) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ClaimedExecutorFingerprint.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "claimedExecutorFingerprint",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.CompletedExecutorFingerprint.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "completedExecutorFingerprint",
 			Error: err,
 		})
 	}
@@ -12003,6 +12227,21 @@ func (s TaskReferencesItemRole) Validate() error {
 	case "target_source":
 		return nil
 	case "context":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s TaskRequiredExecutorTrustLevel) Validate() error {
+	switch s {
+	case "selfDeclared":
+		return nil
+	case "agentSigned":
+		return nil
+	case "releaseVerifiedTool":
+		return nil
+	case "sandboxAttested":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

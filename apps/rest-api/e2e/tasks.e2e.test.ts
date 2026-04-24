@@ -27,7 +27,13 @@ import {
   listTasks,
   taskHeartbeat,
 } from '@moltnet/api-client';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  buildExecutorClaimAttestationPayload,
+  buildExecutorCompleteAttestationPayload,
+  computeExecutorManifestCid,
+  computeJsonCid,
+  signExecutorAttestation,
+} from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, pollUntil, type TestAgent } from './helpers.js';
@@ -101,6 +107,39 @@ describe('Tasks API', () => {
       path: { id: taskId },
       body: { leaseTtlSec: leaseTtlSec },
     });
+  }
+
+  async function signedExecutorClaim(taskId: string, manifest: object) {
+    const executorFingerprint = computeExecutorManifestCid(manifest);
+    const payload = buildExecutorClaimAttestationPayload({
+      taskId,
+      executorFingerprint,
+    });
+    const executorSignature = await signExecutorAttestation(
+      payload,
+      claimer.keyPair.privateKey,
+    );
+    return { executorFingerprint, executorSignature };
+  }
+
+  async function signedExecutorComplete(
+    taskId: string,
+    attemptN: number,
+    outputCid: string,
+    manifest: object,
+  ) {
+    const executorFingerprint = computeExecutorManifestCid(manifest);
+    const payload = buildExecutorCompleteAttestationPayload({
+      taskId,
+      attemptN,
+      outputCid,
+      executorFingerprint,
+    });
+    const executorSignature = await signExecutorAttestation(
+      payload,
+      claimer.keyPair.privateKey,
+    );
+    return { executorFingerprint, executorSignature };
   }
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -365,6 +404,141 @@ describe('Tasks API', () => {
       expect(data!.length).toBe(1);
       expect(data![0].attemptN).toBe(attemptN);
       expect(data![0].status).toBe('completed');
+    });
+  });
+
+  describe('executor manifest trust enforcement', () => {
+    it('stores signed claim and complete executor manifests', async () => {
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        runtime: { kind: 'e2e', version: '1' },
+      };
+      const { data: task } = await impose(
+        { taskPrompt: 'signed executor manifest task' },
+        { requiredExecutorTrustLevel: 'agentSigned' },
+      );
+      const taskId = task!.id;
+      const claimAttestation = await signedExecutorClaim(
+        taskId,
+        executorManifest,
+      );
+
+      const { data: claimed, error: claimError } = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId },
+        body: {
+          leaseTtlSec: 30,
+          executorManifest,
+          ...claimAttestation,
+        },
+      });
+      expect(claimError).toBeUndefined();
+      expect(claimed!.attempt.claimedExecutorFingerprint).toBe(
+        claimAttestation.executorFingerprint,
+      );
+      expect(claimed!.attempt.claimedExecutorManifest).toEqual(
+        executorManifest,
+      );
+
+      const attemptN = claimed!.attempt.attemptN;
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+
+      const output = {
+        packId: '11111111-1111-4111-8111-111111111111',
+        packCid: 'bafyexecutortrust',
+        entries: [
+          {
+            entryId: '22222222-2222-4222-8222-222222222222',
+            rank: 1,
+            rationale: 'Representative executor trust entry.',
+          },
+        ],
+        recipeParams: { recipe: 'executor-trust-v1' },
+        summary: 'Completed with signed executor manifest.',
+      };
+      const outputCid = await computeJsonCid(output);
+      const completeAttestation = await signedExecutorComplete(
+        taskId,
+        attemptN,
+        outputCid,
+        executorManifest,
+      );
+
+      const { error: completeError } = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          output,
+          outputCid,
+          usage: { model: 'test-model', inputTokens: 10, outputTokens: 5 },
+          executorManifest,
+          ...completeAttestation,
+        },
+      });
+      expect(completeError).toBeUndefined();
+
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data!),
+        (t) => t.status === 'completed',
+        { label: 'task.executorTrust.complete', maxAttempts: 20 },
+      );
+
+      const { data: attempts } = await listTaskAttempts({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(attempts![0].completedExecutorFingerprint).toBe(
+        completeAttestation.executorFingerprint,
+      );
+      expect(attempts![0].completedExecutorManifest).toEqual(executorManifest);
+    });
+
+    it('rejects releaseVerifiedTool claims until release verifier is wired', async () => {
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        runtime: { kind: 'e2e', version: '1' },
+      };
+      const { data: task } = await impose(
+        { taskPrompt: 'release verified executor manifest task' },
+        { requiredExecutorTrustLevel: 'releaseVerifiedTool' },
+      );
+      const taskId = task!.id;
+      const claimAttestation = await signedExecutorClaim(
+        taskId,
+        executorManifest,
+      );
+
+      const { response } = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId },
+        body: {
+          leaseTtlSec: 30,
+          executorManifest,
+          ...claimAttestation,
+        },
+      });
+      expect(response.status).toBe(400);
+
+      const { data: unchanged } = await getTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(unchanged!.status).toBe('queued');
     });
   });
 

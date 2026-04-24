@@ -21,6 +21,7 @@ export function makeFulfillBriefTask(overrides: Partial<Task> = {}): Task {
     imposedByAgentId: null,
     imposedByHumanId: null,
     acceptedAttemptN: null,
+    requiredExecutorTrustLevel: 'selfDeclared',
     status: 'running',
     queuedAt: new Date('2026-04-01T00:00:00Z').toISOString(),
     completedAt: null,
