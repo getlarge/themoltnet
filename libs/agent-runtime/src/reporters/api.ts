@@ -42,6 +42,11 @@ export class ApiTaskReporter implements TaskReporter {
     this.taskId = ctx.taskId;
     this.attemptN = ctx.attemptN;
 
+    // Send immediately so the DBOS workflow receives the 'started' signal
+    // before the dispatch timeout (default 5 min). Without this, fast tasks
+    // that complete before the first periodic heartbeat silently time out.
+    await this.sendHeartbeat();
+
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
     if (intervalMs > 0) {
       this.heartbeatTimer = setInterval(() => {
