@@ -1,7 +1,10 @@
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 
-import { errorHandlerPlugin } from '../src/plugins/error-handler.js';
+import {
+  errorHandlerPlugin,
+  extractPgErrorFields,
+} from '../src/plugins/error-handler.js';
 import {
   createProblem,
   createValidationProblem,
@@ -160,5 +163,60 @@ describe('Error handler plugin', () => {
     expect(body.code).toBe('VALIDATION_FAILED');
     expect(body.errors).toBeDefined();
     expect(body.errors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('extractPgErrorFields', () => {
+  it('returns null for plain errors without a pg SQLSTATE', () => {
+    expect(extractPgErrorFields(new Error('boom'))).toBeNull();
+    expect(extractPgErrorFields(null)).toBeNull();
+    expect(extractPgErrorFields({ code: 'FST_ERR_VALIDATION' })).toBeNull();
+  });
+
+  it('extracts SQLSTATE and constraint from a bare pg error', () => {
+    const pgErr = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'task_messages_pkey',
+      table: 'task_messages',
+      column: undefined,
+      schema: 'public',
+      routine: '_bt_check_unique',
+    });
+
+    expect(extractPgErrorFields(pgErr)).toEqual({
+      pg_code: '23505',
+      pg_constraint: 'task_messages_pkey',
+      pg_table: 'task_messages',
+      pg_column: undefined,
+      pg_schema: 'public',
+      pg_routine: '_bt_check_unique',
+    });
+  });
+
+  it('unwraps the pg error from DrizzleQueryError.cause', () => {
+    const pgErr = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'task_messages_pkey',
+      table: 'task_messages',
+    });
+    // DrizzleQueryError is a plain Error whose `cause` points at the pg error.
+    // We only care that the walker follows `.cause` until it finds a
+    // SQLSTATE-shaped code.
+    const drizzleErr = Object.assign(new Error('Failed query'), {
+      code: 'DRIZZLE_QUERY_ERROR',
+      cause: pgErr,
+    });
+
+    const fields = extractPgErrorFields(drizzleErr);
+    expect(fields?.pg_code).toBe('23505');
+    expect(fields?.pg_constraint).toBe('task_messages_pkey');
+    expect(fields?.pg_table).toBe('task_messages');
+  });
+
+  it('does not loop on circular cause chains', () => {
+    const a: { cause?: unknown } = {};
+    const b: { cause?: unknown } = { cause: a };
+    a.cause = b;
+    expect(extractPgErrorFields(a)).toBeNull();
   });
 });
