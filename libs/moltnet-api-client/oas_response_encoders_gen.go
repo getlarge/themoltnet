@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
+	"github.com/ogen-go/ogen/conv"
+	"github.com/ogen-go/ogen/uri"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -413,13 +415,48 @@ func encodeCancelTaskResponse(response CancelTaskRes, w http.ResponseWriter, spa
 
 func encodeClaimTaskResponse(response ClaimTaskRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *ClaimTaskResponse:
+	case *ClaimTaskResponseHeaders:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Access-Control-Expose-Headers", "Traceparent,Tracestate")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "traceparent" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "traceparent",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.Traceparent.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode traceparent header")
+				}
+			}
+			// Encode "tracestate" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "tracestate",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.Tracestate.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode tracestate header")
+				}
+			}
+		}
 		w.WriteHeader(200)
 		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
-		response.Encode(e)
+		response.Response.Encode(e)
 		if _, err := e.WriteTo(w); err != nil {
 			return errors.Wrap(err, "write")
 		}

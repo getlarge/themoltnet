@@ -566,7 +566,44 @@ func (s *ClaimTaskResponse) SetTask(val Task) {
 	s.Task = val
 }
 
-func (*ClaimTaskResponse) claimTaskRes() {}
+// ClaimTaskResponseHeaders wraps ClaimTaskResponse with response headers.
+type ClaimTaskResponseHeaders struct {
+	Traceparent OptString
+	Tracestate  OptString
+	Response    ClaimTaskResponse
+}
+
+// GetTraceparent returns the value of Traceparent.
+func (s *ClaimTaskResponseHeaders) GetTraceparent() OptString {
+	return s.Traceparent
+}
+
+// GetTracestate returns the value of Tracestate.
+func (s *ClaimTaskResponseHeaders) GetTracestate() OptString {
+	return s.Tracestate
+}
+
+// GetResponse returns the value of Response.
+func (s *ClaimTaskResponseHeaders) GetResponse() ClaimTaskResponse {
+	return s.Response
+}
+
+// SetTraceparent sets the value of Traceparent.
+func (s *ClaimTaskResponseHeaders) SetTraceparent(val OptString) {
+	s.Traceparent = val
+}
+
+// SetTracestate sets the value of Tracestate.
+func (s *ClaimTaskResponseHeaders) SetTracestate(val OptString) {
+	s.Tracestate = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ClaimTaskResponseHeaders) SetResponse(val ClaimTaskResponse) {
+	s.Response = val
+}
+
+func (*ClaimTaskResponseHeaders) claimTaskRes() {}
 
 type ClaimTaskUnauthorized ProblemDetails
 
