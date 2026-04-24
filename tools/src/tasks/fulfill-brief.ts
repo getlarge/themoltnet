@@ -98,6 +98,8 @@ import {
   type SandboxConfig,
 } from '@themoltnet/pi-extension';
 
+import { initWorkerOtel } from './otel-bootstrap.js';
+
 // ---------------------------------------------------------------------------
 // CLI args
 // ---------------------------------------------------------------------------
@@ -320,30 +322,49 @@ async function main() {
     return;
   }
 
-  const executeTask = createPiTaskExecutor({
-    agentName,
-    mountPath: cwd,
-    provider,
-    model: modelId,
-    sandboxConfig,
+  // OTel bootstrap — same pattern as work-task.ts. No-op when
+  // MOLTNET_OTEL_ENDPOINT is unset; otherwise exports via the MoltNet
+  // collector using the agent's OAuth2 token for auth.
+  const otelShutdown = await initWorkerOtel({
+    serviceName: 'moltnet.fulfill-brief',
+    agentDir,
+    resourceAttributes: {
+      'moltnet.task.id': task.id,
+      'moltnet.agent.name': agentName,
+      'moltnet.llm.provider': provider,
+      'moltnet.llm.model': modelId,
+      'moltnet.issue.number': String(issue.number),
+    },
   });
 
-  const runtime = new AgentRuntime({
-    source: new SingleTaskSource(task),
-    makeReporter: () => new StdoutReporter(),
-    executeTask,
-  });
+  try {
+    const executeTask = createPiTaskExecutor({
+      agentName,
+      mountPath: cwd,
+      provider,
+      model: modelId,
+      sandboxConfig,
+    });
 
-  const outputs = await runtime.start();
-  const [output] = outputs;
-  if (!output) {
-    console.error('[fatal] Runtime produced no outputs');
-    process.exit(1);
+    const runtime = new AgentRuntime({
+      source: new SingleTaskSource(task),
+      makeReporter: () => new StdoutReporter(),
+      executeTask,
+    });
+
+    const outputs = await runtime.start();
+    const [output] = outputs;
+    if (!output) {
+      console.error('[fatal] Runtime produced no outputs');
+      process.exit(1);
+    }
+
+    console.log('\n[done] TaskOutput:');
+    console.log(JSON.stringify(output, null, 2));
+    if (output.status !== 'completed') process.exit(1);
+  } finally {
+    await otelShutdown();
   }
-
-  console.log('\n[done] TaskOutput:');
-  console.log(JSON.stringify(output, null, 2));
-  if (output.status !== 'completed') process.exit(1);
 }
 
 main().catch((err) => {

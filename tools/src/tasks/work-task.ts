@@ -16,6 +16,7 @@ import {
 import type { TasksNamespace } from '@themoltnet/sdk';
 
 import { resolveTasksApiContext } from './api.js';
+import { initWorkerOtel } from './otel-bootstrap.js';
 
 const { values: args } = parseArgs({
   options: {
@@ -94,69 +95,93 @@ async function main() {
   }).trim();
   const api = await resolveTasksApiContext(repoRoot, agentName);
 
+  // Register the OTel SDK BEFORE runtime.start() so spans emitted by the
+  // pi OTel extension (and any @opentelemetry/api calls in the runtime)
+  // land on a real provider instead of the no-op tracer. Reads
+  // MOLTNET_OTEL_ENDPOINT from env; if unset, the call is a no-op and
+  // telemetry simply isn't exported — zero runtime cost.
+  const otelShutdown = await initWorkerOtel({
+    serviceName: 'moltnet.work-task',
+    agentDir: api.agentDir,
+    resourceAttributes: {
+      'moltnet.task.id': taskId,
+      'moltnet.agent.name': agentName,
+      'moltnet.llm.provider': provider,
+      'moltnet.llm.model': modelId,
+    },
+  });
+
   console.error(`[work-task] task-id: ${taskId}`);
   console.error(
     `[work-task] agent: ${agentName}, provider: ${provider}, model: ${modelId}`,
   );
 
-  const executeTask = createPiTaskExecutor({
-    agentName,
-    mountPath: cwd,
-    provider,
-    model: modelId,
-    sandboxConfig,
-  });
-
-  const runtime = new AgentRuntime({
-    source: new ApiTaskSource({
-      agent: api.agent,
-      taskId,
-      leaseTtlSec,
-    }),
-    makeReporter: () =>
-      stdoutReporter
-        ? new StdoutReporter()
-        : new ApiTaskReporter({
-            tasks: api.agent.tasks,
-            leaseTtlSec,
-            heartbeatIntervalMs,
-            maxBatchSize,
-            flushIntervalMs,
-          }),
-    executeTask,
-  });
-
-  const outputs = await runtime.start();
-  const [output] = outputs;
-  if (!output) {
-    throw new Error('Runtime produced no outputs');
-  }
-
-  if (output.status === 'completed' && output.output && output.outputCid) {
-    await api.agent.tasks.complete(taskId, output.attemptN, {
-      output: output.output,
-      outputCid: output.outputCid,
-      usage: output.usage,
-      ...(output.contentSignature
-        ? { contentSignature: output.contentSignature }
-        : {}),
+  try {
+    const executeTask = createPiTaskExecutor({
+      agentName,
+      mountPath: cwd,
+      provider,
+      model: modelId,
+      sandboxConfig,
     });
-  } else {
-    const error: NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] =
-      output.error ?? {
-        code: output.status === 'cancelled' ? 'task_cancelled' : 'task_failed',
-        message:
-          output.status === 'cancelled'
-            ? 'Task was cancelled by the runtime.'
-            : 'Task execution failed before producing a valid output.',
-        retryable: false,
-      };
-    await api.agent.tasks.fail(taskId, output.attemptN, { error });
-  }
 
-  console.log('\n[done] TaskOutput:');
-  console.log(JSON.stringify(output, null, 2));
-  if (output.status !== 'completed') process.exit(1);
+    const runtime = new AgentRuntime({
+      source: new ApiTaskSource({
+        agent: api.agent,
+        taskId,
+        leaseTtlSec,
+      }),
+      makeReporter: () =>
+        stdoutReporter
+          ? new StdoutReporter()
+          : new ApiTaskReporter({
+              tasks: api.agent.tasks,
+              leaseTtlSec,
+              heartbeatIntervalMs,
+              maxBatchSize,
+              flushIntervalMs,
+            }),
+      executeTask,
+    });
+
+    const outputs = await runtime.start();
+    const [output] = outputs;
+    if (!output) {
+      throw new Error('Runtime produced no outputs');
+    }
+
+    if (output.status === 'completed' && output.output && output.outputCid) {
+      await api.agent.tasks.complete(taskId, output.attemptN, {
+        output: output.output,
+        outputCid: output.outputCid,
+        usage: output.usage,
+        ...(output.contentSignature
+          ? { contentSignature: output.contentSignature }
+          : {}),
+      });
+    } else {
+      const error: NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] =
+        output.error ?? {
+          code:
+            output.status === 'cancelled' ? 'task_cancelled' : 'task_failed',
+          message:
+            output.status === 'cancelled'
+              ? 'Task was cancelled by the runtime.'
+              : 'Task execution failed before producing a valid output.',
+          retryable: false,
+        };
+      await api.agent.tasks.fail(taskId, output.attemptN, { error });
+    }
+
+    console.log('\n[done] TaskOutput:');
+    console.log(JSON.stringify(output, null, 2));
+    if (output.status !== 'completed') process.exit(1);
+  } finally {
+    // Drain pending span batches before the process exits so the final
+    // span of the task (invoke_agent end, heartbeat errors, etc.) isn't
+    // dropped on the floor when `process.exit()` runs.
+    await otelShutdown();
+  }
 }
 
 main().catch((err) => {
