@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.2.0...agent-runtime-v0.2.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* **agent-runtime:** send heartbeat immediately on open ([89cdb6c](https://github.com/getlarge/themoltnet/commit/89cdb6cfbd62358d4d9a4974a26759d69c8db3f5))
+* **tasks:** heartbeat on open, timed_out→409, traceparent propagation ([aaf524f](https://github.com/getlarge/themoltnet/commit/aaf524fe88a08233860bf59f72407522b38fde5a))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.1.0...agent-runtime-v0.2.0) (2026-04-23)
 
 

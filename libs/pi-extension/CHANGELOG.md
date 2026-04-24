@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.5.0...pi-extension-v0.6.0) (2026-04-24)
+
+
+### Features
+
+* **database,rest-api:** migrate rendered pack verification to Tasks API ([455fd04](https://github.com/getlarge/themoltnet/commit/455fd041f839d351d0bc3b3986ab805f529a0a33))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.4.0...pi-extension-v0.5.0) (2026-04-23)
 
 

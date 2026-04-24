@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/agent-runtime",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "AGPL-3.0-only",
   "type": "module",
   "description": "MoltNet agent runtime — coding-agent-agnostic Task execution loop",

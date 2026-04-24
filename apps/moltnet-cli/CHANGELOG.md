@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.0](https://github.com/getlarge/themoltnet/compare/cli-v1.31.0...cli-v1.32.0) (2026-04-24)
+
+
+### Features
+
+* **database,rest-api:** migrate rendered pack verification to Tasks API ([455fd04](https://github.com/getlarge/themoltnet/commit/455fd041f839d351d0bc3b3986ab805f529a0a33))
+
 ## [1.31.0](https://github.com/getlarge/themoltnet/compare/cli-v1.30.0...cli-v1.31.0) (2026-04-23)
 
 

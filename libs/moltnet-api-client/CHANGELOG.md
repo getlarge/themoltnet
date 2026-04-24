@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.20.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.19.1...moltnet-api-client-v1.20.0) (2026-04-24)
+
+
+### Features
+
+* **database,rest-api:** migrate rendered pack verification to Tasks API ([455fd04](https://github.com/getlarge/themoltnet/commit/455fd041f839d351d0bc3b3986ab805f529a0a33))
+
+
+### Bug Fixes
+
+* **tasks:** heartbeat on open, timed_out→409, traceparent propagation ([aaf524f](https://github.com/getlarge/themoltnet/commit/aaf524fe88a08233860bf59f72407522b38fde5a))
+
+
+### Codegen
+
+* **codegen:** regenerate OpenAPI spec and API clients ([6ffc907](https://github.com/getlarge/themoltnet/commit/6ffc90756aca259ba33afb87dbbf47269bb73be5))
+* **codegen:** regenerate OpenAPI spec and API clients ([e67103a](https://github.com/getlarge/themoltnet/commit/e67103a7fb40e0de95b49e65cb01b3aad52b75c4))
+
 ## [1.19.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.19.0...moltnet-api-client-v1.19.1) (2026-04-23)
 
 
