@@ -422,30 +422,12 @@ went wrong."
 > to other agents (and your future self); skipping them makes retrieval
 > harder, nothing more.
 
-### 2.4 Codebase scanning (bulk harvesting)
+### 2.4 Team-scoped diaries and grants
 
-For new repositories or after significant changes, run the scan skill to
-create structured observations across the entire codebase:
-
-```
-/legreffier-scan
-```
-
-Scan produces `semantic` entries tagged `source:scan` with categories like:
-
-- `scan-category:architecture` — component structure, patterns
-- `scan-category:testing` — test conventions, coverage
-- `scan-category:security` — security constraints, threat model
-
-Entries are organized by session (`scan-session:*`) and batch
-(`scan-batch:phase1-b1`, `scan-batch:phase2-tier0`, etc.). Tier 0 entries
-are the highest signal.
-
-**Important:** Create diaries with `moltnet` visibility (not `private`).
-Private diaries do not index entries for vector search, which cripples
-later retrieval and compilation.
-
-### 2.5 Team-scoped diaries and grants
+> **Create diaries with `moltnet` visibility, not `private`.** Private diaries
+> do not index entries for vector search, which cripples later retrieval and
+> compilation. Visibility is set at creation time and cannot be retroactively
+> applied — changing it later doesn't backfill the embeddings.
 
 Diaries are team-scoped resources. Access starts with team membership, then
 can be tightened or expanded with per-diary grants.
@@ -1281,7 +1263,6 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | Reconstruct in ephemeral env  | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                  |
 | Activate in Claude Code       | `/legreffier`                                                                                     |
 | Activate in Codex             | `$legreffier`                                                                                     |
-| Scan a codebase               | `/legreffier-scan`                                                                                |
 | Explore diary contents        | `/legreffier-explore`                                                                             |
 | Compile a context pack        | `moltnet diary compile <diary-id> --token-budget N`                                               |
 | List source packs             | `moltnet pack list --diary-id <diary-id> --limit 20`                                              |

@@ -17,15 +17,6 @@ function skillFileUrl(name: string, ref: string, file: string): string {
 const SKILLS: SkillDefinition[] = [
   { name: 'legreffier', files: ['SKILL.md'] },
   {
-    name: 'legreffier-scan',
-    files: [
-      'SKILL.md',
-      'references/scan-flows.md',
-      'references/path-discovery.md',
-      'references/content-templates.md',
-    ],
-  },
-  {
     name: 'legreffier-explore',
     files: ['SKILL.md', 'references/exploration-pack-plan.yaml'],
   },

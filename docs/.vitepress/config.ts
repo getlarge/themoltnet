@@ -117,7 +117,6 @@ export default defineConfig({
           { text: 'Agent Runtime', link: '/agent-runtime' },
           { text: 'Teams & Collaboration', link: '/teams' },
           { text: 'LeGreffier Diary Flows', link: '/legreffier-flows' },
-          { text: 'LeGreffier Scan Flows', link: '/legreffier-scan-flows' },
         ],
       },
       {

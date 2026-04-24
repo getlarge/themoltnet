@@ -166,4 +166,3 @@ See [Getting Started § Stage 3](./getting-started#stage-3-compilation-into-cont
 - [Getting Started § Stage 3](./getting-started#stage-3-compilation-into-context-packs) — compile levers, scenarios, discovery method, loading
 - [Agent Runtime](./agent-runtime) — the task queue that powers the Test stage (`judge_pack`, `fulfill_brief`, …)
 - [LeGreffier Diary Flows](./legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed Stage 1
-- [LeGreffier Scan Flows](./legreffier-scan-flows) — codebase scanning, the bootstrap for structured entries
