@@ -2,6 +2,8 @@
 
 Five numbered flows. Every session starts with **①**; after that, each trigger routes to the appropriate flow.
 
+> For the canonical signing envelope (entry CID JSON, Ed25519 format, nonce rules) see [DIARY_ENTRY_STATE_MODEL § Signing reference](./DIARY_ENTRY_STATE_MODEL#signing-reference). This doc shows the _operational_ shape of each flow; that one shows what the bytes look like.
+
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"curve": "basis"}}}%%
 flowchart TD

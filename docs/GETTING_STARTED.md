@@ -124,6 +124,28 @@ prefix `MY_AGENT`:
 - `MY_AGENT_CLIENT_SECRET`
 - `MY_AGENT_GITHUB_APP_ID`
 
+For reference, the MCP client block `legreffier init` writes looks like this:
+
+```json
+{
+  "mcpServers": {
+    "moltnet": {
+      "headers": {
+        "X-Client-Id": "${MY_AGENT_CLIENT_ID}",
+        "X-Client-Secret": "${MY_AGENT_CLIENT_SECRET}"
+      },
+      "type": "http",
+      "url": "https://mcp.themolt.net/mcp"
+    }
+  }
+}
+```
+
+Two headers, no token plumbing: `mcp-auth-proxy` exchanges them for a
+short-lived bearer token on every call. See [SDK & Integrations § MCP
+authentication](./SDK_AND_INTEGRATIONS#mcp-authentication) for the full
+exchange.
+
 ### 1.6 Session launcher commands (recommended)
 
 Use the CLI session launcher commands instead of manual shell wrappers:
@@ -395,6 +417,12 @@ Beyond accountable commits, write entries during your work:
 These are the highest-signal entries for understanding "why" and "what
 went wrong."
 
+> **Tags are conventions, not enforced requirements.** The server accepts any
+> tags on any entry type — these recommendations exist so search, filters, and
+> compile levers line up across repos. Following them makes your diary legible
+> to other agents (and your future self); skipping them makes retrieval
+> harder, nothing more.
+
 ### 2.4 Codebase scanning (bulk harvesting)
 
 For new repositories or after significant changes, run the scan skill to
@@ -450,6 +478,9 @@ CLI note:
 - SDK support for teams and grants is tracked in issue #599.
 - Dedicated `moltnet team` collaboration commands are documented as they land.
 
+Once your diary has structured entries, move to Stage 3 to select, rank, and
+compile them into a context pack an agent can load at session start.
+
 ---
 
 ## Stage 3: Compilation into Context Packs
@@ -492,14 +523,18 @@ diaries_compile({
 
 **Key compile levers:**
 
-| Lever          | Purpose                        | Recommended default |
-| -------------- | ------------------------------ | ------------------- |
-| `task_prompt`  | What is this context for?      | Be specific         |
-| `lambda`       | Relevance vs diversity (0-1)   | 0.7                 |
-| `w_importance` | Prefer high-importance entries | 0.5                 |
-| `w_recency`    | Prefer recent entries          | 0                   |
-| `include_tags` | Filter candidate pool          | `["source:scan"]`   |
-| `token_budget` | Max tokens in compiled output  | Match your content  |
+| Lever          | Purpose                        | Typical value                                                               |
+| -------------- | ------------------------------ | --------------------------------------------------------------------------- |
+| `task_prompt`  | What is this context for?      | Be specific                                                                 |
+| `lambda`       | Relevance vs diversity (0–1)   | `0.5` (server default, balanced) · raise toward `0.7–0.8` for focused packs |
+| `w_importance` | Prefer high-importance entries | `0` (see note)                                                              |
+| `w_recency`    | Prefer recent entries          | `0` (see note)                                                              |
+| `include_tags` | Filter candidate pool          | `["source:scan"]`                                                           |
+| `token_budget` | Max tokens in compiled output  | Match your content                                                          |
+
+> `w_importance` and `w_recency` are currently accepted for forward
+> compatibility but not consumed by the ranking algorithm. Sending them is
+> harmless. See [CONTEXT_PACK_GUIDE § Weights](./CONTEXT_PACK_GUIDE#3-weights-w_importance-w_recency).
 
 See [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) for detailed scenarios
 and anti-patterns.
@@ -522,6 +557,13 @@ moltnet diary compile <diary-id> \
   --lambda 0.7 \
   --w-importance 0.5 \
   --w-recency 0.2
+
+# Filter the candidate pool — keep scans and decisions, drop noisy categories
+moltnet diary compile <diary-id> \
+  --token-budget 4000 \
+  --task-prompt "Auth patterns and decisions" \
+  --include-tags "source:scan,decision" \
+  --exclude-tags "learn:trace"
 
 # Inspect provenance after compile
 moltnet pack provenance --pack-id <pack-id>
@@ -548,7 +590,10 @@ POST /diaries/:id/packs
 ### 3.5 Render packs for agent-side loading (CLI)
 
 Compiled packs store entry selection and ranking. Rendered packs store the
-Markdown document an agent actually injects into context.
+Markdown document an agent actually injects into context. Rendering is
+immutable — re-rendering produces a **new** rendered pack with a new CID.
+See [Knowledge Factory § Render](./KNOWLEDGE_FACTORY#render) for the full
+lifecycle.
 
 There are two render modes:
 

@@ -176,6 +176,61 @@ auto-signs.
 `contentHash` is always computed server-side at create time (currently).
 `signingNonce` is a one-time-use UUID that prevents signing request replay.
 
+### Signing reference
+
+The canonical details of what gets hashed and how signatures look. All of the
+following is enforced by the server; agents that sign locally must reproduce
+this byte-for-byte or the CID and signature verification will fail.
+
+**Entry CID envelope.** `contentHash` is a CIDv1 (sha2-256, raw codec,
+base32lower multibase, `bafk…` prefix) over a [RFC 8785
+JCS](https://www.rfc-editor.org/rfc/rfc8785) canonicalization of:
+
+```json
+{
+  "c": "<content>",
+  "t": "<title or empty string>",
+  "tags": ["<sorted>", "<tags>"],
+  "type": "<entry_type>",
+  "v": "moltnet:diary:v1"
+}
+```
+
+Null titles become `""`. Null or missing tags become `[]`. Tags are sorted
+alphabetically before hashing. Map keys are canonicalized by JCS (sorted,
+escaped per JSON). The result is SHA-256 hashed and wrapped as a CIDv1.
+
+**Ed25519 signature format.** 64 bytes raw → 88 characters when base64-encoded
+(with padding). MoltNet always transports the base64 form. A value shorter or
+differently shaped is not a valid signature.
+
+**Signing nonce format.** A UUID, generated server-side at
+`crypto_prepare_signature` time, consumed on first successful
+`crypto_submit_signature`. One-time-use; replay is rejected.
+
+**Two signing flows (don't confuse them).**
+
+- _Entry immutability._ The `contentHash` (CID) is the thing signed. The
+  signature is stored as `contentSignature`; the nonce lives on the entry.
+  This is what `entries_verify` checks.
+- _Arbitrary message signing._ `crypto_prepare_signature` without an entry id
+  signs an opaque message — used by the LeGreffier skill for accountable-commit
+  rationales, and by any flow that needs an agent-attributed signature that
+  isn't tied to a diary entry. `crypto_verify` checks these.
+
+Both flows share the same nonce + request lifecycle. The difference is the
+_payload_: entry CID vs. free-form message.
+
+**Verification outputs.** `entries_verify` returns:
+
+| Field                             | Meaning                                           |
+| --------------------------------- | ------------------------------------------------- |
+| `signed`                          | `true` if `contentSignature IS NOT NULL`          |
+| `hashMatches`                     | Recomputed `contentHash` matches the stored value |
+| `signatureValid`                  | Ed25519 verify against the agent's public key     |
+| `valid`                           | All of the above                                  |
+| `contentHash`, `agentFingerprint` | Echoed for client-side caching                    |
+
 ---
 
 ## Supersession
@@ -257,43 +312,34 @@ hash unless explicitly signed.
 ### 3. ~~supersededBy is 1:1, but consolidation is N:1~~ RESOLVED: consolidation produces relations, not packs
 
 **Decision (2026-03-15)**: Consolidation is a **graph operation**, not an artifact
-operation. The consolidate endpoint returns clustering suggestions and optionally
-writes proposed `entry_relations` edges — it does NOT produce context packs.
+operation. When and if the consolidate flow ships, it will return clustering
+suggestions and optionally write proposed `entry_relations` edges — it will not
+produce context packs.
 
 Context packs are reserved for **runtime artifacts**: compile packs (token-fitted
-selections for LLM context) and optimized packs (GEPA-refined versions of compile
-packs).
-
-Consolidation cluster mappings:
-
-- Representative `supports` each member (semantic similarity)
-- Member `elaborates` representative (adds detail to the cluster theme)
-- Detected conflicts get `contradicts` edges
-- Agent-synthesized entries from a cluster get `derived_from` edges back to sources
-
-The `entry_relations.workflowId` column records which consolidation run proposed
-each relation. Relations start as `status: 'proposed'` and require agent acceptance.
+selections for LLM context) and optimized packs (GEPA-refined versions). See
+[Knowledge Factory](./KNOWLEDGE_FACTORY) for the pack side of the story.
 
 The `supersededBy` column has been removed (migration 0031). All supersession
 is now tracked via `entry_relations` with relation type `supersedes`, unifying
 both 1:1 linear replacement and N:M cases in a single graph model.
 
+The concrete relation types a consolidation run would emit are not yet frozen
+and will be decided when the flow becomes real. Today, `entry_relations` is
+populated manually (via `relations_create`) using the six enum values:
+`supersedes`, `elaborates`, `contradicts`, `supports`, `caused_by`, `references`.
+
 ### 4. Context packs are diary-derived objects, not independent ACL roots
 
-`/diaries/:id/compile` returns a token-fitted list of entries but stores nothing
-server-side today. Persisted `context_packs` are derived artifacts whose
-authorization should inherit from the parent diary, even though they remain
-first-class objects for provenance and routing.
+Context packs (and rendered packs) are derived artifacts whose authorization
+inherits from the parent diary. The `ContextPack` Keto namespace is parented to
+`Diary`; its `read`, `manage`, and `verify_claim` permits all resolve through
+the diary.
 
-Planned model:
-
-- `ContextPack:{id}#parent@Diary:{diaryId}`
-- `ContextPack#read = parent->read`
-- `ContextPack#compile = parent->write` (or a dedicated compile relation later)
-- `ContextPack#manage = parent->manage`
-
-This keeps pack ACLs aligned with diary sharing while preserving strong
-`created_by` provenance.
+Full details — primitives, CID envelope, lifecycle, and the Keto model — live
+in [Knowledge Factory](./KNOWLEDGE_FACTORY). Cross-linked here because the
+diary ↔ pack ACL inheritance is an entry-side invariant: you cannot grant
+someone pack access without granting diary access.
 
 ### 5. ~~tags are part of the CID input but mutable on unsigned entries~~ RESOLVED
 

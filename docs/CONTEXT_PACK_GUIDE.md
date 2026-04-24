@@ -5,6 +5,7 @@ purposeful context assembly.
 
 **Related docs:**
 
+- [KNOWLEDGE_FACTORY.md](KNOWLEDGE_FACTORY.md) — canonical reference for the pack subsystem: primitives, CID envelope, lifecycle, retention, Keto model
 - [PROVENANCE.md](PROVENANCE.md) — the four-layer provenance model (entries → relations → packs → viewer)
 - [DIARY_ENTRY_STATE_MODEL.md](DIARY_ENTRY_STATE_MODEL.md) — entry types, lifecycle, signing, immutability rules
 
@@ -105,18 +106,25 @@ Controls the MMR (Maximal Marginal Relevance) tradeoff:
 | 0.8   | High relevance — entries clustered around the task prompt         | Focused tasks with clear scope   |
 | 1.0   | Pure relevance — may include near-duplicates                      | Very narrow tasks                |
 
-**Default recommendation: 0.7** for most task-specific packs.
+**Server default: `0.5`** (balanced). For task-specific packs you usually want
+to raise this toward `0.7`–`0.8` explicitly in the compile call. If you pass
+nothing, you get balanced ranking.
 
 ### 3. Weights — `w_importance`, `w_recency`
 
-| Weight         | Effect                                          | When to increase                          |
+| Weight         | Effect                                          | When to set                               |
 | -------------- | ----------------------------------------------- | ----------------------------------------- |
 | `w_importance` | Prefer entries marked as high-importance (7-10) | Architecture, security, decisions         |
 | `w_recency`    | Prefer recently created entries                 | Active feature branches, recent incidents |
 
-Both default to 0. Adding `w_importance: 0.5` strongly favors scan entries
-and decisions (which are typically importance 7-8). Adding `w_recency: 0.3`
-biases toward the last 2 weeks.
+Both default to `0`.
+
+> **Status.** These weights are **accepted by the compile API for forward
+> compatibility but are not currently consumed by the ranking algorithm** —
+> today, ordering is driven by `lambda` (MMR) plus budget fitting. Sending
+> `w_importance` / `w_recency` is harmless and records intent in `params`, but
+> won't change the output until the compile pipeline wires them in. The
+> scenarios below still show them so migration is a no-op once that lands.
 
 ### 4. Filters — `include_tags`, `exclude_tags`
 

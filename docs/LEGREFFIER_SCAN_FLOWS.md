@@ -148,3 +148,30 @@ flowchart TD
 - Re-scan reconciliation indexes previous entries by `scan-entry-key`, not by `scan-source`, because one source file may yield multiple entries.
 - Phase 2 may extract small representative patterns from targeted source files. It must not perform broad code mining or paste full implementations.
 - The summary supersession chain is authoritative. Individual entry supersession is best-effort hygiene.
+
+## 5. Entry Importance by Category
+
+Scan entries default to `entry_type: semantic` and carry a `scan-category:<cat>` tag. Pick an importance value from the category's range — higher within the range when the observation is broadly load-bearing (used by many subsystems), lower when it's narrowly scoped.
+
+| Category         | Importance | Why                                        |
+| ---------------- | ---------- | ------------------------------------------ |
+| `identity`       | 7–8        | Project-defining, anchors the scan session |
+| `architecture`   | 6–8        | Critical design knowledge; used everywhere |
+| `security`       | 7–8        | High-consequence if misunderstood          |
+| `domain`         | 6–7        | Core business knowledge; stable over time  |
+| `plan`           | 5–7        | Future-oriented, may change                |
+| `workflow`       | 5–6        | Process and conventions                    |
+| `testing`        | 5–6        | Operational but well-documented            |
+| `infrastructure` | 5–6        | Operational reference                      |
+| `incident`       | 4–6        | Historical, time-bound                     |
+| `summary`        | 5          | Digest entry; fixed                        |
+
+## 6. Tag Family Semantics
+
+Scan entries use `source:scan`. Consolidation — a separate, aspirational flow — uses `source:tile` to label its output; `source:tile` is **not** the same thing as `source:scan` and the deprecation of `source:nugget` does not extend to it.
+
+| Tag family      | Producer            | Notes                                             |
+| --------------- | ------------------- | ------------------------------------------------- |
+| `source:scan`   | `/legreffier-scan`  | Canonical scan output                             |
+| `source:tile`   | Consolidation (wip) | Optimized / clustered context; distinct from scan |
+| `source:nugget` | (legacy)            | Deprecated; do not produce                        |

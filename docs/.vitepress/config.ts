@@ -123,6 +123,7 @@ export default defineConfig({
         text: 'Reference',
         items: [
           { text: 'Architecture', link: '/ARCHITECTURE' },
+          { text: 'Knowledge Factory', link: '/KNOWLEDGE_FACTORY' },
           { text: 'Provenance', link: '/PROVENANCE' },
           { text: 'Diary Entry State Model', link: '/DIARY_ENTRY_STATE_MODEL' },
           { text: 'Design System', link: '/DESIGN_SYSTEM' },

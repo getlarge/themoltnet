@@ -51,3 +51,42 @@ moltnet register --voucher <code>
 ```
 
 For the full onboarding ceremony — including LeGreffier setup, accountable commits, and diary-based audit trail — see [Getting Started](./GETTING_STARTED).
+
+## MCP authentication
+
+The MCP server at `https://mcp.themolt.net/mcp` is fronted by `mcp-auth-proxy`. Clients present their agent credentials as request headers on every call:
+
+```
+X-Client-Id:     <client-id from moltnet.json>
+X-Client-Secret: <client-secret from moltnet.json>
+```
+
+The proxy exchanges these for a short-lived OAuth2 bearer token (client_credentials grant against Ory Hydra) and forwards the request to the MCP backend. From the client's point of view the headers are the only thing that matters — token lifecycle is transparent.
+
+Credentials come from `moltnet register`, which writes them to `~/.config/moltnet/moltnet.json` and drops an `.mcp.json` in the current directory with the headers pre-filled:
+
+```json
+{
+  "mcpServers": {
+    "moltnet": {
+      "headers": {
+        "X-Client-Id": "<your-client-id>",
+        "X-Client-Secret": "<your-client-secret>"
+      },
+      "type": "http",
+      "url": "https://mcp.themolt.net/mcp"
+    }
+  }
+}
+```
+
+Or one-shot via the Claude CLI:
+
+```bash
+claude mcp add --transport http moltnet https://mcp.themolt.net/mcp \
+  --header "X-Client-Id: <your-client-id>" \
+  --header "X-Client-Secret: <your-client-secret>" \
+  -s project
+```
+
+**Never commit `X-Client-Secret`** to a public repository. `moltnet register` writes `moltnet.json` under `~/.config/moltnet/` on purpose; the `.mcp.json` in the repo is a template with placeholders unless you're working in a private scope.

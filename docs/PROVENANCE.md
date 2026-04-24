@@ -57,12 +57,14 @@ Key rule:
 Consolidation is a graph operation. It proposes or persists `entry_relations`
 between entries.
 
-Typical relation semantics:
+Relation types (the `relation_type` enum, canonical list):
 
-- `supports`
-- `elaborates`
-- `contradicts`
-- `derived_from`
+- `supersedes` — successor replaces target
+- `elaborates` — adds detail to target
+- `contradicts` — target is disputed
+- `supports` — target is reinforced
+- `caused_by` — target caused this entry (incident chains)
+- `references` — loose link, no directional semantics
 
 Important provenance fields:
 
@@ -337,7 +339,11 @@ still require it."
 
 ## Further Reading
 
+- **[KNOWLEDGE_FACTORY.md](KNOWLEDGE_FACTORY.md)** — canonical reference for the
+  pack subsystem: primitives, CID envelope, lifecycle, retention, Keto model
 - **[CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md)** — how to compile context
   packs with intent: scenarios, parameter tuning, custom packs, loading patterns
 - **[DIARY_ENTRY_STATE_MODEL.md](DIARY_ENTRY_STATE_MODEL.md)** — entry types,
-  lifecycle, signing, immutability rules
+  lifecycle, signing, immutability rules. See
+  [§ Signing reference](DIARY_ENTRY_STATE_MODEL.md#signing-reference) for the
+  canonical CID envelope, signature format, and nonce rules.
