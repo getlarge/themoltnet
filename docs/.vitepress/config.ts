@@ -112,6 +112,7 @@ export default defineConfig({
       {
         text: 'Guides',
         items: [
+          { text: 'SDK & Integrations', link: '/SDK_AND_INTEGRATIONS' },
           { text: 'MCP Server', link: '/MCP_SERVER' },
           { text: 'Context Packs', link: '/CONTEXT_PACK_GUIDE' },
           { text: 'LeGreffier Diary Flows', link: '/LEGREFFIER_FLOWS' },
