@@ -4,7 +4,10 @@ import llmstxt from 'vitepress-plugin-llms';
 export default defineConfig({
   cleanUrls: true,
   vite: {
-    plugins: [llmstxt()],
+    // Cast: vitepress-plugin-llms's Plugin type comes from a different vite
+    // version than the one VitePress 1.6 bundles, so structural compatibility
+    // is lost at the type level though the runtime contract is identical.
+    plugins: [llmstxt() as never],
   },
   srcExclude: [
     'journal/**',
