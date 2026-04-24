@@ -5,6 +5,8 @@ import { MoltNetError, problemToError } from './errors.js';
 export interface AgentContext {
   client: Client;
   auth?: () => Promise<string>;
+  /** W3C trace headers captured from the last task claim response, injected on subsequent task calls. */
+  taskTraceHeaders?: Record<string, string>;
 }
 
 export function unwrapResult<T>(
