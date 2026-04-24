@@ -456,20 +456,6 @@ func encodeSubmitSignatureRequest(
 	return nil
 }
 
-func encodeSubmitVerificationRequest(
-	req *SubmitVerificationReq,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	e := new(jx.Encoder)
-	{
-		req.Encode(e)
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
 func encodeTaskHeartbeatRequest(
 	req OptTaskHeartbeatReq,
 	r *http.Request,
@@ -614,20 +600,6 @@ func encodeVerifyCryptoSignatureRequest(
 
 func encodeVerifyRecoveryChallengeRequest(
 	req *VerifyRecoveryChallengeReq,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	e := new(jx.Encoder)
-	{
-		req.Encode(e)
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
-func encodeVerifyRenderedPackRequest(
-	req *VerifyRenderedPackReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

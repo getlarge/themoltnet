@@ -54,7 +54,6 @@ var operationRolesBearerAuth = map[string][]string{
 	AppendTaskMessagesOperation:            []string{},
 	CancelTaskOperation:                    []string{},
 	ClaimTaskOperation:                     []string{},
-	ClaimVerificationOperation:             []string{},
 	CompileDiaryOperation:                  []string{},
 	CompleteTaskOperation:                  []string{},
 	ConsolidateDiaryOperation:              []string{},
@@ -123,7 +122,6 @@ var operationRolesBearerAuth = map[string][]string{
 	RotateClientSecretOperation:            []string{},
 	SearchDiaryOperation:                   []string{},
 	SubmitSignatureOperation:               []string{},
-	SubmitVerificationOperation:            []string{},
 	TaskHeartbeatOperation:                 []string{},
 	UpdateContextPackOperation:             []string{},
 	UpdateDiaryOperation:                   []string{},
@@ -131,7 +129,6 @@ var operationRolesBearerAuth = map[string][]string{
 	UpdateEntryRelationStatusOperation:     []string{},
 	UpdateRenderedPackOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
-	VerifyRenderedPackOperation:            []string{},
 }
 
 // GetRolesForBearerAuth returns the required roles for the given operation.
@@ -163,7 +160,6 @@ var operationRolesCookieAuth = map[string][]string{
 	AppendTaskMessagesOperation:            []string{},
 	CancelTaskOperation:                    []string{},
 	ClaimTaskOperation:                     []string{},
-	ClaimVerificationOperation:             []string{},
 	CompileDiaryOperation:                  []string{},
 	CompleteTaskOperation:                  []string{},
 	ConsolidateDiaryOperation:              []string{},
@@ -232,7 +228,6 @@ var operationRolesCookieAuth = map[string][]string{
 	RotateClientSecretOperation:            []string{},
 	SearchDiaryOperation:                   []string{},
 	SubmitSignatureOperation:               []string{},
-	SubmitVerificationOperation:            []string{},
 	TaskHeartbeatOperation:                 []string{},
 	UpdateContextPackOperation:             []string{},
 	UpdateDiaryOperation:                   []string{},
@@ -240,7 +235,6 @@ var operationRolesCookieAuth = map[string][]string{
 	UpdateEntryRelationStatusOperation:     []string{},
 	UpdateRenderedPackOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
-	VerifyRenderedPackOperation:            []string{},
 }
 
 // GetRolesForCookieAuth returns the required roles for the given operation.
@@ -272,7 +266,6 @@ var operationRolesSessionAuth = map[string][]string{
 	AppendTaskMessagesOperation:            []string{},
 	CancelTaskOperation:                    []string{},
 	ClaimTaskOperation:                     []string{},
-	ClaimVerificationOperation:             []string{},
 	CompileDiaryOperation:                  []string{},
 	CompleteTaskOperation:                  []string{},
 	ConsolidateDiaryOperation:              []string{},
@@ -341,7 +334,6 @@ var operationRolesSessionAuth = map[string][]string{
 	RotateClientSecretOperation:            []string{},
 	SearchDiaryOperation:                   []string{},
 	SubmitSignatureOperation:               []string{},
-	SubmitVerificationOperation:            []string{},
 	TaskHeartbeatOperation:                 []string{},
 	UpdateContextPackOperation:             []string{},
 	UpdateDiaryOperation:                   []string{},
@@ -349,7 +341,6 @@ var operationRolesSessionAuth = map[string][]string{
 	UpdateEntryRelationStatusOperation:     []string{},
 	UpdateRenderedPackOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
-	VerifyRenderedPackOperation:            []string{},
 }
 
 // GetRolesForSessionAuth returns the required roles for the given operation.

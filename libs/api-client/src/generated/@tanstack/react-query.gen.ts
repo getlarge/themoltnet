@@ -16,7 +16,6 @@ import {
   appendTaskMessages,
   cancelTask,
   claimTask,
-  claimVerification,
   compileDiary,
   completeTask,
   consolidateDiary,
@@ -102,7 +101,6 @@ import {
   searchPublicFeed,
   startLegreffierOnboarding,
   submitSignature,
-  submitVerification,
   taskHeartbeat,
   updateContextPack,
   updateDiary,
@@ -113,7 +111,6 @@ import {
   verifyCryptoSignature,
   verifyDiaryEntryById,
   verifyRecoveryChallenge,
-  verifyRenderedPack,
 } from '../sdk.gen';
 import type {
   AcceptTeamFoundingData,
@@ -134,9 +131,6 @@ import type {
   ClaimTaskData,
   ClaimTaskError,
   ClaimTaskResponse2,
-  ClaimVerificationData,
-  ClaimVerificationError,
-  ClaimVerificationResponse2,
   CompileDiaryData,
   CompileDiaryError,
   CompileDiaryResponse,
@@ -383,9 +377,6 @@ import type {
   SubmitSignatureData,
   SubmitSignatureError,
   SubmitSignatureResponse,
-  SubmitVerificationData,
-  SubmitVerificationError,
-  SubmitVerificationResponse2,
   TaskHeartbeatData,
   TaskHeartbeatError,
   TaskHeartbeatResponse,
@@ -416,9 +407,6 @@ import type {
   VerifyRecoveryChallengeData,
   VerifyRecoveryChallengeError,
   VerifyRecoveryChallengeResponse,
-  VerifyRenderedPackData,
-  VerifyRenderedPackError,
-  VerifyRenderedPackResponse2,
 } from '../types.gen';
 
 /**
@@ -1817,87 +1805,6 @@ export const updateRenderedPackMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateRenderedPack({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Trigger fidelity verification for an agent-rendered pack.
- */
-export const verifyRenderedPackMutation = (
-  options?: Partial<Options<VerifyRenderedPackData>>,
-): UseMutationOptions<
-  VerifyRenderedPackResponse2,
-  VerifyRenderedPackError,
-  Options<VerifyRenderedPackData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    VerifyRenderedPackResponse2,
-    VerifyRenderedPackError,
-    Options<VerifyRenderedPackData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await verifyRenderedPack({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Judge claims verification payload (source entries, rendered content, and rubric).
- */
-export const claimVerificationMutation = (
-  options?: Partial<Options<ClaimVerificationData>>,
-): UseMutationOptions<
-  ClaimVerificationResponse2,
-  ClaimVerificationError,
-  Options<ClaimVerificationData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    ClaimVerificationResponse2,
-    ClaimVerificationError,
-    Options<ClaimVerificationData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await claimVerification({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Judge submits fidelity scores and transcript.
- */
-export const submitVerificationMutation = (
-  options?: Partial<Options<SubmitVerificationData>>,
-): UseMutationOptions<
-  SubmitVerificationResponse2,
-  SubmitVerificationError,
-  Options<SubmitVerificationData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    SubmitVerificationResponse2,
-    SubmitVerificationError,
-    Options<SubmitVerificationData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await submitVerification({
         ...options,
         ...fnOptions,
         throwOnError: true,

@@ -67,15 +67,6 @@ func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskReq, 
 	return r, ht.ErrNotImplemented
 }
 
-// ClaimVerification implements claimVerification operation.
-//
-// Judge claims verification payload (source entries, rendered content, and rubric).
-//
-// POST /rendered-packs/{id}/verify/claim
-func (UnimplementedHandler) ClaimVerification(ctx context.Context, params ClaimVerificationParams) (r ClaimVerificationRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // CompileDiary implements compileDiary operation.
 //
 // Compile a token-budget-fitted context pack from diary entries.
@@ -851,15 +842,6 @@ func (UnimplementedHandler) SubmitSignature(ctx context.Context, req *SubmitSign
 	return r, ht.ErrNotImplemented
 }
 
-// SubmitVerification implements submitVerification operation.
-//
-// Judge submits fidelity scores and transcript.
-//
-// POST /rendered-packs/{id}/verify/submit
-func (UnimplementedHandler) SubmitVerification(ctx context.Context, req *SubmitVerificationReq, params SubmitVerificationParams) (r SubmitVerificationRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // TaskHeartbeat implements taskHeartbeat operation.
 //
 // Send a heartbeat to keep the attempt lease alive.
@@ -948,14 +930,5 @@ func (UnimplementedHandler) VerifyDiaryEntryById(ctx context.Context, params Ver
 //
 // POST /recovery/verify
 func (UnimplementedHandler) VerifyRecoveryChallenge(ctx context.Context, req *VerifyRecoveryChallengeReq) (r VerifyRecoveryChallengeRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// VerifyRenderedPack implements verifyRenderedPack operation.
-//
-// Trigger fidelity verification for an agent-rendered pack.
-//
-// POST /rendered-packs/{id}/verify
-func (UnimplementedHandler) VerifyRenderedPack(ctx context.Context, req *VerifyRenderedPackReq, params VerifyRenderedPackParams) (r VerifyRenderedPackRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
