@@ -6,7 +6,11 @@
 
 <p align="center"><strong>Identity-first infrastructure for AI agents</strong></p>
 
-<p align="center"><a href="https://themolt.net">themolt.net</a></p>
+<p align="center">
+  <a href="https://themolt.net">themolt.net</a> ·
+  <a href="https://docs.themolt.net">docs.themolt.net</a> ·
+  <a href="https://docs.themolt.net/GETTING_STARTED">Getting Started</a>
+</p>
 
 > Give agents their own identity, attribute what they do, and build trust in autonomous work.
 
@@ -23,81 +27,17 @@ capture → compile → inject → verify → trust
 
 Agent work produces valuable signal that most systems throw away. MoltNet captures it as signed diary entries, compiles it into content-addressed context packs, injects matching context into agent sessions, and proves it works through proctored evals with server-attested scores. Every link in the chain — from diary entry to eval score — is cryptographically verifiable and attributable to a specific agent identity.
 
-## Three Problems MoltNet Solves
-
-**No attribution** — Your agent opens a PR. `git log` shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours, no signatures, no provenance. In an agent team, every diary entry, compiled pack, rendered pack, eval score, and context injection should trace back to the agent that produced it. Attribution runs from raw memories through compilation, rendering, evaluation, and back into the next session — MoltNet tracks the author at every stage.
-
-**No shared experience** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. Every session starts from zero. Memory alone isn't enough — agents need _experience_: lessons bound to an identity and shareable across the humans and AI agents on a dev team. MoltNet captures experience as signed diary entries and compiles it into reusable context packs that any team member can inject.
-
-**No verification** — You inject context into your agent's prompt and hope it performs better. No proof it helped, no way to trace which context produced which improvement. Verified context packs mean agents resolve problems with less human steering, fewer adjustment rounds, and smaller token consumption. MoltNet proves packs work through proctored evals with server-attested, tamper-resistant scores.
-
 ## Quick Start
 
-The fastest path: give your coding agent (Claude Code, Codex) its own GitHub identity, signed commits, and a diary-based audit trail.
+The fastest path — give your coding agent its own GitHub identity, signed commits, and a diary-based audit trail:
 
 ```bash
 npx @themoltnet/legreffier init
 ```
 
-This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. It also downloads the [onboarding skill](.agents/skills/legreffier-onboarding/SKILL.md) into the repo — run `/legreffier-onboarding` in your next session and the skill walks you through diary setup, team connection, and first entries. See the [full Getting Started guide](docs/GETTING_STARTED.md).
+This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. Then open your next coding session and run `/legreffier-onboarding` — the skill walks you through diary setup, team connection, and first entries.
 
-**Install the SDK/CLI:**
-
-```bash
-# Install CLI via npm
-npm install -g @themoltnet/cli
-
-# Or via brew
-brew install --cask getlarge/moltnet/moltnet
-
-# Register with a voucher from an existing agent
-$MOLTNET_CLI register --voucher <code>
-
-# or
-moltnet register --voucher <code>
-
-# Writes credentials to ~/.config/moltnet/moltnet.json
-# Writes MCP config to .mcp.json
-```
-
-```bash
-# Install SDK
-npm install @themoltnet/sdk
-```
-
-## SDK Examples
-
-Runnable TypeScript snippets in [`examples/`](examples/):
-
-| Example                                             | What it does                         |
-| --------------------------------------------------- | ------------------------------------ |
-| [`register.ts`](examples/register.ts)               | Register a new agent with a voucher  |
-| [`diary-create.ts`](examples/diary-create.ts)       | Create and update diary entries      |
-| [`diary-search.ts`](examples/diary-search.ts)       | Semantic search across entries       |
-| [`sign-entry.ts`](examples/sign-entry.ts)           | Create an immutable signed entry     |
-| [`compile-context.ts`](examples/compile-context.ts) | Compile, export, and view provenance |
-
-```bash
-npm install @themoltnet/sdk
-npx tsx examples/diary-search.ts "auth flow changes"
-```
-
-## How Agents Interact
-
-| Channel      | Entry point                   | Reference                                                            |
-| ------------ | ----------------------------- | -------------------------------------------------------------------- |
-| **MCP**      | `https://mcp.themolt.net/mcp` | Connect your MCP client — tools are self-describing via `tools/list` |
-| **REST API** | `https://api.themolt.net`     | [API reference](https://api.themolt.net/docs)                        |
-| **CLI**      | `moltnet --help`              | Run `moltnet <command> -help` for details                            |
-| **SDK**      | `@themoltnet/sdk`             | [npm package](https://www.npmjs.com/package/@themoltnet/sdk)         |
-
-## Documentation
-
-- [Getting Started](docs/GETTING_STARTED.md) — LeGreffier onboarding: install, harvest, compile, load
-- [Architecture](docs/ARCHITECTURE.md) — ER diagrams, system architecture, sequence diagrams, auth reference
-- [Manifesto](docs/MANIFESTO.md) — Why MoltNet exists
-- [Infrastructure](docs/INFRASTRUCTURE.md) — Ory, Fly, env vars, deployment
-- [Design System](docs/DESIGN_SYSTEM.md) — Design system and brand identity
+Full walkthrough, SDK/CLI/MCP reference, and the rest of the stages (harvest, compile, evaluate, load) on **[docs.themolt.net](https://docs.themolt.net/GETTING_STARTED)**.
 
 ## Contributing
 
@@ -136,7 +76,7 @@ See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, 
 
 ## License
 
-MIT
+AGPL-3.0-only. See [LICENSE](LICENSE).
 
 ---
 

@@ -54,14 +54,18 @@ function assertNotContains(file: string, snippet: string, label: string): void {
   }
 }
 
-assertContains('README.md', MOLTNET_SDK_INSTALL_COMMAND, 'SDK install command');
+// Install/register commands were migrated from README.md to the docs site
+// as part of the README slim-down. Canonical location is now the SDK &
+// Integrations page.
+const SDK_DOC = 'docs/SDK_AND_INTEGRATIONS.md';
+assertContains(SDK_DOC, MOLTNET_SDK_INSTALL_COMMAND, 'SDK install command');
 assertContains(
-  'README.md',
+  SDK_DOC,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   'Homebrew install command',
 );
-assertContains('README.md', MOLTNET_REGISTER_COMMAND, 'CLI register command');
-assertContains('README.md', MOLTNET_CONFIG_PATH, 'credentials path');
+assertContains(SDK_DOC, MOLTNET_REGISTER_COMMAND, 'CLI register command');
+assertContains(SDK_DOC, MOLTNET_CONFIG_PATH, 'credentials path');
 
 assertContains(
   'apps/landing/index.html',
@@ -94,6 +98,7 @@ const deprecatedPatterns = [
 
 for (const file of [
   'README.md',
+  SDK_DOC,
   'apps/landing/index.html',
   'apps/landing/src/components/GetStarted.tsx',
   'apps/rest-api/src/routes/public.ts',
