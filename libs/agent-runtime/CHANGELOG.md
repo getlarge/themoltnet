@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.2.1...agent-runtime-v0.3.0) (2026-04-24)
+
+
+### Features
+
+* **agent-runtime:** batch ApiTaskReporter records to coalesce token-stream POSTs ([6654122](https://github.com/getlarge/themoltnet/commit/665412252970209a0be1ab18cf711a30a9344a3f))
+
+
+### Bug Fixes
+
+* **reporter:** address Copilot review — integer validation, NaN guard, docs ([6c31971](https://github.com/getlarge/themoltnet/commit/6c3197113910f78b7f916a1965edf88898e316f6))
+* **reporter:** close data-loss triangle — restore batch on fail, await inflight, log swallowed errors ([e937003](https://github.com/getlarge/themoltnet/commit/e937003184cd16169fac6037d37fd7feeed7bb4c))
+* **tasks:** serialize appendMessages seq, batch reporter, log pg errors ([#921](https://github.com/getlarge/themoltnet/issues/921)) ([2279ea5](https://github.com/getlarge/themoltnet/commit/2279ea5b37a7e23cfc0f4b0c64c2a0e1c6d9527c))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.2.0...agent-runtime-v0.2.1) (2026-04-24)
 
 

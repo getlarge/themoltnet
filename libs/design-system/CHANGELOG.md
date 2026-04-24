@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.6.0...design-system-v0.7.0) (2026-04-24)
+
+
+### Features
+
+* docs.themolt.net — VitePress documentation site ([84fdd76](https://github.com/getlarge/themoltnet/commit/84fdd762137abfec5869486857c6ac5e35c4b5f1))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.5.1...design-system-v0.6.0) (2026-04-14)
 
 
