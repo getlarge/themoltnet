@@ -19,6 +19,7 @@
     "typescript": "catalog:",
     "vitepress": "catalog:",
     "vitepress-mermaid-renderer": "catalog:",
+    "vitepress-plugin-llms": "catalog:",
     "vue": "catalog:"
   }
 }
