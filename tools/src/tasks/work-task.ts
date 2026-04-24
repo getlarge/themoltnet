@@ -25,6 +25,8 @@ const { values: args } = parseArgs({
     provider: { type: 'string', short: 'p', default: 'openai-codex' },
     'lease-ttl-sec': { type: 'string', default: '300' },
     'heartbeat-interval-ms': { type: 'string', default: '60000' },
+    'max-batch-size': { type: 'string', default: '50' },
+    'flush-interval-ms': { type: 'string', default: '200' },
     'stdout-reporter': { type: 'boolean', default: false },
   },
 });
@@ -42,6 +44,8 @@ const modelId = args.model!;
 const provider = args.provider!;
 const leaseTtlSec = Number(args['lease-ttl-sec']);
 const heartbeatIntervalMs = Number(args['heartbeat-interval-ms']);
+const maxBatchSize = Number(args['max-batch-size']);
+const flushIntervalMs = Number(args['flush-interval-ms']);
 const stdoutReporter = args['stdout-reporter']!;
 
 if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
@@ -58,6 +62,14 @@ if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 0) {
   console.error(
     'Invalid --heartbeat-interval-ms: must be a non-negative integer',
   );
+  process.exit(1);
+}
+if (!Number.isFinite(maxBatchSize) || maxBatchSize < 1) {
+  console.error('Invalid --max-batch-size: must be a positive integer');
+  process.exit(1);
+}
+if (!Number.isFinite(flushIntervalMs) || flushIntervalMs < 0) {
+  console.error('Invalid --flush-interval-ms: must be a non-negative integer');
   process.exit(1);
 }
 
@@ -108,6 +120,8 @@ async function main() {
             tasks: api.agent.tasks,
             leaseTtlSec,
             heartbeatIntervalMs,
+            maxBatchSize,
+            flushIntervalMs,
           }),
     executeTask,
   });

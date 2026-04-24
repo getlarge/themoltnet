@@ -7,23 +7,62 @@ export interface ApiTaskReporterOptions {
   tasks: TasksNamespace;
   leaseTtlSec?: number;
   heartbeatIntervalMs?: number;
+  /**
+   * Max messages buffered before a synchronous flush is triggered.
+   * Defaults to 50. Set to 1 to flush after every `record()` (legacy
+   * one-POST-per-message behaviour; not recommended — produces 429s under
+   * token-streaming workloads).
+   */
+  maxBatchSize?: number;
+  /**
+   * Time window for coalescing `record()` calls. When the buffer is non-empty,
+   * the reporter flushes after at most this many ms. Defaults to 200ms.
+   * Set to 0 to disable time-based flushing (flushes only on size / finalize).
+   */
+  flushIntervalMs?: number;
 }
+
+type BufferedMessage = {
+  kind: TaskMessage['kind'];
+  payload: TaskMessage['payload'];
+  timestamp: string;
+};
 
 /**
  * TaskReporter backed by the Tasks API via the SDK's TasksNamespace.
  *
  * - `open()` fires an immediate heartbeat (satisfies DBOS recv('started', 300s))
  *   then starts the periodic timer
- * - `record()` appends messages via the SDK
- * - `finalize()` stops the heartbeat timer
+ * - `record()` enqueues into an in-memory buffer; the buffer is flushed when
+ *   it reaches `maxBatchSize`, when `flushIntervalMs` elapses, or on
+ *   `finalize()` / `close()`. Flushes call `tasks.appendMessages` with the
+ *   full batch in a single POST. This is required because per-delta POSTs
+ *   for streaming providers (one per token) overwhelm the API rate limiter.
+ * - `finalize()` drains the buffer, stops timers, and stores usage
  */
 export class ApiTaskReporter implements TaskReporter {
   private taskId = '';
   private attemptN = 0;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private finalizedUsage: TaskUsage | null = null;
 
-  constructor(private readonly opts: ApiTaskReporterOptions) {}
+  private readonly buffer: BufferedMessage[] = [];
+  private inFlight: Promise<void> | null = null;
+  /**
+   * First error raised by a background flush. Surfaced on the next call
+   * that can meaningfully block on it (`record`, `flush`, `finalize`) so
+   * failures are never silently dropped by the batching layer.
+   */
+  private pendingError: Error | null = null;
+
+  private readonly maxBatchSize: number;
+  private readonly flushIntervalMs: number;
+
+  constructor(private readonly opts: ApiTaskReporterOptions) {
+    this.maxBatchSize = Math.max(1, opts.maxBatchSize ?? 50);
+    this.flushIntervalMs = Math.max(0, opts.flushIntervalMs ?? 200);
+  }
 
   getUsage(): TaskUsage | null {
     return this.finalizedUsage;
@@ -56,23 +95,72 @@ export class ApiTaskReporter implements TaskReporter {
   async record(
     body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void> {
-    try {
-      await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
-        messages: [
-          {
-            kind: body.kind,
-            payload: body.payload,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      });
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `ApiTaskReporter: append messages failed for task ${this.taskId} ` +
-          `attempt ${this.attemptN}: ${detail}`,
-      );
+    this.throwIfPendingError();
+    this.buffer.push({
+      kind: body.kind,
+      payload: body.payload,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (this.buffer.length >= this.maxBatchSize) {
+      // Synchronous flush: guarantees backpressure — the caller awaits the
+      // network round-trip once per batch instead of once per message.
+      await this.flush();
+      return;
     }
+
+    if (this.flushIntervalMs > 0 && !this.flushTimer) {
+      this.flushTimer = setTimeout(() => {
+        this.flushTimer = null;
+        void this.flush().catch((err) => {
+          this.pendingError ??=
+            err instanceof Error ? err : new Error(String(err));
+        });
+      }, this.flushIntervalMs);
+    }
+  }
+
+  /**
+   * Drain the buffer in a single `appendMessages` call. Safe to call when
+   * empty (no-op). Callers that need ordering guarantees across concurrent
+   * flushes await `inFlight` first, so two overlapping triggers (size limit
+   * + timer) serialize to one POST per distinct batch.
+   */
+  async flush(): Promise<void> {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+
+    if (this.inFlight) {
+      await this.inFlight;
+    }
+    if (this.buffer.length === 0) {
+      this.throwIfPendingError();
+      return;
+    }
+
+    const batch = this.buffer.splice(0, this.buffer.length);
+    this.inFlight = (async () => {
+      try {
+        await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
+          messages: batch,
+        });
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `ApiTaskReporter: append messages failed for task ${this.taskId} ` +
+            `attempt ${this.attemptN}: ${detail}`,
+        );
+      }
+    })();
+
+    try {
+      await this.inFlight;
+    } finally {
+      this.inFlight = null;
+    }
+    this.throwIfPendingError();
   }
 
   async finalize(usage: TaskUsage): Promise<void> {
@@ -81,12 +169,37 @@ export class ApiTaskReporter implements TaskReporter {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+    // Drain remaining buffered messages so the completion signal never
+    // races ahead of in-flight records.
+    await this.flush();
   }
 
   async close(): Promise<void> {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
+    }
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    // Best-effort drain. Unlike finalize(), close() is invoked from
+    // cleanup paths that must not throw and must not re-open the network.
+    if (this.buffer.length > 0) {
+      try {
+        await this.flush();
+      } catch {
+        // Swallow — pendingError is preserved for callers that still hold
+        // a reference, but the close contract is "always return".
+      }
+    }
+  }
+
+  private throwIfPendingError(): void {
+    if (this.pendingError) {
+      const err = this.pendingError;
+      this.pendingError = null;
+      throw err;
     }
   }
 
