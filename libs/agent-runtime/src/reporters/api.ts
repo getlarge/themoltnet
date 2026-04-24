@@ -60,8 +60,19 @@ export class ApiTaskReporter implements TaskReporter {
   private readonly flushIntervalMs: number;
 
   constructor(private readonly opts: ApiTaskReporterOptions) {
-    this.maxBatchSize = Math.max(1, opts.maxBatchSize ?? 50);
-    this.flushIntervalMs = Math.max(0, opts.flushIntervalMs ?? 200);
+    // `??` only substitutes the default for null/undefined, so a caller
+    // passing `NaN` (e.g. from a failed `Number(flag)` upstream) would slip
+    // through and silently disable batching (`x >= NaN` is always false).
+    // Validate integer-ness here too — belt-and-braces against callers that
+    // don't replicate the work-task CLI guards.
+    const maxBatchSize = Number.isInteger(opts.maxBatchSize)
+      ? (opts.maxBatchSize as number)
+      : 50;
+    const flushIntervalMs = Number.isInteger(opts.flushIntervalMs)
+      ? (opts.flushIntervalMs as number)
+      : 200;
+    this.maxBatchSize = Math.max(1, maxBatchSize);
+    this.flushIntervalMs = Math.max(0, flushIntervalMs);
   }
 
   getUsage(): TaskUsage | null {
@@ -183,14 +194,15 @@ export class ApiTaskReporter implements TaskReporter {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
     }
-    // Best-effort drain. Unlike finalize(), close() is invoked from
-    // cleanup paths that must not throw and must not re-open the network.
+    // Best-effort drain. close() is invoked from cleanup paths that must
+    // not throw (runtime owns terminal failure handling), but we still
+    // attempt one final POST so buffered messages aren't silently lost
+    // when a caller uses close() without a prior finalize().
     if (this.buffer.length > 0) {
       try {
         await this.flush();
       } catch {
-        // Swallow — pendingError is preserved for callers that still hold
-        // a reference, but the close contract is "always return".
+        // Swallow — the close contract is "always return cleanly".
       }
     }
   }

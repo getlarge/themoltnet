@@ -64,11 +64,11 @@ if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 0) {
   );
   process.exit(1);
 }
-if (!Number.isFinite(maxBatchSize) || maxBatchSize < 1) {
+if (!Number.isInteger(maxBatchSize) || maxBatchSize < 1) {
   console.error('Invalid --max-batch-size: must be a positive integer');
   process.exit(1);
 }
-if (!Number.isFinite(flushIntervalMs) || flushIntervalMs < 0) {
+if (!Number.isInteger(flushIntervalMs) || flushIntervalMs < 0) {
   console.error('Invalid --flush-interval-ms: must be a non-negative integer');
   process.exit(1);
 }

@@ -20,11 +20,11 @@ interface ProblemError extends FastifyError {
 }
 
 /**
- * Walk an error chain (error.cause, error.originalError) looking for a
- * Postgres driver error and return its structured fields. Errors thrown by
- * `pg` expose `code` (SQLSTATE), `constraint`, `table`, `column`, `schema`,
- * and `detail`. DrizzleQueryError wraps the pg error under `.cause`, so the
- * top-level `err.code` is undefined — without unwrapping, failures like
+ * Walk an error's `.cause` chain looking for a Postgres driver error and
+ * return its structured fields. Errors thrown by `pg` expose `code`
+ * (SQLSTATE), `constraint`, `table`, `column`, `schema`, and `routine`.
+ * DrizzleQueryError wraps the pg error under `.cause`, so the top-level
+ * `err.code` is undefined — without unwrapping, failures like
  * `23505 unique_violation` are only visible in the stack trace span event
  * in Axiom and can't be filtered or alerted on.
  */

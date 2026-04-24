@@ -186,6 +186,26 @@ describe('ApiTaskReporter', () => {
     expect(body.messages).toHaveLength(2);
   });
 
+  it('falls back to default batching when options are NaN / non-integer', async () => {
+    const { tasks, appendMessagesMock } = makeMockTasks();
+    // `??` would pass NaN through; we want the reporter to treat
+    // non-integer inputs as "use default". Otherwise `buffer.length >= NaN`
+    // is always false and batching is silently disabled.
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      maxBatchSize: Number.NaN,
+      flushIntervalMs: Number.NaN,
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
+
+    // Default flushIntervalMs (200ms) should fire.
+    await vi.advanceTimersByTimeAsync(200);
+    expect(appendMessagesMock).toHaveBeenCalledTimes(1);
+  });
+
   it('surfaces errors from a timer-driven flush on the next record', async () => {
     const failingAppend = vi
       .fn<TasksNamespace['appendMessages']>()
