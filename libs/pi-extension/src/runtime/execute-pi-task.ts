@@ -417,13 +417,26 @@ export async function executePiTask(
     if (reporterOpen) {
       try {
         await reporter.finalize(finalUsage);
-      } catch {
-        /* swallow */
+      } catch (err) {
+        // finalize() drains the reporter's buffer, so a failure here means
+        // buffered messages were lost or a retry restored them to the
+        // buffer — either way the task is about to be marked complete.
+        // Log to stderr so the loss is visible in the worker log instead
+        // of hidden inside an empty catch.
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error(
+          `executePiTask: reporter.finalize() failed for task ${task.id} ` +
+            `attempt ${attemptN}: ${detail}`,
+        );
       }
       try {
         await reporter.close();
-      } catch {
-        /* swallow */
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error(
+          `executePiTask: reporter.close() failed for task ${task.id} ` +
+            `attempt ${attemptN}: ${detail}`,
+        );
       }
     }
     await managed.vm.close();

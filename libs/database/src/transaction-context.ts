@@ -30,6 +30,18 @@ export function getExecutor(db: Database): Database {
   return txStorage.getStore() ?? db;
 }
 
+/**
+ * True when the current async context is already running inside a
+ * TransactionRunner-managed transaction (DBOS or plain Drizzle).
+ *
+ * Repositories that need transactional semantics (e.g. to attach a
+ * `pg_advisory_xact_lock`) can use this to decide whether to open a
+ * fresh `db.transaction(...)` or ride the ambient one.
+ */
+export function hasActiveTransaction(): boolean {
+  return txStorage.getStore() !== undefined;
+}
+
 export interface TransactionRunner {
   runInTransaction<T>(
     fn: () => Promise<T>,
