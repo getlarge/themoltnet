@@ -1,5 +1,4 @@
 import {
-  claimVerification,
   createDiaryCustomPack,
   getContextPackById,
   getContextPackProvenanceByCid,
@@ -12,10 +11,8 @@ import {
   previewDiaryCustomPack,
   previewRenderedPack,
   renderContextPack,
-  submitVerification,
   updateContextPack,
   updateRenderedPack,
-  verifyRenderedPack,
 } from '@moltnet/api-client';
 
 import type { PacksNamespace } from '../agent.js';
@@ -154,38 +151,6 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
     async updateRendered(id, body) {
       return unwrapResult(
         await updateRenderedPack({
-          client,
-          auth,
-          path: { id },
-          body,
-        }),
-      );
-    },
-
-    async verifyRendered(id, body) {
-      return unwrapResult(
-        await verifyRenderedPack({
-          client,
-          auth,
-          path: { id },
-          body,
-        }),
-      );
-    },
-
-    async claimVerification(id) {
-      return unwrapResult(
-        await claimVerification({
-          client,
-          auth,
-          path: { id },
-        }),
-      );
-    },
-
-    async submitVerification(id, body) {
-      return unwrapResult(
-        await submitVerification({
           client,
           auth,
           path: { id },

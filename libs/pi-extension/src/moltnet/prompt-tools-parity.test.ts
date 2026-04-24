@@ -7,6 +7,7 @@ import { createMoltNetTools, type MoltNetToolsConfig } from './tools.js';
 const noopConfig: MoltNetToolsConfig = {
   getAgent: () => null,
   getDiaryId: () => null,
+  getTeamId: () => null,
   getSessionErrors: () => [],
   clearSessionErrors: () => {},
 };
