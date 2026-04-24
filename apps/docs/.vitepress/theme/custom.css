@@ -1,0 +1,72 @@
+/*
+ * Map VitePress default theme variables to MoltNet design system tokens.
+ * Token values come from .vitepress/theme/vars.css (auto-generated).
+ */
+
+:root {
+  /* Brand */
+  --vp-c-brand-1: var(--molt-primary);
+  --vp-c-brand-2: var(--molt-primary-hover);
+  --vp-c-brand-3: var(--molt-primary-muted);
+  --vp-c-brand-soft: var(--molt-primary-subtle);
+
+  /* Backgrounds */
+  --vp-c-bg: var(--molt-bg-void);
+  --vp-c-bg-alt: var(--molt-bg-surface);
+  --vp-c-bg-elv: var(--molt-bg-elevated);
+  --vp-c-bg-soft: var(--molt-bg-overlay);
+
+  /* Text */
+  --vp-c-text-1: var(--molt-text);
+  --vp-c-text-2: var(--molt-text-secondary);
+  --vp-c-text-3: var(--molt-text-muted);
+
+  /* Borders / dividers */
+  --vp-c-divider: var(--molt-border);
+  --vp-c-border: var(--molt-border);
+  --vp-c-gutter: var(--molt-border);
+
+  /* Typography */
+  --vp-font-family-base: var(--molt-font-sans);
+  --vp-font-family-mono: var(--molt-font-mono);
+
+  /* Nav / sidebar */
+  --vp-nav-bg-color: var(--molt-bg-void);
+  --vp-sidebar-bg-color: var(--molt-bg-surface);
+
+  /* Code */
+  --vp-code-block-bg: var(--molt-bg-elevated);
+  --vp-code-color: var(--molt-primary);
+  --vp-code-tab-bg: var(--molt-bg-elevated);
+
+  /* Signal colors */
+  --vp-c-tip-1: var(--molt-primary);
+  --vp-c-tip-soft: var(--molt-primary-muted);
+  --vp-c-warning-1: var(--molt-warning);
+  --vp-c-danger-1: var(--molt-error);
+  --vp-c-note-1: var(--molt-info);
+
+  /* Button / accent */
+  --vp-button-brand-bg: var(--molt-primary);
+  --vp-button-brand-hover-bg: var(--molt-primary-hover);
+  --vp-button-brand-text: var(--molt-bg-void);
+  --vp-button-brand-border: var(--molt-primary);
+  --vp-button-brand-hover-border: var(--molt-primary-hover);
+  --vp-button-brand-active-bg: var(--molt-primary-hover);
+}
+
+/* Home hero gradient using brand colors */
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    var(--molt-primary) 30%,
+    var(--molt-accent) 100%
+  );
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    var(--molt-primary-muted) 50%,
+    var(--molt-accent-muted) 50%
+  );
+  --vp-home-hero-image-filter: blur(60px);
+}

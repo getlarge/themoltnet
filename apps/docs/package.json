@@ -1,0 +1,24 @@
+{
+  "name": "@moltnet/docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "prebuild": "tsx scripts/generate-vars.ts",
+    "predev": "tsx scripts/generate-vars.ts",
+    "typecheck": "tsc -b --emitDeclarationOnly"
+  },
+  "devDependencies": {
+    "@themoltnet/design-system": "workspace:*",
+    "@types/node": "catalog:",
+    "mermaid": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitepress": "catalog:",
+    "vitepress-plugin-mermaid": "catalog:",
+    "vue": "catalog:"
+  }
+}

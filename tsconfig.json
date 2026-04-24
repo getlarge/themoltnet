@@ -21,6 +21,9 @@
       "path": "apps/console"
     },
     {
+      "path": "apps/docs"
+    },
+    {
       "path": "apps/landing"
     },
     {
