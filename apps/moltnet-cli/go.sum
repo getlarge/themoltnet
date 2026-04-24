@@ -33,8 +33,8 @@ github.com/gabriel-vasile/mimetype v1.4.12 h1:e9hWvmLYvtp846tLHam2o++qitpguFiYCK
 github.com/gabriel-vasile/mimetype v1.4.12/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/getlarge/themoltnet/libs/dspy-adapters v0.9.0 h1:gUN+yc59ObbMsYu4gyZ/3wV7JG4cO9pQJDWfJKZW5bk=
 github.com/getlarge/themoltnet/libs/dspy-adapters v0.9.0/go.mod h1:LrIk92Gxsga2Ol11P8nV+aa/tM81/kSv7F4MitweIYc=
-github.com/getlarge/themoltnet/libs/moltnet-api-client v1.18.0 h1:ZYymai3XLSlBjSlIm7BcY0x/YXMK2kH4wNS9S+DJ3+E=
-github.com/getlarge/themoltnet/libs/moltnet-api-client v1.18.0/go.mod h1:2NM6Nj6POFphfql+G6u6/4F2i3EIo5Jd95DBX1lhPLM=
+github.com/getlarge/themoltnet/libs/moltnet-api-client v1.19.1 h1:WdTjxyRoXK62LnEdJ56qVED+mE3tmXBgw2/IRUQtp6I=
+github.com/getlarge/themoltnet/libs/moltnet-api-client v1.19.1/go.mod h1:2NM6Nj6POFphfql+G6u6/4F2i3EIo5Jd95DBX1lhPLM=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-faster/errors v0.7.1 h1:MkJTnDoEdi9pDabt1dpWf7AA8/BaSYZqibYyhZ20AYg=
