@@ -16,6 +16,10 @@ import type { TasksNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 
+function traceHeaders(context: AgentContext): Record<string, string> {
+  return context.taskTraceHeaders ?? {};
+}
+
 export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
 
@@ -33,7 +37,24 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     },
 
     async claim(id, body) {
-      return unwrapResult(await claimTask({ client, auth, path: { id }, body }));
+      const result = await claimTask({ client, auth, path: { id }, body });
+      // Capture W3C trace headers from the response so subsequent calls
+      // (heartbeat, messages, complete, fail) arrive as children of the
+      // workflow trace rather than orphan spans in Axiom.
+      const response = (result as { response?: Response }).response;
+      if (response) {
+        const headers: Record<string, string> = {};
+        const traceparent = response.headers.get('traceparent');
+        if (traceparent) {
+          headers['traceparent'] = traceparent;
+          const tracestate = response.headers.get('tracestate');
+          if (tracestate) headers['tracestate'] = tracestate;
+        }
+        context.taskTraceHeaders = Object.keys(headers).length
+          ? headers
+          : undefined;
+      }
+      return unwrapResult(result);
     },
 
     async heartbeat(id, n, body) {
@@ -43,6 +64,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           auth,
           path: { id, n },
           body,
+          headers: traceHeaders(context),
         }),
       );
     },
@@ -54,6 +76,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           auth,
           path: { id, n },
           body,
+          headers: traceHeaders(context),
         }),
       );
     },
@@ -65,6 +88,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           auth,
           path: { id, n },
           body,
+          headers: traceHeaders(context),
         }),
       );
     },
@@ -108,6 +132,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           auth,
           path: { id, n },
           body,
+          headers: traceHeaders(context),
         }),
       );
     },
