@@ -43,6 +43,7 @@ import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
 } from '../moltnet/tools.js';
+import { createPiOtelExtension } from '../otel/index.js';
 import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
@@ -260,9 +261,21 @@ export async function executePiTask(
       ) => Model<Api>;
       const modelHandle = getModelLoose(opts.provider, opts.model);
 
+      const piOtelExtension = createPiOtelExtension({
+        agentName: opts.agentName,
+        // MoltNet-specific attributes only. The extension owns gen_ai.*
+        // keys (populated from pi's model_select / turn_start events) and
+        // filters any gen_ai.* passed here.
+        spanAttributes: {
+          'moltnet.task.id': task.id,
+          'moltnet.task.attempt': attemptN,
+          'moltnet.task.type': task.taskType,
+        },
+      });
       const resourceLoader = new DefaultResourceLoader({
         cwd: mountPath,
         agentDir: piAuthDir,
+        extensionFactories: [piOtelExtension],
       });
       await resourceLoader.reload();
 

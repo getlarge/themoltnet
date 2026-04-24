@@ -48,6 +48,7 @@ export {
   computePiJudgeRecipeCid,
   resolvePiJudgeRecipeVersions,
 } from './moltnet/judge-recipe-cid.js';
+export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
 
 const GUEST_WORKSPACE = '/workspace';
 

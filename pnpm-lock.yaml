@@ -1219,6 +1219,9 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.7.0
+      '@opentelemetry/api':
+        specifier: 'catalog:'
+        version: 1.9.0
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -1238,6 +1241,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
+      '@opentelemetry/sdk-trace-base':
+        specifier: 'catalog:'
+        version: 2.5.1(@opentelemetry/api@1.9.0)
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30
