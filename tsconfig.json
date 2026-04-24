@@ -21,9 +21,6 @@
       "path": "apps/console"
     },
     {
-      "path": "apps/docs"
-    },
-    {
       "path": "apps/landing"
     },
     {
@@ -97,6 +94,9 @@
     },
     {
       "path": "packages/legreffier-cli"
+    },
+    {
+      "path": "docs"
     }
   ]
 }

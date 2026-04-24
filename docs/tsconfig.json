@@ -7,11 +7,11 @@
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "types": ["node"]
   },
-  "extends": "../../tsconfig.json",
+  "extends": "../tsconfig.json",
   "include": [".vitepress/**/*", "scripts/**/*"],
   "references": [
     {
-      "path": "../../libs/design-system"
+      "path": "../libs/design-system"
     }
   ]
 }

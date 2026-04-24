@@ -276,9 +276,9 @@ catalogs:
     vitepress:
       specifier: ^1.6.4
       version: 1.6.4
-    vitepress-plugin-mermaid:
-      specifier: ^2.0.17
-      version: 2.0.17
+    vitepress-mermaid-renderer:
+      specifier: ^1.1.21
+      version: 1.1.21
     vitest:
       specifier: ^3.0.0
       version: 3.2.4
@@ -320,8 +320,6 @@ overrides:
   express-rate-limit: '>=8.2.2'
   qs: '>=6.14.2'
   smol-toml: '>=1.6.1'
-
-packageExtensionsChecksum: sha256-5rauSIJ4KNDCndnqklLTNP+l9CBdujUPRvw55pS3UXY=
 
 importers:
 
@@ -436,33 +434,6 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
-
-  apps/docs:
-    devDependencies:
-      '@themoltnet/design-system':
-        specifier: workspace:*
-        version: link:../../libs/design-system
-      '@types/node':
-        specifier: 'catalog:'
-        version: 20.19.39
-      mermaid:
-        specifier: 'catalog:'
-        version: 11.14.0
-      tsx:
-        specifier: 'catalog:'
-        version: 4.21.0
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitepress:
-        specifier: 'catalog:'
-        version: 1.6.4(@algolia/client-search@5.51.0)(@types/node@20.19.39)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3)
-      vitepress-plugin-mermaid:
-        specifier: 'catalog:'
-        version: 2.0.17(mermaid@11.14.0)(vitepress@1.6.4(@algolia/client-search@5.51.0)(@types/node@20.19.39)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3))(vue@3.5.33(typescript@5.9.3))
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.33(typescript@5.9.3)
 
   apps/landing:
     dependencies:
@@ -802,6 +773,33 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  docs:
+    devDependencies:
+      '@themoltnet/design-system':
+        specifier: workspace:*
+        version: link:../libs/design-system
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.39
+      mermaid:
+        specifier: 'catalog:'
+        version: 11.14.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitepress:
+        specifier: 'catalog:'
+        version: 1.6.4(@algolia/client-search@5.51.0)(@types/node@20.19.39)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3)
+      vitepress-mermaid-renderer:
+        specifier: 'catalog:'
+        version: 1.1.21(mermaid@11.14.0)(vue@3.5.33(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.33(typescript@5.9.3)
 
   libs/agent-runtime:
     dependencies:
@@ -1862,9 +1860,6 @@ packages:
   '@boundaries/elements@1.2.0':
     resolution: {integrity: sha512-W65Gum02liMd3hmNrLmDBX1u5BmRMcunouFjLXyhxHnNY4YlK1kTxsgfflZ5XBGSnPnO0MkiUzAcoGzYrlx0RQ==}
     engines: {node: '>=18.18'}
-
-  '@braintree/sanitize-url@6.0.4':
-    resolution: {integrity: sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A==}
 
   '@braintree/sanitize-url@7.1.2':
     resolution: {integrity: sha512-jigsZK+sMF/cuiB7sERuo9V7N9jx+dhmHHnQyDSVdpZwVutaBu7WvNYqMDLSgFgfB30n452TP3vjDAvFC973mA==}
@@ -3028,9 +3023,6 @@ packages:
   '@mariozechner/pi-tui@0.67.68':
     resolution: {integrity: sha512-RhcMaGz88lNOm5+9yx+YCIfXZALLbMxB2cwsoHzyOzs+OZAItw8tz6xJZPAnX0RHY+ENQEGMMDY9TF6pxxnkbA==}
     engines: {node: '>=20.0.0'}
-
-  '@mermaid-js/mermaid-mindmap@9.3.0':
-    resolution: {integrity: sha512-IhtYSVBBRYviH1Ehu8gk69pMDF8DSRqXBRDMWrEfHoaMruHeaP2DXA3PBnuwsMaCdPQhlUUcy/7DBLAEIXvCAw==}
 
   '@mermaid-js/parser@1.1.0':
     resolution: {integrity: sha512-gxK9ZX2+Fex5zu8LhRQoMeMPEHbc73UKZ0FQ54YrQtUxE1VVhMwzeNtKRPAu5aXks4FasbMe4xB4bWrmq6Jlxw==}
@@ -6768,9 +6760,6 @@ packages:
     resolution: {integrity: sha512-l2NNj07e9afPnhAhvgVrCD/oy2Ai1yfLpuo3EpiO1jFTsB4sFz6oIfAfSZyQzVpkZQ9xS8ZS5g1jCBgq4Hwo0g==}
     engines: {node: '>=12.19'}
 
-  non-layered-tidy-tree-layout@2.0.2:
-    resolution: {integrity: sha512-gkXMxRzUH+PB0ax9dUN0yYF0S25BqeAYqhgMaLUFmpXLEk7Fcu8f4emJuOAY0V8kjDICxROIKsTAKsV/v355xw==}
-
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
@@ -8069,11 +8058,11 @@ packages:
       yaml:
         optional: true
 
-  vitepress-plugin-mermaid@2.0.17:
-    resolution: {integrity: sha512-IUzYpwf61GC6k0XzfmAmNrLvMi9TRrVRMsUyCA8KNXhg/mQ1VqWnO0/tBVPiX5UoKF1mDUwqn5QV4qAJl6JnUg==}
+  vitepress-mermaid-renderer@1.1.21:
+    resolution: {integrity: sha512-agXt+TOX/4/w99OviWHxwt3cSWoPCpdkCEfFffX8xYQvujlpEEpTL27hKFBUvY3vk6snUBzIe7Ww7fdmDXV0Qw==}
+    engines: {node: '>=16.0.0'}
     peerDependencies:
-      mermaid: 10 || 11
-      vitepress: ^1.0.0 || ^1.0.0-alpha
+      mermaid: ^11.0.0
       vue: ^3.0.0
 
   vitepress@1.6.4:
@@ -9014,9 +9003,6 @@ snapshots:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
       - supports-color
-
-  '@braintree/sanitize-url@6.0.4':
-    optional: true
 
   '@braintree/sanitize-url@7.1.2': {}
 
@@ -9962,17 +9948,6 @@ snapshots:
       mime-types: 3.0.2
     optionalDependencies:
       koffi: 2.16.1
-
-  '@mermaid-js/mermaid-mindmap@9.3.0':
-    dependencies:
-      '@braintree/sanitize-url': 6.0.4
-      cytoscape: 3.33.2
-      cytoscape-cose-bilkent: 4.1.0(cytoscape@3.33.2)
-      cytoscape-fcose: 2.2.0(cytoscape@3.33.2)
-      d3: 7.9.0
-      khroma: 2.1.0
-      non-layered-tidy-tree-layout: 2.0.2
-    optional: true
 
   '@mermaid-js/parser@1.1.0':
     dependencies:
@@ -14082,9 +14057,6 @@ snapshots:
 
   nofilter@3.1.0: {}
 
-  non-layered-tidy-tree-layout@2.0.2:
-    optional: true
-
   normalize-path@3.0.0: {}
 
   npm-run-path@4.0.1:
@@ -15583,13 +15555,10 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.3
 
-  vitepress-plugin-mermaid@2.0.17(mermaid@11.14.0)(vitepress@1.6.4(@algolia/client-search@5.51.0)(@types/node@20.19.39)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3))(vue@3.5.33(typescript@5.9.3)):
+  vitepress-mermaid-renderer@1.1.21(mermaid@11.14.0)(vue@3.5.33(typescript@5.9.3)):
     dependencies:
       mermaid: 11.14.0
-      vitepress: 1.6.4(@algolia/client-search@5.51.0)(@types/node@20.19.39)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3)
       vue: 3.5.33(typescript@5.9.3)
-    optionalDependencies:
-      '@mermaid-js/mermaid-mindmap': 9.3.0
 
   vitepress@1.6.4(@algolia/client-search@5.51.0)(@types/node@20.19.39)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3):
     dependencies:

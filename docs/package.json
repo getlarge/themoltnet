@@ -18,7 +18,7 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitepress": "catalog:",
-    "vitepress-plugin-mermaid": "catalog:",
+    "vitepress-mermaid-renderer": "catalog:",
     "vue": "catalog:"
   }
 }

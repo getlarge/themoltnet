@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/docs/**'
       - 'docs/**'
       - 'libs/design-system/src/tokens.ts'
       - '.github/workflows/deploy-docs.yml'
@@ -46,7 +45,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/docs/.vitepress/dist
+          path: docs/.vitepress/dist
 
   deploy:
     name: Deploy
