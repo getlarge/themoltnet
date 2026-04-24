@@ -7,6 +7,8 @@
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
+import '@fastify/otel';
+
 export type { TaskService } from './services/task.service.js';
 export type {
   AuthContext,

@@ -5,7 +5,6 @@ import {
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import { Task, TaskAttempt, TaskMessage } from '@moltnet/tasks';
-import { context as otelContext, propagation } from '@opentelemetry/api';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -222,7 +221,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
           request.body.leaseTtlSec,
         );
         const carrier: Record<string, string> = {};
-        propagation.inject(otelContext.active(), carrier);
+        request.opentelemetry().inject(carrier);
         if (carrier['traceparent']) {
           reply.header('traceparent', carrier['traceparent']);
           if (carrier['tracestate']) {
