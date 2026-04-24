@@ -1,11 +1,32 @@
-# OpenTelemetry Collector configuration for local development
+# OpenTelemetry Collector configuration for local development.
 #
-# Same receivers as production, but exports to debug (stdout)
-# instead of Axiom. Useful for testing the telemetry pipeline
-# without cloud credentials.
+# Two OTLP receivers:
 #
-# Usage:
-#   OTEL_CONFIG=collector-config.dev.yaml docker compose -f infra/otel/docker-compose.yaml up
+#   - otlp (4317 gRPC / 4318 HTTP) — UNAUTHENTICATED, for internal service-
+#     mesh traffic (rest-api, mcp-server, etc.). Reachable only within the
+#     docker network; host-side port bindings are a dev convenience.
+#
+#   - otlp/public (4319 HTTP) — AUTHENTICATED via the `oryintrospectionauth`
+#     extension. This is the endpoint that agent workers (work-task,
+#     hosted runners) use. Tokens are validated against local Hydra's
+#     `/admin/oauth2/introspect`.
+#
+# Exports to debug (stdout) so telemetry is visible without cloud creds.
+
+extensions:
+  health_check:
+    endpoint: '0.0.0.0:13133'
+
+  # Gates the public OTLP receiver. For local dev we point at local Hydra
+  # admin on port 4445 and don't require additional auth on the
+  # introspection call itself (`type: none`) — local Hydra admin is
+  # network-isolated inside docker-compose.
+  oryintrospectionauth:
+    introspection_endpoint: 'http://hydra:4445/admin/oauth2/introspect'
+    introspection_auth:
+      type: 'none'
+    required_scopes: ['telemetry:write']
+    cache_ttl: 30s
 
 receivers:
   otlp:
@@ -14,6 +35,13 @@ receivers:
         endpoint: '0.0.0.0:4317'
       http:
         endpoint: '0.0.0.0:4318'
+
+  otlp/public:
+    protocols:
+      http:
+        endpoint: '0.0.0.0:4319'
+        auth:
+          authenticator: oryintrospectionauth
 
 processors:
   batch:
@@ -29,7 +57,7 @@ processors:
         value: development
         action: upsert
 
-  # Redact sensitive values from telemetry (mirrors production config)
+  # Redact sensitive values from telemetry (mirrors production config).
   transform/redact:
     error_mode: ignore
     trace_statements:
@@ -64,14 +92,11 @@ exporters:
   debug:
     verbosity: detailed
 
-extensions:
-  health_check:
-    endpoint: '0.0.0.0:13133'
-
 service:
-  extensions: [health_check]
+  extensions: [health_check, oryintrospectionauth]
 
   pipelines:
+    # Internal pipeline — unauthenticated receiver, full processing chain.
     traces:
       receivers: [otlp]
       processors: [transform/redact, resource, batch]
@@ -84,6 +109,17 @@ service:
 
     logs:
       receivers: [otlp]
+      processors: [transform/redact, resource, batch]
+      exporters: [debug]
+
+    # Public pipeline — authenticated receiver. Shares processors with
+    # internal (redaction, namespace tagging) but reads from the gated
+    # receiver only. Keeping this as a separate pipeline makes the
+    # authenticated surface explicit in the config and allows divergent
+    # processing later (rate limiting, attribution enforcement) without
+    # entangling internal traffic.
+    traces/public:
+      receivers: [otlp/public]
       processors: [transform/redact, resource, batch]
       exporters: [debug]
 

@@ -1,0 +1,52 @@
+# OpenTelemetry Collector Builder (OCB) manifest
+#
+# Builds a custom collector binary bundling:
+#   - Stock OTLP receivers/exporters/processors we actually use
+#   - Our custom `oryintrospectionauth` extension for gating public receivers
+#
+# Build it with:
+#
+#   go install go.opentelemetry.io/collector/cmd/builder@v0.150.0
+#   builder --config=builder.yaml
+#
+# That generates Go source under `_build/` and compiles a binary at
+# `_build/moltnet-otelcol`. The Dockerfile in this directory does the
+# same thing inside a container so CI/local builds are reproducible.
+#
+# Keep every component at the same minor version — OCB will emit warnings
+# (and sometimes fail linking) if versions drift.
+
+dist:
+  name: moltnet-otelcol
+  description: 'MoltNet custom OpenTelemetry Collector (Ory-introspection auth)'
+  output_path: ./_build
+  otelcol_version: 0.150.0
+  # Use a pinned Go version for reproducibility; bump with the image.
+  go: /usr/local/go/bin/go
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.150.0
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.150.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.150.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.150.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.150.0
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.150.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.150.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.150.0
+
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.150.0
+  # Our custom extension, referenced by module path. The `replaces` block
+  # below points OCB at the local source tree instead of trying to fetch
+  # from a registry.
+  - gomod: github.com/getlarge/themoltnet/infra/otel/custom-collector/oryintrospectionauthextension v0.0.0
+    path: ./oryintrospectionauthextension
+
+# Replace directives for the generated module. OCB emits a go.mod that
+# needs these for any `gomod` entry referencing unpublished local code.
+replaces:
+  - github.com/getlarge/themoltnet/infra/otel/custom-collector/oryintrospectionauthextension => ./oryintrospectionauthextension

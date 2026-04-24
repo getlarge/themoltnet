@@ -172,14 +172,25 @@ services:
       start_period: 10s
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.115.1
+    # Custom collector image that bundles the Ory-introspection auth
+    # extension (see infra/otel/custom-collector/). The stock
+    # otel/opentelemetry-collector-contrib only ships `oidcauthextension`,
+    # which can't validate Ory Network's opaque access tokens.
+    build:
+      context: ./infra/otel/custom-collector
+      dockerfile: Dockerfile
+    image: moltnet-otelcol:dev
     command: ['--config=/etc/otelcol/config.yaml']
     ports:
-      - '4317:4317'
-      - '4318:4318'
+      - '4317:4317' # internal OTLP gRPC (unauthenticated, service mesh)
+      - '4318:4318' # internal OTLP HTTP (unauthenticated, service mesh)
+      - '4319:4319' # public OTLP HTTP (authenticated via Ory introspection)
       - '13133:13133'
     volumes:
       - ./infra/otel/collector-config.dev.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      hydra:
+        condition: service_healthy
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
