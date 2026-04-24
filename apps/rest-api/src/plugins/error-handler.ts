@@ -78,7 +78,10 @@ async function errorHandler(fastify: FastifyInstance) {
   fastify.addHook('onError', (request, _reply, error, done) => {
     const status = (error as { statusCode?: number }).statusCode;
     if (!status || status >= 500) {
-      const pgFields = extractPgErrorFields(error);
+      // setErrorHandler below logs the richer line (includes pg fields,
+      // validationContext, userId). This hook only fires for errors that
+      // would bypass setErrorHandler — extremely rare — so it stays as a
+      // lightweight "unexpected" marker without duplicating pg extraction.
       request.log.error(
         {
           err: error,
@@ -86,7 +89,6 @@ async function errorHandler(fastify: FastifyInstance) {
           requestId: request.id,
           method: request.method,
           url: request.url,
-          ...(pgFields ?? {}),
         },
         status
           ? 'Intentional server error'

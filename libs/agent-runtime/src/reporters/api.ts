@@ -124,8 +124,21 @@ export class ApiTaskReporter implements TaskReporter {
       this.flushTimer = setTimeout(() => {
         this.flushTimer = null;
         void this.flush().catch((err) => {
-          this.pendingError ??=
-            err instanceof Error ? err : new Error(String(err));
+          const wrapped = err instanceof Error ? err : new Error(String(err));
+          if (this.pendingError) {
+            // A prior timer-flush error is still waiting for the next
+            // blocking call to surface it. Don't silently drop this one —
+            // log to stderr so consecutive failures under a flaky network
+            // are visible in the worker log even if only the first
+            // survives to throw.
+            console.error(
+              `ApiTaskReporter: secondary timer-flush error (dropped) ` +
+                `for task ${this.taskId} attempt ${this.attemptN}: ` +
+                wrapped.message,
+            );
+          } else {
+            this.pendingError = wrapped;
+          }
         });
       }, this.flushIntervalMs);
     }
@@ -158,10 +171,35 @@ export class ApiTaskReporter implements TaskReporter {
           messages: batch,
         });
       } catch (err) {
+        // The batch was spliced out of the buffer before the network call.
+        // Restore the messages to the FRONT of the buffer so a subsequent
+        // flush can retry them in the original order. Bound the buffer to
+        // `maxBatchSize * 3` to prevent unbounded growth under sustained
+        // failure: if restoring would overflow the cap, drop the oldest
+        // overflow and log the loss so it's visible in Axiom/stderr.
+        const overflowCap = this.maxBatchSize * 3;
+        const restoredCount = batch.length;
+        let droppedCount = 0;
+        if (this.buffer.length + batch.length > overflowCap) {
+          const room = Math.max(0, overflowCap - this.buffer.length);
+          droppedCount = batch.length - room;
+          if (droppedCount > 0) {
+            console.error(
+              `ApiTaskReporter: dropping ${droppedCount} of ${restoredCount} ` +
+                `messages for task ${this.taskId} attempt ${this.attemptN} ` +
+                `(buffer overflow cap=${overflowCap})`,
+            );
+          }
+          batch.splice(room);
+        }
+        this.buffer.unshift(...batch);
+
         const detail = err instanceof Error ? err.message : String(err);
         throw new Error(
           `ApiTaskReporter: append messages failed for task ${this.taskId} ` +
-            `attempt ${this.attemptN}: ${detail}`,
+            `attempt ${this.attemptN} ` +
+            `(${restoredCount - droppedCount} messages restored for retry, ` +
+            `${droppedCount} dropped): ${detail}`,
         );
       }
     })();
@@ -194,15 +232,36 @@ export class ApiTaskReporter implements TaskReporter {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
     }
-    // Best-effort drain. close() is invoked from cleanup paths that must
-    // not throw (runtime owns terminal failure handling), but we still
-    // attempt one final POST so buffered messages aren't silently lost
-    // when a caller uses close() without a prior finalize().
+    // Always wait for any in-flight POST first: a timer-driven flush may
+    // have spliced the buffer to empty and fired the request microseconds
+    // before close() was invoked. Without this await we'd return while the
+    // HTTP request is still pending, leaving a floating promise whose
+    // error (if any) lands in a timer catch with no live caller.
+    if (this.inFlight) {
+      try {
+        await this.inFlight;
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error(
+          `ApiTaskReporter: in-flight flush failed during close() ` +
+            `for task ${this.taskId} attempt ${this.attemptN}: ${detail}`,
+        );
+      }
+      this.inFlight = null;
+    }
+    // Best-effort drain of any messages still buffered (e.g. callers that
+    // invoke close() without a prior finalize()). close() is terminal — no
+    // caller will read `pendingError` after it returns — so any error here
+    // goes only to stderr.
     if (this.buffer.length > 0) {
       try {
         await this.flush();
-      } catch {
-        // Swallow — the close contract is "always return cleanly".
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error(
+          `ApiTaskReporter: final flush failed during close() ` +
+            `for task ${this.taskId} attempt ${this.attemptN}: ${detail}`,
+        );
       }
     }
   }

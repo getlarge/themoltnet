@@ -233,4 +233,86 @@ describe('ApiTaskReporter', () => {
       reporter.record({ kind: 'text_delta', payload: { i: 1 } }),
     ).rejects.toThrow(/append messages failed/);
   });
+
+  // Regression for PR #925 review: batch must be restored to the front of
+  // the buffer on flush failure so the next flush can retry, rather than
+  // silently dropped by the splice-before-POST pattern.
+  it('restores the batch to the buffer on flush failure for retry', async () => {
+    const failingAppend = vi
+      .fn<TasksNamespace['appendMessages']>()
+      .mockRejectedValueOnce(new Error('503 upstream'))
+      .mockResolvedValue({ count: 2 });
+    const { tasks } = makeMockTasks({ appendMessages: failingAppend });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      maxBatchSize: 2,
+      flushIntervalMs: 0,
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
+    // Second record hits size cap → flush → fails; error should surface
+    // AND the two messages should be back in the buffer for retry.
+    await expect(
+      reporter.record({ kind: 'text_delta', payload: { i: 1 } }),
+    ).rejects.toThrow(/append messages failed.*2 messages restored for retry/);
+
+    // Next explicit flush should re-send the restored batch and succeed.
+    await reporter.flush();
+    expect(failingAppend).toHaveBeenCalledTimes(2);
+    const [, , retryBody] = failingAppend.mock.calls[1] as unknown as [
+      string,
+      number,
+      { messages: Array<{ payload: { i: number } }> },
+    ];
+    expect(retryBody.messages).toHaveLength(2);
+    expect(retryBody.messages.map((m) => m.payload.i)).toEqual([0, 1]);
+  });
+
+  // Regression for PR #925 review: close() must await any in-flight POST
+  // before returning, otherwise a timer-driven flush racing with close()
+  // leaves a floating HTTP request whose error lands in a dead timer catch.
+  it('awaits in-flight flushes before returning from close()', async () => {
+    let resolveFlush: ((value: { count: number }) => void) | null = null;
+    const slowAppend = vi
+      .fn<TasksNamespace['appendMessages']>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<{ count: number }>((resolve) => {
+            resolveFlush = resolve;
+          }),
+      );
+    const { tasks } = makeMockTasks({ appendMessages: slowAppend });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      maxBatchSize: 10,
+      flushIntervalMs: 100,
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
+
+    // Timer flush fires, splices the buffer, and hangs on the pending POST.
+    await vi.advanceTimersByTimeAsync(100);
+    expect(slowAppend).toHaveBeenCalledTimes(1);
+
+    // Buffer is now empty. Start close(); it must await the in-flight POST
+    // instead of returning immediately on the empty-buffer fast path.
+    const closePromise = reporter.close();
+    let closed = false;
+    void closePromise.then(() => {
+      closed = true;
+    });
+
+    // Micro-yield: close() should NOT have resolved yet.
+    await vi.advanceTimersByTimeAsync(0);
+    expect(closed).toBe(false);
+
+    // Let the in-flight POST settle; now close() completes.
+    resolveFlush!({ count: 1 });
+    await closePromise;
+    expect(closed).toBe(true);
+  });
 });
