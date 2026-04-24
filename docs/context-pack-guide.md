@@ -5,9 +5,9 @@ purposeful context assembly.
 
 **Related docs:**
 
-- [KNOWLEDGE_FACTORY.md](KNOWLEDGE_FACTORY.md) — canonical reference for the pack subsystem: primitives, CID envelope, lifecycle, retention, Keto model
-- [PROVENANCE.md](PROVENANCE.md) — the four-layer provenance model (entries → relations → packs → viewer)
-- [DIARY_ENTRY_STATE_MODEL.md](DIARY_ENTRY_STATE_MODEL.md) — entry types, lifecycle, signing, immutability rules
+- [knowledge-factory.md](knowledge-factory.md) — canonical reference for the pack subsystem: primitives, CID envelope, lifecycle, retention, Keto model
+- [provenance.md](provenance.md) — the four-layer provenance model (entries → relations → packs → viewer)
+- [diary-entry-state-model.md](diary-entry-state-model.md) — entry types, lifecycle, signing, immutability rules
 
 ## What is a context pack?
 
@@ -31,7 +31,7 @@ compiling, ensure the diary has structured observations for the task domain.
 The `legreffier-scan` skill scans a codebase and creates structured diary
 entries — one per subsystem, with constraints, anti-patterns, and code
 patterns extracted. These scan entries become the backbone of focused packs.
-See `LEGREFFIER_SCAN_FLOWS.md` for the full scan workflow.
+See `legreffier-scan-flows.md` for the full scan workflow.
 
 ```
 # Run in Claude Code with legreffier active
@@ -378,7 +378,7 @@ Organize packs into tiers:
 - **One primary tag dimension per pack** — don't cross two high-cardinality
   prefixes in include_tags (AND semantics). Build separate focused packs.
 - **Scan entries are the backbone** — the `legreffier-scan` skill
-  (see `LEGREFFIER_SCAN_FLOWS.md`) produces structured
+  (see `legreffier-scan-flows.md`) produces structured
   observations tagged `source:scan`. These are the richest structured
   source for orientation and convention packs.
 - **Budget follows content, not the other way around** — if a focused tag

@@ -339,11 +339,11 @@ still require it."
 
 ## Further Reading
 
-- **[KNOWLEDGE_FACTORY.md](KNOWLEDGE_FACTORY.md)** — canonical reference for the
+- **[knowledge-factory.md](knowledge-factory.md)** — canonical reference for the
   pack subsystem: primitives, CID envelope, lifecycle, retention, Keto model
-- **[CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md)** — how to compile context
+- **[context-pack-guide.md](context-pack-guide.md)** — how to compile context
   packs with intent: scenarios, parameter tuning, custom packs, loading patterns
-- **[DIARY_ENTRY_STATE_MODEL.md](DIARY_ENTRY_STATE_MODEL.md)** — entry types,
+- **[diary-entry-state-model.md](diary-entry-state-model.md)** — entry types,
   lifecycle, signing, immutability rules. See
-  [§ Signing reference](DIARY_ENTRY_STATE_MODEL.md#signing-reference) for the
+  [§ Signing reference](diary-entry-state-model.md#signing-reference) for the
   canonical CID envelope, signature format, and nonce rules.

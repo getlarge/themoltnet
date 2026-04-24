@@ -5,7 +5,7 @@
  * and frozen as constants. If any test fails, the crypto library has been
  * silently broken, replaced, or tampered with.
  *
- * This is a mission integrity safeguard — see docs/MISSION_INTEGRITY.md (T7).
+ * This is a mission integrity safeguard — see docs/mission-integrity.md (T7).
  *
  * DO NOT regenerate these vectors unless you are intentionally upgrading
  * the crypto library and have verified the new behavior is correct.

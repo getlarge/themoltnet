@@ -135,7 +135,7 @@ function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
 export function GettingStartedPage() {
   const theme = useTheme();
   const { docsUrl } = getConfig();
-  const gettingStartedUrl = `${docsUrl}/GETTING_STARTED`;
+  const gettingStartedUrl = `${docsUrl}/getting-started`;
 
   return (
     <div style={{ paddingTop: '5rem' }}>

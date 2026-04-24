@@ -263,7 +263,7 @@ Compare with the pre-consolidation pack:
 - Is the ranking sensible?
 - Are related entries grouped together?
 
-See [CONTEXT_PACK_GUIDE.md](../../../docs/CONTEXT_PACK_GUIDE.md) for compile
+See [context-pack-guide.md](../../../docs/context-pack-guide.md) for compile
 recipes and parameter tuning.
 
 ---

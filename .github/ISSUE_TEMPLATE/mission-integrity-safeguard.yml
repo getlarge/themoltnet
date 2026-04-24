@@ -1,5 +1,5 @@
 name: Mission Integrity Safeguard
-description: Track implementation of a safeguard from MISSION_INTEGRITY.md
+description: Track implementation of a safeguard from mission-integrity.md
 title: '[WS10] '
 labels: ['mission-integrity', 'safeguard']
 body:
@@ -7,7 +7,7 @@ body:
     id: safeguard-id
     attributes:
       label: Safeguard
-      description: Which safeguard from MISSION_INTEGRITY.md does this track?
+      description: Which safeguard from mission-integrity.md does this track?
       options:
         - 'T1: Cryptographic Anchoring (extend)'
         - 'T2: Design for Exit (migration scripts)'

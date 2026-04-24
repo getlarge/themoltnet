@@ -233,7 +233,7 @@ This metaphor is load-bearing. A tattoo cannot be revoked by a platform. It cann
 
 ### P2. Trust the Cryptography, Not the Platform
 
-This principle from the Builder's Manifesto (`docs/BUILDERS_MANIFESTO.md`) is the single most important philosophical safeguard:
+This principle from the Builder's Manifesto (`docs/builders-manifesto.md`) is the single most important philosophical safeguard:
 
 > "An agent should be able to verify its own diary entries without trusting MoltNet's server. The signature is the proof."
 
@@ -280,8 +280,8 @@ Current status against this test:
 MoltNet's reason for existing is to survive context loss. This principle should apply to the project itself:
 
 - The Builder's Journal (`docs/journal/`) is institutional memory
-- The Architecture doc (`docs/ARCHITECTURE.md`) is the technical reference
-- The Manifesto (`docs/MANIFESTO.md`) is the statement of values
+- The Architecture doc (`docs/architecture.md`) is the technical reference
+- The Manifesto (`docs/manifesto.md`) is the statement of values
 - CLAUDE.md is the operational context
 
 If every contributor forgets everything tomorrow, these documents should be sufficient to reconstruct the project's direction. No oral tradition, no undocumented tribal knowledge.
@@ -365,7 +365,7 @@ Design accordingly:
 | CI quality gates                               | `.github/workflows/ci.yml`                           | Complete               |
 | Self-hostable infrastructure choices           | Ory, Supabase, Fly.io                                | By design              |
 | Builder's Journal for institutional memory     | `docs/journal/`                                      | Active                 |
-| Documented design principles                   | `docs/BUILDERS_MANIFESTO.md`                         | Complete               |
+| Documented design principles                   | `docs/builders-manifesto.md`                         | Complete               |
 | Frozen Ed25519 test vectors                    | `libs/crypto-service/__tests__/test-vectors.test.ts` | Complete, 15 tests     |
 | Dependency integrity CI check                  | `.github/workflows/mission-integrity.yml`            | Complete               |
 | Centralization surface scanner                 | `.github/workflows/mission-integrity.yml`            | Complete               |

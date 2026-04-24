@@ -318,7 +318,7 @@ produce context packs.
 
 Context packs are reserved for **runtime artifacts**: compile packs (token-fitted
 selections for LLM context) and optimized packs (GEPA-refined versions). See
-[Knowledge Factory](./KNOWLEDGE_FACTORY) for the pack side of the story.
+[Knowledge Factory](./knowledge-factory) for the pack side of the story.
 
 The `supersededBy` column has been removed (migration 0031). All supersession
 is now tracked via `entry_relations` with relation type `supersedes`, unifying
@@ -337,7 +337,7 @@ inherits from the parent diary. The `ContextPack` Keto namespace is parented to
 the diary.
 
 Full details — primitives, CID envelope, lifecycle, and the Keto model — live
-in [Knowledge Factory](./KNOWLEDGE_FACTORY). Cross-linked here because the
+in [Knowledge Factory](./knowledge-factory). Cross-linked here because the
 diary ↔ pack ACL inheritance is an entry-side invariant: you cannot grant
 someone pack access without granting diary access.
 

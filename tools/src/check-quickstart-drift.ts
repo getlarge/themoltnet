@@ -57,7 +57,7 @@ function assertNotContains(file: string, snippet: string, label: string): void {
 // Install/register commands were migrated from README.md to the docs site
 // as part of the README slim-down. Canonical location is now the SDK &
 // Integrations page.
-const SDK_DOC = 'docs/SDK_AND_INTEGRATIONS.md';
+const SDK_DOC = 'docs/sdk-and-integrations.md';
 assertContains(SDK_DOC, MOLTNET_SDK_INSTALL_COMMAND, 'SDK install command');
 assertContains(
   SDK_DOC,

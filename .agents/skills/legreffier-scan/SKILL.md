@@ -146,7 +146,7 @@ Scan in this order. Earlier categories provide framing for later ones.
 | Priority | Category                | Mode      | What to look for                                         | Target paths                                                                                             |
 | -------- | ----------------------- | --------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | 1        | **Project identity**    | bootstrap | Name, purpose, domain, tech stack, maturity              | Root `README.md`, `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`                               |
-| 2        | **Architecture docs**   | bootstrap | System design, ER diagrams, data flows, boundaries       | `docs/ARCHITECTURE.md`, `docs/design/`, `docs/adr/`, `ARCHITECTURE.md`                                   |
+| 2        | **Architecture docs**   | bootstrap | System design, ER diagrams, data flows, boundaries       | `docs/architecture.md`, `docs/design/`, `docs/adr/`, `architecture.md`                                   |
 | 3        | **Developer workflow**  | bootstrap | Build, test, deploy, review process                      | `CONTRIBUTING.md`, `Makefile`, root `package.json` scripts, `docker-compose*.yaml`, `.github/workflows/` |
 | 4        | **Project structure**   | bootstrap | Workspace layout, module boundaries, dependency graph    | Workspace config, `apps/`, `libs/`, `packages/`, `src/` top-level dirs                                   |
 | 5        | **Testing conventions** | bootstrap | Test framework, patterns, locations, E2E setup           | Test config files, `__tests__/`, `test/`, `e2e/`, `*.test.*` patterns                                    |
@@ -299,7 +299,7 @@ Confidence: <high|medium|low>
 Definitions:
 
 - **high** — directly documented in a dedicated doc or config file
-  (e.g., `docs/ARCHITECTURE.md` describes auth flow)
+  (e.g., `docs/architecture.md` describes auth flow)
 - **medium** — documented + confirmed by config or code structure alignment
   (e.g., README says "uses Vitest" and `vitest.config.ts` exists)
 - **low** — inferred from code structure, file names, or partial references
@@ -473,7 +473,7 @@ Batches:
   - phase1-b2:
       categories: [architecture]
       files:
-        - docs/ARCHITECTURE.md
+        - docs/architecture.md
       planned_entries:
         - architecture:rest-api
         - architecture:mcp-server
@@ -866,7 +866,7 @@ Build an in-memory index:
 ```
 {
   "architecture:rest-api": {
-    entry_id, source: "docs/ARCHITECTURE.md", digest: "a1b2c3d4...", category, title
+    entry_id, source: "docs/architecture.md", digest: "a1b2c3d4...", category, title
   },
   "identity:project-identity": {
     entry_id, source: "README.md", digest: "e5f6g7h8...", category, title
@@ -974,7 +974,7 @@ The `legreffier-consolidate` skill handles the consolidation execution. It
 uses server-side clustering (`diaries_consolidate`) to identify merge groups,
 then creates tiles from merged scan entries.
 
-See also [CONTEXT_PACK_GUIDE.md](../../../docs/CONTEXT_PACK_GUIDE.md) for
+See also [context-pack-guide.md](../../../docs/context-pack-guide.md) for
 how tiles feed into compiled context packs.
 
 ## Permissions

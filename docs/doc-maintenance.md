@@ -37,7 +37,7 @@ CLAUDE.md and other docs are **summaries** extracted from the journal.
 - Read last month of journal entries
 - Identify stale sections in CLAUDE.md
 - Update CLAUDE.md to reflect current state
-- Update INFRASTRUCTURE.md, DESIGN_SYSTEM.md as needed
+- Update infrastructure.md, design-system.md as needed
 ```
 
 **Automation opportunity**: A script could parse journal entries and flag outdated CLAUDE.md sections:
@@ -88,10 +88,10 @@ Map doc sections to responsible workstreams:
 | CLAUDE.md → Quick Start          | All agents      | New command added to package.json |
 | CLAUDE.md → Repository Structure | All agents      | New workspace created             |
 | CLAUDE.md → Workstream Status    | All agents      | Workstream milestone completed    |
-| INFRASTRUCTURE.md → Ory/Supabase | WS1/WS2 agents  | Infra config changed              |
-| INFRASTRUCTURE.md → Env Vars     | WS1 agents      | New env var added                 |
-| DESIGN_SYSTEM.md                 | WS7 agents (UI) | Design system component added     |
-| SANDBOX.md                       | All agents      | New sandbox issue discovered      |
+| infrastructure.md → Ory/Supabase | WS1/WS2 agents  | Infra config changed              |
+| infrastructure.md → Env Vars     | WS1 agents      | New env var added                 |
+| design-system.md                 | WS7 agents (UI) | Design system component added     |
+| sandbox.md                       | All agents      | New sandbox issue discovered      |
 
 **Rule**: If you change the code in a workstream, check if the owned doc section needs updating.
 
@@ -104,9 +104,9 @@ Add to `.github/pull_request_template.md`:
 
 - [ ] If I added a new command, I updated `CLAUDE.md` Quick Start section
 - [ ] If I added a new workspace, I updated `CLAUDE.md` Repository Structure
-- [ ] If I changed Ory/Supabase config, I updated `INFRASTRUCTURE.md`
-- [ ] If I added an env var, I updated `INFRASTRUCTURE.md`
-- [ ] If I changed the design system, I updated `DESIGN_SYSTEM.md`
+- [ ] If I changed Ory/Supabase config, I updated `infrastructure.md`
+- [ ] If I added an env var, I updated `infrastructure.md`
+- [ ] If I changed the design system, I updated `design-system.md`
 - [ ] If I completed a workstream milestone, I updated `CLAUDE.md` Workstream Status
 - [ ] I wrote a journal entry documenting this work
 ```

@@ -5,9 +5,9 @@ From zero to measurable agent context in five stages: **install**,
 
 **Related docs:**
 
-- [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) — compile parameter tuning and scenarios
-- [PROVENANCE.md](PROVENANCE.md) — the four-layer provenance model
-- [MCP_SERVER.md](MCP_SERVER.md) — MCP tool reference
+- [context-pack-guide.md](context-pack-guide.md) — compile parameter tuning and scenarios
+- [provenance.md](provenance.md) — the four-layer provenance model
+- [mcp-server.md](mcp-server.md) — MCP tool reference
 
 ---
 
@@ -143,7 +143,7 @@ For reference, the MCP client block `legreffier init` writes looks like this:
 
 Two headers, no token plumbing: `mcp-auth-proxy` exchanges them for a
 short-lived bearer token on every call. See [SDK & Integrations § MCP
-authentication](./SDK_AND_INTEGRATIONS#mcp-authentication) for the full
+authentication](./sdk-and-integrations#mcp-authentication) for the full
 exchange.
 
 ### 1.6 Session launcher commands (recommended)
@@ -534,9 +534,9 @@ diaries_compile({
 
 > `w_importance` and `w_recency` are currently accepted for forward
 > compatibility but not consumed by the ranking algorithm. Sending them is
-> harmless. See [CONTEXT_PACK_GUIDE § Weights](./CONTEXT_PACK_GUIDE#3-weights-w_importance-w_recency).
+> harmless. See [CONTEXT_PACK_GUIDE § Weights](./context-pack-guide#3-weights-w_importance-w_recency).
 
-See [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) for detailed scenarios
+See [context-pack-guide.md](context-pack-guide.md) for detailed scenarios
 and anti-patterns.
 
 ### 3.3 Compile via CLI
@@ -592,7 +592,7 @@ POST /diaries/:id/packs
 Compiled packs store entry selection and ranking. Rendered packs store the
 Markdown document an agent actually injects into context. Rendering is
 immutable — re-rendering produces a **new** rendered pack with a new CID.
-See [Knowledge Factory § Render](./KNOWLEDGE_FACTORY#render) for the full
+See [Knowledge Factory § Render](./knowledge-factory#render) for the full
 lifecycle.
 
 There are two render modes:

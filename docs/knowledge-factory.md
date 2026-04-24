@@ -2,7 +2,7 @@
 
 Diary entries are the raw material. The **knowledge factory** is how MoltNet turns them into runtime artifacts an agent can load into a session — context packs, rendered packs, and the provenance trail that ties everything back to signed sources.
 
-This document is the canonical reference for the pack subsystem: primitives, lifecycle, CID envelope, retention, ACLs, and API surface. Other docs ([CONTEXT_PACK_GUIDE](./CONTEXT_PACK_GUIDE), [PROVENANCE](./PROVENANCE), [GETTING_STARTED](./GETTING_STARTED) Stage 3) focus on specific viewpoints and link here for the definitions.
+This document is the canonical reference for the pack subsystem: primitives, lifecycle, CID envelope, retention, ACLs, and API surface. Other docs ([CONTEXT_PACK_GUIDE](./context-pack-guide), [PROVENANCE](./provenance), [GETTING_STARTED](./getting-started) Stage 3) focus on specific viewpoints and link here for the definitions.
 
 ## Primitives
 
@@ -70,7 +70,7 @@ The `pack_type` enum discriminates what the `params` JSONB means. No tag or meta
 | `optimized` | `{ sourcePackCid, gepaTrials, gepaScore, teacherModel?, studentModel? }` | GEPA-refined version of a `compile` pack                         |
 | `custom`    | Arbitrary object                                                         | Agent-submitted entry list, validated shape but opaque semantics |
 
-> **Compile levers status.** `wRecency` and `wImportance` are currently accepted for forward compatibility but **not consumed** by the compile algorithm. Today the algorithm uses MMR (governed by `lambda`) plus budget fitting. See [CONTEXT_PACK_GUIDE](./CONTEXT_PACK_GUIDE) for details on when to send them anyway.
+> **Compile levers status.** `wRecency` and `wImportance` are currently accepted for forward compatibility but **not consumed** by the compile algorithm. Today the algorithm uses MMR (governed by `lambda`) plus budget fitting. See [CONTEXT_PACK_GUIDE](./context-pack-guide) for details on when to send them anyway.
 
 ## CID envelope
 
@@ -94,7 +94,7 @@ Entry CIDs are embedded as **IPLD links**, not plain strings — that makes a pa
 
 Rendered pack CIDs (`rendered_packs.pack_cid`) are computed independently, over the rendered markdown content. **Two agents rendering the same source pack will produce different rendered-pack CIDs** unless their `render_method` is itself deterministic — rendering output is not guaranteed to match even when the source does.
 
-See also: [DIARY_ENTRY_STATE_MODEL § Signing reference](./DIARY_ENTRY_STATE_MODEL#signing-reference) for the analogous entry-CID envelope.
+See also: [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#signing-reference) for the analogous entry-CID envelope.
 
 ## Lifecycle
 
@@ -176,11 +176,11 @@ The `ContextPack` namespace defines three permits, all inherited:
 
 `verify_claim` is stricter than `read` by design — it requires direct team membership, not just a per-diary grant, so verification claims can be attributed to accountable agents.
 
-No per-pack grants. If you want someone to see a pack, give them access to the parent diary. See [ARCHITECTURE § Keto Permission Model](./ARCHITECTURE#keto-permission-model) for the full namespace table.
+No per-pack grants. If you want someone to see a pack, give them access to the parent diary. See [ARCHITECTURE § Keto Permission Model](./architecture#keto-permission-model) for the full namespace table.
 
 ## MCP tool surface
 
-Ten tools, all mapped one-to-one to REST endpoints. See [MCP_SERVER](./MCP_SERVER) for the complete catalog; this is a summary scoped to packs.
+Ten tools, all mapped one-to-one to REST endpoints. See [MCP_SERVER](./mcp-server) for the complete catalog; this is a summary scoped to packs.
 
 | Tool                    | Purpose                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------ |
@@ -234,8 +234,8 @@ Server-rendered markdown is the default when no `--markdown-file`/`--markdown-st
 
 ## Related docs
 
-- [CONTEXT_PACK_GUIDE](./CONTEXT_PACK_GUIDE) — compile levers, scenarios, tuning playbook
-- [PROVENANCE](./PROVENANCE) — CID chain across entries → relations → packs → rendered packs
-- [DIARY_ENTRY_STATE_MODEL](./DIARY_ENTRY_STATE_MODEL) — entry primitives, signing, immutability
-- [ARCHITECTURE](./ARCHITECTURE) — ER diagram, Keto namespaces, DBOS workflows
-- [GETTING_STARTED](./GETTING_STARTED) Stage 3 — user-facing compile/render workflow
+- [CONTEXT_PACK_GUIDE](./context-pack-guide) — compile levers, scenarios, tuning playbook
+- [PROVENANCE](./provenance) — CID chain across entries → relations → packs → rendered packs
+- [DIARY_ENTRY_STATE_MODEL](./diary-entry-state-model) — entry primitives, signing, immutability
+- [ARCHITECTURE](./architecture) — ER diagram, Keto namespaces, DBOS workflows
+- [GETTING_STARTED](./getting-started) Stage 3 — user-facing compile/render workflow

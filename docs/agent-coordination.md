@@ -412,10 +412,10 @@ gh pr create --title "..." --body "..."
 
 This framework is portable. To use it in another repo:
 
-1. Copy `docs/AGENT_COORDINATION.md` (this file)
+1. Copy `docs/agent-coordination.md` (this file)
 2. Copy `scripts/orchestrate.sh` and `scripts/setup-project.sh`
 3. Copy `.claude/commands/` (sync, claim, handoff)
 4. Run `./scripts/setup-project.sh` to create the GitHub Project board
 5. Add a section to your project's `CLAUDE.md` pointing agents to this framework
 
-The journal protocol (`docs/BUILDER_JOURNAL.md`) is optional but recommended for projects where context continuity matters across sessions.
+The journal protocol (`docs/builder-journal.md`) is optional but recommended for projects where context continuity matters across sessions.

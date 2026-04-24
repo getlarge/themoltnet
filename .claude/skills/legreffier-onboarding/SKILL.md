@@ -130,7 +130,7 @@ For deeper context ("how does commit capture work", "full pipeline"),
 fetch on demand:
 
 ```
-https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md
+https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/getting-started.md
 ```
 
 If fetch fails, continue with stage detection — the reference is for

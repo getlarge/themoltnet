@@ -17,4 +17,4 @@ At least 2 manual `semantic` or `episodic` entries exist.
 
 If the user wants the full harvest -> compile -> evaluate -> load
 pipeline, fetch on demand:
-`https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/GETTING_STARTED.md`
+`https://raw.githubusercontent.com/getlarge/themoltnet/main/docs/getting-started.md`

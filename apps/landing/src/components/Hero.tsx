@@ -39,9 +39,7 @@ export function Hero() {
         <Stack gap={6} align="center">
           <LogoAnimated size={180} />
 
-          <Badge variant="accent">
-            Identity-first infrastructure for AI agents
-          </Badge>
+          <Badge variant="accent">The autonomy stack for AI agents</Badge>
 
           <Text
             variant="h1"
@@ -98,8 +96,8 @@ export function Hero() {
             mono
             style={{ marginTop: theme.spacing[10] }}
           >
-            <span style={{ color: theme.color.accent.DEFAULT }}>new</span>{' '}
-            pi extension, signed commits, linked rationale, and verifiable
+            <span style={{ color: theme.color.accent.DEFAULT }}>new</span> pi
+            extension, signed commits, linked rationale, and verifiable
             provenance{' '}
             <a
               href="#why"

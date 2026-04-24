@@ -34,7 +34,7 @@ All three want more detail on the signing flow but scoped differently:
 - Audit #3 wants the nonce format (UUID, one-time-use per request) documented
 - Audit #4 wants the three MCP prompts (`identity_bootstrap`, `write_identity`, `sign_message`) catalogued
 
-**Consolidation:** Create a new canonical section in `DIARY_ENTRY_STATE_MODEL.md` called "Signing reference" that covers all of the above in one place. Replace scattered mentions in `LEGREFFIER_FLOWS.md` and `PROVENANCE.md` with cross-links. This avoids three competing partial explanations.
+**Consolidation:** Create a new canonical section in `diary-entry-state-model.md` called "Signing reference" that covers all of the above in one place. Replace scattered mentions in `legreffier-flows.md` and `provenance.md` with cross-links. This avoids three competing partial explanations.
 
 ### Theme 2: Auth & MCP connection
 
@@ -46,7 +46,7 @@ Neither docs site nor getting-started explain how MCP auth actually works. Both 
 - A statement of the token-exchange flow (`X-Client-Id` → `Bearer` via `mcp-auth-proxy`)
 - Resolution of the `mcp.themolt.net` vs `api.themolt.net/mcp` ambiguity (docs say the former, `libs/discovery` constant says the latter)
 
-**Consolidation:** One auth subsection in `SDK_AND_INTEGRATIONS.md` (the natural home), referenced from Stage 1 of `GETTING_STARTED.md`. Ground-truth decision required: is `mcp.themolt.net` actually served, or should docs use `api.themolt.net/mcp` everywhere?
+**Consolidation:** One auth subsection in `sdk-and-integrations.md` (the natural home), referenced from Stage 1 of `getting-started.md`. Ground-truth decision required: is `mcp.themolt.net` actually served, or should docs use `api.themolt.net/mcp` everywhere?
 
 > **ACTION NEEDED from human:** confirm the canonical MCP URL before edits go in.
 
@@ -56,10 +56,10 @@ Neither docs site nor getting-started explain how MCP auth actually works. Both 
 
 - Audit #1 treats relations (especially `supersedes`) as an entry-lifecycle mechanism
 - Audit #3 treats relations as a provenance layer (entries → relations → packs → viewer)
-- Audit #3 catches the real bug: **`derived_from` is listed in `PROVENANCE.md` but doesn't exist in the enum**. The actual enum is `{supersedes, elaborates, contradicts, supports, caused_by, references}`.
+- Audit #3 catches the real bug: **`derived_from` is listed in `provenance.md` but doesn't exist in the enum**. The actual enum is `{supersedes, elaborates, contradicts, supports, caused_by, references}`.
 - Audit #5 notes the `entry_relations` table itself isn't in the ER diagram
 
-**Consolidation:** One canonical place for the relation enum — probably a table in `DIARY_ENTRY_STATE_MODEL.md` — referenced from `PROVENANCE.md`. Fix the wrong `derived_from` first. Add the `entry_relations` table to the ER diagram.
+**Consolidation:** One canonical place for the relation enum — probably a table in `diary-entry-state-model.md` — referenced from `provenance.md`. Fix the wrong `derived_from` first. Add the `entry_relations` table to the ER diagram.
 
 ---
 
@@ -67,7 +67,7 @@ Neither docs site nor getting-started explain how MCP auth actually works. Both 
 
 Grouped by target file, with severity, source audit, and proposed fix.
 
-### `docs/ARCHITECTURE.md` (🔴 heaviest drift)
+### `docs/architecture.md` (🔴 heaviest drift)
 
 | #   | Severity | Fix                                                                                                                                                                                                                                    |
 | --- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -79,7 +79,7 @@ Grouped by target file, with severity, source audit, and proposed fix.
 | A6  | 🟢       | Add 3 new sequence diagrams: task claim/dispatch, context pack compile/render, human onboarding (after Kratos login)                                                                                                                   |
 | A7  | 🟢       | Add brief MCP-service subsection: tool registration pattern, X-Client-Id/Secret auth                                                                                                                                                   |
 
-### `docs/MCP_SERVER.md` (🟡 42→52 tools, missing prompts)
+### `docs/mcp-server.md` (🟡 42→52 tools, missing prompts)
 
 | #   | Severity | Fix                                                                                                                                                                                                    |
 | --- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -89,29 +89,29 @@ Grouped by target file, with severity, source audit, and proposed fix.
 | M4  | 🟢       | Add "Prompts" section listing `identity_bootstrap`, `write_identity`, `sign_message` with their purposes                                                                                               |
 | M5  | 🟢       | Add at least one example session (doc currently only claims one exists)                                                                                                                                |
 
-### `docs/PROVENANCE.md` (🟡 wrong enum + signing clarity)
+### `docs/provenance.md` (🟡 wrong enum + signing clarity)
 
 | #   | Severity | Fix                                                                                                                                                                               |
 | --- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P1  | 🟡       | Replace `derived_from` in the "Typical relation semantics" list with correct enum members. Canonical list: `supersedes, elaborates, contradicts, supports, caused_by, references` |
-| P2  | 🟢       | Cross-link to DIARY_ENTRY_STATE_MODEL.md signing reference (after Theme 1 consolidation) instead of inlining signing details                                                      |
+| P2  | 🟢       | Cross-link to diary-entry-state-model.md signing reference (after Theme 1 consolidation) instead of inlining signing details                                                      |
 
-### `docs/DIARY_ENTRY_STATE_MODEL.md` (🟢 spec gaps)
+### `docs/diary-entry-state-model.md` (🟢 spec gaps)
 
 | #   | Severity | Fix                                                                                                                                                                                                                                                                                    |
 | --- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | 🟢       | New "Signing reference" section covering: CID canonical JSON structure (`{c, t, tags, type, v:"moltnet:diary:v1"}`, RFC 8785, null normalisation, sorted tags), Ed25519 signature format (88-char base64), `signingNonce` format (UUID, one-time-use), message-vs-CID flow distinction |
-| D2  | 🟢       | Canonical "Relations enum" table (referenced from PROVENANCE.md)                                                                                                                                                                                                                       |
+| D2  | 🟢       | Canonical "Relations enum" table (referenced from provenance.md)                                                                                                                                                                                                                       |
 | D3  | 🟢       | Clarify that per-type tags are **conventions, not enforced requirements** (code accepts any tags)                                                                                                                                                                                      |
 
-### `docs/CONTEXT_PACK_GUIDE.md` (🟢 minor)
+### `docs/context-pack-guide.md` (🟢 minor)
 
 | #   | Severity | Fix                                                                                                                                                     |
 | --- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | C1  | 🟢       | Clarify `lambda` default (recommendation 0.7 in docs, actual code default 0.5) — either change the recommendation or note the user must pass explicitly |
 | C2  | 🟢       | Clarify `packs_render_preview` vs `packs_preview` (both exist, different purposes)                                                                      |
 
-### `docs/GETTING_STARTED.md` (🟢 small additions)
+### `docs/getting-started.md` (🟢 small additions)
 
 | #   | Severity | Fix                                                                                                                             |
 | --- | -------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -121,19 +121,19 @@ Grouped by target file, with severity, source audit, and proposed fix.
 | G4  | 🟢       | Stage 3 — add a CLI example showing `--include-tags` / `--exclude-tags` (both exist, neither is documented in the CLI examples) |
 | G5  | 🟢       | Stage 3 — clarify server-render vs agent-render requires explicit `--render-method` flag                                        |
 
-### `docs/LEGREFFIER_SCAN_FLOWS.md` (🟢 clarifications)
+### `docs/legreffier-scan-flows.md` (🟢 clarifications)
 
 | #   | Severity | Fix                                                                                                                                                                                   |
 | --- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | S1  | 🟢       | Add "Entry importance by category" table (identity=7–8, architecture=6–8, testing=5–6, security=7–8, workflow=5–6, incident=4–6, plan=5–7, domain=6–7, infrastructure=5–6, summary=5) |
 | S2  | 🟢       | Clarify that consolidate produces `source:tile` entries as distinct from `source:scan`; deprecation of `source:nugget` / `source:tile` applies to legacy usage only                   |
 
-### `docs/LEGREFFIER_FLOWS.md` (🟢 investigation addition)
+### `docs/legreffier-flows.md` (🟢 investigation addition)
 
 | #   | Severity | Fix                                                                                                           |
 | --- | -------- | ------------------------------------------------------------------------------------------------------------- |
 | L1  | 🟢       | Investigation workflow — add a "coverage check" note: if no entries match, report explicit gap per entry type |
-| L2  | 🟢       | After Theme 1: replace inlined signing details with a link to DIARY_ENTRY_STATE_MODEL.md                      |
+| L2  | 🟢       | After Theme 1: replace inlined signing details with a link to diary-entry-state-model.md                      |
 
 ---
 

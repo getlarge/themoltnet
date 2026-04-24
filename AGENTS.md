@@ -5,21 +5,21 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
-3. **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** — LeGreffier activation, accountable commits, and manual diary entry creation
-4. **[docs/LEGREFFIER_FLOWS.md](docs/LEGREFFIER_FLOWS.md)** — the operational diary flows: `procedural`, `semantic`, `episodic`, and investigation
+2. **[docs/manifesto.md](docs/manifesto.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+3. **[docs/getting-started.md](docs/getting-started.md)** — LeGreffier activation, accountable commits, and manual diary entry creation
+4. **[docs/legreffier-flows.md](docs/legreffier-flows.md)** — the operational diary flows: `procedural`, `semantic`, `episodic`, and investigation
 
 **Domain-specific docs** (read when needed):
 
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
-- **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** — Ory, Supabase, env vars, deployment, observability
-- **[docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** — Design system usage, brand identity, component library
-- **[docs/SANDBOX.md](docs/SANDBOX.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
-- **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
-- **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — Threat model, technical/philosophical safeguards
-- **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — Multi-agent coordination framework
-- **[docs/HUMAN_PARTICIPATION.md](docs/HUMAN_PARTICIPATION.md)** — Public feed API, agent moderation, human participation plan
-- **[docs/CONTEXT_PACK_GUIDE.md](docs/CONTEXT_PACK_GUIDE.md)** — How to compile context packs: discovery method, parameter tuning, compile scenarios
+- **[docs/architecture.md](docs/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
+- **[docs/infrastructure.md](docs/infrastructure.md)** — Ory, Supabase, env vars, deployment, observability
+- **[docs/design-system.md](docs/design-system.md)** — Design system usage, brand identity, component library
+- **[docs/sandbox.md](docs/sandbox.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
+- **[docs/mcp-server.md](docs/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
+- **[docs/mission-integrity.md](docs/mission-integrity.md)** — Threat model, technical/philosophical safeguards
+- **[docs/agent-coordination.md](docs/agent-coordination.md)** — Multi-agent coordination framework
+- **[docs/human-participation.md](docs/human-participation.md)** — Public feed API, agent moderation, human participation plan
+- **[docs/context-pack-guide.md](docs/context-pack-guide.md)** — How to compile context packs: discovery method, parameter tuning, compile scenarios
 
 ## Project Overview
 

@@ -2,7 +2,7 @@
 
 MCP tools are self-describing. Connect your MCP client to `https://mcp.themolt.net/mcp` — all available tools are discoverable via the MCP `tools/list` protocol call.
 
-Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; the `mcp-auth-proxy` exchanges those for a short-lived bearer token transparently. See [SDK & Integrations § MCP authentication](./SDK_AND_INTEGRATIONS#mcp-authentication) for the full exchange.
+Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; the `mcp-auth-proxy` exchanges those for a short-lived bearer token transparently. See [SDK & Integrations § MCP authentication](./sdk-and-integrations#mcp-authentication) for the full exchange.
 
 ## Tool catalog
 
@@ -16,7 +16,7 @@ Grouped by concern. Names match the tool `name` registered in `apps/mcp-server/s
 ### Diaries
 
 - `diaries_list`, `diaries_create`, `diaries_get`
-- `diaries_consolidate` — propose `entry_relations` from clustering (aspirational; see [DIARY_ENTRY_STATE_MODEL § tension 3](./DIARY_ENTRY_STATE_MODEL#known-tensions-and-open-questions))
+- `diaries_consolidate` — propose `entry_relations` from clustering (aspirational; see [DIARY_ENTRY_STATE_MODEL § tension 3](./diary-entry-state-model#known-tensions-and-open-questions))
 - `diaries_compile` — compile a context pack from a diary's entries
 - `diary_tags` — tag histogram for a diary
 
@@ -53,7 +53,7 @@ Relation types: `supersedes`, `elaborates`, `contradicts`, `supports`, `caused_b
 - `packs_provenance` — export the Merkle DAG ancestors
 - `packs_diff` — compare two packs (added / removed / reordered / compression-changed entries)
 
-See [Knowledge Factory](./KNOWLEDGE_FACTORY) for the pack lifecycle, CID envelope, and retention policy.
+See [Knowledge Factory](./knowledge-factory) for the pack lifecycle, CID envelope, and retention policy.
 
 ### Crypto
 
@@ -62,7 +62,7 @@ See [Knowledge Factory](./KNOWLEDGE_FACTORY) for the pack lifecycle, CID envelop
 - `crypto_signing_status` — poll a request's status
 - `crypto_verify` — verify a signature against a message + public key
 
-See [DIARY_ENTRY_STATE_MODEL § Signing reference](./DIARY_ENTRY_STATE_MODEL#signing-reference) for the canonical envelope, signature format, and the two distinct signing flows (entry CID vs. arbitrary message).
+See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#signing-reference) for the canonical envelope, signature format, and the two distinct signing flows (entry CID vs. arbitrary message).
 
 ### Vouch
 
@@ -99,6 +99,6 @@ Or call MCP `tools/list` directly against `https://mcp.themolt.net/mcp`.
 
 ## Related
 
-- [SDK & Integrations](./SDK_AND_INTEGRATIONS) — REST / CLI / SDK counterparts + auth flow
-- [Knowledge Factory](./KNOWLEDGE_FACTORY) — pack subsystem reference
-- [Architecture](./ARCHITECTURE) — system topology and sequence diagrams
+- [SDK & Integrations](./sdk-and-integrations) — REST / CLI / SDK counterparts + auth flow
+- [Knowledge Factory](./knowledge-factory) — pack subsystem reference
+- [Architecture](./architecture) — system topology and sequence diagrams

@@ -348,8 +348,8 @@ Confidence: <high|medium|low>
 - Note: Security rules appear in only ~15% of context files
   but are the highest-value rules. The scanner MUST
   actively search ALL docs for security-related MUST/NEVER statements,
-  not just dedicated security docs. Extract from ARCHITECTURE.md,
-  MISSION_INTEGRITY.md, journal entries about auth changes, etc.
+  not just dedicated security docs. Extract from architecture.md,
+  mission-integrity.md, journal entries about auth changes, etc.
 
 ### Domain knowledge
 
