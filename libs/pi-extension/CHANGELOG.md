@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.6.0...pi-extension-v0.7.0) (2026-04-24)
+
+
+### Features
+
+* **pi-extension:** OTel gen-ai semconv instrumentation ([a9b61ff](https://github.com/getlarge/themoltnet/commit/a9b61ffb82dca7fe1b1d6b63a0a83827ad32de33))
+* **pi-extension:** OTel gen-ai semconv instrumentation as extension factory ([eaf983e](https://github.com/getlarge/themoltnet/commit/eaf983e83cb56831898dd038eff48a8d00ab4d63)), closes [#920](https://github.com/getlarge/themoltnet/issues/920)
+
+
+### Bug Fixes
+
+* **pi-extension:** address [#924](https://github.com/getlarge/themoltnet/issues/924) review feedback ([3715543](https://github.com/getlarge/themoltnet/commit/37155433b6b5e113869d08b63c2f7da21c33e78c))
+* **reporter:** close data-loss triangle — restore batch on fail, await inflight, log swallowed errors ([e937003](https://github.com/getlarge/themoltnet/commit/e937003184cd16169fac6037d37fd7feeed7bb4c))
+* **tasks:** serialize appendMessages seq, batch reporter, log pg errors ([#921](https://github.com/getlarge/themoltnet/issues/921)) ([2279ea5](https://github.com/getlarge/themoltnet/commit/2279ea5b37a7e23cfc0f4b0c64c2a0e1c6d9527c))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.5.0...pi-extension-v0.6.0) (2026-04-24)
 
 
