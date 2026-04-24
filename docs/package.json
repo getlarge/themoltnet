@@ -9,6 +9,7 @@
     "preview": "vitepress preview",
     "prebuild": "tsx scripts/generate-vars.ts",
     "predev": "tsx scripts/generate-vars.ts",
+    "postbuild": "cp .vitepress/dist/llms-full.txt .vitepress/dist/llms.txt",
     "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "devDependencies": {

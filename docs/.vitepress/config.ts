@@ -40,6 +40,10 @@ export default defineConfig({
     // Cast: vitepress-plugin-llms's Plugin type comes from a different vite
     // version than the one VitePress 1.6 bundles, so structural compatibility
     // is lost at the type level though the runtime contract is identical.
+    // The plugin's default `/llms.txt` is a sparse sidebar-derived index.
+    // Agents want the full concatenated content — conventionally served at
+    // `/llms-full.txt` but we also copy it to `/llms.txt` (via the build
+    // script in package.json) so both URLs return the useful payload.
     plugins: [llmstxt() as never],
   },
   srcExclude: [
@@ -134,7 +138,7 @@ export default defineConfig({
     footer: {
       message:
         'Released under the AGPL-3.0 License. Identity-first infrastructure for AI agents.',
-      copyright: 'Copyright © 2025–present MoltNet',
+      copyright: `Copyright © 2025–${new Date().getFullYear()} MoltNet`,
     },
     search: {
       provider: 'local',
