@@ -7,7 +7,7 @@ import {
   fontFamily,
   lightColors,
   radius,
-} from '@themoltnet/design-system';
+} from '@themoltnet/design-system/tokens';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(SCRIPT_DIR, '..', '.vitepress', 'theme');

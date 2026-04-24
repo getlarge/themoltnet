@@ -1,6 +1,39 @@
 import { defineConfig } from 'vitepress';
 import llmstxt from 'vitepress-plugin-llms';
 
+// Internal docs — kept in the repo for agents but not published on the site.
+// Links to these files appear inside published pages (markdown cross-refs that
+// still make sense on GitHub's raw view); they must survive the build-time
+// dead-link check, so the same list drives both srcExclude and ignoreDeadLinks.
+const INTERNAL_DOCS = [
+  'MANIFESTO',
+  'BUILDERS_MANIFESTO',
+  'BUILDER_JOURNAL',
+  'AGENT_COORDINATION',
+  'MISSION_INTEGRITY',
+  'IDENTITY_SOUL_DIARY',
+  'OPENCLAW_INTEGRATION',
+  'TASK_LIFECYCLE',
+  'SANDBOX',
+  'HUMAN_PARTICIPATION',
+  'DOC_MAINTENANCE',
+  'INFRASTRUCTURE',
+] as const;
+const INTERNAL_SUBTREES = [
+  'journal',
+  'research',
+  'superpowers',
+  'rendered-packs',
+  'demos',
+  'recipes',
+] as const;
+
+// Match ./FOO, /FOO, FOO.md, ../FOO, etc. anywhere in the URL.
+const internalDocPattern = new RegExp(
+  `\\b(${INTERNAL_DOCS.join('|')})(\\.md)?\\b`,
+);
+const internalSubtreePattern = new RegExp(`/(${INTERNAL_SUBTREES.join('|')})/`);
+
 export default defineConfig({
   cleanUrls: true,
   vite: {
@@ -10,46 +43,15 @@ export default defineConfig({
     plugins: [llmstxt() as never],
   },
   srcExclude: [
-    'journal/**',
-    'research/**',
-    'superpowers/**',
-    'rendered-packs/**',
-    'demos/**',
-    'recipes/**',
-    'MANIFESTO.md',
-    'BUILDERS_MANIFESTO.md',
-    'BUILDER_JOURNAL.md',
-    'AGENT_COORDINATION.md',
-    'MISSION_INTEGRITY.md',
-    'IDENTITY_SOUL_DIARY.md',
-    'OPENCLAW_INTEGRATION.md',
-    'TASK_LIFECYCLE.md',
-    'SANDBOX.md',
-    'HUMAN_PARTICIPATION.md',
-    'DOC_MAINTENANCE.md',
-    'INFRASTRUCTURE.md',
+    ...INTERNAL_SUBTREES.map((d) => `${d}/**`),
+    ...INTERNAL_DOCS.map((f) => `${f}.md`),
   ],
   title: 'MoltNet Docs',
   titleTemplate: ':title — MoltNet Docs',
   description: 'Identity-first infrastructure for AI agents',
   lang: 'en-US',
   lastUpdated: true,
-  // Internal docs (excluded via srcExclude) remain valid on GitHub's raw view.
-  ignoreDeadLinks: [
-    /\.\/MANIFESTO/,
-    /\.\/BUILDERS_MANIFESTO/,
-    /\.\/BUILDER_JOURNAL/,
-    /\.\/AGENT_COORDINATION/,
-    /\.\/MISSION_INTEGRITY/,
-    /\.\/IDENTITY_SOUL_DIARY/,
-    /\.\/OPENCLAW_INTEGRATION/,
-    /\.\/TASK_LIFECYCLE/,
-    /\.\/SANDBOX/,
-    /\.\/HUMAN_PARTICIPATION/,
-    /\.\/DOC_MAINTENANCE/,
-    /\.\/INFRASTRUCTURE/,
-    /^\.\/(journal|research|superpowers|rendered-packs|demos|recipes)\//,
-  ],
+  ignoreDeadLinks: [internalDocPattern, internalSubtreePattern],
   sitemap: {
     hostname: 'https://docs.themolt.net',
   },
@@ -119,6 +121,10 @@ export default defineConfig({
           { text: 'Provenance', link: '/PROVENANCE' },
           { text: 'Diary Entry State Model', link: '/DIARY_ENTRY_STATE_MODEL' },
           { text: 'Design System', link: '/DESIGN_SYSTEM' },
+          {
+            text: 'API Reference ↗',
+            link: 'https://api.themolt.net/docs',
+          },
         ],
       },
     ],

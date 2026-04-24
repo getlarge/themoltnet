@@ -10,6 +10,10 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
+    "./tokens": {
+      "import": "./src/tokens.ts",
+      "types": "./src/tokens.ts"
+    },
     "./cli": {
       "import": "./src/cli/index.ts",
       "types": "./src/cli/index.ts"
@@ -20,6 +24,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./tokens": {
+        "types": "./dist/tokens.d.ts",
+        "import": "./dist/tokens.js"
       },
       "./cli": {
         "types": "./dist/cli/index.d.ts",
