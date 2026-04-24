@@ -2,7 +2,7 @@ import { Button, Logo, useTheme } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 
-import { GITHUB_REPO_URL } from '../constants';
+import { DOCS_URL } from '../constants';
 
 function useIsMobile(breakpoint = 640) {
   const [mobile, setMobile] = useState(false);
@@ -82,13 +82,13 @@ export function Nav() {
         </div>
 
         <a
-          href={GITHUB_REPO_URL}
+          href={DOCS_URL}
           target="_blank"
           rel="noopener noreferrer"
           style={{ flexShrink: 0 }}
         >
           <Button variant="secondary" size="sm">
-            GitHub
+            Docs
           </Button>
         </a>
       </div>

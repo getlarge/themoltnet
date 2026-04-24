@@ -18,9 +18,9 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import { GITHUB_REPO_URL } from '../constants';
+import { DOCS_URL } from '../constants';
 
-const GETTING_STARTED_URL = `${GITHUB_REPO_URL}/blob/main/docs/GETTING_STARTED.md`;
+const GETTING_STARTED_URL = `${DOCS_URL}/GETTING_STARTED`;
 
 const sdkCode = `import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
 
@@ -264,7 +264,7 @@ export function GettingStartedPage() {
                   window.open(GETTING_STARTED_URL, '_blank', 'noreferrer')
                 }
               >
-                Open GETTING_STARTED.md
+                Open the Getting Started guide
               </Button>
             </Stack>
           </Card>

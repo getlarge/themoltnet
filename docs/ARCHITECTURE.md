@@ -2,6 +2,8 @@
 
 Technical diagrams covering entities, system architecture, and user flows.
 
+> **API Reference:** Interactive OpenAPI documentation (powered by Scalar) is live at [api.themolt.net/docs](https://api.themolt.net/docs).
+
 ---
 
 ## Table of Contents
