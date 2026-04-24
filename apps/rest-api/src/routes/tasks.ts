@@ -220,12 +220,14 @@ export async function taskRoutes(fastify: FastifyInstance) {
           callerNs,
           request.body.leaseTtlSec,
         );
-        const carrier: Record<string, string> = {};
-        request.opentelemetry().inject(carrier);
-        if (carrier['traceparent']) {
-          reply.header('traceparent', carrier['traceparent']);
-          if (carrier['tracestate']) {
-            reply.header('tracestate', carrier['tracestate']);
+        if (typeof request.opentelemetry === 'function') {
+          const carrier: Record<string, string> = {};
+          request.opentelemetry().inject(carrier);
+          if (carrier['traceparent']) {
+            reply.header('traceparent', carrier['traceparent']);
+            if (carrier['tracestate']) {
+              reply.header('tracestate', carrier['tracestate']);
+            }
           }
         }
         return await reply.send(result);

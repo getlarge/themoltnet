@@ -13,7 +13,7 @@ class ArraySource implements TaskSource {
   async claim(): Promise<ClaimedTask | null> {
     this.events.push('claim');
     const task = this.tasks[this.i++] ?? null;
-    return task ? { task, attemptN: 1 } : null;
+    return task ? { task, attemptN: 1, traceHeaders: {} } : null;
   }
   async close(): Promise<void> {
     this.events.push('close');

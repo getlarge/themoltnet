@@ -38,7 +38,9 @@
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
-    "@sinclair/typebox": "catalog:"
+    "@opentelemetry/api": "catalog:",
+    "@sinclair/typebox": "catalog:",
+    "@themoltnet/sdk": "workspace:*"
   },
   "devDependencies": {
     "@moltnet/tasks": "workspace:*",

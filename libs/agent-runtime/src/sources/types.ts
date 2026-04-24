@@ -5,6 +5,8 @@ export interface ClaimedTask {
   task: Task;
   /** Attempt number assigned by the source/queue. */
   attemptN: number;
+  /** W3C trace headers from the claim response for OTel context propagation. */
+  traceHeaders: Record<string, string>;
 }
 
 /**

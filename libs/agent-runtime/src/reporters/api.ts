@@ -1,34 +1,29 @@
 import type { TaskMessage, TaskUsage } from '@moltnet/tasks';
+import type { TasksNamespace } from '@themoltnet/sdk';
 
 import type { TaskReporter } from './types.js';
 
 export interface ApiTaskReporterOptions {
-  baseUrl: string;
-  auth: () => Promise<string>;
+  tasks: TasksNamespace;
   leaseTtlSec?: number;
   heartbeatIntervalMs?: number;
-  fetch?: typeof fetch;
 }
 
 /**
- * TaskReporter backed by the Tasks API.
+ * TaskReporter backed by the Tasks API via the SDK's TasksNamespace.
  *
- * - `record()` appends messages through `/messages`
- * - `open()` starts a heartbeat loop so long-running attempts keep their lease
- * - `finalize()` stops heartbeats and stores final usage locally for callers
+ * - `open()` fires an immediate heartbeat (satisfies DBOS recv('started', 300s))
+ *   then starts the periodic timer
+ * - `record()` appends messages via the SDK
+ * - `finalize()` stops the heartbeat timer
  */
 export class ApiTaskReporter implements TaskReporter {
   private taskId = '';
   private attemptN = 0;
-  private readonly baseUrl: string;
-  private readonly fetchImpl: typeof fetch;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private finalizedUsage: TaskUsage | null = null;
 
-  constructor(private readonly opts: ApiTaskReporterOptions) {
-    this.baseUrl = opts.baseUrl.replace(/\/$/, '');
-    this.fetchImpl = opts.fetch ?? fetch;
-  }
+  constructor(private readonly opts: ApiTaskReporterOptions) {}
 
   getUsage(): TaskUsage | null {
     return this.finalizedUsage;
@@ -51,8 +46,8 @@ export class ApiTaskReporter implements TaskReporter {
     if (intervalMs > 0) {
       this.heartbeatTimer = setInterval(() => {
         void this.sendHeartbeat().catch(() => {
-          // The executor/runtime owns terminal failure handling. A transient
-          // heartbeat blip should not crash the process from inside a timer.
+          // Transient heartbeat failures should not crash the process from
+          // inside a timer. The runtime owns terminal failure handling.
         });
       }, intervalMs);
     }
@@ -61,31 +56,21 @@ export class ApiTaskReporter implements TaskReporter {
   async record(
     body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void> {
-    const token = await this.opts.auth();
-    const response = await this.fetchImpl(
-      `${this.baseUrl}/tasks/${this.taskId}/attempts/${this.attemptN}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              kind: body.kind,
-              payload: body.payload,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        }),
-      },
-    );
-
-    if (!response.ok) {
+    try {
+      await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
+        messages: [
+          {
+            kind: body.kind,
+            payload: body.payload,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
       throw new Error(
         `ApiTaskReporter: append messages failed for task ${this.taskId} ` +
-          `attempt ${this.attemptN}: ${response.status} ${response.statusText}`,
+          `attempt ${this.attemptN}: ${detail}`,
       );
     }
   }
@@ -106,26 +91,9 @@ export class ApiTaskReporter implements TaskReporter {
   }
 
   private async sendHeartbeat(): Promise<void> {
-    const token = await this.opts.auth();
-    const response = await this.fetchImpl(
-      `${this.baseUrl}/tasks/${this.taskId}/attempts/${this.attemptN}/heartbeat`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(
-          this.opts.leaseTtlSec ? { leaseTtlSec: this.opts.leaseTtlSec } : {},
-        ),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `ApiTaskReporter: heartbeat failed for task ${this.taskId} ` +
-          `attempt ${this.attemptN}: ${response.status} ${response.statusText}`,
-      );
-    }
+    const body = this.opts.leaseTtlSec
+      ? { leaseTtlSec: this.opts.leaseTtlSec }
+      : {};
+    await this.opts.tasks.heartbeat(this.taskId, this.attemptN, body);
   }
 }

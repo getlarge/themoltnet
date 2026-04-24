@@ -11,6 +11,11 @@
  * `TaskReporter` (stdout/jsonl → HTTP POST). The executor is unchanged.
  */
 import type { TaskOutput, TaskUsage } from '@moltnet/tasks';
+import {
+  context as otelContext,
+  propagation,
+  ROOT_CONTEXT,
+} from '@opentelemetry/api';
 
 import type { TaskReporter } from './reporters/index.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
@@ -80,10 +85,18 @@ export class AgentRuntime {
 
         this.status.currentTaskId = claimedTask.task.id;
         const reporter = this.opts.makeReporter(claimedTask);
+        // Restore the W3C trace context from the claim response so every
+        // OTel-instrumented call inside the task (heartbeats, messages, tool
+        // calls in pi-extension) lands as a child span of the workflow trace.
+        const taskCtx = Object.keys(claimedTask.traceHeaders).length
+          ? propagation.extract(ROOT_CONTEXT, claimedTask.traceHeaders)
+          : otelContext.active();
         const taskStart = Date.now();
         let output: TaskOutput;
         try {
-          output = await this.opts.executeTask(claimedTask, reporter);
+          output = await otelContext.with(taskCtx, () =>
+            this.opts.executeTask(claimedTask, reporter),
+          );
         } catch (err) {
           // Contract: executors resolve with `status: 'failed'` on agent
           // failure, but they may still throw on unrecoverable setup errors

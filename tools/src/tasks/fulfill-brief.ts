@@ -272,7 +272,7 @@ class SingleTaskSource implements TaskSource {
   async claim() {
     if (this.yielded) return null;
     this.yielded = true;
-    return { task: this.task, attemptN: 1 };
+    return { task: this.task, attemptN: 1, traceHeaders: {} };
   }
   async close(): Promise<void> {
     /* no-op */
