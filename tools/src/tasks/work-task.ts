@@ -97,17 +97,15 @@ async function main() {
 
   const runtime = new AgentRuntime({
     source: new ApiTaskSource({
-      baseUrl: api.apiUrl,
+      agent: api.agent,
       taskId,
-      auth: api.auth,
       leaseTtlSec,
     }),
     makeReporter: () =>
       stdoutReporter
         ? new StdoutReporter()
         : new ApiTaskReporter({
-            baseUrl: api.apiUrl,
-            auth: api.auth,
+            tasks: api.agent.tasks,
             leaseTtlSec,
             heartbeatIntervalMs,
           }),

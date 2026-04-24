@@ -12495,7 +12495,21 @@
                 }
               }
             },
-            "description": "Default Response"
+            "description": "Default Response",
+            "headers": {
+              "traceparent": {
+                "description": "W3C trace context header linking worker calls to the workflow trace.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "tracestate": {
+                "description": "W3C trace state, present when non-empty.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {

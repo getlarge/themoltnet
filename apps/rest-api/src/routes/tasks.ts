@@ -48,7 +48,7 @@ function toTaskProblem(error: TaskServiceError) {
         error.message,
       );
     case 'timed_out':
-      return createProblem('internal-server-error', error.message);
+      return createProblem('conflict', error.message);
   }
 }
 
@@ -187,7 +187,20 @@ export async function taskRoutes(fastify: FastifyInstance) {
         params: TaskParamsSchema,
         body: ClaimTaskBodySchema,
         response: {
-          200: Type.Ref(ClaimTaskResponseSchema),
+          200: {
+            ...Type.Ref(ClaimTaskResponseSchema),
+            headers: {
+              traceparent: {
+                type: 'string',
+                description:
+                  'W3C trace context header linking worker calls to the workflow trace.',
+              },
+              tracestate: {
+                type: 'string',
+                description: 'W3C trace state, present when non-empty.',
+              },
+            },
+          },
           400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -196,17 +209,28 @@ export async function taskRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const { identityId, subjectType } = request.authContext!;
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
-        return await fastify.taskService.claim(
+        const result = await fastify.taskService.claim(
           request.params.id,
           identityId,
           callerNs,
           request.body.leaseTtlSec,
         );
+        if (typeof request.opentelemetry === 'function') {
+          const carrier: Record<string, string> = {};
+          request.opentelemetry().inject(carrier);
+          if (carrier['traceparent']) {
+            reply.header('traceparent', carrier['traceparent']);
+            if (carrier['tracestate']) {
+              reply.header('tracestate', carrier['tracestate']);
+            }
+          }
+        }
+        return await reply.send(result);
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
         throw error;

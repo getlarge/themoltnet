@@ -24,7 +24,7 @@ export class FileTaskSource implements TaskSource {
     if (!this.loaded) await this.load();
     const task = this.queue.shift() ?? null;
     if (!task) return null;
-    return { task, attemptN: 1 };
+    return { task, attemptN: 1, traceHeaders: {} };
   }
 
   async close(): Promise<void> {
@@ -59,7 +59,9 @@ export class FileTaskSource implements TaskSource {
         );
       }
       const entry =
-        BUILT_IN_TASK_TYPES[candidate.taskType as keyof typeof BUILT_IN_TASK_TYPES];
+        BUILT_IN_TASK_TYPES[
+          candidate.taskType as keyof typeof BUILT_IN_TASK_TYPES
+        ];
       if (!entry) {
         throw new Error(
           `FileTaskSource: task[${i}] in ${this.filePath} has unknown taskType="${candidate.taskType}". ` +

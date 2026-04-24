@@ -411,7 +411,10 @@ export interface TasksNamespace {
 
   get(id: string): Promise<Task>;
 
-  claim(id: string, body?: ClaimTaskData['body']): Promise<ClaimTaskResponse>;
+  claim(
+    id: string,
+    body?: ClaimTaskData['body'],
+  ): Promise<ClaimTaskResponse & { traceHeaders: Record<string, string> }>;
 
   heartbeat(
     id: string,

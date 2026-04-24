@@ -764,9 +764,15 @@ importers:
 
   libs/agent-runtime:
     dependencies:
+      '@opentelemetry/api':
+        specifier: 'catalog:'
+        version: 1.9.0
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
     devDependencies:
       '@moltnet/tasks':
         specifier: workspace:*
