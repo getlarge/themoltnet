@@ -4,7 +4,6 @@ import type {
   CancelTaskData,
   ClaimTaskData,
   ClaimTaskResponse,
-  ClaimVerificationResponse,
   Client,
   CompileDiaryData,
   CompileResult,
@@ -90,8 +89,6 @@ import type {
   SigningRequestList,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
-  SubmitVerificationData,
-  SubmitVerificationResponse,
   Success,
   Task,
   TaskAttempt,
@@ -102,8 +99,6 @@ import type {
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
-  VerifyRenderedPackData,
-  VerifyRenderedPackResponse,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
@@ -273,18 +268,6 @@ export interface PacksNamespace {
     id: string,
     body: NonNullable<UpdateRenderedPackData['body']>,
   ): Promise<RenderedPackWithContent>;
-
-  verifyRendered(
-    id: string,
-    body: NonNullable<VerifyRenderedPackData['body']>,
-  ): Promise<VerifyRenderedPackResponse>;
-
-  claimVerification(id: string): Promise<ClaimVerificationResponse>;
-
-  submitVerification(
-    id: string,
-    body: SubmitVerificationData['body'],
-  ): Promise<SubmitVerificationResponse>;
 
   create(
     diaryId: string,
