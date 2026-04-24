@@ -158,6 +158,7 @@ export async function executePiTask(
   });
 
   const diaryId = task.diaryId ?? '';
+  const taskTeamId = task.teamId ?? '';
   let reporterOpen = false;
   let session:
     | Awaited<ReturnType<typeof createAgentSession>>['session']
@@ -243,6 +244,7 @@ export async function executePiTask(
       const moltnetTools = createMoltNetTools({
         getAgent: () => moltnetAgent,
         getDiaryId: () => diaryId,
+        getTeamId: () => taskTeamId,
         getSessionErrors: () => [],
         clearSessionErrors: () => {
           /* no-op in headless mode */
@@ -330,8 +332,7 @@ export async function executePiTask(
           const cr = Math.max(0, msg.usage.cacheRead ?? 0);
           const cw = Math.max(0, msg.usage.cacheWrite ?? 0);
           if (cr) usage.cacheReadTokens = (usage.cacheReadTokens ?? 0) + cr;
-          if (cw)
-            usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
+          if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
         }
         track(emit('turn_end', { stop_reason: msg?.stopReason ?? 'end_turn' }));
         // Reflect ONLY the final turn's stop reason. pi emits turn_end per

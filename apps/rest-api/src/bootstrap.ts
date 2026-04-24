@@ -23,7 +23,6 @@ import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
-  createAttestationRepository,
   createContextPackRepository,
   createDatabase,
   createDBOSTransactionRunner,
@@ -38,20 +37,17 @@ import {
   createSigningRequestRepository,
   createTaskRepository,
   createTeamRepository,
-  createVerificationRepository,
   createVoucherRepository,
   type DatabaseConnection,
   getDatabase,
   getDataSource,
   initSigningWorkflows,
   initTaskWorkflows,
-  initVerificationWorkflows,
   type NonceRepository,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
   setTaskWorkflowDeps,
-  setVerificationWorkflowDeps,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
 import {
@@ -74,7 +70,6 @@ import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
 import { createTaskService } from './services/task.service.js';
-import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
   initDiaryTransferWorkflow,
@@ -212,8 +207,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const contextPackRepository = createContextPackRepository(dbConnection.db);
   const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
-  const attestationRepository = createAttestationRepository(dbConnection.db);
-  const verificationRepository = createVerificationRepository(dbConnection.db);
   const taskRepository = createTaskRepository(dbConnection.db);
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
@@ -266,7 +259,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           },
         });
       },
-      () => initVerificationWorkflows(),
       () => initTaskWorkflows(),
       () => initRegistrationWorkflow(),
       () => initHumanOnboardingWorkflow(),
@@ -345,21 +337,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           logger: app.log,
         });
       },
-      () => {
-        setVerificationWorkflowDeps({
-          updateVerificationStatus: (verificationId, status, claimedBy) =>
-            verificationRepository.updateStatus(
-              verificationId,
-              status,
-              claimedBy,
-            ),
-          loadRenderedPack: (renderedPackId) =>
-            renderedPackRepository.findById(renderedPackId),
-          listSourceEntries: (sourcePackId) =>
-            contextPackRepository.listEntriesExpanded(sourcePackId),
-          createAttestation: (input) => attestationRepository.create(input),
-        });
-      },
       (dataSource) => {
         setTaskWorkflowDeps({
           dataSource,
@@ -394,9 +371,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const dataSource = getDataSource();
   const transactionRunner = createDBOSTransactionRunner(dataSource);
-  const verificationService = createVerificationService({
-    verificationRepository,
-  });
 
   await initTaskTypeRegistry();
   const taskService = createTaskService({
@@ -459,9 +433,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryEntryRepository,
     contextPackRepository,
     renderedPackRepository,
-    attestationRepository,
     contextPackService,
-    verificationService,
     entryRelationRepository,
     embeddingService,
     agentRepository,

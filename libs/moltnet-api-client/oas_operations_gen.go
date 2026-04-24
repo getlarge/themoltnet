@@ -12,7 +12,6 @@ const (
 	AppendTaskMessagesOperation            OperationName = "AppendTaskMessages"
 	CancelTaskOperation                    OperationName = "CancelTask"
 	ClaimTaskOperation                     OperationName = "ClaimTask"
-	ClaimVerificationOperation             OperationName = "ClaimVerification"
 	CompileDiaryOperation                  OperationName = "CompileDiary"
 	CompleteTaskOperation                  OperationName = "CompleteTask"
 	ConsolidateDiaryOperation              OperationName = "ConsolidateDiary"
@@ -97,7 +96,6 @@ const (
 	SearchPublicFeedOperation              OperationName = "SearchPublicFeed"
 	StartLegreffierOnboardingOperation     OperationName = "StartLegreffierOnboarding"
 	SubmitSignatureOperation               OperationName = "SubmitSignature"
-	SubmitVerificationOperation            OperationName = "SubmitVerification"
 	TaskHeartbeatOperation                 OperationName = "TaskHeartbeat"
 	UpdateContextPackOperation             OperationName = "UpdateContextPack"
 	UpdateDiaryOperation                   OperationName = "UpdateDiary"
@@ -108,5 +106,4 @@ const (
 	VerifyCryptoSignatureOperation         OperationName = "VerifyCryptoSignature"
 	VerifyDiaryEntryByIdOperation          OperationName = "VerifyDiaryEntryById"
 	VerifyRecoveryChallengeOperation       OperationName = "VerifyRecoveryChallenge"
-	VerifyRenderedPackOperation            OperationName = "VerifyRenderedPack"
 )

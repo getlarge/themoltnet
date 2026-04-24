@@ -166,23 +166,6 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           pinned: request.body.pinned,
         });
 
-        if (result.renderMethod.startsWith('server:')) {
-          await fastify.attestationRepository.create({
-            renderedPackId: result.id,
-            coverage: 1.0,
-            grounding: 1.0,
-            faithfulness: 1.0,
-            composite: 1.0,
-            judgeModel: 'deterministic',
-            judgeProvider: 'server',
-            judgeBinaryCid: 'server:deterministic',
-            rubricCid: null,
-            createdBy: identityId,
-            transcript:
-              'Server-side deterministic rendering. Fidelity guaranteed by construction.',
-          });
-        }
-
         return await reply.code(201).send(result);
       } catch (err) {
         if (err instanceof PackServiceError) {
@@ -380,7 +363,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const { pinned, expiresAt } = request.body;
+      const { pinned, expiresAt, verifiedTaskId } = request.body;
       const now = new Date();
 
       // Defense in depth: schema-level `minProperties: 1` +
@@ -388,11 +371,78 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       // bodies, but Ajv's removeAdditional strips unknown keys before
       // minProperties is evaluated against the original data, so an
       // explicit guard here is the only reliable way to block silent no-ops.
-      if (pinned === undefined && expiresAt === undefined) {
+      if (
+        pinned === undefined &&
+        expiresAt === undefined &&
+        verifiedTaskId === undefined
+      ) {
         throw createProblem(
           'validation-failed',
-          'At least one of pinned or expiresAt must be provided',
+          'At least one field must be provided',
         );
+      }
+
+      if (verifiedTaskId !== undefined) {
+        const task = await fastify.taskRepository.findById(verifiedTaskId);
+        if (!task) {
+          throw createProblem('not-found', `Task ${verifiedTaskId} not found`);
+        }
+        if (task.taskType !== 'judge_pack') {
+          throw createProblem(
+            'validation-failed',
+            'verifiedTaskId must reference a judge_pack task',
+          );
+        }
+        if (task.diaryId !== rendered.diaryId) {
+          throw createProblem(
+            'validation-failed',
+            'Task must belong to the same diary as this rendered pack',
+          );
+        }
+        const taskInput = task.input;
+        if (
+          typeof taskInput !== 'object' ||
+          taskInput === null ||
+          Array.isArray(taskInput)
+        ) {
+          throw createProblem('validation-failed', 'Task input is malformed');
+        }
+        const inputPackId = (taskInput as Record<string, unknown>)[
+          'renderedPackId'
+        ];
+        if (inputPackId !== rendered.id) {
+          throw createProblem(
+            'validation-failed',
+            'Task does not reference this rendered pack',
+          );
+        }
+        const attempts =
+          await fastify.taskRepository.listAttempts(verifiedTaskId);
+        const hasCompleted = attempts.some((a) => a.status === 'completed');
+        if (!hasCompleted) {
+          throw createProblem(
+            'validation-failed',
+            'Task has no completed attempt',
+          );
+        }
+        const afterVerify =
+          await fastify.renderedPackRepository.setVerifiedTask(
+            rendered.id,
+            verifiedTaskId,
+          );
+        if (!afterVerify) {
+          throw createProblem(
+            'not-found',
+            'Rendered pack not found after update',
+          );
+        }
+        // If only verifiedTaskId was sent, return now; otherwise fall through
+        // to process pinned / expiresAt on the updated state.
+        if (pinned === undefined && expiresAt === undefined) {
+          return afterVerify;
+        }
+        // Refresh rendered so the pin/expiry logic below sees the latest state.
+        Object.assign(rendered, afterVerify);
       }
 
       if (pinned === false && !expiresAt) {

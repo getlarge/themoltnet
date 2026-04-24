@@ -70,80 +70,6 @@
         "required": ["count"],
         "type": "object"
       },
-      "Attestation": {
-        "properties": {
-          "composite": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number"
-          },
-          "coverage": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "faithfulness": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number"
-          },
-          "grounding": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "judgeBinaryCid": {
-            "type": "string"
-          },
-          "judgeModel": {
-            "type": "string"
-          },
-          "judgeProvider": {
-            "type": "string"
-          },
-          "renderedPackId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "rubricCid": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "renderedPackId",
-          "coverage",
-          "grounding",
-          "faithfulness",
-          "composite",
-          "judgeModel",
-          "judgeProvider",
-          "judgeBinaryCid",
-          "rubricCid",
-          "createdBy",
-          "createdAt"
-        ],
-        "type": "object"
-      },
       "CancelTaskBody": {
         "properties": {
           "reason": {
@@ -175,36 +101,6 @@
           }
         },
         "required": ["task", "attempt"],
-        "type": "object"
-      },
-      "ClaimVerificationResponse": {
-        "properties": {
-          "renderedContent": {
-            "type": "string"
-          },
-          "rubric": {
-            "type": "string"
-          },
-          "sourceEntries": {
-            "items": {
-              "properties": {
-                "content": {
-                  "type": "string"
-                },
-                "contentHash": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                }
-              },
-              "required": ["title", "content", "contentHash"],
-              "type": "object"
-            },
-            "type": "array"
-          }
-        },
-        "required": ["sourceEntries", "renderedContent", "rubric"],
         "type": "object"
       },
       "CompileResult": {
@@ -3917,6 +3813,17 @@
           },
           "totalTokens": {
             "type": "integer"
+          },
+          "verifiedTaskId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4057,21 +3964,6 @@
           }
         },
         "required": ["items", "total", "limit", "offset"],
-        "type": "object"
-      },
-      "SubmitVerificationResponse": {
-        "properties": {
-          "attestationId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "composite": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number"
-          }
-        },
-        "required": ["attestationId", "composite"],
         "type": "object"
       },
       "Success": {
@@ -5097,20 +4989,6 @@
             "type": "object"
           }
         ],
-        "type": "object"
-      },
-      "VerifyRenderedPackResponse": {
-        "properties": {
-          "nonce": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "verificationId": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": ["verificationId", "nonce"],
         "type": "object"
       },
       "VerifyResult": {
@@ -13718,7 +13596,7 @@
             "application/json": {
               "schema": {
                 "additionalProperties": false,
-                "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.",
+                "description": "At least one field must be provided. See route handler for field-combination constraints.",
                 "minProperties": 1,
                 "properties": {
                   "expiresAt": {
@@ -13727,13 +13605,18 @@
                   },
                   "pinned": {
                     "type": "boolean"
+                  },
+                  "verifiedTaskId": {
+                    "description": "ID of a completed judge_pack task that verified this rendered pack.",
+                    "format": "uuid",
+                    "type": "string"
                   }
                 },
                 "type": "object"
               }
             }
           },
-          "description": "At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints."
+          "description": "At least one field must be provided. See route handler for field-combination constraints."
         },
         "responses": {
           "200": {
@@ -13797,355 +13680,6 @@
             "description": "Default Response"
           },
           "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": ["diary"]
-      }
-    },
-    "/rendered-packs/{id}/verify": {
-      "post": {
-        "description": "Trigger fidelity verification for an agent-rendered pack.",
-        "operationId": "verifyRenderedPack",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": false,
-                "description": "Trigger fidelity verification for an agent-rendered pack.",
-                "properties": {
-                  "nonce": {
-                    "description": "Caller-generated nonce for idempotency.",
-                    "format": "uuid",
-                    "type": "string"
-                  }
-                },
-                "required": ["nonce"],
-                "type": "object"
-              }
-            }
-          },
-          "description": "Trigger fidelity verification for an agent-rendered pack.",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyRenderedPackResponse"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": ["diary"]
-      }
-    },
-    "/rendered-packs/{id}/verify/claim": {
-      "post": {
-        "description": "Judge claims verification payload (source entries, rendered content, and rubric).",
-        "operationId": "claimVerification",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClaimVerificationResponse"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": ["diary"]
-      }
-    },
-    "/rendered-packs/{id}/verify/submit": {
-      "post": {
-        "description": "Judge submits fidelity scores and transcript.",
-        "operationId": "submitVerification",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": false,
-                "description": "Submit fidelity judge results.",
-                "properties": {
-                  "coverage": {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  "faithfulness": {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  "grounding": {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  "judgeBinaryCid": {
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "judgeModel": {
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "pattern": "^[a-z0-9._:-]+$",
-                    "type": "string"
-                  },
-                  "judgeProvider": {
-                    "maxLength": 50,
-                    "minLength": 1,
-                    "pattern": "^[a-z0-9-]+$",
-                    "type": "string"
-                  },
-                  "nonce": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "transcript": {
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "nonce",
-                  "coverage",
-                  "grounding",
-                  "faithfulness",
-                  "transcript",
-                  "judgeModel",
-                  "judgeProvider",
-                  "judgeBinaryCid"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "description": "Submit fidelity judge results.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmitVerificationResponse"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "409": {
             "content": {
               "application/json": {
                 "schema": {

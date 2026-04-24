@@ -10,7 +10,6 @@ export * from './agents.js';
 export * from './atoms.js';
 export * from './crypto.js';
 export * from './diary.js';
-export * from './fidelity.js';
 export * from './network.js';
 export * from './packs.js';
 export * from './relations.js';
@@ -55,12 +54,6 @@ import {
   PublicFeedResponseSchema,
   PublicSearchResponseSchema,
 } from './diary.js';
-import {
-  AttestationSchema,
-  ClaimVerificationResponseSchema,
-  SubmitVerificationResponseSchema,
-  VerifyRenderedPackResponseSchema,
-} from './fidelity.js';
 import { HealthSchema, NetworkInfoSchema, ReadinessSchema } from './network.js';
 import {
   CompileResultSchema,
@@ -146,10 +139,6 @@ export const sharedSchemas = [
   RenderedPackResultSchema,
   RenderedPackPreviewSchema,
   RenderedPackWithContentSchema,
-  VerifyRenderedPackResponseSchema,
-  ClaimVerificationResponseSchema,
-  SubmitVerificationResponseSchema,
-  AttestationSchema,
   ProvenanceGraphSchema,
   RelationTypeSchema,
   RelationStatusSchema,

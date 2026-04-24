@@ -23,6 +23,7 @@ function makeConfig(hostCwd: string = '/tmp'): MoltNetToolsConfig {
   return {
     getAgent: () => null,
     getDiaryId: () => null,
+    getTeamId: () => null,
     getSessionErrors: () => [],
     clearSessionErrors: () => {},
     getHostCwd: () => hostCwd,
@@ -136,6 +137,7 @@ describe('moltnet_host_exec cwd routing', () => {
     const config: MoltNetToolsConfig = {
       getAgent: () => null,
       getDiaryId: () => null,
+      getTeamId: () => null,
       getSessionErrors: () => [],
       clearSessionErrors: () => {},
       // getHostCwd intentionally omitted

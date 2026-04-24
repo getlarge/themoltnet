@@ -25,10 +25,6 @@ type ClaimTaskRes interface {
 	claimTaskRes()
 }
 
-type ClaimVerificationRes interface {
-	claimVerificationRes()
-}
-
 type CompileDiaryRes interface {
 	compileDiaryRes()
 }
@@ -345,10 +341,6 @@ type SubmitSignatureRes interface {
 	submitSignatureRes()
 }
 
-type SubmitVerificationRes interface {
-	submitVerificationRes()
-}
-
 type TaskHeartbeatRes interface {
 	taskHeartbeatRes()
 }
@@ -387,8 +379,4 @@ type VerifyDiaryEntryByIdRes interface {
 
 type VerifyRecoveryChallengeRes interface {
 	verifyRecoveryChallengeRes()
-}
-
-type VerifyRenderedPackRes interface {
-	verifyRenderedPackRes()
 }

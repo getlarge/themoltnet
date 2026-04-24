@@ -103,6 +103,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   let worktreePath: string | null = null;
   let moltnetAgent: Awaited<ReturnType<typeof connect>> | null = null;
   let diaryId: string | null = null;
+  let teamId: string | null = null;
   let hostExecBaseEnv: ReadonlySet<string> = HOST_EXEC_DEFAULT_BASE_ENV;
 
   // -- VM bootstrap -----------------------------------------------------------
@@ -197,6 +198,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       // 5. Connect to MoltNet on the host side (for custom tools)
       moltnetAgent = await connect({ configDir: managed.agentDir });
       diaryId = managed.credentials.agentEnv.MOLTNET_DIARY_ID ?? null;
+      teamId = managed.credentials.agentEnv.MOLTNET_TEAM_ID ?? null;
       hostExecBaseEnv = new Set([
         ...HOST_EXEC_DEFAULT_BASE_ENV,
         ...Object.keys(managed.credentials.agentEnv),
@@ -234,6 +236,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       vm = null;
       vmStarting = null;
       moltnetAgent = null;
+      teamId = null;
     }
   });
 
@@ -305,6 +308,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   const moltnetTools = createMoltNetTools({
     getAgent: () => moltnetAgent,
     getDiaryId: () => diaryId,
+    getTeamId: () => teamId,
     getSessionErrors: () => sessionErrors,
     clearSessionErrors: () => {
       sessionErrors.length = 0;

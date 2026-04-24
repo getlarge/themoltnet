@@ -14,6 +14,7 @@ const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 const RENDERED_PACK_ID = '990e8400-e29b-41d4-a716-446655440020';
 const SOURCE_PACK_ID = '990e8400-e29b-41d4-a716-446655440010';
 const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
+const TASK_ID = '770e8400-e29b-41d4-a716-446655440099';
 
 const MOCK_RENDERED_PACK = {
   id: RENDERED_PACK_ID,
@@ -254,5 +255,167 @@ describe('PATCH /rendered-packs/:id', () => {
     });
 
     expect(response.statusCode).toBe(404);
+  });
+
+  describe('verifiedTaskId', () => {
+    const MOCK_JUDGE_TASK = {
+      id: TASK_ID,
+      taskType: 'judge_pack',
+      diaryId: DIARY_ID,
+      teamId: 'team-1',
+      status: 'completed',
+      input: { renderedPackId: RENDERED_PACK_ID, sourcePackId: SOURCE_PACK_ID },
+    };
+    const COMPLETED_ATTEMPT = { status: 'completed', attemptN: 1 };
+
+    it('sets verifiedTaskId on happy path', async () => {
+      const verified = { ...MOCK_RENDERED_PACK, verifiedTaskId: TASK_ID };
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce(MOCK_JUDGE_TASK);
+      mocks.taskRepository.listAttempts.mockResolvedValueOnce([
+        COMPLETED_ATTEMPT,
+      ]);
+      mocks.renderedPackRepository.setVerifiedTask.mockResolvedValueOnce(
+        verified,
+      );
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().verifiedTaskId).toBe(TASK_ID);
+      expect(mocks.renderedPackRepository.setVerifiedTask).toHaveBeenCalledWith(
+        RENDERED_PACK_ID,
+        TASK_ID,
+      );
+    });
+
+    it('rejects when task not found', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce(null);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('rejects wrong taskType', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce({
+        ...MOCK_JUDGE_TASK,
+        taskType: 'curate_pack',
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects task from a different diary', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce({
+        ...MOCK_JUDGE_TASK,
+        diaryId: '00000000-0000-0000-0000-000000000099',
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects mismatched renderedPackId in task input', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce({
+        ...MOCK_JUDGE_TASK,
+        input: {
+          renderedPackId: '00000000-0000-0000-0000-000000000088',
+          sourcePackId: SOURCE_PACK_ID,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects task with no completed attempt', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce(MOCK_JUDGE_TASK);
+      mocks.taskRepository.listAttempts.mockResolvedValueOnce([
+        { status: 'failed', attemptN: 1 },
+      ]);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('returns 404 when setVerifiedTask returns null (concurrent delete)', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.taskRepository.findById.mockResolvedValueOnce(MOCK_JUDGE_TASK);
+      mocks.taskRepository.listAttempts.mockResolvedValueOnce([
+        COMPLETED_ATTEMPT,
+      ]);
+      mocks.renderedPackRepository.setVerifiedTask.mockResolvedValueOnce(null);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { verifiedTaskId: TASK_ID },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
   });
 });

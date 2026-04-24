@@ -44,12 +44,6 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/claim
 	ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
-	// ClaimVerification implements claimVerification operation.
-	//
-	// Judge claims verification payload (source entries, rendered content, and rubric).
-	//
-	// POST /rendered-packs/{id}/verify/claim
-	ClaimVerification(ctx context.Context, params ClaimVerificationParams) (ClaimVerificationRes, error)
 	// CompileDiary implements compileDiary operation.
 	//
 	// Compile a token-budget-fitted context pack from diary entries.
@@ -572,12 +566,6 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests/{id}/sign
 	SubmitSignature(ctx context.Context, req *SubmitSignatureReq, params SubmitSignatureParams) (SubmitSignatureRes, error)
-	// SubmitVerification implements submitVerification operation.
-	//
-	// Judge submits fidelity scores and transcript.
-	//
-	// POST /rendered-packs/{id}/verify/submit
-	SubmitVerification(ctx context.Context, req *SubmitVerificationReq, params SubmitVerificationParams) (SubmitVerificationRes, error)
 	// TaskHeartbeat implements taskHeartbeat operation.
 	//
 	// Send a heartbeat to keep the attempt lease alive.
@@ -639,12 +627,6 @@ type Handler interface {
 	//
 	// POST /recovery/verify
 	VerifyRecoveryChallenge(ctx context.Context, req *VerifyRecoveryChallengeReq) (VerifyRecoveryChallengeRes, error)
-	// VerifyRenderedPack implements verifyRenderedPack operation.
-	//
-	// Trigger fidelity verification for an agent-rendered pack.
-	//
-	// POST /rendered-packs/{id}/verify
-	VerifyRenderedPack(ctx context.Context, req *VerifyRenderedPackReq, params VerifyRenderedPackParams) (VerifyRenderedPackRes, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and

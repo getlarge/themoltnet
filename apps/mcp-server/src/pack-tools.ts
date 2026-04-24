@@ -327,6 +327,9 @@ export async function handleRenderedPacksUpdate(
     body: {
       ...(args.pinned !== undefined && { pinned: args.pinned }),
       ...(args.expires_at !== undefined && { expiresAt: args.expires_at }),
+      ...(args.verified_task_id !== undefined && {
+        verifiedTaskId: args.verified_task_id,
+      }),
     },
   });
 

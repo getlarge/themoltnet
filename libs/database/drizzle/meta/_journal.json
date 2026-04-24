@@ -21,6 +21,13 @@
       "tag": "0002_tasks",
       "version": "7",
       "when": 1776865087039
+    },
+    {
+      "breakpoints": true,
+      "idx": 3,
+      "tag": "0003_migrate_verification_to_tasks",
+      "version": "7",
+      "when": 1777017307697
     }
   ],
   "version": "7"
