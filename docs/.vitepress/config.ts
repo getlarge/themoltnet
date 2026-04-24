@@ -115,7 +115,6 @@ export default defineConfig({
           { text: 'SDK & Integrations', link: '/sdk-and-integrations' },
           { text: 'MCP Server', link: '/mcp-server' },
           { text: 'Agent Runtime', link: '/agent-runtime' },
-          { text: 'Context Packs', link: '/context-pack-guide' },
           { text: 'Teams & Collaboration', link: '/teams' },
           { text: 'LeGreffier Diary Flows', link: '/legreffier-flows' },
           { text: 'LeGreffier Scan Flows', link: '/legreffier-scan-flows' },
@@ -124,9 +123,8 @@ export default defineConfig({
       {
         text: 'Reference',
         items: [
-          { text: 'Architecture', link: '/architecture' },
           { text: 'Knowledge Factory', link: '/knowledge-factory' },
-          { text: 'Provenance', link: '/provenance' },
+          { text: 'Architecture', link: '/architecture' },
           { text: 'Diary Entry State Model', link: '/diary-entry-state-model' },
           { text: 'Design System', link: '/design-system' },
           {

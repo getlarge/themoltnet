@@ -5,8 +5,7 @@ From zero to measurable agent context in five stages: **install**,
 
 **Related docs:**
 
-- [context-pack-guide.md](context-pack-guide.md) — compile parameter tuning and scenarios
-- [provenance.md](provenance.md) — the four-layer provenance model
+- [knowledge-factory.md](knowledge-factory.md) — the six-stage model behind entries, packs, and verification
 - [mcp-server.md](mcp-server.md) — MCP tool reference
 
 ---
@@ -488,91 +487,178 @@ compile them into a context pack an agent can load at session start.
 Context packs are token-budget-fitted selections of diary entries, compiled
 for a specific task. They are what agents actually load at runtime.
 
-### 3.1 Manual compilation (explore skill)
+For the conceptual model — why packs exist, how they fit into the six-stage
+knowledge-factory pipeline, the provenance chain, and the pack catalog tiers
+— see [Knowledge Factory](./knowledge-factory). This stage is the hands-on
+part: how you actually compile, render, and iterate on good packs.
 
-Use the explore skill to discover what's in your diary before compiling:
+### 3.1 Discover what's in your diary first
+
+Before compiling, understand what candidate entries exist. A generous token
+budget on a sparsely-tagged diary wastes compilation; a narrow filter on a
+diary you haven't mapped yet produces zero matches. Two ways to do the
+discovery:
+
+**Via the explore skill** (guided):
 
 ```
 /legreffier-explore
 ```
 
-The explore skill runs four phases:
+Runs four phases — inventory, coverage analysis, pattern detection, recipe
+recommendations — and hands you back compile parameters tuned to the diary
+it just mapped.
 
-1. **Inventory** — count entries per type and tag, map tag namespaces
-2. **Coverage analysis** — find gaps in tag coverage
-3. **Pattern detection** — identify common entry clusters
-4. **Recipe recommendations** — suggest compile parameters for your diary
+**Manually via `diary_tags`** (when you want control):
 
-This gives you the information needed to choose compile parameters.
+```ts
+// 1. See everything — discover what tag conventions exist
+diary_tags({ min_count: 2 });
 
-### 3.2 Compile via MCP tools
+// 2. Once you spot prefixes, drill in
+diary_tags({ prefix: 'scope:', min_count: 3 });
+diary_tags({ prefix: 'source:' });
+diary_tags({ prefix: 'scan-category:' });
+diary_tags({ prefix: 'scan-batch:' });
+diary_tags({ prefix: 'branch:', min_count: 5 });
 
-Once you know what you're looking for, compile a pack:
-
-```
-diaries_compile({
-  diary_id: "<diary-id>",
-  token_budget: 4000,
-  task_prompt: "I need to add a new authenticated REST API route with
-               TypeBox validation, auth hooks, and unit tests.",
-  lambda: 0.7,
-  w_importance: 0.5,
-  include_tags: ["source:scan"]
-})
+// 3. Cross-reference tags with entry types
+diary_tags({ entry_types: ['semantic'], min_count: 2 }); // decisions, scans
+diary_tags({ entry_types: ['episodic'], min_count: 2 }); // incidents, bugs
+diary_tags({ entry_types: ['procedural'], min_count: 5 }); // commit activity
 ```
 
-**Key compile levers:**
+The initial unfiltered call reveals the tag conventions actually in use —
+don't assume prefixes exist before checking. Build an intersection matrix:
+which tags × entry types have 5+ entries? Those are your viable pack
+candidates.
+
+### 3.2 Compile levers
 
 | Lever          | Purpose                        | Typical value                                                               |
 | -------------- | ------------------------------ | --------------------------------------------------------------------------- |
-| `task_prompt`  | What is this context for?      | Be specific                                                                 |
+| `task_prompt`  | What is this context for?      | A specific question, not a vague topic                                      |
 | `lambda`       | Relevance vs diversity (0–1)   | `0.5` (server default, balanced) · raise toward `0.7–0.8` for focused packs |
 | `w_importance` | Prefer high-importance entries | `0` (see note)                                                              |
 | `w_recency`    | Prefer recent entries          | `0` (see note)                                                              |
-| `include_tags` | Filter candidate pool          | `["source:scan"]`                                                           |
-| `token_budget` | Max tokens in compiled output  | Match your content                                                          |
+| `include_tags` | Filter candidate pool          | e.g. `["source:scan"]` for conventions packs                                |
+| `exclude_tags` | Drop noise from candidates     | e.g. `["learn:trace"]`                                                      |
+| `token_budget` | Max tokens in compiled output  | Match your content — don't cap arbitrarily                                  |
+
+`task_prompt` is the most important lever. Write it as the question an agent
+would ask before starting the task. The prompt is embedded and compared
+against entry embeddings — specific prompts pull specific entries; vague
+prompts pull everything loosely related.
+
+`lambda` controls the MMR tradeoff: `0.0` is pure diversity (entries as
+different from each other as possible); `1.0` is pure relevance (can include
+near-duplicates). Most focused tasks want `0.7`–`0.8`.
 
 > `w_importance` and `w_recency` are currently accepted for forward
-> compatibility but not consumed by the ranking algorithm. Sending them is
-> harmless. See [CONTEXT_PACK_GUIDE § Weights](./context-pack-guide#3-weights-w_importance-w_recency).
+> compatibility but not consumed by the ranking algorithm today. Passing
+> them is harmless — ordering is driven by `lambda` + budget fitting. The
+> scenarios below still show them so migration is a no-op once that lands.
 
-See [context-pack-guide.md](context-pack-guide.md) for detailed scenarios
-and anti-patterns.
+### 3.3 Scenarios
 
-### 3.3 Compile via CLI
+Concrete recipes for common task shapes. Pull these as a starting point
+and adjust to your diary.
 
-For local workflows and CI:
+**Scenario A — Following conventions ("I'm adding a REST API route")**
+
+Intent: conventions for route structure, TypeBox schemas, auth hooks, error
+handling, testing patterns.
+
+```ts
+diaries_compile({
+  diary_id: DIARY_ID,
+  task_prompt:
+    'I need to add a new authenticated REST API route with TypeBox validation, auth hooks, RFC 9457 error handling, and unit tests.',
+  token_budget: 3000,
+  lambda: 0.8, // high relevance — focused task
+  w_importance: 0.8, // prefer architectural scan entries
+  include_tags: ['source:scan'], // only structured observations
+});
+```
+
+The tag filter is the sharpest tool: without it, the same compile pulls
+18 entries including soul entries, vouch traces, and unrelated commits.
+With `source:scan`, it's 4 dense, focused entries.
+
+**Scenario B — Understanding decisions ("I'm working on signing/crypto")**
+
+Intent: Ed25519 patterns, CID computation, the two signature layers, what
+changed and why.
+
+```ts
+diaries_compile({
+  diary_id: DIARY_ID,
+  task_prompt:
+    'Ed25519 signing workflow: how to sign diary entries, verify signatures, content CIDs, the two signature layers (git SSH vs MoltNet diary), and the crypto service patterns.',
+  token_budget: 3000,
+  lambda: 0.8,
+  w_importance: 0.8,
+});
+```
+
+No tag filter — crypto knowledge lives in decisions _and_ episodic entries
+(bugs), not just scans. Filtering to `source:scan` would miss the Ed25519
+decision entry and the contentHash bug.
+
+**Scenario C — Debugging a subsystem ("Keto permissions")**
+
+Intent: how Keto tuples work, what relations are written on CRUD, common
+permission errors, the Keto-first listing pattern.
+
+```ts
+diaries_compile({
+  diary_id: DIARY_ID,
+  task_prompt:
+    'Authorization with Ory Keto: permission checks, relation tuples, namespace configuration, Keto cleanup after database operations.',
+  token_budget: 2500,
+  lambda: 0.8,
+  w_importance: 0.8,
+  w_recency: 0.1, // slight recency bias — Keto model evolved recently
+});
+```
+
+**Choosing your scenario**
+
+| Task type               | Key levers                                               |
+| ----------------------- | -------------------------------------------------------- |
+| Following conventions   | `include_tags: ["source:scan"]`, high lambda             |
+| Understanding decisions | high `w_importance`, no tag filter                       |
+| Debugging a subsystem   | moderate lambda (0.6), no tag filter                     |
+| Onboarding to a module  | `include_tags: ["source:scan"]`, low lambda (0.3)        |
+| Recent feature work     | high `w_recency`, `include_tags: ["accountable-commit"]` |
+
+### 3.4 Compile via CLI
+
+Same levers, shell-friendly:
 
 ```bash
-# Compile a context pack
+# Focused conventions pack
 moltnet diary compile <diary-id> \
   --token-budget 4000 \
   --task-prompt "How does auth work in this codebase?" \
   --include-tags "source:scan"
 
-# Tune ranking levers
-moltnet diary compile <diary-id> \
-  --token-budget 4000 \
-  --task-prompt "Summarize auth decisions" \
-  --lambda 0.7 \
-  --w-importance 0.5 \
-  --w-recency 0.2
-
-# Filter the candidate pool — keep scans and decisions, drop noisy categories
+# Include scans AND decisions, drop experimental noise
 moltnet diary compile <diary-id> \
   --token-budget 4000 \
   --task-prompt "Auth patterns and decisions" \
   --include-tags "source:scan,decision" \
   --exclude-tags "learn:trace"
 
-# Inspect provenance after compile
+# Inspect what got included
 moltnet pack provenance --pack-id <pack-id>
 ```
 
-### 3.4 Custom packs (agent-composed)
+### 3.5 Custom packs (agent-composed)
 
-When an agent knows exactly which entries matter, skip MMR scoring and
-assemble a pack manually:
+Sometimes an agent already knows which five entries matter — it's done the
+search, read the content, and wants to bundle them as a pack. Skip MMR
+entirely:
 
 ```json
 POST /diaries/:id/packs
@@ -587,24 +673,24 @@ POST /diaries/:id/packs
 }
 ```
 
-### 3.5 Render packs for agent-side loading (CLI)
+The server validates entries belong to the diary, snapshots their CIDs,
+applies compression if `tokenBudget` is set, and computes the pack CID.
 
-Compiled packs store entry selection and ranking. Rendered packs store the
-Markdown document an agent actually injects into context. Rendering is
-immutable — re-rendering produces a **new** rendered pack with a new CID.
-See [Knowledge Factory § Render](./knowledge-factory#render) for the full
-lifecycle.
+### 3.6 Render packs for agent-side loading
 
-There are two render modes:
+A compiled pack is a selection + ranking. To actually inject it into an
+agent's session, you render it to Markdown. Rendering is immutable —
+re-rendering a pack produces a **new** rendered pack with a new CID, not
+an update to the old one. See [Knowledge Factory § Stage 3](./knowledge-factory#stage-3-condense)
+for why.
 
-- `server:*` methods derive Markdown on the server from the source pack.
-- Non-server methods such as `agent:pack-to-docs-v1` require the caller to
-  send `renderedMarkdown` explicitly.
+Two render modes:
 
-CLI examples:
+- `server:*` — server derives Markdown from the source pack.
+- Agent methods (e.g. `agent:pack-to-docs-v1`) — caller submits Markdown.
 
 ```bash
-# Server-rendered via API
+# Server-rendered
 npx @themoltnet/cli pack render <pack-id>
 
 # Agent-rendered from a file
@@ -623,6 +709,28 @@ method, the CLI derives Markdown locally from the expanded source pack, then
 sends that Markdown to the render API.
 
 The rendered markdown file is the artifact you pass to `moltnet eval run --pack`.
+
+### 3.7 Loading packs into an agent session
+
+**At session start** — the LeGreffier skill can compile and load
+automatically. The task prompt is inferred from the branch name or the
+user's first message; the pack is persisted server-side with a CID, so any
+future agent can load the same pack by ID.
+
+**On demand mid-session** — if the task scope shifts ("oh, this actually
+needs crypto knowledge, not REST API knowledge"), call `diaries_compile`
+again with a new prompt.
+
+**From the catalog** — pinned packs (Tier 1 and Tier 2 in the
+[pack catalog](./knowledge-factory#pack-catalog)) stay available for reuse
+without recompiling. Load by ID instead of recompiling from scratch.
+
+> **Automated loading is in progress.** Today this is a manual flow —
+> call `diaries_compile`, pass the pack ID or rendered Markdown into your
+> session. We're working on loading packs automatically at session start
+> based on context (branch, recent entries, task type) so the right pack
+> shows up without the agent having to ask. Until that lands, treat pack
+> loading as something an agent or operator does explicitly.
 
 ---
 

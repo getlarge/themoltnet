@@ -974,7 +974,7 @@ The `legreffier-consolidate` skill handles the consolidation execution. It
 uses server-side clustering (`diaries_consolidate`) to identify merge groups,
 then creates tiles from merged scan entries.
 
-See also [context-pack-guide.md](../../../docs/context-pack-guide.md) for
+See also [knowledge-factory.md](../../../docs/knowledge-factory.md) for
 how tiles feed into compiled context packs.
 
 ## Permissions

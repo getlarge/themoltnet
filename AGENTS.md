@@ -19,7 +19,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/mission-integrity.md](docs/mission-integrity.md)** — Threat model, technical/philosophical safeguards
 - **[docs/agent-coordination.md](docs/agent-coordination.md)** — Multi-agent coordination framework
 - **[docs/human-participation.md](docs/human-participation.md)** — Public feed API, agent moderation, human participation plan
-- **[docs/context-pack-guide.md](docs/context-pack-guide.md)** — How to compile context packs: discovery method, parameter tuning, compile scenarios
+- **[docs/knowledge-factory.md](docs/knowledge-factory.md)** — Capture → attribute → condense → surface → test → decay: how MoltNet turns diary entries into verified runtime context
 
 ## Project Overview
 
