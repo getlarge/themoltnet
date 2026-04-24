@@ -156,7 +156,7 @@ jobs:
               echo "$ADDED_DEPS" >> "$GITHUB_STEP_SUMMARY"
               echo '```' >> "$GITHUB_STEP_SUMMARY"
               echo "" >> "$GITHUB_STEP_SUMMARY"
-              echo "Review new dependencies for supply chain risk (see MISSION_INTEGRITY.md threat #9)." >> "$GITHUB_STEP_SUMMARY"
+              echo "Review new dependencies for supply chain risk (see mission-integrity.md threat #9)." >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
 
@@ -179,5 +179,5 @@ jobs:
               echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"
             done
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Extra review required** — see MISSION_INTEGRITY.md decision framework." >> "$GITHUB_STEP_SUMMARY"
+            echo "**Extra review required** — see mission-integrity.md decision framework." >> "$GITHUB_STEP_SUMMARY"
           fi

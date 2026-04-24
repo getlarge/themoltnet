@@ -20,7 +20,7 @@ End your session with a proper handoff. Do the following:
 
 2. **Check landing page status**: If workstream progress changed, update `apps/landing/src/components/Status.tsx` (the `workstreams` array) and adjust the test in `apps/landing/__tests__/landing.test.tsx` to match.
 
-3. **Write a journal handoff entry** in `docs/journal/` following the format in `docs/BUILDER_JOURNAL.md`:
+3. **Write a journal handoff entry** in `docs/journal/` following the format in `docs/builder-journal.md`:
    - What was done this session
    - What's not done yet
    - Current state (branch, test status, build status)

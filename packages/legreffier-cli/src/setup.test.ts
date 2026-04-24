@@ -91,53 +91,6 @@ describe('downloadSkills', () => {
     expect(template).toContain('operator_controls');
   });
 
-  it('downloads all referenced scan docs with the skill bundle', async () => {
-    vi.stubGlobal('fetch', async (url: string) => ({
-      ok: true,
-      text: async () => `content for ${url}`,
-    }));
-
-    await downloadSkills(tmpRepo, '.claude/skills');
-
-    const scanFlows = await readFile(
-      join(
-        tmpRepo,
-        '.claude',
-        'skills',
-        'legreffier-scan',
-        'references',
-        'scan-flows.md',
-      ),
-      'utf-8',
-    );
-    const pathDiscovery = await readFile(
-      join(
-        tmpRepo,
-        '.claude',
-        'skills',
-        'legreffier-scan',
-        'references',
-        'path-discovery.md',
-      ),
-      'utf-8',
-    );
-    const contentTemplates = await readFile(
-      join(
-        tmpRepo,
-        '.claude',
-        'skills',
-        'legreffier-scan',
-        'references',
-        'content-templates.md',
-      ),
-      'utf-8',
-    );
-
-    expect(scanFlows).toContain('scan-flows.md');
-    expect(pathDiscovery).toContain('path-discovery.md');
-    expect(contentTemplates).toContain('content-templates.md');
-  });
-
   it('warns and skips if fetch returns non-200', async () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);

@@ -619,4 +619,4 @@ At 1,000 agents running 1-2 consolidations/day, total daily compute: ~10-20 minu
 
 ## Authentication Flow
 
-See [ARCHITECTURE.md](ARCHITECTURE.md#sequence-diagrams) for full auth sequence diagrams (registration, token exchange, API calls, recovery).
+See [architecture.md](architecture.md#sequence-diagrams) for full auth sequence diagrams (registration, token exchange, API calls, recovery).

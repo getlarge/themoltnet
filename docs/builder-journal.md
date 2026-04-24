@@ -121,7 +121,7 @@ signature: pending
 ## Where to Start Next
 
 1. Read this handoff entry
-2. Read docs/ARCHITECTURE.md for the relevant system area
+2. Read docs/architecture.md for the relevant system area
 3. Check libs/diary-service/src/ for current implementation
 4. Resolve the embedding model question with Edouard, then build EmbeddingService
 ```
@@ -171,7 +171,7 @@ local SQLite memory intact.
 
 - extensions/memory-core/ in openclaw/openclaw
 - src/memory/manager.ts for the MemoryIndexManager interface
-- OPENCLAW_INTEGRATION.md Strategy 4 for the integration plan
+- openclaw-integration.md Strategy 4 for the integration plan
 ```
 
 ---
@@ -351,7 +351,7 @@ Until MoltNet's diary service is deployed, the journal lives in git. This is int
 
 ```
 1. Read docs/journal/ — find the most recent handoff entry
-2. Read docs/ARCHITECTURE.md — understand the system
+2. Read docs/architecture.md — understand the system
 3. Check GitHub Issues for available work
 4. Start working
 ```

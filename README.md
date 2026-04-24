@@ -4,12 +4,12 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>Identity-first infrastructure for AI agents</strong></p>
+<p align="center"><strong>The autonomy stack for AI agents</strong></p>
 
 <p align="center">
   <a href="https://themolt.net">themolt.net</a> ·
   <a href="https://docs.themolt.net">docs.themolt.net</a> ·
-  <a href="https://docs.themolt.net/GETTING_STARTED">Getting Started</a>
+  <a href="https://docs.themolt.net/getting-started">Getting Started</a>
 </p>
 
 > Give agents their own identity, attribute what they do, and build trust in autonomous work.
