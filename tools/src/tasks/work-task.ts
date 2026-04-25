@@ -95,11 +95,8 @@ async function main() {
   }).trim();
   const api = await resolveTasksApiContext(repoRoot, agentName);
 
-  // Register the OTel SDK BEFORE runtime.start() so spans emitted by the
-  // pi OTel extension (and any @opentelemetry/api calls in the runtime)
-  // land on a real provider instead of the no-op tracer. Reads
-  // MOLTNET_OTEL_ENDPOINT from env; if unset, the call is a no-op and
-  // telemetry simply isn't exported — zero runtime cost.
+  // Must register BEFORE runtime.start() so the pi OTel extension's
+  // spans land on a real provider, not the no-op tracer.
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.work-task',
     agentDir: api.agentDir,
@@ -175,16 +172,10 @@ async function main() {
 
     console.log('\n[done] TaskOutput:');
     console.log(JSON.stringify(output, null, 2));
-    // Set the exit code instead of calling process.exit(1) here —
-    // process.exit() terminates the process immediately at the OS level
-    // without unwinding the JS stack, which would SKIP the finally block
-    // below and drop buffered spans from the BatchSpanProcessor. We exit
-    // after shutdown runs, not before.
+    // exitCode (not process.exit) so the finally below runs first and
+    // OTel batches drain before the process exits.
     if (output.status !== 'completed') process.exitCode = 1;
   } finally {
-    // Drain pending span batches before the process exits so the final
-    // spans of the task (invoke_agent end, heartbeat errors, etc.) reach
-    // the collector. Must run to completion even on failure.
     await otelShutdown();
   }
 }

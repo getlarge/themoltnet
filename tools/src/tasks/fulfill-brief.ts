@@ -322,9 +322,6 @@ async function main() {
     return;
   }
 
-  // OTel bootstrap — same pattern as work-task.ts. No-op when
-  // MOLTNET_OTEL_ENDPOINT is unset; otherwise exports via the MoltNet
-  // collector using the agent's OAuth2 token for auth.
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.fulfill-brief',
     agentDir,
@@ -354,8 +351,8 @@ async function main() {
 
     const outputs = await runtime.start();
     const [output] = outputs;
-    // process.exit() inside try{} would skip the finally block below and
-    // drop buffered spans. Use process.exitCode so the finally runs first.
+    // exitCode (not process.exit) so the finally below runs first and
+    // OTel batches drain before the process exits.
     if (!output) {
       console.error('[fatal] Runtime produced no outputs');
       process.exitCode = 1;
