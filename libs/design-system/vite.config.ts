@@ -13,6 +13,7 @@ export default defineConfig({
       entry: {
         index: 'src/index.ts',
         'cli/index': 'src/cli/index.ts',
+        tokens: 'src/tokens.ts',
       },
       formats: ['es'],
     },
