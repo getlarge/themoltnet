@@ -10,6 +10,11 @@ import (
 )
 
 type executorAttestationVectorFile struct {
+	CanonicalJSONVectors []struct {
+		Name      string         `json:"name"`
+		Value     map[string]any `json:"value"`
+		Canonical string         `json:"canonical"`
+	} `json:"canonicalJsonVectors"`
 	Vectors []struct {
 		Name            string         `json:"name"`
 		Payload         map[string]any `json:"payload"`
@@ -28,6 +33,18 @@ func TestExecutorAttestationVectors(t *testing.T) {
 	var vf executorAttestationVectorFile
 	if err := json.Unmarshal(raw, &vf); err != nil {
 		t.Fatal(err)
+	}
+
+	for _, vector := range vf.CanonicalJSONVectors {
+		t.Run("canonical-json-"+vector.Name, func(t *testing.T) {
+			canonical, err := CanonicalJSON(vector.Value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if canonical != vector.Canonical {
+				t.Fatalf("canonical mismatch\n got: %s\nwant: %s", canonical, vector.Canonical)
+			}
+		})
 	}
 
 	for _, vector := range vf.Vectors {

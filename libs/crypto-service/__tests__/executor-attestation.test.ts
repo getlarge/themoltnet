@@ -6,11 +6,17 @@ import { describe, expect, it } from 'vitest';
 import {
   buildExecutorAttestationSigningBytes,
   canonicalizeExecutorAttestationPayload,
+  canonicalJson,
   computeExecutorManifestCid,
   type ExecutorAttestationPayload,
 } from '../src/index.js';
 
 interface VectorFile {
+  canonicalJsonVectors: Array<{
+    name: string;
+    value: unknown;
+    canonical: string;
+  }>;
   vectors: Array<{
     name: string;
     payload: ExecutorAttestationPayload;
@@ -31,6 +37,12 @@ const vectors = JSON.parse(
 ) as VectorFile;
 
 describe('executor attestation canonicalization', () => {
+  for (const vector of vectors.canonicalJsonVectors) {
+    it(`matches canonical JSON vector: ${vector.name}`, () => {
+      expect(canonicalJson(vector.value)).toBe(vector.canonical);
+    });
+  }
+
   for (const vector of vectors.vectors) {
     it(`matches vector: ${vector.name}`, () => {
       const canonical = canonicalizeExecutorAttestationPayload(vector.payload);

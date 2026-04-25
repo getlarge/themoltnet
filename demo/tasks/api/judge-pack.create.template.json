@@ -38,6 +38,7 @@
       "taskId": null
     }
   ],
+  "requiredExecutorTrustLevel": "selfDeclared",
   "taskType": "judge_pack",
   "teamId": "{{teamId}}"
 }

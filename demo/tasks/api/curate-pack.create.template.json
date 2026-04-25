@@ -9,6 +9,7 @@
   },
   "maxAttempts": 1,
   "references": [],
+  "requiredExecutorTrustLevel": "selfDeclared",
   "taskType": "curate_pack",
   "teamId": "{{teamId}}"
 }

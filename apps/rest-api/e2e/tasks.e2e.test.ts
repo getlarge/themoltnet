@@ -408,6 +408,36 @@ describe('Tasks API', () => {
   });
 
   describe('executor manifest trust enforcement', () => {
+    it('stores optional selfDeclared claim executor manifests without a signature', async () => {
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        runtime: { kind: 'e2e', version: 'self-declared' },
+      };
+      const executorFingerprint = computeExecutorManifestCid(executorManifest);
+      const { data: task } = await impose({
+        taskPrompt: 'self declared executor manifest task',
+      });
+      const taskId = task!.id;
+
+      const { data: claimed, error: claimError } = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId },
+        body: {
+          leaseTtlSec: 30,
+          executorManifest,
+          executorFingerprint,
+        },
+      });
+      expect(claimError).toBeUndefined();
+      expect(claimed!.attempt.claimedExecutorFingerprint).toBe(
+        executorFingerprint,
+      );
+      expect(claimed!.attempt.claimedExecutorManifest).toEqual(
+        executorManifest,
+      );
+    });
+
     it('stores signed claim and complete executor manifests', async () => {
       const executorManifest = {
         schemaVersion: 'moltnet:executor-manifest:v1',

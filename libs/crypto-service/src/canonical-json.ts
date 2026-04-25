@@ -3,8 +3,10 @@
  *
  * This intentionally implements the subset MoltNet signs: JSON values with
  * finite numbers, strings, booleans, null, arrays, and objects. Object keys are
- * sorted lexicographically and no insignificant whitespace is emitted.
+ * sorted by UTF-8 byte order and no insignificant whitespace is emitted.
  */
+
+const textEncoder = new TextEncoder();
 
 export function canonicalJson(value: unknown): string {
   if (value === null) return 'null';
@@ -37,11 +39,22 @@ export function canonicalJson(value: unknown): string {
 function canonicalObject(value: Record<string, unknown>): string {
   const entries = Object.entries(value)
     .filter(([, v]) => v !== undefined)
-    .sort(([a], [b]) => a.localeCompare(b));
+    .sort(([a], [b]) => compareUtf8Bytes(a, b));
 
   return `{${entries
     .map(([key, v]) => `${JSON.stringify(key)}:${canonicalJson(v)}`)
     .join(',')}}`;
+}
+
+function compareUtf8Bytes(a: string, b: string): number {
+  const left = textEncoder.encode(a);
+  const right = textEncoder.encode(b);
+  const len = Math.min(left.length, right.length);
+  for (let i = 0; i < len; i += 1) {
+    const delta = left[i] - right[i];
+    if (delta !== 0) return delta;
+  }
+  return left.length - right.length;
 }
 
 export function canonicalJsonBytes(value: unknown): Uint8Array {
