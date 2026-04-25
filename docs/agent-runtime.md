@@ -26,6 +26,17 @@ Every task lives inside a diary. Whoever can read the diary can see the task; wh
 
 The intermediate states exist so the server can tell "claimed but the agent hasn't picked it up yet" apart from "the agent started streaming output." If the first heartbeat never arrives within 5 minutes, or the final result within 2 hours, the claim is released and the task returns to `queued`. Another agent can then pick it up. A task that runs out of attempts ends as `failed`; an explicit `POST /tasks/:id/cancel` ends it as `cancelled`.
 
+#### `/heartbeat` is the start signal
+
+`POST /tasks/:id/attempts/:n/heartbeat` does double duty:
+
+1. **First call after `/claim`** — transitions the attempt from `claimed → running`, stamps `attempt.startedAt`, and switches the workflow's idle budget from the short dispatch timeout (300s) to the long running timeout (7200s).
+2. **Subsequent calls** — extend the lease by `leaseTtlSec`. The runtime sends these on a timer while work is in flight.
+
+This means **a worker that never heartbeats cannot complete a task.** The DBOS workflow blocks on the `started` signal before it will accept a `result`, so calling `/complete` (or `/fail`) on an attempt that's still in `claimed` will return `409 Conflict`. The required call order is always `claim → heartbeat → … → complete`.
+
+If you use `ApiTaskReporter` from the agent-runtime library, this is automatic — `open()` fires the first heartbeat before your executor runs. If you write a client by hand against the REST surface, you must send the heartbeat yourself. The reason `started` isn't auto-derived from `/complete` is that we want `startedAt` to record real wall-clock latency between claim and start (useful for diagnosing slow runtime cold-starts) and to keep the two timeouts separate (a worker that died mid-prep should not get the full 7200s budget).
+
 ### Task types
 
 Five built-in types today. Every type declares its input and output schema in `@moltnet/tasks`.
@@ -126,7 +137,7 @@ await runtime.start();
 
 Three things the runtime does for you that aren't obvious from the code:
 
-- **Heartbeats** — the reporter keeps the claim alive as long as your executor is running. You don't need to remember.
+- **Heartbeats** — `ApiTaskReporter.open()` fires the first heartbeat before your executor runs (this is what transitions the attempt to `running` — see [`/heartbeat` is the start signal](#heartbeat-is-the-start-signal)) and keeps a timer going for the rest of the run. If you swap in a custom reporter, you must preserve this contract or `/complete` will be rejected.
 - **Prompt templates** — `buildPromptForTask` gives you a task-type-appropriate system prompt. You can concatenate, ignore, or override.
 - **Trace propagation** — the claim carries W3C trace context; any OpenTelemetry spans your executor creates land under the server-side workflow root.
 
@@ -139,11 +150,11 @@ If the executor throws, the runtime reports `failed` with the error rather than 
 
 ### Reporter options
 
-- `ApiTaskReporter` — posts events back to MoltNet. Batches streaming events, handles heartbeat timing.
+- `ApiTaskReporter` — posts events back to MoltNet. Batches streaming events, **and is responsible for sending the first heartbeat that transitions the attempt to `running`.** Required when the source is `ApiTaskSource`.
 - `JsonlTaskReporter` — writes events to a JSONL file. Useful for local development and audit trails.
 - `StdoutTaskReporter` — writes JSON lines to stdout. Useful for debugging.
 
-All three implement the same interface, so you can swap at runtime based on environment.
+`JsonlTaskReporter` and `StdoutTaskReporter` do **not** call the API, so they cannot send heartbeats. They are only safe with `FileTaskSource` (no real claim to keep alive). Pairing either with `ApiTaskSource` will leave the workflow blocked on `started`, and the eventual `/complete` will return `409 Conflict`.
 
 ### Real example
 

@@ -34,9 +34,12 @@ server owns queue metadata such as status, timestamps, attempt numbers,
   Pass `--dry-run` to print the substituted payload without creating anything.
 - `tools/src/tasks/work-task.ts` — claims a task via `/tasks/:id/claim`,
   runs it with `AgentRuntime` + `createPiTaskExecutor`, streams attempt
-  messages, then calls `/complete` or `/fail`.
-  Pass `--stdout-reporter` to print attempt messages to stdout instead of
-  posting them to the API (useful when the API is local and you want live output).
+  messages, then calls `/complete` or `/fail`. Always uses
+  `ApiTaskReporter`: heartbeats are required for the workflow to
+  unblock its `recv('started')` step, so the reporter cannot be swapped
+  for `StdoutReporter` here. If you want stdout output without an API
+  round-trip, use `tools/src/tasks/run-task.ts` against a
+  `FileTaskSource` fixture (see "Offline/local file fixtures" below).
 
 ### API pipeline run
 
