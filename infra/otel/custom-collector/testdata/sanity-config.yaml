@@ -1,0 +1,30 @@
+# Minimal config to confirm the custom collector starts with our auth
+# extension wired to an OTLP receiver. Not for production — points at a
+# non-routable introspection endpoint and exports to debug only.
+extensions:
+  health_check:
+    endpoint: '0.0.0.0:13133'
+  oryintrospectionauth:
+    introspection_endpoint: 'http://127.0.0.1:4445/admin/oauth2/introspect'
+    introspection_auth:
+      type: 'none'
+    cache_ttl: 30s
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: '0.0.0.0:4319'
+        auth:
+          authenticator: oryintrospectionauth
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  extensions: [health_check, oryintrospectionauth]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
