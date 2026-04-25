@@ -22,6 +22,7 @@
   "outputKind": "artifact",
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
+  "requiredExecutorTrustLevel": "selfDeclared",
   "status": "running",
   "taskType": "fulfill_brief",
   "teamId": "6743b4b1-6b93-46e2-a048-19490f04f91a"

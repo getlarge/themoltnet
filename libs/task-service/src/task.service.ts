@@ -204,6 +204,14 @@ interface ExecutorAttestationInput {
   executorSignature?: string;
 }
 
+interface VerifiedExecutorAttestation {
+  fingerprint: string;
+  verification?: {
+    trustLevel: 'agent_signed';
+    evidence: Record<string, unknown>;
+  };
+}
+
 interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
@@ -455,7 +463,7 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);
-      const claimedExecutorFingerprint = await verifyExecutorForPhase({
+      const claimedExecutor = await verifyExecutorForPhase({
         phase: 'claim',
         task: row,
         callerId,
@@ -474,6 +482,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Task is not queued or is already being claimed',
         );
       }
+      await persistExecutorVerification(claimedExecutor, taskRepository);
 
       try {
         await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
@@ -484,7 +493,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           callerId,
           workflowId,
           leaseTtlSec,
-          claimedExecutorFingerprint,
+          claimedExecutor?.fingerprint ?? null,
         );
       } catch (error) {
         if (
@@ -626,7 +635,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           ],
         );
       }
-      const completedExecutorFingerprint = await verifyExecutorForPhase({
+      const completedExecutor = await verifyExecutorForPhase({
         phase: 'complete',
         task,
         callerId,
@@ -636,6 +645,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         taskRepository,
         agentRepository,
       });
+      await persistExecutorVerification(completedExecutor, taskRepository);
 
       const workflowId = taskWorkflowId(taskId, attemptN);
       await DBOS.send(
@@ -645,7 +655,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           output: body.output,
           outputCid: body.outputCid,
           usage: body.usage,
-          completedExecutorFingerprint,
+          completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
         },
         'result',
       );
@@ -893,7 +903,7 @@ async function verifyExecutorForPhase(input: {
   attestation: ExecutorAttestationInput;
   taskRepository: TaskRepository;
   agentRepository: AgentRepository;
-}): Promise<string | null> {
+}): Promise<VerifiedExecutorAttestation | null> {
   const requiredTrustLevel =
     TRUST_LEVEL_TO_WIRE[input.task.requiredExecutorTrustLevel];
   const hasAny =
@@ -954,26 +964,7 @@ async function verifyExecutorForPhase(input: {
     );
   }
 
-  await input.taskRepository.upsertExecutorManifest({
-    fingerprint: executorFingerprint,
-    manifest: executorManifest,
-    schemaVersion:
-      typeof executorManifest.schemaVersion === 'string'
-        ? executorManifest.schemaVersion
-        : EXECUTOR_MANIFEST_SCHEMA_VERSION,
-  });
-
-  const stored =
-    await input.taskRepository.findExecutorManifest(executorFingerprint);
-  if (
-    stored &&
-    canonicalJson(stored.manifest) !== canonicalJson(executorManifest)
-  ) {
-    throw new TaskServiceError(
-      'conflict',
-      'executorFingerprint already maps to a different manifest',
-    );
-  }
+  let verification: VerifiedExecutorAttestation['verification'];
 
   if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.agentSigned) {
     if (!executorSignature) {
@@ -1019,27 +1010,58 @@ async function verifyExecutorForPhase(input: {
         ],
       );
     }
-    await input.taskRepository.upsertExecutorManifestVerification({
-      fingerprint: executorFingerprint,
+    verification = {
       trustLevel: 'agent_signed',
-      status: 'verified',
       evidence: { phase: input.phase, signerAgentId: input.callerId },
-    });
+    };
   }
 
   if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.releaseVerifiedTool) {
     throw new TaskServiceError(
       'invalid',
-      'releaseVerifiedTool executor trust is not yet wired to a release verifier',
+      `executor trust level '${requiredTrustLevel}' is not yet implemented`,
       [
         {
           field: 'requiredExecutorTrustLevel',
-          message:
-            'releaseVerifiedTool requires release/npm provenance verification before claim acceptance',
+          message: `${requiredTrustLevel} requires a verifier before claim acceptance`,
         },
       ],
     );
   }
 
-  return executorFingerprint;
+  await input.taskRepository.upsertExecutorManifest({
+    fingerprint: executorFingerprint,
+    manifest: executorManifest,
+    schemaVersion:
+      typeof executorManifest.schemaVersion === 'string'
+        ? executorManifest.schemaVersion
+        : EXECUTOR_MANIFEST_SCHEMA_VERSION,
+  });
+
+  const stored =
+    await input.taskRepository.findExecutorManifest(executorFingerprint);
+  if (
+    stored &&
+    canonicalJson(stored.manifest) !== canonicalJson(executorManifest)
+  ) {
+    throw new TaskServiceError(
+      'conflict',
+      'executorFingerprint already maps to a different manifest',
+    );
+  }
+
+  return { fingerprint: executorFingerprint, verification };
+}
+
+async function persistExecutorVerification(
+  verified: VerifiedExecutorAttestation | null,
+  taskRepository: TaskRepository,
+): Promise<void> {
+  if (!verified?.verification) return;
+  await taskRepository.upsertExecutorManifestVerification({
+    fingerprint: verified.fingerprint,
+    trustLevel: verified.verification.trustLevel,
+    status: 'verified',
+    evidence: verified.verification.evidence,
+  });
 }

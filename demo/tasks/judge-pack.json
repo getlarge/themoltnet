@@ -53,6 +53,7 @@
       "taskId": null
     }
   ],
+  "requiredExecutorTrustLevel": "selfDeclared",
   "status": "running",
   "taskType": "judge_pack",
   "teamId": "6743b4b1-6b93-46e2-a048-19490f04f91a"

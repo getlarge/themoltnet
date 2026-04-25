@@ -1,4 +1,15 @@
 {
+  "canonicalJsonVectors": [
+    {
+      "canonical": "{\"a\":3,\"\":2,\"😀\":1}",
+      "name": "utf8-key-order",
+      "value": {
+        "a": 3,
+        "😀": 1,
+        "": 2
+      }
+    }
+  ],
   "domain": "moltnet-task-executor-attestation-v1",
   "vectors": [
     {

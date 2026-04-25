@@ -24,6 +24,7 @@
   "outputKind": "artifact",
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
+  "requiredExecutorTrustLevel": "selfDeclared",
   "status": "running",
   "taskType": "curate_pack",
   "teamId": "{{teamId}}"
