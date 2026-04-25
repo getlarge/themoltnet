@@ -612,6 +612,17 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may complete this attempt',
         );
       }
+      if (attempt.status === 'claimed') {
+        // The DBOS workflow blocks on recv('started') before it will accept
+        // a result. Without a prior /heartbeat the workflow has not crossed
+        // claimed → running, so sending the result here would deadlock the
+        // HTTP handler waiting for terminal status. Reject fast with a
+        // diagnosable error instead.
+        throw new TaskServiceError(
+          'conflict',
+          'Cannot complete an attempt that has not been started; call /heartbeat first',
+        );
+      }
 
       const outputErrors = validateTaskOutput(task.taskType, body.output);
       if (outputErrors.length > 0) {
@@ -707,6 +718,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError(
           'forbidden',
           'Only the claiming agent may fail this attempt',
+        );
+      }
+      if (attempt.status === 'claimed') {
+        throw new TaskServiceError(
+          'conflict',
+          'Cannot fail an attempt that has not been started; call /heartbeat first',
         );
       }
 

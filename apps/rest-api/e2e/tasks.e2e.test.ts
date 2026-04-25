@@ -407,6 +407,149 @@ describe('Tasks API', () => {
     });
   });
 
+  // Regression: a worker that claims a task and then calls /complete or /fail
+  // without ever sending a /heartbeat used to deadlock the HTTP handler. The
+  // DBOS workflow blocks on recv('started') (sent only by /heartbeat) before
+  // it accepts a result, so /complete's send to recv('result') went unheard
+  // and the handler's poll loop hit EVENT_TIMEOUT_SECONDS. Fixed by rejecting
+  // /complete and /fail with 409 when attempt.status === 'claimed'.
+  describe('complete/fail without heartbeat', () => {
+    it('rejects /complete with 409 when no heartbeat was sent', async () => {
+      const { data: task } = await impose({
+        taskPrompt: 'complete-without-heartbeat regression',
+      });
+      const taskId = task!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      const output = {
+        packId: '33333333-3333-4333-8333-333333333333',
+        packCid: 'bafynoheartbeat',
+        entries: [
+          {
+            entryId: '44444444-4444-4444-8444-444444444444',
+            rank: 1,
+            rationale: 'irrelevant — request should fail before validation.',
+          },
+        ],
+        recipeParams: { recipe: 'topic-focused-v1' },
+        summary: 'should never land',
+      };
+      const outputCid = await computeJsonCid(output);
+
+      const { response, error } = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          output,
+          outputCid,
+          usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
+        },
+      });
+
+      expect(response.status).toBe(409);
+      expect(error).toMatchObject({
+        message: expect.stringMatching(/heartbeat/i),
+      });
+
+      // Task is still claimed; recovery path is to call /heartbeat then retry.
+      const { data: still } = await getTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(still!.status).toBe('dispatched');
+    });
+
+    it('rejects /fail with 409 when no heartbeat was sent', async () => {
+      const { data: task } = await impose({
+        taskPrompt: 'fail-without-heartbeat regression',
+      });
+      const taskId = task!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      const { response, error } = await failTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          error: {
+            code: 'task_failed',
+            message: 'should never land',
+            retryable: false,
+          },
+        },
+      });
+
+      expect(response.status).toBe(409);
+      expect(error).toMatchObject({
+        message: expect.stringMatching(/heartbeat/i),
+      });
+    });
+
+    it('completes successfully when heartbeat is sent first', async () => {
+      const { data: task } = await impose({
+        taskPrompt: 'heartbeat-then-complete happy path',
+      });
+      const taskId = task!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      const { error: hbErr } = await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(hbErr).toBeUndefined();
+
+      const output = {
+        packId: '55555555-5555-4555-8555-555555555555',
+        packCid: 'bafyheartbeatok',
+        entries: [
+          {
+            entryId: '66666666-6666-4666-8666-666666666666',
+            rank: 1,
+            rationale: 'baseline happy path entry.',
+          },
+        ],
+        recipeParams: { recipe: 'topic-focused-v1' },
+        summary: 'heartbeat-then-complete should succeed',
+      };
+      const outputCid = await computeJsonCid(output);
+
+      const { error } = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          output,
+          outputCid,
+          usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
+        },
+      });
+      expect(error).toBeUndefined();
+
+      const final = await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data!),
+        (t) => t.status === 'completed' || t.status === 'failed',
+        {
+          label: 'task.complete.afterHeartbeat',
+          maxAttempts: 20,
+          intervalMs: 500,
+        },
+      );
+      expect(final.status).toBe('completed');
+    });
+  });
+
   describe('executor manifest trust enforcement', () => {
     it('stores optional selfDeclared claim executor manifests without a signature', async () => {
       const executorManifest = {

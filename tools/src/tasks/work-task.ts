@@ -7,7 +7,6 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
-  StdoutReporter,
 } from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
@@ -28,7 +27,6 @@ const { values: args } = parseArgs({
     'heartbeat-interval-ms': { type: 'string', default: '60000' },
     'max-batch-size': { type: 'string', default: '50' },
     'flush-interval-ms': { type: 'string', default: '200' },
-    'stdout-reporter': { type: 'boolean', default: false },
   },
 });
 
@@ -47,7 +45,6 @@ const leaseTtlSec = Number(args['lease-ttl-sec']);
 const heartbeatIntervalMs = Number(args['heartbeat-interval-ms']);
 const maxBatchSize = Number(args['max-batch-size']);
 const flushIntervalMs = Number(args['flush-interval-ms']);
-const stdoutReporter = args['stdout-reporter']!;
 
 if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
   console.error(
@@ -129,15 +126,13 @@ async function main() {
         leaseTtlSec,
       }),
       makeReporter: () =>
-        stdoutReporter
-          ? new StdoutReporter()
-          : new ApiTaskReporter({
-              tasks: api.agent.tasks,
-              leaseTtlSec,
-              heartbeatIntervalMs,
-              maxBatchSize,
-              flushIntervalMs,
-            }),
+        new ApiTaskReporter({
+          tasks: api.agent.tasks,
+          leaseTtlSec,
+          heartbeatIntervalMs,
+          maxBatchSize,
+          flushIntervalMs,
+        }),
       executeTask,
     });
 
