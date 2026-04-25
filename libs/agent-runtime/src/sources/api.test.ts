@@ -32,6 +32,10 @@ describe('ApiTaskSource', () => {
         usage: null,
         contentSignature: null,
         signedAt: null,
+        claimedExecutorFingerprint: null,
+        claimedExecutorManifest: null,
+        completedExecutorFingerprint: null,
+        completedExecutorManifest: null,
       },
       traceHeaders: { traceparent: '00-abc-def-01' },
     });

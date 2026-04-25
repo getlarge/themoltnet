@@ -50,6 +50,17 @@ export const TaskAttemptStatus = Type.Union(
 );
 export type TaskAttemptStatus = Static<typeof TaskAttemptStatus>;
 
+export const ExecutorTrustLevel = Type.Union(
+  [
+    Type.Literal('selfDeclared'),
+    Type.Literal('agentSigned'),
+    Type.Literal('releaseVerifiedTool'),
+    Type.Literal('sandboxAttested'),
+  ],
+  { $id: 'ExecutorTrustLevel' },
+);
+export type ExecutorTrustLevel = Static<typeof ExecutorTrustLevel>;
+
 export const OutputKind = Type.Union(
   [Type.Literal('artifact'), Type.Literal('judgment')],
   { $id: 'OutputKind' },
@@ -197,6 +208,7 @@ export const Task = Type.Object(
     imposedByAgentId: Type.Union([Uuid, Type.Null()]),
     imposedByHumanId: Type.Union([Uuid, Type.Null()]),
     acceptedAttemptN: Type.Union([Type.Number(), Type.Null()]),
+    requiredExecutorTrustLevel: ExecutorTrustLevel,
 
     // Lifecycle
     status: TaskStatus,
@@ -239,6 +251,16 @@ export const TaskAttempt = Type.Object(
       Type.Null(),
     ]),
     outputCid: Type.Union([Cid, Type.Null()]),
+    claimedExecutorFingerprint: Type.Union([Cid, Type.Null()]),
+    claimedExecutorManifest: Type.Union([
+      Type.Record(Type.String(), Type.Unknown()),
+      Type.Null(),
+    ]),
+    completedExecutorFingerprint: Type.Union([Cid, Type.Null()]),
+    completedExecutorManifest: Type.Union([
+      Type.Record(Type.String(), Type.Unknown()),
+      Type.Null(),
+    ]),
     error: Type.Union([TaskError, Type.Null()]),
     usage: Type.Union([TaskUsage, Type.Null()]),
     contentSignature: Type.Union([Type.String(), Type.Null()]),

@@ -89,6 +89,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
           maxAttempts: request.body.maxAttempts,
           expiresInSec: request.body.expiresInSec,
           criteriaCid: request.body.criteriaCid,
+          requiredExecutorTrustLevel: request.body.requiredExecutorTrustLevel,
           callerId: identityId,
           callerNs,
           callerIsAgent: subjectType === 'agent',
@@ -219,6 +220,11 @@ export async function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.leaseTtlSec,
+          {
+            executorManifest: request.body.executorManifest,
+            executorFingerprint: request.body.executorFingerprint,
+            executorSignature: request.body.executorSignature,
+          },
         );
         if (typeof request.opentelemetry === 'function') {
           const carrier: Record<string, string> = {};
@@ -312,6 +318,9 @@ export async function taskRoutes(fastify: FastifyInstance) {
             outputCid: request.body.outputCid,
             usage: request.body.usage,
             contentSignature: request.body.contentSignature,
+            executorManifest: request.body.executorManifest,
+            executorFingerprint: request.body.executorFingerprint,
+            executorSignature: request.body.executorSignature,
           },
         );
       } catch (error) {

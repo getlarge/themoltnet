@@ -1,7 +1,14 @@
 import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from '../db.js';
 import {
+  type ExecutorManifest,
+  executorManifests,
+  type ExecutorManifestVerification,
+  executorManifestVerifications,
+  type NewExecutorManifest,
+  type NewExecutorManifestVerification,
   type NewTask,
   type NewTaskAttempt,
   type NewTaskMessage,
@@ -16,7 +23,18 @@ import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 
 const PAGE_SIZE = 50;
 
+export interface TaskAttemptWithManifests extends TaskAttempt {
+  claimedExecutorManifest: ExecutorManifest['manifest'] | null;
+  completedExecutorManifest: ExecutorManifest['manifest'] | null;
+}
+
 export function createTaskRepository(db: Database) {
+  const claimedManifest = alias(executorManifests, 'claimed_executor_manifest');
+  const completedManifest = alias(
+    executorManifests,
+    'completed_executor_manifest',
+  );
+
   return {
     async create(input: NewTask): Promise<Task> {
       const [row] = await getExecutor(db)
@@ -107,6 +125,76 @@ export function createTaskRepository(db: Database) {
       return row;
     },
 
+    async upsertExecutorManifest(
+      input: NewExecutorManifest,
+    ): Promise<ExecutorManifest> {
+      const [row] = await getExecutor(db)
+        .insert(executorManifests)
+        .values(input)
+        .onConflictDoNothing()
+        .returning();
+      if (row) return row;
+
+      const [existing] = await getExecutor(db)
+        .select()
+        .from(executorManifests)
+        .where(eq(executorManifests.fingerprint, input.fingerprint))
+        .limit(1);
+      if (!existing) {
+        throw new Error('executor manifest upsert failed');
+      }
+      return existing;
+    },
+
+    async findExecutorManifest(
+      fingerprint: string,
+    ): Promise<ExecutorManifest | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(executorManifests)
+        .where(eq(executorManifests.fingerprint, fingerprint))
+        .limit(1);
+      return row ?? null;
+    },
+
+    async upsertExecutorManifestVerification(
+      input: NewExecutorManifestVerification,
+    ): Promise<ExecutorManifestVerification> {
+      const [row] = await getExecutor(db)
+        .insert(executorManifestVerifications)
+        .values(input)
+        .onConflictDoUpdate({
+          target: [
+            executorManifestVerifications.fingerprint,
+            executorManifestVerifications.trustLevel,
+          ],
+          set: {
+            status: input.status,
+            evidence: input.evidence,
+            verifiedAt: input.verifiedAt ?? new Date(),
+          },
+        })
+        .returning();
+      return row;
+    },
+
+    async findExecutorManifestVerification(
+      fingerprint: string,
+      trustLevel: ExecutorManifestVerification['trustLevel'],
+    ): Promise<ExecutorManifestVerification | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(executorManifestVerifications)
+        .where(
+          and(
+            eq(executorManifestVerifications.fingerprint, fingerprint),
+            eq(executorManifestVerifications.trustLevel, trustLevel),
+          ),
+        )
+        .limit(1);
+      return row ?? null;
+    },
+
     async findAttempt(
       taskId: string,
       attemptN: number,
@@ -124,6 +212,46 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    async findAttemptWithManifests(
+      taskId: string,
+      attemptN: number,
+    ): Promise<TaskAttemptWithManifests | null> {
+      const [row] = await getExecutor(db)
+        .select({
+          attempt: taskAttempts,
+          claimedManifest: claimedManifest.manifest,
+          completedManifest: completedManifest.manifest,
+        })
+        .from(taskAttempts)
+        .leftJoin(
+          claimedManifest,
+          eq(
+            taskAttempts.claimedExecutorFingerprint,
+            claimedManifest.fingerprint,
+          ),
+        )
+        .leftJoin(
+          completedManifest,
+          eq(
+            taskAttempts.completedExecutorFingerprint,
+            completedManifest.fingerprint,
+          ),
+        )
+        .where(
+          and(
+            eq(taskAttempts.taskId, taskId),
+            eq(taskAttempts.attemptN, attemptN),
+          ),
+        )
+        .limit(1);
+      if (!row) return null;
+      return {
+        ...row.attempt,
+        claimedExecutorManifest: row.claimedManifest ?? null,
+        completedExecutorManifest: row.completedManifest ?? null,
+      };
+    },
+
     async updateAttempt(
       taskId: string,
       attemptN: number,
@@ -135,6 +263,8 @@ export function createTaskRepository(db: Database) {
           | 'completedAt'
           | 'output'
           | 'outputCid'
+          | 'claimedExecutorFingerprint'
+          | 'completedExecutorFingerprint'
           | 'error'
           | 'usage'
           | 'contentSignature'
@@ -155,12 +285,35 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
-    async listAttempts(taskId: string): Promise<TaskAttempt[]> {
-      return getExecutor(db)
-        .select()
+    async listAttempts(taskId: string): Promise<TaskAttemptWithManifests[]> {
+      const rows = await getExecutor(db)
+        .select({
+          attempt: taskAttempts,
+          claimedManifest: claimedManifest.manifest,
+          completedManifest: completedManifest.manifest,
+        })
         .from(taskAttempts)
+        .leftJoin(
+          claimedManifest,
+          eq(
+            taskAttempts.claimedExecutorFingerprint,
+            claimedManifest.fingerprint,
+          ),
+        )
+        .leftJoin(
+          completedManifest,
+          eq(
+            taskAttempts.completedExecutorFingerprint,
+            completedManifest.fingerprint,
+          ),
+        )
         .where(eq(taskAttempts.taskId, taskId))
         .orderBy(asc(taskAttempts.attemptN));
+      return rows.map((row) => ({
+        ...row.attempt,
+        claimedExecutorManifest: row.claimedManifest ?? null,
+        completedExecutorManifest: row.completedManifest ?? null,
+      }));
     },
 
     async countAttempts(taskId: string): Promise<number> {

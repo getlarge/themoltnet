@@ -135,6 +135,18 @@ export const taskAttemptStatusEnum = pgEnum('task_attempt_status', [
   'timed_out',
 ]);
 
+export const executorTrustLevelEnum = pgEnum('executor_trust_level', [
+  'self_declared',
+  'agent_signed',
+  'release_verified_tool',
+  'sandbox_attested',
+]);
+
+export const executorVerificationStatusEnum = pgEnum(
+  'executor_verification_status',
+  ['verified', 'failed'],
+);
+
 export const taskMessageKindEnum = pgEnum('task_message_kind', [
   'text_delta',
   'tool_call_start',
@@ -879,6 +891,11 @@ export const tasks = pgTable(
     }),
     claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true }),
     status: taskStatusEnum('status').notNull().default('queued'),
+    requiredExecutorTrustLevel: executorTrustLevelEnum(
+      'required_executor_trust_level',
+    )
+      .notNull()
+      .default('self_declared'),
     queuedAt: timestamp('queued_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -931,6 +948,57 @@ export const tasks = pgTable(
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 
+// ── Executor Manifests ─────────────────────────────────────
+
+export const executorManifests = pgTable(
+  'executor_manifests',
+  {
+    fingerprint: varchar('fingerprint', { length: 100 }).primaryKey(),
+    manifest: jsonb('manifest').notNull(),
+    schemaVersion: varchar('schema_version', { length: 100 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('executor_manifests_schema_version_idx').on(table.schemaVersion),
+  ],
+);
+
+export type ExecutorManifest = typeof executorManifests.$inferSelect;
+export type NewExecutorManifest = typeof executorManifests.$inferInsert;
+
+export const executorManifestVerifications = pgTable(
+  'executor_manifest_verifications',
+  {
+    fingerprint: varchar('fingerprint', { length: 100 })
+      .notNull()
+      .references(() => executorManifests.fingerprint, {
+        onDelete: 'cascade',
+      }),
+    trustLevel: executorTrustLevelEnum('trust_level').notNull(),
+    status: executorVerificationStatusEnum('status').notNull(),
+    evidence: jsonb('evidence')
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    verifiedAt: timestamp('verified_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.fingerprint, table.trustLevel] }),
+    index('executor_manifest_verifications_trust_idx').on(
+      table.trustLevel,
+      table.status,
+    ),
+  ],
+);
+
+export type ExecutorManifestVerification =
+  typeof executorManifestVerifications.$inferSelect;
+export type NewExecutorManifestVerification =
+  typeof executorManifestVerifications.$inferInsert;
+
 // ── Task Attempts ──────────────────────────────────────────
 
 export const taskAttempts = pgTable(
@@ -955,6 +1023,16 @@ export const taskAttempts = pgTable(
     status: taskAttemptStatusEnum('status').notNull().default('claimed'),
     output: jsonb('output'),
     outputCid: varchar('output_cid', { length: 100 }),
+    claimedExecutorFingerprint: varchar('claimed_executor_fingerprint', {
+      length: 100,
+    }).references(() => executorManifests.fingerprint, {
+      onDelete: 'restrict',
+    }),
+    completedExecutorFingerprint: varchar('completed_executor_fingerprint', {
+      length: 100,
+    }).references(() => executorManifests.fingerprint, {
+      onDelete: 'restrict',
+    }),
     error: jsonb('error'),
     usage: jsonb('usage'),
     contentSignature: text('content_signature'),
@@ -963,6 +1041,12 @@ export const taskAttempts = pgTable(
   (table) => [
     primaryKey({ columns: [table.taskId, table.attemptN] }),
     index('task_attempts_task_idx').on(table.taskId),
+    index('task_attempts_claimed_executor_idx')
+      .on(table.claimedExecutorFingerprint)
+      .where(sql`claimed_executor_fingerprint IS NOT NULL`),
+    index('task_attempts_completed_executor_idx')
+      .on(table.completedExecutorFingerprint)
+      .where(sql`completed_executor_fingerprint IS NOT NULL`),
     uniqueIndex('task_attempts_workflow_idx').on(table.workflowId),
   ],
 );

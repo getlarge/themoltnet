@@ -253,6 +253,7 @@ function buildFulfillBriefTask(
     imposedByAgentId: null,
     imposedByHumanId: null,
     acceptedAttemptN: null,
+    requiredExecutorTrustLevel: 'selfDeclared',
     status: 'running',
     queuedAt: new Date().toISOString(),
     completedAt: null,

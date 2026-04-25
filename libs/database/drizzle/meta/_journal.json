@@ -28,6 +28,13 @@
       "tag": "0003_migrate_verification_to_tasks",
       "version": "7",
       "when": 1777017307697
+    },
+    {
+      "breakpoints": true,
+      "idx": 4,
+      "tag": "0004_chief_shape",
+      "version": "7",
+      "when": 1777052255387
     }
   ],
   "version": "7"

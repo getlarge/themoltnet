@@ -7,6 +7,7 @@ export interface TaskAttemptResult {
   kind: 'completed' | 'failed' | 'cancelled';
   output?: unknown;
   outputCid?: string;
+  completedExecutorFingerprint?: string;
   error?: unknown;
   usage?: unknown;
 }
@@ -37,6 +38,8 @@ export interface TaskWorkflowDeps {
         | 'completedAt'
         | 'output'
         | 'outputCid'
+        | 'claimedExecutorFingerprint'
+        | 'completedExecutorFingerprint'
         | 'error'
         | 'usage'
       >
@@ -89,6 +92,7 @@ let _workflows: {
     agentId: string,
     workflowId: string,
     leaseTtlSec: number,
+    claimedExecutorFingerprint?: string | null,
   ) => Promise<TaskAttemptFinalEvent>;
 } | null = null;
 
@@ -115,6 +119,7 @@ export function initTaskWorkflows(): void {
       attemptN: number,
       agentId: string,
       workflowId: string,
+      claimedExecutorFingerprint?: string | null,
     ): Promise<void> => {
       await getDeps().createAttempt({
         taskId,
@@ -122,6 +127,7 @@ export function initTaskWorkflows(): void {
         claimedByAgentId: agentId,
         workflowId,
         status: 'claimed',
+        claimedExecutorFingerprint: claimedExecutorFingerprint ?? null,
       });
     },
     { name: 'task.step.insertAttempt', ...stepConfig },
@@ -173,9 +179,16 @@ export function initTaskWorkflows(): void {
         agentId: string,
         workflowId: string,
         leaseTtlSec: number,
+        claimedExecutorFingerprint?: string | null,
       ): Promise<TaskAttemptFinalEvent> => {
         // Steps 1-2: insert attempt row, mark task dispatched (split for idempotency).
-        await insertAttemptStep(taskId, attemptN, agentId, workflowId);
+        await insertAttemptStep(
+          taskId,
+          attemptN,
+          agentId,
+          workflowId,
+          claimedExecutorFingerprint,
+        );
         await dispatchTaskStep(taskId, agentId, leaseTtlSec);
         await DBOS.setEvent<TaskAttemptClaimedEvent>('claimed', {
           taskId,
@@ -272,6 +285,8 @@ export function initTaskWorkflows(): void {
               completedAt: now,
               output: result.output ?? null,
               outputCid: result.outputCid ?? null,
+              completedExecutorFingerprint:
+                result.completedExecutorFingerprint ?? null,
               error: result.error ?? null,
               usage: result.usage ?? null,
             });
@@ -324,6 +339,7 @@ export const taskWorkflows = new Proxy(
     agentId: string,
     workflowId: string,
     leaseTtlSec: number,
+    claimedExecutorFingerprint?: string | null,
   ) => Promise<TaskAttemptFinalEvent>;
 };
 

@@ -1,4 +1,5 @@
 import {
+  ExecutorTrustLevel,
   Task,
   TaskAttempt,
   TaskError,
@@ -38,6 +39,7 @@ export const CreateTaskBodySchema = Type.Object(
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     criteriaCid: Type.Optional(Type.String({ minLength: 1 })),
+    requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
   },
   { $id: 'CreateTaskBody' },
 );
@@ -61,6 +63,9 @@ export const ClaimTaskBodySchema = Type.Object(
     leaseTtlSec: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 3600, default: 300 }),
     ),
+    executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
+    executorSignature: Type.Optional(Type.String({ minLength: 1 })),
   },
   { $id: 'ClaimTaskBody' },
 );
@@ -78,6 +83,9 @@ export const CompleteTaskBodySchema = Type.Object(
     outputCid: Type.String({ minLength: 1 }),
     usage: Type.Ref(TaskUsage),
     contentSignature: Type.Optional(Type.String()),
+    executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
+    executorSignature: Type.Optional(Type.String({ minLength: 1 })),
   },
   { $id: 'CompleteTaskBody' },
 );
@@ -160,6 +168,7 @@ export const AppendMessagesResponseSchema = Type.Object(
 export const taskSchemas = [
   // Primitive enums first (no dependencies)
   TaskStatus,
+  ExecutorTrustLevel,
   TaskMessageKind,
   TaskRef,
   TaskUsage,

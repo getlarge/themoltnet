@@ -82,6 +82,18 @@
       },
       "ClaimTaskBody": {
         "properties": {
+          "executorFingerprint": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "executorManifest": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "executorSignature": {
+            "minLength": 1,
+            "type": "string"
+          },
           "leaseTtlSec": {
             "default": 300,
             "maximum": 3600,
@@ -326,6 +338,18 @@
       "CompleteTaskBody": {
         "properties": {
           "contentSignature": {
+            "type": "string"
+          },
+          "executorFingerprint": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "executorManifest": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "executorSignature": {
+            "minLength": 1,
             "type": "string"
           },
           "output": {
@@ -945,6 +969,9 @@
               "$ref": "#/components/schemas/TaskRef"
             },
             "type": "array"
+          },
+          "requiredExecutorTrustLevel": {
+            "$ref": "#/components/schemas/ExecutorTrustLevel"
           },
           "taskType": {
             "minLength": 1,
@@ -2013,6 +2040,26 @@
           "agentFingerprint"
         ],
         "type": "object"
+      },
+      "ExecutorTrustLevel": {
+        "anyOf": [
+          {
+            "enum": ["selfDeclared"],
+            "type": "string"
+          },
+          {
+            "enum": ["agentSigned"],
+            "type": "string"
+          },
+          {
+            "enum": ["releaseVerifiedTool"],
+            "type": "string"
+          },
+          {
+            "enum": ["sandboxAttested"],
+            "type": "string"
+          }
+        ]
       },
       "ExpandedPackEntry": {
         "properties": {
@@ -4216,6 +4263,26 @@
             },
             "type": "array"
           },
+          "requiredExecutorTrustLevel": {
+            "anyOf": [
+              {
+                "enum": ["selfDeclared"],
+                "type": "string"
+              },
+              {
+                "enum": ["agentSigned"],
+                "type": "string"
+              },
+              {
+                "enum": ["releaseVerifiedTool"],
+                "type": "string"
+              },
+              {
+                "enum": ["sandboxAttested"],
+                "type": "string"
+              }
+            ]
+          },
           "status": {
             "anyOf": [
               {
@@ -4272,6 +4339,7 @@
           "imposedByAgentId",
           "imposedByHumanId",
           "acceptedAttemptN",
+          "requiredExecutorTrustLevel",
           "status",
           "queuedAt",
           "completedAt",
@@ -4298,11 +4366,55 @@
             "format": "uuid",
             "type": "string"
           },
+          "claimedExecutorFingerprint": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "claimedExecutorManifest": {
+            "anyOf": [
+              {
+                "additionalProperties": {},
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "completedAt": {
             "anyOf": [
               {
                 "format": "date-time",
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedExecutorFingerprint": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedExecutorManifest": {
+            "anyOf": [
+              {
+                "additionalProperties": {},
+                "type": "object"
               },
               {
                 "type": "null"
@@ -4484,6 +4596,10 @@
           "status",
           "output",
           "outputCid",
+          "claimedExecutorFingerprint",
+          "claimedExecutorManifest",
+          "completedExecutorFingerprint",
+          "completedExecutorManifest",
           "error",
           "usage",
           "contentSignature",
@@ -13846,6 +13962,9 @@
                     },
                     "type": "array"
                   },
+                  "requiredExecutorTrustLevel": {
+                    "$ref": "#/components/schemas/ExecutorTrustLevel"
+                  },
                   "taskType": {
                     "minLength": 1,
                     "type": "string"
@@ -14093,6 +14212,18 @@
               "schema": {
                 "properties": {
                   "contentSignature": {
+                    "type": "string"
+                  },
+                  "executorFingerprint": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "executorManifest": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "executorSignature": {
+                    "minLength": 1,
                     "type": "string"
                   },
                   "output": {
@@ -14756,6 +14887,18 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "executorFingerprint": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "executorManifest": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "executorSignature": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
                   "leaseTtlSec": {
                     "default": 300,
                     "maximum": 3600,

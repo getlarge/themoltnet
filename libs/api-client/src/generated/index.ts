@@ -276,6 +276,7 @@ export type {
   EntryRelationWithDepth,
   EntryType,
   EntryVerifyResult,
+  ExecutorTrustLevel,
   ExpandedPackEntry,
   ExpandedRelations,
   FailTaskBody,

@@ -1,7 +1,17 @@
 import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
 import { KetoNamespace } from '@moltnet/auth';
-import { computeJsonCid } from '@moltnet/crypto-service';
 import {
+  buildExecutorClaimAttestationPayload,
+  buildExecutorCompleteAttestationPayload,
+  canonicalJson,
+  computeExecutorManifestCid,
+  computeJsonCid,
+  EXECUTOR_MANIFEST_SCHEMA_VERSION,
+  type ExecutorTrustLevel,
+  verifyExecutorAttestation,
+} from '@moltnet/crypto-service';
+import {
+  type AgentRepository,
   DBOS,
   type DiaryRepository,
   type NewTask,
@@ -14,6 +24,7 @@ import {
 } from '@moltnet/database';
 import {
   BUILT_IN_TASK_TYPES,
+  type ExecutorTrustLevel as WireExecutorTrustLevel,
   getTaskTypeRegistry,
   type OutputKind,
   type Task,
@@ -53,6 +64,33 @@ const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'expired',
 ]);
 
+const TRUST_LEVEL_TO_DB = {
+  selfDeclared: 'self_declared',
+  agentSigned: 'agent_signed',
+  releaseVerifiedTool: 'release_verified_tool',
+  sandboxAttested: 'sandbox_attested',
+} as const satisfies Record<
+  ExecutorTrustLevel,
+  DbTask['requiredExecutorTrustLevel']
+>;
+
+const TRUST_LEVEL_TO_WIRE = {
+  self_declared: 'selfDeclared',
+  agent_signed: 'agentSigned',
+  release_verified_tool: 'releaseVerifiedTool',
+  sandbox_attested: 'sandboxAttested',
+} as const satisfies Record<
+  DbTask['requiredExecutorTrustLevel'],
+  WireExecutorTrustLevel
+>;
+
+const TRUST_ORDER: Record<ExecutorTrustLevel, number> = {
+  selfDeclared: 0,
+  agentSigned: 1,
+  releaseVerifiedTool: 2,
+  sandboxAttested: 3,
+};
+
 export class TaskServiceError extends Error {
   constructor(
     public readonly code:
@@ -90,6 +128,8 @@ function dbTaskToWire(row: DbTask): Task {
     imposedByAgentId: row.imposedByAgentId ?? null,
     imposedByHumanId: row.imposedByHumanId ?? null,
     acceptedAttemptN: row.acceptedAttemptN ?? null,
+    requiredExecutorTrustLevel:
+      TRUST_LEVEL_TO_WIRE[row.requiredExecutorTrustLevel],
     status: row.status,
     queuedAt: row.queuedAt.toISOString(),
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -101,7 +141,12 @@ function dbTaskToWire(row: DbTask): Task {
   };
 }
 
-function dbAttemptToWire(row: DbTaskAttempt): TaskAttempt {
+function dbAttemptToWire(
+  row: DbTaskAttempt & {
+    claimedExecutorManifest?: unknown;
+    completedExecutorManifest?: unknown;
+  },
+): TaskAttempt {
   return {
     taskId: row.taskId,
     attemptN: row.attemptN,
@@ -113,6 +158,12 @@ function dbAttemptToWire(row: DbTaskAttempt): TaskAttempt {
     status: row.status,
     output: (row.output as Record<string, unknown>) ?? null,
     outputCid: row.outputCid ?? null,
+    claimedExecutorFingerprint: row.claimedExecutorFingerprint ?? null,
+    claimedExecutorManifest:
+      (row.claimedExecutorManifest as Record<string, unknown> | null) ?? null,
+    completedExecutorFingerprint: row.completedExecutorFingerprint ?? null,
+    completedExecutorManifest:
+      (row.completedExecutorManifest as Record<string, unknown> | null) ?? null,
     error: (row.error as TaskError) ?? null,
     usage: (row.usage as TaskUsage) ?? null,
     contentSignature: row.contentSignature ?? null,
@@ -141,14 +192,22 @@ export interface CreateTaskInput {
   maxAttempts?: number;
   expiresInSec?: number;
   criteriaCid?: string;
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
   callerId: string;
   callerNs: KetoNamespace;
   callerIsAgent: boolean;
 }
 
+interface ExecutorAttestationInput {
+  executorManifest?: Record<string, unknown>;
+  executorFingerprint?: string;
+  executorSignature?: string;
+}
+
 interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
+  agentRepository: AgentRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
   logger: Logger;
@@ -158,6 +217,7 @@ export function createTaskService(deps: TaskServiceDeps) {
   const {
     taskRepository,
     diaryRepository,
+    agentRepository,
     permissionChecker,
     relationshipWriter,
     logger,
@@ -258,6 +318,8 @@ export function createTaskService(deps: TaskServiceDeps) {
         correlationId: input.correlationId ?? null,
         imposedByAgentId: input.callerIsAgent ? input.callerId : null,
         imposedByHumanId: input.callerIsAgent ? null : input.callerId,
+        requiredExecutorTrustLevel:
+          TRUST_LEVEL_TO_DB[input.requiredExecutorTrustLevel ?? 'selfDeclared'],
         maxAttempts: input.maxAttempts ?? 1,
         expiresAt,
       };
@@ -357,17 +419,15 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
+      executorAttestation: ExecutorAttestationInput = {},
     ): Promise<{ task: Task; attempt: TaskAttempt }> {
       // Only agents may claim tasks (Issue 4).
       if (callerNs !== KetoNamespace.Agent) {
         throw new TaskServiceError('invalid', 'Only agents may claim tasks');
       }
 
-      // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
-      const row = await taskRepository.claimIfQueued(taskId);
-      if (!row) {
-        // Either the task doesn't exist or it was not in 'queued' state.
-        // We disambiguate to give a meaningful error without leaking existence.
+      const row = await taskRepository.findById(taskId);
+      if (!row || row.status !== 'queued') {
         throw new TaskServiceError(
           'conflict',
           'Task is not queued or is already being claimed',
@@ -395,11 +455,37 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);
+      const claimedExecutorFingerprint = await verifyExecutorForPhase({
+        phase: 'claim',
+        task: row,
+        callerId,
+        attemptN: null,
+        outputCid: null,
+        attestation: executorAttestation,
+        taskRepository,
+        agentRepository,
+      });
+
+      // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
+      const claimedRow = await taskRepository.claimIfQueued(taskId);
+      if (!claimedRow) {
+        throw new TaskServiceError(
+          'conflict',
+          'Task is not queued or is already being claimed',
+        );
+      }
 
       try {
         await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
           workflowID: workflowId,
-        })(taskId, attemptN, callerId, workflowId, leaseTtlSec);
+        })(
+          taskId,
+          attemptN,
+          callerId,
+          workflowId,
+          leaseTtlSec,
+          claimedExecutorFingerprint,
+        );
       } catch (error) {
         if (
           !(error instanceof Error) ||
@@ -422,7 +508,7 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const [updatedTask, attempt] = await Promise.all([
         taskRepository.findById(taskId),
-        taskRepository.findAttempt(taskId, attemptN),
+        taskRepository.findAttemptWithManifests(taskId, attemptN),
       ]);
 
       logger.info({ taskId, attemptN, callerId }, 'task.claimed');
@@ -489,6 +575,9 @@ export function createTaskService(deps: TaskServiceDeps) {
         outputCid: string;
         usage: TaskUsage;
         contentSignature?: string;
+        executorManifest?: Record<string, unknown>;
+        executorFingerprint?: string;
+        executorSignature?: string;
       },
     ): Promise<Task> {
       const canReport = await permissionChecker.canReportTask(
@@ -537,6 +626,16 @@ export function createTaskService(deps: TaskServiceDeps) {
           ],
         );
       }
+      const completedExecutorFingerprint = await verifyExecutorForPhase({
+        phase: 'complete',
+        task,
+        callerId,
+        attemptN,
+        outputCid: body.outputCid,
+        attestation: body,
+        taskRepository,
+        agentRepository,
+      });
 
       const workflowId = taskWorkflowId(taskId, attemptN);
       await DBOS.send(
@@ -546,6 +645,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           output: body.output,
           outputCid: body.outputCid,
           usage: body.usage,
+          completedExecutorFingerprint,
         },
         'result',
       );
@@ -783,3 +883,163 @@ export function createTaskService(deps: TaskServiceDeps) {
 }
 
 export type TaskService = ReturnType<typeof createTaskService>;
+
+async function verifyExecutorForPhase(input: {
+  phase: 'claim' | 'complete';
+  task: DbTask;
+  callerId: string;
+  attemptN: number | null;
+  outputCid: string | null;
+  attestation: ExecutorAttestationInput;
+  taskRepository: TaskRepository;
+  agentRepository: AgentRepository;
+}): Promise<string | null> {
+  const requiredTrustLevel =
+    TRUST_LEVEL_TO_WIRE[input.task.requiredExecutorTrustLevel];
+  const hasAny =
+    input.attestation.executorManifest !== undefined ||
+    input.attestation.executorFingerprint !== undefined ||
+    input.attestation.executorSignature !== undefined;
+
+  if (!hasAny) {
+    if (requiredTrustLevel === 'selfDeclared') return null;
+    throw new TaskServiceError(
+      'invalid',
+      `Executor attestation is required for trust level: ${requiredTrustLevel}`,
+      [
+        {
+          field: 'executorManifest',
+          message:
+            'executorManifest, executorFingerprint, and executorSignature are required',
+        },
+      ],
+    );
+  }
+
+  const { executorManifest, executorFingerprint, executorSignature } =
+    input.attestation;
+  if (!executorManifest || !executorFingerprint) {
+    throw new TaskServiceError(
+      'invalid',
+      'executorManifest and executorFingerprint must be provided together',
+      [
+        {
+          field: 'executorFingerprint',
+          message:
+            'executorManifest and executorFingerprint must be provided together',
+        },
+      ],
+    );
+  }
+
+  let computed: string;
+  try {
+    computed = computeExecutorManifestCid(executorManifest);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new TaskServiceError('invalid', message, [
+      { field: 'executorManifest', message },
+    ]);
+  }
+  if (computed !== executorFingerprint) {
+    throw new TaskServiceError(
+      'invalid',
+      'executorFingerprint does not match executorManifest',
+      [
+        {
+          field: 'executorFingerprint',
+          message: `Expected ${computed} for the supplied executorManifest`,
+        },
+      ],
+    );
+  }
+
+  await input.taskRepository.upsertExecutorManifest({
+    fingerprint: executorFingerprint,
+    manifest: executorManifest,
+    schemaVersion:
+      typeof executorManifest.schemaVersion === 'string'
+        ? executorManifest.schemaVersion
+        : EXECUTOR_MANIFEST_SCHEMA_VERSION,
+  });
+
+  const stored =
+    await input.taskRepository.findExecutorManifest(executorFingerprint);
+  if (
+    stored &&
+    canonicalJson(stored.manifest) !== canonicalJson(executorManifest)
+  ) {
+    throw new TaskServiceError(
+      'conflict',
+      'executorFingerprint already maps to a different manifest',
+    );
+  }
+
+  if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.agentSigned) {
+    if (!executorSignature) {
+      throw new TaskServiceError(
+        'invalid',
+        'executorSignature is required for agentSigned executor trust',
+        [
+          {
+            field: 'executorSignature',
+            message: 'executorSignature is required',
+          },
+        ],
+      );
+    }
+    const agent = await input.agentRepository.findByIdentityId(input.callerId);
+    if (!agent) throw new TaskServiceError('not_found', 'Agent not found');
+    const payload =
+      input.phase === 'claim'
+        ? buildExecutorClaimAttestationPayload({
+            taskId: input.task.id,
+            executorFingerprint,
+          })
+        : buildExecutorCompleteAttestationPayload({
+            taskId: input.task.id,
+            attemptN: input.attemptN!,
+            outputCid: input.outputCid!,
+            executorFingerprint,
+          });
+    const valid = await verifyExecutorAttestation(
+      payload,
+      executorSignature,
+      agent.publicKey,
+    );
+    if (!valid) {
+      throw new TaskServiceError(
+        'invalid',
+        'executorSignature is not valid for the supplied executor attestation',
+        [
+          {
+            field: 'executorSignature',
+            message: 'executorSignature verification failed',
+          },
+        ],
+      );
+    }
+    await input.taskRepository.upsertExecutorManifestVerification({
+      fingerprint: executorFingerprint,
+      trustLevel: 'agent_signed',
+      status: 'verified',
+      evidence: { phase: input.phase, signerAgentId: input.callerId },
+    });
+  }
+
+  if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.releaseVerifiedTool) {
+    throw new TaskServiceError(
+      'invalid',
+      'releaseVerifiedTool executor trust is not yet wired to a release verifier',
+      [
+        {
+          field: 'requiredExecutorTrustLevel',
+          message:
+            'releaseVerifiedTool requires release/npm provenance verification before claim acceptance',
+        },
+      ],
+    );
+  }
+
+  return executorFingerprint;
+}
