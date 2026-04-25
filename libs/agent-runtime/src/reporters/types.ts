@@ -38,4 +38,26 @@ export interface TaskReporter {
 
   /** Flush buffers + release resources. Called once. Idempotent. */
   close(): Promise<void>;
+
+  /**
+   * Signal that aborts when the task is cancelled by the imposer (or a
+   * diary writer) while the executor is running. `ApiTaskReporter`
+   * aborts this on the next heartbeat that observes `cancelled: true`
+   * in the response (#938). Local reporters (`StdoutReporter`,
+   * `JsonlTaskReporter`) never abort — there's no remote cancel
+   * channel for `FileTaskSource`.
+   *
+   * Executors should pass this signal into long-running work
+   * (LLM calls, sandbox execution, file ops) and surface a
+   * `status: 'cancelled'` output when it fires. The runtime also
+   * checks the signal post-execute and converts any output to
+   * `cancelled` if the executor returned without honoring it.
+   */
+  readonly cancelSignal: AbortSignal;
+
+  /**
+   * The reason supplied to `/tasks/:id/cancel` by the canceller, if
+   * cancellation has been observed. Null until `cancelSignal` aborts.
+   */
+  readonly cancelReason: string | null;
 }

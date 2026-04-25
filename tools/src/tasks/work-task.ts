@@ -151,15 +151,19 @@ async function main() {
           ? { contentSignature: output.contentSignature }
           : {}),
       });
+    } else if (output.status === 'cancelled') {
+      // Server already wrote status='cancelled' when /cancel was called,
+      // and /fail would now reject with 409 (#938). Skip the report —
+      // the runtime's job is to honor cancellation, not race the server.
+      console.error(
+        `[work-task] task ${taskId} attempt ${output.attemptN} was cancelled` +
+          (output.error?.message ? `: ${output.error.message}` : ''),
+      );
     } else {
       const error: NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] =
         output.error ?? {
-          code:
-            output.status === 'cancelled' ? 'task_cancelled' : 'task_failed',
-          message:
-            output.status === 'cancelled'
-              ? 'Task was cancelled by the runtime.'
-              : 'Task execution failed before producing a valid output.',
+          code: 'task_failed',
+          message: 'Task execution failed before producing a valid output.',
           retryable: false,
         };
       await api.agent.tasks.fail(taskId, output.attemptN, { error });

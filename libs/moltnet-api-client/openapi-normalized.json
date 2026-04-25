@@ -1715,12 +1715,19 @@
       },
       "HeartbeatResponse": {
         "properties": {
+          "cancelReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
           "claimExpiresAt": {
             "format": "date-time",
             "type": "string"
           }
         },
-        "required": ["claimExpiresAt"],
+        "required": ["claimExpiresAt", "cancelled", "cancelReason"],
         "type": "object"
       },
       "ListMessagesQuery": {

@@ -1302,6 +1302,8 @@ export type ClaimTaskResponse = {
 
 export type HeartbeatResponse = {
   claimExpiresAt: string;
+  cancelled: boolean;
+  cancelReason: string | null;
 };
 
 export type AppendMessagesResponse = {

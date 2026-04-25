@@ -893,6 +893,177 @@ describe('Tasks API', () => {
     });
   });
 
+  // ── #938: cancel stops the worker; late /complete and /fail return 409 ───────
+
+  describe('cancel stops the worker (#938)', () => {
+    it('heartbeat against a cancelled running task returns 200 with cancelled:true', async () => {
+      const { data } = await impose();
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      // Move the attempt to running so the workflow is parked on result-recv.
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+
+      // Imposer cancels mid-run.
+      await cancelTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'imposer pulled the plug' },
+      });
+
+      // The worker's next heartbeat must be a successful 200 carrying
+      // cancelled:true so the runtime can abort the executor cleanly.
+      const { data: hb, error } = await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(error).toBeUndefined();
+      expect(hb!.cancelled).toBe(true);
+      expect(hb!.cancelReason).toBe('imposer pulled the plug');
+    });
+
+    it('/complete on a cancelled task returns 409, not silent revival', async () => {
+      const { data } = await impose();
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      await cancelTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'pulled before complete' },
+      });
+
+      // Worker (oblivious) tries to complete. Must be rejected.
+      const validOutput = {
+        packId: '77777777-7777-4777-8777-777777777777',
+        packCid: 'bafyrevivalattempt',
+        entries: [
+          {
+            entryId: '88888888-8888-4888-8888-888888888888',
+            rank: 1,
+            rationale: 'should never land',
+          },
+        ],
+        recipeParams: { recipe: 'topic-focused-v1' },
+        summary: 'should never land',
+      };
+      const outputCid = await computeJsonCid(validOutput);
+
+      const { response } = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          output: validOutput,
+          outputCid,
+          usage: { model: 'test', inputTokens: 1, outputTokens: 1 },
+        },
+      });
+      expect(response.status).toBe(409);
+
+      // Status must still be cancelled — no silent revival to completed.
+      const { data: still } = await getTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(still!.status).toBe('cancelled');
+    });
+
+    it('/fail on a cancelled task returns 409', async () => {
+      const { data } = await impose();
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      await cancelTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'pulled before fail' },
+      });
+
+      const { response } = await failTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          error: {
+            code: 'should_not_apply',
+            message: 'ignored',
+            retryable: false,
+          },
+        },
+      });
+      expect(response.status).toBe(409);
+
+      const { data: still } = await getTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(still!.status).toBe('cancelled');
+    });
+
+    it('cancel persists the attempt as cancelled (workflow unblocks)', async () => {
+      const { data } = await impose();
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      await cancelTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'unblock workflow' },
+      });
+
+      // The DBOS workflow should observe the cancelled event sent by
+      // cancel() and persist the attempt as cancelled. Poll briefly —
+      // this transition is async (workflow tx) unlike the row update.
+      const finalAttempt = await pollUntil(
+        () =>
+          listTaskAttempts({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data![0]),
+        (a) => a.status === 'cancelled',
+        { label: 'attempt.cancelled', maxAttempts: 20, intervalMs: 250 },
+      );
+      expect(finalAttempt.status).toBe('cancelled');
+    });
+  });
+
   // ── Fail with retry: maxAttempts > 1 → re-queues for next claimer ────────────
 
   describe('fail with retry', () => {

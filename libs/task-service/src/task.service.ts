@@ -545,7 +545,11 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
-    ): Promise<{ claimExpiresAt: string }> {
+    ): Promise<{
+      claimExpiresAt: string;
+      cancelled: boolean;
+      cancelReason: string | null;
+    }> {
       const canReport = await permissionChecker.canReportTask(
         taskId,
         callerId,
@@ -559,12 +563,6 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
-      if (TERMINAL_STATUSES.has(task.status)) {
-        throw new TaskServiceError(
-          'conflict',
-          `Task is already in terminal state: ${task.status}`,
-        );
-      }
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
@@ -576,6 +574,28 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
+      // Cancellation is reported via the response, not as 409 — the
+      // runtime needs a clean signal to abort the executor without
+      // having to interpret an error envelope (#938). Other terminal
+      // states (completed / failed / expired) remain 409 because there
+      // is no executor to abort and a heartbeat against them is a
+      // contract violation.
+      if (task.status === 'cancelled') {
+        logger.debug({ taskId, attemptN }, 'task.heartbeat.on_cancelled_task');
+        return {
+          claimExpiresAt:
+            attempt.completedAt?.toISOString() ?? new Date().toISOString(),
+          cancelled: true,
+          cancelReason: task.cancelReason ?? null,
+        };
+      }
+      if (TERMINAL_STATUSES.has(task.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
+
       const workflowId = taskWorkflowId(taskId, attemptN);
       await DBOS.send(workflowId, true, 'started');
 
@@ -583,7 +603,11 @@ export function createTaskService(deps: TaskServiceDeps) {
       await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
 
       logger.debug({ taskId, attemptN }, 'task.heartbeat');
-      return { claimExpiresAt: claimExpiresAt.toISOString() };
+      return {
+        claimExpiresAt: claimExpiresAt.toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      };
     },
 
     async complete(
@@ -614,6 +638,16 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
+        // Defense in depth (#938): a /complete that races with a /cancel
+        // must not be able to overwrite the cancelled status. Without
+        // this guard the workflow would persist 'completed' on top of
+        // 'cancelled', silently undoing the cancellation.
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
@@ -723,6 +757,17 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Not authorized to report on this task',
         );
 
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
+        // Defense in depth (#938): a /fail that races with a /cancel
+        // must not be able to overwrite the cancelled status.
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
+
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
         throw new TaskServiceError('not_found', 'Attempt not found');
@@ -813,6 +858,31 @@ export function createTaskService(deps: TaskServiceDeps) {
               'task.cancel.remove_claimant_failed',
             );
           });
+      }
+
+      // Signal any active workflow so it unblocks recv('result') and
+      // persists the attempt as cancelled. Without this, the workflow
+      // sits parked until runningTimeoutSec elapses and the worker keeps
+      // burning compute on work that is no longer wanted (#938).
+      //
+      // Dispatch-phase workflows (parked on recv('started')) won't see
+      // this send — the message queues until the worker heartbeats once
+      // and the workflow advances, but by then the heartbeat handler has
+      // already returned 409 (TERMINAL_STATUSES check) and the worker
+      // has stopped. The workflow then either consumes the queued
+      // 'result' on its next iteration or hits dispatchTimeoutSec. Both
+      // paths terminate correctly.
+      const attempts = await taskRepository.listAttempts(taskId);
+      const active = attempts.find(
+        (a) => a.status === 'claimed' || a.status === 'running',
+      );
+      if (active) {
+        const workflowId = taskWorkflowId(taskId, active.attemptN);
+        await DBOS.send(
+          workflowId,
+          { kind: 'cancelled', error: { reason } },
+          'result',
+        );
       }
 
       logger.info({ taskId, callerId, reason }, 'task.cancelled');

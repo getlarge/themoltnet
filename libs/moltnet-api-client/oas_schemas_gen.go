@@ -9761,12 +9761,34 @@ func (s *Health) SetTimestamp(val time.Time) {
 
 // Ref: #/components/schemas/HeartbeatResponse
 type HeartbeatResponse struct {
+	CancelReason   NilString `json:"cancelReason"`
+	Cancelled      bool      `json:"cancelled"`
 	ClaimExpiresAt time.Time `json:"claimExpiresAt"`
+}
+
+// GetCancelReason returns the value of CancelReason.
+func (s *HeartbeatResponse) GetCancelReason() NilString {
+	return s.CancelReason
+}
+
+// GetCancelled returns the value of Cancelled.
+func (s *HeartbeatResponse) GetCancelled() bool {
+	return s.Cancelled
 }
 
 // GetClaimExpiresAt returns the value of ClaimExpiresAt.
 func (s *HeartbeatResponse) GetClaimExpiresAt() time.Time {
 	return s.ClaimExpiresAt
+}
+
+// SetCancelReason sets the value of CancelReason.
+func (s *HeartbeatResponse) SetCancelReason(val NilString) {
+	s.CancelReason = val
+}
+
+// SetCancelled sets the value of Cancelled.
+func (s *HeartbeatResponse) SetCancelled(val bool) {
+	s.Cancelled = val
 }
 
 // SetClaimExpiresAt sets the value of ClaimExpiresAt.

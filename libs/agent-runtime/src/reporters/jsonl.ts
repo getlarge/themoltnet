@@ -18,6 +18,14 @@ export class JsonlReporter implements TaskReporter {
   private attemptN = 0;
   private stream: WriteStream | null = null;
 
+  // Local reporters never observe a remote cancel — see StdoutReporter
+  // for rationale.
+  private readonly cancelController = new AbortController();
+  readonly cancelReason: string | null = null;
+  get cancelSignal(): AbortSignal {
+    return this.cancelController.signal;
+  }
+
   constructor(private readonly filePath: string) {}
 
   async open(ctx: { taskId: string; attemptN: number }): Promise<void> {

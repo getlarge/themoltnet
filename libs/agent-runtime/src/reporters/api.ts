@@ -56,6 +56,9 @@ export class ApiTaskReporter implements TaskReporter {
    */
   private pendingError: Error | null = null;
 
+  private readonly cancelController = new AbortController();
+  private observedCancelReason: string | null = null;
+
   private readonly maxBatchSize: number;
   private readonly flushIntervalMs: number;
 
@@ -77,6 +80,14 @@ export class ApiTaskReporter implements TaskReporter {
 
   getUsage(): TaskUsage | null {
     return this.finalizedUsage;
+  }
+
+  get cancelSignal(): AbortSignal {
+    return this.cancelController.signal;
+  }
+
+  get cancelReason(): string | null {
+    return this.observedCancelReason;
   }
 
   async open(ctx: { taskId: string; attemptN: number }): Promise<void> {
@@ -278,6 +289,33 @@ export class ApiTaskReporter implements TaskReporter {
     const body = this.opts.leaseTtlSec
       ? { leaseTtlSec: this.opts.leaseTtlSec }
       : {};
-    await this.opts.tasks.heartbeat(this.taskId, this.attemptN, body);
+    const response = await this.opts.tasks.heartbeat(
+      this.taskId,
+      this.attemptN,
+      body,
+    );
+    // The server reports cancellation via a 200 response with
+    // cancelled:true so the worker gets a clean abort signal instead
+    // of having to interpret a 409 envelope (#938). Once observed, abort
+    // the controller — executors that wired the signal into their loop
+    // will tear down; the runtime will convert the output to 'cancelled'
+    // post-execute regardless.
+    if (response?.cancelled && !this.cancelController.signal.aborted) {
+      this.observedCancelReason = response.cancelReason ?? null;
+      this.cancelController.abort(
+        new Error(
+          `Task cancelled by imposer${
+            this.observedCancelReason ? `: ${this.observedCancelReason}` : ''
+          }`,
+        ),
+      );
+      // Stop the heartbeat timer once cancellation is observed; further
+      // heartbeats add no value and pile up rejected requests if the
+      // executor takes time to honor the signal.
+      if (this.heartbeatTimer) {
+        clearInterval(this.heartbeatTimer);
+        this.heartbeatTimer = null;
+      }
+    }
   }
 }

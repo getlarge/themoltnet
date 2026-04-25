@@ -26727,13 +26727,23 @@ func (s *HeartbeatResponse) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *HeartbeatResponse) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("cancelReason")
+		s.CancelReason.Encode(e)
+	}
+	{
+		e.FieldStart("cancelled")
+		e.Bool(s.Cancelled)
+	}
+	{
 		e.FieldStart("claimExpiresAt")
 		json.EncodeDateTime(e, s.ClaimExpiresAt)
 	}
 }
 
-var jsonFieldsNameOfHeartbeatResponse = [1]string{
-	0: "claimExpiresAt",
+var jsonFieldsNameOfHeartbeatResponse = [3]string{
+	0: "cancelReason",
+	1: "cancelled",
+	2: "claimExpiresAt",
 }
 
 // Decode decodes HeartbeatResponse from json.
@@ -26745,8 +26755,30 @@ func (s *HeartbeatResponse) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "claimExpiresAt":
+		case "cancelReason":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CancelReason.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cancelReason\"")
+			}
+		case "cancelled":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Bool()
+				s.Cancelled = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cancelled\"")
+			}
+		case "claimExpiresAt":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.ClaimExpiresAt = v
@@ -26767,7 +26799,7 @@ func (s *HeartbeatResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000001,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

@@ -2213,12 +2213,25 @@
       },
       "HeartbeatResponse": {
         "properties": {
+          "cancelReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
           "claimExpiresAt": {
             "format": "date-time",
             "type": "string"
           }
         },
-        "required": ["claimExpiresAt"],
+        "required": ["claimExpiresAt", "cancelled", "cancelReason"],
         "type": "object"
       },
       "ListMessagesQuery": {

@@ -10,6 +10,8 @@ function makeMockTasks(overrides: Partial<TasksNamespace> = {}): {
 } {
   const heartbeatMock = vi.fn<TasksNamespace['heartbeat']>().mockResolvedValue({
     claimExpiresAt: new Date(Date.now() + 90_000).toISOString(),
+    cancelled: false,
+    cancelReason: null,
   });
   const appendMessagesMock = vi
     .fn<TasksNamespace['appendMessages']>()

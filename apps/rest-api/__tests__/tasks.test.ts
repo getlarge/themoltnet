@@ -299,6 +299,8 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.taskService.heartbeat.mockResolvedValue({
       claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+      cancelled: false,
+      cancelReason: null,
     });
   });
 

@@ -165,6 +165,13 @@ export const ClaimTaskResponseSchema = Type.Object(
 export const HeartbeatResponseSchema = Type.Object(
   {
     claimExpiresAt: Type.String({ format: 'date-time' }),
+    // When true the imposer (or a diary writer) cancelled the task while
+    // this attempt was running. The runtime should abort the executor
+    // instead of continuing — finishing the work and calling /complete
+    // will fail with 409 anyway, and any side effects after this point
+    // are wasted (#938).
+    cancelled: Type.Boolean(),
+    cancelReason: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'HeartbeatResponse' },
 );

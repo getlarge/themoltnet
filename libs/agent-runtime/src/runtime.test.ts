@@ -22,6 +22,16 @@ class ArraySource implements TaskSource {
 
 class RecordingReporter implements TaskReporter {
   readonly events: string[] = [];
+  private readonly cancelController = new AbortController();
+  readonly cancelReason: string | null = null;
+  get cancelSignal(): AbortSignal {
+    return this.cancelController.signal;
+  }
+  /** Test hook to simulate the API reporter aborting on cancellation. */
+  triggerCancel(reason = 'test cancel'): void {
+    (this as { cancelReason: string | null }).cancelReason = reason;
+    this.cancelController.abort();
+  }
   async open(p: { taskId: string; attemptN: number }): Promise<void> {
     this.events.push(`open:${p.taskId}`);
   }

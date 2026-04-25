@@ -119,6 +119,30 @@ export class AgentRuntime {
             },
           };
         }
+
+        // If the reporter observed cancellation while the executor was
+        // running, override whatever the executor produced. Executors
+        // that wired `reporter.cancelSignal` into their loop will return
+        // promptly with status='cancelled' already; this branch covers
+        // executors that ignored the signal (or finished mid-flight
+        // before noticing) so the runtime never reports `completed` for
+        // a cancelled task (#938).
+        if (reporter.cancelSignal.aborted && output.status !== 'cancelled') {
+          output = {
+            ...output,
+            status: 'cancelled',
+            output: null,
+            outputCid: null,
+            error: {
+              code: 'task_cancelled',
+              message:
+                reporter.cancelReason ??
+                'Task cancelled by imposer while executor was running.',
+              retryable: false,
+            },
+          };
+        }
+
         outputs.push(output);
 
         this.status.tasksProcessed += 1;
