@@ -830,26 +830,15 @@ describe('Tasks API', () => {
       const taskId = data!.id;
       await claim(taskId);
 
-      const { error } = await cancelTask({
+      const { data, error } = await cancelTask({
         client,
         auth: () => imposer.accessToken,
         path: { id: taskId },
         body: { reason: 'cancelled before start' },
       });
       expect(error).toBeUndefined();
-
-      const final = await pollUntil(
-        () =>
-          getTask({
-            client,
-            auth: () => imposer.accessToken,
-            path: { id: taskId },
-          }).then((r) => r.data!),
-        (t) => t.status === 'cancelled',
-        { label: 'task.cancel.dispatched', maxAttempts: 20, intervalMs: 250 },
-      );
-      expect(final.status).toBe('cancelled');
-      expect(final.cancelReason).toBe('cancelled before start');
+      expect(data!.status).toBe('cancelled');
+      expect(data!.cancelReason).toBe('cancelled before start');
     });
 
     it('cancels a running task (claimed and heartbeating)', async () => {
@@ -865,25 +854,14 @@ describe('Tasks API', () => {
         body: { leaseTtlSec: 30 },
       });
 
-      const { error } = await cancelTask({
+      const { data, error } = await cancelTask({
         client,
         auth: () => imposer.accessToken,
         path: { id: taskId },
         body: { reason: 'cancelled mid-run' },
       });
       expect(error).toBeUndefined();
-
-      const final = await pollUntil(
-        () =>
-          getTask({
-            client,
-            auth: () => imposer.accessToken,
-            path: { id: taskId },
-          }).then((r) => r.data!),
-        (t) => t.status === 'cancelled',
-        { label: 'task.cancel.running', maxAttempts: 20, intervalMs: 250 },
-      );
-      expect(final.status).toBe('cancelled');
+      expect(data!.status).toBe('cancelled');
     });
 
     it('claimant can cancel their own running task', async () => {
@@ -899,26 +877,19 @@ describe('Tasks API', () => {
         body: { leaseTtlSec: 30 },
       });
 
-      const { error } = await cancelTask({
+      // Cancel writes the row synchronously and returns the updated task —
+      // no DBOS workflow round-trip is involved for cancellation, so we
+      // can assert directly on the response without polling.
+      const { data, error } = await cancelTask({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId },
         body: { reason: 'walking away from this one' },
       });
       expect(error).toBeUndefined();
-
-      const final = await pollUntil(
-        () =>
-          getTask({
-            client,
-            auth: () => imposer.accessToken,
-            path: { id: taskId },
-          }).then((r) => r.data!),
-        (t) => t.status === 'cancelled',
-        { label: 'task.cancel.byClaimant', maxAttempts: 20, intervalMs: 250 },
-      );
-      expect(final.status).toBe('cancelled');
-      expect(final.cancelReason).toBe('walking away from this one');
+      expect(data!.status).toBe('cancelled');
+      expect(data!.cancelReason).toBe('walking away from this one');
+      expect(data!.cancelledByAgentId).toBe(claimer.identityId);
     });
   });
 

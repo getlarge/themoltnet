@@ -11244,18 +11244,18 @@ func (s *Task) Validate() error {
 	if err := func() error {
 		if value, ok := s.DispatchTimeoutSec.Get(); ok {
 			if err := func() error {
-				if err := (validate.Float{
+				if err := (validate.Int{
 					MinSet:        true,
 					Min:           1,
-					MaxSet:        false,
-					Max:           0,
+					MaxSet:        true,
+					Max:           86400,
 					MinExclusive:  false,
 					MaxExclusive:  false,
 					MultipleOfSet: false,
-					MultipleOf:    nil,
+					MultipleOf:    0,
 					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
 				}
 				return nil
 			}(); err != nil {
@@ -11389,18 +11389,18 @@ func (s *Task) Validate() error {
 	if err := func() error {
 		if value, ok := s.RunningTimeoutSec.Get(); ok {
 			if err := func() error {
-				if err := (validate.Float{
+				if err := (validate.Int{
 					MinSet:        true,
 					Min:           1,
-					MaxSet:        false,
-					Max:           0,
+					MaxSet:        true,
+					Max:           86400,
 					MinExclusive:  false,
 					MaxExclusive:  false,
 					MultipleOfSet: false,
-					MultipleOf:    nil,
+					MultipleOf:    0,
 					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
 				}
 				return nil
 			}(); err != nil {

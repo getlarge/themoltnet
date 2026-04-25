@@ -3251,9 +3251,10 @@
             "type": "string"
           },
           "dispatchTimeoutSec": {
+            "maximum": 86400,
             "minimum": 1,
             "nullable": true,
-            "type": "number"
+            "type": "integer"
           },
           "expiresAt": {
             "format": "date-time",
@@ -3362,9 +3363,10 @@
             "type": "string"
           },
           "runningTimeoutSec": {
+            "maximum": 86400,
             "minimum": 1,
             "nullable": true,
-            "type": "number"
+            "type": "integer"
           },
           "status": {
             "$ref": "#/components/schemas/TaskStatus"

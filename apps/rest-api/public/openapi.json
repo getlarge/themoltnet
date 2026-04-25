@@ -4124,8 +4124,9 @@
           "dispatchTimeoutSec": {
             "anyOf": [
               {
+                "maximum": 86400,
                 "minimum": 1,
-                "type": "number"
+                "type": "integer"
               },
               {
                 "type": "null"
@@ -4307,8 +4308,9 @@
           "runningTimeoutSec": {
             "anyOf": [
               {
+                "maximum": 86400,
                 "minimum": 1,
-                "type": "number"
+                "type": "integer"
               },
               {
                 "type": "null"

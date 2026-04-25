@@ -19189,7 +19189,7 @@ type Task struct {
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	CriteriaCid                NilString                      `json:"criteriaCid"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
-	DispatchTimeoutSec         NilFloat64                     `json:"dispatchTimeoutSec"`
+	DispatchTimeoutSec         NilInt                         `json:"dispatchTimeoutSec"`
 	ExpiresAt                  NilDateTime                    `json:"expiresAt"`
 	ID                         uuid.UUID                      `json:"id"`
 	ImposedByAgentId           NilUUID                        `json:"imposedByAgentId"`
@@ -19202,7 +19202,7 @@ type Task struct {
 	QueuedAt                   time.Time                      `json:"queuedAt"`
 	References                 []TaskReferencesItem           `json:"references"`
 	RequiredExecutorTrustLevel TaskRequiredExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
-	RunningTimeoutSec          NilFloat64                     `json:"runningTimeoutSec"`
+	RunningTimeoutSec          NilInt                         `json:"runningTimeoutSec"`
 	Status                     TaskStatus                     `json:"status"`
 	TaskType                   string                         `json:"taskType"`
 	TeamId                     uuid.UUID                      `json:"teamId"`
@@ -19249,7 +19249,7 @@ func (s *Task) GetDiaryId() NilUUID {
 }
 
 // GetDispatchTimeoutSec returns the value of DispatchTimeoutSec.
-func (s *Task) GetDispatchTimeoutSec() NilFloat64 {
+func (s *Task) GetDispatchTimeoutSec() NilInt {
 	return s.DispatchTimeoutSec
 }
 
@@ -19314,7 +19314,7 @@ func (s *Task) GetRequiredExecutorTrustLevel() TaskRequiredExecutorTrustLevel {
 }
 
 // GetRunningTimeoutSec returns the value of RunningTimeoutSec.
-func (s *Task) GetRunningTimeoutSec() NilFloat64 {
+func (s *Task) GetRunningTimeoutSec() NilInt {
 	return s.RunningTimeoutSec
 }
 
@@ -19374,7 +19374,7 @@ func (s *Task) SetDiaryId(val NilUUID) {
 }
 
 // SetDispatchTimeoutSec sets the value of DispatchTimeoutSec.
-func (s *Task) SetDispatchTimeoutSec(val NilFloat64) {
+func (s *Task) SetDispatchTimeoutSec(val NilInt) {
 	s.DispatchTimeoutSec = val
 }
 
@@ -19439,7 +19439,7 @@ func (s *Task) SetRequiredExecutorTrustLevel(val TaskRequiredExecutorTrustLevel)
 }
 
 // SetRunningTimeoutSec sets the value of RunningTimeoutSec.
-func (s *Task) SetRunningTimeoutSec(val NilFloat64) {
+func (s *Task) SetRunningTimeoutSec(val NilInt) {
 	s.RunningTimeoutSec = val
 }
 

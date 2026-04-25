@@ -195,8 +195,9 @@ export interface CreateTaskInput {
   expiresInSec?: number;
   criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
-  // Imposer-set timeout overrides (seconds). Null/undefined → server
-  // defaults (DISPATCH_TIMEOUT_SECONDS / RUNNING_TIMEOUT_SECONDS in
+  // Imposer-set timeout overrides (seconds). Undefined → server
+  // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
+  // DEFAULT_RUNNING_TIMEOUT_SECONDS in
   // libs/database/src/workflows/task-workflows.ts).
   dispatchTimeoutSec?: number;
   runningTimeoutSec?: number;

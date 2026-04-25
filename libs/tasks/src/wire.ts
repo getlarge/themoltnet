@@ -226,9 +226,17 @@ export const Task = Type.Object(
 
     // Imposer-set timeout overrides. Null means the workflow uses server
     // defaults (300s dispatch, 7200s running). Pinned on the row so
-    // retries see the same budget.
-    dispatchTimeoutSec: Type.Union([Type.Number({ minimum: 1 }), Type.Null()]),
-    runningTimeoutSec: Type.Union([Type.Number({ minimum: 1 }), Type.Null()]),
+    // retries see the same budget. Integer seconds — keep aligned with
+    // CreateTaskBodySchema's bounds so OpenAPI / generated clients use
+    // integer types end-to-end.
+    dispatchTimeoutSec: Type.Union([
+      Type.Integer({ minimum: 1, maximum: 86400 }),
+      Type.Null(),
+    ]),
+    runningTimeoutSec: Type.Union([
+      Type.Integer({ minimum: 1, maximum: 86400 }),
+      Type.Null(),
+    ]),
   },
   { $id: 'Task', additionalProperties: false },
 );

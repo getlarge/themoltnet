@@ -38,8 +38,13 @@ export const CuratePackInput = Type.Object(
     taskPrompt: Type.String({ minLength: 1 }),
 
     /**
-     * Restrict search to these entry types. Defaults to the
-     * knowledge-bearing set: ['semantic','episodic','procedural'].
+     * Restrict search to these entry types. When omitted, the curator
+     * agent picks per-search from the full taxonomy
+     * (`semantic` / `episodic` / `procedural`) based on what the prompt
+     * asks for — e.g. "failures and workarounds" should not return
+     * `procedural` entries (commit audit trails). Setting this field
+     * pins the search to the listed types and the curator may not
+     * widen.
      */
     entryTypes: Type.Optional(Type.Array(EntryTypeFilter, { minItems: 1 })),
 
