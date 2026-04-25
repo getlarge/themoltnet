@@ -371,6 +371,16 @@ describe('Tasks API', () => {
       const { data: claimed } = await claim(invalidTaskId);
       const invalidAttemptN = claimed!.attempt.attemptN;
 
+      // Heartbeat first — /complete rejects with 409 before validation if
+      // the attempt is still in `claimed`. We want to exercise the output
+      // schema path here, not the heartbeat check.
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: invalidTaskId, n: invalidAttemptN },
+        body: { leaseTtlSec: 30 },
+      });
+
       const badOutput = { summary: 42 };
       const badOutputCid = await computeJsonCid(badOutput);
 
@@ -450,7 +460,7 @@ describe('Tasks API', () => {
 
       expect(response.status).toBe(409);
       expect(error).toMatchObject({
-        message: expect.stringMatching(/heartbeat/i),
+        detail: expect.stringMatching(/heartbeat/i),
       });
 
       // Task is still claimed; recovery path is to call /heartbeat then retry.
@@ -485,7 +495,7 @@ describe('Tasks API', () => {
 
       expect(response.status).toBe(409);
       expect(error).toMatchObject({
-        message: expect.stringMatching(/heartbeat/i),
+        detail: expect.stringMatching(/heartbeat/i),
       });
     });
 
