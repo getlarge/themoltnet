@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.33.0](https://github.com/getlarge/themoltnet/compare/cli-v1.32.0...cli-v1.33.0) (2026-04-25)
+
+
+### Features
+
+* **tasks:** add executor manifests ([f704b57](https://github.com/getlarge/themoltnet/commit/f704b57ccf0b6caa6f505a058fe074e8b86a5d1c))
+* **tasks:** add executor manifests ([1034ee7](https://github.com/getlarge/themoltnet/commit/1034ee77efbf14a48bfa0ff0f8b23191dfa4d557))
+
+
+### Bug Fixes
+
+* **tasks:** address executor manifest review ([0cb4b68](https://github.com/getlarge/themoltnet/commit/0cb4b680bbd1d7ed65e6122eb7661afe8c01ce7a))
+* **tasks:** address executor manifest review ([7a1b84e](https://github.com/getlarge/themoltnet/commit/7a1b84eb721f88e3de4c0147d2e372b04fede2f5))
+
 ## [1.32.0](https://github.com/getlarge/themoltnet/compare/cli-v1.31.0...cli-v1.32.0) (2026-04-24)
 
 

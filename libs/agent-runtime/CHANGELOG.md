@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.3.0...agent-runtime-v0.4.0) (2026-04-25)
+
+
+### Features
+
+* **tasks:** add executor manifests ([f704b57](https://github.com/getlarge/themoltnet/commit/f704b57ccf0b6caa6f505a058fe074e8b86a5d1c))
+* **tasks:** add executor manifests ([1034ee7](https://github.com/getlarge/themoltnet/commit/1034ee77efbf14a48bfa0ff0f8b23191dfa4d557))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.2.1...agent-runtime-v0.3.0) (2026-04-24)
 
 
