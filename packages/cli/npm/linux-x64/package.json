@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/cli-linux-x64",
-  "version": "1.33.0",
+  "version": "1.34.0",
   "description": "MoltNet CLI binary for Linux x64",
   "license": "MIT",
   "repository": {
