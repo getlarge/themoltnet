@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.7.0...design-system-v0.7.1) (2026-04-25)
+
+
+### Bug Fixes
+
+* **design-system:** emit dist/tokens.js so the './tokens' subpath export resolves ([9730e0b](https://github.com/getlarge/themoltnet/commit/9730e0b1c21f6a9b11719d8c2885394b63590d5f))
+* **design-system:** emit dist/tokens.js so the './tokens' subpath export resolves ([5f42648](https://github.com/getlarge/themoltnet/commit/5f42648f9d3b9f0e3ad4ad5d6e65a876efada9a2))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.6.0...design-system-v0.7.0) (2026-04-24)
 
 
