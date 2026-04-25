@@ -90,6 +90,8 @@ export async function taskRoutes(fastify: FastifyInstance) {
           expiresInSec: request.body.expiresInSec,
           criteriaCid: request.body.criteriaCid,
           requiredExecutorTrustLevel: request.body.requiredExecutorTrustLevel,
+          dispatchTimeoutSec: request.body.dispatchTimeoutSec,
+          runningTimeoutSec: request.body.runningTimeoutSec,
           callerId: identityId,
           callerNs,
           callerIsAgent: subjectType === 'agent',

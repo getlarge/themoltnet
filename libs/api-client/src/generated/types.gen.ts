@@ -1121,6 +1121,8 @@ export type Task = {
   cancelledByHumanId: string | null;
   cancelReason: string | null;
   maxAttempts: number;
+  dispatchTimeoutSec: number | null;
+  runningTimeoutSec: number | null;
 };
 
 export type OutputKind = 'artifact' | 'judgment';
@@ -1221,6 +1223,8 @@ export type CreateTaskBody = {
   expiresInSec?: number;
   criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
+  dispatchTimeoutSec?: number;
+  runningTimeoutSec?: number;
 };
 
 export type ListTasksQuery = {
@@ -5906,6 +5910,8 @@ export type CreateTaskData = {
     expiresInSec?: number;
     criteriaCid?: string;
     requiredExecutorTrustLevel?: ExecutorTrustLevel;
+    dispatchTimeoutSec?: number;
+    runningTimeoutSec?: number;
   };
   path?: never;
   query?: never;

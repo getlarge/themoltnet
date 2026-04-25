@@ -7,6 +7,7 @@
   "correlationId": null,
   "criteriaCid": null,
   "diaryId": "{{diaryId}}",
+  "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100003-0000-4000-8000-000000000003",
   "imposedByAgentId": null,
@@ -54,6 +55,7 @@
     }
   ],
   "requiredExecutorTrustLevel": "selfDeclared",
+  "runningTimeoutSec": null,
   "status": "running",
   "taskType": "judge_pack",
   "teamId": "{{teamId}}"

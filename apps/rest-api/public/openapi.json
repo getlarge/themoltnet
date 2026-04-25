@@ -951,6 +951,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "dispatchTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "expiresInSec": {
             "minimum": 1,
             "type": "integer"
@@ -972,6 +977,11 @@
           },
           "requiredExecutorTrustLevel": {
             "$ref": "#/components/schemas/ExecutorTrustLevel"
+          },
+          "runningTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
           },
           "taskType": {
             "minLength": 1,
@@ -4111,6 +4121,17 @@
               }
             ]
           },
+          "dispatchTimeoutSec": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "expiresAt": {
             "anyOf": [
               {
@@ -4283,6 +4304,17 @@
               }
             ]
           },
+          "runningTimeoutSec": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "anyOf": [
               {
@@ -4347,7 +4379,9 @@
           "cancelledByAgentId",
           "cancelledByHumanId",
           "cancelReason",
-          "maxAttempts"
+          "maxAttempts",
+          "dispatchTimeoutSec",
+          "runningTimeoutSec"
         ],
         "type": "object"
       },
@@ -13943,6 +13977,11 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "dispatchTimeoutSec": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
                   "expiresInSec": {
                     "minimum": 1,
                     "type": "integer"
@@ -13964,6 +14003,11 @@
                   },
                   "requiredExecutorTrustLevel": {
                     "$ref": "#/components/schemas/ExecutorTrustLevel"
+                  },
+                  "runningTimeoutSec": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
                   },
                   "taskType": {
                     "minLength": 1,

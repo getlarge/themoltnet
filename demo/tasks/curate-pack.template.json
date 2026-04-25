@@ -7,15 +7,17 @@
   "correlationId": null,
   "criteriaCid": null,
   "diaryId": "{{diaryId}}",
+  "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100001-0000-4000-8000-000000000001",
   "imposedByAgentId": null,
   "imposedByHumanId": null,
   "input": {
     "diaryId": "{{diaryId}}",
-    "entryTypes": ["episodic", "procedural"],
     "recipe": "topic-focused-v1",
-    "tagFilters": { "prefix": "scope:" },
+    "tagFilters": {
+      "prefix": "scope:"
+    },
     "taskPrompt": "{{taskPrompt}}"
   },
   "inputCid": "cid-placeholder",
@@ -25,6 +27,7 @@
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",
+  "runningTimeoutSec": null,
   "status": "running",
   "taskType": "curate_pack",
   "teamId": "{{teamId}}"

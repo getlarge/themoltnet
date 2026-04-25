@@ -2,7 +2,6 @@
   "diaryId": "{{diaryId}}",
   "input": {
     "diaryId": "{{diaryId}}",
-    "entryTypes": ["episodic", "procedural"],
     "recipe": "topic-focused-v1",
     "tagFilters": { "prefix": "scope:" },
     "taskPrompt": "{{taskPrompt}}"

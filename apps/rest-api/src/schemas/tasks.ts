@@ -40,6 +40,15 @@ export const CreateTaskBodySchema = Type.Object(
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     criteriaCid: Type.Optional(Type.String({ minLength: 1 })),
     requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
+    // Imposer-set timeout overrides (in seconds). Null/unset → server
+    // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
+    // to long-running brief fulfillment (≤86400s = 24h).
+    dispatchTimeoutSec: Type.Optional(
+      Type.Integer({ minimum: 1, maximum: 86400 }),
+    ),
+    runningTimeoutSec: Type.Optional(
+      Type.Integer({ minimum: 1, maximum: 86400 }),
+    ),
   },
   { $id: 'CreateTaskBody' },
 );

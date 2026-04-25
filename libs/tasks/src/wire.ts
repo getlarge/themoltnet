@@ -223,6 +223,12 @@ export const Task = Type.Object(
 
     // Retry policy
     maxAttempts: Type.Number({ minimum: 1 }),
+
+    // Imposer-set timeout overrides. Null means the workflow uses server
+    // defaults (300s dispatch, 7200s running). Pinned on the row so
+    // retries see the same budget.
+    dispatchTimeoutSec: Type.Union([Type.Number({ minimum: 1 }), Type.Null()]),
+    runningTimeoutSec: Type.Union([Type.Number({ minimum: 1 }), Type.Null()]),
   },
   { $id: 'Task', additionalProperties: false },
 );

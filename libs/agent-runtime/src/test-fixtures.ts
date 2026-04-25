@@ -30,6 +30,8 @@ export function makeFulfillBriefTask(overrides: Partial<Task> = {}): Task {
     cancelledByHumanId: null,
     cancelReason: null,
     maxAttempts: 1,
+    dispatchTimeoutSec: null,
+    runningTimeoutSec: null,
     ...overrides,
   };
 }

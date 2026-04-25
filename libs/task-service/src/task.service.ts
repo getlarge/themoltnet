@@ -138,6 +138,8 @@ function dbTaskToWire(row: DbTask): Task {
     cancelledByHumanId: row.cancelledByHumanId ?? null,
     cancelReason: row.cancelReason ?? null,
     maxAttempts: row.maxAttempts,
+    dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
+    runningTimeoutSec: row.runningTimeoutSec ?? null,
   };
 }
 
@@ -193,6 +195,11 @@ export interface CreateTaskInput {
   expiresInSec?: number;
   criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
+  // Imposer-set timeout overrides (seconds). Null/undefined → server
+  // defaults (DISPATCH_TIMEOUT_SECONDS / RUNNING_TIMEOUT_SECONDS in
+  // libs/database/src/workflows/task-workflows.ts).
+  dispatchTimeoutSec?: number;
+  runningTimeoutSec?: number;
   callerId: string;
   callerNs: KetoNamespace;
   callerIsAgent: boolean;
@@ -329,6 +336,8 @@ export function createTaskService(deps: TaskServiceDeps) {
         requiredExecutorTrustLevel:
           TRUST_LEVEL_TO_DB[input.requiredExecutorTrustLevel ?? 'selfDeclared'],
         maxAttempts: input.maxAttempts ?? 1,
+        dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
+        runningTimeoutSec: input.runningTimeoutSec ?? null,
         expiresAt,
       };
 
@@ -494,6 +503,8 @@ export function createTaskService(deps: TaskServiceDeps) {
           workflowId,
           leaseTtlSec,
           claimedExecutor?.fingerprint ?? null,
+          row.dispatchTimeoutSec ?? null,
+          row.runningTimeoutSec ?? null,
         );
       } catch (error) {
         if (

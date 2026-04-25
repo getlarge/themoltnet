@@ -31,20 +31,16 @@ export function buildCuratePackPrompt(
   input: CuratePackInput,
   ctx: Ctx,
 ): string {
-  const {
-    diaryId,
-    taskPrompt,
-    entryTypes,
-    tagFilters,
-    tokenBudget,
-    recipe,
-  } = input;
+  const { diaryId, taskPrompt, entryTypes, tagFilters, tokenBudget, recipe } =
+    input;
 
-  const effectiveEntryTypes = entryTypes ?? [
-    'semantic',
-    'episodic',
-    'procedural',
-  ];
+  // When the imposer leaves entryTypes unset, the LLM picks per-search.
+  // Forcing a default at this layer has produced packs dominated by
+  // procedural commit audit trails when the prompt clearly wanted
+  // incident/decision narratives — see follow-up to issue #852.
+  // We list the type taxonomy and let the curator choose; tag/type
+  // filtering happens inside the LLM's tool calls, not as input bounds.
+  const entryTypesPinned = Boolean(entryTypes);
   const resolvedRecipe = recipe ?? 'topic-focused-v1';
 
   const includeLine = tagFilters?.include?.length
@@ -81,7 +77,34 @@ export function buildCuratePackPrompt(
     '',
     '## Constraints',
     '',
-    `- Entry types in play: ${effectiveEntryTypes.map((t) => `\`${t}\``).join(', ')}`,
+    entryTypesPinned
+      ? `- Entry types pinned by imposer (do not widen): ${entryTypes!.map((t) => `\`${t}\``).join(', ')}`
+      : '- Entry types: **you choose**. The diary contains three kinds:',
+    entryTypesPinned
+      ? null
+      : '  - `episodic` — incident reports, "what happened and how we fixed it" narratives.',
+    entryTypesPinned
+      ? null
+      : '  - `semantic` — durable decisions, patterns, design rationale.',
+    entryTypesPinned
+      ? null
+      : '  - `procedural` — commit audit trails / changelog-style provenance.',
+    entryTypesPinned
+      ? null
+      : '  Pick the subset that fits the prompt. For "failures and workarounds"',
+    entryTypesPinned
+      ? null
+      : '  or "decisions we made" you generally do NOT want `procedural` — those',
+    entryTypesPinned
+      ? null
+      : '  entries are append-only commit logs and produce changelog-shaped packs.',
+    entryTypesPinned
+      ? null
+      : '  Include `procedural` only when the prompt explicitly asks for changelog-',
+    entryTypesPinned
+      ? null
+      : '  style content (e.g., "what shipped this week"). State your choice',
+    entryTypesPinned ? null : '  briefly in the final `summary`.',
     `- Recipe tag: \`${resolvedRecipe}\` (recorded on pack params)`,
     tokenBudget
       ? `- Token budget (soft cap on final pack): ${tokenBudget}. Pick entry` +

@@ -3301,11 +3301,13 @@ type CreateTaskReq struct {
 	CorrelationId              OptUUID               `json:"correlationId"`
 	CriteriaCid                OptString             `json:"criteriaCid"`
 	DiaryId                    uuid.UUID             `json:"diaryId"`
+	DispatchTimeoutSec         OptInt                `json:"dispatchTimeoutSec"`
 	ExpiresInSec               OptInt                `json:"expiresInSec"`
 	Input                      CreateTaskReqInput    `json:"input"`
 	MaxAttempts                OptInt                `json:"maxAttempts"`
 	References                 []TaskRef             `json:"references"`
 	RequiredExecutorTrustLevel OptExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
+	RunningTimeoutSec          OptInt                `json:"runningTimeoutSec"`
 	TaskType                   string                `json:"taskType"`
 	TeamId                     uuid.UUID             `json:"teamId"`
 }
@@ -3323,6 +3325,11 @@ func (s *CreateTaskReq) GetCriteriaCid() OptString {
 // GetDiaryId returns the value of DiaryId.
 func (s *CreateTaskReq) GetDiaryId() uuid.UUID {
 	return s.DiaryId
+}
+
+// GetDispatchTimeoutSec returns the value of DispatchTimeoutSec.
+func (s *CreateTaskReq) GetDispatchTimeoutSec() OptInt {
+	return s.DispatchTimeoutSec
 }
 
 // GetExpiresInSec returns the value of ExpiresInSec.
@@ -3350,6 +3357,11 @@ func (s *CreateTaskReq) GetRequiredExecutorTrustLevel() OptExecutorTrustLevel {
 	return s.RequiredExecutorTrustLevel
 }
 
+// GetRunningTimeoutSec returns the value of RunningTimeoutSec.
+func (s *CreateTaskReq) GetRunningTimeoutSec() OptInt {
+	return s.RunningTimeoutSec
+}
+
 // GetTaskType returns the value of TaskType.
 func (s *CreateTaskReq) GetTaskType() string {
 	return s.TaskType
@@ -3375,6 +3387,11 @@ func (s *CreateTaskReq) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
 }
 
+// SetDispatchTimeoutSec sets the value of DispatchTimeoutSec.
+func (s *CreateTaskReq) SetDispatchTimeoutSec(val OptInt) {
+	s.DispatchTimeoutSec = val
+}
+
 // SetExpiresInSec sets the value of ExpiresInSec.
 func (s *CreateTaskReq) SetExpiresInSec(val OptInt) {
 	s.ExpiresInSec = val
@@ -3398,6 +3415,11 @@ func (s *CreateTaskReq) SetReferences(val []TaskRef) {
 // SetRequiredExecutorTrustLevel sets the value of RequiredExecutorTrustLevel.
 func (s *CreateTaskReq) SetRequiredExecutorTrustLevel(val OptExecutorTrustLevel) {
 	s.RequiredExecutorTrustLevel = val
+}
+
+// SetRunningTimeoutSec sets the value of RunningTimeoutSec.
+func (s *CreateTaskReq) SetRunningTimeoutSec(val OptInt) {
+	s.RunningTimeoutSec = val
 }
 
 // SetTaskType sets the value of TaskType.
@@ -19167,6 +19189,7 @@ type Task struct {
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	CriteriaCid                NilString                      `json:"criteriaCid"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
+	DispatchTimeoutSec         NilFloat64                     `json:"dispatchTimeoutSec"`
 	ExpiresAt                  NilDateTime                    `json:"expiresAt"`
 	ID                         uuid.UUID                      `json:"id"`
 	ImposedByAgentId           NilUUID                        `json:"imposedByAgentId"`
@@ -19179,6 +19202,7 @@ type Task struct {
 	QueuedAt                   time.Time                      `json:"queuedAt"`
 	References                 []TaskReferencesItem           `json:"references"`
 	RequiredExecutorTrustLevel TaskRequiredExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
+	RunningTimeoutSec          NilFloat64                     `json:"runningTimeoutSec"`
 	Status                     TaskStatus                     `json:"status"`
 	TaskType                   string                         `json:"taskType"`
 	TeamId                     uuid.UUID                      `json:"teamId"`
@@ -19222,6 +19246,11 @@ func (s *Task) GetCriteriaCid() NilString {
 // GetDiaryId returns the value of DiaryId.
 func (s *Task) GetDiaryId() NilUUID {
 	return s.DiaryId
+}
+
+// GetDispatchTimeoutSec returns the value of DispatchTimeoutSec.
+func (s *Task) GetDispatchTimeoutSec() NilFloat64 {
+	return s.DispatchTimeoutSec
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -19284,6 +19313,11 @@ func (s *Task) GetRequiredExecutorTrustLevel() TaskRequiredExecutorTrustLevel {
 	return s.RequiredExecutorTrustLevel
 }
 
+// GetRunningTimeoutSec returns the value of RunningTimeoutSec.
+func (s *Task) GetRunningTimeoutSec() NilFloat64 {
+	return s.RunningTimeoutSec
+}
+
 // GetStatus returns the value of Status.
 func (s *Task) GetStatus() TaskStatus {
 	return s.Status
@@ -19337,6 +19371,11 @@ func (s *Task) SetCriteriaCid(val NilString) {
 // SetDiaryId sets the value of DiaryId.
 func (s *Task) SetDiaryId(val NilUUID) {
 	s.DiaryId = val
+}
+
+// SetDispatchTimeoutSec sets the value of DispatchTimeoutSec.
+func (s *Task) SetDispatchTimeoutSec(val NilFloat64) {
+	s.DispatchTimeoutSec = val
 }
 
 // SetExpiresAt sets the value of ExpiresAt.
@@ -19397,6 +19436,11 @@ func (s *Task) SetReferences(val []TaskReferencesItem) {
 // SetRequiredExecutorTrustLevel sets the value of RequiredExecutorTrustLevel.
 func (s *Task) SetRequiredExecutorTrustLevel(val TaskRequiredExecutorTrustLevel) {
 	s.RequiredExecutorTrustLevel = val
+}
+
+// SetRunningTimeoutSec sets the value of RunningTimeoutSec.
+func (s *Task) SetRunningTimeoutSec(val NilFloat64) {
+	s.RunningTimeoutSec = val
 }
 
 // SetStatus sets the value of Status.

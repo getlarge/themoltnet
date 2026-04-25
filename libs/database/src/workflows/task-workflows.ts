@@ -71,11 +71,16 @@ export class TaskWorkflowConfigurationError extends Error {
 // Short tasks (tool calls, lookups): 120s is fine. For queued evals or brief
 // fulfillment that may need to spin up a runtime, consider raising to 600s+
 // via the leaseTtlSec parameter passed to startAttemptWorkflow.
-const DISPATCH_TIMEOUT_SECONDS = 300;
+//
+// These are *defaults* — the imposer can override per-task at create time
+// via tasks.dispatch_timeout_sec / running_timeout_sec, which are passed
+// through to startAttemptWorkflow as `dispatchTimeoutSecOverride` and
+// `runningTimeoutSecOverride`.
+export const DEFAULT_DISPATCH_TIMEOUT_SECONDS = 300;
 // Maximum wall-clock time between 'started' and result delivery.
 // Long-running evals (brief fulfillment, judgment) can take 30–60 min.
 // Agents must heartbeat (extend the lease) before this elapses to signal liveness.
-const RUNNING_TIMEOUT_SECONDS = 7200;
+export const DEFAULT_RUNNING_TIMEOUT_SECONDS = 7200;
 
 const stepConfig = {
   retriesAllowed: true,
@@ -93,6 +98,8 @@ let _workflows: {
     workflowId: string,
     leaseTtlSec: number,
     claimedExecutorFingerprint?: string | null,
+    dispatchTimeoutSecOverride?: number | null,
+    runningTimeoutSecOverride?: number | null,
   ) => Promise<TaskAttemptFinalEvent>;
 } | null = null;
 
@@ -180,7 +187,13 @@ export function initTaskWorkflows(): void {
         workflowId: string,
         leaseTtlSec: number,
         claimedExecutorFingerprint?: string | null,
+        dispatchTimeoutSecOverride?: number | null,
+        runningTimeoutSecOverride?: number | null,
       ): Promise<TaskAttemptFinalEvent> => {
+        const dispatchTimeoutSec =
+          dispatchTimeoutSecOverride ?? DEFAULT_DISPATCH_TIMEOUT_SECONDS;
+        const runningTimeoutSec =
+          runningTimeoutSecOverride ?? DEFAULT_RUNNING_TIMEOUT_SECONDS;
         // Steps 1-2: insert attempt row, mark task dispatched (split for idempotency).
         await insertAttemptStep(
           taskId,
@@ -195,10 +208,7 @@ export function initTaskWorkflows(): void {
           attemptN,
         });
 
-        const started = await DBOS.recv<true>(
-          'started',
-          DISPATCH_TIMEOUT_SECONDS,
-        );
+        const started = await DBOS.recv<true>('started', dispatchTimeoutSec);
         if (!started) {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           const canRetry = attemptCount < maxAttempts;
@@ -245,7 +255,7 @@ export function initTaskWorkflows(): void {
 
         const result = await DBOS.recv<TaskAttemptResult>(
           'result',
-          RUNNING_TIMEOUT_SECONDS,
+          runningTimeoutSec,
         );
         if (!result) {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
@@ -340,6 +350,8 @@ export const taskWorkflows = new Proxy(
     workflowId: string,
     leaseTtlSec: number,
     claimedExecutorFingerprint?: string | null,
+    dispatchTimeoutSecOverride?: number | null,
+    runningTimeoutSecOverride?: number | null,
   ) => Promise<TaskAttemptFinalEvent>;
 };
 

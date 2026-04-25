@@ -38,6 +38,8 @@ const MOCK_TASK = {
   cancelledByHumanId: null,
   cancelReason: null,
   maxAttempts: 1,
+  dispatchTimeoutSec: null,
+  runningTimeoutSec: null,
 };
 
 const MOCK_ATTEMPT = {
