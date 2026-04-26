@@ -1,7 +1,3 @@
-/**
- * `agent-daemon once --task-id <uuid>` — claim and execute one specific
- * queued task by id, then exit. Replaces the standalone `work-task` script.
- */
 import { parseArgs } from 'node:util';
 
 import {
@@ -17,6 +13,7 @@ import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import {
   commonOptionDefs,
+  type CommonOptions,
   MissingRequiredOptionError,
   parseCommonOptions,
 } from '../lib/options.js';
@@ -44,7 +41,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   }
 
   const taskId = values['task-id'];
-  let opts;
+  let opts: CommonOptions;
   try {
     opts = parseCommonOptions(values);
   } catch (err) {

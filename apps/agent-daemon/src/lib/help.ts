@@ -1,12 +1,3 @@
-/**
- * Help-text helpers for daemon subcommands.
- *
- * Each subcommand prints a consistent block: usage line, description,
- * required flags, optional flags, examples. Shared content (common
- * agent/provider/model/lease/heartbeat flags) lives here so the per-
- * subcommand help stays focused on the differences.
- */
-
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 export const COMMON_REQUIRED_FLAGS = `\
@@ -136,20 +127,4 @@ Example:
 
 export function isHelpFlag(args: readonly string[]): boolean {
   return args.includes('--help') || args.includes('-h');
-}
-
-/**
- * Validate a `--task-types` CSV against the registered task type set.
- * Returns the array on success, throws with a useful message listing the
- * known types on a typo.
- */
-export function validateTaskTypes(types: readonly string[]): string[] {
-  const unknown = types.filter((t) => !(t in BUILT_IN_TASK_TYPES));
-  if (unknown.length > 0) {
-    throw new Error(
-      `Unknown task type(s): ${unknown.join(', ')}. ` +
-        `Known types: ${knownTaskTypesList()}.`,
-    );
-  }
-  return [...types];
 }

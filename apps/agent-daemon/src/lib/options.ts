@@ -1,14 +1,9 @@
-/**
- * Shared option parsing for daemon subcommands.
- *
- * Every subcommand accepts the same agent/provider/model + reporter knobs,
- * so we factor the validation out to keep the entry points thin.
- *
- * No defaults for `agent` / `provider` / `model` — these depend entirely on
- * the operator's setup (which credentials directory under `.moltnet/`,
- * which LLM provider, which model id). Defaulting any of them produces
- * silent misconfigurations on someone else's machine.
- */
+// No defaults for agent/provider/model — those values are operator-specific
+// and silently misconfigure on any other machine. Required, not optional.
+import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
+
+import { knownTaskTypesList } from './help.js';
+
 export interface CommonOptions {
   agent: string;
   provider: string;
@@ -119,4 +114,20 @@ export function commonOptionDefs() {
     'max-batch-size': { type: 'string' },
     'flush-interval-ms': { type: 'string' },
   } as const;
+}
+
+// `hasOwnProperty.call` rather than `in` — the `in` operator matches keys on
+// Object.prototype (toString, hasOwnProperty, …) which would let those slip
+// through as "valid" task types.
+export function validateTaskTypes(types: readonly string[]): string[] {
+  const unknown = types.filter(
+    (t) => !Object.prototype.hasOwnProperty.call(BUILT_IN_TASK_TYPES, t),
+  );
+  if (unknown.length > 0) {
+    throw new Error(
+      `Unknown task type(s): ${unknown.join(', ')}. ` +
+        `Known types: ${knownTaskTypesList()}.`,
+    );
+  }
+  return [...types];
 }

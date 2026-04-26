@@ -1,17 +1,3 @@
-/**
- * agent-daemon — long-running task worker for MoltNet.
- *
- * One process = one VM-per-task = one agent identity (local-only for now).
- *
- * Subcommands:
- *   poll     long-running, claim & execute queued tasks until SIGINT/SIGTERM
- *   once     claim & execute a single task by id, then exit
- *   drain    poll until the queue has nothing claimable, then exit
- *
- * See `--help` on each subcommand for flags. Sandbox config is read from
- * `sandbox.json` in the daemon's working directory; agent credentials
- * from `.moltnet/<agent>/`.
- */
 import { runDrain } from './cli/drain.js';
 import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';

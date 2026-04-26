@@ -1,9 +1,4 @@
-/**
- * Shared logic for the `poll` (long-running) and `drain` (run-until-empty)
- * subcommands. The only difference between the two is whether the polling
- * source returns null on the first empty queue tick (drain) or sleeps and
- * retries forever (poll).
- */
+// Shared poll-loop runner for `poll` and `drain` (only difference: stopWhenEmpty).
 import { parseArgs } from 'node:util';
 
 import type { TaskOutput } from '@moltnet/tasks';
@@ -17,11 +12,13 @@ import { createPiTaskExecutor } from '@themoltnet/pi-extension';
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
 import { finalizeTask } from '../lib/finalize.js';
-import { isHelpFlag, validateTaskTypes } from '../lib/help.js';
+import { isHelpFlag } from '../lib/help.js';
 import {
   commonOptionDefs,
+  type CommonOptions,
   MissingRequiredOptionError,
   parseCommonOptions,
+  validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { loadSandboxConfig } from '../lib/sandbox.js';
@@ -69,7 +66,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     return 1;
   }
   const diaryIds = parseCsv(values['diary-ids']);
-  let common;
+  let common: CommonOptions;
   try {
     common = parseCommonOptions(values);
   } catch (err) {
