@@ -60,6 +60,19 @@ oauth2:
   pkce:
     enforced: false
     enforced_for_public_clients: true
+  # Mirrors the prod token_hook in infra/ory/project.json. Hydra invokes this
+  # on every access-token issuance (client_credentials and authorization_code)
+  # so the rest-api can attach moltnet:identity_id / moltnet:subject_type to
+  # the token's ext claims. The API key matches ORY_ACTION_API_KEY in
+  # docker-compose.e2e.yaml.
+  token_hook:
+    url: http://rest-api:8080/hooks/hydra/token-exchange
+    auth:
+      type: api_key
+      config:
+        in: header
+        name: X-Ory-Api-Key
+        value: local-dev-webhook-key
 
 oidc:
   subject_identifiers:
