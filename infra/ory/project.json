@@ -385,6 +385,8 @@
         "oidc": {
           "dynamic_client_registration": {
             "default_scope": [
+              "openid",
+              "offline_access",
               "diary:read",
               "diary:write",
               "crypto:sign",
