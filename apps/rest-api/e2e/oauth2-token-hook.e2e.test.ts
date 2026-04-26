@@ -211,8 +211,12 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         loginChallenge = lc;
         break;
       }
-      if (!locUrl.toString().startsWith(HYDRA_PUBLIC_URL)) break;
-      authNextUrl = rewriteToHost(locUrl.toString());
+      // Normalise Hydra's in-network issuer (`http://hydra:4444/...`) to the
+      // host URL before deciding to break, so we stay in the chain regardless
+      // of which hostname Hydra echoes back.
+      const normalised = rewriteToHost(locUrl.toString());
+      if (!normalised.startsWith(HYDRA_PUBLIC_URL)) break;
+      authNextUrl = normalised;
     }
     expect(loginChallenge).toBeTruthy();
 
@@ -248,12 +252,10 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         consentChallenge = cc;
         break;
       }
-      if (
-        !locUrl.toString().startsWith(HYDRA_PUBLIC_URL) &&
-        !loc.startsWith('/')
-      )
+      const normalised = rewriteToHost(locUrl.toString());
+      if (!normalised.startsWith(HYDRA_PUBLIC_URL) && !loc.startsWith('/'))
         break;
-      nextUrl = rewriteToHost(locUrl.toString());
+      nextUrl = normalised;
     }
     expect(
       consentChallenge,
@@ -283,11 +285,12 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         code = c;
         break;
       }
-      // Don't follow redirects to a URL that we don't control (e.g. the
-      // configured redirect_uri at localhost:9999 has no server). Only
-      // follow redirects that stay inside Hydra.
-      if (!locUrl.toString().startsWith(HYDRA_PUBLIC_URL)) break;
-      callbackUrl = rewriteToHost(locUrl.toString());
+      // Don't follow redirects to a URL we don't control (e.g. the configured
+      // redirect_uri at localhost:9999 has no server). Stay inside Hydra after
+      // normalising any in-network issuer hostname.
+      const normalised = rewriteToHost(locUrl.toString());
+      if (!normalised.startsWith(HYDRA_PUBLIC_URL)) break;
+      callbackUrl = normalised;
     }
     expect(code).toBeTruthy();
 
@@ -378,8 +381,9 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         loginChallenge = lc;
         break;
       }
-      if (!locUrl.toString().startsWith(HYDRA_PUBLIC_URL)) break;
-      authNextUrl = rewriteToHost(locUrl.toString());
+      const normalised = rewriteToHost(locUrl.toString());
+      if (!normalised.startsWith(HYDRA_PUBLIC_URL)) break;
+      authNextUrl = normalised;
     }
     expect(loginChallenge).toBeTruthy();
 
@@ -404,12 +408,10 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         consentChallenge = cc;
         break;
       }
-      if (
-        !locUrl.toString().startsWith(HYDRA_PUBLIC_URL) &&
-        !loc.startsWith('/')
-      )
+      const normalised = rewriteToHost(locUrl.toString());
+      if (!normalised.startsWith(HYDRA_PUBLIC_URL) && !loc.startsWith('/'))
         break;
-      nextUrl = rewriteToHost(locUrl.toString());
+      nextUrl = normalised;
     }
     expect(consentChallenge).toBeTruthy();
 
@@ -439,8 +441,9 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         code = c;
         break;
       }
-      if (!locUrl.toString().startsWith(HYDRA_PUBLIC_URL)) break;
-      cbUrl = rewriteToHost(locUrl.toString());
+      const normalised = rewriteToHost(locUrl.toString());
+      if (!normalised.startsWith(HYDRA_PUBLIC_URL)) break;
+      cbUrl = normalised;
     }
     expect(code).toBeTruthy();
 
