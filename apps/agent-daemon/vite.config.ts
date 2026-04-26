@@ -11,6 +11,6 @@ export default defineConfig({
     external: [...otelObservabilityExternals],
   },
   test: {
-    exclude: ['node_modules/**', 'dist/**'],
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },
 });

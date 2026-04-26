@@ -154,16 +154,29 @@ describe('Agent daemon (e2e)', () => {
           // DBOS recv('started').
           heartbeatIntervalMs: 0,
         }),
-      executeTask: async (claimedTask) => ({
-        taskId: claimedTask.task.id,
-        attemptN: claimedTask.attemptN,
-        status: 'completed',
-        output: { packId: '00000000-0000-4000-8000-000000000000' },
-        outputCid:
-          'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
-        usage: { inputTokens: 1, outputTokens: 1 },
-        durationMs: 1,
-      }),
+      executeTask: async (claimedTask, reporter) => {
+        // Real executors (pi-extension) call reporter.open() first to fire
+        // the startup heartbeat that satisfies DBOS recv('started') and
+        // moves the attempt from claimed → running. Without it, /complete
+        // returns 409 "attempt has not been started".
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+        const output = {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: { packId: '00000000-0000-4000-8000-000000000000' },
+          outputCid:
+            'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+        await reporter.finalize(output.usage);
+        await reporter.close();
+        return output;
+      },
     });
 
     const outputs = await runtime.start();
@@ -207,6 +220,14 @@ describe('Agent daemon (e2e)', () => {
           heartbeatIntervalMs: 250,
         }),
       executeTask: async (claimedTask, reporter) => {
+        // Real executors (pi-extension) call reporter.open() first; this
+        // fires the startup heartbeat AND starts the periodic timer that
+        // observes cancelled:true on the next tick.
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+
         // Trigger the cancel from a separate microtask so the
         // reporter's heartbeat timer (250ms) gets a chance to fire
         // AFTER the cancel takes effect server-side.
@@ -241,10 +262,12 @@ describe('Agent daemon (e2e)', () => {
         });
 
         // Honoring the cancel: return cancelled with the observed reason.
-        return {
+        // Close the reporter so the periodic heartbeat timer doesn't leak
+        // into the next test or hang the process.
+        const out = {
           taskId: claimedTask.task.id,
           attemptN: claimedTask.attemptN,
-          status: 'cancelled',
+          status: 'cancelled' as const,
           output: null,
           outputCid: null,
           usage: { inputTokens: 0, outputTokens: 0 },
@@ -255,6 +278,8 @@ describe('Agent daemon (e2e)', () => {
             retryable: false,
           },
         };
+        await reporter.close();
+        return out;
       },
     });
 
