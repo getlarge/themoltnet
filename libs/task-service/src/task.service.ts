@@ -889,11 +889,14 @@ export function createTaskService(deps: TaskServiceDeps) {
       // branch handles `cancelled` directly; the running-phase loop
       // falls through to persistTerminalResult.
       //
-      // We deliberately do NOT remove the Keto claimant tuple here:
-      // the claimer needs to keep the `report` permit so its next
-      // /heartbeat can return cancelled:true to drive executor abort.
-      // The workflow's terminal persist tx cleans up the tuple via
-      // removeClaimantTupleStep.
+      // We deliberately do NOT remove the Keto claimant tuple here,
+      // and the workflow's terminal persist tx for cancel ALSO
+      // preserves it (see persistTerminalResult / dispatch-phase first
+      // event handler in task-workflows.ts — `if (evt.kind !==
+      // 'cancelled') removeClaimantTupleStep(...)`). The claimer
+      // needs to keep the `report` permit so its next /heartbeat can
+      // pass `canReportTask` and observe `cancelled: true` to drive
+      // executor abort. Orphan-recovery sweeper (#937) cleans up later.
       const attempts = await taskRepository.listAttempts(taskId);
       const active = attempts.find(
         (a) => a.status === 'claimed' || a.status === 'running',
