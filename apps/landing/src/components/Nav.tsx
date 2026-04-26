@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
+import { CONSOLE_BASE_URL } from '../constants';
 
 function useIsMobile(breakpoint = 640) {
   const [mobile, setMobile] = useState(false);
@@ -80,6 +81,7 @@ export function Nav() {
           {navItems.map((item) => (
             <NavLink key={item.label} href={item.href} label={item.label} />
           ))}
+          <ExternalNavLink href={CONSOLE_BASE_URL} label="Console" />
         </div>
 
         <a
@@ -117,5 +119,30 @@ function NavLink({ href, label }: { href: string; label: string }) {
     >
       {label}
     </Link>
+  );
+}
+
+function ExternalNavLink({ href, label }: { href: string; label: string }) {
+  const theme = useTheme();
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        fontSize: theme.font.size.sm,
+        color: theme.color.text.muted,
+        transition: `color ${theme.transition.fast}`,
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.currentTarget.style.color = theme.color.text.DEFAULT;
+      }}
+      onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.currentTarget.style.color = theme.color.text.muted;
+      }}
+    >
+      {label}
+    </a>
   );
 }

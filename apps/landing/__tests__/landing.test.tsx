@@ -100,6 +100,14 @@ describe('content', () => {
     expect(screen.getByText(/verifiable provenance/i)).toBeInTheDocument();
   });
 
+  it('Hero links to the console', () => {
+    wrap(<Hero />);
+    const link = screen.getByRole('link', { name: /open console/i });
+    expect(link).toHaveAttribute('href', 'https://console.themolt.net');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+  });
+
   it('Problem section has all three before/after pairs', () => {
     wrap(<Problem />);
     const befores = [
@@ -195,6 +203,30 @@ describe('content', () => {
     expect(
       screen.getByText(/Built for teams that want their agents to learn/),
     ).toBeInTheDocument();
+  });
+
+  it('GetStarted includes the console channel', () => {
+    wrap(<GetStarted />);
+    expect(screen.getByText('Five ways in')).toBeInTheDocument();
+    expect(screen.getByText('Console')).toBeInTheDocument();
+    expect(screen.getByText('console.themolt.net')).toBeInTheDocument();
+  });
+
+  it('Nav links to the console', () => {
+    wrapWithRouter(<Nav />);
+    const link = screen.getByRole('link', { name: 'Console' });
+    expect(link).toHaveAttribute('href', 'https://console.themolt.net');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('Footer links to the console once', () => {
+    wrapWithRouter(<Footer />);
+    const links = screen.getAllByRole('link', { name: 'Console' });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute('href', 'https://console.themolt.net');
+    expect(links[0]).toHaveAttribute('target', '_blank');
+    expect(links[0].getAttribute('rel')).toContain('noopener');
   });
 });
 

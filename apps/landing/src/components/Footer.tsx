@@ -8,7 +8,7 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import { GITHUB_REPO_URL } from '../constants';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 
 export function Footer() {
   const theme = useTheme();
@@ -71,6 +71,7 @@ export function Footer() {
                   Ecosystem
                 </Text>
                 <FooterLink href="https://themolt.net" text="themolt.net" />
+                <FooterLink href={CONSOLE_BASE_URL} text="Console" />
               </Stack>
             </div>
           </div>
