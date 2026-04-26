@@ -209,23 +209,14 @@ describe('Agent daemon (e2e)', () => {
     expect(final.acceptedAttemptN).toBe(1);
   }, 60_000);
 
-  it('survives imposer-side cancel without crashing the loop and reports nothing on the cancelled task', async () => {
-    // NOTE: This test asserts what's robust today, not what the cancel
-    // contract was originally designed to deliver. #938 intended the
-    // reporter's heartbeat to observe cancelled:true and abort
-    // cancelSignal so the executor returns status:'cancelled' promptly.
-    // In practice the heartbeat 403s after cancel because the workflow's
-    // terminal persist tx removes the Keto claimant tuple before the
-    // next heartbeat fires (#949). Until that's fixed, the visible
-    // contract is narrower:
-    //   - the daemon does not crash
-    //   - finalizeTask() does not throw on the cancelled task (it skips
-    //     reporting because the row is already terminal)
-    //   - the server task ends in 'cancelled' with the supplied reason
-    // The runtime override at runtime.ts:130 still ensures we never
-    // report 'completed' on a cancelled task; the executor's actual
-    // exit (here it times out and throws → 'failed') is irrelevant
-    // because finalizeTask doesn't try to report it.
+  it('honors imposer-side cancel — reporter heartbeat trips cancelSignal, runtime returns cancelled', async () => {
+    // The full cancel contract from #938: imposer cancels the task while
+    // the executor is running. The reporter's periodic heartbeat (250ms)
+    // observes cancelled:true on the next tick, aborts cancelSignal, and
+    // the executor (which awaits the signal) returns status:'cancelled'
+    // promptly. The runtime ensures the final output is 'cancelled' even
+    // if the executor returned anything else. finalizeTask is a no-op
+    // because the row is already terminal.
     const created = await imposeCuratePackTask();
 
     const runtime = new AgentRuntime({
@@ -256,20 +247,27 @@ describe('Agent daemon (e2e)', () => {
           });
         }, 50);
 
-        // Wait for either cancelSignal (the contract that #949 will
-        // restore) or a 1s budget (current reality — heartbeats 403,
-        // signal never fires). The runtime is fine either way.
-        await new Promise<void>((resolve) => {
-          const done = () => {
+        // Wait for cancelSignal to fire — the reporter's next heartbeat
+        // (within 250ms of the cancel) sees cancelled:true and aborts.
+        // Hard-fail with a 5s budget so a regression doesn't hang.
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error('cancelSignal did not fire within 5s')),
+            5_000,
+          );
+          if (reporter.cancelSignal.aborted) {
             clearTimeout(timer);
             resolve();
-          };
-          const timer = setTimeout(done, 1_000);
-          if (reporter.cancelSignal.aborted) done();
-          else
-            reporter.cancelSignal.addEventListener('abort', done, {
-              once: true,
-            });
+            return;
+          }
+          reporter.cancelSignal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer);
+              resolve();
+            },
+            { once: true },
+          );
         });
 
         const out = {
@@ -295,11 +293,11 @@ describe('Agent daemon (e2e)', () => {
     expect(outputs).toHaveLength(1);
     const [output] = outputs;
     expect(output.taskId).toBe(created.id);
+    expect(output.status).toBe('cancelled');
 
-    // finalizeTask must not throw on cancelled output regardless of
-    // whether the executor itself returned 'cancelled' (signal worked)
-    // or the runtime forced it post-execute via the override
-    // (runtime.ts:130 fires when reporter.cancelSignal.aborted).
+    // finalizeTask is a no-op for cancelled outputs — calling /complete
+    // or /fail after cancel returns 409 because the row is already
+    // terminal.
     await finalizeTask(agent, output);
 
     const final = await agent.tasks.get(created.id);
