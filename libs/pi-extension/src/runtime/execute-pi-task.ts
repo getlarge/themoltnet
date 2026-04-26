@@ -66,8 +66,27 @@ export interface ExecutePiTaskOptions {
   extraAllowedHosts?: string[];
   /** Sandbox overrides (env, VFS shadows, resources). */
   sandboxConfig?: SandboxConfig;
-  /** Forwarded to `buildPromptForTask` for per-type builders. */
+  /**
+   * Forwarded to `buildPromptForTask` for per-type builders. Static across
+   * tasks. For per-task data (e.g. `assess_brief` needs the target task
+   * resolved into a `target` bundle), use `resolvePromptExtras` below.
+   */
   promptExtras?: Record<string, unknown>;
+  /**
+   * Resolves additional `extras` per task, called once per attempt before
+   * prompt building. Merged on top of `promptExtras` (this wins on
+   * conflict). Use this for task-type-specific data the executor can't
+   * synthesize from the task input alone — e.g. fetching the
+   * `assess_brief.targetTaskId`'s output to build the judge's `target`
+   * bundle. Returning undefined is equivalent to a no-op.
+   *
+   * The daemon is the right place to register this — it has the SDK in
+   * scope to fetch dependent rows. The pi-extension stays
+   * task-type-agnostic.
+   */
+  resolvePromptExtras?: (
+    claimedTask: ClaimedTask,
+  ) => Promise<Record<string, unknown> | undefined>;
   /** Snapshot progress callback; defaults to stderr logging. */
   onSnapshotProgress?: (message: string) => void;
   /**
@@ -203,10 +222,23 @@ export async function executePiTask(
 
     let taskPrompt: string;
     try {
+      // Resolve per-task extras before building the prompt. Daemon-side
+      // resolvers (e.g. fetching an assess_brief.targetTaskId's output)
+      // run here so the prompt builder sees a fully-hydrated context.
+      // Static `promptExtras` is the base; the resolver's return value
+      // wins on conflict.
+      let resolvedExtras: Record<string, unknown> | undefined =
+        opts.promptExtras;
+      if (opts.resolvePromptExtras) {
+        const dynamic = await opts.resolvePromptExtras(claimedTask);
+        if (dynamic) {
+          resolvedExtras = { ...resolvedExtras, ...dynamic };
+        }
+      }
       const promptCtx: PromptContext = {
         diaryId,
         taskId: task.id,
-        extras: opts.promptExtras,
+        extras: resolvedExtras,
       };
       taskPrompt = buildPromptForTask(task, promptCtx);
     } catch (err) {
