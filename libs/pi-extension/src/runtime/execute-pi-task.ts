@@ -122,6 +122,29 @@ export async function executePiTask(
   const startTime = Date.now();
   const mountPath = opts.mountPath ?? process.cwd();
 
+  // Pre-execute cancel guard. If the reporter's cancel signal is already
+  // aborted (the imposer cancelled between claim and executor entry), don't
+  // burn a snapshot resume + VM boot on work that's already terminal. The
+  // daemon's finalizeTask treats `cancelled` outputs as no-ops on the wire,
+  // which is correct: the row is already terminal server-side.
+  if (reporter.cancelSignal.aborted) {
+    return {
+      taskId: task.id,
+      attemptN,
+      status: 'cancelled',
+      output: null,
+      outputCid: null,
+      usage: emptyUsage(opts.provider, opts.model),
+      durationMs: Date.now() - startTime,
+      error: {
+        code: 'task_cancelled',
+        message:
+          reporter.cancelReason ?? 'Task cancelled before pi executor started.',
+        retryable: false,
+      },
+    };
+  }
+
   const checkpointPath =
     opts.checkpointPath ??
     (await ensureSnapshot({
@@ -165,6 +188,9 @@ export async function executePiTask(
     | Awaited<ReturnType<typeof createAgentSession>>['session']
     | null = null;
   const finalUsage: TaskUsage = emptyUsage(opts.provider, opts.model);
+  // Tracked at function scope so `finally` can remove the listener
+  // even if we throw before assigning. Null means "no listener wired".
+  let cancelListener: (() => void) | null = null;
 
   const makeFailedOutput = (
     code: string,
@@ -298,6 +324,12 @@ export async function executePiTask(
     let assistantText = '';
     let reporterError: { code: string; message: string } | null = null;
     const usage: TaskUsage = finalUsage;
+
+    // Wire reporter.cancelSignal → session.abort() so the LLM session
+    // tears down promptly when the imposer cancels mid-prompt. Tracked
+    // via `cancelListener` at function scope so `finally` can remove it
+    // even if we throw.
+    cancelListener = wireSessionAbort(reporter.cancelSignal, session);
     const recordingPromise: Promise<void>[] = [];
     const track = (p: Promise<void>) => {
       recordingPromise.push(
@@ -368,10 +400,20 @@ export async function executePiTask(
 
     await Promise.all(recordingPromise);
 
+    // Cancellation takes precedence over runError / llmAbort / parseError.
+    // pi maps `session.abort()` to a `turn_end` with `stopReason: 'aborted'`
+    // which the subscribe handler above sets `llmAbort = true` for; if our
+    // listener triggered it, we want the output to be `cancelled` (not
+    // `failed` with `llm_api_error`). The cancelSignal check below also
+    // covers the case where the executor finished mid-flight before the
+    // signal had a chance to abort the session — usage tokens accumulated
+    // up to that point are preserved.
+    const cancelled = reporter.cancelSignal.aborted;
+
     let parsedOutput: Record<string, unknown> | null = null;
     let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
-    if (!runError && !llmAbort) {
+    if (!runError && !llmAbort && !cancelled) {
       const parsed = await parseStructuredTaskOutput(
         assistantText,
         task.taskType,
@@ -385,6 +427,25 @@ export async function executePiTask(
           phase: 'output_validation',
         });
       }
+    }
+
+    if (cancelled) {
+      return {
+        taskId: task.id,
+        attemptN: attemptN,
+        status: 'cancelled',
+        output: null,
+        outputCid: null,
+        usage,
+        durationMs: Date.now() - startTime,
+        error: {
+          code: 'task_cancelled',
+          message:
+            reporter.cancelReason ??
+            'Task cancelled by imposer while pi session was running.',
+          retryable: false,
+        },
+      };
     }
 
     const status: TaskOutput['status'] =
@@ -420,6 +481,13 @@ export async function executePiTask(
     const message = err instanceof Error ? err.message : String(err);
     return makeFailedOutput('executor_unexpected_error', message);
   } finally {
+    // Remove the cancel listener before disposing the session so it
+    // can't fire after `dispose()` has torn the session down. `once`
+    // makes this redundant when the listener has already fired, but
+    // removeEventListener is a no-op in that case.
+    if (cancelListener) {
+      reporter.cancelSignal.removeEventListener('abort', cancelListener);
+    }
     if (session) {
       try {
         session.dispose();
@@ -463,6 +531,43 @@ function emptyUsage(provider: string, model: string): TaskUsage {
     provider,
     model,
   };
+}
+
+/**
+ * Wire `cancelSignal` → `session.abort()`. Returns the listener so the
+ * caller can remove it on cleanup. If the signal is already aborted at
+ * call time (cancel landed between session creation and wiring), fires
+ * abort synchronously instead of waiting for an `'abort'` event that
+ * already happened.
+ *
+ * Exported for unit testing without a booted Gondolin VM. The double-
+ * invocation guard handles both the rare "fire from constructor + later
+ * event" race and the (in-practice idempotent) double-call into
+ * `session.abort()`.
+ */
+export function wireSessionAbort(
+  cancelSignal: AbortSignal,
+  session: { abort: () => Promise<void> },
+): () => void {
+  let abortInvoked = false;
+  const listener = () => {
+    if (abortInvoked) return;
+    abortInvoked = true;
+    // Fire-and-forget: the executor awaits session.prompt() which is the
+    // natural sync point — abort propagates through the LLM stream and
+    // resolves prompt(). Adding a tracked promise here would just create
+    // another await ladder.
+    session.abort().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`[pi] session.abort() failed: ${message}\n`);
+    });
+  };
+  if (cancelSignal.aborted) {
+    listener();
+  } else {
+    cancelSignal.addEventListener('abort', listener, { once: true });
+  }
+  return listener;
 }
 
 /**
