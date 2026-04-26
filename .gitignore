@@ -48,6 +48,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Nx local cache
+.nx/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

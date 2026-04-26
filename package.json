@@ -78,6 +78,7 @@
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
     "@eslint/js": "catalog:",
+    "@nx-go/nx-go": "^4.0.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-boundaries": "catalog:",
@@ -86,6 +87,7 @@
     "husky": "catalog:",
     "knip": "catalog:",
     "lint-staged": "catalog:",
+    "nx": "^22.7.0",
     "prettier": "catalog:",
     "prettier-plugin-sort-json": "catalog:",
     "tsx": "catalog:",

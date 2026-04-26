@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "defaultBase": "main"
+  },
+  "plugins": ["@nx-go/nx-go"],
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["default", "^default"]
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "test": {
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "test:e2e": {
+      "cache": false,
+      "inputs": ["default", "^default"]
+    },
+    "typecheck": {
+      "cache": true,
+      "dependsOn": ["^typecheck"],
+      "inputs": ["default", "^default"]
+    }
+  }
+}
