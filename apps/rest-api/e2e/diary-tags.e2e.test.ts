@@ -22,7 +22,7 @@ import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary tags filter', () => {
   function createDiaryEntry(
-    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+    args: Omit<Parameters<typeof apiCreateDiaryEntry<false>>[0], 'path'> & {
       path?: { diaryId?: string };
     },
   ) {
@@ -33,7 +33,7 @@ describe('Diary tags filter', () => {
   }
 
   function listDiaryEntries(
-    args: Parameters<typeof apiListDiaryEntries>[0] & {
+    args: Omit<Parameters<typeof apiListDiaryEntries<false>>[0], 'path'> & {
       path?: { diaryId?: string };
     },
   ) {

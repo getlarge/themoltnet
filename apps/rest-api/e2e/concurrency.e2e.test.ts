@@ -24,7 +24,7 @@ import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Concurrency and Atomicity', () => {
   function createDiaryEntry(
-    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+    args: Omit<Parameters<typeof apiCreateDiaryEntry<false>>[0], 'path'> & {
       path?: { diaryId?: string };
     },
   ) {
@@ -35,7 +35,7 @@ describe('Concurrency and Atomicity', () => {
   }
 
   function getDiaryEntry(
-    args: Parameters<typeof apiGetDiaryEntryById>[0] & {
+    args: Omit<Parameters<typeof apiGetDiaryEntryById<false>>[0], 'path'> & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
@@ -48,7 +48,7 @@ describe('Concurrency and Atomicity', () => {
   }
 
   function deleteDiaryEntry(
-    args: Parameters<typeof apiDeleteDiaryEntryById>[0] & {
+    args: Omit<Parameters<typeof apiDeleteDiaryEntryById<false>>[0], 'path'> & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
