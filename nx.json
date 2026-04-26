@@ -1,14 +1,43 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "affected": {
-    "defaultBase": "main"
+  "defaultBase": "main",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "e2eGlobals": [
+      "{workspaceRoot}/docker-compose.base.yaml",
+      "{workspaceRoot}/docker-compose.e2e.yaml",
+      "{workspaceRoot}/docker-compose.e2e.ci.yaml",
+      "{workspaceRoot}/infra/ory/**",
+      "{workspaceRoot}/libs/database/drizzle/**"
+    ],
+    "production": [
+      "default",
+      "!{projectRoot}/**/*.test.ts",
+      "!{projectRoot}/**/*.spec.ts",
+      "!{projectRoot}/__tests__/**",
+      "!{projectRoot}/e2e/**",
+      "!{projectRoot}/vitest.config.*",
+      "!{projectRoot}/playwright.config.*"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/pnpm-lock.yaml",
+      "{workspaceRoot}/pnpm-workspace.yaml",
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/eslint.config.mjs",
+      "{workspaceRoot}/vite.shared.ts",
+      "{workspaceRoot}/env.public",
+      "{workspaceRoot}/go.work",
+      "{workspaceRoot}/go.work.sum"
+    ]
   },
   "plugins": ["@nx-go/nx-go"],
   "targetDefaults": {
     "build": {
       "cache": true,
       "dependsOn": ["^build"],
-      "inputs": ["default", "^default"]
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist", "{workspaceRoot}/dist/{projectRoot}*"]
     },
     "lint": {
       "cache": true,
@@ -16,16 +45,17 @@
     },
     "test": {
       "cache": true,
-      "inputs": ["default", "^default"]
+      "inputs": ["default", "^default", { "env": "DATABASE_URL" }]
     },
     "test:e2e": {
       "cache": false,
-      "inputs": ["default", "^default"]
+      "inputs": ["default", "^default", "e2eGlobals"]
     },
     "typecheck": {
       "cache": true,
       "dependsOn": ["^typecheck"],
-      "inputs": ["default", "^default"]
+      "inputs": ["default", "^default"],
+      "outputs": ["{projectRoot}/dist"]
     }
   }
 }
