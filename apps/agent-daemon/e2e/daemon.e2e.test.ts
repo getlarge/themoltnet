@@ -16,6 +16,7 @@ import {
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { finalizeTask } from '../src/lib/finalize.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 /**
@@ -171,19 +172,104 @@ describe('Agent daemon (e2e)', () => {
     expect(output.taskId).toBe(created.id);
     expect(output.status).toBe('completed');
 
-    // The runtime hands the output off; the daemon (or test, here) is
-    // responsible for reporting it. Mirror what apps/agent-daemon's
-    // finalize.ts does.
-    if (output.status === 'completed' && output.output && output.outputCid) {
-      await agent.tasks.complete(output.taskId, output.attemptN, {
-        output: output.output,
-        outputCid: output.outputCid,
-        usage: output.usage,
-      });
-    }
+    // The runtime hands the output off; the daemon is responsible for
+    // reporting it. Use the daemon's actual finalize helper.
+    await finalizeTask(agent, output);
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(1);
   }, 60_000);
+
+  it('honors imposer-side cancel — reporter heartbeat trips cancelSignal, runtime returns cancelled', async () => {
+    const created = await imposeCuratePackTask();
+
+    // The realistic path: the imposer cancels the task while the
+    // executor is running. The reporter's periodic heartbeat observes
+    // cancelled:true on the next tick, aborts cancelSignal, and the
+    // executor (which awaits the signal) returns promptly. The runtime
+    // ensures the final output is status:'cancelled' regardless of what
+    // the executor returned (#938).
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent: agent,
+        teamId: teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        log: () => {},
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          // Short interval so the reporter notices the cancel quickly.
+          heartbeatIntervalMs: 250,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        // Trigger the cancel from a separate microtask so the
+        // reporter's heartbeat timer (250ms) gets a chance to fire
+        // AFTER the cancel takes effect server-side.
+        setTimeout(() => {
+          void agent.tasks.cancel(claimedTask.task.id, {
+            reason: 'e2e test cancellation',
+          });
+        }, 50);
+
+        // Wait for cancelSignal to fire (the reporter's next heartbeat
+        // sees cancelled:true). Bound the wait so a regression doesn't
+        // hang the test — abort with a hard timeout if the signal
+        // doesn't fire within 5s.
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error('cancelSignal did not fire within 5s')),
+            5_000,
+          );
+          if (reporter.cancelSignal.aborted) {
+            clearTimeout(timer);
+            resolve();
+            return;
+          }
+          reporter.cancelSignal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer);
+              resolve();
+            },
+            { once: true },
+          );
+        });
+
+        // Honoring the cancel: return cancelled with the observed reason.
+        return {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'cancelled',
+          output: null,
+          outputCid: null,
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 0,
+          error: {
+            code: 'task_cancelled',
+            message: reporter.cancelReason ?? 'cancelled by imposer during e2e',
+            retryable: false,
+          },
+        };
+      },
+    });
+
+    const outputs = await runtime.start();
+    expect(outputs).toHaveLength(1);
+    const [output] = outputs;
+    expect(output.taskId).toBe(created.id);
+    expect(output.status).toBe('cancelled');
+
+    // finalizeTask must be a no-op for cancelled outputs — calling
+    // /complete or /fail after cancel returns 409.
+    await finalizeTask(agent, output);
+
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('cancelled');
+    expect(final.cancelReason).toBe('e2e test cancellation');
+  }, 30_000);
 });
