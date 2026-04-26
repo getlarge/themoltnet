@@ -3,14 +3,25 @@ import { DBOS } from '@dbos-inc/dbos-sdk';
 import type { DataSource } from '../dbos.js';
 import type { NewTaskAttempt, Task, TaskAttempt } from '../schema.js';
 
-export interface TaskAttemptResult {
-  kind: 'completed' | 'failed' | 'cancelled';
-  output?: unknown;
-  outputCid?: string;
-  completedExecutorFingerprint?: string;
-  error?: unknown;
-  usage?: unknown;
-}
+/**
+ * Discriminated event sent from the HTTP layer (heartbeat / complete /
+ * fail / cancel) to the running workflow over a single multiplexed
+ * `progress` topic (#936). The workflow's recv loop dispatches on
+ * `kind`; the union shape replaces the older two-topic
+ * (`started` + `result`) state machine.
+ */
+export type TaskProgressEvent =
+  | { kind: 'started'; leaseTtlSec?: number }
+  | { kind: 'heartbeat'; leaseTtlSec?: number }
+  | {
+      kind: 'completed';
+      output?: unknown;
+      outputCid?: string;
+      completedExecutorFingerprint?: string;
+      usage?: unknown;
+    }
+  | { kind: 'failed'; error?: unknown }
+  | { kind: 'cancelled'; error?: unknown };
 
 export interface TaskAttemptClaimedEvent {
   taskId: string;
@@ -22,6 +33,17 @@ export interface TaskAttemptFinalEvent {
   taskId: string;
   attemptN: number;
   output?: unknown;
+  /**
+   * For `timed_out` events, distinguishes which budget ran out:
+   * - `dispatch_expired` — first heartbeat never arrived
+   * - `lease_expired` — heartbeat silence exceeded the worker-set lease
+   * - `running_total_exceeded` — task ran longer than runningTimeoutSec
+   *   even with healthy heartbeats
+   */
+  timeoutReason?:
+    | 'dispatch_expired'
+    | 'lease_expired'
+    | 'running_total_exceeded';
 }
 
 export interface TaskWorkflowDeps {
@@ -169,6 +191,16 @@ export function initTaskWorkflows(): void {
     { name: 'task.step.removeClaimantTuple', ...stepConfig },
   );
 
+  // Returns wall-clock now() as a recorded value. DBOS replays the
+  // workflow body on recovery; bare Date.now() reads recovery time, not
+  // original start time, which would silently extend the running budget
+  // by a full runningTimeoutSec on every restart. Wrapping it in a step
+  // pins the value to the first execution.
+  const nowMsStep = DBOS.registerStep(async (): Promise<number> => Date.now(), {
+    name: 'task.step.nowMs',
+    ...stepConfig,
+  });
+
   // Wraps countAttempts + getMaxAttempts in a step so results are recorded in
   // the DBOS event log and not re-fetched on workflow replay (determinism).
   const getRetryInfoStep = DBOS.registerStep(
@@ -214,65 +246,122 @@ export function initTaskWorkflows(): void {
           attemptN,
         });
 
-        const started = await DBOS.recv<true>('started', dispatchTimeoutSec);
-        if (!started) {
-          const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-          const canRetry = attemptCount < maxAttempts;
-          // If the task was cancelled while the workflow was parked on
-          // recv('started') (#938 dispatch-phase race), don't clobber
-          // the cancelled status with queued/failed — just mark the
-          // attempt timed_out and exit. The row's final status was
-          // already set by cancel().
+        // Helper: if the row was already moved to a terminal state by an
+        // out-of-band actor (cancel(), a peer worker reaching it first),
+        // we must NOT clobber it with queued/failed. The dispatch and
+        // running-timeout branches both call this, then preserve task
+        // status while still recording the attempt outcome.
+        const checkExternalTerminal = async () => {
           const taskNow = await getDeps().findTaskById(taskId);
-          const taskAlreadyTerminal =
+          const isTerminal =
             taskNow !== null &&
             (taskNow.status === 'cancelled' ||
               taskNow.status === 'completed' ||
               taskNow.status === 'failed' ||
               taskNow.status === 'expired');
+          return { taskNow, isTerminal };
+        };
+
+        // ── Dispatch phase ─────────────────────────────────────────────
+        // Wait for the first event on the multiplexed `progress` topic.
+        // Expected kinds here: `started`, `cancelled`. If the event is
+        // missing the dispatch budget elapsed without the worker doing
+        // anything (`dispatch_expired`).
+        const firstEvent = await DBOS.recv<TaskProgressEvent>(
+          'progress',
+          dispatchTimeoutSec,
+        );
+
+        if (!firstEvent || firstEvent.kind === 'cancelled') {
+          const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
+          const canRetry = !firstEvent && attemptCount < maxAttempts;
+          const { taskNow, isTerminal } = await checkExternalTerminal();
           await getDeps().dataSource.runTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
-                status: 'timed_out',
+                status:
+                  firstEvent?.kind === 'cancelled' ? 'cancelled' : 'timed_out',
                 completedAt: new Date(),
+                error:
+                  firstEvent?.kind === 'cancelled'
+                    ? (firstEvent.error ?? null)
+                    : ({
+                        code: 'dispatch_expired',
+                        message:
+                          'Dispatch timed out before the worker started processing the attempt.',
+                      } as unknown),
               });
-              if (!taskAlreadyTerminal) {
+              if (!isTerminal) {
                 await getDeps().updateTaskStatus(
                   taskId,
-                  canRetry ? 'queued' : 'failed',
+                  firstEvent?.kind === 'cancelled'
+                    ? 'cancelled'
+                    : canRetry
+                      ? 'queued'
+                      : 'failed',
                   { claimAgentId: null, claimExpiresAt: null },
                 );
               } else {
-                // Just clear the claim metadata — the status itself
-                // stays whatever cancel() / a peer wrote.
-                await getDeps().updateTaskStatus(taskId, taskNow.status, {
+                await getDeps().updateTaskStatus(taskId, taskNow!.status, {
                   claimAgentId: null,
                   claimExpiresAt: null,
                 });
               }
             },
-            { name: 'task.tx.markDispatchTimedOut' },
+            { name: 'task.tx.markDispatchTerminal' },
           );
-          await removeClaimantTupleStep(taskId, agentId);
-          const event: TaskAttemptFinalEvent = {
-            status:
-              taskAlreadyTerminal && taskNow.status === 'cancelled'
+          const finalStatus: TaskAttemptFinalEvent['status'] =
+            firstEvent?.kind === 'cancelled'
+              ? 'cancelled'
+              : isTerminal && taskNow!.status === 'cancelled'
                 ? 'cancelled'
-                : 'timed_out',
+                : 'timed_out';
+          // Same rationale as persistTerminalResult: keep the claimant
+          // tuple alive after a cancel so the worker can still observe
+          // it via /heartbeat. Orphan sweeper (#937) cleans up later.
+          if (finalStatus !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
+          const event: TaskAttemptFinalEvent = {
+            status: finalStatus,
             taskId,
             attemptN,
+            ...(finalStatus === 'timed_out'
+              ? { timeoutReason: 'dispatch_expired' as const }
+              : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
           return event;
         }
 
+        // First event was a result-shaped one (completed / failed)?
+        // The HTTP layer's TERMINAL_STATUSES + claimed-status guards make
+        // this rare in practice, but we accept it: skip the running phase
+        // and persist directly. (Prior behaviour rejected with 409.)
+        if (firstEvent.kind === 'completed' || firstEvent.kind === 'failed') {
+          return persistTerminalResult(firstEvent);
+        }
+
+        // Otherwise: kind === 'started' (or 'heartbeat' from a runtime
+        // that skipped 'started'). Either way we now have liveness.
+        // Pin startedAtMs through a step so it survives DBOS replay
+        // (bare Date.now() in workflow body would re-evaluate on
+        // recovery, silently re-granting the running budget).
+        const startedAtMs = await nowMsStep();
+        let currentLeaseTtlSec =
+          firstEvent.kind === 'started' || firstEvent.kind === 'heartbeat'
+            ? (firstEvent.leaseTtlSec ?? leaseTtlSec)
+            : leaseTtlSec;
+
         // Atomic: mark attempt running + extend lease on task together.
-        const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
+        const leaseExpiresAt = new Date(
+          startedAtMs + currentLeaseTtlSec * 1000,
+        );
         await getDeps().dataSource.runTransaction(
           async () => {
             await getDeps().updateAttempt(taskId, attemptN, {
               status: 'running',
-              startedAt: new Date(),
+              startedAt: new Date(startedAtMs),
             });
             await getDeps().updateTaskStatus(taskId, 'running', {
               claimExpiresAt: leaseExpiresAt,
@@ -282,77 +371,169 @@ export function initTaskWorkflows(): void {
         );
         await DBOS.setEvent('running', { taskId, attemptN });
 
-        const result = await DBOS.recv<TaskAttemptResult>(
-          'result',
-          runningTimeoutSec,
-        );
-        if (!result) {
+        // ── Running phase: sliding-window loop ────────────────────────
+        // Heartbeats refresh the lease. The total budget is fixed at
+        // `runningTimeoutSec`; once exceeded the attempt ends with
+        // `running_total_exceeded` even if heartbeats are still flowing.
+        const totalDeadlineMs = startedAtMs + runningTimeoutSec * 1000;
+
+        async function persistTerminalResult(
+          evt:
+            | (TaskProgressEvent & { kind: 'completed' })
+            | (TaskProgressEvent & { kind: 'failed' })
+            | (TaskProgressEvent & { kind: 'cancelled' }),
+        ): Promise<TaskAttemptFinalEvent> {
+          const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
+          const canRetry = evt.kind === 'failed' && attemptCount < maxAttempts;
+          const now = new Date();
+          const { taskNow, isTerminal } = await checkExternalTerminal();
+          await getDeps().dataSource.runTransaction(
+            async () => {
+              await getDeps().updateAttempt(taskId, attemptN, {
+                status: evt.kind,
+                completedAt: now,
+                output: evt.kind === 'completed' ? (evt.output ?? null) : null,
+                outputCid:
+                  evt.kind === 'completed' ? (evt.outputCid ?? null) : null,
+                completedExecutorFingerprint:
+                  evt.kind === 'completed'
+                    ? (evt.completedExecutorFingerprint ?? null)
+                    : null,
+                error:
+                  evt.kind === 'failed' || evt.kind === 'cancelled'
+                    ? (evt.error ?? null)
+                    : null,
+                usage: evt.kind === 'completed' ? (evt.usage ?? null) : null,
+              });
+              if (evt.kind === 'completed') {
+                await getDeps().updateTaskStatus(taskId, 'completed', {
+                  completedAt: now,
+                  acceptedAttemptN: attemptN,
+                  claimAgentId: null,
+                  claimExpiresAt: null,
+                });
+              } else if (isTerminal) {
+                await getDeps().updateTaskStatus(taskId, taskNow!.status, {
+                  claimAgentId: null,
+                  claimExpiresAt: null,
+                });
+              } else {
+                await getDeps().updateTaskStatus(
+                  taskId,
+                  canRetry ? 'queued' : evt.kind,
+                  { claimAgentId: null, claimExpiresAt: null },
+                );
+              }
+            },
+            { name: 'task.tx.persistResult' },
+          );
+          // For 'cancelled', leave the Keto claimant tuple in place so
+          // the worker's next /heartbeat can still pass canReportTask
+          // and observe `cancelled: true` in the response (#938).
+          // The orphan-recovery sweeper (#937) cleans these up later.
+          if (evt.kind !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
+          const event: TaskAttemptFinalEvent =
+            evt.kind === 'completed'
+              ? { status: 'completed', taskId, attemptN, output: evt.output }
+              : { status: evt.kind, taskId, attemptN };
+          await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          return event;
+        }
+
+        async function persistTimeout(
+          reason: 'lease_expired' | 'running_total_exceeded',
+        ): Promise<TaskAttemptFinalEvent> {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           const canRetry = attemptCount < maxAttempts;
+          const { taskNow, isTerminal } = await checkExternalTerminal();
           await getDeps().dataSource.runTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
                 status: 'timed_out',
                 completedAt: new Date(),
+                error: { code: reason, message: reason } as unknown,
               });
-              await getDeps().updateTaskStatus(
-                taskId,
-                canRetry ? 'queued' : 'failed',
-                { claimAgentId: null, claimExpiresAt: null },
-              );
+              if (!isTerminal) {
+                await getDeps().updateTaskStatus(
+                  taskId,
+                  canRetry ? 'queued' : 'failed',
+                  { claimAgentId: null, claimExpiresAt: null },
+                );
+              } else {
+                await getDeps().updateTaskStatus(taskId, taskNow!.status, {
+                  claimAgentId: null,
+                  claimExpiresAt: null,
+                });
+              }
             },
             { name: 'task.tx.markRunningTimedOut' },
           );
           await removeClaimantTupleStep(taskId, agentId);
+          const finalStatus: TaskAttemptFinalEvent['status'] =
+            isTerminal && taskNow!.status === 'cancelled'
+              ? 'cancelled'
+              : 'timed_out';
           const event: TaskAttemptFinalEvent = {
-            status: 'timed_out',
+            status: finalStatus,
             taskId,
             attemptN,
+            // Only attach timeoutReason when the workflow's timeout is
+            // authoritative — i.e., the task was not concurrently moved
+            // to a terminal state by an external actor (cancel, peer).
+            ...(finalStatus === 'timed_out' ? { timeoutReason: reason } : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
           return event;
         }
 
-        const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-        const canRetry = result.kind === 'failed' && attemptCount < maxAttempts;
-        const now = new Date();
-        // Atomic: persist attempt result + final task status together.
-        await getDeps().dataSource.runTransaction(
-          async () => {
-            await getDeps().updateAttempt(taskId, attemptN, {
-              status: result.kind,
-              completedAt: now,
-              output: result.output ?? null,
-              outputCid: result.outputCid ?? null,
-              completedExecutorFingerprint:
-                result.completedExecutorFingerprint ?? null,
-              error: result.error ?? null,
-              usage: result.usage ?? null,
-            });
-            if (result.kind === 'completed') {
-              await getDeps().updateTaskStatus(taskId, 'completed', {
-                completedAt: now,
-                acceptedAttemptN: attemptN,
-                claimAgentId: null,
-                claimExpiresAt: null,
-              });
-            } else {
-              await getDeps().updateTaskStatus(
-                taskId,
-                canRetry ? 'queued' : result.kind,
-                { claimAgentId: null, claimExpiresAt: null },
-              );
+        while (true) {
+          const remainingMs = totalDeadlineMs - Date.now();
+          if (remainingMs <= 0) {
+            return persistTimeout('running_total_exceeded');
+          }
+          // Cap each recv at the lease ttl, but never wait past the
+          // total budget (so `running_total_exceeded` fires promptly).
+          // Ceil + max-1 so we never under-shoot the deadline check.
+          // Trade-off: a runaway task may live up to 1s past
+          // runningTimeoutSec because DBOS.recv takes whole seconds.
+          // Floor would be precise on the cap but mis-attributes
+          // running_total_exceeded as lease_expired when the recv
+          // returns just before the deadline crosses (e.g.,
+          // remainingMs=1500 floors to 1s, recv parks 1s, but
+          // remainingMs at wake is still 500ms positive).
+          const recvSec = Math.max(
+            1,
+            Math.min(currentLeaseTtlSec, Math.ceil(remainingMs / 1000)),
+          );
+          const evt = await DBOS.recv<TaskProgressEvent>('progress', recvSec);
+          if (!evt) {
+            // Timed out the recv. Distinguish: if the total budget is
+            // also gone, that's `running_total_exceeded`; otherwise
+            // it's a missed-heartbeat `lease_expired`.
+            if (Date.now() >= totalDeadlineMs) {
+              return persistTimeout('running_total_exceeded');
             }
-          },
-          { name: 'task.tx.persistResult' },
-        );
-        await removeClaimantTupleStep(taskId, agentId);
-
-        const event: TaskAttemptFinalEvent =
-          result.kind === 'completed'
-            ? { status: 'completed', taskId, attemptN, output: result.output }
-            : { status: result.kind, taskId, attemptN };
-        return event;
+            return persistTimeout('lease_expired');
+          }
+          if (evt.kind === 'heartbeat' || evt.kind === 'started') {
+            // Started after we're already running is a duplicate from a
+            // misbehaving client; treat it as a heartbeat to refresh the
+            // lease anyway. heartbeat: refresh window.
+            currentLeaseTtlSec = evt.leaseTtlSec ?? currentLeaseTtlSec;
+            continue;
+          }
+          if (
+            evt.kind === 'completed' ||
+            evt.kind === 'failed' ||
+            evt.kind === 'cancelled'
+          ) {
+            return persistTerminalResult(evt);
+          }
+          // Unknown kind — log and continue. DBOS replay determinism
+          // requires we don't throw here on event content.
+        }
       },
       { name: 'task.workflow.startAttempt' },
     ),
