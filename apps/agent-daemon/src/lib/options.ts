@@ -3,6 +3,11 @@
  *
  * Every subcommand accepts the same agent/provider/model + reporter knobs,
  * so we factor the validation out to keep the entry points thin.
+ *
+ * No defaults for `agent` / `provider` / `model` — these depend entirely on
+ * the operator's setup (which credentials directory under `.moltnet/`,
+ * which LLM provider, which model id). Defaulting any of them produces
+ * silent misconfigurations on someone else's machine.
  */
 export interface CommonOptions {
   agent: string;
@@ -25,26 +30,33 @@ export interface CommonRawArgs {
 }
 
 const DEFAULTS = {
-  agent: 'legreffier',
-  provider: 'openai-codex',
-  model: 'gpt-5.3-codex',
   leaseTtlSec: 300,
   heartbeatIntervalMs: 60_000,
   maxBatchSize: 50,
   flushIntervalMs: 200,
 } as const;
 
+export class MissingRequiredOptionError extends Error {
+  constructor(public readonly flag: string) {
+    super(`Missing required flag: --${flag}`);
+    this.name = 'MissingRequiredOptionError';
+  }
+}
+
 export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
-  const agent = args.agent ?? DEFAULTS.agent;
-  if (!/^[a-zA-Z0-9_-]+$/.test(agent)) {
+  if (!args.agent) throw new MissingRequiredOptionError('agent');
+  if (!args.provider) throw new MissingRequiredOptionError('provider');
+  if (!args.model) throw new MissingRequiredOptionError('model');
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(args.agent)) {
     throw new Error(
-      `Invalid --agent "${agent}": must match /^[a-zA-Z0-9_-]+$/`,
+      `Invalid --agent "${args.agent}": must match /^[a-zA-Z0-9_-]+$/`,
     );
   }
   const opts: CommonOptions = {
-    agent,
-    provider: args.provider ?? DEFAULTS.provider,
-    model: args.model ?? DEFAULTS.model,
+    agent: args.agent,
+    provider: args.provider,
+    model: args.model,
     leaseTtlSec: parsePositiveInt(
       args['lease-ttl-sec'],
       'lease-ttl-sec',

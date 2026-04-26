@@ -17,7 +17,12 @@ import { createPiTaskExecutor } from '@themoltnet/pi-extension';
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
 import { finalizeTask } from '../lib/finalize.js';
-import { commonOptionDefs, parseCommonOptions } from '../lib/options.js';
+import { isHelpFlag, validateTaskTypes } from '../lib/help.js';
+import {
+  commonOptionDefs,
+  MissingRequiredOptionError,
+  parseCommonOptions,
+} from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { loadSandboxConfig } from '../lib/sandbox.js';
 
@@ -26,9 +31,15 @@ export interface PollSharedArgs {
   serviceName: string;
   stopWhenEmpty: boolean;
   modeLabel: string;
+  helpText: string;
 }
 
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
+  if (isHelpFlag(opts.argv)) {
+    console.log(opts.helpText);
+    return 0;
+  }
+
   const { values } = parseArgs({
     args: opts.argv,
     options: {
@@ -43,14 +54,32 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   });
 
   if (!values.team) {
-    console.error(`Usage: agent-daemon ${opts.modeLabel} --team <uuid> [...]`);
+    console.error('Missing required flag: --team\n');
+    console.error(opts.helpText);
     return 1;
   }
 
   const teamId = values.team;
-  const taskTypes = parseCsv(values['task-types']);
+  let taskTypes: string[];
+  try {
+    taskTypes = validateTaskTypes(parseCsv(values['task-types']));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(message);
+    return 1;
+  }
   const diaryIds = parseCsv(values['diary-ids']);
-  const common = parseCommonOptions(values);
+  let common;
+  try {
+    common = parseCommonOptions(values);
+  } catch (err) {
+    if (err instanceof MissingRequiredOptionError) {
+      console.error(`${err.message}\n`);
+      console.error(opts.helpText);
+      return 1;
+    }
+    throw err;
+  }
   const pollIntervalMs = optionalPositiveInt(
     values['poll-interval-ms'],
     'poll-interval-ms',
