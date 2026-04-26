@@ -265,6 +265,10 @@ type ListTaskMessagesRes interface {
 	listTaskMessagesRes()
 }
 
+type ListTaskSchemasRes interface {
+	listTaskSchemasRes()
+}
+
 type ListTasksRes interface {
 	listTasksRes()
 }

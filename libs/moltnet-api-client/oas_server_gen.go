@@ -446,6 +446,13 @@ type Handler interface {
 	//
 	// GET /tasks/{id}/attempts/{n}/messages
 	ListTaskMessages(ctx context.Context, params ListTaskMessagesParams) (ListTaskMessagesRes, error)
+	// ListTaskSchemas implements listTaskSchemas operation.
+	//
+	// List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use
+	// this to render forms or validate inputs without hardcoding the registry.
+	//
+	// GET /tasks/schemas
+	ListTaskSchemas(ctx context.Context) (ListTaskSchemasRes, error)
 	// ListTasks implements listTasks operation.
 	//
 	// List tasks for a team with optional filters.

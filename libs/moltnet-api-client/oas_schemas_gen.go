@@ -10974,6 +10974,23 @@ type ListTaskMessagesUnauthorized ProblemDetails
 
 func (*ListTaskMessagesUnauthorized) listTaskMessagesRes() {}
 
+// Ref: #/components/schemas/ListTaskSchemasResponse
+type ListTaskSchemasResponse struct {
+	Items []TaskTypeDescriptor `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListTaskSchemasResponse) GetItems() []TaskTypeDescriptor {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListTaskSchemasResponse) SetItems(val []TaskTypeDescriptor) {
+	s.Items = val
+}
+
+func (*ListTaskSchemasResponse) listTaskSchemasRes() {}
+
 type ListTasksForbidden ProblemDetails
 
 func (*ListTasksForbidden) listTasksRes() {}
@@ -15352,6 +15369,7 @@ func (s *ProblemDetails) SetType(val url.URL) {
 
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
+func (*ProblemDetails) listTaskSchemasRes()               {}
 
 type ProblemDetailsCode string
 
@@ -20801,6 +20819,106 @@ func (s *TaskStatus) UnmarshalText(data []byte) error {
 		return nil
 	case TaskStatusExpired:
 		*s = TaskStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TaskTypeDescriptor
+type TaskTypeDescriptor struct {
+	InputSchema    TaskTypeDescriptorInputSchema `json:"inputSchema"`
+	InputSchemaCid string                        `json:"inputSchemaCid"`
+	OutputKind     TaskTypeDescriptorOutputKind  `json:"outputKind"`
+	TaskType       string                        `json:"taskType"`
+}
+
+// GetInputSchema returns the value of InputSchema.
+func (s *TaskTypeDescriptor) GetInputSchema() TaskTypeDescriptorInputSchema {
+	return s.InputSchema
+}
+
+// GetInputSchemaCid returns the value of InputSchemaCid.
+func (s *TaskTypeDescriptor) GetInputSchemaCid() string {
+	return s.InputSchemaCid
+}
+
+// GetOutputKind returns the value of OutputKind.
+func (s *TaskTypeDescriptor) GetOutputKind() TaskTypeDescriptorOutputKind {
+	return s.OutputKind
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *TaskTypeDescriptor) GetTaskType() string {
+	return s.TaskType
+}
+
+// SetInputSchema sets the value of InputSchema.
+func (s *TaskTypeDescriptor) SetInputSchema(val TaskTypeDescriptorInputSchema) {
+	s.InputSchema = val
+}
+
+// SetInputSchemaCid sets the value of InputSchemaCid.
+func (s *TaskTypeDescriptor) SetInputSchemaCid(val string) {
+	s.InputSchemaCid = val
+}
+
+// SetOutputKind sets the value of OutputKind.
+func (s *TaskTypeDescriptor) SetOutputKind(val TaskTypeDescriptorOutputKind) {
+	s.OutputKind = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *TaskTypeDescriptor) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+type TaskTypeDescriptorInputSchema map[string]jx.Raw
+
+func (s *TaskTypeDescriptorInputSchema) init() TaskTypeDescriptorInputSchema {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type TaskTypeDescriptorOutputKind string
+
+const (
+	TaskTypeDescriptorOutputKindArtifact TaskTypeDescriptorOutputKind = "artifact"
+	TaskTypeDescriptorOutputKindJudgment TaskTypeDescriptorOutputKind = "judgment"
+)
+
+// AllValues returns all TaskTypeDescriptorOutputKind values.
+func (TaskTypeDescriptorOutputKind) AllValues() []TaskTypeDescriptorOutputKind {
+	return []TaskTypeDescriptorOutputKind{
+		TaskTypeDescriptorOutputKindArtifact,
+		TaskTypeDescriptorOutputKindJudgment,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskTypeDescriptorOutputKind) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskTypeDescriptorOutputKindArtifact:
+		return []byte(s), nil
+	case TaskTypeDescriptorOutputKindJudgment:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskTypeDescriptorOutputKind) UnmarshalText(data []byte) error {
+	switch TaskTypeDescriptorOutputKind(data) {
+	case TaskTypeDescriptorOutputKindArtifact:
+		*s = TaskTypeDescriptorOutputKindArtifact
+		return nil
+	case TaskTypeDescriptorOutputKindJudgment:
+		*s = TaskTypeDescriptorOutputKindJudgment
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
