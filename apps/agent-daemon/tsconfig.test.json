@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "outDir": "./dist/.test",
+    "tsBuildInfoFile": "./dist/.test/tsconfig.tsbuildinfo",
+    "types": ["vitest/globals", "node"]
+  },
+  "exclude": ["dist", "node_modules"],
+  "extends": "../../tsconfig.json",
+  "include": ["e2e/**/*.ts"],
+  "references": [{ "path": "./tsconfig.json" }]
+}

@@ -1,145 +1,73 @@
 /**
- * fulfill-brief.ts — GitHub-issue convenience shim over `@themoltnet/agent-runtime`.
+ * fulfill-brief.ts — synthesize a `fulfill_brief` task from a GitHub issue
+ * and POST it to the Tasks API. Execution happens later, in the daemon.
  *
  * What it does
  * ------------
- * Synthesizes a `fulfill_brief` Task from a GitHub issue and executes it
- * headlessly in a Gondolin VM via `createPiTaskExecutor`. The issue body +
- * recent comments become the brief; the task runs through the same
- * AgentRuntime + reporter path as any other `fulfill_brief` task.
- *
- * This is the same wire-format Task that the future API daemon will claim
- * from `POST /agent-runtimes/:id/tasks/claim`. The only difference here is
- * the source — we build the Task in-process from `gh issue view` instead of
- * pulling it from the server.
+ * Reads `gh issue view <ref>` (using the agent's GitHub App token), turns
+ * the issue body + recent comments into a `FulfillBriefInput`, and calls
+ * `agent.tasks.create(...)`. Prints the new task id and a console URL on
+ * stdout. The created task lands in the queue with status `queued`; any
+ * daemon polling for `fulfill_brief` will claim it.
  *
  * Prerequisites
  * -------------
- * - `sandbox.json` present in the current working directory (defines the
- *   Gondolin snapshot + egress policy).
- * - `.moltnet/<agent>/` populated: `moltnet.json` credentials, `env` with
- *   at minimum `MOLTNET_TEAM_ID` (and optionally `MOLTNET_DIARY_ID`), and
- *   the SSH signing key used by the accountable-commit workflow.
- * - `gh` CLI on PATH. The script resolves a short-lived GitHub App token
- *   from the agent's `moltnet.json` (never falls back to human auth).
- * - Run from the **main worktree** (`/Users/.../themoltnet`), not a nested
- *   `.claude/worktrees/*` worktree — the VM mounts the tree at `/workspace`
- *   and nested-worktree `.git` pointer files can't resolve there.
+ * - `.moltnet/<agent>/` populated with `moltnet.json` and `env`
+ *   (at minimum `MOLTNET_TEAM_ID`)
+ * - `gh` CLI on PATH
  *
  * Usage
  * -----
- *   pnpm --filter @moltnet/tools resolve-issue --issue 123
- *   pnpm --filter @moltnet/tools resolve-issue --issue 123 \
- *     --agent legreffier --provider anthropic --model claude-sonnet-4-5
- *
- *   # Or directly, from any cwd with sandbox.json:
- *   pnpm exec tsx tools/src/tasks/fulfill-brief.ts --issue 123
- *
- *   # Inspect the synthesized Task without booting a VM:
- *   pnpm exec tsx tools/src/tasks/fulfill-brief.ts --issue 123 --dry-run
+ *   pnpm --filter @moltnet/tools task:fulfill-brief --issue 123
+ *   pnpm --filter @moltnet/tools task:fulfill-brief --issue 123 --dry-run
  *
  * Flags
  * -----
  *   -i, --issue     GitHub issue number or URL (required)
- *   -a, --agent     MoltNet agent name (default: legreffier). Must match
- *                   `.moltnet/<name>/` on disk; restricted to [A-Za-z0-9_-].
- *   -p, --provider  LLM provider (default: anthropic)
- *   -m, --model     Model id for that provider (default: claude-sonnet-4-5)
- *       --dry-run   Print the synthesized Task JSON and exit without
- *                   booting the VM.
- *
- * What runs inside the VM
- * -----------------------
- * The brief (built from issue body + last 5 comments) is handed to the
- * `fulfill_brief` prompt mapper, which instructs the agent to:
- *   1. Create a feature branch `fix/<issue>-<slug>`
- *   2. Understand + implement the change
- *   3. Follow the legreffier accountable-commit flow (signed diary entry
- *      per commit)
- *   4. Push the branch and open a PR referencing the issue
- *
- * Tool calls (read/write/edit/bash) execute inside the Gondolin VM via the
- * redirected ops in `libs/pi-extension/src/tool-operations.ts`. The MoltNet
- * diary/entry tools talk to the REST API through the egress proxy using the
- * agent's credentials. Final `TaskOutput` (status, usage, duration) is
- * printed on stdout.
+ *   -a, --agent     MoltNet agent name (default: legreffier)
+ *       --dry-run   Print the synthesized Task input + skip the POST.
  *
  * Exit codes
  * ----------
- *   0 — task completed successfully
- *   1 — task failed, cancelled, or runtime error (missing args, missing
- *       MOLTNET_TEAM_ID, gh token resolution failure, etc.)
- *
- * Related
- * -------
- *   tools/src/tasks/run-task.ts — execute any Task fixture (not GH-specific)
- *   libs/agent-runtime/        — runtime + reporters + task sources
- *   libs/pi-extension/runtime  — createPiTaskExecutor (VM wiring)
- *   libs/tasks/                — Task / FulfillBriefInput schemas
+ *   0 — task created (or dry-run completed)
+ *   1 — bad args, missing creds, missing MOLTNET_TEAM_ID, gh failure, API error
  */
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
 
 import {
-  AgentRuntime,
-  StdoutReporter,
-  type TaskSource,
-} from '@themoltnet/agent-runtime';
-import {
   FULFILL_BRIEF_TYPE,
   type FulfillBriefInput,
-  type Task,
 } from '@themoltnet/agent-runtime';
-import {
-  createPiTaskExecutor,
-  type SandboxConfig,
-} from '@themoltnet/pi-extension';
-
-import { initWorkerOtel } from './otel-bootstrap.js';
-
-// ---------------------------------------------------------------------------
-// CLI args
-// ---------------------------------------------------------------------------
+import { connect } from '@themoltnet/sdk';
 
 const { values: args } = parseArgs({
   options: {
     issue: { type: 'string', short: 'i' },
     agent: { type: 'string', short: 'a', default: 'legreffier' },
-    model: { type: 'string', short: 'm', default: 'claude-sonnet-4-5' },
-    provider: { type: 'string', short: 'p', default: 'anthropic' },
     'dry-run': { type: 'boolean', default: false },
   },
 });
 
 if (!args.issue) {
   console.error(
-    'Usage: tsx tools/src/tasks/fulfill-brief.ts --issue <number|url>',
+    'Usage: tsx tools/src/tasks/fulfill-brief.ts --issue <number|url> [--agent <name>] [--dry-run]',
   );
   process.exit(1);
 }
 
 const issueRef = args.issue;
 const agentName = args.agent!;
-const modelId = args.model!;
-const provider = args.provider!;
 const dryRun = args['dry-run']!;
 
-// The agent name is joined into filesystem paths below. Reject anything
-// that could escape the `.moltnet/` directory via traversal or absolute
-// segments. Matches the set of identifiers the onboarding flow emits.
 if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
   console.error(
     `Invalid --agent "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
   );
   process.exit(1);
 }
-
-// ---------------------------------------------------------------------------
-// GitHub helpers (host-side — the shim needs them before the VM boots)
-// ---------------------------------------------------------------------------
 
 function getAgentGhToken(agentDir: string): string {
   const credsPath = join(agentDir, 'moltnet.json');
@@ -180,10 +108,6 @@ function fetchIssue(cwd: string, ghToken: string): GhIssue {
   return JSON.parse(raw) as GhIssue;
 }
 
-// ---------------------------------------------------------------------------
-// Build the fulfill_brief Task from the GitHub issue
-// ---------------------------------------------------------------------------
-
 function buildBriefFromIssue(issue: GhIssue): FulfillBriefInput {
   const labelList = issue.labels.map((l) => l.name).join(', ');
   const recent = issue.comments
@@ -220,24 +144,59 @@ function buildBriefFromIssue(issue: GhIssue): FulfillBriefInput {
   };
 }
 
-function buildFulfillBriefTask(
-  issue: GhIssue,
-  teamId: string,
-  diaryId: string | null,
-): Task {
+async function main() {
+  const cwd = process.cwd();
+  const mainRepo = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+    encoding: 'utf8',
+  }).trim();
+  const agentDir = join(mainRepo, '.moltnet', agentName);
+  const envRaw = readFileSync(join(agentDir, 'env'), 'utf8');
+  const envMatches = parseEnv(envRaw);
+  const teamId = envMatches['MOLTNET_TEAM_ID'];
+  if (!teamId) {
+    throw new Error(
+      `Missing MOLTNET_TEAM_ID in ${join(agentDir, 'env')}. ` +
+        'Run the agent onboarding flow to populate the env file.',
+    );
+  }
+  const diaryId = envMatches['MOLTNET_DIARY_ID'];
+  if (!diaryId) {
+    throw new Error(
+      `Missing MOLTNET_DIARY_ID in ${join(agentDir, 'env')}. ` +
+        'The Tasks API requires a diary id on every task. Set ' +
+        'MOLTNET_DIARY_ID to the diary that should own this brief.',
+    );
+  }
+
+  console.error(`[issue] Fetching #${issueRef}...`);
+  const ghToken = getAgentGhToken(agentDir);
+  const issue = fetchIssue(cwd, ghToken);
+  console.error(`[issue] #${issue.number}: ${issue.title}`);
+
   const input = buildBriefFromIssue(issue);
-  return {
-    id: randomUUID(),
+
+  if (dryRun) {
+    console.log(
+      JSON.stringify(
+        {
+          taskType: FULFILL_BRIEF_TYPE,
+          teamId,
+          diaryId,
+          input,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const agent = await connect({ configDir: agentDir });
+  const task = await agent.tasks.create({
     taskType: FULFILL_BRIEF_TYPE,
-    teamId: teamId,
-    diaryId: diaryId,
-    outputKind: 'artifact',
+    teamId,
+    diaryId,
     input: input as unknown as Record<string, unknown>,
-    // PR 0 does not persist tasks — these CIDs are placeholders. PR 1 will
-    // compute them from the actual canonical JSON bytes.
-    inputSchemaCid: 'cid-placeholder-input-schema',
-    inputCid: 'cid-placeholder-input',
-    criteriaCid: null,
     references: [
       {
         taskId: null,
@@ -249,128 +208,13 @@ function buildFulfillBriefTask(
         },
       },
     ],
-    correlationId: null,
-    imposedByAgentId: null,
-    imposedByHumanId: null,
-    acceptedAttemptN: null,
-    requiredExecutorTrustLevel: 'selfDeclared',
-    status: 'running',
-    queuedAt: new Date().toISOString(),
-    completedAt: null,
-    expiresAt: null,
-    cancelledByAgentId: null,
-    cancelledByHumanId: null,
-    cancelReason: null,
-    maxAttempts: 1,
-    dispatchTimeoutSec: null,
-    runningTimeoutSec: null,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Ad-hoc in-memory TaskSource: yields one task, then exhausts.
-// ---------------------------------------------------------------------------
-
-class SingleTaskSource implements TaskSource {
-  private yielded = false;
-  constructor(private readonly task: Task) {}
-  async claim() {
-    if (this.yielded) return null;
-    this.yielded = true;
-    return { task: this.task, attemptN: 1, traceHeaders: {} };
-  }
-  async close(): Promise<void> {
-    /* no-op */
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-async function main() {
-  const cwd = process.cwd();
-  const sandboxConfig = JSON.parse(
-    readFileSync(join(cwd, 'sandbox.json'), 'utf8'),
-  ) as SandboxConfig;
-
-  // Resolve agentDir + creds so we can fetch the GH issue before booting.
-  const mainRepo = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-    encoding: 'utf8',
-  }).trim();
-  const agentDir = join(mainRepo, '.moltnet', agentName);
-  const envRaw = readFileSync(join(agentDir, 'env'), 'utf8');
-  const envMatches = parseEnv(envRaw);
-  const teamId = envMatches['MOLTNET_TEAM_ID'];
-  if (!teamId) {
-    throw new Error(
-      `Missing MOLTNET_TEAM_ID in ${join(agentDir, 'env')}. ` +
-        'Refusing to synthesize a Task with a random team id — the downstream ' +
-        'DB / Keto would reject it. Set MOLTNET_TEAM_ID or run the agent ' +
-        'onboarding flow to populate the env file.',
-    );
-  }
-  const diaryId = envMatches['MOLTNET_DIARY_ID'] ?? null;
-
-  console.log(`[issue] Fetching #${issueRef}...`);
-  const ghToken = getAgentGhToken(agentDir);
-  const issue = fetchIssue(cwd, ghToken);
-  console.log(`[issue] #${issue.number}: ${issue.title}`);
-
-  const task = buildFulfillBriefTask(issue, teamId, diaryId);
-
-  if (dryRun) {
-    console.log('\n[dry-run] Synthesized Task:');
-    console.log(JSON.stringify(task, null, 2));
-    return;
-  }
-
-  const otelShutdown = await initWorkerOtel({
-    serviceName: 'moltnet.fulfill-brief',
-    agentDir,
-    resourceAttributes: {
-      'moltnet.task.id': task.id,
-      'moltnet.agent.name': agentName,
-      'moltnet.llm.provider': provider,
-      'moltnet.llm.model': modelId,
-      'moltnet.issue.number': String(issue.number),
-    },
   });
 
-  try {
-    const executeTask = createPiTaskExecutor({
-      agentName,
-      mountPath: cwd,
-      provider,
-      model: modelId,
-      sandboxConfig,
-    });
-
-    const runtime = new AgentRuntime({
-      source: new SingleTaskSource(task),
-      makeReporter: () => new StdoutReporter(),
-      executeTask,
-    });
-
-    const outputs = await runtime.start();
-    const [output] = outputs;
-    // exitCode (not process.exit) so the finally below runs first and
-    // OTel batches drain before the process exits.
-    if (!output) {
-      console.error('[fatal] Runtime produced no outputs');
-      process.exitCode = 1;
-      return;
-    }
-
-    console.log('\n[done] TaskOutput:');
-    console.log(JSON.stringify(output, null, 2));
-    if (output.status !== 'completed') process.exitCode = 1;
-  } finally {
-    await otelShutdown();
-  }
+  console.error(`[task] created ${task.id} (status=${task.status})`);
+  console.log(JSON.stringify({ id: task.id, status: task.status }, null, 2));
 }
 
 main().catch((err) => {
-  console.error('[fatal]', err);
+  console.error('[fatal]', err instanceof Error ? err.message : String(err));
   process.exit(1);
 });

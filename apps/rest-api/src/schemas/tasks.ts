@@ -181,6 +181,29 @@ export const AppendMessagesResponseSchema = Type.Object(
   { $id: 'AppendMessagesResponse' },
 );
 
+export const TaskTypeDescriptorSchema = Type.Object(
+  {
+    taskType: Type.String(),
+    outputKind: Type.Union([
+      Type.Literal('artifact'),
+      Type.Literal('judgment'),
+    ]),
+    inputSchemaCid: Type.String(),
+    // The embedded schema is arbitrary JSON Schema — we don't constrain
+    // its shape here. Consumers parse it client-side to render forms or
+    // validate inputs.
+    inputSchema: Type.Record(Type.String(), Type.Unknown()),
+  },
+  { $id: 'TaskTypeDescriptor' },
+);
+
+export const ListTaskSchemasResponseSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(TaskTypeDescriptorSchema)),
+  },
+  { $id: 'ListTaskSchemasResponse' },
+);
+
 export const taskSchemas = [
   // Primitive enums first (no dependencies)
   TaskStatus,
@@ -209,4 +232,6 @@ export const taskSchemas = [
   ClaimTaskResponseSchema,
   HeartbeatResponseSchema,
   AppendMessagesResponseSchema,
+  TaskTypeDescriptorSchema,
+  ListTaskSchemasResponseSchema,
 ];

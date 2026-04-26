@@ -1746,6 +1746,18 @@
         },
         "type": "object"
       },
+      "ListTaskSchemasResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskTypeDescriptor"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "type": "object"
+      },
       "ListTasksQuery": {
         "properties": {
           "correlationId": {
@@ -3753,6 +3765,26 @@
           "expired"
         ],
         "type": "string"
+      },
+      "TaskTypeDescriptor": {
+        "properties": {
+          "inputSchema": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "inputSchemaCid": {
+            "type": "string"
+          },
+          "outputKind": {
+            "enum": ["artifact", "judgment"],
+            "type": "string"
+          },
+          "taskType": {
+            "type": "string"
+          }
+        },
+        "required": ["taskType", "outputKind", "inputSchemaCid", "inputSchema"],
+        "type": "object"
       },
       "TaskUsage": {
         "additionalProperties": false,
@@ -11726,6 +11758,46 @@
             "description": "Default Response"
           },
           "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": ["tasks"]
+      }
+    },
+    "/tasks/schemas": {
+      "get": {
+        "description": "List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use this to render forms or validate inputs without hardcoding the registry.",
+        "operationId": "listTaskSchemas",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTaskSchemasResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
             "content": {
               "application/json": {
                 "schema": {

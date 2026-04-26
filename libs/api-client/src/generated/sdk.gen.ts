@@ -211,6 +211,9 @@ import type {
   ListTaskMessagesData,
   ListTaskMessagesErrors,
   ListTaskMessagesResponses,
+  ListTaskSchemasData,
+  ListTaskSchemasErrors,
+  ListTaskSchemasResponses,
   ListTasksData,
   ListTasksErrors,
   ListTasksResponses,
@@ -2348,6 +2351,30 @@ export const getLegreffierOnboardingStatus = <
     GetLegreffierOnboardingStatusErrors,
     ThrowOnError
   >({ url: '/public/legreffier/status/{workflowId}', ...options });
+
+/**
+ * List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use this to render forms or validate inputs without hardcoding the registry.
+ */
+export const listTaskSchemas = <ThrowOnError extends boolean = false>(
+  options?: Options<ListTaskSchemasData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListTaskSchemasResponses,
+    ListTaskSchemasErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/schemas',
+    ...options,
+  });
 
 /**
  * List tasks for a team with optional filters.

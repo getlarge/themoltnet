@@ -4,7 +4,13 @@ import {
   ProblemDetailsSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
-import { Task, TaskAttempt, TaskMessage } from '@moltnet/tasks';
+import {
+  BUILT_IN_TASK_TYPES,
+  Task,
+  TASK_TYPE_SCHEMA_CIDS,
+  TaskAttempt,
+  TaskMessage,
+} from '@moltnet/tasks';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -21,6 +27,7 @@ import {
   HeartbeatBodySchema,
   HeartbeatResponseSchema,
   ListMessagesQuerySchema,
+  ListTaskSchemasResponseSchema,
   ListTasksQuerySchema,
   TaskAttemptParamsSchema,
   TaskListResponseSchema,
@@ -55,6 +62,37 @@ function toTaskProblem(error: TaskServiceError) {
 export async function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
+
+  // GET /tasks/schemas
+  server.get(
+    '/tasks/schemas',
+    {
+      schema: {
+        operationId: 'listTaskSchemas',
+        tags: ['tasks'],
+        description:
+          'List built-in task types with their input schemas and CIDs. ' +
+          'Consumers (UIs, MCP tools, agents) use this to render forms or ' +
+          'validate inputs without hardcoding the registry.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        response: {
+          200: Type.Ref(ListTaskSchemasResponseSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async () => {
+      const items = Object.entries(BUILT_IN_TASK_TYPES).map(
+        ([taskType, entry]) => ({
+          taskType,
+          outputKind: entry.outputKind,
+          inputSchemaCid: TASK_TYPE_SCHEMA_CIDS[taskType] ?? '',
+          inputSchema: entry.inputSchema as unknown as Record<string, unknown>,
+        }),
+      );
+      return { items };
+    },
+  );
 
   // POST /tasks
   server.post(

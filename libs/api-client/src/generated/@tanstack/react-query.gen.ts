@@ -82,6 +82,7 @@ import {
   listTaskAttempts,
   listTaskMessages,
   listTasks,
+  listTaskSchemas,
   listTeamInvites,
   listTeamMembers,
   listTeams,
@@ -320,6 +321,9 @@ import type {
   ListTaskMessagesData,
   ListTaskMessagesError,
   ListTaskMessagesResponse,
+  ListTaskSchemasData,
+  ListTaskSchemasError,
+  ListTaskSchemasResponse2,
   ListTasksData,
   ListTasksError,
   ListTasksResponse,
@@ -3213,6 +3217,34 @@ export const getLegreffierOnboardingStatusOptions = (
       return data;
     },
     queryKey: getLegreffierOnboardingStatusQueryKey(options),
+  });
+
+export const listTaskSchemasQueryKey = (
+  options?: Options<ListTaskSchemasData>,
+) => createQueryKey('listTaskSchemas', options);
+
+/**
+ * List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use this to render forms or validate inputs without hardcoding the registry.
+ */
+export const listTaskSchemasOptions = (
+  options?: Options<ListTaskSchemasData>,
+) =>
+  queryOptions<
+    ListTaskSchemasResponse2,
+    ListTaskSchemasError,
+    ListTaskSchemasResponse2,
+    ReturnType<typeof listTaskSchemasQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTaskSchemas({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTaskSchemasQueryKey(options),
   });
 
 export const listTasksQueryKey = (options: Options<ListTasksData>) =>

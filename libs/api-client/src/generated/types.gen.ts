@@ -1310,6 +1310,19 @@ export type AppendMessagesResponse = {
   count: number;
 };
 
+export type TaskTypeDescriptor = {
+  taskType: string;
+  outputKind: 'artifact' | 'judgment';
+  inputSchemaCid: string;
+  inputSchema: {
+    [key: string]: unknown;
+  };
+};
+
+export type ListTaskSchemasResponse = {
+  items: Array<TaskTypeDescriptor>;
+};
+
 export type GetOAuth2TokenData = {
   body?: never;
   path?: never;
@@ -5861,6 +5874,33 @@ export type GetLegreffierOnboardingStatusResponses = {
 
 export type GetLegreffierOnboardingStatusResponse =
   GetLegreffierOnboardingStatusResponses[keyof GetLegreffierOnboardingStatusResponses];
+
+export type ListTaskSchemasData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/tasks/schemas';
+};
+
+export type ListTaskSchemasErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListTaskSchemasError =
+  ListTaskSchemasErrors[keyof ListTaskSchemasErrors];
+
+export type ListTaskSchemasResponses = {
+  /**
+   * Default Response
+   */
+  200: ListTaskSchemasResponse;
+};
+
+export type ListTaskSchemasResponse2 =
+  ListTaskSchemasResponses[keyof ListTaskSchemasResponses];
 
 export type ListTasksData = {
   body?: never;

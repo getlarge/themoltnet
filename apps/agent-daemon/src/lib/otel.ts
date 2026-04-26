@@ -1,7 +1,5 @@
 /**
- * OTel SDK bootstrap for agent-runtime worker processes.
- *
- * Template for programmatic agent-runtime users (workers, daemons):
+ * OTel SDK bootstrap for the agent daemon.
  *
  *   const shutdown = await initWorkerOtel({ serviceName, agentDir });
  *   try { ... } finally { await shutdown(); }
@@ -31,8 +29,10 @@ export interface InitWorkerOtelOptions {
    */
   agentDir?: string;
   /**
-   * OTLP endpoint base URL. Falls back to MOLTNET_OTEL_ENDPOINT env var.
-   * Absent → bootstrap is a no-op.
+   * OTLP endpoint base URL. Empty/undefined → bootstrap is a no-op.
+   * Callers usually source this from `loadConfig()` so env reads stay in
+   * one place; the option remains explicit so tests can pass values
+   * without touching process.env.
    */
   endpoint?: string;
   resourceAttributes?: Record<string, string>;
@@ -43,7 +43,7 @@ export type OtelShutdown = () => Promise<void>;
 export async function initWorkerOtel(
   options: InitWorkerOtelOptions,
 ): Promise<OtelShutdown> {
-  const endpoint = options.endpoint ?? process.env['MOLTNET_OTEL_ENDPOINT'];
+  const endpoint = options.endpoint;
   if (!endpoint) {
     return async () => {};
   }

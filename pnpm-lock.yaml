@@ -380,6 +380,61 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
+  apps/agent-daemon:
+    dependencies:
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
+      '@opentelemetry/api':
+        specifier: 'catalog:'
+        version: 1.9.0
+      '@opentelemetry/exporter-trace-otlp-proto':
+        specifier: 'catalog:'
+        version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources':
+        specifier: 'catalog:'
+        version: 2.5.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-base':
+        specifier: 'catalog:'
+        version: 2.5.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-node':
+        specifier: 'catalog:'
+        version: 2.5.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/semantic-conventions':
+        specifier: 'catalog:'
+        version: 1.39.0
+      '@themoltnet/agent-runtime':
+        specifier: workspace:*
+        version: link:../../libs/agent-runtime
+      '@themoltnet/pi-extension':
+        specifier: workspace:*
+        version: link:../../libs/pi-extension
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
+    devDependencies:
+      '@moltnet/bootstrap':
+        specifier: workspace:*
+        version: link:../../libs/bootstrap
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../../libs/database
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
   apps/console:
     dependencies:
       '@moltnet/api-client':
@@ -1480,24 +1535,6 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../libs/tasks
-      '@opentelemetry/api':
-        specifier: 'catalog:'
-        version: 1.9.0
-      '@opentelemetry/exporter-trace-otlp-proto':
-        specifier: 'catalog:'
-        version: 0.212.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/resources':
-        specifier: 'catalog:'
-        version: 2.5.1(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-trace-base':
-        specifier: 'catalog:'
-        version: 2.5.1(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-trace-node':
-        specifier: 'catalog:'
-        version: 2.5.1(@opentelemetry/api@1.9.0)
-      '@opentelemetry/semantic-conventions':
-        specifier: 'catalog:'
-        version: 1.39.0
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.34

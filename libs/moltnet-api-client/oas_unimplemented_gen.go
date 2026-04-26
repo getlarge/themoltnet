@@ -665,6 +665,16 @@ func (UnimplementedHandler) ListTaskMessages(ctx context.Context, params ListTas
 	return r, ht.ErrNotImplemented
 }
 
+// ListTaskSchemas implements listTaskSchemas operation.
+//
+// List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use
+// this to render forms or validate inputs without hardcoding the registry.
+//
+// GET /tasks/schemas
+func (UnimplementedHandler) ListTaskSchemas(ctx context.Context) (r ListTaskSchemasRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListTasks implements listTasks operation.
 //
 // List tasks for a team with optional filters.

@@ -77,6 +77,7 @@ const (
 	ListSigningRequestsOperation           OperationName = "ListSigningRequests"
 	ListTaskAttemptsOperation              OperationName = "ListTaskAttempts"
 	ListTaskMessagesOperation              OperationName = "ListTaskMessages"
+	ListTaskSchemasOperation               OperationName = "ListTaskSchemas"
 	ListTasksOperation                     OperationName = "ListTasks"
 	ListTeamInvitesOperation               OperationName = "ListTeamInvites"
 	ListTeamMembersOperation               OperationName = "ListTeamMembers"

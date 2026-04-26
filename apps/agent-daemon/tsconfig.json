@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["node_modules", "dist", "__tests__", "e2e"],
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/agent-runtime"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/database"
+    },
+    {
+      "path": "../../libs/pi-extension"
+    },
+    {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../../libs/tasks"
+    }
+  ]
+}
