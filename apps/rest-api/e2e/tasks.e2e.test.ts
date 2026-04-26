@@ -1051,16 +1051,28 @@ describe('Tasks API', () => {
       // cancel() and persist the attempt as cancelled. Poll briefly —
       // this transition is async (workflow tx) unlike the row update.
       const finalAttempt = await pollUntil(
-        () =>
-          listTaskAttempts({
+        async () => {
+          const { data, error } = await listTaskAttempts({
             client,
             auth: () => imposer.accessToken,
             path: { id: taskId },
-          }).then((r) => r.data![0]),
-        (a) => a.status === 'cancelled',
+          });
+          // Surface a non-2xx with the actual envelope so the test
+          // points at the real failure rather than a downstream
+          // "Cannot read properties of undefined".
+          if (!data) {
+            throw new Error(
+              `listTaskAttempts failed for task ${taskId}: ${
+                error ? JSON.stringify(error) : 'no data, no error'
+              }`,
+            );
+          }
+          return data[0];
+        },
+        (a) => a !== undefined && a.status === 'cancelled',
         { label: 'attempt.cancelled', maxAttempts: 20, intervalMs: 250 },
       );
-      expect(finalAttempt.status).toBe('cancelled');
+      expect(finalAttempt?.status).toBe('cancelled');
     });
   });
 
