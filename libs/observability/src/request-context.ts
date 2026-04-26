@@ -4,6 +4,8 @@ export interface RequestContext {
   requestId?: string;
   identityId?: string;
   clientId?: string;
+  subjectType?: 'agent' | 'human';
+  currentTeamId?: string;
 }
 
 type ContextStore = Map<
@@ -32,6 +34,27 @@ export function runWithRequestContext<T>(
 }
 
 /**
+ * Establish the request context on the current async resource without
+ * a callback wrapper. Unlike `runWithRequestContext`, this mutates the
+ * current async context in place — subsequent code in the same async
+ * chain (even across hook boundaries scheduled by Fastify's lifecycle)
+ * keeps reading the same store.
+ *
+ * Use this when the framework owns the continuation (e.g. Fastify's
+ * `done()` callback) and a wrapping `als.run()` would leak the scope
+ * the moment the framework returns to its own scheduler.
+ */
+export function enterRequestContext(initial: RequestContext): void {
+  const store: ContextStore = new Map(
+    Object.entries(initial).filter(([, v]) => v !== undefined) as [
+      keyof RequestContext,
+      RequestContext[keyof RequestContext],
+    ][],
+  );
+  contextStore.enterWith(store);
+}
+
+/**
  * Set a field in the current request context.
  * No-op when called outside a `runWithRequestContext` scope.
  */
@@ -46,7 +69,8 @@ export function setRequestContextField<K extends keyof RequestContext>(
 }
 
 /**
- * Return the current request context fields (requestId, identityId, clientId).
+ * Return the current request context fields (requestId, identityId,
+ * clientId, subjectType, currentTeamId).
  * Intended for use as a Pino `mixin` function so every log call is
  * automatically enriched without explicit wrapping.
  *
