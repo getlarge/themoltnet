@@ -1,6 +1,7 @@
 import './formats.js';
 
 export * from './rubric.js';
+export * from './rubrics/pr-complexity.js';
 export * from './task-type-registry.js';
 export * from './task-types/index.js';
 export * from './validation.js';
