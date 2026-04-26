@@ -1195,7 +1195,7 @@ describe('Tasks API', () => {
       expect(attempts![0].status).toBe('timed_out');
     });
 
-    it('dispatch timeout with retries → re-queues until exhausted', async () => {
+    it('dispatch timeout with retries → re-queues, then fails on second exhaustion', async () => {
       const { data } = await impose(
         {},
         { maxAttempts: 2, dispatchTimeoutSec: 2 },
@@ -1203,7 +1203,7 @@ describe('Tasks API', () => {
       const taskId = data!.id;
       await claim(taskId);
 
-      // First attempt times out, task should re-queue with maxAttempts not yet exhausted.
+      // First attempt times out, task re-queues (maxAttempts not yet exhausted).
       const reQueued = await pollUntil(
         () =>
           getTask({
@@ -1219,6 +1219,36 @@ describe('Tasks API', () => {
         },
       );
       expect(reQueued.status).toBe('queued');
+
+      // Claim a second time; let it time out again. attemptCount === maxAttempts
+      // after this attempt, so the task should transition to `failed` rather
+      // than re-queueing a third time.
+      await claim(taskId);
+      const exhausted = await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data!),
+        (t) => t.status === 'failed' || t.status === 'queued',
+        {
+          label: 'task.dispatchTimeout.exhausted',
+          maxAttempts: 30,
+          intervalMs: 500,
+        },
+      );
+      expect(exhausted.status).toBe('failed');
+
+      // Both attempts persisted as timed_out.
+      const { data: attempts } = await listTaskAttempts({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(attempts).toHaveLength(2);
+      expect(attempts![0].status).toBe('timed_out');
+      expect(attempts![1].status).toBe('timed_out');
     });
   });
 
