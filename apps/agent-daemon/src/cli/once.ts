@@ -1,7 +1,3 @@
-/**
- * `agent-daemon once --task-id <uuid>` — claim and execute one specific
- * queued task by id, then exit. Replaces the standalone `work-task` script.
- */
 import { parseArgs } from 'node:util';
 
 import {
@@ -14,11 +10,22 @@ import { createPiTaskExecutor } from '@themoltnet/pi-extension';
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
 import { finalizeTask } from '../lib/finalize.js';
-import { commonOptionDefs, parseCommonOptions } from '../lib/options.js';
+import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
+import {
+  commonOptionDefs,
+  type CommonOptions,
+  MissingRequiredOptionError,
+  parseCommonOptions,
+} from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { loadSandboxConfig } from '../lib/sandbox.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
+  if (isHelpFlag(argv)) {
+    console.log(ONCE_HELP);
+    return 0;
+  }
+
   const { values } = parseArgs({
     args: argv,
     options: {
@@ -28,14 +35,23 @@ export async function runOnce(argv: string[]): Promise<number> {
   });
 
   if (!values['task-id']) {
-    console.error(
-      'Usage: agent-daemon once --task-id <uuid> [--agent <name>] ...',
-    );
+    console.error('Missing required flag: --task-id\n');
+    console.error(ONCE_HELP);
     return 1;
   }
 
   const taskId = values['task-id'];
-  const opts = parseCommonOptions(values);
+  let opts: CommonOptions;
+  try {
+    opts = parseCommonOptions(values);
+  } catch (err) {
+    if (err instanceof MissingRequiredOptionError) {
+      console.error(`${err.message}\n`);
+      console.error(ONCE_HELP);
+      return 1;
+    }
+    throw err;
+  }
   const cwd = process.cwd();
   const sandboxConfig = loadSandboxConfig(cwd);
   const ctx = await resolveAgentContext(opts.agent);

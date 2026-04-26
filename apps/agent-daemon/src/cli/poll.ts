@@ -1,3 +1,4 @@
+import { POLL_HELP } from '../lib/help.js';
 import { runPolling } from './poll-shared.js';
 
 export function runPoll(argv: string[]): Promise<number> {
@@ -6,5 +7,6 @@ export function runPoll(argv: string[]): Promise<number> {
     serviceName: 'moltnet.agent-daemon.poll',
     stopWhenEmpty: false,
     modeLabel: 'poll',
+    helpText: POLL_HELP,
   });
 }

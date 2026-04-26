@@ -1,9 +1,9 @@
-/**
- * Shared option parsing for daemon subcommands.
- *
- * Every subcommand accepts the same agent/provider/model + reporter knobs,
- * so we factor the validation out to keep the entry points thin.
- */
+// No defaults for agent/provider/model — those values are operator-specific
+// and silently misconfigure on any other machine. Required, not optional.
+import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
+
+import { knownTaskTypesList } from './help.js';
+
 export interface CommonOptions {
   agent: string;
   provider: string;
@@ -25,26 +25,33 @@ export interface CommonRawArgs {
 }
 
 const DEFAULTS = {
-  agent: 'legreffier',
-  provider: 'openai-codex',
-  model: 'gpt-5.3-codex',
   leaseTtlSec: 300,
   heartbeatIntervalMs: 60_000,
   maxBatchSize: 50,
   flushIntervalMs: 200,
 } as const;
 
+export class MissingRequiredOptionError extends Error {
+  constructor(public readonly flag: string) {
+    super(`Missing required flag: --${flag}`);
+    this.name = 'MissingRequiredOptionError';
+  }
+}
+
 export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
-  const agent = args.agent ?? DEFAULTS.agent;
-  if (!/^[a-zA-Z0-9_-]+$/.test(agent)) {
+  if (!args.agent) throw new MissingRequiredOptionError('agent');
+  if (!args.provider) throw new MissingRequiredOptionError('provider');
+  if (!args.model) throw new MissingRequiredOptionError('model');
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(args.agent)) {
     throw new Error(
-      `Invalid --agent "${agent}": must match /^[a-zA-Z0-9_-]+$/`,
+      `Invalid --agent "${args.agent}": must match /^[a-zA-Z0-9_-]+$/`,
     );
   }
   const opts: CommonOptions = {
-    agent,
-    provider: args.provider ?? DEFAULTS.provider,
-    model: args.model ?? DEFAULTS.model,
+    agent: args.agent,
+    provider: args.provider,
+    model: args.model,
     leaseTtlSec: parsePositiveInt(
       args['lease-ttl-sec'],
       'lease-ttl-sec',
@@ -107,4 +114,20 @@ export function commonOptionDefs() {
     'max-batch-size': { type: 'string' },
     'flush-interval-ms': { type: 'string' },
   } as const;
+}
+
+// `hasOwnProperty.call` rather than `in` — the `in` operator matches keys on
+// Object.prototype (toString, hasOwnProperty, …) which would let those slip
+// through as "valid" task types.
+export function validateTaskTypes(types: readonly string[]): string[] {
+  const unknown = types.filter(
+    (t) => !Object.prototype.hasOwnProperty.call(BUILT_IN_TASK_TYPES, t),
+  );
+  if (unknown.length > 0) {
+    throw new Error(
+      `Unknown task type(s): ${unknown.join(', ')}. ` +
+        `Known types: ${knownTaskTypesList()}.`,
+    );
+  }
+  return [...types];
 }
