@@ -597,16 +597,18 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       const workflowId = taskWorkflowId(taskId, attemptN);
-      // Only send 'started' on the very first heartbeat — when the
-      // attempt is still in `claimed` state, before the workflow has
-      // crossed claimed → running. Subsequent heartbeats fall through
-      // to the lease-renewal-only path; sending again would queue an
-      // orphaned event in the DBOS event store that's never consumed
-      // (the recv('started') has already returned). At ~120 orphaned
-      // rows per 2h task that's a real leak at scale.
-      if (attempt.status === 'claimed') {
-        await DBOS.send(workflowId, true, 'started');
-      }
+      // Multiplexed `progress` topic (#936): the workflow's running-phase
+      // recv loop dispatches on `kind`. First heartbeat is `started`
+      // (transitions claimed→running); subsequent ones are `heartbeat`
+      // and refresh the sliding lease window inside the loop without
+      // accumulating orphaned events.
+      const progressKind: 'started' | 'heartbeat' =
+        attempt.status === 'claimed' ? 'started' : 'heartbeat';
+      await DBOS.send(
+        workflowId,
+        { kind: progressKind, leaseTtlSec },
+        'progress',
+      );
 
       const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
       await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
@@ -714,6 +716,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       await persistExecutorVerification(completedExecutor, taskRepository);
 
       const workflowId = taskWorkflowId(taskId, attemptN);
+      // Multiplexed `progress` topic (#936).
       await DBOS.send(
         workflowId,
         {
@@ -723,7 +726,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           usage: body.usage,
           completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
         },
-        'result',
+        'progress',
       );
 
       const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
@@ -794,7 +797,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       const workflowId = taskWorkflowId(taskId, attemptN);
-      await DBOS.send(workflowId, { kind: 'failed', error }, 'result');
+      // Multiplexed `progress` topic (#936).
+      await DBOS.send(workflowId, { kind: 'failed', error }, 'progress');
 
       const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
       while (true) {
@@ -863,36 +867,26 @@ export function createTaskService(deps: TaskServiceDeps) {
       // until runningTimeoutSec elapses and the worker keeps burning
       // compute on work that is no longer wanted (#938).
       //
-      // Two phases the workflow can be parked in:
-      //   - running phase, parked on recv('result'). The 'cancelled'
-      //     send below unblocks it directly.
-      //   - dispatch phase, parked on recv('started') because the worker
-      //     hasn't heartbeat yet. Sending only to 'result' would queue
-      //     an orphaned message until dispatchTimeoutSec fires (5 min
-      //     default), holding a workflow slot for nothing. To avoid
-      //     that, also send 'started' when the active attempt is still
-      //     in `claimed`. The workflow then advances to mark running,
-      //     immediately consumes the queued 'cancelled' on its next
-      //     recv('result'), and runs the persist tx the same way as a
-      //     running-phase cancel. Idempotent overwrite of the row's
-      //     cancelled status — safe.
+      // With the multiplexed `progress` topic (#936), a single
+      // `cancelled` send unblocks the workflow regardless of whether
+      // it's parked in the dispatch-phase recv (waiting for the first
+      // event) or the running-phase loop. The workflow's dispatch
+      // branch handles `cancelled` directly; the running-phase loop
+      // falls through to persistTerminalResult.
       //
-      // We deliberately do NOT remove the Keto claimant tuple here: the
-      // claimer needs to keep the `report` permit so its next /heartbeat
-      // can return cancelled:true to drive executor abort. The workflow's
-      // terminal persist tx cleans up the tuple via removeClaimantTupleStep.
+      // We deliberately do NOT remove the Keto claimant tuple here:
+      // the claimer needs to keep the `report` permit so its next
+      // /heartbeat can return cancelled:true to drive executor abort.
+      // The workflow's terminal persist tx cleans up the tuple via
+      // removeClaimantTupleStep.
       const attempts = await taskRepository.listAttempts(taskId);
       const active = attempts.find(
         (a) => a.status === 'claimed' || a.status === 'running',
       );
       if (active) {
         const workflowId = taskWorkflowId(taskId, active.attemptN);
-        if (active.status === 'claimed') {
-          await DBOS.send(workflowId, true, 'started');
-        }
-        // The workflow persists `result.error` to attempt.error, which
-        // is serialized via the TaskError schema {code, message, ...}.
-        // A free-form { reason } would 500 the response when listed.
+        // The workflow persists `error` to attempt.error, which is
+        // serialized via the TaskError schema {code, message, ...}.
         await DBOS.send(
           workflowId,
           {
@@ -903,7 +897,7 @@ export function createTaskService(deps: TaskServiceDeps) {
               retryable: false,
             },
           },
-          'result',
+          'progress',
         );
       }
 
