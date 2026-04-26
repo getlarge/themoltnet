@@ -214,7 +214,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
-  const permissionChecker = createPermissionChecker(oryClients.permission);
+  const permissionChecker = createPermissionChecker(
+    oryClients.permission,
+    app.log,
+  );
   const relationshipReader = createRelationshipReader(
     oryClients.relationshipRead,
   );

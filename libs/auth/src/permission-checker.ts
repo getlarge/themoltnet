@@ -8,6 +8,7 @@
  */
 
 import type { PermissionApi } from '@ory/client-fetch';
+import { pino } from 'pino';
 
 import {
   ContextPackPermission,
@@ -17,6 +18,18 @@ import {
   TaskPermission,
   TeamPermission,
 } from './keto-constants.js';
+
+/**
+ * Minimal logger surface this module needs. Structurally compatible
+ * with both pino's `Logger` and Fastify's `FastifyBaseLogger` so
+ * callers can pass `app.log` directly without unsafe casts.
+ */
+type LogFn = (obj: Record<string, unknown>, msg: string) => void;
+export interface PermissionCheckerLogger {
+  warn: LogFn;
+  debug: LogFn;
+  child(bindings: Record<string, unknown>): PermissionCheckerLogger;
+}
 
 export interface PermissionChecker {
   canReadDiary(
@@ -128,6 +141,7 @@ async function checkPermission(
   relation: string,
   subjectNs: string,
   subjectId: string,
+  logger: PermissionCheckerLogger,
 ): Promise<boolean> {
   try {
     const data = await permissionApi.checkPermission({
@@ -139,8 +153,21 @@ async function checkPermission(
       subjectSetObject: subjectId,
       subjectSetRelation: '',
     });
+    if (!data.allowed) {
+      logger.debug(
+        { namespace, object, relation, subjectNs, subjectId },
+        'keto.permission_denied',
+      );
+    }
     return data.allowed;
-  } catch {
+  } catch (err) {
+    // Previously this catch silently returned false — a transient Keto
+    // blip then surfaced as a 403 to the caller. Log it so flakes are
+    // visible; keep deny-on-error semantics (failing open is worse).
+    logger.warn(
+      { err, namespace, object, relation, subjectNs, subjectId },
+      'keto.permission_check_failed',
+    );
     return false;
   }
 }
@@ -185,7 +212,9 @@ async function batchCheckPermissions(
 
 export function createPermissionChecker(
   permissionApi: PermissionApi,
+  logger: PermissionCheckerLogger = pino({ name: 'permission-checker' }),
 ): PermissionChecker {
+  const log = logger.child({ component: 'permission-checker' });
   return {
     canReadDiary(
       diaryId: string,
@@ -199,6 +228,7 @@ export function createPermissionChecker(
         DiaryPermission.Read,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -214,6 +244,7 @@ export function createPermissionChecker(
         DiaryPermission.Write,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -229,6 +260,7 @@ export function createPermissionChecker(
         DiaryPermission.Manage,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -244,6 +276,7 @@ export function createPermissionChecker(
         DiaryEntryPermission.View,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -259,6 +292,7 @@ export function createPermissionChecker(
         DiaryEntryPermission.Edit,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -274,6 +308,7 @@ export function createPermissionChecker(
         DiaryEntryPermission.Delete,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -311,6 +346,7 @@ export function createPermissionChecker(
         ContextPackPermission.Read,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -350,6 +386,7 @@ export function createPermissionChecker(
         ContextPackPermission.Manage,
         subjectNs,
         subjectId,
+        log,
       );
     },
     canVerifyClaimPack(
@@ -364,6 +401,7 @@ export function createPermissionChecker(
         ContextPackPermission.VerifyClaim,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -379,6 +417,7 @@ export function createPermissionChecker(
         TeamPermission.Access,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -394,6 +433,7 @@ export function createPermissionChecker(
         TeamPermission.Write,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -409,6 +449,7 @@ export function createPermissionChecker(
         TeamPermission.Manage,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -424,6 +465,7 @@ export function createPermissionChecker(
         TeamPermission.ManageMembers,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -439,6 +481,7 @@ export function createPermissionChecker(
         TaskPermission.View,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -454,6 +497,7 @@ export function createPermissionChecker(
         DiaryPermission.Write,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -469,6 +513,7 @@ export function createPermissionChecker(
         TaskPermission.Claim,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -484,6 +529,7 @@ export function createPermissionChecker(
         TaskPermission.Cancel,
         subjectNs,
         subjectId,
+        log,
       );
     },
 
@@ -499,6 +545,7 @@ export function createPermissionChecker(
         TaskPermission.Report,
         subjectNs,
         subjectId,
+        log,
       );
     },
   };

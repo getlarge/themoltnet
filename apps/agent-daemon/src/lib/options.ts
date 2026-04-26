@@ -12,6 +12,7 @@ export interface CommonOptions {
   heartbeatIntervalMs: number;
   maxBatchSize: number;
   flushIntervalMs: number;
+  debug: boolean;
 }
 
 export interface CommonRawArgs {
@@ -22,6 +23,7 @@ export interface CommonRawArgs {
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
   'flush-interval-ms'?: string;
+  debug?: boolean;
 }
 
 const DEFAULTS = {
@@ -72,6 +74,7 @@ export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
       'flush-interval-ms',
       DEFAULTS.flushIntervalMs,
     ),
+    debug: args.debug === true,
   };
   return opts;
 }
@@ -113,6 +116,7 @@ export function commonOptionDefs() {
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },
     'flush-interval-ms': { type: 'string' },
+    debug: { type: 'boolean' },
   } as const;
 }
 

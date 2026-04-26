@@ -64,6 +64,7 @@ describe('parseCommonOptions', () => {
       heartbeatIntervalMs: 60_000,
       maxBatchSize: 50,
       flushIntervalMs: 200,
+      debug: false,
     });
   });
 

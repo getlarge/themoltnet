@@ -5,6 +5,7 @@
  * for protecting routes with OAuth2 token validation and scope checks.
  */
 
+import { setRequestContextField } from '@moltnet/observability';
 import type {
   FastifyInstance,
   FastifyReply,
@@ -140,6 +141,40 @@ function createAuthError(message: string): Error & {
 }
 
 /**
+ * Assign authContext to the request and propagate identity fields into
+ * the observability ALS store + bind them as pino child bindings on
+ * request.log. Centralized here so every code path that resolves an
+ * auth context (Kratos session, OAuth bearer, dual flow) gets the
+ * same enrichment without duplicating the wire-up.
+ *
+ * The ALS write feeds the pino mixin (used by app.log calls in service
+ * layer); the request.log child binding feeds Fastify's request logger
+ * (used by route handlers and the per-request lifecycle logs Fastify
+ * itself emits).
+ */
+function applyAuthContext(
+  request: FastifyRequest,
+  authContext: AuthContext,
+): void {
+  request.authContext = authContext;
+  setRequestContextField('identityId', authContext.identityId);
+  setRequestContextField('subjectType', authContext.subjectType);
+  if (authContext.clientId)
+    setRequestContextField('clientId', authContext.clientId);
+  if (authContext.currentTeamId)
+    setRequestContextField('currentTeamId', authContext.currentTeamId);
+
+  const bindings: Record<string, string> = {
+    identityId: authContext.identityId,
+    subjectType: authContext.subjectType,
+  };
+  if (authContext.clientId) bindings.clientId = authContext.clientId;
+  if (authContext.currentTeamId)
+    bindings.currentTeamId = authContext.currentTeamId;
+  request.log = request.log.child(bindings);
+}
+
+/**
  * Resolve team context from x-moltnet-team-id header.
  * Shared by requireAuth and optionalAuth.
  */
@@ -192,7 +227,7 @@ export const requireAuth: preHandlerAsyncHookHandler =
         });
       if (sessionContext) {
         await resolveTeamContext(request, sessionContext);
-        request.authContext = sessionContext;
+        applyAuthContext(request, sessionContext);
         return;
       }
       // Invalid session — fall through to Bearer token
@@ -236,7 +271,7 @@ export const requireAuth: preHandlerAsyncHookHandler =
     }
 
     await resolveTeamContext(request, authContext);
-    request.authContext = authContext;
+    applyAuthContext(request, authContext);
   };
 
 export const optionalAuth: preHandlerAsyncHookHandler =
@@ -255,7 +290,7 @@ export const optionalAuth: preHandlerAsyncHookHandler =
         });
       if (sessionContext) {
         await resolveTeamContext(request, sessionContext);
-        request.authContext = sessionContext;
+        applyAuthContext(request, sessionContext);
         return;
       }
     }
@@ -268,7 +303,7 @@ export const optionalAuth: preHandlerAsyncHookHandler =
       await request.server.tokenValidator.resolveAuthContext(token);
     if (authContext) {
       await resolveTeamContext(request, authContext);
-      request.authContext = authContext;
+      applyAuthContext(request, authContext);
     }
   };
 

@@ -17,7 +17,9 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               Default: 300.
   --heartbeat-interval-ms <n> Reporter heartbeat cadence. Default: 60000.
   --max-batch-size <n>        Reporter message batch size. Default: 50.
-  --flush-interval-ms <n>     Reporter flush window. Default: 200.`;
+  --flush-interval-ms <n>     Reporter flush window. Default: 200.
+  --debug                     Verbose logging: also log successful list/claim
+                              outcomes (candidate counts, claim attempts).`;
 
 export const REGISTERED_TASK_TYPES = Object.keys(BUILT_IN_TASK_TYPES).sort();
 

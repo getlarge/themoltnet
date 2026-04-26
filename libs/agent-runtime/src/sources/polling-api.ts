@@ -43,6 +43,13 @@ export interface PollingApiTaskSourceOptions {
   stopWhenEmpty?: boolean;
   /** Logger sink — defaults to `console.error`. */
   log?: (msg: string, meta?: Record<string, unknown>) => void;
+  /**
+   * When true, also log successful list/claim outcomes (candidate
+   * counts, claim success). Useful for debugging why a daemon appears
+   * idle when tasks exist on the server. 4xx claim skips are logged
+   * unconditionally regardless of this flag.
+   */
+  debug?: boolean;
 }
 
 const DEFAULT_LIST_LIMIT = 10;
@@ -134,6 +141,14 @@ export class PollingApiTaskSource implements TaskSource {
           ...(taskType ? { taskType } : {}),
           limit: this.listLimit,
         });
+        if (this.opts.debug) {
+          this.log('PollingApiTaskSource: list ok', {
+            teamId: this.opts.teamId,
+            taskType,
+            total: result.total,
+            returned: result.items.length,
+          });
+        }
         for (const item of result.items) {
           if (seen.has(item.id)) continue;
           if (
@@ -176,6 +191,13 @@ export class PollingApiTaskSource implements TaskSource {
         const result = await this.opts.agent.tasks.claim(task.id, {
           leaseTtlSec: this.opts.leaseTtlSec,
         });
+        if (this.opts.debug) {
+          this.log('PollingApiTaskSource: claim ok', {
+            taskId: result.task.id,
+            taskType: result.task.taskType,
+            attemptN: result.attempt.attemptN,
+          });
+        }
         return {
           task: result.task,
           attemptN: result.attempt.attemptN,

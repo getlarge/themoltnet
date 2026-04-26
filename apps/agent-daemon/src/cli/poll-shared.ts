@@ -156,6 +156,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         maxPollIntervalMs,
         signal: abort.signal,
         stopWhenEmpty: opts.stopWhenEmpty,
+        debug: common.debug,
         log: (msg, meta) =>
           console.error(`[${opts.modeLabel}] ${msg}`, meta ?? {}),
       }),

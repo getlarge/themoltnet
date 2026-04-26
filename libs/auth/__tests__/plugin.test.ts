@@ -1,4 +1,9 @@
+import {
+  enterRequestContext,
+  getRequestContextFields,
+} from '@moltnet/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { pino } from 'pino';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KetoNamespace } from '../src/keto-constants.js';
@@ -177,6 +182,68 @@ describe('requireAuth preHandler', () => {
     expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledWith(
       VALID_TOKEN,
     );
+  });
+
+  it('enriches request.log + ALS context after authenticating', async () => {
+    // Regression: production logs were missing identityId because the
+    // global request-context plugin's preHandler ran before the route-
+    // scoped requireAuth, so authContext was still null when it tried
+    // to enrich. The fix moves enrichment into requireAuth itself.
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+
+    // Replace the bare app with one that has a real pino instance so
+    // request.log child bindings produce inspectable log records.
+    await app.close();
+    const records: Record<string, unknown>[] = [];
+    const logger = pino(
+      { level: 'info' },
+      {
+        write(chunk: string) {
+          for (const line of chunk.split('\n')) {
+            if (!line) continue;
+            records.push(JSON.parse(line) as Record<string, unknown>);
+          }
+        },
+      },
+    );
+    app = Fastify({ loggerInstance: logger });
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
+
+    let observedAlsFields: Record<string, unknown> | null = null;
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      observedAlsFields = getRequestContextFields();
+      request.log.info({ marker: 'handler' }, 'inside');
+      return { ok: true };
+    });
+
+    enterRequestContext({ requestId: 'test-req' });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(observedAlsFields).toMatchObject({
+      identityId: VALID_AUTH_CONTEXT.identityId,
+      subjectType: 'agent',
+      clientId: VALID_AUTH_CONTEXT.clientId,
+    });
+
+    // The most direct proof: the actual log line emitted from the
+    // handler via request.log carries the identity child bindings.
+    const handlerLog = records.find((r) => r.marker === 'handler');
+    expect(handlerLog, 'expected log record from handler').toBeDefined();
+    expect(handlerLog!.identityId).toBe(VALID_AUTH_CONTEXT.identityId);
+    expect(handlerLog!.subjectType).toBe('agent');
+    expect(handlerLog!.clientId).toBe(VALID_AUTH_CONTEXT.clientId);
   });
 
   it('returns 401 when no authorization header', async () => {
