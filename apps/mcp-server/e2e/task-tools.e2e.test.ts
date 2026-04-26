@@ -45,8 +45,11 @@ describe('Task Tools E2E', () => {
   });
 
   afterAll(async () => {
-    await client?.close();
-    await harness?.teardown();
+    try {
+      await client?.close();
+    } finally {
+      await harness?.teardown();
+    }
   });
 
   function requireSetup(): void {
@@ -66,6 +69,8 @@ describe('Task Tools E2E', () => {
   }
 
   async function createCuratePackTask(): Promise<string> {
+    requireSetup();
+
     const createResult = await client.callTool({
       name: 'tasks_create',
       arguments: {

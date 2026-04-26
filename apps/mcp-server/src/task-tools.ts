@@ -45,6 +45,7 @@ import {
   errorResult,
   extractApiErrorMessage,
   getTokenFromContext,
+  structuredErrorResult,
   structuredResult,
 } from './utils.js';
 
@@ -74,13 +75,18 @@ function withConsoleUrl<T extends { id: string }>(
 
 function formatValidationErrors(
   errors: ReturnType<typeof validateTaskCreateRequest>,
-): string {
-  return JSON.stringify({
+): {
+  code: 'task_validation_failed';
+  message: string;
+  errors: ReturnType<typeof validateTaskCreateRequest>;
+  retryable: false;
+} {
+  return {
     code: 'task_validation_failed',
     message: 'Task input failed validation',
     errors,
     retryable: false,
-  });
+  };
 }
 
 export async function handleTasksSchemas(
@@ -123,7 +129,7 @@ export async function handleTasksCreate(
     references: args.references,
   });
   if (validationErrors.length > 0) {
-    return errorResult(formatValidationErrors(validationErrors));
+    return structuredErrorResult(formatValidationErrors(validationErrors));
   }
 
   const { data, error } = await createTask({

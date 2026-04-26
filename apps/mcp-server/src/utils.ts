@@ -35,6 +35,15 @@ export function errorResult(message: string): CallToolResult {
   };
 }
 
+export function structuredErrorResult<T extends object>(
+  data: T,
+): CallToolResult {
+  return {
+    ...structuredResult(data),
+    isError: true,
+  };
+}
+
 export function extractApiErrorMessage(
   error: unknown,
   fallback: string,
