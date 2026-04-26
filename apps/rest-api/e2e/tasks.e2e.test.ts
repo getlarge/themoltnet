@@ -826,8 +826,8 @@ describe('Tasks API', () => {
 
   describe('cancel-while-dispatched / running / by-claimant', () => {
     it('cancels a dispatched task (claimed but no heartbeat yet)', async () => {
-      const { data } = await impose();
-      const taskId = data!.id;
+      const { data: imposed } = await impose();
+      const taskId = imposed!.id;
       await claim(taskId);
 
       const { data, error } = await cancelTask({
@@ -842,8 +842,8 @@ describe('Tasks API', () => {
     });
 
     it('cancels a running task (claimed and heartbeating)', async () => {
-      const { data } = await impose();
-      const taskId = data!.id;
+      const { data: imposed } = await impose();
+      const taskId = imposed!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
 
@@ -865,8 +865,8 @@ describe('Tasks API', () => {
     });
 
     it('claimant can cancel their own running task', async () => {
-      const { data } = await impose();
-      const taskId = data!.id;
+      const { data: imposed } = await impose();
+      const taskId = imposed!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
 
