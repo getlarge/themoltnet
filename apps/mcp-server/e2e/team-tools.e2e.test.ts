@@ -81,7 +81,10 @@ describe('Team Tools E2E', () => {
     }
   }
 
-  function parseResult(result: { content: unknown }): unknown {
+  function parseResult(result: {
+    content?: unknown;
+    [key: string]: unknown;
+  }): unknown {
     const content = result.content as Array<{ type: string; text: string }>;
     return JSON.parse(content[0].text);
   }

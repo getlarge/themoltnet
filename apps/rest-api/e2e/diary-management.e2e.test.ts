@@ -138,10 +138,13 @@ describe('Diary Management', () => {
     });
 
     it('rejects unauthenticated diary creation', async () => {
+      // Intentionally omit `auth` to exercise the unauthenticated path.
+      // The api-client's Options type marks security as required; cast
+      // is the simplest way to test the deliberate violation.
       const { error, response } = await createDiary({
         client,
         body: { name: 'no-auth' },
-      });
+      } as Parameters<typeof createDiary<false>>[0]);
 
       expect(error).toBeDefined();
       // Schema validation (required x-moltnet-team-id header) fires before

@@ -23,7 +23,7 @@ import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary hybrid search', () => {
   function createDiaryEntry(
-    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+    args: Omit<Parameters<typeof apiCreateDiaryEntry<false>>[0], 'path'> & {
       path?: { diaryId?: string };
     },
   ) {
