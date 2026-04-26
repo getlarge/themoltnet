@@ -58,6 +58,12 @@ export interface TaskWorkflowDeps {
   removeClaimantTuple(taskId: string, agentId: string): Promise<void>;
   countAttempts(taskId: string): Promise<number>;
   getMaxAttempts(taskId: string): Promise<number>;
+  /**
+   * Read the current task row. Used by timeout branches to detect
+   * a cancel that landed on the row while the workflow was parked
+   * (#938) and avoid overwriting `cancelled` with `queued`/`failed`.
+   */
+  findTaskById(taskId: string): Promise<Task | null>;
 }
 
 export class TaskWorkflowConfigurationError extends Error {
@@ -212,24 +218,47 @@ export function initTaskWorkflows(): void {
         if (!started) {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           const canRetry = attemptCount < maxAttempts;
-          // Atomic: mark attempt timed_out + re-queue or fail task together.
+          // If the task was cancelled while the workflow was parked on
+          // recv('started') (#938 dispatch-phase race), don't clobber
+          // the cancelled status with queued/failed — just mark the
+          // attempt timed_out and exit. The row's final status was
+          // already set by cancel().
+          const taskNow = await getDeps().findTaskById(taskId);
+          const taskAlreadyTerminal =
+            taskNow !== null &&
+            (taskNow.status === 'cancelled' ||
+              taskNow.status === 'completed' ||
+              taskNow.status === 'failed' ||
+              taskNow.status === 'expired');
           await getDeps().dataSource.runTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
                 status: 'timed_out',
                 completedAt: new Date(),
               });
-              await getDeps().updateTaskStatus(
-                taskId,
-                canRetry ? 'queued' : 'failed',
-                { claimAgentId: null, claimExpiresAt: null },
-              );
+              if (!taskAlreadyTerminal) {
+                await getDeps().updateTaskStatus(
+                  taskId,
+                  canRetry ? 'queued' : 'failed',
+                  { claimAgentId: null, claimExpiresAt: null },
+                );
+              } else {
+                // Just clear the claim metadata — the status itself
+                // stays whatever cancel() / a peer wrote.
+                await getDeps().updateTaskStatus(taskId, taskNow.status, {
+                  claimAgentId: null,
+                  claimExpiresAt: null,
+                });
+              }
             },
             { name: 'task.tx.markDispatchTimedOut' },
           );
           await removeClaimantTupleStep(taskId, agentId);
           const event: TaskAttemptFinalEvent = {
-            status: 'timed_out',
+            status:
+              taskAlreadyTerminal && taskNow.status === 'cancelled'
+                ? 'cancelled'
+                : 'timed_out',
             taskId,
             attemptN,
           };

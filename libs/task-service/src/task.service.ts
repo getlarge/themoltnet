@@ -849,17 +849,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         cancelledByHumanId: isAgent ? null : callerId,
       });
 
-      if (row.claimAgentId) {
-        await relationshipWriter
-          .removeTaskClaimant(taskId, row.claimAgentId)
-          .catch((err: unknown) => {
-            logger.warn(
-              { taskId, claimAgentId: row.claimAgentId, err },
-              'task.cancel.remove_claimant_failed',
-            );
-          });
-      }
-
       // Signal any active workflow so it unblocks recv('result') and
       // persists the attempt as cancelled. Without this, the workflow
       // sits parked until runningTimeoutSec elapses and the worker keeps
@@ -867,11 +856,18 @@ export function createTaskService(deps: TaskServiceDeps) {
       //
       // Dispatch-phase workflows (parked on recv('started')) won't see
       // this send — the message queues until the worker heartbeats once
-      // and the workflow advances, but by then the heartbeat handler has
-      // already returned 409 (TERMINAL_STATUSES check) and the worker
-      // has stopped. The workflow then either consumes the queued
-      // 'result' on its next iteration or hits dispatchTimeoutSec. Both
-      // paths terminate correctly.
+      // and the workflow advances. Heartbeat against a cancelled task
+      // returns 200 with cancelled:true (so the runtime aborts) but
+      // never sends 'started', so the dispatch phase will eventually
+      // hit dispatchTimeoutSec. The workflow's dispatch-timeout branch
+      // is now defensive about not overwriting an already-terminal task
+      // status — see task-workflows.ts.
+      //
+      // We deliberately do NOT remove the Keto claimant tuple here: the
+      // claimer needs to keep the `report` permit so its next /heartbeat
+      // can return cancelled:true to drive executor abort. The workflow's
+      // terminal persist tx (running-phase result handler or dispatch
+      // timeout) cleans up the tuple via removeClaimantTupleStep.
       const attempts = await taskRepository.listAttempts(taskId);
       const active = attempts.find(
         (a) => a.status === 'claimed' || a.status === 'running',
