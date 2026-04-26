@@ -400,14 +400,14 @@ export async function executePiTask(
 
     await Promise.all(recordingPromise);
 
-    // Cancellation takes precedence over runError / llmAbort / parseError.
-    // pi maps `session.abort()` to a `turn_end` with `stopReason: 'aborted'`
-    // which the subscribe handler above sets `llmAbort = true` for; if our
-    // listener triggered it, we want the output to be `cancelled` (not
-    // `failed` with `llm_api_error`). The cancelSignal check below also
-    // covers the case where the executor finished mid-flight before the
-    // signal had a chance to abort the session — usage tokens accumulated
-    // up to that point are preserved.
+    // Cancellation takes precedence over runError / parseError.
+    // pi maps `session.abort()` to a `turn_end` with `stopReason: 'aborted'`;
+    // the subscribe handler does NOT set `llmAbort` for that stop reason
+    // (only `'error'`), so the cancelSignal check here is the sole
+    // mechanism that distinguishes a cancel-driven stop from a clean
+    // finish. This also covers the case where the executor finished
+    // mid-flight before the signal had a chance to abort the session —
+    // usage tokens accumulated up to that point are preserved.
     const cancelled = reporter.cancelSignal.aborted;
 
     let parsedOutput: Record<string, unknown> | null = null;
