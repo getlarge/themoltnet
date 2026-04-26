@@ -346,6 +346,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
             taskRepository.updateAttempt(taskId, attemptN, fields),
           updateTaskStatus: (taskId, status, extra) =>
             taskRepository.updateStatus(taskId, status, extra),
+          updateTaskStatusIfNotIn: (taskId, status, excluded, extra) =>
+            taskRepository.updateStatusIfNotIn(taskId, status, excluded, extra),
           removeClaimantTuple: (taskId, agentId) =>
             relationshipWriter.removeTaskClaimant(taskId, agentId),
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
