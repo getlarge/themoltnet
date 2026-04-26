@@ -13,7 +13,10 @@ import {
 } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
-import { buildAssessBriefPrompt } from './assess-brief.js';
+import {
+  ASSESS_BRIEF_TARGET_EXTRA_KEY,
+  buildAssessBriefPrompt,
+} from './assess-brief.js';
 import { buildCuratePackPrompt } from './curate-pack.js';
 import { buildFulfillBriefPrompt } from './fulfill-brief.js';
 import { buildJudgePackPrompt } from './judge-pack.js';
@@ -61,7 +64,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `assess_brief input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      const target = ctx.extras?.target as
+      const target = ctx.extras?.[ASSESS_BRIEF_TARGET_EXTRA_KEY] as
         | Parameters<typeof buildAssessBriefPrompt>[1]['target']
         | undefined;
       if (!target) {

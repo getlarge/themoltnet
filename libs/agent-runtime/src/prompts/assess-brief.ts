@@ -1,20 +1,38 @@
 import type { AssessBriefInput } from '@moltnet/tasks';
 
+/**
+ * The producer task projection a daemon-side resolver hands to the
+ * `assess_brief` prompt builder. Carries everything the judge needs to
+ * find what it's reviewing without an extra fetch: the producer's
+ * branch, PR url, commits, summary, and the diary entries written
+ * during fulfillment.
+ *
+ * Exported so the daemon's resolver and this prompt builder share
+ * exactly one shape — adding a field to one without the other becomes
+ * a compile error rather than a structural-typing accident.
+ */
+export interface AssessBriefTarget {
+  /** Producer task id (the fulfill_brief being judged). */
+  taskId: string;
+  branch: string | null;
+  pullRequestUrl: string | null;
+  summary: string | null;
+  commitShas: string[];
+  diaryEntryIds: string[];
+}
+
+/**
+ * Key the prompt-builder reads from `PromptContext.extras` to find the
+ * resolved producer projection. Daemon resolvers MUST set
+ * `extras[ASSESS_BRIEF_TARGET_EXTRA_KEY]` to an `AssessBriefTarget`
+ * object. A typo on either side is now a compile error.
+ */
+export const ASSESS_BRIEF_TARGET_EXTRA_KEY = 'target' as const;
+
 interface Ctx {
   diaryId: string;
   taskId: string;
-  /**
-   * The `fulfill_brief` task being judged. Resolved by the runtime at
-   * prompt-build time so the judge can work without an extra fetch.
-   */
-  target: {
-    taskId: string;
-    branch: string | null;
-    pullRequestUrl: string | null;
-    summary: string | null;
-    commitShas: string[];
-    diaryEntryIds: string[];
-  };
+  target: AssessBriefTarget;
 }
 
 export function buildAssessBriefPrompt(
