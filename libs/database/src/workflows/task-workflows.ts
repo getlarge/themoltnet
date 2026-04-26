@@ -23,21 +23,6 @@ export type TaskProgressEvent =
   | { kind: 'failed'; error?: unknown }
   | { kind: 'cancelled'; error?: unknown };
 
-/**
- * @deprecated Retained as the wire-shape contract for the persist tx
- * branches inside the workflow. New senders should use
- * `TaskProgressEvent` (the multiplexed `progress` topic). Will be
- * removed after the running-phase loop stabilises.
- */
-export interface TaskAttemptResult {
-  kind: 'completed' | 'failed' | 'cancelled';
-  output?: unknown;
-  outputCid?: string;
-  completedExecutorFingerprint?: string;
-  error?: unknown;
-  usage?: unknown;
-}
-
 export interface TaskAttemptClaimedEvent {
   taskId: string;
   attemptN: number;
@@ -206,6 +191,16 @@ export function initTaskWorkflows(): void {
     { name: 'task.step.removeClaimantTuple', ...stepConfig },
   );
 
+  // Returns wall-clock now() as a recorded value. DBOS replays the
+  // workflow body on recovery; bare Date.now() reads recovery time, not
+  // original start time, which would silently extend the running budget
+  // by a full runningTimeoutSec on every restart. Wrapping it in a step
+  // pins the value to the first execution.
+  const nowMsStep = DBOS.registerStep(async (): Promise<number> => Date.now(), {
+    name: 'task.step.nowMs',
+    ...stepConfig,
+  });
+
   // Wraps countAttempts + getMaxAttempts in a step so results are recorded in
   // the DBOS event log and not re-fetched on workflow replay (determinism).
   const getRetryInfoStep = DBOS.registerStep(
@@ -290,7 +285,11 @@ export function initTaskWorkflows(): void {
                 error:
                   firstEvent?.kind === 'cancelled'
                     ? (firstEvent.error ?? null)
-                    : null,
+                    : ({
+                        code: 'dispatch_expired',
+                        message:
+                          'Dispatch timed out before the worker started processing the attempt.',
+                      } as unknown),
               });
               if (!isTerminal) {
                 await getDeps().updateTaskStatus(
@@ -311,13 +310,18 @@ export function initTaskWorkflows(): void {
             },
             { name: 'task.tx.markDispatchTerminal' },
           );
-          await removeClaimantTupleStep(taskId, agentId);
           const finalStatus: TaskAttemptFinalEvent['status'] =
             firstEvent?.kind === 'cancelled'
               ? 'cancelled'
               : isTerminal && taskNow!.status === 'cancelled'
                 ? 'cancelled'
                 : 'timed_out';
+          // Same rationale as persistTerminalResult: keep the claimant
+          // tuple alive after a cancel so the worker can still observe
+          // it via /heartbeat. Orphan sweeper (#937) cleans up later.
+          if (finalStatus !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,
@@ -340,7 +344,10 @@ export function initTaskWorkflows(): void {
 
         // Otherwise: kind === 'started' (or 'heartbeat' from a runtime
         // that skipped 'started'). Either way we now have liveness.
-        const startedAtMs = Date.now();
+        // Pin startedAtMs through a step so it survives DBOS replay
+        // (bare Date.now() in workflow body would re-evaluate on
+        // recovery, silently re-granting the running budget).
+        const startedAtMs = await nowMsStep();
         let currentLeaseTtlSec =
           firstEvent.kind === 'started' || firstEvent.kind === 'heartbeat'
             ? (firstEvent.leaseTtlSec ?? leaseTtlSec)
@@ -420,7 +427,13 @@ export function initTaskWorkflows(): void {
             },
             { name: 'task.tx.persistResult' },
           );
-          await removeClaimantTupleStep(taskId, agentId);
+          // For 'cancelled', leave the Keto claimant tuple in place so
+          // the worker's next /heartbeat can still pass canReportTask
+          // and observe `cancelled: true` in the response (#938).
+          // The orphan-recovery sweeper (#937) cleans these up later.
+          if (evt.kind !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
           const event: TaskAttemptFinalEvent =
             evt.kind === 'completed'
               ? { status: 'completed', taskId, attemptN, output: evt.output }
@@ -458,16 +471,18 @@ export function initTaskWorkflows(): void {
             { name: 'task.tx.markRunningTimedOut' },
           );
           await removeClaimantTupleStep(taskId, agentId);
+          const finalStatus: TaskAttemptFinalEvent['status'] =
+            isTerminal && taskNow!.status === 'cancelled'
+              ? 'cancelled'
+              : 'timed_out';
           const event: TaskAttemptFinalEvent = {
-            status:
-              isTerminal && taskNow!.status === 'cancelled'
-                ? 'cancelled'
-                : 'timed_out',
+            status: finalStatus,
             taskId,
             attemptN,
-            ...(event_status_is_timeout(isTerminal, taskNow)
-              ? { timeoutReason: reason }
-              : {}),
+            // Only attach timeoutReason when the workflow's timeout is
+            // authoritative — i.e., the task was not concurrently moved
+            // to a terminal state by an external actor (cancel, peer).
+            ...(finalStatus === 'timed_out' ? { timeoutReason: reason } : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
           return event;
@@ -480,6 +495,14 @@ export function initTaskWorkflows(): void {
           }
           // Cap each recv at the lease ttl, but never wait past the
           // total budget (so `running_total_exceeded` fires promptly).
+          // Ceil + max-1 so we never under-shoot the deadline check.
+          // Trade-off: a runaway task may live up to 1s past
+          // runningTimeoutSec because DBOS.recv takes whole seconds.
+          // Floor would be precise on the cap but mis-attributes
+          // running_total_exceeded as lease_expired when the recv
+          // returns just before the deadline crosses (e.g.,
+          // remainingMs=1500 floors to 1s, recv parks 1s, but
+          // remainingMs at wake is still 500ms positive).
           const recvSec = Math.max(
             1,
             Math.min(currentLeaseTtlSec, Math.ceil(remainingMs / 1000)),
@@ -515,17 +538,6 @@ export function initTaskWorkflows(): void {
       { name: 'task.workflow.startAttempt' },
     ),
   };
-}
-
-// Helper outside the workflow body: a `timed_out` final event only
-// carries `timeoutReason` when the attempt itself ran out (not when an
-// external terminal status overrode it). Pulled out for readability.
-function event_status_is_timeout(
-  isTerminal: boolean,
-  taskNow: Task | null,
-): boolean {
-  if (!isTerminal) return true;
-  return taskNow?.status !== 'cancelled';
 }
 
 export const taskWorkflows = new Proxy(

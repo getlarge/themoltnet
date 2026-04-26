@@ -1074,6 +1074,69 @@ describe('Tasks API', () => {
       );
       expect(finalAttempt?.status).toBe('cancelled');
     });
+
+    it('cancel mid-loop (worker has heartbeated multiple times) is honored, not racing lease_expired', async () => {
+      // Establish the running-phase recv loop with several heartbeats
+      // (the new shape from #936 — distinct code path from a single
+      // initial heartbeat). Then cancel while the loop is parked.
+      // Must persist as 'cancelled' with no timeoutReason set, even
+      // though a lease window is also ticking.
+      const { data: imposed } = await impose(
+        {},
+        { maxAttempts: 1, runningTimeoutSec: 30 },
+      );
+      const taskId = imposed!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      // 3 heartbeats with a 5s lease — the loop is now actively running.
+      for (let i = 0; i < 3; i++) {
+        await taskHeartbeat({
+          client,
+          auth: () => claimer.accessToken,
+          path: { id: taskId, n: attemptN },
+          body: { leaseTtlSec: 5 },
+        });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 200);
+        });
+      }
+
+      // Cancel mid-loop. The 'cancelled' event lands in the recv loop.
+      await cancelTask({
+        client,
+        auth: () => imposer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'cancel mid-loop' },
+      });
+
+      const finalAttempt = await pollUntil(
+        async () => {
+          const { data, error } = await listTaskAttempts({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: taskId },
+          });
+          if (!data) {
+            throw new Error(
+              `listTaskAttempts failed: ${
+                error ? JSON.stringify(error) : 'no data'
+              }`,
+            );
+          }
+          return data[0];
+        },
+        (a) => a !== undefined && a.status === 'cancelled',
+        {
+          label: 'attempt.cancelMidLoop',
+          maxAttempts: 20,
+          intervalMs: 250,
+        },
+      );
+      expect(finalAttempt?.status).toBe('cancelled');
+      // Must NOT have a timeout reason — cancel beat any lease tick.
+      expect(finalAttempt?.error?.code).toBe('task_cancelled');
+    });
   });
 
   // ── Fail with retry: maxAttempts > 1 → re-queues for next claimer ────────────
@@ -1154,6 +1217,7 @@ describe('Tasks API', () => {
         path: { id: taskId },
       });
       expect(attempts![0].status).toBe('timed_out');
+      expect(attempts![0].error?.code).toBe('dispatch_expired');
     });
 
     it('running total budget exceeded → timed_out with running_total_exceeded reason', async () => {
@@ -1236,17 +1300,19 @@ describe('Tasks API', () => {
       expect(attempts![0].error?.code).toBe('lease_expired');
     });
 
-    it('sliding window: continued heartbeats survive past initial runningTimeoutSec until total cap', async () => {
-      // Total budget 4s, lease 1s. Worker heartbeats every 500ms for
-      // 2.5s — that's past the 4s/2 = midpoint but the sliding window
-      // keeps refreshing. Then the worker stops; after 1s of silence
-      // the lease expires. The total elapsed (2.5s heartbeats + 1s
-      // silence = 3.5s) is under the 4s cap, so it must fire as
-      // `lease_expired`, NOT `running_total_exceeded`. This is the
-      // regression test for the sliding-window semantics.
+    it('sliding window: continued heartbeats refresh the lease; eventual silence ends with lease_expired (not running_total_exceeded)', async () => {
+      // The regression test for sliding-window semantics. Lease is 1s.
+      // If heartbeats did NOT slide the window, the attempt would die
+      // at t≈1s with lease_expired. Instead the worker heartbeats
+      // every 500ms for 2.5s, then goes silent — and ~1s later the
+      // (refreshed) lease window collapses. Total elapsed ≈ 3.5s,
+      // well under the 8s total cap, so the result must be
+      // lease_expired, NOT running_total_exceeded. Generous total
+      // budget (8s vs the ~3.5s elapsed) buffers against CI HTTP
+      // jitter.
       const { data } = await impose(
         {},
-        { maxAttempts: 1, runningTimeoutSec: 4 },
+        { maxAttempts: 1, runningTimeoutSec: 8 },
       );
       const taskId = data!.id;
       const { data: claimed } = await claim(taskId);

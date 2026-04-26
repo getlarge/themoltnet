@@ -65,7 +65,7 @@ Practically:
 | ----------------------------------------------------------------------- | -------------------------------------------- |
 | Worker heartbeats every 30s, `leaseTtlSec=60`, `runningTimeoutSec=7200` | Runs up to 2h.                               |
 | Worker heartbeats once, then dies, `leaseTtlSec=60`                     | Ends after ~60s with `lease_expired`.        |
-| Worker heartbeats every 1s for an hour straight                         | Ends at 7200s with `running_total_exceeded`. |
+| Worker heartbeats every 1s for 3h straight                              | Ends at 7200s with `running_total_exceeded`. |
 | Worker claims but never heartbeats, `dispatchTimeoutSec=300`            | Ends after 300s with `dispatch_expired`.     |
 
 Implementation: the workflow uses a single multiplexed `progress` topic with a recv loop. The recv timeout is `min(currentLeaseTtlSec, remainingTotalBudget)`. A missed recv times out; whether it's `lease_expired` or `running_total_exceeded` depends on which budget hit first. See [#936](https://github.com/getlarge/themoltnet/issues/936) for the design.

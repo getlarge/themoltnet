@@ -602,8 +602,10 @@ export function createTaskService(deps: TaskServiceDeps) {
       // (transitions claimed→running); subsequent ones are `heartbeat`
       // and refresh the sliding lease window inside the loop without
       // accumulating orphaned events.
-      const progressKind: 'started' | 'heartbeat' =
-        attempt.status === 'claimed' ? 'started' : 'heartbeat';
+      const isFirstHeartbeat = attempt.status === 'claimed';
+      const progressKind: 'started' | 'heartbeat' = isFirstHeartbeat
+        ? 'started'
+        : 'heartbeat';
       await DBOS.send(
         workflowId,
         { kind: progressKind, leaseTtlSec },
@@ -612,6 +614,19 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
       await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
+      // Synchronously stamp attempt.status = 'running' on the first
+      // heartbeat. The workflow's markRunning tx will also set this
+      // (idempotent overwrite) but writing it here closes a race: the
+      // worker's next /complete or /fail call expects attempt.status
+      // !== 'claimed' (otherwise the 409 heartbeat-required guard
+      // fires). Without this row write, a fast worker can call
+      // /complete before the workflow's recv→tx round-trip lands.
+      if (isFirstHeartbeat) {
+        await taskRepository.updateAttempt(taskId, attemptN, {
+          status: 'running',
+          startedAt: new Date(),
+        });
+      }
 
       logger.debug({ taskId, attemptN }, 'task.heartbeat');
       return {

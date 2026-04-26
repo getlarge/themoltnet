@@ -130,7 +130,6 @@ export {
   signingWorkflows,
   type TaskAttemptClaimedEvent,
   type TaskAttemptFinalEvent,
-  type TaskAttemptResult,
   TaskWorkflowConfigurationError,
   type TaskWorkflowDeps,
   taskWorkflows,
