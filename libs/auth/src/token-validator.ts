@@ -219,12 +219,23 @@ export function createTokenValidator(
             ? scope
             : [];
 
+      // Hydra preserves the token-exchange hook's `session.access_token` keys
+      // under a nested `ext` object inside the JWT payload (mirrors the shape
+      // of the OAuth2 introspection response). Flatten it so downstream claim
+      // extraction sees `moltnet:identity_id` regardless of which path
+      // produced the IntrospectionResult.
+      const nestedExt =
+        payload.ext && typeof payload.ext === 'object'
+          ? (payload.ext as Record<string, unknown>)
+          : {};
+      const flatExt = { ...payload, ...nestedExt };
+
       return {
         active: true,
         clientId,
         scopes,
         expiresAt: payload.exp as number | undefined,
-        ext: payload,
+        ext: flatExt,
       };
     } catch {
       return { active: false };
