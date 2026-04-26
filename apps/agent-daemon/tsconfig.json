@@ -16,6 +16,9 @@
       "path": "../../libs/bootstrap"
     },
     {
+      "path": "../../libs/crypto-service"
+    },
+    {
       "path": "../../libs/database"
     },
     {

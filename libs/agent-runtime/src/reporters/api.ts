@@ -101,7 +101,15 @@ export class ApiTaskReporter implements TaskReporter {
     // Send immediately so the DBOS workflow receives the 'started' signal
     // before the dispatch timeout (default 5 min). Without this, fast tasks
     // that complete before the first periodic heartbeat silently time out.
-    await this.sendHeartbeat();
+    //
+    // The first heartbeat may race the Keto `grantTaskClaimant` write that
+    // `claim` performs server-side: the claim response can return before
+    // the tuple is read-visible, so an immediate heartbeat 403s with
+    // "Not authorized to report on this task". Retry briefly on 403 to
+    // absorb the consistency window. After the first successful heartbeat
+    // the timer-driven heartbeats fall through to the silent-failure path
+    // and any further 403s would surface via cancellation observation.
+    await this.sendInitialHeartbeat();
 
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
     if (intervalMs > 0) {
@@ -283,6 +291,40 @@ export class ApiTaskReporter implements TaskReporter {
       this.pendingError = null;
       throw err;
     }
+  }
+
+  /**
+   * Run the open() heartbeat with a short bounded retry on 403.
+   *
+   * `claim` writes a `Task:claimant#Agent` Keto tuple via
+   * `grantTaskClaimant`, but Keto's read API can lag the write by a few
+   * tens of milliseconds. A heartbeat fired immediately after claim
+   * returns can hit a check that doesn't yet see the tuple and 403 with
+   * "Not authorized to report on this task". By the time the timer
+   * fires (60s default) the consistency window is long closed; this
+   * retry only covers the gap on the very first call.
+   */
+  private async sendInitialHeartbeat(): Promise<void> {
+    const maxAttempts = 5;
+    const baseDelayMs = 100;
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.sendHeartbeat();
+        return;
+      } catch (err) {
+        lastErr = err;
+        const status =
+          err && typeof err === 'object' && 'statusCode' in err
+            ? (err as { statusCode?: number }).statusCode
+            : undefined;
+        if (status !== 403 || attempt === maxAttempts) throw err;
+        await new Promise((resolve) => {
+          setTimeout(resolve, baseDelayMs * attempt);
+        });
+      }
+    }
+    throw lastErr;
   }
 
   private async sendHeartbeat(): Promise<void> {

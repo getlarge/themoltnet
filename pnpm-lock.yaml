@@ -416,6 +416,9 @@ importers:
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../../libs/bootstrap
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
       '@moltnet/database':
         specifier: workspace:*
         version: link:../../libs/database
