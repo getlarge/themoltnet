@@ -890,9 +890,19 @@ export function createTaskService(deps: TaskServiceDeps) {
         if (active.status === 'claimed') {
           await DBOS.send(workflowId, true, 'started');
         }
+        // The workflow persists `result.error` to attempt.error, which
+        // is serialized via the TaskError schema {code, message, ...}.
+        // A free-form { reason } would 500 the response when listed.
         await DBOS.send(
           workflowId,
-          { kind: 'cancelled', error: { reason } },
+          {
+            kind: 'cancelled',
+            error: {
+              code: 'task_cancelled',
+              message: reason,
+              retryable: false,
+            },
+          },
           'result',
         );
       }
