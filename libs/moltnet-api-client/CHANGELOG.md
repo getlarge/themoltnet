@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.22.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.21.0...moltnet-api-client-v1.22.0) (2026-04-26)
+
+
+### Features
+
+* **agent-daemon:** new app + polling source + GET /tasks/schemas ([317c399](https://github.com/getlarge/themoltnet/commit/317c39967c5bf27054bdb91df05c9465a46e0a45))
+* **rest-api:** GET /tasks/schemas + regenerate clients ([0f25ca1](https://github.com/getlarge/themoltnet/commit/0f25ca17cc201e375b5dcaaf26c8c4f8a483a9d8))
+* **tasks:** imposer-set timeouts; LLM-decided entry types; cancel/fail/timeout e2e ([f98fe1f](https://github.com/getlarge/themoltnet/commit/f98fe1f0de2c2ccb76f2b7a0e43dea1958fa5efc))
+* **tasks:** imposer-set timeouts; LLM-decided entry types; cancel/fail/timeout e2e ([7488f17](https://github.com/getlarge/themoltnet/commit/7488f1708de228c8209bba47ee0c892d565cf195))
+
+
+### Bug Fixes
+
+* **tasks:** address PR [#935](https://github.com/getlarge/themoltnet/issues/935) review feedback ([69699cd](https://github.com/getlarge/themoltnet/commit/69699cd7c1c07521eee1d2d9460ead14137b90f8))
+* **tasks:** cancel stops the worker; late /complete cannot revive ([#938](https://github.com/getlarge/themoltnet/issues/938)) ([7d85002](https://github.com/getlarge/themoltnet/commit/7d850028592f2658225530b18f56df593bc284bc))
+
 ## [1.21.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.20.0...moltnet-api-client-v1.21.0) (2026-04-25)
 
 

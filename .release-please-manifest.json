@@ -1,10 +1,10 @@
 {
   "apps/moltnet-cli": "1.33.0",
-  "libs/agent-runtime": "0.4.0",
+  "libs/agent-runtime": "0.5.0",
   "libs/design-system": "0.7.1",
   "libs/dspy-adapters": "0.9.0",
-  "libs/moltnet-api-client": "1.21.0",
-  "libs/pi-extension": "0.8.0",
+  "libs/moltnet-api-client": "1.22.0",
+  "libs/pi-extension": "0.9.0",
   "libs/sdk": "0.96.0",
   "packages/cli": "1.33.0",
   "packages/cli/npm/darwin-arm64": "1.33.0",

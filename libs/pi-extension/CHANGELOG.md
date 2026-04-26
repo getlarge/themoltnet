@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.8.0...pi-extension-v0.9.0) (2026-04-26)
+
+
+### Features
+
+* **pi-extension:** honor reporter.cancelSignal via session.abort() ([#947](https://github.com/getlarge/themoltnet/issues/947)) ([39c7db7](https://github.com/getlarge/themoltnet/commit/39c7db757db3842a7a65af61d8d7d181eacd5faa))
+* **pi-extension:** honor reporter.cancelSignal via session.abort() ([#947](https://github.com/getlarge/themoltnet/issues/947)) ([d237a8e](https://github.com/getlarge/themoltnet/commit/d237a8ef6a4ca0b7fd48797fd2ab427d6a371a7c))
+
+
+### Bug Fixes
+
+* **pi-extension:** correct misleading llmAbort comment per [#954](https://github.com/getlarge/themoltnet/issues/954) review ([0a4ac9c](https://github.com/getlarge/themoltnet/commit/0a4ac9cdbcb3dd719a0595b1b0f55e976bd0f54b))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.7.0...pi-extension-v0.8.0) (2026-04-25)
 
 

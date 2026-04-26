@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.4.0...agent-runtime-v0.5.0) (2026-04-26)
+
+
+### Features
+
+* **agent-daemon:** new app + polling source + GET /tasks/schemas ([317c399](https://github.com/getlarge/themoltnet/commit/317c39967c5bf27054bdb91df05c9465a46e0a45))
+* **agent-runtime:** add PollingApiTaskSource for daemon mode ([51559c1](https://github.com/getlarge/themoltnet/commit/51559c125fd449b9cad53ba725815cfc3dad95f3))
+* **tasks:** imposer-set timeouts; LLM-decided entry types; cancel/fail/timeout e2e ([f98fe1f](https://github.com/getlarge/themoltnet/commit/f98fe1f0de2c2ccb76f2b7a0e43dea1958fa5efc))
+* **tasks:** imposer-set timeouts; LLM-decided entry types; cancel/fail/timeout e2e ([7488f17](https://github.com/getlarge/themoltnet/commit/7488f1708de228c8209bba47ee0c892d565cf195))
+
+
+### Bug Fixes
+
+* **agent-daemon-e2e:** tighten cleanup, scope cancel test to robust assertions, retry initial heartbeat ([8a2f950](https://github.com/getlarge/themoltnet/commit/8a2f95025a0890adf26ada4c5fe248099d82a79d))
+* **agent-runtime:** drain mode must not exit on transient list errors ([c7f3c34](https://github.com/getlarge/themoltnet/commit/c7f3c34d85ad0d8ce1f9063dae48d3d7ad9a04c9))
+* **tasks:** cancel stops the worker; late /complete cannot revive ([#938](https://github.com/getlarge/themoltnet/issues/938)) ([7d85002](https://github.com/getlarge/themoltnet/commit/7d850028592f2658225530b18f56df593bc284bc))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.3.0...agent-runtime-v0.4.0) (2026-04-25)
 
 
