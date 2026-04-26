@@ -163,11 +163,30 @@ describe('Agent daemon (e2e)', () => {
           taskId: claimedTask.task.id,
           attemptN: claimedTask.attemptN,
         });
+        // Stub output that satisfies CuratePackOutput. The server runs
+        // validateTaskOutput against this on /complete, so we can't get
+        // away with a degenerate {packId} payload (#882 added per-type
+        // output validation).
+        const stubOutput = {
+          packId: '00000000-0000-4000-8000-000000000001',
+          packCid:
+            'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+          entries: [
+            {
+              entryId: '00000000-0000-4000-8000-000000000002',
+              rank: 1,
+              rationale: 'e2e stub entry',
+            },
+          ],
+          recipeParams: {},
+          summary:
+            'e2e stub curation summary, two sentences satisfy minLength.',
+        };
         const output = {
           taskId: claimedTask.task.id,
           attemptN: claimedTask.attemptN,
           status: 'completed' as const,
-          output: { packId: '00000000-0000-4000-8000-000000000000' },
+          output: stubOutput,
           outputCid:
             'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
           usage: { inputTokens: 1, outputTokens: 1 },
