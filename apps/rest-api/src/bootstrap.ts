@@ -349,6 +349,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
             relationshipWriter.removeTaskClaimant(taskId, agentId),
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
           getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
+          findTaskById: (taskId) => taskRepository.findById(taskId),
         });
       },
       () => {

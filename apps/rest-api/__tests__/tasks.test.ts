@@ -38,6 +38,8 @@ const MOCK_TASK = {
   cancelledByHumanId: null,
   cancelReason: null,
   maxAttempts: 1,
+  dispatchTimeoutSec: null,
+  runningTimeoutSec: null,
 };
 
 const MOCK_ATTEMPT = {
@@ -297,6 +299,8 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.taskService.heartbeat.mockResolvedValue({
       claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+      cancelled: false,
+      cancelReason: null,
     });
   });
 

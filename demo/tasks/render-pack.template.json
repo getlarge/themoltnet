@@ -7,6 +7,7 @@
   "correlationId": null,
   "criteriaCid": null,
   "diaryId": "{{diaryId}}",
+  "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100002-0000-4000-8000-000000000002",
   "imposedByAgentId": null,
@@ -23,6 +24,7 @@
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",
+  "runningTimeoutSec": null,
   "status": "running",
   "taskType": "render_pack",
   "teamId": "{{teamId}}"

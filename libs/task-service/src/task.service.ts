@@ -138,6 +138,8 @@ function dbTaskToWire(row: DbTask): Task {
     cancelledByHumanId: row.cancelledByHumanId ?? null,
     cancelReason: row.cancelReason ?? null,
     maxAttempts: row.maxAttempts,
+    dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
+    runningTimeoutSec: row.runningTimeoutSec ?? null,
   };
 }
 
@@ -193,6 +195,12 @@ export interface CreateTaskInput {
   expiresInSec?: number;
   criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
+  // Imposer-set timeout overrides (seconds). Undefined → server
+  // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
+  // DEFAULT_RUNNING_TIMEOUT_SECONDS in
+  // libs/database/src/workflows/task-workflows.ts).
+  dispatchTimeoutSec?: number;
+  runningTimeoutSec?: number;
   callerId: string;
   callerNs: KetoNamespace;
   callerIsAgent: boolean;
@@ -329,6 +337,8 @@ export function createTaskService(deps: TaskServiceDeps) {
         requiredExecutorTrustLevel:
           TRUST_LEVEL_TO_DB[input.requiredExecutorTrustLevel ?? 'selfDeclared'],
         maxAttempts: input.maxAttempts ?? 1,
+        dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
+        runningTimeoutSec: input.runningTimeoutSec ?? null,
         expiresAt,
       };
 
@@ -494,6 +504,8 @@ export function createTaskService(deps: TaskServiceDeps) {
           workflowId,
           leaseTtlSec,
           claimedExecutor?.fingerprint ?? null,
+          row.dispatchTimeoutSec ?? null,
+          row.runningTimeoutSec ?? null,
         );
       } catch (error) {
         if (
@@ -533,7 +545,11 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
-    ): Promise<{ claimExpiresAt: string }> {
+    ): Promise<{
+      claimExpiresAt: string;
+      cancelled: boolean;
+      cancelReason: string | null;
+    }> {
       const canReport = await permissionChecker.canReportTask(
         taskId,
         callerId,
@@ -547,12 +563,6 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
-      if (TERMINAL_STATUSES.has(task.status)) {
-        throw new TaskServiceError(
-          'conflict',
-          `Task is already in terminal state: ${task.status}`,
-        );
-      }
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
@@ -564,14 +574,49 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
+      // Cancellation is reported via the response, not as 409 — the
+      // runtime needs a clean signal to abort the executor without
+      // having to interpret an error envelope (#938). Other terminal
+      // states (completed / failed / expired) remain 409 because there
+      // is no executor to abort and a heartbeat against them is a
+      // contract violation.
+      if (task.status === 'cancelled') {
+        logger.debug({ taskId, attemptN }, 'task.heartbeat.on_cancelled_task');
+        return {
+          claimExpiresAt:
+            attempt.completedAt?.toISOString() ?? new Date().toISOString(),
+          cancelled: true,
+          cancelReason: task.cancelReason ?? null,
+        };
+      }
+      if (TERMINAL_STATUSES.has(task.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
+
       const workflowId = taskWorkflowId(taskId, attemptN);
-      await DBOS.send(workflowId, true, 'started');
+      // Only send 'started' on the very first heartbeat — when the
+      // attempt is still in `claimed` state, before the workflow has
+      // crossed claimed → running. Subsequent heartbeats fall through
+      // to the lease-renewal-only path; sending again would queue an
+      // orphaned event in the DBOS event store that's never consumed
+      // (the recv('started') has already returned). At ~120 orphaned
+      // rows per 2h task that's a real leak at scale.
+      if (attempt.status === 'claimed') {
+        await DBOS.send(workflowId, true, 'started');
+      }
 
       const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
       await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
 
       logger.debug({ taskId, attemptN }, 'task.heartbeat');
-      return { claimExpiresAt: claimExpiresAt.toISOString() };
+      return {
+        claimExpiresAt: claimExpiresAt.toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      };
     },
 
     async complete(
@@ -602,6 +647,16 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
+        // Defense in depth (#938): a /complete that races with a /cancel
+        // must not be able to overwrite the cancelled status. Without
+        // this guard the workflow would persist 'completed' on top of
+        // 'cancelled', silently undoing the cancellation.
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
@@ -711,6 +766,17 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Not authorized to report on this task',
         );
 
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
+        // Defense in depth (#938): a /fail that races with a /cancel
+        // must not be able to overwrite the cancelled status.
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
+
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
         throw new TaskServiceError('not_found', 'Attempt not found');
@@ -792,15 +858,53 @@ export function createTaskService(deps: TaskServiceDeps) {
         cancelledByHumanId: isAgent ? null : callerId,
       });
 
-      if (row.claimAgentId) {
-        await relationshipWriter
-          .removeTaskClaimant(taskId, row.claimAgentId)
-          .catch((err: unknown) => {
-            logger.warn(
-              { taskId, claimAgentId: row.claimAgentId, err },
-              'task.cancel.remove_claimant_failed',
-            );
-          });
+      // Signal any active workflow so it unblocks and persists the
+      // attempt as cancelled. Without this, the workflow sits parked
+      // until runningTimeoutSec elapses and the worker keeps burning
+      // compute on work that is no longer wanted (#938).
+      //
+      // Two phases the workflow can be parked in:
+      //   - running phase, parked on recv('result'). The 'cancelled'
+      //     send below unblocks it directly.
+      //   - dispatch phase, parked on recv('started') because the worker
+      //     hasn't heartbeat yet. Sending only to 'result' would queue
+      //     an orphaned message until dispatchTimeoutSec fires (5 min
+      //     default), holding a workflow slot for nothing. To avoid
+      //     that, also send 'started' when the active attempt is still
+      //     in `claimed`. The workflow then advances to mark running,
+      //     immediately consumes the queued 'cancelled' on its next
+      //     recv('result'), and runs the persist tx the same way as a
+      //     running-phase cancel. Idempotent overwrite of the row's
+      //     cancelled status — safe.
+      //
+      // We deliberately do NOT remove the Keto claimant tuple here: the
+      // claimer needs to keep the `report` permit so its next /heartbeat
+      // can return cancelled:true to drive executor abort. The workflow's
+      // terminal persist tx cleans up the tuple via removeClaimantTupleStep.
+      const attempts = await taskRepository.listAttempts(taskId);
+      const active = attempts.find(
+        (a) => a.status === 'claimed' || a.status === 'running',
+      );
+      if (active) {
+        const workflowId = taskWorkflowId(taskId, active.attemptN);
+        if (active.status === 'claimed') {
+          await DBOS.send(workflowId, true, 'started');
+        }
+        // The workflow persists `result.error` to attempt.error, which
+        // is serialized via the TaskError schema {code, message, ...}.
+        // A free-form { reason } would 500 the response when listed.
+        await DBOS.send(
+          workflowId,
+          {
+            kind: 'cancelled',
+            error: {
+              code: 'task_cancelled',
+              message: reason,
+              retryable: false,
+            },
+          },
+          'result',
+        );
       }
 
       logger.info({ taskId, callerId, reason }, 'task.cancelled');

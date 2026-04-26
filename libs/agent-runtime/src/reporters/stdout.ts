@@ -14,6 +14,15 @@ export class StdoutReporter implements TaskReporter {
   private taskId = '';
   private attemptN = 0;
 
+  // Local reporters never observe a remote cancel — there's no API
+  // round-trip to learn from. The signal exists to satisfy the
+  // TaskReporter contract; it never aborts.
+  private readonly cancelController = new AbortController();
+  readonly cancelReason: string | null = null;
+  get cancelSignal(): AbortSignal {
+    return this.cancelController.signal;
+  }
+
   async open(ctx: { taskId: string; attemptN: number }): Promise<void> {
     this.taskId = ctx.taskId;
     this.attemptN = ctx.attemptN;

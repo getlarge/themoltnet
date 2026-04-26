@@ -262,6 +262,8 @@ function buildFulfillBriefTask(
     cancelledByHumanId: null,
     cancelReason: null,
     maxAttempts: 1,
+    dispatchTimeoutSec: null,
+    runningTimeoutSec: null,
   };
 }
 

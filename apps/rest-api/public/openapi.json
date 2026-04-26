@@ -951,6 +951,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "dispatchTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "expiresInSec": {
             "minimum": 1,
             "type": "integer"
@@ -972,6 +977,11 @@
           },
           "requiredExecutorTrustLevel": {
             "$ref": "#/components/schemas/ExecutorTrustLevel"
+          },
+          "runningTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
           },
           "taskType": {
             "minLength": 1,
@@ -2203,12 +2213,25 @@
       },
       "HeartbeatResponse": {
         "properties": {
+          "cancelReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
           "claimExpiresAt": {
             "format": "date-time",
             "type": "string"
           }
         },
-        "required": ["claimExpiresAt"],
+        "required": ["claimExpiresAt", "cancelled", "cancelReason"],
         "type": "object"
       },
       "ListMessagesQuery": {
@@ -4111,6 +4134,18 @@
               }
             ]
           },
+          "dispatchTimeoutSec": {
+            "anyOf": [
+              {
+                "maximum": 86400,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "expiresAt": {
             "anyOf": [
               {
@@ -4283,6 +4318,18 @@
               }
             ]
           },
+          "runningTimeoutSec": {
+            "anyOf": [
+              {
+                "maximum": 86400,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "anyOf": [
               {
@@ -4347,7 +4394,9 @@
           "cancelledByAgentId",
           "cancelledByHumanId",
           "cancelReason",
-          "maxAttempts"
+          "maxAttempts",
+          "dispatchTimeoutSec",
+          "runningTimeoutSec"
         ],
         "type": "object"
       },
@@ -13943,6 +13992,11 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "dispatchTimeoutSec": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
                   "expiresInSec": {
                     "minimum": 1,
                     "type": "integer"
@@ -13964,6 +14018,11 @@
                   },
                   "requiredExecutorTrustLevel": {
                     "$ref": "#/components/schemas/ExecutorTrustLevel"
+                  },
+                  "runningTimeoutSec": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
                   },
                   "taskType": {
                     "minLength": 1,

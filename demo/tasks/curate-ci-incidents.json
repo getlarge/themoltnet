@@ -7,15 +7,17 @@
   "correlationId": null,
   "criteriaCid": null,
   "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+  "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100001-0000-4000-8000-000000000001",
   "imposedByAgentId": null,
   "imposedByHumanId": null,
   "input": {
     "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
-    "entryTypes": ["episodic", "procedural"],
     "recipe": "topic-focused-v1",
-    "tagFilters": { "prefix": "scope:" },
+    "tagFilters": {
+      "prefix": "scope:"
+    },
     "taskPrompt": "incidents and workarounds related to CI pipelines, flaky tests, and Docker compose health checks"
   },
   "inputCid": "cid-placeholder",
@@ -25,6 +27,7 @@
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",
+  "runningTimeoutSec": null,
   "status": "running",
   "taskType": "curate_pack",
   "teamId": "6743b4b1-6b93-46e2-a048-19490f04f91a"

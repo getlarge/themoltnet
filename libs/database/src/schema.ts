@@ -911,6 +911,13 @@ export const tasks = pgTable(
     ),
     cancelReason: text('cancel_reason'),
     maxAttempts: integer('max_attempts').notNull().default(1),
+    // Imposer-set timeout overrides. Null means "use server defaults"
+    // (DEFAULT_DISPATCH_TIMEOUT_SECONDS=300,
+    // DEFAULT_RUNNING_TIMEOUT_SECONDS=7200 in task-workflows.ts). Pinned
+    // on the row so retries / re-dispatches honor the same budget the
+    // imposer chose.
+    dispatchTimeoutSec: integer('dispatch_timeout_sec'),
+    runningTimeoutSec: integer('running_timeout_sec'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

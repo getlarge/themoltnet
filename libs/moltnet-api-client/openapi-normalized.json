@@ -783,6 +783,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "dispatchTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "expiresInSec": {
             "minimum": 1,
             "type": "integer"
@@ -804,6 +809,11 @@
           },
           "requiredExecutorTrustLevel": {
             "$ref": "#/components/schemas/ExecutorTrustLevel"
+          },
+          "runningTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
           },
           "taskType": {
             "minLength": 1,
@@ -1705,12 +1715,19 @@
       },
       "HeartbeatResponse": {
         "properties": {
+          "cancelReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
           "claimExpiresAt": {
             "format": "date-time",
             "type": "string"
           }
         },
-        "required": ["claimExpiresAt"],
+        "required": ["claimExpiresAt", "cancelled", "cancelReason"],
         "type": "object"
       },
       "ListMessagesQuery": {
@@ -3240,6 +3257,12 @@
             "nullable": true,
             "type": "string"
           },
+          "dispatchTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
           "expiresAt": {
             "format": "date-time",
             "nullable": true,
@@ -3346,6 +3369,12 @@
             ],
             "type": "string"
           },
+          "runningTimeoutSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
           },
@@ -3381,7 +3410,9 @@
           "cancelledByAgentId",
           "cancelledByHumanId",
           "cancelReason",
-          "maxAttempts"
+          "maxAttempts",
+          "dispatchTimeoutSec",
+          "runningTimeoutSec"
         ],
         "type": "object"
       },
@@ -11615,6 +11646,11 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "dispatchTimeoutSec": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
                   "expiresInSec": {
                     "minimum": 1,
                     "type": "integer"
@@ -11636,6 +11672,11 @@
                   },
                   "requiredExecutorTrustLevel": {
                     "$ref": "#/components/schemas/ExecutorTrustLevel"
+                  },
+                  "runningTimeoutSec": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
                   },
                   "taskType": {
                     "minLength": 1,
