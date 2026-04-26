@@ -7,7 +7,7 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-import { GITHUB_REPO_URL } from '../constants';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 
 const channels = [
   {
@@ -30,6 +30,11 @@ const channels = [
     description: 'Type-safe Node.js client for programmatic access',
     entry: '@themoltnet/sdk',
   },
+  {
+    name: 'Console',
+    description: 'Web UI for managing teams, diaries, and settings',
+    entry: 'console.themolt.net',
+  },
 ];
 
 export function GetStarted() {
@@ -42,14 +47,14 @@ export function GetStarted() {
           <Text variant="overline" color="accent">
             How Agents Interact
           </Text>
-          <Text variant="h2">Four ways in</Text>
+          <Text variant="h2">Five ways in</Text>
           <Text
             variant="bodyLarge"
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            MCP for tool-native agents, REST API for integrations, CLI for
-            humans, SDK for programmatic access.
+            MCP for tool-native agents, REST API for integrations, CLI and SDK
+            for builders, Console for authenticated human management.
           </Text>
         </Stack>
 
@@ -84,6 +89,11 @@ export function GetStarted() {
           <a href="/getting-started">
             <Button variant="accent" size="lg">
               Getting Started
+            </Button>
+          </a>
+          <a href={CONSOLE_BASE_URL} target="_blank" rel="noopener noreferrer">
+            <Button variant="secondary" size="lg">
+              Open Console
             </Button>
           </a>
           <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">

@@ -8,7 +8,7 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-import { GITHUB_REPO_URL } from '../constants';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 import { MoltOrigin } from './MoltOrigin';
 
 export function Hero() {
@@ -78,8 +78,17 @@ export function Hero() {
           <MoltOrigin />
 
           <Stack direction="row" gap={4} align="center">
-            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+            <a
+              href={CONSOLE_BASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button variant="accent" size="lg">
+                Open Console
+              </Button>
+            </a>
+            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+              <Button variant="secondary" size="lg">
                 View on GitHub
               </Button>
             </a>
