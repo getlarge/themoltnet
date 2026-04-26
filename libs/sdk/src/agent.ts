@@ -60,6 +60,7 @@ import type {
   ListProblemTypesResponse,
   ListSigningRequestsData,
   ListTaskMessagesData,
+  ListTaskSchemasResponse,
   ListTasksData,
   ListTeamInvitesResponse,
   ListTeamMembersResponse,
@@ -405,6 +406,8 @@ export interface DiaryGrantsNamespace {
 }
 
 export interface TasksNamespace {
+  schemas(): Promise<ListTaskSchemasResponse>;
+
   list(query: ListTasksData['query']): Promise<TaskListResponse>;
 
   create(body: CreateTaskData['body']): Promise<Task>;

@@ -45,4 +45,6 @@ export interface McpDeps {
   client: Client;
   /** Fastify base logger (assigned from app.log in buildApp) */
   logger: FastifyBaseLogger;
+  /** Optional console base URL used to annotate task results with handoff links. */
+  consoleBaseUrl?: string;
 }

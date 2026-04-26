@@ -29,6 +29,9 @@
     },
     {
       "path": "../../libs/observability"
+    },
+    {
+      "path": "../../libs/tasks"
     }
   ]
 }

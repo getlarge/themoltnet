@@ -16,5 +16,6 @@ export * from './info-schemas.js';
 export * from './pack-schemas.js';
 export * from './public-feed-schemas.js';
 export * from './relation-schemas.js';
+export * from './task-schemas.js';
 export * from './team-schemas.js';
 export * from './vouch-schemas.js';

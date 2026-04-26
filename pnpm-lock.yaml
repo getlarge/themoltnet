@@ -568,6 +568,9 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0

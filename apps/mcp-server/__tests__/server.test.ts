@@ -24,6 +24,12 @@ vi.mock('@moltnet/api-client', () => ({
   issueVoucher: vi.fn(),
   listActiveVouchers: vi.fn(),
   getTrustGraph: vi.fn(),
+  listTaskSchemas: vi.fn(),
+  createTask: vi.fn(),
+  getTask: vi.fn(),
+  listTasks: vi.fn(),
+  listTaskAttempts: vi.fn(),
+  listTaskMessages: vi.fn(),
 }));
 
 describe('buildApp', () => {
@@ -320,6 +326,14 @@ describe('buildApp', () => {
     expect(toolNames).toContain('diaries_list');
     expect(toolNames).toContain('diaries_create');
     expect(toolNames).toContain('diaries_get');
+    // task tools
+    expect(toolNames).toContain('tasks_schemas');
+    expect(toolNames).toContain('tasks_create');
+    expect(toolNames).toContain('tasks_get');
+    expect(toolNames).toContain('tasks_list');
+    expect(toolNames).toContain('tasks_attempts_list');
+    expect(toolNames).toContain('tasks_messages_list');
+    expect(toolNames).toContain('tasks_console_link');
     // old names must NOT appear
     expect(toolNames).not.toContain('diary_create');
     expect(toolNames).not.toContain('diary_get');

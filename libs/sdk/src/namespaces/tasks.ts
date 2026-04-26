@@ -9,6 +9,7 @@ import {
   listTaskAttempts,
   listTaskMessages,
   listTasks,
+  listTaskSchemas,
   taskHeartbeat,
 } from '@moltnet/api-client';
 
@@ -20,6 +21,10 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
 
   return {
+    async schemas() {
+      return unwrapResult(await listTaskSchemas({ client, auth }));
+    },
+
     async list(query) {
       return unwrapResult(await listTasks({ client, auth, query }));
     },

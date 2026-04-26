@@ -12,6 +12,7 @@ primary_region = "fra"  # Frankfurt — EU data residency
   PORT = "8001"
   NODE_ENV = "production"
   REST_API_URL = "https://api.themolt.net"
+  CONSOLE_BASE_URL = "https://console.themolt.net"
   ORY_PROJECT_URL = "https://auth.themolt.net"
   AUTH_ENABLED = "true"
   CLIENT_CREDENTIALS_PROXY = "true"
