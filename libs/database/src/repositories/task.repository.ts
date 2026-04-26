@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from '../db.js';
@@ -331,6 +331,43 @@ export function createTaskRepository(db: Database) {
         .where(eq(tasks.id, taskId))
         .limit(1);
       return row?.maxAttempts ?? 1;
+    },
+
+    /**
+     * Find tasks whose claim_expires_at is older than `staleSince` and are
+     * still in a non-terminal claim state (`dispatched` or `running`).
+     * Used by the orphan-recovery sweeper (#937) to detect tasks abandoned
+     * by a dead DBOS workflow process — the in-workflow recv loop is the
+     * source of truth for liveness while the workflow is alive, but the
+     * row-level claim_expires_at is the only signal once the workflow
+     * itself dies.
+     *
+     * Returns the task plus the active (non-terminal) attempt — there is
+     * always exactly one such attempt while the task is dispatched/running.
+     */
+    async listOrphanedTasks(
+      staleSince: Date,
+      limit: number,
+    ): Promise<
+      Array<{
+        task: Task;
+        attempt: TaskAttempt;
+      }>
+    > {
+      const rows = await getExecutor(db)
+        .select({ task: tasks, attempt: taskAttempts })
+        .from(tasks)
+        .innerJoin(taskAttempts, eq(taskAttempts.taskId, tasks.id))
+        .where(
+          and(
+            inArray(tasks.status, ['dispatched', 'running']),
+            inArray(taskAttempts.status, ['claimed', 'running']),
+            lt(tasks.claimExpiresAt, staleSince),
+          ),
+        )
+        .orderBy(asc(tasks.claimExpiresAt))
+        .limit(limit);
+      return rows;
     },
 
     async findMaxMessageSeq(taskId: string, attemptN: number): Promise<number> {

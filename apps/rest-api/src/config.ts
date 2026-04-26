@@ -75,6 +75,26 @@ export const PackGcConfigSchema = Type.Object({
   PACK_GC_BATCH_SIZE: Type.Number({ default: 100 }),
 });
 
+export const TaskOrphanSweeperConfigSchema = Type.Object({
+  /**
+   * How often the orphan sweeper runs. Default every 2 minutes — frequent
+   * enough that abandoned tasks don't sit too long, infrequent enough not
+   * to thrash the DB on a healthy fleet.
+   */
+  TASK_ORPHAN_SWEEPER_CRON: Type.String({ default: '*/2 * * * *' }),
+  /**
+   * Grace period in seconds added to claim_expires_at before a task is
+   * considered orphaned. Default 300s. The grace exists so a healthy
+   * in-process workflow always wins the race when both it and the sweeper
+   * notice expiration around the same time. Increase if your runtimes
+   * have flaky clock skew or the sweeper must coexist with very long
+   * lease windows.
+   */
+  TASK_ORPHAN_SWEEPER_GRACE_SEC: Type.Number({ default: 300 }),
+  /** Max tasks force-released per sweep run. */
+  TASK_ORPHAN_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
+});
+
 export const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from (default: ./models) */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
@@ -120,6 +140,9 @@ export type OryConfig = Static<typeof OryConfigSchema>;
 export type ObservabilityEnvConfig = Static<typeof ObservabilityConfigSchema>;
 export type RecoveryConfig = Static<typeof RecoveryConfigSchema>;
 export type PackGcConfig = Static<typeof PackGcConfigSchema>;
+export type TaskOrphanSweeperConfig = Static<
+  typeof TaskOrphanSweeperConfigSchema
+>;
 export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
 
@@ -133,6 +156,7 @@ export interface AppConfig {
   embedding: EmbeddingConfig;
   security: SecurityConfig;
   packGc: PackGcConfig;
+  taskOrphanSweeper: TaskOrphanSweeperConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -257,6 +281,16 @@ export function loadPackGcConfig(
   );
 }
 
+export function loadTaskOrphanSweeperConfig(
+  env: Record<string, string | undefined> = process.env,
+): TaskOrphanSweeperConfig {
+  return validateSchema(
+    'TaskOrphanSweeper',
+    TaskOrphanSweeperConfigSchema,
+    pickEnv(TaskOrphanSweeperConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -294,6 +328,7 @@ export function loadConfig(
     embedding: loadEmbeddingConfig(env),
     security,
     packGc: loadPackGcConfig(env),
+    taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
   };
 }
 
@@ -311,6 +346,7 @@ const allSchemas: TObject[] = [
   EmbeddingConfigSchema,
   SecurityConfigSchema,
   PackGcConfigSchema,
+  TaskOrphanSweeperConfigSchema,
 ];
 
 /**
