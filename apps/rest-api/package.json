@@ -15,10 +15,10 @@
   "scripts": {
     "build": "vite build && vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
     "dev": "tsx watch src/main.ts",
-    "lint": "eslint .",
+    "lint": "nx eslint:lint",
     "start": "node dist/main.js",
-    "test": "vitest run",
-    "test:e2e": "vitest run --config vitest.config.e2e.ts",
+    "test": "nx vitest:test run",
+    "test:e2e": "nx vitest:test run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
   },
   "dependencies": {

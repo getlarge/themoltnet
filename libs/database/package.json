@@ -21,9 +21,9 @@
     "studio": "drizzle-kit studio",
     "db:migrate:run": "tsx src/migrate-cli.ts",
     "db:status": "tsx src/migrate-status.ts",
-    "test": "vitest run",
+    "test": "nx vitest:test run",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "lint": "nx eslint:lint"
   },
   "dependencies": {
     "@dbos-inc/dbos-sdk": "catalog:",

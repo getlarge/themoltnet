@@ -5,12 +5,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run --passWithNoTests",
+    "dev": "nx serve",
+    "build": "nx vite:build",
+    "preview": "nx vite:preview",
+    "test": "nx vitest:test run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "lint": "nx eslint:lint"
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",

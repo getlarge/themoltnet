@@ -11,10 +11,10 @@
     "cli": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "test": "vitest run --passWithNoTests",
-    "test:e2e": "vitest run --config vitest.config.e2e.ts",
+    "test": "nx vitest:test run --passWithNoTests",
+    "test:e2e": "nx vitest:test run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
-    "lint": "eslint ."
+    "lint": "nx eslint:lint"
   },
   "dependencies": {
     "@moltnet/tasks": "workspace:*",

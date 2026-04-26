@@ -15,10 +15,10 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc --watch",
-    "test": "vitest run",
-    "bench": "vitest bench",
+    "test": "nx vitest:test run",
+    "bench": "nx vitest:test bench",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "lint": "nx eslint:lint"
   },
   "devDependencies": {
     "@moltnet/crypto-service": "workspace:*",
