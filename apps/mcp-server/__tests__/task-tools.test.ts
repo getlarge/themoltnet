@@ -348,6 +348,21 @@ describe('Task tools', () => {
       );
     });
 
+    it('removes repeated trailing slashes from the console base URL', async () => {
+      const result = await handleTasksConsoleLink(
+        { id: TASK_ID },
+        {
+          ...deps,
+          consoleBaseUrl: 'https://console.example.com////',
+        },
+        context,
+      );
+
+      expect(parseResult<{ consoleUrl: string }>(result).consoleUrl).toBe(
+        `https://console.example.com/tasks/${TASK_ID}`,
+      );
+    });
+
     it('omits consoleUrl when not configured', async () => {
       const result = await handleTasksConsoleLink(
         { id: TASK_ID },

@@ -56,8 +56,11 @@ type TaskListResult = {
 };
 
 function getConsoleUrl(deps: McpDeps, taskId: string): string | undefined {
-  const base = deps.consoleBaseUrl?.replace(/\/+$/, '');
+  let base = deps.consoleBaseUrl;
   if (!base) return undefined;
+  while (base.endsWith('/')) {
+    base = base.slice(0, -1);
+  }
   return `${base}/tasks/${taskId}`;
 }
 
