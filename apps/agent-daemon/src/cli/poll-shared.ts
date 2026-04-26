@@ -22,6 +22,7 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import { createPromptExtrasResolver } from '../lib/resolve-prompt-extras.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 
 export interface PollSharedArgs {
@@ -160,6 +161,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       provider: common.provider,
       model: common.model,
       sandboxConfig: sandbox.config,
+      // Per-task prompt enrichment. assess_brief needs the target
+      // fulfill_brief task's output projected into a `target` bundle —
+      // resolved here in the daemon (which has the SDK in scope).
+      // Other task types return undefined and pi-extension falls back
+      // to its static promptExtras.
+      resolvePromptExtras: createPromptExtrasResolver(ctx.agent),
     });
 
     runtime = new AgentRuntime({
