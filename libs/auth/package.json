@@ -20,10 +20,12 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@moltnet/observability": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "fast-jwt": "catalog:",
     "get-jwks": "catalog:",
-    "fastify-plugin": "catalog:"
+    "fastify-plugin": "catalog:",
+    "pino": "catalog:"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "catalog:",

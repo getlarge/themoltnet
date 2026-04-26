@@ -910,6 +910,9 @@ importers:
 
   libs/auth:
     dependencies:
+      '@moltnet/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.34
@@ -922,6 +925,9 @@ importers:
       get-jwks:
         specifier: 'catalog:'
         version: 11.0.3
+      pino:
+        specifier: 'catalog:'
+        version: 10.3.1
     devDependencies:
       '@testcontainers/postgresql':
         specifier: 'catalog:'
