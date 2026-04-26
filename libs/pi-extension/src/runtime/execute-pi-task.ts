@@ -220,21 +220,31 @@ export async function executePiTask(
       model: opts.model,
     });
 
-    let taskPrompt: string;
-    try {
-      // Resolve per-task extras before building the prompt. Daemon-side
-      // resolvers (e.g. fetching an assess_brief.targetTaskId's output)
-      // run here so the prompt builder sees a fully-hydrated context.
-      // Static `promptExtras` is the base; the resolver's return value
-      // wins on conflict.
-      let resolvedExtras: Record<string, unknown> | undefined =
-        opts.promptExtras;
-      if (opts.resolvePromptExtras) {
+    // Resolve per-task extras before building the prompt. Daemon-side
+    // resolvers (e.g. fetching an assess_brief.targetTaskId's output)
+    // run here so the prompt builder sees a fully-hydrated context.
+    // Static `promptExtras` is the base; the resolver's return value
+    // wins on conflict.
+    //
+    // Resolver failures get their own error code/phase. They're not
+    // prompt-build problems — they're upstream SDK / network issues —
+    // and conflating the two makes diagnostics misleading.
+    let resolvedExtras: Record<string, unknown> | undefined = opts.promptExtras;
+    if (opts.resolvePromptExtras) {
+      try {
         const dynamic = await opts.resolvePromptExtras(claimedTask);
         if (dynamic) {
           resolvedExtras = { ...resolvedExtras, ...dynamic };
         }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        await emit('error', { message, phase: 'extras_resolution' });
+        return makeFailedOutput('extras_resolution_failed', message);
       }
+    }
+
+    let taskPrompt: string;
+    try {
       const promptCtx: PromptContext = {
         diaryId,
         taskId: task.id,

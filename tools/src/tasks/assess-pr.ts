@@ -1,48 +1,49 @@
 /**
- * assess-pr.ts — synthesize an `assess_brief` task that judges a GitHub
- * pull request against the PR-complexity rubric.
+ * assess-pr.ts — synthesize an `assess_brief` task that judges an existing
+ * `fulfill_brief` task using the PR-complexity rubric.
  *
- * What it does
- * ------------
- * Reads `gh pr view <ref>` (using the agent's GitHub App token), turns
- * the PR metadata into an `AssessBriefInput` carrying the inline
- * `pr-complexity-v1` rubric criteria, and POSTs it via
- * `agent.tasks.create(...)`. Prints the new task id on stdout. The task
- * lands queued; any daemon polling for `assess_brief` claims it.
+ * What this is, and isn't
+ * -----------------------
+ * This is **not** "PR review as its own task type." It's the standard
+ * `assess_brief` flow with the PR-complexity rubric inlined. The thing
+ * being judged is the producer's `fulfill_brief` task — which happens
+ * to have produced a PR. The PR's URL is on the producer task's output
+ * (`fulfill_brief.output.pullRequestUrl`), not in this imposer's input.
  *
- * Why this is the same task type as fulfill-brief assessment
- * ----------------------------------------------------------
- * `assess_brief` is generic over the rubric. PR review is just an
- * `assess_brief` instance with the PR-complexity rubric inlined and
- * `references[]` pointing at the PR. No new task type, no new
- * executor — the daemon's existing pi-coding-agent runs the judge
- * inside Gondolin against the rubric.
+ * The judge agent reads the producer task's accepted attempt output to
+ * see what was produced (resolver in `apps/agent-daemon/src/lib/
+ * resolve-prompt-extras.ts` projects it into the prompt's `target`
+ * bundle), notices a `pullRequestUrl`, and runs `gh pr diff` from
+ * inside the sandbox. The PR-complexity rubric drives the scoring.
+ *
+ * This imposer therefore needs **only the producer task's id**, not
+ * the PR reference. The earlier draft of this script took `--pr` and
+ * tried to bypass the producer task with a sentinel UUID, which
+ * guaranteed every assessment failed at prompt-build time. Fixed.
  *
  * Prerequisites
  * -------------
  * - `.moltnet/<agent>/` populated with `moltnet.json` and `env`
  *   (at minimum `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`)
- * - `gh` CLI on PATH
- * - The daemon's `sandbox.json` must include `api.github.com` in
- *   `allowedHosts` so the executor can call `gh pr diff` from inside
- *   the VM.
+ * - The target `fulfill_brief` task must exist and have at least one
+ *   accepted attempt. The daemon resolver will surface a clear error
+ *   at run time if either is missing.
  *
  * Usage
  * -----
- *   pnpm --filter @moltnet/tools task:assess-pr --pr 123
- *   pnpm --filter @moltnet/tools task:assess-pr --pr https://github.com/getlarge/themoltnet/pull/123
- *   pnpm --filter @moltnet/tools task:assess-pr --pr 123 --dry-run
+ *   pnpm --filter @moltnet/tools task:assess-pr --target-task <uuid>
+ *   pnpm --filter @moltnet/tools task:assess-pr --target-task <uuid> --dry-run
  *
  * Flags
  * -----
- *   -p, --pr        GitHub PR number or URL (required)
- *   -a, --agent     MoltNet agent name (default: legreffier)
- *       --dry-run   Print the synthesized Task input + skip the POST.
+ *   -t, --target-task   UUID of the fulfill_brief task to assess (required)
+ *   -a, --agent         MoltNet agent name (default: legreffier)
+ *       --dry-run       Print the synthesized Task input + skip the POST.
  *
  * Exit codes
  * ----------
  *   0 — task created (or dry-run completed)
- *   1 — bad args, missing creds, missing MOLTNET_TEAM_ID, gh failure, API error
+ *   1 — bad args, missing creds, missing env vars, target task not found, API error
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -59,22 +60,32 @@ import { connect } from '@themoltnet/sdk';
 
 const { values: args } = parseArgs({
   options: {
-    pr: { type: 'string', short: 'p' },
+    'target-task': { type: 'string', short: 't' },
     agent: { type: 'string', short: 'a', default: 'legreffier' },
     'dry-run': { type: 'boolean', default: false },
   },
 });
 
-if (!args.pr) {
+if (!args['target-task']) {
   console.error(
-    'Usage: tsx tools/src/tasks/assess-pr.ts --pr <number|url> [--agent <name>] [--dry-run]',
+    'Usage: tsx tools/src/tasks/assess-pr.ts --target-task <uuid> [--agent <name>] [--dry-run]',
   );
   process.exit(1);
 }
 
-const prRef = args.pr;
+const targetTaskId = args['target-task'];
 const agentName = args.agent!;
 const dryRun = args['dry-run']!;
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (!UUID_RE.test(targetTaskId)) {
+  console.error(
+    `Invalid --target-task "${targetTaskId}": must be a UUID. ` +
+      'Pass the id of the fulfill_brief task that produced the work you want assessed.',
+  );
+  process.exit(1);
+}
 
 if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
   console.error(
@@ -83,118 +94,7 @@ if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
   process.exit(1);
 }
 
-function getAgentGhToken(agentDir: string): string {
-  const credsPath = join(agentDir, 'moltnet.json');
-  try {
-    return execFileSync(
-      'npx',
-      ['@themoltnet/cli', 'github', 'token', '--credentials', credsPath],
-      { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-    ).trim();
-  } catch (err) {
-    throw new Error(
-      `Failed to resolve agent GH token from ${credsPath}. ` +
-        'Refusing to fall back to human auth context. ' +
-        (err instanceof Error ? err.message : String(err)),
-    );
-  }
-}
-
-interface GhPr {
-  number: number;
-  title: string;
-  body: string;
-  url: string;
-  headRefOid: string;
-  headRefName: string;
-  baseRefName: string;
-  author: { login: string };
-  labels: { name: string }[];
-  files: { path: string; additions: number; deletions: number }[];
-  commits: { oid: string; messageHeadline: string }[];
-}
-
-function fetchPr(cwd: string, ghToken: string): GhPr {
-  const raw = execFileSync(
-    'gh',
-    [
-      'pr',
-      'view',
-      prRef,
-      '--json',
-      // Field set is intentionally focused on what the rubric criteria
-      // need to reason about: scope (files/commits), naming (title,
-      // body), author, branches.
-      'number,title,body,url,headRefOid,headRefName,baseRefName,author,labels,files,commits',
-    ],
-    {
-      encoding: 'utf8',
-      cwd,
-      env: { ...process.env, GH_TOKEN: ghToken },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    },
-  );
-  return JSON.parse(raw) as GhPr;
-}
-
-function buildPreamble(pr: GhPr): string {
-  // Layered: rubric preamble (judge persona + scoring rules) on top,
-  // then the concrete PR metadata so the judge has it without an
-  // extra fetch. The judge is still expected to run `gh pr diff` for
-  // the actual change content.
-  const fileSummary =
-    pr.files.length > 20
-      ? `${pr.files.length} files changed (showing first 20):\n` +
-        pr.files
-          .slice(0, 20)
-          .map((f) => `  - ${f.path} (+${f.additions}/-${f.deletions})`)
-          .join('\n')
-      : pr.files
-          .map((f) => `  - ${f.path} (+${f.additions}/-${f.deletions})`)
-          .join('\n');
-
-  const commitSummary = pr.commits
-    .slice(0, 10)
-    .map((c) => `  - ${c.oid.slice(0, 7)} ${c.messageHeadline}`)
-    .join('\n');
-
-  const labelList = pr.labels.length
-    ? `Labels: ${pr.labels.map((l) => l.name).join(', ')}`
-    : '';
-
-  return [
-    PR_COMPLEXITY_V1_PREAMBLE,
-    '',
-    '## Pull request under review',
-    '',
-    `**${pr.title}**`,
-    `URL: ${pr.url}`,
-    `Branch: \`${pr.headRefName}\` → \`${pr.baseRefName}\` (head: ${pr.headRefOid.slice(0, 7)})`,
-    `Author: @${pr.author.login}`,
-    labelList,
-    '',
-    '### Description',
-    '',
-    pr.body || '_No description provided._',
-    '',
-    '### Files',
-    '',
-    fileSummary || '_No files changed (empty PR?)._',
-    '',
-    '### Commits',
-    '',
-    commitSummary || '_No commits._',
-    '',
-    'Use `gh pr diff ' +
-      String(pr.number) +
-      '` inside the sandbox to read the actual diff before scoring.',
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
 async function main() {
-  const cwd = process.cwd();
   const mainRepo = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
   }).trim();
@@ -217,30 +117,20 @@ async function main() {
     );
   }
 
-  console.error(`[pr] Fetching #${prRef}...`);
-  const ghToken = getAgentGhToken(agentDir);
-  const pr = fetchPr(cwd, ghToken);
-  console.error(`[pr] #${pr.number}: ${pr.title}`);
-
-  // assess_brief.input.targetTaskId is required by the schema. We don't
-  // have a fulfill_brief target — a PR isn't a fulfill_brief result.
-  // Use the all-zeros UUID as a sentinel: judges should consult the
-  // `references[]` (which points to the PR via external metadata)
-  // rather than dereferencing the target as a task id. The rubric
-  // preamble + the PR metadata embedded in the preamble carry the
-  // actual context.
-  //
-  // TODO: extend AssessBriefInput to support a non-task target
-  // (kind: 'pull_request') so we don't have to use a sentinel id.
-  // Tracked alongside the prompt-discriminator follow-up in #951.
-  const SENTINEL_TARGET_TASK_ID = '00000000-0000-0000-0000-000000000000';
-
   const input: AssessBriefInput = {
-    targetTaskId: SENTINEL_TARGET_TASK_ID,
+    targetTaskId,
     criteria: [...PR_COMPLEXITY_V1_CRITERIA],
-    rubricPreamble: buildPreamble(pr),
+    rubricPreamble: PR_COMPLEXITY_V1_PREAMBLE,
   };
 
+  // The daemon's resolver hydrates the judge's `target` bundle from the
+  // producer task's accepted attempt output. Failing fast on a missing
+  // producer would be friendlier, but checking here would couple the
+  // imposer to the SDK's get/listAttempts shape — we already do that
+  // below for the actual create() call. If the target doesn't exist or
+  // has no accepted attempt, the daemon's resolver returns undefined,
+  // the prompt builder throws `prompt_build_failed: requires target`,
+  // and the operator sees a clear error on the failed attempt.
   if (dryRun) {
     console.log(
       JSON.stringify(
@@ -251,15 +141,9 @@ async function main() {
           input,
           references: [
             {
-              taskId: null,
-              outputCid: `gh:pr:${pr.number}`,
+              taskId: targetTaskId,
+              outputCid: '<resolved-from-target-task-at-create-time>',
               role: 'judged_work',
-              external: {
-                kind: 'github_pr',
-                pr: pr.number,
-                url: pr.url,
-                commit_sha: pr.headRefOid,
-              },
             },
           ],
         },
@@ -271,6 +155,49 @@ async function main() {
   }
 
   const agent = await connect({ configDir: agentDir });
+
+  // Sanity check the target before we POST: a non-existent task or one
+  // without an accepted attempt is a configuration error the operator
+  // should know about now, not via a cryptic prompt_build_failed in
+  // the daemon's logs ten minutes from now.
+  const target = await agent.tasks.get(targetTaskId).catch(() => null);
+  if (!target) {
+    throw new Error(
+      `Target task ${targetTaskId} not found via the API. ` +
+        'Pass the id of an existing fulfill_brief task.',
+    );
+  }
+  if (target.taskType !== 'fulfill_brief') {
+    console.error(
+      `[warn] Target task ${targetTaskId} has taskType="${target.taskType}", ` +
+        'expected "fulfill_brief". Continuing anyway — the daemon resolver ' +
+        'will best-effort project whatever shape the output has.',
+    );
+  }
+  if (target.acceptedAttemptN === null) {
+    throw new Error(
+      `Target task ${targetTaskId} has no accepted attempt yet. ` +
+        'Wait for the producer to complete before assessing.',
+    );
+  }
+
+  // The reference's outputCid commits the assessment to a specific
+  // attempt's output. Pull it from the producer's accepted attempt so
+  // a re-run of the producer (different commit set, new outputCid)
+  // produces a different judgment context, not a silently rewritten
+  // one.
+  const targetAttempts = await agent.tasks.listAttempts(targetTaskId);
+  const acceptedAttempt = targetAttempts.find(
+    (a) => a.attemptN === target.acceptedAttemptN,
+  );
+  if (!acceptedAttempt?.outputCid) {
+    throw new Error(
+      `Target task ${targetTaskId}'s accepted attempt ` +
+        `(attemptN=${target.acceptedAttemptN}) has no outputCid. ` +
+        'Cannot pin the assessment without a content-addressed reference.',
+    );
+  }
+
   const task = await agent.tasks.create({
     taskType: ASSESS_BRIEF_TYPE,
     teamId,
@@ -278,15 +205,9 @@ async function main() {
     input: input as unknown as Record<string, unknown>,
     references: [
       {
-        taskId: null,
-        outputCid: `gh:pr:${pr.number}`,
+        taskId: targetTaskId,
+        outputCid: acceptedAttempt.outputCid,
         role: 'judged_work',
-        external: {
-          kind: 'github_pr',
-          pr: pr.number,
-          url: pr.url,
-          commit_sha: pr.headRefOid,
-        },
       },
     ],
   });
