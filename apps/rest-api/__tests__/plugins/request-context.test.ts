@@ -72,39 +72,9 @@ describe('requestContextPlugin', () => {
     });
   });
 
-  describe('auth context enrichment', () => {
-    it('sets identityId and clientId when authContext is populated', async () => {
-      // Arrange
-      const app = buildApp({
-        identityId: 'identity-123',
-        clientId: 'client-456',
-      });
-
-      // Act
-      const response = await app.inject({ method: 'GET', url: '/test' });
-
-      // Assert
-      const body = JSON.parse(response.body) as {
-        fields: Record<string, unknown>;
-      };
-      expect(body.fields.identityId).toBe('identity-123');
-      expect(body.fields.clientId).toBe('client-456');
-    });
-
-    it('does not set identityId/clientId when authContext is null', async () => {
-      // Arrange
-      const app = buildApp(null);
-
-      // Act
-      const response = await app.inject({ method: 'GET', url: '/test' });
-
-      // Assert
-      const body = JSON.parse(response.body) as {
-        fields: Record<string, unknown>;
-      };
-      expect(response.statusCode).toBe(200);
-      expect(body.fields.identityId).toBeUndefined();
-      expect(body.fields.clientId).toBeUndefined();
-    });
-  });
+  // Auth context enrichment lives in the auth plugin (libs/auth), not
+  // here — global preHandlers run before route-scoped requireAuth, so
+  // request.authContext is always null at that point. Coverage is in
+  // `libs/auth/__tests__/plugin.test.ts` ("enriches request.log + ALS
+  // context after authenticating") and the pino integration test.
 });

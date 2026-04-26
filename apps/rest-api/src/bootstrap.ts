@@ -214,7 +214,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
-  const permissionChecker = createPermissionChecker(oryClients.permission);
+  const permissionChecker = createPermissionChecker(
+    oryClients.permission,
+    // app.log is a pino instance under the hood; FastifyBaseLogger is a
+    // structural subset that omits a few rarely-used pino fields.
+    app.log as unknown as Parameters<typeof createPermissionChecker>[1],
+  );
   const relationshipReader = createRelationshipReader(
     oryClients.relationshipRead,
   );

@@ -8,35 +8,26 @@
  * Registered after authPlugin so authContext is available in preHandler.
  */
 
-import {
-  runWithRequestContext,
-  setRequestContextField,
-} from '@moltnet/observability';
+import { enterRequestContext } from '@moltnet/observability';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 
 async function requestContextPluginImpl(
   fastify: FastifyInstance,
 ): Promise<void> {
-  // Establish ALS scope for the entire async chain of each request.
-  // Must use callback form: done() is called inside runWithRequestContext
-  // so the continuation stays within the ALS scope. Async form would exit
-  // the als.run() scope before Fastify resumes the request lifecycle.
-  fastify.addHook('onRequest', (request, _reply, done) => {
-    runWithRequestContext({ requestId: String(request.id) }, () => {
-      done();
-    });
-  });
-
-  // Enrich context with identity fields after auth plugin runs.
-  // preHandler runs after requireAuth, so authContext is populated.
-  // Async form is fine here — ALS scope is already established by onRequest.
-  fastify.addHook('preHandler', async (request) => {
-    const auth = request.authContext;
-    if (auth) {
-      setRequestContextField('identityId', auth.identityId);
-      if (auth.clientId) setRequestContextField('clientId', auth.clientId);
-    }
+  // Establish the ALS scope for every request as early as possible.
+  // Using enterWith() (not als.run()) is critical: Fastify's hook chain
+  // resumes via its own scheduler after `done()`, and a callback-wrapped
+  // als.run() leaks the scope the moment Fastify takes over. enterWith()
+  // mutates the current async context in place; child async resources
+  // (subsequent hooks, the route handler, downstream awaits) inherit it.
+  //
+  // Identity fields (identityId, clientId, subjectType, currentTeamId)
+  // are written into the same ALS store from inside the auth plugin's
+  // requireAuth/optionalAuth handlers — they're route-scoped preHandlers
+  // and run AFTER any global preHandler we could register here.
+  fastify.addHook('onRequest', async (request) => {
+    enterRequestContext({ requestId: String(request.id) });
   });
 }
 
