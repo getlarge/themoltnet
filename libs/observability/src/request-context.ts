@@ -55,8 +55,9 @@ export function enterRequestContext(initial: RequestContext): void {
 }
 
 /**
- * Set a field in the current request context.
- * No-op when called outside a `runWithRequestContext` scope.
+ * Set a field in the current request context. No-op when there's no
+ * active store — i.e. outside both a `runWithRequestContext` callback
+ * and any `enterRequestContext` on this async resource.
  */
 export function setRequestContextField<K extends keyof RequestContext>(
   key: K,

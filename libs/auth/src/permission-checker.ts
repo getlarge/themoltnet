@@ -8,7 +8,6 @@
  */
 
 import type { PermissionApi } from '@ory/client-fetch';
-import type { Logger } from 'pino';
 import { pino } from 'pino';
 
 import {
@@ -19,6 +18,18 @@ import {
   TaskPermission,
   TeamPermission,
 } from './keto-constants.js';
+
+/**
+ * Minimal logger surface this module needs. Structurally compatible
+ * with both pino's `Logger` and Fastify's `FastifyBaseLogger` so
+ * callers can pass `app.log` directly without unsafe casts.
+ */
+type LogFn = (obj: Record<string, unknown>, msg: string) => void;
+export interface PermissionCheckerLogger {
+  warn: LogFn;
+  debug: LogFn;
+  child(bindings: Record<string, unknown>): PermissionCheckerLogger;
+}
 
 export interface PermissionChecker {
   canReadDiary(
@@ -130,7 +141,7 @@ async function checkPermission(
   relation: string,
   subjectNs: string,
   subjectId: string,
-  logger: Logger,
+  logger: PermissionCheckerLogger,
 ): Promise<boolean> {
   try {
     const data = await permissionApi.checkPermission({
@@ -201,7 +212,7 @@ async function batchCheckPermissions(
 
 export function createPermissionChecker(
   permissionApi: PermissionApi,
-  logger: Logger = pino({ name: 'permission-checker' }),
+  logger: PermissionCheckerLogger = pino({ name: 'permission-checker' }),
 ): PermissionChecker {
   const log = logger.child({ component: 'permission-checker' });
   return {

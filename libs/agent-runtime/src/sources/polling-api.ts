@@ -44,9 +44,10 @@ export interface PollingApiTaskSourceOptions {
   /** Logger sink — defaults to `console.error`. */
   log?: (msg: string, meta?: Record<string, unknown>) => void;
   /**
-   * When true, also log successful list/claim outcomes (candidate counts,
-   * 409/403/404 skips, claim success). Useful for debugging why a daemon
-   * appears idle when tasks exist on the server.
+   * When true, also log successful list/claim outcomes (candidate
+   * counts, claim success). Useful for debugging why a daemon appears
+   * idle when tasks exist on the server. 4xx claim skips are logged
+   * unconditionally regardless of this flag.
    */
   debug?: boolean;
 }

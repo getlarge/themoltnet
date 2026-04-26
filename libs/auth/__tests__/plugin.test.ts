@@ -1,4 +1,9 @@
+import {
+  enterRequestContext,
+  getRequestContextFields,
+} from '@moltnet/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { pino } from 'pino';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KetoNamespace } from '../src/keto-constants.js';
@@ -184,13 +189,10 @@ describe('requireAuth preHandler', () => {
     // global request-context plugin's preHandler ran before the route-
     // scoped requireAuth, so authContext was still null when it tried
     // to enrich. The fix moves enrichment into requireAuth itself.
-    const { enterRequestContext, getRequestContextFields } =
-      await import('@moltnet/observability');
-    const { pino } = await import('pino');
     mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
 
     // Replace the bare app with one that has a real pino instance so
-    // request.log child bindings produce inspectable chindings.
+    // request.log child bindings produce inspectable log records.
     await app.close();
     const records: Record<string, unknown>[] = [];
     const logger = pino(

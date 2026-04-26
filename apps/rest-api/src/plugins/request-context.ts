@@ -1,11 +1,11 @@
 /**
  * @moltnet/rest-api — Request Context Plugin
  *
- * Populates the AsyncLocalStorage context store with per-request fields:
- * - requestId: set on every request (onRequest hook)
- * - identityId, clientId: set after auth (preHandler hook)
- *
- * Registered after authPlugin so authContext is available in preHandler.
+ * Establishes the per-request AsyncLocalStorage scope on `onRequest`
+ * with `requestId`. Identity fields (identityId, subjectType, clientId,
+ * currentTeamId) are written into the same store from inside the auth
+ * plugin (libs/auth) once authContext is resolved, since requireAuth is
+ * a route-scoped preHandler and runs AFTER any global preHandler.
  */
 
 import { enterRequestContext } from '@moltnet/observability';
