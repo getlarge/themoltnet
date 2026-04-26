@@ -150,7 +150,51 @@ ory(['update', 'project', projectId, '--file', outputFile, '--yes']);
 log('Project config applied.\n');
 
 // ---------------------------------------------------------------------------
-// 5. Sync Account Experience branding
+// 5. Patch OAuth2 fields that `ory update project` silently strips.
+//
+//    The Network API behind `ory update project` whitelists writes — it
+//    accepts the JSON without warning but drops some `services.oauth2.*`
+//    fields, including `oauth2.token_hook`. Per Ory's own docs
+//    (https://www.ory.com/docs/hydra/guides/claims-at-refresh), the
+//    canonical mechanism is `ory patch oauth2-config`, which targets the
+//    oauth2 subresource directly and does write these fields.
+//
+//    We re-apply token_hook here so it lands in live config on every
+//    deploy — without this, Hydra issues unenriched access tokens (no
+//    `ext.moltnet:identity_id`) and the rest-api 401s on every call.
+// ---------------------------------------------------------------------------
+
+const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
+const tokenHook =
+  projectForPatch.services?.oauth2?.config?.oauth2?.token_hook;
+if (tokenHook?.url) {
+  log('Patching OAuth2 token_hook (workaround for `update project` strip) ...');
+  const adds = [
+    `/oauth2/token_hook/url="${tokenHook.url}"`,
+    `/oauth2/token_hook/auth/type="${tokenHook.auth?.type ?? 'api_key'}"`,
+  ];
+  if (tokenHook.auth?.config) {
+    if (tokenHook.auth.config.in)
+      adds.push(`/oauth2/token_hook/auth/config/in="${tokenHook.auth.config.in}"`);
+    if (tokenHook.auth.config.name)
+      adds.push(
+        `/oauth2/token_hook/auth/config/name="${tokenHook.auth.config.name}"`,
+      );
+    if (tokenHook.auth.config.value)
+      adds.push(
+        `/oauth2/token_hook/auth/config/value="${tokenHook.auth.config.value}"`,
+      );
+  }
+  const args = ['patch', 'oauth2-config', '--project', projectId, '--format', 'json'];
+  for (const add of adds) args.push('--add', add);
+  ory(args);
+  log('OAuth2 token_hook applied.\n');
+} else {
+  log('No oauth2.token_hook in project.json — skipping patch.\n');
+}
+
+// ---------------------------------------------------------------------------
+// 6. Sync Account Experience branding
 //    The ory CLI ignores theme_variables_dark/light, so we sync them via
 //    the console normalized API (JSON Patch + base64-encoded theme JSON).
 // ---------------------------------------------------------------------------
@@ -219,7 +263,7 @@ if (darkKeys > 0 || lightKeys > 0) {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Push OPL permissions
+// 7. Push OPL permissions
 // ---------------------------------------------------------------------------
 
 const oplFile = join(__dirname, 'permissions.ts');
