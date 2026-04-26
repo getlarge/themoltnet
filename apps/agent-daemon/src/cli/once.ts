@@ -16,6 +16,7 @@ import { resolveAgentContext } from '../lib/agent-context.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { commonOptionDefs, parseCommonOptions } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import { createPromptExtrasResolver } from '../lib/resolve-prompt-extras.js';
 import { loadSandboxConfig } from '../lib/sandbox.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
@@ -64,6 +65,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       provider: opts.provider,
       model: opts.model,
       sandboxConfig,
+      resolvePromptExtras: createPromptExtrasResolver(ctx.agent),
     });
 
     const runtime = new AgentRuntime({

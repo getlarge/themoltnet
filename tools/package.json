@@ -17,6 +17,7 @@
     "tasksmith:triage-fixture-green": "tsx src/tasksmith/triage-fixture-green.ts",
     "task:create": "tsx src/tasks/create-task.ts",
     "task:fulfill-brief": "tsx src/tasks/fulfill-brief.ts",
+    "task:assess-pr": "tsx src/tasks/assess-pr.ts",
     "task:run": "tsx src/tasks/run-task.ts",
     "fulfill-brief": "tsx src/tasks/fulfill-brief.ts",
     "resolve-issue": "tsx src/tasks/fulfill-brief.ts",
