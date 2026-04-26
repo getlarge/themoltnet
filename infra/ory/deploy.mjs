@@ -45,12 +45,29 @@ function fatal(msg) {
   process.exit(1);
 }
 
-function ory(args) {
+function oryEnv() {
   // Run from /tmp to prevent the CLI auto-loading the encrypted .env in the
-  // repo root. Unset ORY_PROJECT_API_KEY to avoid conflict with workspace key.
+  // repo root. Unset ORY_PROJECT_API_KEY: the CLI rejects calls that combine
+  // a project key with a --project flag, and our write paths require the
+  // workspace key anyway.
   const environ = { ...process.env };
   delete environ.ORY_PROJECT_API_KEY;
-  execFileSync('ory', args, { cwd: '/tmp', env: environ, stdio: 'inherit' });
+  return environ;
+}
+
+function ory(args) {
+  execFileSync('ory', args, {
+    cwd: '/tmp',
+    env: oryEnv(),
+    stdio: 'inherit',
+  });
+}
+
+function oryStdout(args) {
+  return execFileSync('ory', args, {
+    cwd: '/tmp',
+    env: oryEnv(),
+  }).toString();
 }
 
 // ---------------------------------------------------------------------------
@@ -240,11 +257,14 @@ ory(patchArgs);
 // `update project` silently strips this field with no warning, so we
 // always read back to confirm the patch landed.
 log('Verifying token_hook landed in live config ...');
-const liveJson = execFileSync(
-  'ory',
-  ['get', 'oauth2-config', '--project', projectId, '--format', 'json'],
-  { cwd: '/tmp', env: { ...process.env, ORY_PROJECT_API_KEY: '' } },
-).toString();
+const liveJson = oryStdout([
+  'get',
+  'oauth2-config',
+  '--project',
+  projectId,
+  '--format',
+  'json',
+]);
 const liveConfig = JSON.parse(liveJson);
 const liveUrl = liveConfig?.oauth2?.token_hook?.url;
 if (liveUrl !== tokenHook.url) {
