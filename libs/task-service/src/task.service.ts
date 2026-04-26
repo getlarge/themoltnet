@@ -613,7 +613,38 @@ export function createTaskService(deps: TaskServiceDeps) {
       );
 
       const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
-      await taskRepository.updateStatus(taskId, 'running', { claimExpiresAt });
+      // Conditional update: never clobber a terminal status (most importantly
+      // `cancelled`) back to `running`. A cancel can commit between this
+      // heartbeat's earlier task.findById and the write below; without the
+      // exclusion the heartbeat would silently un-cancel the task (#938).
+      const updated = await taskRepository.updateStatusIfNotIn(
+        taskId,
+        'running',
+        ['completed', 'failed', 'cancelled', 'expired'],
+        { claimExpiresAt },
+      );
+      if (!updated) {
+        // Lost the race — re-read and report cancellation cleanly. Other
+        // terminal states bubble up as 409 (the worker can't keep working
+        // on a completed/failed/expired task).
+        const fresh = await taskRepository.findById(taskId);
+        if (fresh && fresh.status === 'cancelled') {
+          logger.debug(
+            { taskId, attemptN },
+            'task.heartbeat.race_lost_to_cancel',
+          );
+          return {
+            claimExpiresAt:
+              attempt.completedAt?.toISOString() ?? new Date().toISOString(),
+            cancelled: true,
+            cancelReason: fresh.cancelReason ?? null,
+          };
+        }
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${fresh?.status ?? 'unknown'}`,
+        );
+      }
       // Synchronously stamp attempt.status = 'running' on the first
       // heartbeat. The workflow's markRunning tx will also set this
       // (idempotent overwrite) but writing it here closes a race: the
@@ -748,6 +779,22 @@ export function createTaskService(deps: TaskServiceDeps) {
       while (true) {
         const updated = await taskRepository.findById(taskId);
         if (updated && TERMINAL_STATUSES.has(updated.status)) {
+          // Defense in depth (#938): if the workflow ended up in a different
+          // terminal state than the one this caller asked for, return 409
+          // rather than 200. This handles the race where /cancel and
+          // /complete are sent in the same window and DBOS processes the
+          // cancel event first — the task ends up `cancelled`, and the
+          // worker's /complete request did not actually succeed.
+          if (updated.status !== 'completed') {
+            logger.info(
+              { taskId, attemptN, status: updated.status },
+              'task.complete.race_lost',
+            );
+            throw new TaskServiceError(
+              'conflict',
+              `Task ended in terminal state ${updated.status}, not completed`,
+            );
+          }
           logger.info(
             { taskId, attemptN, status: updated.status },
             'task.completed',
@@ -819,6 +866,24 @@ export function createTaskService(deps: TaskServiceDeps) {
       while (true) {
         const updated = await taskRepository.findById(taskId);
         if (updated && TERMINAL_STATUSES.has(updated.status)) {
+          // Defense in depth (#938): if the workflow ended in a different
+          // terminal state (typically `cancelled` when a cancel races
+          // with a fail), the caller's /fail did not actually take
+          // effect — return 409.
+          //
+          // Note: a fail with retries-left moves task→queued (non-terminal),
+          // so the loop keeps polling until either the workflow truly
+          // settles or the deadline fires. We don't special-case it here.
+          if (updated.status !== 'failed') {
+            logger.info(
+              { taskId, attemptN, status: updated.status },
+              'task.fail.race_lost',
+            );
+            throw new TaskServiceError(
+              'conflict',
+              `Task ended in terminal state ${updated.status}, not failed`,
+            );
+          }
           logger.info(
             { taskId, attemptN, status: updated.status },
             'task.failed',
