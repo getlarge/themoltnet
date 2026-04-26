@@ -152,46 +152,110 @@ log('Project config applied.\n');
 // ---------------------------------------------------------------------------
 // 5. Patch OAuth2 fields that `ory update project` silently strips.
 //
-//    The Network API behind `ory update project` whitelists writes — it
-//    accepts the JSON without warning but drops some `services.oauth2.*`
-//    fields, including `oauth2.token_hook`. Per Ory's own docs
-//    (https://www.ory.com/docs/hydra/guides/claims-at-refresh), the
-//    canonical mechanism is `ory patch oauth2-config`, which targets the
-//    oauth2 subresource directly and does write these fields.
+//    The Ory Network API behind `ory update project` whitelists writes:
+//    it accepts the full project JSON, exits 0, prints "Project updated
+//    successfully!", warns about a known set of immutable-default keys
+//    (oauth2.expose_internal_errors, oauth2.session.encrypt_at_rest,
+//    oauth2.hashers.*, hsm.*, urls.self.*, serve.*), and SILENTLY DROPS
+//    `services.oauth2.config.oauth2.token_hook` with NO warning.
 //
-//    We re-apply token_hook here so it lands in live config on every
-//    deploy — without this, Hydra issues unenriched access tokens (no
-//    `ext.moltnet:identity_id`) and the rest-api 401s on every call.
+//    This was undiagnosed for ~3 months — token_hook was in project.json
+//    since 2026-01-31 (commit adbfad4d) but never landed live, so Hydra
+//    issued unenriched JWTs (no `ext.moltnet:identity_id`) and human
+//    auth-code tokens 401'd on every protected REST API call. See the
+//    diary entry under `ory-drift` tag for the full investigation.
+//
+//    Per Ory's own docs the canonical mechanism is `ory patch oauth2-config`
+//    — it targets the oauth2 subresource directly and DOES write
+//    token_hook. We re-apply it here on every deploy.
+//
+//    Reference: https://www.ory.com/docs/hydra/guides/claims-at-refresh
+//
+//    Maintenance note: if you add other fields under
+//    `services.oauth2.config.oauth2.*` (refresh_token_hook, future Hydra
+//    knobs) they likely follow the same drop-on-update-project pattern
+//    and need a matching patch step here. Always verify by fetching live
+//    config with `ory get project --format json` after a deploy — do not
+//    trust the success message.
 // ---------------------------------------------------------------------------
 
 const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
 const tokenHook =
   projectForPatch.services?.oauth2?.config?.oauth2?.token_hook;
-if (tokenHook?.url) {
-  log('Patching OAuth2 token_hook (workaround for `update project` strip) ...');
-  const adds = [
-    `/oauth2/token_hook/url="${tokenHook.url}"`,
-    `/oauth2/token_hook/auth/type="${tokenHook.auth?.type ?? 'api_key'}"`,
-  ];
-  if (tokenHook.auth?.config) {
-    if (tokenHook.auth.config.in)
-      adds.push(`/oauth2/token_hook/auth/config/in="${tokenHook.auth.config.in}"`);
-    if (tokenHook.auth.config.name)
-      adds.push(
-        `/oauth2/token_hook/auth/config/name="${tokenHook.auth.config.name}"`,
-      );
-    if (tokenHook.auth.config.value)
-      adds.push(
-        `/oauth2/token_hook/auth/config/value="${tokenHook.auth.config.value}"`,
-      );
-  }
-  const args = ['patch', 'oauth2-config', '--project', projectId, '--format', 'json'];
-  for (const add of adds) args.push('--add', add);
-  ory(args);
-  log('OAuth2 token_hook applied.\n');
-} else {
-  log('No oauth2.token_hook in project.json — skipping patch.\n');
+
+if (!tokenHook?.url) {
+  fatal(
+    'services.oauth2.config.oauth2.token_hook.url not found in project.json. ' +
+      'Without a token_hook, Hydra issues unenriched access tokens (no ' +
+      '`ext.moltnet:identity_id`) and human auth-code logins 401 on every ' +
+      'protected REST API call. Restore the token_hook block in project.json ' +
+      'or remove this guard explicitly if the project no longer needs it.',
+  );
 }
+
+log('Patching OAuth2 token_hook (workaround for `update project` strip) ...');
+log(`  URL:    ${tokenHook.url}`);
+log(`  Auth:   ${tokenHook.auth?.type ?? 'api_key'}`);
+if (tokenHook.auth?.config?.in)
+  log(`  In:     ${tokenHook.auth.config.in}`);
+if (tokenHook.auth?.config?.name)
+  log(`  Header: ${tokenHook.auth.config.name}`);
+if (tokenHook.auth?.config?.value) {
+  // Redact the secret in the log; show length only so misconfig is visible.
+  log(`  Value:  <${tokenHook.auth.config.value.length} chars, redacted>`);
+}
+
+const patchAdds = [
+  `/oauth2/token_hook/url="${tokenHook.url}"`,
+  `/oauth2/token_hook/auth/type="${tokenHook.auth?.type ?? 'api_key'}"`,
+];
+if (tokenHook.auth?.config?.in) {
+  patchAdds.push(
+    `/oauth2/token_hook/auth/config/in="${tokenHook.auth.config.in}"`,
+  );
+}
+if (tokenHook.auth?.config?.name) {
+  patchAdds.push(
+    `/oauth2/token_hook/auth/config/name="${tokenHook.auth.config.name}"`,
+  );
+}
+if (tokenHook.auth?.config?.value) {
+  patchAdds.push(
+    `/oauth2/token_hook/auth/config/value="${tokenHook.auth.config.value}"`,
+  );
+}
+
+const patchArgs = [
+  'patch',
+  'oauth2-config',
+  '--project',
+  projectId,
+  '--format',
+  'json',
+];
+for (const add of patchAdds) patchArgs.push('--add', add);
+ory(patchArgs);
+
+// Verify by fetching the live oauth2 config and checking token_hook.url.
+// `update project` silently strips this field with no warning, so we
+// always read back to confirm the patch landed.
+log('Verifying token_hook landed in live config ...');
+const liveJson = execFileSync(
+  'ory',
+  ['get', 'oauth2-config', '--project', projectId, '--format', 'json'],
+  { cwd: '/tmp', env: { ...process.env, ORY_PROJECT_API_KEY: '' } },
+).toString();
+const liveConfig = JSON.parse(liveJson);
+const liveUrl = liveConfig?.oauth2?.token_hook?.url;
+if (liveUrl !== tokenHook.url) {
+  fatal(
+    `token_hook verification failed. Expected url=${tokenHook.url}, got ` +
+      `${liveUrl ?? '<missing>'}. The patch may have been silently rejected ` +
+      'or the live config drifted. Re-run with debug logging or run ' +
+      '`ory get oauth2-config --project <id> --format json` to inspect.',
+  );
+}
+log('OAuth2 token_hook verified live.\n');
 
 // ---------------------------------------------------------------------------
 // 6. Sync Account Experience branding

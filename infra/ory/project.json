@@ -369,6 +369,17 @@
           "pkce": {
             "enforced": true,
             "enforced_for_public_clients": true
+          },
+          "token_hook": {
+            "auth": {
+              "config": {
+                "in": "header",
+                "name": "X-Ory-Api-Key",
+                "value": "${ORY_ACTION_API_KEY}"
+              },
+              "type": "api_key"
+            },
+            "url": "${API_BASE_URL}/hooks/hydra/token-exchange"
           }
         },
         "oidc": {
@@ -394,17 +405,6 @@
           "access_token": "opaque",
           "jwt": {},
           "scope": "wildcard"
-        },
-        "token_hook": {
-          "auth": {
-            "config": {
-              "in": "header",
-              "name": "X-Ory-Api-Key",
-              "value": "${ORY_ACTION_API_KEY}"
-            },
-            "type": "api_key"
-          },
-          "url": "${API_BASE_URL}/hooks/hydra/token-exchange"
         },
         "ttl": {
           "access_token": "1h",
