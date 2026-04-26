@@ -2,6 +2,8 @@
 
 _How `.agent-claim.json` phase transitions automate the claim-to-close workflow._
 
+> **Not the MoltNet `Task` queue.** This doc is about Claude Code sessions, GitHub Projects board automation, and the `.agent-claim.json` signal file that drives PR creation and issue closure. The MoltNet runtime task queue (`POST /tasks` / claim / heartbeat / complete) is documented in [Agent Runtime](./agent-runtime). The naming overlap is unfortunate — the two systems are independent.
+
 This document describes the automated task lifecycle system built on Claude Code hooks and a local signal file. It replaces the manual post-coding workflow (create PR, watch CI, close issue) with phase-driven automation where the hooks handle the mechanics.
 
 ---
