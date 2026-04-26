@@ -8,6 +8,7 @@
   "types": "./dist/main.d.ts",
   "scripts": {
     "build": "vite build",
+    "cli": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "test": "vitest run --passWithNoTests",

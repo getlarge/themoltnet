@@ -276,21 +276,36 @@ See [#947](https://github.com/getlarge/themoltnet/issues/947) for the pi-extensi
 
 ```bash
 # Long-running worker — claim queued tasks until SIGINT/SIGTERM.
-agent-daemon poll --team <team-uuid> [--task-types fulfill_brief,curate_pack ...]
+agent-daemon poll --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
 
 # Execute one specific queued task by id, then exit. Replaces the old
 # `task:work` script.
-agent-daemon once --task-id <uuid>
+agent-daemon once --task-id <uuid> --agent <name> --provider <p> --model <m>
 
 # Poll until the queue has nothing claimable, then exit. Useful for
 # batch eval runs and demos.
-agent-daemon drain --team <team-uuid> [--task-types ...]
+agent-daemon drain --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
 ```
 
-Common flags (all three subcommands):
+Run `agent-daemon <command> --help` for full per-subcommand flag listings, defaults, and examples.
 
-- `--agent <name>` — directory under `<repo>/.moltnet/<name>/` to read credentials from. Default `legreffier`.
-- `--provider`, `--model` — LLM provider + model id passed to the pi executor.
+### Local invocation (before publishing the binary)
+
+Two pnpm scripts:
+
+- `pnpm --filter @moltnet/agent-daemon cli <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
+- `pnpm --filter @moltnet/agent-daemon dev <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
+
+The published `agent-daemon` binary (when shipped) is `node dist/main.js` — single-shot, exits naturally on subcommand completion. No watcher.
+
+### Required flags (all subcommands)
+
+- `--agent <name>` — directory under `<repo>/.moltnet/<name>/` to read credentials from. No default — operator-specific.
+- `--provider <id>` — LLM provider id (e.g. `anthropic`, `openai-codex`). No default.
+- `--model <id>` — LLM model id for that provider (e.g. `claude-sonnet-4-5`). No default.
+
+### Common optional flags
+
 - `--lease-ttl-sec` — daemon-set sliding liveness window. Silence longer than this ends the attempt with `lease_expired`. Also written to `task.claim_expires_at` for external observability. Default 300s.
 - `--heartbeat-interval-ms` — reporter heartbeat cadence. Default 60_000.
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
