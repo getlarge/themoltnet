@@ -423,6 +423,11 @@
           "self": {
             "issuer": "${ORY_PROJECT_URL}"
           }
+        },
+        "webfinger": {
+          "oidc_discovery": {
+            "client_registration_url": "${ORY_PROJECT_URL}/oauth2/register"
+          }
         }
       }
     },

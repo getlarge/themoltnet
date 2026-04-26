@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  lt,
+  notInArray,
+  sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from '../db.js';
@@ -113,6 +123,40 @@ export function createTaskRepository(db: Database) {
         .update(tasks)
         .set({ status, updatedAt: sql`now()`, ...extra })
         .where(eq(tasks.id, id))
+        .returning();
+      return row ?? null;
+    },
+
+    /**
+     * Conditional status update: only writes if the current status is NOT in
+     * `excluded`. Returns the updated row, or `null` if the row was already
+     * in an excluded state (race lost — caller should re-read).
+     *
+     * Used by heartbeat / first-heartbeat to avoid clobbering a `cancelled`
+     * row back to `running` when a cancel commits in the narrow window
+     * between the heartbeat reading the row and writing it (#938).
+     */
+    async updateStatusIfNotIn(
+      id: string,
+      status: Task['status'],
+      excluded: Task['status'][],
+      extra?: Partial<
+        Pick<
+          Task,
+          | 'completedAt'
+          | 'cancelReason'
+          | 'cancelledByAgentId'
+          | 'cancelledByHumanId'
+          | 'acceptedAttemptN'
+          | 'claimAgentId'
+          | 'claimExpiresAt'
+        >
+      >,
+    ): Promise<Task | null> {
+      const [row] = await getExecutor(db)
+        .update(tasks)
+        .set({ status, updatedAt: sql`now()`, ...extra })
+        .where(and(eq(tasks.id, id), notInArray(tasks.status, excluded)))
         .returning();
       return row ?? null;
     },

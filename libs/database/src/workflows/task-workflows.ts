@@ -363,9 +363,22 @@ export function initTaskWorkflows(): void {
               status: 'running',
               startedAt: new Date(startedAtMs),
             });
-            await getDeps().updateTaskStatus(taskId, 'running', {
-              claimExpiresAt: leaseExpiresAt,
-            });
+            // Don't clobber `cancelled` / other terminals if a cancel
+            // raced with the first heartbeat (#938). The HTTP heartbeat
+            // path uses an UPDATE WHERE NOT IN guard; here we read first
+            // because the deps interface is workflow-scoped.
+            const currentTask = await getDeps().findTaskById(taskId);
+            if (
+              currentTask &&
+              currentTask.status !== 'cancelled' &&
+              currentTask.status !== 'completed' &&
+              currentTask.status !== 'failed' &&
+              currentTask.status !== 'expired'
+            ) {
+              await getDeps().updateTaskStatus(taskId, 'running', {
+                claimExpiresAt: leaseExpiresAt,
+              });
+            }
           },
           { name: 'task.tx.markRunning' },
         );
