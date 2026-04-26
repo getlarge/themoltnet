@@ -96,6 +96,39 @@ describe('PollingApiTaskSource', () => {
     await expect(src.claim()).resolves.toBeNull();
   });
 
+  it('does NOT exit drain mode on a transient list error — keeps polling until queue is confirmed empty', async () => {
+    // First list call rejects (transient 5xx), second call returns empty.
+    // Drain mode must keep polling through the error rather than treating
+    // it as "queue empty" and bailing out early.
+    const task = makeFulfillBriefTask({ status: 'queued' });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockRejectedValueOnce(
+        new MoltNetError('boom', { code: 'INTERNAL', statusCode: 500 }),
+      )
+      .mockResolvedValueOnce({ items: [task], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      // Tiny backoff so the test doesn't sit in real wall-clock sleep.
+      pollIntervalMs: 1,
+      maxPollIntervalMs: 2,
+      log: () => {},
+    });
+
+    const result = await src.claim();
+    expect(result?.task.id).toBe(task.id);
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
   it('issues one list call per task type when multiple are configured', async () => {
     const list = vi
       .fn<TasksNamespace['list']>()

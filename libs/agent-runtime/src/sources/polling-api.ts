@@ -88,13 +88,18 @@ export class PollingApiTaskSource implements TaskSource {
 
   async claim(): Promise<ClaimedTask | null> {
     while (!this.aborted()) {
-      const candidates = await this.listCandidates();
+      const { candidates, hadListError } = await this.listCandidates();
       const claimed = await this.tryClaimOne(candidates);
       if (claimed) {
         this.currentBackoffMs = this.minBackoffMs;
         return claimed;
       }
-      if (this.opts.stopWhenEmpty) return null;
+      // Drain mode bails out only when the queue is *known* empty —
+      // i.e. every list call this round succeeded and returned no
+      // claimable candidates. A transient list failure is indeterminate;
+      // keep polling so a 5xx on the API doesn't masquerade as a drained
+      // queue and exit the daemon early.
+      if (this.opts.stopWhenEmpty && !hadListError) return null;
       await this.sleepWithBackoff();
     }
     return null;
@@ -108,7 +113,10 @@ export class PollingApiTaskSource implements TaskSource {
     return this.opts.signal?.aborted === true;
   }
 
-  private async listCandidates(): Promise<Task[]> {
+  private async listCandidates(): Promise<{
+    candidates: Task[];
+    hadListError: boolean;
+  }> {
     const types =
       this.opts.taskTypes && this.opts.taskTypes.length > 0
         ? this.opts.taskTypes
@@ -116,6 +124,7 @@ export class PollingApiTaskSource implements TaskSource {
 
     const seen = new Set<string>();
     const out: Task[] = [];
+    let hadListError = false;
     for (const taskType of types) {
       if (this.aborted()) break;
       try {
@@ -142,8 +151,12 @@ export class PollingApiTaskSource implements TaskSource {
           out.push(item);
         }
       } catch (err) {
-        // List failures (e.g. 5xx) are transient. Log + back off; don't
-        // crash the daemon.
+        // List failures (e.g. 5xx) are transient. Log + signal the caller
+        // so drain-mode doesn't misread an empty result as a drained
+        // queue. The poll loop backs off and retries; a real exit only
+        // happens when every list call this round succeeded and returned
+        // nothing.
+        hadListError = true;
         this.log('PollingApiTaskSource: list failed', {
           error: err instanceof Error ? err.message : String(err),
           teamId: this.opts.teamId,
@@ -151,7 +164,7 @@ export class PollingApiTaskSource implements TaskSource {
         });
       }
     }
-    return out;
+    return { candidates: out, hadListError };
   }
 
   private async tryClaimOne(
