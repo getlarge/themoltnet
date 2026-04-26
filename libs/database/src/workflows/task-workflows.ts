@@ -77,6 +77,23 @@ export interface TaskWorkflowDeps {
       >
     >,
   ): Promise<Task | null>;
+  // Conditional version of updateTaskStatus: only writes if the row's
+  // current status is NOT in `excluded`. Returns null when the race is
+  // lost (caller can re-read or treat as no-op). Mirrors the repository
+  // helper used by the HTTP heartbeat path; the workflow needs the same
+  // primitive to avoid clobbering a freshly-cancelled row from inside a
+  // tx that read the row before the cancel committed (#949).
+  updateTaskStatusIfNotIn(
+    taskId: string,
+    status: Task['status'],
+    excluded: Task['status'][],
+    extra?: Partial<
+      Pick<
+        Task,
+        'completedAt' | 'acceptedAttemptN' | 'claimAgentId' | 'claimExpiresAt'
+      >
+    >,
+  ): Promise<Task | null>;
   removeClaimantTuple(taskId: string, agentId: string): Promise<void>;
   countAttempts(taskId: string): Promise<number>;
   getMaxAttempts(taskId: string): Promise<number>;
@@ -291,14 +308,23 @@ export function initTaskWorkflows(): void {
                           'Dispatch timed out before the worker started processing the attempt.',
                       } as unknown),
               });
-              if (!isTerminal) {
-                await getDeps().updateTaskStatus(
+              if (firstEvent?.kind === 'cancelled') {
+                // Idempotent: cancel handler already committed 'cancelled'.
+                // The plain update is fine here — we're writing the same
+                // value the row already holds.
+                await getDeps().updateTaskStatus(taskId, 'cancelled', {
+                  claimAgentId: null,
+                  claimExpiresAt: null,
+                });
+              } else if (!isTerminal) {
+                // Atomic guard: a cancel may have committed between the
+                // checkExternalTerminal read and this write (#949). Only
+                // write the dispatch-timeout status if the row hasn't been
+                // moved to a terminal state by an external actor.
+                await getDeps().updateTaskStatusIfNotIn(
                   taskId,
-                  firstEvent?.kind === 'cancelled'
-                    ? 'cancelled'
-                    : canRetry
-                      ? 'queued'
-                      : 'failed',
+                  canRetry ? 'queued' : 'failed',
+                  ['cancelled', 'completed', 'failed', 'expired'],
                   { claimAgentId: null, claimExpiresAt: null },
                 );
               } else {
@@ -310,10 +336,15 @@ export function initTaskWorkflows(): void {
             },
             { name: 'task.tx.markDispatchTerminal' },
           );
+          // Re-read post-tx to detect cancels that landed between the
+          // checkExternalTerminal snapshot and the tx commit (#949). The
+          // updateTaskStatusIfNotIn above already preserved a cancelled
+          // row; the workflow's reported finalStatus needs to match.
+          const postTask = await getDeps().findTaskById(taskId);
           const finalStatus: TaskAttemptFinalEvent['status'] =
             firstEvent?.kind === 'cancelled'
               ? 'cancelled'
-              : isTerminal && taskNow!.status === 'cancelled'
+              : postTask?.status === 'cancelled'
                 ? 'cancelled'
                 : 'timed_out';
           // Same rationale as persistTerminalResult: keep the claimant
@@ -363,22 +394,17 @@ export function initTaskWorkflows(): void {
               status: 'running',
               startedAt: new Date(startedAtMs),
             });
-            // Don't clobber `cancelled` / other terminals if a cancel
-            // raced with the first heartbeat (#938). The HTTP heartbeat
-            // path uses an UPDATE WHERE NOT IN guard; here we read first
-            // because the deps interface is workflow-scoped.
-            const currentTask = await getDeps().findTaskById(taskId);
-            if (
-              currentTask &&
-              currentTask.status !== 'cancelled' &&
-              currentTask.status !== 'completed' &&
-              currentTask.status !== 'failed' &&
-              currentTask.status !== 'expired'
-            ) {
-              await getDeps().updateTaskStatus(taskId, 'running', {
-                claimExpiresAt: leaseExpiresAt,
-              });
-            }
+            // Atomic guard: never clobber a terminal status (esp. `cancelled`)
+            // back to `running`. The previous read-then-write pattern was
+            // racy under READ COMMITTED — a cancel committing between the
+            // findTaskById and the updateTaskStatus would not be reflected,
+            // and the workflow would silently un-cancel the task (#949).
+            await getDeps().updateTaskStatusIfNotIn(
+              taskId,
+              'running',
+              ['cancelled', 'completed', 'failed', 'expired'],
+              { claimExpiresAt: leaseExpiresAt },
+            );
           },
           { name: 'task.tx.markRunning' },
         );
@@ -419,21 +445,37 @@ export function initTaskWorkflows(): void {
                 usage: evt.kind === 'completed' ? (evt.usage ?? null) : null,
               });
               if (evt.kind === 'completed') {
-                await getDeps().updateTaskStatus(taskId, 'completed', {
-                  completedAt: now,
-                  acceptedAttemptN: attemptN,
-                  claimAgentId: null,
-                  claimExpiresAt: null,
-                });
+                // Don't clobber a cancel that raced with this completion
+                // (#949). If the row is already terminal, skip the write —
+                // /complete polling will surface the resulting cancelled
+                // status as a 409 to the worker.
+                await getDeps().updateTaskStatusIfNotIn(
+                  taskId,
+                  'completed',
+                  ['cancelled', 'failed', 'expired'],
+                  {
+                    completedAt: now,
+                    acceptedAttemptN: attemptN,
+                    claimAgentId: null,
+                    claimExpiresAt: null,
+                  },
+                );
               } else if (isTerminal) {
                 await getDeps().updateTaskStatus(taskId, taskNow!.status, {
                   claimAgentId: null,
                   claimExpiresAt: null,
                 });
               } else {
-                await getDeps().updateTaskStatus(
+                // Atomic guard for the failed/cancelled paths: a cancel
+                // landing between checkExternalTerminal and this tx must
+                // not be overwritten by `queued`/`failed` (#949). When
+                // evt.kind === 'cancelled' the write is idempotent on a
+                // cancelled row (NOT IN excludes 'cancelled', so the
+                // update is a no-op — also fine).
+                await getDeps().updateTaskStatusIfNotIn(
                   taskId,
                   canRetry ? 'queued' : evt.kind,
+                  ['cancelled', 'completed', 'failed', 'expired'],
                   { claimAgentId: null, claimExpiresAt: null },
                 );
               }
@@ -469,9 +511,12 @@ export function initTaskWorkflows(): void {
                 error: { code: reason, message: reason } as unknown,
               });
               if (!isTerminal) {
-                await getDeps().updateTaskStatus(
+                // Atomic guard: a cancel may have committed between the
+                // checkExternalTerminal read and this write (#949).
+                await getDeps().updateTaskStatusIfNotIn(
                   taskId,
                   canRetry ? 'queued' : 'failed',
+                  ['cancelled', 'completed', 'failed', 'expired'],
                   { claimAgentId: null, claimExpiresAt: null },
                 );
               } else {
@@ -483,11 +528,19 @@ export function initTaskWorkflows(): void {
             },
             { name: 'task.tx.markRunningTimedOut' },
           );
-          await removeClaimantTupleStep(taskId, agentId);
+          // Re-read post-tx: a cancel may have landed between the
+          // checkExternalTerminal snapshot and the tx commit (#949).
+          // If it did, the conditional update above preserved cancelled,
+          // and the workflow should report cancelled rather than
+          // timed_out. The orphan-recovery sweeper (#937) cleans up the
+          // tuple later for the cancelled case; we only remove it on a
+          // confirmed timeout.
+          const postTask = await getDeps().findTaskById(taskId);
           const finalStatus: TaskAttemptFinalEvent['status'] =
-            isTerminal && taskNow!.status === 'cancelled'
-              ? 'cancelled'
-              : 'timed_out';
+            postTask?.status === 'cancelled' ? 'cancelled' : 'timed_out';
+          if (finalStatus !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,

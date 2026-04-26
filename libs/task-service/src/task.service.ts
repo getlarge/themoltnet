@@ -936,10 +936,17 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
 
       const isAgent = callerNs === KetoNamespace.Agent;
+      // Clear claim fields together with the status write. The workflow's
+      // terminal-persist tx now uses a conditional update that skips
+      // already-cancelled rows (#949), so we can't rely on it to clear
+      // these. Doing it here also makes the cancel side-effect atomic on
+      // the row.
       const updated = await taskRepository.updateStatus(taskId, 'cancelled', {
         cancelReason: reason,
         cancelledByAgentId: isAgent ? callerId : null,
         cancelledByHumanId: isAgent ? null : callerId,
+        claimAgentId: null,
+        claimExpiresAt: null,
       });
 
       // Signal any active workflow so it unblocks and persists the
