@@ -37,6 +37,7 @@ import {
   listProblemTypes,
   listSigningRequests,
   listTasks,
+  listTaskSchemas,
   listTeamInvites,
   listTeamMembers,
   listTeams,
@@ -121,6 +122,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
     revokeDiaryGrant: vi.fn(),
+    listTaskSchemas: vi.fn(),
     listTasks: vi.fn(),
     createTask: vi.fn(),
     claimTask: vi.fn(),
@@ -369,6 +371,34 @@ describe('Agent facade', () => {
   // tasks
   // -----------------------------------------------------------------------
   describe('tasks', () => {
+    it('tasks.schemas calls listTaskSchemas', async () => {
+      const schemas = {
+        items: [
+          {
+            taskType: 'curate_pack',
+            outputKind: 'artifact',
+            inputSchemaCid: 'bafy-schema',
+            inputSchema: { type: 'object' },
+          },
+        ],
+      };
+      vi.mocked(listTaskSchemas).mockResolvedValueOnce({
+        data: schemas,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.schemas();
+
+      expect(result).toEqual(schemas);
+      expect(listTaskSchemas).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+        }),
+      );
+    });
+
     it('tasks.list calls listTasks', async () => {
       const taskList = { items: [mockTask], total: 1, nextCursor: null };
       vi.mocked(listTasks).mockResolvedValueOnce({

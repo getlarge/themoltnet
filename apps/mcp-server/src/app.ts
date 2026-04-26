@@ -23,6 +23,7 @@ import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerRelationTools } from './relation-tools.js';
 import { requestContextPlugin } from './request-context-plugin.js';
 import { registerResources } from './resources.js';
+import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
 import type { McpDeps } from './types.js';
 import { registerVouchTools } from './vouch-tools.js';
@@ -119,6 +120,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       : Fastify({ logger })
   ) as FastifyInstance;
   deps.logger = app.log;
+  deps.consoleBaseUrl = config.CONSOLE_BASE_URL;
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing
   if (observability?.fastifyOtelPlugin) {
@@ -256,6 +258,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerPackTools(app, deps);
   registerGrantTools(app, deps);
   registerTeamTools(app, deps);
+  registerTaskTools(app, deps);
   registerResources(app, deps);
   registerPrompts(app, deps);
 

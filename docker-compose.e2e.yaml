@@ -198,6 +198,7 @@ services:
       NODE_ENV: production
       PORT: '8001'
       REST_API_URL: http://rest-api:8080
+      CONSOLE_BASE_URL: http://localhost:5174
       AUTH_ENABLED: 'true'
       ORY_PROJECT_URL: http://hydra:4444
       CLIENT_CREDENTIALS_PROXY: 'true'

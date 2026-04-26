@@ -29,6 +29,7 @@ COPY libs/api-client/package.json libs/api-client/
 COPY libs/bootstrap/package.json libs/bootstrap/
 COPY libs/embedding-service/package.json libs/embedding-service/
 COPY libs/mcp-auth-proxy/package.json libs/mcp-auth-proxy/
+COPY libs/tasks/package.json libs/tasks/
 COPY tools/package.json tools/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \

@@ -13,6 +13,7 @@ export const McpServerConfigSchema = Type.Object({
     { default: 'development' },
   ),
   REST_API_URL: Type.String({ minLength: 1 }),
+  CONSOLE_BASE_URL: Type.Optional(Type.String({ minLength: 1 })),
   AXIOM_API_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
   /** Full OTLP HTTP base URL, e.g. https://api.axiom.co */
   OTLP_ENDPOINT: Type.Optional(Type.String({ minLength: 1 })),
