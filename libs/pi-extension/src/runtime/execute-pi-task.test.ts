@@ -1,11 +1,13 @@
 /**
- * Focused tests for the final-output parsing helpers. The rest of
- * `executePiTask` needs a booted Gondolin VM and is covered by the
- * integration demo.
+ * Focused tests for the final-output parsing helpers and the
+ * cancellation-wiring helper. The full `executePiTask` flow needs a
+ * booted Gondolin VM and is covered by the integration demo / a future
+ * e2e once we have one that exercises pi against a real task type.
  */
 import { computeJsonCid } from '@moltnet/crypto-service';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { wireSessionAbort } from './execute-pi-task.js';
 import { extractJsonObject, parseStructuredTaskOutput } from './task-output.js';
 
 describe('extractJsonObject', () => {
@@ -117,5 +119,67 @@ describe('parseStructuredTaskOutput', () => {
       code: 'unknown_task_type',
       message: expect.stringContaining('Unknown task type'),
     });
+  });
+});
+
+describe('wireSessionAbort', () => {
+  it('calls session.abort() once when cancelSignal fires after wiring', async () => {
+    const ac = new AbortController();
+    const abort = vi.fn().mockResolvedValue(undefined);
+    const session = { abort };
+
+    const listener = wireSessionAbort(ac.signal, session);
+
+    expect(abort).not.toHaveBeenCalled();
+    ac.abort();
+    expect(abort).toHaveBeenCalledTimes(1);
+
+    // Cleanup is the caller's job; verify the returned listener is
+    // truthy so they have something to remove.
+    expect(typeof listener).toBe('function');
+  });
+
+  it('fires session.abort() synchronously when the signal is already aborted at wiring time', () => {
+    const ac = new AbortController();
+    ac.abort();
+    const abort = vi.fn().mockResolvedValue(undefined);
+
+    wireSessionAbort(ac.signal, { abort });
+
+    expect(abort).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not double-call session.abort() if the listener fires twice', () => {
+    // EventTarget enforces { once: true }, but a caller could also
+    // invoke the returned listener manually (we do this in
+    // executePiTask when the signal was already aborted at wiring).
+    // Verify the internal guard prevents a duplicate call.
+    const ac = new AbortController();
+    const abort = vi.fn().mockResolvedValue(undefined);
+
+    const listener = wireSessionAbort(ac.signal, { abort });
+    listener();
+    listener();
+    ac.abort();
+
+    expect(abort).toHaveBeenCalledTimes(1);
+  });
+
+  it('swallows session.abort() rejections without escaping the listener', async () => {
+    const ac = new AbortController();
+    const err = new Error('abort blew up');
+    const abort = vi.fn().mockRejectedValue(err);
+
+    wireSessionAbort(ac.signal, { abort });
+
+    // The listener fires synchronously; the rejection is caught inside.
+    // If this test's microtask cycle resolves without an unhandled
+    // rejection, the swallow path works. Vitest will surface unhandled
+    // rejections as test failures by default.
+    ac.abort();
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+    expect(abort).toHaveBeenCalledTimes(1);
   });
 });
