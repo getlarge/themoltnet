@@ -39,12 +39,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "nx vite:build",
+    "build": "vite build",
     "dev": "tsc --watch",
-    "demo": "nx serve demo",
-    "test": "nx vitest:test run --passWithNoTests",
+    "demo": "vite demo",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "nx eslint:lint",
+    "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "peerDependencies": {

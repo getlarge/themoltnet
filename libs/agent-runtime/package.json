@@ -34,7 +34,7 @@
     "build": "vite build",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "nx eslint:lint",
+    "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {

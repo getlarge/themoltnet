@@ -15,9 +15,9 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc --watch",
-    "test": "nx vitest:test run",
+    "test": "vitest run",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "nx eslint:lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@moltnet/auth": "workspace:*",

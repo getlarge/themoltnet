@@ -27,7 +27,7 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "test": "nx vitest:test run",
+    "test": "vitest run",
     "lint": "eslint src/",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
     "check:types-isolation": "tsx ../../tools/src/check-sdk-types-isolation.ts"

@@ -32,7 +32,7 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "test": "nx vitest:test run",
+    "test": "vitest run",
     "lint": "eslint src/",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },

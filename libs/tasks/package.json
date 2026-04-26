@@ -16,7 +16,7 @@
     "build": "tsc -b",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "nx eslint:lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@sinclair/typebox": "catalog:",
