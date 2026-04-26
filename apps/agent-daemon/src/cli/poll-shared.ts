@@ -21,7 +21,7 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { loadSandboxConfig } from '../lib/sandbox.js';
+import { resolveSandbox } from '../lib/sandbox.js';
 
 export interface PollSharedArgs {
   argv: string[];
@@ -47,6 +47,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       'poll-interval-ms': { type: 'string' },
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
+      sandbox: { type: 'string' },
     },
   });
 
@@ -96,8 +97,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     );
   }
 
-  const cwd = process.cwd();
-  const sandboxConfig = loadSandboxConfig(cwd);
+  const sandbox = resolveSandbox(process.cwd(), values.sandbox);
   const ctx = await resolveAgentContext(common.agent);
 
   const cfg = loadConfig();
@@ -123,6 +123,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   process.on('SIGINT', () => onSignal('SIGINT'));
   process.on('SIGTERM', () => onSignal('SIGTERM'));
 
+  console.error(`[${opts.modeLabel}] sandbox=${sandbox.path}`);
   console.error(
     `[${opts.modeLabel}] team=${teamId} types=[${taskTypes.join(',') || '*'}] ` +
       `diaries=[${diaryIds.join(',') || '*'}] agent=${common.agent} ` +
@@ -137,10 +138,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   try {
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
-      mountPath: cwd,
+      mountPath: sandbox.rootDir,
       provider: common.provider,
       model: common.model,
-      sandboxConfig,
+      sandboxConfig: sandbox.config,
     });
 
     runtime = new AgentRuntime({
