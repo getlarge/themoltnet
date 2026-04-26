@@ -413,6 +413,12 @@ importers:
         specifier: workspace:*
         version: link:../../libs/sdk
     devDependencies:
+      '@moltnet/bootstrap':
+        specifier: workspace:*
+        version: link:../../libs/bootstrap
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../../libs/database
       tsx:
         specifier: 'catalog:'
         version: 4.21.0

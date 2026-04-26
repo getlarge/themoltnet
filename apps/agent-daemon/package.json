@@ -11,6 +11,7 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
@@ -27,6 +28,8 @@
     "@themoltnet/sdk": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/database": "workspace:*",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
