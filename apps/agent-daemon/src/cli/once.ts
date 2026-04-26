@@ -18,7 +18,7 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { loadSandboxConfig } from '../lib/sandbox.js';
+import { resolveSandbox } from '../lib/sandbox.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
   if (isHelpFlag(argv)) {
@@ -31,6 +31,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     options: {
       ...commonOptionDefs(),
       'task-id': { type: 'string', short: 't' },
+      sandbox: { type: 'string' },
     },
   });
 
@@ -52,8 +53,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     }
     throw err;
   }
-  const cwd = process.cwd();
-  const sandboxConfig = loadSandboxConfig(cwd);
+  const sandbox = resolveSandbox(process.cwd(), values.sandbox);
   const ctx = await resolveAgentContext(opts.agent);
 
   const cfg = loadConfig();
@@ -69,6 +69,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     },
   });
 
+  console.error(`[once] sandbox=${sandbox.path}`);
   console.error(
     `[once] task=${taskId} agent=${opts.agent} provider=${opts.provider} model=${opts.model}`,
   );
@@ -76,10 +77,10 @@ export async function runOnce(argv: string[]): Promise<number> {
   try {
     const executeTask = createPiTaskExecutor({
       agentName: opts.agent,
-      mountPath: cwd,
+      mountPath: sandbox.rootDir,
       provider: opts.provider,
       model: opts.model,
-      sandboxConfig,
+      sandboxConfig: sandbox.config,
     });
 
     const runtime = new AgentRuntime({

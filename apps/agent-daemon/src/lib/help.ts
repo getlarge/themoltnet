@@ -8,6 +8,10 @@ export const COMMON_REQUIRED_FLAGS = `\
                               claude-sonnet-4-5, gpt-5.3-codex).`;
 
 export const COMMON_OPTIONAL_FLAGS = `\
+  --sandbox <path>            Path to sandbox.json. Default: search up from
+                              the daemon's CWD until found. The directory
+                              containing sandbox.json is also used as the
+                              VM mountPath.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.
                               Default: 300.
@@ -37,7 +41,9 @@ Run \`agent-daemon <command> --help\` for command-specific flags.
 
 Prerequisites (all subcommands):
   - <repo-root>/.moltnet/<agent>/moltnet.json — credentials (see --agent)
-  - sandbox.json in the working directory — Gondolin snapshot config
+  - sandbox.json — Gondolin snapshot config; resolved by searching up
+    from CWD, or pass --sandbox <path>. Its containing directory is the
+    VM mountPath.
 
 Registered task types: ${knownTaskTypesList()}`;
 
