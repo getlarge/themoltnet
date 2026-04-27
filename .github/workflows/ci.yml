@@ -33,8 +33,17 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@v4
-      - run: pnpm exec nx affected -t lint
+      - name: Derive nx affected base
+        id: nx-base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=50
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="HEAD~1"
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+      - run: pnpm exec nx affected -t lint --base=${{ steps.nx-base.outputs.base }}
       - run: pnpm run check:quickstart
 
   typecheck:
@@ -53,8 +62,17 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@v4
-      - run: pnpm exec nx affected -t typecheck
+      - name: Derive nx affected base
+        id: nx-base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=50
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="HEAD~1"
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+      - run: pnpm exec nx affected -t typecheck --base=${{ steps.nx-base.outputs.base }}
 
   test:
     name: Test
@@ -90,11 +108,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run database migrations
         run: pnpm run db:migrate
-      - uses: nrwl/nx-set-shas@v4
+      - name: Derive nx affected base
+        id: nx-base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=50
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="HEAD~1"
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
       # Cap Vitest worker count: GitHub-hosted runners have 4 vCPUs and the
       # affected projects each spawn their own vitest pool. Without this cap,
       # dozens of workers compete for CPU and inflate wall time / cause flakes.
-      - run: pnpm exec nx affected -t test -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      - run: pnpm exec nx affected -t test --base=${{ steps.nx-base.outputs.base }} -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
 
   code-analysis:
     name: Code Analysis (Knip)
