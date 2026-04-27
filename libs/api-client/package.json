@@ -26,7 +26,6 @@
   "scripts": {
     "generate": "openapi-ts",
     "build": "tsc -b",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "devDependencies": {

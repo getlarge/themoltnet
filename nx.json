@@ -11,16 +11,24 @@
     {
       "options": {
         "buildDepsTargetName": "build-deps",
-        "buildTargetName": "vite:build",
-        "devTargetName": "vite:dev",
-        "previewTargetName": "vite:preview",
+        "buildTargetName": "build",
+        "devTargetName": "dev",
+        "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
         "serveTargetName": "serve",
-        "testTargetName": "vite:test",
-        "typecheckTargetName": "vite:typecheck",
+        "testTargetName": "vite-test-disabled",
+        "typecheckTargetName": "typecheck",
         "watchDepsTargetName": "watch-deps"
       },
       "plugin": "@nx/vite/plugin"
+    },
+    {
+      "options": {
+        "ciTargetName": "test-ci",
+        "testMode": "run",
+        "testTargetName": "test"
+      },
+      "plugin": "@nx/vitest"
     },
     {
       "options": {

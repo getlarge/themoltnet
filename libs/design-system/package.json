@@ -39,10 +39,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
     "dev": "tsc --watch",
     "demo": "vite demo",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },

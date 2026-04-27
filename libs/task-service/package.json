@@ -15,7 +15,6 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc --watch",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "dependencies": {

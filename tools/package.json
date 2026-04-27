@@ -24,8 +24,7 @@
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
     "smtp:test": "tsx src/test-smtp.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint src/",
-    "test": "vitest run --passWithNoTests"
+    "lint": "eslint src/"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
