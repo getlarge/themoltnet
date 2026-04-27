@@ -87,6 +87,9 @@
       "path": "libs/task-service"
     },
     {
+      "path": "libs/task-ui"
+    },
+    {
       "path": "libs/tasks"
     },
     {
