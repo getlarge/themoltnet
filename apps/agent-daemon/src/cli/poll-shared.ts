@@ -114,10 +114,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
   });
 
-  // One pino instance for the whole daemon. Bind agent/team/provider/
-  // model once so every log line — startup banner, runtime lifecycle,
-  // source list/claim, executor, reporter — inherits them. Pretty
-  // printing in dev (TTY); structured JSON otherwise (CI / production).
+  // Pretty in dev (TTY), structured JSON otherwise.
   const rootLogger = pino({
     name: `agent-daemon.${opts.modeLabel}`,
     level: cfg.logLevel || (common.debug ? 'debug' : 'info'),

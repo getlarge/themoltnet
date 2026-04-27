@@ -79,12 +79,11 @@ export async function runOnce(argv: string[]): Promise<number> {
   }).child({
     mode: 'once',
     agent: opts.agent,
-    taskId,
     provider: opts.provider,
     model: opts.model,
   });
 
-  rootLogger.info({ sandbox: sandbox.path }, 'agent-daemon.starting');
+  rootLogger.info({ sandbox: sandbox.path, taskId }, 'agent-daemon.starting');
 
   try {
     const executeTask = createPiTaskExecutor({

@@ -43,12 +43,7 @@ export interface PollingApiTaskSourceOptions {
    * `drain` daemon mode for batch eval runs.
    */
   stopWhenEmpty?: boolean;
-  /**
-   * Pino-compatible logger. Defaults to a self-named pino instance.
-   * Pass the daemon's app logger so source events (list failures,
-   * 4xx claim skips, optional debug logs) inherit any agent/team
-   * bindings already set up at startup.
-   */
+  /** Logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
   /**
    * When true, also log successful list/claim outcomes (candidate
@@ -151,7 +146,7 @@ export class PollingApiTaskSource implements TaskSource {
           limit: this.listLimit,
         });
         if (this.opts.debug) {
-          this.logger.info(
+          this.logger.debug(
             { taskType, total: result.total, returned: result.items.length },
             'polling-api.list_ok',
           );
@@ -201,7 +196,7 @@ export class PollingApiTaskSource implements TaskSource {
           leaseTtlSec: this.opts.leaseTtlSec,
         });
         if (this.opts.debug) {
-          this.logger.info(
+          this.logger.debug(
             {
               taskId: result.task.id,
               taskType: result.task.taskType,

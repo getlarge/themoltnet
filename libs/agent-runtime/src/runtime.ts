@@ -22,15 +22,7 @@ import type { TaskReporter } from './reporters/index.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
 
 type LogFn = (obj: Record<string, unknown>, msg: string) => void;
-/**
- * Minimal pino-compatible logger surface used by the runtime, the
- * task sources, and (eventually) reporters. Structurally compatible
- * with both pino's `Logger` and Fastify's `FastifyBaseLogger`, so
- * callers can pass an existing app logger without unsafe casts.
- *
- * The `child()` method is critical: per-task scopes bind taskId/
- * taskType/attemptN once and every downstream log inherits them.
- */
+/** Pino-shaped logger; structurally satisfied by `pino.Logger` and `FastifyBaseLogger`. */
 export interface AgentRuntimeLogger {
   debug: LogFn;
   info: LogFn;
@@ -62,13 +54,7 @@ export interface AgentRuntimeOptions {
    * package stays free of pi / Gondolin / SDK dependencies.
    */
   executeTask: TaskExecutor;
-  /**
-   * Pino-compatible logger for unconditional lifecycle events
-   * (task claimed → info, task finished → info). Defaults to a
-   * self-named pino instance so the daemon emits structured logs
-   * without --debug. Callers running inside a Fastify app should
-   * pass `app.log` so logs ride the existing per-request scope.
-   */
+  /** Lifecycle logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
 }
 
@@ -114,10 +100,7 @@ export class AgentRuntime {
         if (!claimedTask) break;
 
         this.status.currentTaskId = claimedTask.task.id;
-        // Bind task-scoped fields as child-logger context so every log
-        // emitted while this task runs (claim, finish, anything the
-        // executor logs through the same pipeline) carries them
-        // automatically without repeating.
+        // Per-task child bindings inherit into every downstream log.
         const taskLogger = this.logger.child({
           taskId: claimedTask.task.id,
           taskType: claimedTask.task.taskType,

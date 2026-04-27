@@ -8,10 +8,7 @@
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
   otelEndpoint: string;
-  /**
-   * Pino log level override (trace|debug|info|warn|error|fatal|silent).
-   * Empty falls back to the per-mode default (info, or debug when --debug).
-   */
+  /** Pino log level override; empty = per-mode default (info, or debug with --debug). */
   logLevel: string;
 }
 
