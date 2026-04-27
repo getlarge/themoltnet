@@ -28,8 +28,8 @@ jobs:
       contents: read
     outputs:
       projects: ${{ steps.compute.outputs.projects }}
-      base: ${{ steps.shas.outputs.base }}
-      head: ${{ steps.shas.outputs.head }}
+      base: ${{ steps.shas-fallback.outputs.base }}
+      head: ${{ steps.shas-fallback.outputs.head }}
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
@@ -49,6 +49,34 @@ jobs:
         uses: nrwl/nx-set-shas@v4
         with:
           main-branch-name: main
+      # Fallback: if nx-set-shas couldn't resolve a base SHA (e.g. no prior
+      # successful CI run on main matches the current workflow shape — typical
+      # when the workflow itself is being introduced or restructured), compute
+      # one ourselves. PRs use origin/<base_ref>; main pushes use HEAD~1.
+      - name: Fallback base SHA
+        id: shas-fallback
+        env:
+          INITIAL_BASE: ${{ steps.shas.outputs.base }}
+          INITIAL_HEAD: ${{ steps.shas.outputs.head }}
+        run: |
+          BASE="$INITIAL_BASE"
+          HEAD="$INITIAL_HEAD"
+          if [ -z "$BASE" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              git fetch origin "${{ github.base_ref }}" --depth=50
+              BASE=$(git rev-parse "origin/${{ github.base_ref }}")
+            else
+              BASE=$(git rev-parse HEAD~1)
+            fi
+            echo "::notice::nx-set-shas returned empty base; falling back to $BASE"
+          fi
+          if [ -z "$HEAD" ]; then
+            HEAD="${{ github.sha }}"
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "NX_BASE=$BASE" >> "$GITHUB_ENV"
+          echo "NX_HEAD=$HEAD" >> "$GITHUB_ENV"
       - name: Compute affected projects
         id: compute
         run: |
