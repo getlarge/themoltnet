@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.97.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.96.0...sdk-v0.97.0) (2026-04-27)
+
+
+### Features
+
+* **mcp-server:** add task tools ([be061dc](https://github.com/getlarge/themoltnet/commit/be061dc2ccbe5192f198d3a99e78b2bb2902fd87))
+* **mcp-server:** add task tools ([c850b6c](https://github.com/getlarge/themoltnet/commit/c850b6c4316983862576be48301c30686ad9f167)), closes [#941](https://github.com/getlarge/themoltnet/issues/941)
+
 ## [0.96.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.95.0...sdk-v0.96.0) (2026-04-25)
 
 
