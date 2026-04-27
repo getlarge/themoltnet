@@ -28,9 +28,12 @@ jobs:
     environment: production
     permissions:
       contents: read
+      packages: read
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
+    outputs:
+      image-exists: ${{ steps.image-check.outputs.exists }}
 
     steps:
       - name: Checkout
@@ -59,10 +62,36 @@ jobs:
           | jq -r '.[].name'
           | pnpm --filter @moltnet/tools check-secrets --fly-toml apps/rest-api/fly.toml
 
+      # CI uses nx affected to skip image builds when the project isn't
+      # affected by the diff. If no ci-<sha> image exists for this app,
+      # there's nothing to deploy — exit cleanly so the workflow doesn't
+      # fail on the missing image.
+      - name: Check rest-api CI image exists
+        id: image-check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${{ github.event.inputs.sha || github.event.workflow_run.head_sha || '' }}"
+          if [ -z "$SHA" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "No SHA — falling back to :latest in deploy job."
+            exit 0
+          fi
+          IMAGE="ghcr.io/${{ github.repository }}/rest-api:ci-$SHA"
+          echo "Probing $IMAGE"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Image found."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No ci-<sha> image for rest-api at $SHA. CI's nx affected gating skipped the build because the project wasn't affected. Skipping deploy."
+          fi
+
   deploy:
     name: Deploy
     needs: preflight
-    if: ${{ !cancelled() && (needs.preflight.result == 'success' || needs.preflight.result == 'skipped') }}
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.preflight.outputs.image-exists == 'true' }}
     uses: ./.github/workflows/_deploy.yml
     secrets: inherit
     with:
