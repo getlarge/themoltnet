@@ -15,7 +15,6 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   }
 }

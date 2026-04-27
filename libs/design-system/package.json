@@ -44,7 +44,6 @@
     "demo": "vite demo",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "peerDependencies": {

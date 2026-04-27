@@ -3,7 +3,8 @@
   "plugins": [
     {
       "options": {
-        "targetName": "eslint:lint"
+        "extensions": ["ts", "tsx"],
+        "targetName": "lint"
       },
       "plugin": "@nx/eslint/plugin"
     },

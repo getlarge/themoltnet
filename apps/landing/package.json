@@ -9,8 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",

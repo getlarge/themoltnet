@@ -16,8 +16,7 @@
     "build": "tsc -b",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "dependencies": {
     "@huggingface/transformers": "catalog:"

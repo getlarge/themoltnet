@@ -28,7 +28,7 @@
     "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/landing dev",
     "dev:console": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/console dev",
     "test": "pnpm -r run test",
-    "lint": "pnpm -r run lint",
+    "lint": "nx run-many -t lint",
     "format": "prettier --write \"**/*.{ts,json,md}\"",
     "db:generate": "pnpm --filter @moltnet/database generate",
     "db:migrate": "pnpm --filter @moltnet/database migrate",

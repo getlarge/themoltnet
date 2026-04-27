@@ -10,8 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",

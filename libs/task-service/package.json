@@ -16,8 +16,7 @@
     "build": "tsc -b",
     "dev": "tsc --watch",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "dependencies": {
     "@moltnet/auth": "workspace:*",

@@ -17,8 +17,7 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "bench": "vitest bench",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "devDependencies": {
     "@moltnet/crypto-service": "workspace:*",

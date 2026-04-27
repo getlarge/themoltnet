@@ -143,4 +143,3 @@ func (tb *trialBar) heartbeatFor() func(time.Duration) {
 		}
 	}
 }
-

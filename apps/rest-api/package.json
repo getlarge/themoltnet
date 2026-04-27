@@ -15,7 +15,6 @@
   "scripts": {
     "build": "vite build && vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
     "dev": "tsx watch src/main.ts",
-    "lint": "eslint .",
     "start": "node dist/main.js",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
