@@ -1,5 +1,23 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)",
+      "!{projectRoot}/__tests__/**/*",
+      "!{projectRoot}/**/*.{md,mdx}",
+      "!{projectRoot}/tsconfig.test.json",
+      "!{projectRoot}/vitest.config.*"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/pnpm-workspace.yaml",
+      "{workspaceRoot}/pnpm-lock.yaml",
+      "{workspaceRoot}/.npmrc",
+      "{workspaceRoot}/nx.json"
+    ]
+  },
   "plugins": [
     {
       "options": {
@@ -51,16 +69,15 @@
   ],
   "targetDefaults": {
     "build": {
-      "cache": true
-    },
-    "lint": {
-      "cache": true
-    },
-    "test": {
-      "cache": true
+      "inputs": ["production", "^production"]
     },
     "typecheck": {
-      "cache": true
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        { "externalDependencies": ["typescript"] }
+      ]
     }
   }
 }
