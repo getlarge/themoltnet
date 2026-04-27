@@ -17,12 +17,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint
+  # Compute the affected project set once and expose per-suite / per-image
+  # flags. Downstream jobs gate on these so e2e and image builds only run
+  # when the projects they cover are actually affected by the diff.
+  affected:
+    name: Compute affected
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      projects: ${{ steps.compute.outputs.projects }}
+      base: ${{ steps.shas.outputs.base }}
+      head: ${{ steps.shas.outputs.head }}
+      e2e-node: ${{ steps.compute.outputs.e2e-node }}
+      e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
+      e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
+      e2e-any: ${{ steps.compute.outputs.e2e-any }}
+      landing: ${{ steps.compute.outputs.landing }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,17 +45,82 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Derive nx affected base
-        id: nx-base
+      - id: shas
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: main
+      - name: Compute affected projects
+        id: compute
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch origin "${{ github.base_ref }}" --depth=50
-            BASE="origin/${{ github.base_ref }}"
+          set -euo pipefail
+          # nx-set-shas exports NX_BASE/NX_HEAD as env vars; nx affected
+          # reads them automatically.
+          PROJECTS=$(pnpm exec nx show projects --affected)
+          echo "projects=$PROJECTS" >> "$GITHUB_OUTPUT"
+          echo "Affected projects: $PROJECTS"
+
+          # Bash helper: 1 if any of the named projects are in $PROJECTS.
+          contains() {
+            for p in "$@"; do
+              if echo "$PROJECTS" | grep -q "\"$p\""; then return 0; fi
+            done
+            return 1
+          }
+
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/agent-daemon"; then
+            echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
-            BASE="HEAD~1"
+            echo "e2e-node=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "base=$BASE" >> "$GITHUB_OUTPUT"
-      - run: pnpm exec nx affected -t lint --base=${{ steps.nx-base.outputs.base }}
+
+          if contains "@moltnet/console"; then
+            echo "e2e-browser=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-browser=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if contains "moltnet-cli" "moltnet-api-client"; then
+            echo "e2e-go-cli=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-go-cli=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # e2e-any: true iff any of the three suites should run. The four
+          # e2e stack images (rest-api, mcp-server, db-migrate, console) are
+          # needed by all three suites, so this single flag gates them.
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
+            echo "e2e-any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-any=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if contains "@moltnet/landing"; then
+            echo "landing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "landing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    needs: [affected]
+    env:
+      NX_BASE: ${{ needs.affected.outputs.base }}
+      NX_HEAD: ${{ needs.affected.outputs.head }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx affected -t lint
       - run: pnpm run check:quickstart
 
   typecheck:
@@ -52,6 +129,10 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    needs: [affected]
+    env:
+      NX_BASE: ${{ needs.affected.outputs.base }}
+      NX_HEAD: ${{ needs.affected.outputs.head }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,17 +143,7 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Derive nx affected base
-        id: nx-base
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch origin "${{ github.base_ref }}" --depth=50
-            BASE="origin/${{ github.base_ref }}"
-          else
-            BASE="HEAD~1"
-          fi
-          echo "base=$BASE" >> "$GITHUB_OUTPUT"
-      - run: pnpm exec nx affected -t typecheck --base=${{ steps.nx-base.outputs.base }}
+      - run: pnpm exec nx affected -t typecheck
 
   test:
     name: Test
@@ -80,6 +151,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    needs: [affected]
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -96,6 +168,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5432/moltnet
+      NX_BASE: ${{ needs.affected.outputs.base }}
+      NX_HEAD: ${{ needs.affected.outputs.head }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -108,21 +182,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run database migrations
         run: pnpm run db:migrate
-      - name: Derive nx affected base
-        id: nx-base
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch origin "${{ github.base_ref }}" --depth=50
-            BASE="origin/${{ github.base_ref }}"
-          else
-            BASE="HEAD~1"
-          fi
-          echo "base=$BASE" >> "$GITHUB_OUTPUT"
       # GitHub-hosted runners have 4 vCPUs. Run nx tasks sequentially
       # (--parallel=1) and let each project's vitest pool use up to 2 threads.
       # Higher nx parallelism × per-project vitest pools causes worker IPC
       # timeouts under memory/CPU pressure.
-      - run: pnpm exec nx affected -t test --base=${{ steps.nx-base.outputs.base }} --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      - run: pnpm exec nx affected -t test --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
 
   code-analysis:
     name: Code Analysis (Knip)
@@ -473,7 +537,8 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [lint, typecheck, build-and-push]
+    needs: [affected, lint, typecheck, build-and-push]
+    if: needs.affected.outputs.e2e-node == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -520,7 +585,8 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [lint, typecheck, build-and-push]
+    needs: [affected, lint, typecheck, build-and-push]
+    if: needs.affected.outputs.e2e-browser == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -583,7 +649,8 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [lint, typecheck, build-and-push]
+    needs: [affected, lint, typecheck, build-and-push]
+    if: needs.affected.outputs.e2e-go-cli == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -719,6 +786,12 @@ jobs:
     permissions:
       contents: read
       packages: write
+    needs: [affected]
+    # Per-image gating: rest-api/mcp-server/db-migrate/console are needed iff
+    # any e2e suite runs (they all share the compose stack). landing has no
+    # e2e consumer, so it's gated independently on whether the landing project
+    # is affected. The matrix `needed` field carries the per-image condition.
+    if: needs.affected.outputs.e2e-any == 'true' || needs.affected.outputs.landing == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -730,23 +803,40 @@ jobs:
           - image: rest-api
             dockerfile: apps/rest-api/Dockerfile
             cache-ref: ghcr.io/getlarge/themoltnet/rest-api:buildcache
+            needed-when: e2e-any
           - image: mcp-server
             dockerfile: apps/mcp-server/Dockerfile
             cache-ref: ghcr.io/getlarge/themoltnet/mcp-server:buildcache
+            needed-when: e2e-any
           # Smaller images stay on GHA cache (good enough, no extra GHCR tag).
           - image: db-migrate
             dockerfile: libs/database/Dockerfile.migrate
+            needed-when: e2e-any
           - image: landing
             dockerfile: apps/landing/Dockerfile
+            needed-when: landing
           - image: console
             dockerfile: apps/console/Dockerfile
+            needed-when: e2e-any
     steps:
+      - name: Skip if image not needed
+        id: gate
+        run: |
+          NEEDED="${{ matrix.needed-when == 'e2e-any' && needs.affected.outputs.e2e-any || needs.affected.outputs.landing }}"
+          echo "needed=$NEEDED" >> "$GITHUB_OUTPUT"
+          if [ "$NEEDED" != "true" ]; then
+            echo "Image ${{ matrix.image }} not affected, skipping build."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.needed == 'true'
 
       - name: Set up Docker Buildx
+        if: steps.gate.outputs.needed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: steps.gate.outputs.needed == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -754,6 +844,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push image
+        if: steps.gate.outputs.needed == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
