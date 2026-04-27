@@ -1,7 +1,9 @@
 import type { Task, TaskStatus } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
+import { pino } from 'pino';
 
+import type { AgentRuntimeLogger } from '../runtime.js';
 import type { ClaimedTask, TaskSource } from './types.js';
 
 export interface PollingApiTaskSourceOptions {
@@ -41,8 +43,8 @@ export interface PollingApiTaskSourceOptions {
    * `drain` daemon mode for batch eval runs.
    */
   stopWhenEmpty?: boolean;
-  /** Logger sink — defaults to `console.error`. */
-  log?: (msg: string, meta?: Record<string, unknown>) => void;
+  /** Logger; defaults to a self-named pino instance. */
+  logger?: AgentRuntimeLogger;
   /**
    * When true, also log successful list/claim outcomes (candidate
    * counts, claim success). Useful for debugging why a daemon appears
@@ -77,7 +79,7 @@ export class PollingApiTaskSource implements TaskSource {
   private readonly minBackoffMs: number;
   private readonly maxBackoffMs: number;
   private readonly listLimit: number;
-  private readonly log: (msg: string, meta?: Record<string, unknown>) => void;
+  private readonly logger: AgentRuntimeLogger;
 
   constructor(private readonly opts: PollingApiTaskSourceOptions) {
     this.minBackoffMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
@@ -90,7 +92,9 @@ export class PollingApiTaskSource implements TaskSource {
     }
     this.listLimit = opts.listLimit ?? DEFAULT_LIST_LIMIT;
     this.currentBackoffMs = this.minBackoffMs;
-    this.log = opts.log ?? ((msg, meta) => console.error(msg, meta ?? {}));
+    // Bind teamId once so every log line from this source carries it.
+    const base = opts.logger ?? pino({ name: 'polling-api-source' });
+    this.logger = base.child({ teamId: opts.teamId });
   }
 
   async claim(): Promise<ClaimedTask | null> {
@@ -142,12 +146,10 @@ export class PollingApiTaskSource implements TaskSource {
           limit: this.listLimit,
         });
         if (this.opts.debug) {
-          this.log('PollingApiTaskSource: list ok', {
-            teamId: this.opts.teamId,
-            taskType,
-            total: result.total,
-            returned: result.items.length,
-          });
+          this.logger.debug(
+            { taskType, total: result.total, returned: result.items.length },
+            'polling-api.list_ok',
+          );
         }
         for (const item of result.items) {
           if (seen.has(item.id)) continue;
@@ -172,11 +174,13 @@ export class PollingApiTaskSource implements TaskSource {
         // happens when every list call this round succeeded and returned
         // nothing.
         hadListError = true;
-        this.log('PollingApiTaskSource: list failed', {
-          error: err instanceof Error ? err.message : String(err),
-          teamId: this.opts.teamId,
-          taskType,
-        });
+        this.logger.warn(
+          {
+            err,
+            taskType,
+          },
+          'polling-api.list_failed',
+        );
       }
     }
     return { candidates: out, hadListError };
@@ -192,11 +196,14 @@ export class PollingApiTaskSource implements TaskSource {
           leaseTtlSec: this.opts.leaseTtlSec,
         });
         if (this.opts.debug) {
-          this.log('PollingApiTaskSource: claim ok', {
-            taskId: result.task.id,
-            taskType: result.task.taskType,
-            attemptN: result.attempt.attemptN,
-          });
+          this.logger.debug(
+            {
+              taskId: result.task.id,
+              taskType: result.task.taskType,
+              attemptN: result.attempt.attemptN,
+            },
+            'polling-api.claim_ok',
+          );
         }
         return {
           task: result.task,
@@ -209,10 +216,10 @@ export class PollingApiTaskSource implements TaskSource {
         // 403: lost permission (rare — diary grants changed mid-list).
         // 404: task vanished (cancelled). Move on.
         if (status === 409 || status === 403 || status === 404) {
-          this.log('PollingApiTaskSource: skipping task', {
-            taskId: task.id,
-            status,
-          });
+          this.logger.debug(
+            { taskId: task.id, status },
+            'polling-api.claim_skipped',
+          );
           continue;
         }
         // Anything else is unexpected — propagate so the runtime can decide.

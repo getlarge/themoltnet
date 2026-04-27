@@ -2,8 +2,17 @@ import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AgentRuntimeLogger } from '../runtime.js';
 import { makeFulfillBriefTask } from '../test-fixtures.js';
 import { PollingApiTaskSource } from './polling-api.js';
+
+const silentLogger: AgentRuntimeLogger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  child: () => silentLogger,
+};
 
 function makeAgent(
   list: TasksNamespace['list'],
@@ -73,7 +82,7 @@ describe('PollingApiTaskSource', () => {
       teamId: 't',
       leaseTtlSec: 60,
       stopWhenEmpty: true,
-      log: () => {},
+      logger: silentLogger,
     });
 
     const result = await src.claim();
@@ -121,7 +130,7 @@ describe('PollingApiTaskSource', () => {
       // Tiny backoff so the test doesn't sit in real wall-clock sleep.
       pollIntervalMs: 1,
       maxPollIntervalMs: 2,
-      log: () => {},
+      logger: silentLogger,
     });
 
     const result = await src.claim();

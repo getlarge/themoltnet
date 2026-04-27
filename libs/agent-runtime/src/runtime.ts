@@ -16,9 +16,20 @@ import {
   propagation,
   ROOT_CONTEXT,
 } from '@opentelemetry/api';
+import { pino } from 'pino';
 
 import type { TaskReporter } from './reporters/index.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
+
+type LogFn = (obj: Record<string, unknown>, msg: string) => void;
+/** Pino-shaped logger; structurally satisfied by `pino.Logger` and `FastifyBaseLogger`. */
+export interface AgentRuntimeLogger {
+  debug: LogFn;
+  info: LogFn;
+  warn: LogFn;
+  error: LogFn;
+  child(bindings: Record<string, unknown>): AgentRuntimeLogger;
+}
 
 /**
  * Runs one task attempt. Concrete implementations own the VM, the LLM
@@ -43,6 +54,8 @@ export interface AgentRuntimeOptions {
    * package stays free of pi / Gondolin / SDK dependencies.
    */
   executeTask: TaskExecutor;
+  /** Lifecycle logger; defaults to a self-named pino instance. */
+  logger?: AgentRuntimeLogger;
 }
 
 export interface AgentRuntimeStatus {
@@ -58,8 +71,11 @@ export class AgentRuntime {
     currentTaskId: null,
   };
   private stopRequested = false;
+  private readonly logger: AgentRuntimeLogger;
 
-  constructor(private readonly opts: AgentRuntimeOptions) {}
+  constructor(private readonly opts: AgentRuntimeOptions) {
+    this.logger = opts.logger ?? pino({ name: 'agent-runtime' });
+  }
 
   getStatus(): AgentRuntimeStatus {
     return { ...this.status };
@@ -84,6 +100,13 @@ export class AgentRuntime {
         if (!claimedTask) break;
 
         this.status.currentTaskId = claimedTask.task.id;
+        // Per-task child bindings inherit into every downstream log.
+        const taskLogger = this.logger.child({
+          taskId: claimedTask.task.id,
+          taskType: claimedTask.task.taskType,
+          attemptN: claimedTask.attemptN,
+        });
+        taskLogger.info({}, 'agent-runtime.task_claimed');
         const reporter = this.opts.makeReporter(claimedTask);
         // Restore the W3C trace context from the claim response so every
         // OTel-instrumented call inside the task (heartbeats, messages, tool
@@ -144,6 +167,24 @@ export class AgentRuntime {
         }
 
         outputs.push(output);
+
+        const finishedFields = {
+          status: output.status,
+          durationMs: output.durationMs,
+          inputTokens: output.usage?.inputTokens,
+          outputTokens: output.usage?.outputTokens,
+          ...(output.error
+            ? {
+                errorCode: output.error.code,
+                errorMessage: output.error.message,
+              }
+            : {}),
+        };
+        if (output.status === 'completed') {
+          taskLogger.info(finishedFields, 'agent-runtime.task_finished');
+        } else {
+          taskLogger.warn(finishedFields, 'agent-runtime.task_finished');
+        }
 
         this.status.tasksProcessed += 1;
         this.status.currentTaskId = null;

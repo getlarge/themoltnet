@@ -8,6 +8,7 @@ import {
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import { createPiTaskExecutor } from '@themoltnet/pi-extension';
+import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
@@ -113,25 +114,42 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
   });
 
+  // Pretty in dev (TTY), structured JSON otherwise.
+  const rootLogger = pino({
+    name: `agent-daemon.${opts.modeLabel}`,
+    level: cfg.logLevel || (common.debug ? 'debug' : 'info'),
+    ...(process.stderr.isTTY
+      ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
+      : {}),
+  }).child({
+    mode: opts.modeLabel,
+    agent: common.agent,
+    teamId,
+    provider: common.provider,
+    model: common.model,
+  });
+
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
   const onSignal = (sig: string) => {
-    console.error(`[${opts.modeLabel}] received ${sig}, draining…`);
+    rootLogger.warn({ signal: sig }, 'agent-daemon.draining');
     abort.abort();
     runtime?.stop();
   };
   process.on('SIGINT', () => onSignal('SIGINT'));
   process.on('SIGTERM', () => onSignal('SIGTERM'));
 
-  console.error(`[${opts.modeLabel}] sandbox=${sandbox.path}`);
-  console.error(
-    `[${opts.modeLabel}] team=${teamId} types=[${taskTypes.join(',') || '*'}] ` +
-      `diaries=[${diaryIds.join(',') || '*'}] agent=${common.agent} ` +
-      `provider=${common.provider} model=${common.model}`,
-  );
-  console.error(
-    `[${opts.modeLabel}] lease=${common.leaseTtlSec}s heartbeat=${common.heartbeatIntervalMs}ms ` +
-      `poll=${pollIntervalMs}-${maxPollIntervalMs}ms`,
+  rootLogger.info(
+    {
+      sandbox: sandbox.path,
+      taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
+      diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
+      leaseTtlSec: common.leaseTtlSec,
+      heartbeatIntervalMs: common.heartbeatIntervalMs,
+      pollIntervalMs,
+      maxPollIntervalMs,
+    },
+    'agent-daemon.starting',
   );
 
   const outputs: TaskOutput[] = [];
@@ -145,6 +163,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     });
 
     runtime = new AgentRuntime({
+      logger: rootLogger,
       source: new PollingApiTaskSource({
         agent: ctx.agent,
         teamId,
@@ -157,8 +176,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         signal: abort.signal,
         stopWhenEmpty: opts.stopWhenEmpty,
         debug: common.debug,
-        log: (msg, meta) =>
-          console.error(`[${opts.modeLabel}] ${msg}`, meta ?? {}),
+        logger: rootLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
@@ -227,9 +245,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     for (const output of drained) {
       await finalizeTask(ctx.agent, output);
     }
-    console.error(
-      `[${opts.modeLabel}] drained, ${drained.length} task(s) processed`,
-    );
+    rootLogger.info({ processed: drained.length }, 'agent-daemon.drained');
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
