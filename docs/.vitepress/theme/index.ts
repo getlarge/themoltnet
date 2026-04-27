@@ -7,6 +7,9 @@ import DefaultTheme from 'vitepress/theme';
 import { createMermaidRenderer } from 'vitepress-mermaid-renderer';
 import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
 
+import LoginButton from './components/LoginButton.vue';
+import UserCard from './components/UserCard.vue';
+
 const mermaidConfig = (isDark: boolean) =>
   ({
     theme: isDark ? ('dark' as const) : ('forest' as const),
@@ -33,7 +36,14 @@ export default {
       onMounted(() => nextTick(initMermaid));
       watch(isDark, () => nextTick(initMermaid));
 
-      return () => h(DefaultTheme.Layout);
+      return () =>
+        h(DefaultTheme.Layout, null, {
+          'nav-bar-content-after': () => h(LoginButton),
+        });
     },
   }),
+  enhanceApp({ app }) {
+    app.component('UserCard', UserCard);
+    app.component('LoginButton', LoginButton);
+  },
 } satisfies Theme;
