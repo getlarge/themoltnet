@@ -27,7 +27,6 @@ jobs:
     permissions:
       contents: read
     outputs:
-      projects: ${{ steps.compute.outputs.projects }}
       base: ${{ steps.shas-fallback.outputs.base }}
       head: ${{ steps.shas-fallback.outputs.head }}
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
@@ -81,16 +80,18 @@ jobs:
         id: compute
         run: |
           set -euo pipefail
-          # nx-set-shas exports NX_BASE/NX_HEAD as env vars; nx affected
-          # reads them automatically.
-          PROJECTS=$(pnpm exec nx show projects --affected)
-          echo "projects=$PROJECTS" >> "$GITHUB_OUTPUT"
+          # nx-set-shas / fallback exports NX_BASE/NX_HEAD as env vars; nx
+          # affected reads them automatically. --json for stable parsing.
+          PROJECTS=$(pnpm exec nx show projects --affected --json)
           echo "Affected projects: $PROJECTS"
 
           # Bash helper: 1 if any of the named projects are in $PROJECTS.
+          # $PROJECTS is a JSON array, so jq is the safe way to check.
           contains() {
             for p in "$@"; do
-              if echo "$PROJECTS" | grep -q "\"$p\""; then return 0; fi
+              if echo "$PROJECTS" | jq -e --arg p "$p" 'index($p)' > /dev/null; then
+                return 0
+              fi
             done
             return 1
           }
