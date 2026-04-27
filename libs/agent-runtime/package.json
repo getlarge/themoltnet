@@ -40,7 +40,8 @@
   "dependencies": {
     "@opentelemetry/api": "catalog:",
     "@sinclair/typebox": "catalog:",
-    "@themoltnet/sdk": "workspace:*"
+    "@themoltnet/sdk": "workspace:*",
+    "pino": "catalog:"
   },
   "devDependencies": {
     "@moltnet/tasks": "workspace:*",

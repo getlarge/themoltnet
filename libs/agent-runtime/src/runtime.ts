@@ -16,9 +16,28 @@ import {
   propagation,
   ROOT_CONTEXT,
 } from '@opentelemetry/api';
+import { pino } from 'pino';
 
 import type { TaskReporter } from './reporters/index.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
+
+type LogFn = (obj: Record<string, unknown>, msg: string) => void;
+/**
+ * Minimal pino-compatible logger surface used by the runtime, the
+ * task sources, and (eventually) reporters. Structurally compatible
+ * with both pino's `Logger` and Fastify's `FastifyBaseLogger`, so
+ * callers can pass an existing app logger without unsafe casts.
+ *
+ * The `child()` method is critical: per-task scopes bind taskId/
+ * taskType/attemptN once and every downstream log inherits them.
+ */
+export interface AgentRuntimeLogger {
+  debug: LogFn;
+  info: LogFn;
+  warn: LogFn;
+  error: LogFn;
+  child(bindings: Record<string, unknown>): AgentRuntimeLogger;
+}
 
 /**
  * Runs one task attempt. Concrete implementations own the VM, the LLM
@@ -43,6 +62,14 @@ export interface AgentRuntimeOptions {
    * package stays free of pi / Gondolin / SDK dependencies.
    */
   executeTask: TaskExecutor;
+  /**
+   * Pino-compatible logger for unconditional lifecycle events
+   * (task claimed → info, task finished → info). Defaults to a
+   * self-named pino instance so the daemon emits structured logs
+   * without --debug. Callers running inside a Fastify app should
+   * pass `app.log` so logs ride the existing per-request scope.
+   */
+  logger?: AgentRuntimeLogger;
 }
 
 export interface AgentRuntimeStatus {
@@ -58,8 +85,11 @@ export class AgentRuntime {
     currentTaskId: null,
   };
   private stopRequested = false;
+  private readonly logger: AgentRuntimeLogger;
 
-  constructor(private readonly opts: AgentRuntimeOptions) {}
+  constructor(private readonly opts: AgentRuntimeOptions) {
+    this.logger = opts.logger ?? pino({ name: 'agent-runtime' });
+  }
 
   getStatus(): AgentRuntimeStatus {
     return { ...this.status };
@@ -84,6 +114,16 @@ export class AgentRuntime {
         if (!claimedTask) break;
 
         this.status.currentTaskId = claimedTask.task.id;
+        // Bind task-scoped fields as child-logger context so every log
+        // emitted while this task runs (claim, finish, anything the
+        // executor logs through the same pipeline) carries them
+        // automatically without repeating.
+        const taskLogger = this.logger.child({
+          taskId: claimedTask.task.id,
+          taskType: claimedTask.task.taskType,
+          attemptN: claimedTask.attemptN,
+        });
+        taskLogger.info({}, 'agent-runtime.task_claimed');
         const reporter = this.opts.makeReporter(claimedTask);
         // Restore the W3C trace context from the claim response so every
         // OTel-instrumented call inside the task (heartbeats, messages, tool
@@ -144,6 +184,24 @@ export class AgentRuntime {
         }
 
         outputs.push(output);
+
+        const finishedFields = {
+          status: output.status,
+          durationMs: output.durationMs,
+          inputTokens: output.usage?.inputTokens,
+          outputTokens: output.usage?.outputTokens,
+          ...(output.error
+            ? {
+                errorCode: output.error.code,
+                errorMessage: output.error.message,
+              }
+            : {}),
+        };
+        if (output.status === 'completed') {
+          taskLogger.info(finishedFields, 'agent-runtime.task_finished');
+        } else {
+          taskLogger.warn(finishedFields, 'agent-runtime.task_finished');
+        }
 
         this.status.tasksProcessed += 1;
         this.status.currentTaskId = null;
