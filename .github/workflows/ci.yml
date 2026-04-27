@@ -118,10 +118,11 @@ jobs:
             BASE="HEAD~1"
           fi
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-      # Cap Vitest worker count: GitHub-hosted runners have 4 vCPUs and the
-      # affected projects each spawn their own vitest pool. Without this cap,
-      # dozens of workers compete for CPU and inflate wall time / cause flakes.
-      - run: pnpm exec nx affected -t test --base=${{ steps.nx-base.outputs.base }} -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      # GitHub-hosted runners have 4 vCPUs. Run nx tasks sequentially
+      # (--parallel=1) and let each project's vitest pool use up to 2 threads.
+      # Higher nx parallelism × per-project vitest pools causes worker IPC
+      # timeouts under memory/CPU pressure.
+      - run: pnpm exec nx affected -t test --base=${{ steps.nx-base.outputs.base }} --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
 
   code-analysis:
     name: Code Analysis (Knip)
