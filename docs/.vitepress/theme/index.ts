@@ -7,6 +7,7 @@ import DefaultTheme from 'vitepress/theme';
 import { createMermaidRenderer } from 'vitepress-mermaid-renderer';
 import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
 
+import AdoptionDashboard from './components/AdoptionDashboard.vue';
 import LoginButton from './components/LoginButton.vue';
 import UserCard from './components/UserCard.vue';
 import UserGreeting from './components/UserGreeting.vue';
@@ -45,6 +46,7 @@ export default {
     },
   }),
   enhanceApp({ app }) {
+    app.component('AdoptionDashboard', AdoptionDashboard);
     app.component('UserCard', UserCard);
     app.component('UserGreeting', UserGreeting);
     app.component('LoginButton', LoginButton);

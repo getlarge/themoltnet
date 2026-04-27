@@ -843,6 +843,9 @@ importers:
 
   docs:
     devDependencies:
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../libs/api-client
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.34
