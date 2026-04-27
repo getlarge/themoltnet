@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.5.0...agent-runtime-v0.6.0) (2026-04-27)
+
+
+### Features
+
+* **agent-daemon:** add --debug flag for poll-source verbose logging ([cca6057](https://github.com/getlarge/themoltnet/commit/cca6057e66e572f81066e464bb2880a59a0236f9))
+* **agent-runtime:** pino-based lifecycle logging for daemon ([3ee0305](https://github.com/getlarge/themoltnet/commit/3ee03053dbe62b7d4e9b1a1a76ef89cc59247d04))
+* **agent-runtime:** unconditional pino lifecycle logging ([739595f](https://github.com/getlarge/themoltnet/commit/739595fc3183c4e3d25b90d14bfb21ec0fe6ff22))
+
+
+### Bug Fixes
+
+* **auth:** enrich logs with identityId; stop silent Keto error swallow ([95abd66](https://github.com/getlarge/themoltnet/commit/95abd66ef5d9554079992b1b6a90475a1256970a))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.4.0...agent-runtime-v0.5.0) (2026-04-26)
 
 

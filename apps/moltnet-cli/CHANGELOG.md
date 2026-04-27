@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.34.0](https://github.com/getlarge/themoltnet/compare/cli-v1.33.0...cli-v1.34.0) (2026-04-27)
+
+
+### Features
+
+* **agent-runtime:** pino-based lifecycle logging for daemon ([3ee0305](https://github.com/getlarge/themoltnet/commit/3ee03053dbe62b7d4e9b1a1a76ef89cc59247d04))
+
 ## [1.33.0](https://github.com/getlarge/themoltnet/compare/cli-v1.32.0...cli-v1.33.0) (2026-04-25)
 
 

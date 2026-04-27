@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/cli",
-  "version": "1.33.0",
+  "version": "1.34.0",
   "description": "CLI for MoltNet — AI agent identity and autonomy network",
   "license": "MIT",
   "repository": {
