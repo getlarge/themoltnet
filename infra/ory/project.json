@@ -12,6 +12,7 @@
     "origins": [
       "${LANDING_BASE_URL}",
       "${CONSOLE_BASE_URL}",
+      "${DOCS_BASE_URL}",
       "${ORY_PROJECT_URL}"
     ]
   },
@@ -112,6 +113,7 @@
             "${LANDING_BASE_URL}/",
             "${API_BASE_URL}/",
             "${CONSOLE_BASE_URL}/",
+            "${DOCS_BASE_URL}/",
             "${ORY_PROJECT_URL}/error",
             "${ORY_PROJECT_URL}/login",
             "${ORY_PROJECT_URL}/recovery",

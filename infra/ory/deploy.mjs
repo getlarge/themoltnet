@@ -98,6 +98,7 @@ const TEMPLATE_VARS = [
   'LANDING_BASE_URL',
   'CONSOLE_BASE_URL',
   'API_BASE_URL',
+  'DOCS_BASE_URL',
   'ORY_PROJECT_URL',
   'OIDC_PAIRWISE_SALT',
   'ORY_ACTION_API_KEY',
@@ -136,6 +137,7 @@ log(`  BASE_DOMAIN:      ${process.env.BASE_DOMAIN}`);
 log(`  LANDING_BASE_URL: ${process.env.LANDING_BASE_URL}`);
 log(`  CONSOLE_BASE_URL: ${process.env.CONSOLE_BASE_URL}`);
 log(`  API_BASE_URL:     ${process.env.API_BASE_URL}`);
+log(`  DOCS_BASE_URL:    ${process.env.DOCS_BASE_URL}`);
 log(`  OIDC_SALT:        ${process.env.OIDC_PAIRWISE_SALT.slice(0, 8)}...`);
 log(`  AGENT_SCHEMA:     ${agentSchemaB64.length} bytes (base64)`);
 log(`  HUMAN_SCHEMA:     ${humanSchemaB64.length} bytes (base64)\n`);
