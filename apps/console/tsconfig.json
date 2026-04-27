@@ -20,6 +20,9 @@
     },
     {
       "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/task-ui"
     }
   ]
 }

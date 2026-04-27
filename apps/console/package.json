@@ -16,6 +16,7 @@
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/models": "workspace:*",
+    "@moltnet/task-ui": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@themoltnet/design-system": "workspace:*",
