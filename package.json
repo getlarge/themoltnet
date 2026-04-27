@@ -84,9 +84,8 @@
     "@nx/playwright": "catalog:",
     "@nx/vite": "catalog:",
     "@nx/web": "catalog:",
-    "@playwright/test": "^1.36.0",
+    "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "@vitest/ui": "^3.0.0",
     "eslint": "catalog:",
     "eslint-plugin-boundaries": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
@@ -102,7 +101,7 @@
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "update-ts-references": "catalog:",
-    "vite": "^8.0.0",
+    "vite": "catalog:",
     "vitest": "catalog:"
   },
   "pnpm": {

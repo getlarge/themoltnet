@@ -374,14 +374,11 @@ importers:
         specifier: 'catalog:'
         version: 22.7.0(@babel/traverse@7.29.0)(@nx/eslint@22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(@nx/playwright@22.7.0(@babel/traverse@7.29.0)(@playwright/test@1.59.1)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(@nx/vite@22.7.0(@babel/traverse@7.29.0)(@nx/eslint@22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(nx@22.7.0)(typescript@5.9.3)(vite@8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.4.2)(tsx@4.21.0)(yaml@2.8.3))(vitest@3.2.4))(nx@22.7.0)
       '@playwright/test':
-        specifier: ^1.36.0
+        specifier: 'catalog:'
         version: 1.59.1
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30
-      '@vitest/ui':
-        specifier: ^3.0.0
-        version: 3.2.4(vitest@3.2.4)
       eslint:
         specifier: 'catalog:'
         version: 9.39.4(jiti@2.4.2)
@@ -428,7 +425,7 @@ importers:
         specifier: 'catalog:'
         version: 4.0.0
       vite:
-        specifier: ^8.0.0
+        specifier: 'catalog:'
         version: 8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.4.2)(tsx@4.21.0)(yaml@2.8.3)
       vitest:
         specifier: 'catalog:'
@@ -12506,7 +12503,8 @@ snapshots:
     dependencies:
       playwright: 1.59.1
 
-  '@polka/url@1.0.0-next.29': {}
+  '@polka/url@1.0.0-next.29':
+    optional: true
 
   '@protobufjs/aspromise@1.1.2': {}
 
@@ -13644,6 +13642,7 @@ snapshots:
       tinyglobby: 0.2.15
       tinyrainbow: 2.0.0
       vitest: 3.2.4(@types/debug@4.1.13)(@types/node@20.19.30)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+    optional: true
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -15345,7 +15344,8 @@ snapshots:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
 
-  fflate@0.8.2: {}
+  fflate@0.8.2:
+    optional: true
 
   figlet@1.10.0:
     dependencies:
@@ -16598,7 +16598,8 @@ snapshots:
       fastparallel: 2.4.1
       qlobber: 8.0.1
 
-  mrmime@2.0.1: {}
+  mrmime@2.0.1:
+    optional: true
 
   ms@2.1.3: {}
 
@@ -17765,6 +17766,7 @@ snapshots:
       '@polka/url': 1.0.0-next.29
       mrmime: 2.0.1
       totalist: 3.0.1
+    optional: true
 
   slice-ansi@7.1.2:
     dependencies:
@@ -18107,7 +18109,8 @@ snapshots:
 
   tokenx@1.3.0: {}
 
-  totalist@3.0.1: {}
+  totalist@3.0.1:
+    optional: true
 
   tough-cookie@5.1.2:
     dependencies:
