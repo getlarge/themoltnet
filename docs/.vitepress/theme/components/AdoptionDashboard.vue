@@ -51,7 +51,7 @@ const totalCount = computed(() => stages.value?.length ?? 0);
           <button
             class="moltnet-adoption__refresh"
             :disabled="probeLoading"
-            @click="refresh"
+            @click="refresh({ bypassCache: true })"
           >
             {{ probeLoading ? 'Refreshing…' : 'Refresh' }}
           </button>

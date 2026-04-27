@@ -22,7 +22,11 @@ import {
 import { computed, readonly, ref, watch } from 'vue';
 
 import { getApiClient } from './api';
+import { cachedRetry, invalidateCache } from './cache-retry';
 import { useAuth } from './useAuth';
+
+const CACHE_PREFIX = 'adoption:';
+const CACHE_TTL_MS = 60_000;
 
 export interface AdoptionState {
   diariesCount: number;
@@ -72,18 +76,39 @@ async function loadAdoption(): Promise<AdoptionState> {
   const client = getApiClient();
 
   const [diaries, teams, packsCount] = await Promise.all([
-    safeCall<DiarySummary[]>(async () => {
-      const res = await listDiaries({ client });
-      return res.data?.items ?? [];
-    }, []),
-    safeCall<TeamSummary[]>(async () => {
-      const res = await listTeams({ client });
-      return res.data?.items ?? [];
-    }, []),
-    safeCall<number>(async () => {
-      const res = await listContextPacks({ client });
-      return res.data?.total ?? res.data?.items.length ?? 0;
-    }, 0),
+    safeCall<DiarySummary[]>(
+      () =>
+        cachedRetry(
+          async () => {
+            const res = await listDiaries({ client });
+            return res.data?.items ?? [];
+          },
+          { cacheKey: `${CACHE_PREFIX}diaries`, cacheTtlMs: CACHE_TTL_MS },
+        ),
+      [],
+    ),
+    safeCall<TeamSummary[]>(
+      () =>
+        cachedRetry(
+          async () => {
+            const res = await listTeams({ client });
+            return res.data?.items ?? [];
+          },
+          { cacheKey: `${CACHE_PREFIX}teams`, cacheTtlMs: CACHE_TTL_MS },
+        ),
+      [],
+    ),
+    safeCall<number>(
+      () =>
+        cachedRetry(
+          async () => {
+            const res = await listContextPacks({ client });
+            return res.data?.total ?? res.data?.items.length ?? 0;
+          },
+          { cacheKey: `${CACHE_PREFIX}packs`, cacheTtlMs: CACHE_TTL_MS },
+        ),
+      0,
+    ),
   ]);
 
   const firstDiaryId = diaries[0]?.id ?? null;
@@ -93,33 +118,63 @@ async function loadAdoption(): Promise<AdoptionState> {
   const [firstDiaryEntriesCount, renderedPacksCount, tasksCount] =
     await Promise.all([
       firstDiaryId
-        ? safeCall<number>(async () => {
-            const res = await listDiaryEntries({
-              client,
-              path: { diaryId: firstDiaryId },
-              query: { limit: 1 },
-            });
-            return res.data?.total ?? res.data?.items?.length ?? 0;
-          }, 0)
+        ? safeCall<number>(
+            () =>
+              cachedRetry(
+                async () => {
+                  const res = await listDiaryEntries({
+                    client,
+                    path: { diaryId: firstDiaryId },
+                    query: { limit: 1 },
+                  });
+                  return res.data?.total ?? res.data?.items?.length ?? 0;
+                },
+                {
+                  cacheKey: `${CACHE_PREFIX}entries:${firstDiaryId}`,
+                  cacheTtlMs: CACHE_TTL_MS,
+                },
+              ),
+            0,
+          )
         : Promise.resolve(0),
       firstDiaryId
-        ? safeCall<number>(async () => {
-            const res = await listDiaryRenderedPacks({
-              client,
-              path: { id: firstDiaryId },
-              query: { limit: 1 },
-            });
-            return res.data?.total ?? 0;
-          }, 0)
+        ? safeCall<number>(
+            () =>
+              cachedRetry(
+                async () => {
+                  const res = await listDiaryRenderedPacks({
+                    client,
+                    path: { id: firstDiaryId },
+                    query: { limit: 1 },
+                  });
+                  return res.data?.total ?? 0;
+                },
+                {
+                  cacheKey: `${CACHE_PREFIX}rendered:${firstDiaryId}`,
+                  cacheTtlMs: CACHE_TTL_MS,
+                },
+              ),
+            0,
+          )
         : Promise.resolve(0),
       firstTeamId
-        ? safeCall<number>(async () => {
-            const res = await listTasks({
-              client,
-              query: { teamId: firstTeamId, limit: 1 },
-            });
-            return res.data?.total ?? res.data?.items?.length ?? 0;
-          }, 0)
+        ? safeCall<number>(
+            () =>
+              cachedRetry(
+                async () => {
+                  const res = await listTasks({
+                    client,
+                    query: { teamId: firstTeamId, limit: 1 },
+                  });
+                  return res.data?.total ?? res.data?.items?.length ?? 0;
+                },
+                {
+                  cacheKey: `${CACHE_PREFIX}tasks:${firstTeamId}`,
+                  cacheTtlMs: CACHE_TTL_MS,
+                },
+              ),
+            0,
+          )
         : Promise.resolve(0),
     ]);
 
@@ -135,11 +190,14 @@ async function loadAdoption(): Promise<AdoptionState> {
   };
 }
 
-async function refresh() {
+async function refresh({
+  bypassCache = false,
+}: { bypassCache?: boolean } = {}) {
   if (inflight) return;
   inflight = true;
   isLoading.value = true;
   error.value = null;
+  if (bypassCache) invalidateCache(CACHE_PREFIX);
   try {
     state.value = await loadAdoption();
   } catch (err) {
@@ -168,6 +226,7 @@ export function useAdoption() {
         if (!authed) {
           state.value = null;
           error.value = null;
+          invalidateCache(CACHE_PREFIX);
         }
       },
       { immediate: true },
@@ -184,6 +243,7 @@ export function useAdoption() {
     isLoading: readonly(isLoading),
     error: readonly(error),
     stages,
+    /** Re-probe; pass {bypassCache:true} to skip the in-memory TTL cache. */
     refresh,
   };
 }
