@@ -75,6 +75,24 @@ catalogs:
     '@noble/hashes':
       specifier: ^1.7.0
       version: 1.8.0
+    '@nx-go/nx-go':
+      specifier: ^4.0.0
+      version: 4.0.0
+    '@nx/docker':
+      specifier: 22.7.0
+      version: 22.7.0
+    '@nx/eslint':
+      specifier: 22.7.0
+      version: 22.7.0
+    '@nx/playwright':
+      specifier: 22.7.0
+      version: 22.7.0
+    '@nx/vite':
+      specifier: 22.7.0
+      version: 22.7.0
+    '@nx/web':
+      specifier: 22.7.0
+      version: 22.7.0
     '@opentelemetry/api':
       specifier: ^1.9.0
       version: 1.9.0
@@ -222,6 +240,9 @@ catalogs:
     multiformats:
       specifier: ^13.3.0
       version: 13.4.2
+    nx:
+      specifier: 22.7.0
+      version: 22.7.0
     open:
       specifier: ^10.1.2
       version: 10.2.0
@@ -335,25 +356,22 @@ importers:
         specifier: 'catalog:'
         version: 9.39.4
       '@nx-go/nx-go':
-        specifier: ^4.0.0
+        specifier: 'catalog:'
         version: 4.0.0(nx@22.7.0)
       '@nx/docker':
-        specifier: 22.7.0
+        specifier: 'catalog:'
         version: 22.7.0(nx@22.7.0)
       '@nx/eslint':
-        specifier: 22.7.0
+        specifier: 'catalog:'
         version: 22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0)
       '@nx/playwright':
-        specifier: 22.7.0
+        specifier: 'catalog:'
         version: 22.7.0(@babel/traverse@7.29.0)(@playwright/test@1.59.1)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0)
       '@nx/vite':
-        specifier: 22.7.0
-        version: 22.7.0(@babel/traverse@7.29.0)(@nx/eslint@22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(nx@22.7.0)(typescript@5.9.3)(vite@8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.4.2)(tsx@4.21.0)(yaml@2.8.3))(vitest@3.2.4)
-      '@nx/vitest':
-        specifier: 22.7.0
+        specifier: 'catalog:'
         version: 22.7.0(@babel/traverse@7.29.0)(@nx/eslint@22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(nx@22.7.0)(typescript@5.9.3)(vite@8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.4.2)(tsx@4.21.0)(yaml@2.8.3))(vitest@3.2.4)
       '@nx/web':
-        specifier: 22.7.0
+        specifier: 'catalog:'
         version: 22.7.0(@babel/traverse@7.29.0)(@nx/eslint@22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(@nx/playwright@22.7.0(@babel/traverse@7.29.0)(@playwright/test@1.59.1)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(@nx/vite@22.7.0(@babel/traverse@7.29.0)(@nx/eslint@22.7.0(@babel/traverse@7.29.0)(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2))(nx@22.7.0))(nx@22.7.0)(typescript@5.9.3)(vite@8.0.3(@types/node@20.19.30)(esbuild@0.27.2)(jiti@2.4.2)(tsx@4.21.0)(yaml@2.8.3))(vitest@3.2.4))(nx@22.7.0)
       '@playwright/test':
         specifier: ^1.36.0
@@ -389,7 +407,7 @@ importers:
         specifier: 'catalog:'
         version: 16.4.0
       nx:
-        specifier: 22.7.0
+        specifier: 'catalog:'
         version: 22.7.0
       prettier:
         specifier: 'catalog:'
@@ -13966,7 +13984,7 @@ snapshots:
 
   babel-plugin-polyfill-corejs2@0.4.17(@babel/core@7.29.0):
     dependencies:
-      '@babel/compat-data': 7.28.6
+      '@babel/compat-data': 7.29.0
       '@babel/core': 7.29.0
       '@babel/helper-define-polyfill-provider': 0.6.8(@babel/core@7.29.0)
       semver: 6.3.1

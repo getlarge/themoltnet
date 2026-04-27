@@ -9,14 +9,6 @@
     },
     {
       "options": {
-        "ciTargetName": "test-ci",
-        "testMode": "watch",
-        "testTargetName": "vitest:test"
-      },
-      "plugin": "@nx/vitest"
-    },
-    {
-      "options": {
         "buildDepsTargetName": "build-deps",
         "buildTargetName": "vite:build",
         "devTargetName": "vite:dev",

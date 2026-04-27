@@ -43,6 +43,12 @@ catalog:
   '@noble/curves': ^2.0.0
   '@noble/ed25519': ^2.0.0
   '@noble/hashes': ^1.7.0
+  '@nx-go/nx-go': ^4.0.0
+  '@nx/docker': 22.7.0
+  '@nx/eslint': 22.7.0
+  '@nx/playwright': 22.7.0
+  '@nx/vite': 22.7.0
+  '@nx/web': 22.7.0
   '@openai/codex-sdk': ^0.118.0
   '@opentelemetry/api': ^1.9.0
   '@opentelemetry/exporter-logs-otlp-proto': ^0.212.0
@@ -94,6 +100,7 @@ catalog:
   lint-staged: ^16.0.0
   mermaid: ^11.4.1
   multiformats: ^13.3.0
+  nx: 22.7.0
   open: ^10.1.2
   pg: ^8.13.0
   pino: ^10.3.1
