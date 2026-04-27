@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuth } from '../auth/useAuth';
 
-const { isAuthenticated, isLoading, username, email, error, login, logout } =
+const { isAuthenticated, isLoading, username, email, login, logout } =
   useAuth();
 </script>
 
@@ -28,14 +28,6 @@ const { isAuthenticated, isLoading, username, email, error, login, logout } =
           Log in
         </button>
       </template>
-      <span
-        v-if="error"
-        class="moltnet-login__error"
-        role="alert"
-        :title="error.message"
-      >
-        ⚠ auth error
-      </span>
     </div>
   </ClientOnly>
 </template>
@@ -86,11 +78,5 @@ const { isAuthenticated, isLoading, username, email, error, login, logout } =
 
 .moltnet-login__btn--primary:hover {
   background: var(--vp-c-brand-soft);
-}
-
-.moltnet-login__error {
-  color: var(--vp-c-danger-1, #d63638);
-  font-size: 12px;
-  cursor: help;
 }
 </style>

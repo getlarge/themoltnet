@@ -39,6 +39,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build docs
+        env:
+          VITE_KRATOS_URL: ${{ vars.KRATOS_PUBLIC_URL || 'https://auth.themolt.net' }}
         run: pnpm --filter @moltnet/docs build
 
       - uses: actions/configure-pages@v5
