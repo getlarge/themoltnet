@@ -13,6 +13,7 @@
     "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "devDependencies": {
+    "@ory/client-fetch": "catalog:",
     "@themoltnet/design-system": "workspace:*",
     "@types/node": "catalog:",
     "mermaid": "catalog:",
