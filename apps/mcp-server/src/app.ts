@@ -23,6 +23,7 @@ import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerRelationTools } from './relation-tools.js';
 import { requestContextPlugin } from './request-context-plugin.js';
 import { registerResources } from './resources.js';
+import { registerTaskApp } from './task-app.js';
 import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
 import type { McpDeps } from './types.js';
@@ -259,6 +260,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerGrantTools(app, deps);
   registerTeamTools(app, deps);
   registerTaskTools(app, deps);
+  registerTaskApp(app, deps);
   registerResources(app, deps);
   registerPrompts(app, deps);
 

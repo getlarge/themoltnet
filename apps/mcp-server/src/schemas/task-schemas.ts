@@ -261,6 +261,44 @@ export const TaskConsoleLinkOutputSchema = Type.Object({
   consoleUrl: Type.Optional(Type.String()),
 });
 
+export const TaskAppOpenSchema = Type.Object({
+  team_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description: 'Optional team ID used to pre-load the queue.',
+    }),
+  ),
+  task_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description: 'Optional task ID used to pre-load the detail panel.',
+    }),
+  ),
+  status: Type.Optional(TaskStatus),
+  console_url: Type.Optional(
+    Type.String({
+      description: 'Optional explicit console URL for the selected task.',
+    }),
+  ),
+});
+export type TaskAppOpenInput = {
+  team_id?: string;
+  task_id?: string;
+  status?: Static<typeof TaskStatus>;
+  console_url?: string;
+};
+
+export const TaskAppOpenOutputSchema = Type.Object({
+  app: Type.Literal('moltnet_tasks'),
+  resourceUri: Type.String(),
+  teamId: Type.Optional(Type.String()),
+  taskId: Type.Optional(Type.String()),
+  status: Type.Optional(TaskStatus),
+  consoleUrl: Type.Optional(Type.String()),
+  tools: Type.Array(Type.String()),
+});
+export type TaskAppOpenOutput = Static<typeof TaskAppOpenOutputSchema>;
+
 const TaskTypeDescriptorSchema = Type.Object({
   taskType: Type.String(),
   outputKind: Type.Union([Type.Literal('artifact'), Type.Literal('judgment')]),
