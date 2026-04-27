@@ -3,7 +3,7 @@ import { computed } from 'vue';
 
 import { useAuth } from '../auth/useAuth';
 
-const { isAuthenticated, isLoading, identity, username, email, login } =
+const { isAuthenticated, isLoading, identity, username, email, error, login } =
   useAuth();
 
 const identityId = computed(() => identity.value?.id ?? null);
@@ -19,6 +19,9 @@ const schemaId = computed(() => identity.value?.schema_id ?? null);
 <template>
   <ClientOnly>
     <div class="moltnet-user-card">
+      <p v-if="error" class="moltnet-user-card__error" role="alert">
+        Couldn't reach the auth service: {{ error.message }}
+      </p>
       <template v-if="isLoading">
         <p class="moltnet-user-card__muted">Checking your session…</p>
       </template>
@@ -125,5 +128,15 @@ const schemaId = computed(() => identity.value?.schema_id ?? null);
 
 .moltnet-user-card__btn:hover {
   background: var(--vp-c-brand-soft);
+}
+
+.moltnet-user-card__error {
+  color: var(--vp-c-danger-1, #d63638);
+  background: var(--vp-c-danger-soft, rgba(214, 54, 56, 0.08));
+  border: 1px solid var(--vp-c-danger-soft, rgba(214, 54, 56, 0.2));
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 0 16px 0;
+  font-size: 14px;
 }
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuth } from '../auth/useAuth';
 
-const { isAuthenticated, isLoading, username, email, login, logout } =
+const { isAuthenticated, isLoading, username, email, error, login, logout } =
   useAuth();
 </script>
 
@@ -15,11 +15,7 @@ const { isAuthenticated, isLoading, username, email, login, logout } =
         <span class="moltnet-login__user" :title="email ?? undefined">
           {{ username ?? email ?? 'signed in' }}
         </span>
-        <button
-          type="button"
-          class="moltnet-login__btn"
-          @click="logout"
-        >
+        <button type="button" class="moltnet-login__btn" @click="logout">
           Log out
         </button>
       </template>
@@ -32,6 +28,14 @@ const { isAuthenticated, isLoading, username, email, login, logout } =
           Log in
         </button>
       </template>
+      <span
+        v-if="error"
+        class="moltnet-login__error"
+        role="alert"
+        :title="error.message"
+      >
+        ⚠ auth error
+      </span>
     </div>
   </ClientOnly>
 </template>
@@ -82,5 +86,11 @@ const { isAuthenticated, isLoading, username, email, login, logout } =
 
 .moltnet-login__btn--primary:hover {
   background: var(--vp-c-brand-soft);
+}
+
+.moltnet-login__error {
+  color: var(--vp-c-danger-1, #d63638);
+  font-size: 12px;
+  cursor: help;
 }
 </style>
