@@ -11,6 +11,7 @@
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   AgentRuntime,
+  type AgentRuntimeLogger,
   ApiTaskReporter,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
@@ -19,6 +20,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { finalizeTask } from '../src/lib/finalize.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
+
+const silentLogger: AgentRuntimeLogger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  child: () => silentLogger,
+};
 
 /**
  * The realistic local-daemon scenario is "one agent, one team, one
@@ -70,7 +79,7 @@ describe('Agent daemon (e2e)', () => {
       taskTypes: ['curate_pack'],
       leaseTtlSec: 60,
       stopWhenEmpty: true,
-      log: () => {},
+      logger: silentLogger,
     });
 
     const claimed = await source.claim();
@@ -101,7 +110,7 @@ describe('Agent daemon (e2e)', () => {
       taskTypes: ['curate_pack'],
       leaseTtlSec: 60,
       stopWhenEmpty: true,
-      log: () => {},
+      logger: silentLogger,
     });
     // Same agent identity for both sources — what we're testing is the
     // server-side CAS, not multi-tenant behaviour. The HTTP layer treats
@@ -112,7 +121,7 @@ describe('Agent daemon (e2e)', () => {
       taskTypes: ['curate_pack'],
       leaseTtlSec: 60,
       stopWhenEmpty: true,
-      log: () => {},
+      logger: silentLogger,
     });
 
     const [a, b] = await Promise.all([sourceA.claim(), sourceB.claim()]);
@@ -138,7 +147,7 @@ describe('Agent daemon (e2e)', () => {
         taskTypes: ['curate_pack'],
         leaseTtlSec: 60,
         stopWhenEmpty: true,
-        log: () => {},
+        logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
@@ -226,7 +235,7 @@ describe('Agent daemon (e2e)', () => {
         taskTypes: ['curate_pack'],
         leaseTtlSec: 60,
         stopWhenEmpty: true,
-        log: () => {},
+        logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({

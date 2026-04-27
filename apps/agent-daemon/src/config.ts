@@ -8,10 +8,16 @@
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
   otelEndpoint: string;
+  /**
+   * Pino log level override (trace|debug|info|warn|error|fatal|silent).
+   * Empty falls back to the per-mode default (info, or debug when --debug).
+   */
+  logLevel: string;
 }
 
 export function loadConfig(): DaemonConfig {
   return {
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
+    logLevel: process.env['LOG_LEVEL'] ?? '',
   };
 }

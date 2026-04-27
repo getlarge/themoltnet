@@ -6,6 +6,7 @@ import {
   ApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import { createPiTaskExecutor } from '@themoltnet/pi-extension';
+import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
@@ -69,10 +70,21 @@ export async function runOnce(argv: string[]): Promise<number> {
     },
   });
 
-  console.error(`[once] sandbox=${sandbox.path}`);
-  console.error(
-    `[once] task=${taskId} agent=${opts.agent} provider=${opts.provider} model=${opts.model}`,
-  );
+  const rootLogger = pino({
+    name: 'agent-daemon.once',
+    level: cfg.logLevel || (opts.debug ? 'debug' : 'info'),
+    ...(process.stderr.isTTY
+      ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
+      : {}),
+  }).child({
+    mode: 'once',
+    agent: opts.agent,
+    taskId,
+    provider: opts.provider,
+    model: opts.model,
+  });
+
+  rootLogger.info({ sandbox: sandbox.path }, 'agent-daemon.starting');
 
   try {
     const executeTask = createPiTaskExecutor({
@@ -84,6 +96,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     });
 
     const runtime = new AgentRuntime({
+      logger: rootLogger,
       source: new ApiTaskSource({
         agent: ctx.agent,
         taskId,
@@ -103,7 +116,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     const outputs = await runtime.start();
     const [output] = outputs;
     if (!output) {
-      console.error('[once] runtime produced no outputs');
+      rootLogger.error({}, 'agent-daemon.no_output');
       return 1;
     }
     await finalizeTask(ctx.agent, output);
