@@ -63,10 +63,29 @@ const isLoading = ref(false);
 const error = ref<Error | null>(null);
 let inflight = false;
 
+/**
+ * "Fatal" errors invalidate the entire probe — there's no point falling back
+ * to per-card zeroes because *every* card would be wrong:
+ *   - 401/403: session expired or user lost permission
+ *   - TypeError: network/CORS/abort at the browser layer (no HTTP status)
+ * These bubble up to refresh()'s catch and surface as a top-level error so
+ * the dashboard shows a "session issue" message instead of a misleading
+ * "brand new user" view.
+ */
+function isFatalError(err: unknown): boolean {
+  if (err instanceof TypeError) return true;
+  if (typeof err === 'object' && err !== null && 'status' in err) {
+    const status = (err as { status?: unknown }).status;
+    if (status === 401 || status === 403) return true;
+  }
+  return false;
+}
+
 async function safeCall<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn();
   } catch (err) {
+    if (isFatalError(err)) throw err;
     console.warn('[useAdoption] partial fetch failed:', err);
     return fallback;
   }
@@ -103,7 +122,7 @@ async function loadAdoption(): Promise<AdoptionState> {
         cachedRetry(
           async () => {
             const res = await listContextPacks({ client });
-            return res.data?.total ?? res.data?.items.length ?? 0;
+            return res.data?.total ?? res.data?.items?.length ?? 0;
           },
           { cacheKey: `${CACHE_PREFIX}packs`, cacheTtlMs: CACHE_TTL_MS },
         ),
@@ -248,8 +267,16 @@ export function useAdoption() {
   };
 }
 
+export type AdoptionStageKey =
+  | 'diary'
+  | 'entries'
+  | 'team'
+  | 'packs'
+  | 'rendered'
+  | 'tasks';
+
 export interface AdoptionStage {
-  key: string;
+  key: AdoptionStageKey;
   title: string;
   status: 'todo' | 'done';
   summary: string;

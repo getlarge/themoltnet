@@ -58,8 +58,9 @@ const totalCount = computed(() => stages.value?.length ?? 0);
         </header>
 
         <p v-if="error" class="moltnet-adoption__error" role="alert">
-          Couldn't reach the API: {{ error.message }}. The dashboard below may
-          be empty or stale.
+          Couldn't probe your MoltNet footprint — your session may have expired
+          or the API is unreachable. Try logging in again or hit Refresh.
+          <span class="moltnet-adoption__error-detail">{{ error.message }}</span>
         </p>
 
         <p v-if="probeLoading && !state" class="moltnet-adoption__muted">
@@ -187,6 +188,14 @@ const totalCount = computed(() => stages.value?.length ?? 0);
   margin: 12px 0;
   font-size: 14px;
   color: var(--vp-c-danger-1, #d63638);
+}
+
+.moltnet-adoption__error-detail {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--vp-font-family-mono, monospace);
+  font-size: 12px;
+  opacity: 0.75;
 }
 
 .moltnet-adoption__hero {
