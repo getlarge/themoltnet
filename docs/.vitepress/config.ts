@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress';
+import { defineConfig, type Plugin } from 'vitepress';
 import llmstxt from 'vitepress-plugin-llms';
 
 // Internal docs — kept in the repo for agents but not published on the site.
@@ -37,14 +37,14 @@ const internalSubtreePattern = new RegExp(`/(${INTERNAL_SUBTREES.join('|')})/`);
 export default defineConfig({
   cleanUrls: true,
   vite: {
-    // Cast: vitepress-plugin-llms's Plugin type comes from a different vite
-    // version than the one VitePress 1.6 bundles, so structural compatibility
-    // is lost at the type level though the runtime contract is identical.
+    // llmstxt() returns [Plugin, Plugin] from its bundled vite, which is a
+    // different nominal type from the vite that VitePress re-exports — same
+    // shape, different identity. Cast to vitepress's Plugin[] to bridge.
     // The plugin's default `/llms.txt` is a sparse sidebar-derived index.
     // Agents want the full concatenated content — conventionally served at
     // `/llms-full.txt` but we also copy it to `/llms.txt` (via the build
     // script in package.json) so both URLs return the useful payload.
-    plugins: [llmstxt() as never],
+    plugins: llmstxt() as Plugin[],
   },
   srcExclude: [
     ...INTERNAL_SUBTREES.map((d) => `${d}/**`),
