@@ -3,6 +3,7 @@ interface ImportMetaEnv {
   readonly PROD: boolean;
   readonly DEV: boolean;
   readonly VITE_KRATOS_URL?: string;
+  readonly VITE_API_BASE_URL?: string;
 }
 
 interface ViteHotContext {
