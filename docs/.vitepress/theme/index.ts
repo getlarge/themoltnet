@@ -42,6 +42,7 @@ export default {
         h(DefaultTheme.Layout, null, {
           'nav-bar-content-after': () => h(LoginButton),
           'home-hero-actions-after': () => h(UserGreeting),
+          'home-hero-after': () => h(AdoptionDashboard),
         });
     },
   }),

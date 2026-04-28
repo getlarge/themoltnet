@@ -27,15 +27,22 @@ import { useAuth } from './useAuth';
 
 const CACHE_PREFIX = 'adoption:';
 const CACHE_TTL_MS = 60_000;
+/**
+ * Cap fan-out width — entry/rendered-pack/task counts are computed by
+ * fanning out one read per diary/team. For typical accounts this is in
+ * single digits, but a power user with many shared diaries shouldn't blow
+ * out the page-load budget. 25 is plenty to be representative.
+ */
+const MAX_FANOUT = 25;
 
 export interface AdoptionState {
   diariesCount: number;
   /**
-   * Total entry count across the user's first diary. Used as a cheap proxy
-   * for "has the user actually written anything yet" — a brand-new diary
-   * with zero entries is still stage-0 work.
+   * Total entry count summed across all diaries the user can see (capped
+   * by MAX_FANOUT). Personal and team diaries both count — the question
+   * the dashboard answers is "have you written any entry, anywhere".
    */
-  firstDiaryEntriesCount: number;
+  entriesCount: number;
   /**
    * Teams the user belongs to, excluding their auto-provisioned personal
    * team. A user with only a personal team hasn't started collaborating yet.
@@ -44,10 +51,6 @@ export interface AdoptionState {
   packsCount: number;
   renderedPacksCount: number;
   tasksCount: number;
-  /** First non-personal team id (if any), used as scope for tasksCount. */
-  firstTeamId: string | null;
-  /** First diary id (if any), used as scope for renderedPacksCount. */
-  firstDiaryId: string | null;
 }
 
 interface DiarySummary {
@@ -130,82 +133,87 @@ async function loadAdoption(): Promise<AdoptionState> {
     ),
   ]);
 
-  const firstDiaryId = diaries[0]?.id ?? null;
   const collaborativeTeams = teams.filter((t) => !t.personal);
-  const firstTeamId = collaborativeTeams[0]?.id ?? null;
+  const sampledDiaries = diaries.slice(0, MAX_FANOUT);
+  const sampledTeams = collaborativeTeams.slice(0, MAX_FANOUT);
 
-  const [firstDiaryEntriesCount, renderedPacksCount, tasksCount] =
-    await Promise.all([
-      firstDiaryId
-        ? safeCall<number>(
-            () =>
-              cachedRetry(
-                async () => {
-                  const res = await listDiaryEntries({
-                    client,
-                    path: { diaryId: firstDiaryId },
-                    query: { limit: 1 },
-                  });
-                  return res.data?.total ?? res.data?.items?.length ?? 0;
-                },
-                {
-                  cacheKey: `${CACHE_PREFIX}entries:${firstDiaryId}`,
-                  cacheTtlMs: CACHE_TTL_MS,
-                },
-              ),
-            0,
-          )
-        : Promise.resolve(0),
-      firstDiaryId
-        ? safeCall<number>(
-            () =>
-              cachedRetry(
-                async () => {
-                  const res = await listDiaryRenderedPacks({
-                    client,
-                    path: { id: firstDiaryId },
-                    query: { limit: 1 },
-                  });
-                  return res.data?.total ?? 0;
-                },
-                {
-                  cacheKey: `${CACHE_PREFIX}rendered:${firstDiaryId}`,
-                  cacheTtlMs: CACHE_TTL_MS,
-                },
-              ),
-            0,
-          )
-        : Promise.resolve(0),
-      firstTeamId
-        ? safeCall<number>(
-            () =>
-              cachedRetry(
-                async () => {
-                  const res = await listTasks({
-                    client,
-                    query: { teamId: firstTeamId, limit: 1 },
-                  });
-                  return res.data?.total ?? res.data?.items?.length ?? 0;
-                },
-                {
-                  cacheKey: `${CACHE_PREFIX}tasks:${firstTeamId}`,
-                  cacheTtlMs: CACHE_TTL_MS,
-                },
-              ),
-            0,
-          )
-        : Promise.resolve(0),
-    ]);
+  const sum = (xs: number[]) => xs.reduce((acc, x) => acc + x, 0);
+
+  const entriesPerDiary = await Promise.all(
+    sampledDiaries.map((d) =>
+      safeCall<number>(
+        () =>
+          cachedRetry(
+            async () => {
+              const res = await listDiaryEntries({
+                client,
+                path: { diaryId: d.id },
+                query: { limit: 1 },
+              });
+              return res.data?.total ?? res.data?.items?.length ?? 0;
+            },
+            {
+              cacheKey: `${CACHE_PREFIX}entries:${d.id}`,
+              cacheTtlMs: CACHE_TTL_MS,
+            },
+          ),
+        0,
+      ),
+    ),
+  );
+
+  const renderedPerDiary = await Promise.all(
+    sampledDiaries.map((d) =>
+      safeCall<number>(
+        () =>
+          cachedRetry(
+            async () => {
+              const res = await listDiaryRenderedPacks({
+                client,
+                path: { id: d.id },
+                query: { limit: 1 },
+              });
+              return res.data?.total ?? 0;
+            },
+            {
+              cacheKey: `${CACHE_PREFIX}rendered:${d.id}`,
+              cacheTtlMs: CACHE_TTL_MS,
+            },
+          ),
+        0,
+      ),
+    ),
+  );
+
+  const tasksPerTeam = await Promise.all(
+    sampledTeams.map((t) =>
+      safeCall<number>(
+        () =>
+          cachedRetry(
+            async () => {
+              const res = await listTasks({
+                client,
+                query: { teamId: t.id, limit: 1 },
+              });
+              return res.data?.total ?? res.data?.items?.length ?? 0;
+            },
+            {
+              cacheKey: `${CACHE_PREFIX}tasks:${t.id}`,
+              cacheTtlMs: CACHE_TTL_MS,
+            },
+          ),
+        0,
+      ),
+    ),
+  );
 
   return {
     diariesCount: diaries.length,
-    firstDiaryEntriesCount,
+    entriesCount: sum(entriesPerDiary),
     collaborativeTeamsCount: collaborativeTeams.length,
     packsCount,
-    renderedPacksCount,
-    tasksCount,
-    firstTeamId,
-    firstDiaryId,
+    renderedPacksCount: sum(renderedPerDiary),
+    tasksCount: sum(tasksPerTeam),
   };
 }
 
@@ -293,24 +301,30 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
       status: s.diariesCount > 0 ? 'done' : 'todo',
       summary:
         s.diariesCount > 0
-          ? `${s.diariesCount} ${s.diariesCount === 1 ? 'diary' : 'diaries'} on file.`
+          ? `${s.diariesCount} ${s.diariesCount === 1 ? 'diary' : 'diaries'} visible to you.`
           : 'No diaries yet — every accountable commit lives in one.',
-      ctaLabel: s.diariesCount > 0 ? 'LeGreffier flows' : 'Get started',
-      ctaHref: s.diariesCount > 0 ? '/legreffier-flows' : '/getting-started',
+      ctaLabel: s.diariesCount > 0 ? 'LeGreffier flows' : 'Install LeGreffier',
+      ctaHref:
+        s.diariesCount > 0
+          ? '/legreffier-flows'
+          : '/getting-started#stage-1-install-and-initialize',
       ctaExternal: false,
     },
     {
       key: 'entries',
       title: 'Entries',
-      status: s.firstDiaryEntriesCount > 0 ? 'done' : 'todo',
+      status: s.entriesCount > 0 ? 'done' : 'todo',
       summary:
-        s.firstDiaryEntriesCount > 0
-          ? `${s.firstDiaryEntriesCount} signed ${s.firstDiaryEntriesCount === 1 ? 'entry' : 'entries'} in your first diary.`
+        s.entriesCount > 0
+          ? `${s.entriesCount} signed ${s.entriesCount === 1 ? 'entry' : 'entries'} across your diaries.`
           : s.diariesCount > 0
-            ? "Diary exists, but it's empty. Capture your first procedural or semantic entry."
+            ? 'You have diaries, but no entries yet. Capture your first procedural or semantic entry.'
             : 'Once you have a diary, sign your first entry to anchor it.',
-      ctaLabel: 'Diary flows',
-      ctaHref: '/legreffier-flows',
+      ctaLabel: 'Harvest tasks',
+      ctaHref:
+        s.entriesCount > 0
+          ? '/legreffier-flows'
+          : '/getting-started#stage-2-task-harvesting',
       ctaExternal: false,
     },
     {
@@ -361,7 +375,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
       status: s.tasksCount > 0 ? 'done' : 'todo',
       summary:
         s.tasksCount > 0
-          ? `${s.tasksCount} ${s.tasksCount === 1 ? 'task' : 'tasks'} in your team's queue.`
+          ? `${s.tasksCount} ${s.tasksCount === 1 ? 'task' : 'tasks'} across your teams.`
           : s.collaborativeTeamsCount > 0
             ? 'No tasks yet — publish a brief and watch agents claim it.'
             : 'Tasks live in teams. Create a team first, then post a brief.',
