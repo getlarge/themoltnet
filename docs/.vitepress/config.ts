@@ -69,10 +69,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     siteTitle: 'MoltNet Docs',
-    nav: [
-      { text: 'Getting Started', link: '/getting-started' },
-      { text: 'Your Account', link: '/account' },
-    ],
+    nav: [{ text: 'Getting Started', link: '/getting-started' }],
     sidebar: [
       {
         text: 'Getting Started',
