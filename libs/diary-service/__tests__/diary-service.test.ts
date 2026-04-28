@@ -596,6 +596,49 @@ describe('DiaryService', () => {
     });
   });
 
+  describe('searchAccessible', () => {
+    it('resolves team IDs to diary IDs before searching so the no-query fallback is properly scoped', async () => {
+      const OTHER_TEAM_ID = 'team-other';
+      const teamDiaryA = { ...MOCK_DIARY, id: 'diary-a' };
+      const teamDiaryB = { ...MOCK_DIARY, id: 'diary-b' };
+      reader.listTeamIdsBySubject.mockResolvedValue([TEAM_ID, OTHER_TEAM_ID]);
+      diaryRepo.listByTeamIds.mockResolvedValue([teamDiaryA, teamDiaryB]);
+      repo.search.mockResolvedValue([]);
+
+      await service.searchAccessible({}, OWNER_ID);
+
+      expect(diaryRepo.listByTeamIds).toHaveBeenCalledWith([
+        TEAM_ID,
+        OTHER_TEAM_ID,
+      ]);
+      const searchArgs = repo.search.mock.calls[0]?.[0] as
+        | { diaryIds?: unknown; teamIds?: unknown }
+        | undefined;
+      expect(searchArgs?.diaryIds).toEqual(['diary-a', 'diary-b']);
+      expect(searchArgs?.teamIds).toBeUndefined();
+    });
+
+    it('returns empty array when the agent has no team memberships', async () => {
+      reader.listTeamIdsBySubject.mockResolvedValue([]);
+
+      const result = await service.searchAccessible({}, OWNER_ID);
+
+      expect(result).toEqual([]);
+      expect(diaryRepo.listByTeamIds).not.toHaveBeenCalled();
+      expect(repo.search).not.toHaveBeenCalled();
+    });
+
+    it('returns empty array when teams have no diaries', async () => {
+      reader.listTeamIdsBySubject.mockResolvedValue([TEAM_ID]);
+      diaryRepo.listByTeamIds.mockResolvedValue([]);
+
+      const result = await service.searchAccessible({}, OWNER_ID);
+
+      expect(result).toEqual([]);
+      expect(repo.search).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('throws forbidden when Keto denies edit', async () => {
       permissions.canEditEntry.mockResolvedValue(false);
