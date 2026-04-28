@@ -22,6 +22,9 @@
       "path": "../../libs/database"
     },
     {
+      "path": "../../libs/design-system"
+    },
+    {
       "path": "../../libs/mcp-auth-proxy"
     },
     {

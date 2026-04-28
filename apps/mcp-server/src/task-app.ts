@@ -7,6 +7,7 @@
  * bridge. The iframe never receives a bearer token or talks to REST directly.
  */
 
+import { colors, fontFamily, radius } from '@themoltnet/design-system/tokens';
 import type { FastifyInstance } from 'fastify';
 
 import type {
@@ -34,6 +35,37 @@ const TASK_APP_RESOURCE_META = {
   },
 };
 
+function buildTaskAppThemeCss(): string {
+  return Object.entries({
+    '--molt-bg-void': colors.bg.void,
+    '--molt-bg-surface': colors.bg.surface,
+    '--molt-bg-elevated': colors.bg.elevated,
+    '--molt-bg-overlay': colors.bg.overlay,
+    '--molt-primary': colors.primary.DEFAULT,
+    '--molt-primary-hover': colors.primary.hover,
+    '--molt-primary-muted': colors.primary.muted,
+    '--molt-primary-subtle': colors.primary.subtle,
+    '--molt-accent': colors.accent.DEFAULT,
+    '--molt-text': colors.text.DEFAULT,
+    '--molt-text-secondary': colors.text.secondary,
+    '--molt-text-muted': colors.text.muted,
+    '--molt-text-inverse': colors.text.inverse,
+    '--molt-border': colors.border.DEFAULT,
+    '--molt-border-hover': colors.border.hover,
+    '--molt-error': colors.error.DEFAULT,
+    '--molt-warning': colors.warning.DEFAULT,
+    '--molt-success': colors.success.DEFAULT,
+    '--molt-info': colors.info.DEFAULT,
+    '--molt-font-sans': fontFamily.sans,
+    '--molt-font-mono': fontFamily.mono,
+    '--molt-radius-sm': radius.sm,
+    '--molt-radius-md': radius.md,
+    '--molt-radius-full': radius.full,
+  })
+    .map(([name, value]) => `${name}: ${value}`)
+    .join('; ');
+}
+
 function buildTaskAppHtml(): string {
   return `<!doctype html>
 <html lang="en">
@@ -43,12 +75,11 @@ function buildTaskAppHtml(): string {
     <title>MoltNet Tasks</title>
     <style>
       :root {
-        color-scheme: light dark;
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        background: Canvas;
-        color: CanvasText;
+        color-scheme: dark;
+        ${buildTaskAppThemeCss()};
+        font-family: var(--molt-font-sans);
+        background: var(--molt-bg-void);
+        color: var(--molt-text);
       }
       * {
         box-sizing: border-box;
@@ -56,24 +87,30 @@ function buildTaskAppHtml(): string {
       body {
         margin: 0;
         min-width: 320px;
+        background:
+          linear-gradient(180deg, var(--molt-primary-subtle), transparent 260px),
+          var(--molt-bg-void);
       }
       main {
         display: grid;
-        gap: 12px;
-        padding: 12px;
-      }
-      header,
-      section,
-      form {
-        border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
-        border-radius: 8px;
-        padding: 12px;
+        gap: 16px;
+        padding: 16px;
       }
       header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 16px;
+        border-bottom: 1px solid var(--molt-border);
+        padding-bottom: 14px;
+      }
+      section,
+      form,
+      .panel {
+        border: 1px solid var(--molt-border);
+        border-radius: var(--molt-radius-md);
+        background: var(--molt-bg-surface);
+        padding: 14px;
       }
       h1,
       h2 {
@@ -81,13 +118,14 @@ function buildTaskAppHtml(): string {
         line-height: 1.2;
       }
       h1 {
-        font-size: 18px;
+        font-size: 20px;
       }
       h2 {
         font-size: 14px;
+        letter-spacing: 0;
       }
       .muted {
-        color: color-mix(in srgb, CanvasText 62%, transparent);
+        color: var(--molt-text-secondary);
         font-size: 12px;
       }
       .grid {
@@ -108,11 +146,11 @@ function buildTaskAppHtml(): string {
       input,
       select,
       button {
-        min-height: 34px;
-        border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
-        border-radius: 6px;
-        background: Canvas;
-        color: CanvasText;
+        min-height: 36px;
+        border: 1px solid var(--molt-border);
+        border-radius: var(--molt-radius-md);
+        background: var(--molt-bg-elevated);
+        color: var(--molt-text);
         font: inherit;
       }
       input,
@@ -121,13 +159,21 @@ function buildTaskAppHtml(): string {
         min-width: 0;
       }
       button {
-        padding: 6px 10px;
+        padding: 7px 12px;
         cursor: pointer;
       }
       button.primary {
-        background: LinkText;
-        border-color: LinkText;
-        color: Canvas;
+        background: var(--molt-primary);
+        border-color: var(--molt-primary);
+        color: var(--molt-text-inverse);
+        font-weight: 600;
+      }
+      button:hover:not(:disabled) {
+        border-color: var(--molt-border-hover);
+      }
+      button.primary:hover:not(:disabled) {
+        background: var(--molt-primary-hover);
+        border-color: var(--molt-primary-hover);
       }
       button:disabled {
         cursor: not-allowed;
@@ -148,7 +194,7 @@ function buildTaskAppHtml(): string {
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        border-top: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+        border-top: 1px solid var(--molt-border);
         padding: 10px 0;
       }
       .row:first-child {
@@ -166,16 +212,61 @@ function buildTaskAppHtml(): string {
       pre {
         max-height: 280px;
         overflow: auto;
-        border-radius: 6px;
-        background: color-mix(in srgb, CanvasText 6%, transparent);
+        border-radius: var(--molt-radius-sm);
+        background: var(--molt-bg-overlay);
         padding: 10px;
       }
       .status {
-        border-radius: 999px;
+        border-radius: var(--molt-radius-full);
         padding: 2px 8px;
-        background: color-mix(in srgb, LinkText 14%, transparent);
+        background: var(--molt-primary-muted);
+        color: var(--molt-primary);
         white-space: nowrap;
         font-size: 12px;
+        line-height: 1.4;
+        text-align: center;
+      }
+      .queue-status {
+        align-self: start;
+        min-width: 86px;
+      }
+      .queue-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        width: 100%;
+        border: 0;
+        border-top: 1px solid var(--molt-border);
+        border-radius: 0;
+        background: transparent;
+        padding: 12px 0;
+        text-align: left;
+      }
+      .queue-item:first-child {
+        border-top: 0;
+      }
+      .queue-item:hover {
+        background: var(--molt-primary-subtle);
+      }
+      .mono {
+        font-family:
+          var(--molt-font-mono);
+      }
+      .facts {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      }
+      .fact {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+      .fact strong {
+        color: var(--molt-text-secondary);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
       }
     </style>
   </head>
@@ -237,9 +328,81 @@ function buildTaskAppHtml(): string {
     </main>
 
     <script type="module">
-      import { App } from 'https://esm.sh/@modelcontextprotocol/ext-apps@1.6.0';
+      function createHostBridge() {
+        let nextId = 1;
+        const pending = new Map();
+        const bridge = {
+          ontoolinput: undefined,
+          ontoolresult: undefined,
+          onerror: undefined,
+          async connect() {
+            window.addEventListener('message', (event) => {
+              const message = event.data;
+              if (!message || message.jsonrpc !== '2.0') return;
+              if (Object.prototype.hasOwnProperty.call(message, 'id')) {
+                const handler = pending.get(message.id);
+                if (handler) {
+                  pending.delete(message.id);
+                  if (message.error) {
+                    handler.reject(new Error(message.error.message ?? 'Host request failed'));
+                  } else {
+                    handler.resolve(message.result);
+                  }
+                  return;
+                }
+                window.parent.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
+                return;
+              }
+              if (message.method === 'ui/notifications/tool-input') {
+                bridge.ontoolinput?.(message.params ?? {});
+              } else if (message.method === 'ui/notifications/tool-result') {
+                bridge.ontoolresult?.(message.params ?? {});
+              }
+            });
 
-      const app = new App({ name: 'MoltNet Tasks', version: '0.1.0' });
+            await request('ui/initialize', {
+              appCapabilities: {},
+              appInfo: { name: 'MoltNet Tasks', version: '0.1.0' },
+              protocolVersion: '2026-01-26',
+            });
+            notify('ui/notifications/initialized', {});
+            notifySizeChanged();
+          },
+          callServerTool(params) {
+            return request('tools/call', params);
+          },
+          openLink(params) {
+            return request('ui/open-link', params);
+          },
+        };
+
+        function request(method, params) {
+          const id = nextId++;
+          const message = { jsonrpc: '2.0', id, method, params };
+          return new Promise((resolve, reject) => {
+            pending.set(id, { resolve, reject });
+            window.parent.postMessage(message, '*');
+          });
+        }
+
+        function notify(method, params) {
+          window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
+        }
+
+        function notifySizeChanged() {
+          const height = Math.ceil(document.documentElement.scrollHeight);
+          const width = Math.ceil(document.documentElement.scrollWidth);
+          notify('ui/notifications/size-changed', { height, width });
+        }
+
+        const resizeObserver = new ResizeObserver(() => notifySizeChanged());
+        resizeObserver.observe(document.documentElement);
+        resizeObserver.observe(document.body);
+
+        return bridge;
+      }
+
+      const app = createHostBridge();
       const state = {
         teamId: '',
         taskId: '',
@@ -288,17 +451,20 @@ function buildTaskAppHtml(): string {
           : 'No tasks';
         queue.innerHTML = '';
         for (const task of state.tasks) {
-          const row = document.createElement('div');
-          row.className = 'row';
+          const row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'queue-item';
           row.innerHTML =
             '<div class="stack"><strong>' +
             escapeHtml(task.taskType) +
-            '</strong><code class="muted">' +
+            '</strong><code class="muted mono">' +
             escapeHtml(task.id) +
             '</code><span class="muted">' +
             escapeHtml(task.diaryId ?? 'no diary') +
-            '</span></div><button type="button">Inspect</button>';
-          row.querySelector('button').addEventListener('click', () => {
+            '</span></div><span class="status queue-status">' +
+            escapeHtml(task.status ?? 'unknown') +
+            '</span>';
+          row.addEventListener('click', () => {
             void loadTask(task.id);
           });
           queue.append(row);
@@ -321,11 +487,18 @@ function buildTaskAppHtml(): string {
         taskDetail.innerHTML =
           '<div class="stack"><strong>' +
           escapeHtml(task.taskType) +
-          '</strong><code>' +
+          '</strong><code class="mono">' +
           escapeHtml(task.id) +
-          '</code><span class="muted">Queued ' +
+          '</code></div><div class="facts" style="margin-top: 12px">' +
+          '<div class="fact"><strong>Team</strong><span class="mono">' +
+          escapeHtml(task.teamId ?? '—') +
+          '</span></div><div class="fact"><strong>Diary</strong><span class="mono">' +
+          escapeHtml(task.diaryId ?? '—') +
+          '</span></div><div class="fact"><strong>Queued</strong><span>' +
           escapeHtml(task.queuedAt ?? 'unknown') +
-          '</span></div><pre>' +
+          '</span></div><div class="fact"><strong>Accepted</strong><span>' +
+          escapeHtml(task.acceptedAttemptN ?? '—') +
+          '</span></div></div><pre>' +
           escapeHtml(pretty(task.input)) +
           '</pre>';
         openConsole.hidden = !state.consoleUrl;
@@ -406,12 +579,11 @@ function buildTaskAppHtml(): string {
         row.after(messages);
       }
 
-      app.ontoolresult = (result) => {
-        const data = parseToolJson(result);
-        state.teamId = data.teamId ?? '';
-        state.taskId = data.taskId ?? '';
+      function applyOpenState(data) {
+        state.teamId = data.team_id ?? data.teamId ?? '';
+        state.taskId = data.task_id ?? data.taskId ?? '';
         state.status = data.status ?? '';
-        state.consoleUrl = data.consoleUrl ?? '';
+        state.consoleUrl = data.console_url ?? data.consoleUrl ?? '';
         teamIdInput.value = state.teamId;
         statusInput.value = state.status;
         connection.textContent = 'Connected';
@@ -420,6 +592,13 @@ function buildTaskAppHtml(): string {
         } else if (state.teamId) {
           void loadTasks();
         }
+      }
+
+      app.ontoolinput = (params) => {
+        applyOpenState(params.arguments ?? {});
+      };
+      app.ontoolresult = (result) => {
+        applyOpenState(parseToolJson(result));
       };
       app.onerror = (error) => {
         connection.textContent = error.message ?? String(error);
@@ -432,10 +611,12 @@ function buildTaskAppHtml(): string {
         void loadTasks();
       });
       openConsole.addEventListener('click', () => {
-        if (state.consoleUrl) app.openUrl(state.consoleUrl);
+        if (state.consoleUrl) app.openLink({ url: state.consoleUrl });
       });
 
-      app.connect();
+      app.connect().catch((error) => {
+        connection.textContent = error.message ?? String(error);
+      });
     </script>
   </body>
 </html>`;

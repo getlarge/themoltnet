@@ -112,6 +112,14 @@ async function main(): Promise<void> {
     const summary = {
       mcp_url: `${harness.mcpBaseUrl}/mcp`,
       console_url: 'http://localhost:5174',
+      auth_headers: {
+        'X-Client-Id': harness.agent.clientId,
+        'X-Client-Secret': harness.agent.clientSecret,
+      },
+      basic_host_env: {
+        VITE_MCP_CLIENT_ID: harness.agent.clientId,
+        VITE_MCP_CLIENT_SECRET: harness.agent.clientSecret,
+      },
       team_id: harness.personalTeamId,
       private_diary_id: harness.privateDiaryId,
       tasks: {

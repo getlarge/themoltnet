@@ -106,6 +106,46 @@ function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
   };
 }
 
+function registerMcpCors(app: FastifyInstance): void {
+  app.addHook('onRequest', (request, reply, done) => {
+    const origin = request.headers.origin;
+    if (!origin) {
+      done();
+      return;
+    }
+
+    reply.header('Access-Control-Allow-Origin', origin);
+    reply.header('Vary', 'Origin');
+    reply.header('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+    reply.header(
+      'Access-Control-Allow-Headers',
+      [
+        'Accept',
+        'Authorization',
+        'Cache-Control',
+        'Content-Type',
+        'Mcp-Protocol-Version',
+        'Mcp-Session-Id',
+        'X-Client-Id',
+        'X-Client-Secret',
+        'X-Requested-With',
+      ].join(', '),
+    );
+    reply.header(
+      'Access-Control-Expose-Headers',
+      'Mcp-Protocol-Version, Mcp-Session-Id',
+    );
+    reply.header('Access-Control-Max-Age', '3600');
+
+    if (request.method === 'OPTIONS') {
+      reply.status(204).send();
+      return;
+    }
+
+    done();
+  });
+}
+
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const {
     config,
@@ -122,6 +162,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   ) as FastifyInstance;
   deps.logger = app.log;
   deps.consoleBaseUrl = config.CONSOLE_BASE_URL;
+
+  registerMcpCors(app);
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing
   if (observability?.fastifyOtelPlugin) {

@@ -29,6 +29,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@themoltnet/design-system": "workspace:*",
     "@getlarge/fastify-mcp": "catalog:",
     "@fastify/otel": "catalog:",
     "@opentelemetry/api": "catalog:",
