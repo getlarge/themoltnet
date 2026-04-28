@@ -17,6 +17,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 # Copy workspace package.json files needed for console build
 COPY apps/console/package.json apps/console/
 COPY libs/design-system/package.json libs/design-system/
+COPY libs/task-ui/package.json libs/task-ui/
 COPY libs/api-client/package.json libs/api-client/
 COPY libs/models/package.json libs/models/
 

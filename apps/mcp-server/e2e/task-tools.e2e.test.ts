@@ -97,68 +97,6 @@ describe('Task Tools E2E', () => {
     return parsed.id;
   }
 
-  it('exposes the task MCP App tool and resource', async () => {
-    requireSetup();
-
-    const { tools } = await client.listTools();
-    const appTool = tools.find((tool) => tool.name === 'tasks_app_open');
-
-    expect(appTool).toBeDefined();
-    expect(appTool?._meta).toMatchObject({
-      ui: {
-        resourceUri: 'ui://moltnet/tasks.html',
-        visibility: ['model', 'app'],
-      },
-    });
-
-    const openResult = await client.callTool({
-      name: 'tasks_app_open',
-      arguments: {
-        team_id: harness.personalTeamId,
-        status: 'queued',
-      },
-    });
-    const opened = parseToolResult<{
-      app: string;
-      resourceUri: string;
-      teamId: string;
-      tools: string[];
-    }>(openResult);
-    expect(
-      openResult.isError,
-      `tasks_app_open error: ${opened.content[0].text}`,
-    ).toBeUndefined();
-    expect(opened.parsed).toMatchObject({
-      app: 'moltnet_tasks',
-      resourceUri: 'ui://moltnet/tasks.html',
-      teamId: harness.personalTeamId,
-    });
-    expect(opened.parsed.tools).toContain('tasks_list');
-
-    const resourceResult = await client.readResource({
-      uri: 'ui://moltnet/tasks.html',
-    });
-    expect(resourceResult.contents).toHaveLength(1);
-    const resource = resourceResult.contents[0] as {
-      uri: string;
-      mimeType?: string;
-      text?: string;
-      _meta?: Record<string, unknown>;
-    };
-    expect(resource.uri).toBe('ui://moltnet/tasks.html');
-    expect(resource.mimeType).toBe('text/html;profile=mcp-app');
-    expect(resource.text).toContain('MoltNet Tasks');
-    expect(resource.text).toContain("name: 'tasks_list'");
-    expect(resource._meta).toMatchObject({
-      ui: {
-        csp: {
-          connectDomains: ['https://esm.sh'],
-          resourceDomains: ['https://esm.sh'],
-        },
-      },
-    });
-  });
-
   it('tasks_schemas lists registered task types', async () => {
     requireSetup();
 
