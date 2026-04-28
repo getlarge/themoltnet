@@ -12,8 +12,9 @@
  */
 
 import {
-  listContextPacks,
   listDiaries,
+  listDiaryPacks,
+  listDiaryRenderedPacks,
   listTasks,
   listTeams,
   searchDiary,
@@ -27,18 +28,12 @@ import { useAuth } from './useAuth';
 const CACHE_PREFIX = 'adoption:';
 const CACHE_TTL_MS = 60_000;
 /**
- * The packs+rendered bundle pulls up to this many source packs in one
- * request — `listContextPacks?includeRendered=true` returns rendered
- * descendants only for the visible items on the page, so the cap also
- * bounds the rendered-pack signal. 100 is plenty to answer "have you
- * rendered any pack" reliably for adoption-stage purposes.
+ * Cap fan-out width — packs/rendered/tasks counts have no cross-scope list
+ * endpoint, so we read one count per diary or team. For typical accounts
+ * this is in single digits; the cap protects power users from a request
+ * storm without losing accuracy at adoption-stage granularity.
  */
-const PACKS_PROBE_LIMIT = 100;
-/**
- * Tasks have no cross-team list endpoint — fan out per collaborative team.
- * Personal teams are skipped, so this is typically 0–2 calls.
- */
-const TASKS_TEAM_FANOUT_CAP = 10;
+const SCOPE_FANOUT_CAP = 25;
 
 export interface AdoptionState {
   diariesCount: number;
@@ -102,14 +97,10 @@ async function safeCall<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 async function loadAdoption(): Promise<AdoptionState> {
   const client = getApiClient();
 
-  // Top-level fan-out: 4 cross-scope endpoints in parallel.
-  //   - listDiaries / listTeams: needed both for counts and to drive the
-  //     tasks fan-out (per collaborative team).
-  //   - searchDiary with no diaryId: cross-diary entry total in 1 call.
-  //   - listContextPacks with includeRendered=true: returns pack `total`
-  //     plus a `renderedPacks` array bounded by the page size, giving us
-  //     the rendered-packs signal for free in the same request.
-  const [diaries, teams, entriesCount, packsBundle] = await Promise.all([
+  // Top-level: cross-scope endpoints — diaries/teams drive the per-scope
+  // fan-outs below; searchDiary with no diaryId returns a cross-diary
+  // entry signal in 1 call.
+  const [diaries, teams, entriesCount] = await Promise.all([
     safeCall<DiarySummary[]>(
       () =>
         cachedRetry(
@@ -143,60 +134,92 @@ async function loadAdoption(): Promise<AdoptionState> {
         ),
       0,
     ),
-    safeCall<{ packs: number; rendered: number }>(
-      () =>
-        cachedRetry(
-          async () => {
-            const res = await listContextPacks({
-              client,
-              query: { includeRendered: true, limit: PACKS_PROBE_LIMIT },
-            });
-            return {
-              packs: res.data?.total ?? res.data?.items?.length ?? 0,
-              rendered: res.data?.renderedPacks?.length ?? 0,
-            };
-          },
-          {
-            cacheKey: `${CACHE_PREFIX}packs+rendered`,
-            cacheTtlMs: CACHE_TTL_MS,
-          },
-        ),
-      { packs: 0, rendered: 0 },
-    ),
   ]);
 
   const collaborativeTeams = teams.filter((t) => !t.personal);
-  const sampledTeams = collaborativeTeams.slice(0, TASKS_TEAM_FANOUT_CAP);
+  const sampledDiaries = diaries.slice(0, SCOPE_FANOUT_CAP);
+  const sampledTeams = collaborativeTeams.slice(0, SCOPE_FANOUT_CAP);
 
-  const tasksPerTeam = await Promise.all(
-    sampledTeams.map((t) =>
-      safeCall<number>(
-        () =>
-          cachedRetry(
-            async () => {
-              const res = await listTasks({
-                client,
-                query: { teamId: t.id, limit: 1 },
-              });
-              return res.data?.total ?? res.data?.items?.length ?? 0;
-            },
-            {
-              cacheKey: `${CACHE_PREFIX}tasks:${t.id}`,
-              cacheTtlMs: CACHE_TTL_MS,
-            },
-          ),
-        0,
+  // Packs and rendered packs have no cross-diary list endpoint
+  // (`GET /packs` requires `containsEntry`), so we fan out per diary.
+  // Tasks have no cross-team list endpoint either — fan out per team.
+  const [packsPerDiary, renderedPerDiary, tasksPerTeam] = await Promise.all([
+    Promise.all(
+      sampledDiaries.map((d) =>
+        safeCall<number>(
+          () =>
+            cachedRetry(
+              async () => {
+                const res = await listDiaryPacks({
+                  client,
+                  path: { id: d.id },
+                  query: { limit: 1 },
+                });
+                return res.data?.total ?? res.data?.items?.length ?? 0;
+              },
+              {
+                cacheKey: `${CACHE_PREFIX}packs:${d.id}`,
+                cacheTtlMs: CACHE_TTL_MS,
+              },
+            ),
+          0,
+        ),
       ),
     ),
-  );
+    Promise.all(
+      sampledDiaries.map((d) =>
+        safeCall<number>(
+          () =>
+            cachedRetry(
+              async () => {
+                const res = await listDiaryRenderedPacks({
+                  client,
+                  path: { id: d.id },
+                  query: { limit: 1 },
+                });
+                return res.data?.total ?? 0;
+              },
+              {
+                cacheKey: `${CACHE_PREFIX}rendered:${d.id}`,
+                cacheTtlMs: CACHE_TTL_MS,
+              },
+            ),
+          0,
+        ),
+      ),
+    ),
+    Promise.all(
+      sampledTeams.map((t) =>
+        safeCall<number>(
+          () =>
+            cachedRetry(
+              async () => {
+                const res = await listTasks({
+                  client,
+                  query: { teamId: t.id, limit: 1 },
+                });
+                return res.data?.total ?? res.data?.items?.length ?? 0;
+              },
+              {
+                cacheKey: `${CACHE_PREFIX}tasks:${t.id}`,
+                cacheTtlMs: CACHE_TTL_MS,
+              },
+            ),
+          0,
+        ),
+      ),
+    ),
+  ]);
+
+  const sum = (xs: number[]) => xs.reduce((acc, x) => acc + x, 0);
 
   return {
     diariesCount: diaries.length,
     entriesCount,
     collaborativeTeamsCount: collaborativeTeams.length,
-    packsCount: packsBundle.packs,
-    renderedPacksCount: packsBundle.rendered,
-    tasksCount: tasksPerTeam.reduce((acc, x) => acc + x, 0),
+    packsCount: sum(packsPerDiary),
+    renderedPacksCount: sum(renderedPerDiary),
+    tasksCount: sum(tasksPerTeam),
   };
 }
 
