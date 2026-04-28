@@ -121,7 +121,11 @@ const totalCount = computed(() => stages.value?.length ?? 0);
 
 <style scoped>
 .moltnet-adoption {
-  margin: 24px 0;
+  /* Constrain on the home layout (slotted outside the doc container) and
+     stay friendly when embedded in a markdown page (parent already caps). */
+  max-width: 1152px;
+  margin: 24px auto;
+  padding: 0 24px;
 }
 
 .moltnet-adoption__muted {

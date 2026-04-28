@@ -14,10 +14,9 @@
 import {
   listContextPacks,
   listDiaries,
-  listDiaryEntries,
-  listDiaryRenderedPacks,
   listTasks,
   listTeams,
+  searchDiary,
 } from '@moltnet/api-client';
 import { computed, readonly, ref, watch } from 'vue';
 
@@ -27,15 +26,28 @@ import { useAuth } from './useAuth';
 
 const CACHE_PREFIX = 'adoption:';
 const CACHE_TTL_MS = 60_000;
+/**
+ * The packs+rendered bundle pulls up to this many source packs in one
+ * request — `listContextPacks?includeRendered=true` returns rendered
+ * descendants only for the visible items on the page, so the cap also
+ * bounds the rendered-pack signal. 100 is plenty to answer "have you
+ * rendered any pack" reliably for adoption-stage purposes.
+ */
+const PACKS_PROBE_LIMIT = 100;
+/**
+ * Tasks have no cross-team list endpoint — fan out per collaborative team.
+ * Personal teams are skipped, so this is typically 0–2 calls.
+ */
+const TASKS_TEAM_FANOUT_CAP = 10;
 
 export interface AdoptionState {
   diariesCount: number;
   /**
-   * Total entry count across the user's first diary. Used as a cheap proxy
-   * for "has the user actually written anything yet" — a brand-new diary
-   * with zero entries is still stage-0 work.
+   * Total entry count across every diary visible to the user. Computed
+   * server-side via `searchDiary` (no diaryId, limit 1), so this is the
+   * authoritative total — no per-diary fan-out, no sample cap.
    */
-  firstDiaryEntriesCount: number;
+  entriesCount: number;
   /**
    * Teams the user belongs to, excluding their auto-provisioned personal
    * team. A user with only a personal team hasn't started collaborating yet.
@@ -44,10 +56,6 @@ export interface AdoptionState {
   packsCount: number;
   renderedPacksCount: number;
   tasksCount: number;
-  /** First non-personal team id (if any), used as scope for tasksCount. */
-  firstTeamId: string | null;
-  /** First diary id (if any), used as scope for renderedPacksCount. */
-  firstDiaryId: string | null;
 }
 
 interface DiarySummary {
@@ -94,7 +102,14 @@ async function safeCall<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 async function loadAdoption(): Promise<AdoptionState> {
   const client = getApiClient();
 
-  const [diaries, teams, packsCount] = await Promise.all([
+  // Top-level fan-out: 4 cross-scope endpoints in parallel.
+  //   - listDiaries / listTeams: needed both for counts and to drive the
+  //     tasks fan-out (per collaborative team).
+  //   - searchDiary with no diaryId: cross-diary entry total in 1 call.
+  //   - listContextPacks with includeRendered=true: returns pack `total`
+  //     plus a `renderedPacks` array bounded by the page size, giving us
+  //     the rendered-packs signal for free in the same request.
+  const [diaries, teams, entriesCount, packsBundle] = await Promise.all([
     safeCall<DiarySummary[]>(
       () =>
         cachedRetry(
@@ -121,91 +136,67 @@ async function loadAdoption(): Promise<AdoptionState> {
       () =>
         cachedRetry(
           async () => {
-            const res = await listContextPacks({ client });
-            return res.data?.total ?? res.data?.items?.length ?? 0;
+            const res = await searchDiary({ client, body: { limit: 1 } });
+            return res.data?.total ?? res.data?.results?.length ?? 0;
           },
-          { cacheKey: `${CACHE_PREFIX}packs`, cacheTtlMs: CACHE_TTL_MS },
+          { cacheKey: `${CACHE_PREFIX}entries`, cacheTtlMs: CACHE_TTL_MS },
         ),
       0,
     ),
+    safeCall<{ packs: number; rendered: number }>(
+      () =>
+        cachedRetry(
+          async () => {
+            const res = await listContextPacks({
+              client,
+              query: { includeRendered: true, limit: PACKS_PROBE_LIMIT },
+            });
+            return {
+              packs: res.data?.total ?? res.data?.items?.length ?? 0,
+              rendered: res.data?.renderedPacks?.length ?? 0,
+            };
+          },
+          {
+            cacheKey: `${CACHE_PREFIX}packs+rendered`,
+            cacheTtlMs: CACHE_TTL_MS,
+          },
+        ),
+      { packs: 0, rendered: 0 },
+    ),
   ]);
 
-  const firstDiaryId = diaries[0]?.id ?? null;
   const collaborativeTeams = teams.filter((t) => !t.personal);
-  const firstTeamId = collaborativeTeams[0]?.id ?? null;
+  const sampledTeams = collaborativeTeams.slice(0, TASKS_TEAM_FANOUT_CAP);
 
-  const [firstDiaryEntriesCount, renderedPacksCount, tasksCount] =
-    await Promise.all([
-      firstDiaryId
-        ? safeCall<number>(
-            () =>
-              cachedRetry(
-                async () => {
-                  const res = await listDiaryEntries({
-                    client,
-                    path: { diaryId: firstDiaryId },
-                    query: { limit: 1 },
-                  });
-                  return res.data?.total ?? res.data?.items?.length ?? 0;
-                },
-                {
-                  cacheKey: `${CACHE_PREFIX}entries:${firstDiaryId}`,
-                  cacheTtlMs: CACHE_TTL_MS,
-                },
-              ),
-            0,
-          )
-        : Promise.resolve(0),
-      firstDiaryId
-        ? safeCall<number>(
-            () =>
-              cachedRetry(
-                async () => {
-                  const res = await listDiaryRenderedPacks({
-                    client,
-                    path: { id: firstDiaryId },
-                    query: { limit: 1 },
-                  });
-                  return res.data?.total ?? 0;
-                },
-                {
-                  cacheKey: `${CACHE_PREFIX}rendered:${firstDiaryId}`,
-                  cacheTtlMs: CACHE_TTL_MS,
-                },
-              ),
-            0,
-          )
-        : Promise.resolve(0),
-      firstTeamId
-        ? safeCall<number>(
-            () =>
-              cachedRetry(
-                async () => {
-                  const res = await listTasks({
-                    client,
-                    query: { teamId: firstTeamId, limit: 1 },
-                  });
-                  return res.data?.total ?? res.data?.items?.length ?? 0;
-                },
-                {
-                  cacheKey: `${CACHE_PREFIX}tasks:${firstTeamId}`,
-                  cacheTtlMs: CACHE_TTL_MS,
-                },
-              ),
-            0,
-          )
-        : Promise.resolve(0),
-    ]);
+  const tasksPerTeam = await Promise.all(
+    sampledTeams.map((t) =>
+      safeCall<number>(
+        () =>
+          cachedRetry(
+            async () => {
+              const res = await listTasks({
+                client,
+                query: { teamId: t.id, limit: 1 },
+              });
+              return res.data?.total ?? res.data?.items?.length ?? 0;
+            },
+            {
+              cacheKey: `${CACHE_PREFIX}tasks:${t.id}`,
+              cacheTtlMs: CACHE_TTL_MS,
+            },
+          ),
+        0,
+      ),
+    ),
+  );
 
   return {
     diariesCount: diaries.length,
-    firstDiaryEntriesCount,
+    entriesCount,
     collaborativeTeamsCount: collaborativeTeams.length,
-    packsCount,
-    renderedPacksCount,
-    tasksCount,
-    firstTeamId,
-    firstDiaryId,
+    packsCount: packsBundle.packs,
+    renderedPacksCount: packsBundle.rendered,
+    tasksCount: tasksPerTeam.reduce((acc, x) => acc + x, 0),
   };
 }
 
@@ -293,24 +284,30 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
       status: s.diariesCount > 0 ? 'done' : 'todo',
       summary:
         s.diariesCount > 0
-          ? `${s.diariesCount} ${s.diariesCount === 1 ? 'diary' : 'diaries'} on file.`
+          ? `${s.diariesCount} ${s.diariesCount === 1 ? 'diary' : 'diaries'} visible to you.`
           : 'No diaries yet — every accountable commit lives in one.',
-      ctaLabel: s.diariesCount > 0 ? 'LeGreffier flows' : 'Get started',
-      ctaHref: s.diariesCount > 0 ? '/legreffier-flows' : '/getting-started',
+      ctaLabel: s.diariesCount > 0 ? 'LeGreffier flows' : 'Install LeGreffier',
+      ctaHref:
+        s.diariesCount > 0
+          ? '/legreffier-flows'
+          : '/getting-started#stage-1-install-and-initialize',
       ctaExternal: false,
     },
     {
       key: 'entries',
       title: 'Entries',
-      status: s.firstDiaryEntriesCount > 0 ? 'done' : 'todo',
+      status: s.entriesCount > 0 ? 'done' : 'todo',
       summary:
-        s.firstDiaryEntriesCount > 0
-          ? `${s.firstDiaryEntriesCount} signed ${s.firstDiaryEntriesCount === 1 ? 'entry' : 'entries'} in your first diary.`
+        s.entriesCount > 0
+          ? `${s.entriesCount} signed ${s.entriesCount === 1 ? 'entry' : 'entries'} across your diaries.`
           : s.diariesCount > 0
-            ? "Diary exists, but it's empty. Capture your first procedural or semantic entry."
+            ? 'You have diaries, but no entries yet. Capture your first procedural or semantic entry.'
             : 'Once you have a diary, sign your first entry to anchor it.',
-      ctaLabel: 'Diary flows',
-      ctaHref: '/legreffier-flows',
+      ctaLabel: 'Harvest tasks',
+      ctaHref:
+        s.entriesCount > 0
+          ? '/legreffier-flows'
+          : '/getting-started#stage-2-task-harvesting',
       ctaExternal: false,
     },
     {
@@ -361,7 +358,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
       status: s.tasksCount > 0 ? 'done' : 'todo',
       summary:
         s.tasksCount > 0
-          ? `${s.tasksCount} ${s.tasksCount === 1 ? 'task' : 'tasks'} in your team's queue.`
+          ? `${s.tasksCount} ${s.tasksCount === 1 ? 'task' : 'tasks'} across your teams.`
           : s.collaborativeTeamsCount > 0
             ? 'No tasks yet — publish a brief and watch agents claim it.'
             : 'Tasks live in teams. Create a team first, then post a brief.',
