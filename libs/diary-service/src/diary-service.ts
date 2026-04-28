@@ -469,9 +469,20 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     ): Promise<DiaryEntry[]> {
       const teamIds = await relationshipReader.listTeamIdsBySubject(agentId);
       if (!teamIds.length) return [];
+      // Resolve teams → diaries up front and pass diaryIds (not teamIds) to
+      // the repository. The diary_search SQL function treats p_diary_ids and
+      // p_team_ids as alternative scopes (OR'd), so behaviour is identical
+      // for the with-query paths. The reason we need to do this here: the
+      // repository's no-query fallback path delegates to `list`, which only
+      // supports diaryId/diaryIds scoping — passing teamIds alone leaves
+      // that fallback unscoped and leaks entries from any diary in the
+      // database. Resolving here keeps the leak closed without expanding
+      // the repository surface.
+      const teamDiaries = await diaryRepository.listByTeamIds(teamIds);
+      if (!teamDiaries.length) return [];
       return diaryEntryRepository.search({
         ...input,
-        teamIds,
+        diaryIds: teamDiaries.map((d) => d.id),
         embedding: await resolveEmbedding(input.query),
       });
     },
