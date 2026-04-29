@@ -378,6 +378,15 @@ export function createTaskService(deps: TaskServiceDeps) {
       status?: string;
       taskType?: string;
       correlationId?: string;
+      diaryId?: string;
+      imposedByAgentId?: string;
+      imposedByHumanId?: string;
+      claimedByAgentId?: string;
+      hasAttempts?: boolean;
+      queuedAfter?: string;
+      queuedBefore?: string;
+      completedAfter?: string;
+      completedBefore?: string;
       limit?: number;
       cursor?: string;
       callerId: string;
@@ -399,6 +408,21 @@ export function createTaskService(deps: TaskServiceDeps) {
         status: opts.status as DbTask['status'] | undefined,
         taskType: opts.taskType,
         correlationId: opts.correlationId,
+        diaryId: opts.diaryId,
+        imposedByAgentId: opts.imposedByAgentId,
+        imposedByHumanId: opts.imposedByHumanId,
+        claimedByAgentId: opts.claimedByAgentId,
+        hasAttempts: opts.hasAttempts,
+        queuedAfter: opts.queuedAfter ? new Date(opts.queuedAfter) : undefined,
+        queuedBefore: opts.queuedBefore
+          ? new Date(opts.queuedBefore)
+          : undefined,
+        completedAfter: opts.completedAfter
+          ? new Date(opts.completedAfter)
+          : undefined,
+        completedBefore: opts.completedBefore
+          ? new Date(opts.completedBefore)
+          : undefined,
         limit: opts.limit,
         cursor: opts.cursor,
       });
