@@ -556,10 +556,17 @@ export function createTaskService(deps: TaskServiceDeps) {
         taskRepository.findAttemptWithManifests(taskId, attemptN),
       ]);
 
+      if (!updatedTask || !attempt) {
+        throw new TaskServiceError(
+          'not_found',
+          'Claimed task or attempt could not be reloaded',
+        );
+      }
+
       logger.info({ taskId, attemptN, callerId }, 'task.claimed');
       return {
-        task: dbTaskToWire(updatedTask!),
-        attempt: dbAttemptToWire(attempt!),
+        task: dbTaskToWire(updatedTask),
+        attempt: dbAttemptToWire(attempt),
       };
     },
 
@@ -1015,8 +1022,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
+      if (!updated) {
+        throw new TaskServiceError('not_found', 'Task not found');
+      }
+
       logger.info({ taskId, callerId, reason }, 'task.cancelled');
-      return dbTaskToWire(updated!);
+      return dbTaskToWire(updated);
     },
 
     async listAttempts(
@@ -1216,12 +1227,20 @@ async function verifyExecutorForPhase(input: {
             taskId: input.task.id,
             executorFingerprint,
           })
-        : buildExecutorCompleteAttestationPayload({
-            taskId: input.task.id,
-            attemptN: input.attemptN!,
-            outputCid: input.outputCid!,
-            executorFingerprint,
-          });
+        : (() => {
+            if (input.attemptN === undefined || input.outputCid === undefined) {
+              throw new TaskServiceError(
+                'invalid',
+                'attemptN and outputCid are required for complete attestation verification',
+              );
+            }
+            return buildExecutorCompleteAttestationPayload({
+              taskId: input.task.id,
+              attemptN: input.attemptN,
+              outputCid: input.outputCid,
+              executorFingerprint,
+            });
+          })();
     const valid = await verifyExecutorAttestation(
       payload,
       executorSignature,

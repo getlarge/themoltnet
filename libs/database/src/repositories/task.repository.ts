@@ -8,8 +8,8 @@ import {
   inArray,
   lt,
   notInArray,
-  sql,
   type SQL,
+  sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -36,8 +36,8 @@ import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 const PAGE_SIZE = 50;
 
 export interface TaskAttemptWithManifests extends TaskAttempt {
-  claimedExecutorManifest: ExecutorManifest['manifest'] | null;
-  completedExecutorManifest: ExecutorManifest['manifest'] | null;
+  claimedExecutorManifest: unknown;
+  completedExecutorManifest: unknown;
 }
 
 export function createTaskRepository(db: Database) {
