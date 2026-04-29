@@ -41,7 +41,7 @@ FROM deps AS build
 # Copy all source (needed for workspace resolution since exports point to src)
 COPY . .
 
-RUN pnpm --filter @moltnet/mcp-server run build
+RUN pnpm --filter @moltnet/mcp-server exec vite build
 
 # Extract mcp-server with production-only dependencies
 RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy

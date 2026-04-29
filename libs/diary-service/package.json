@@ -4,8 +4,6 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
@@ -16,13 +14,7 @@
       "types": "./src/workflows/index.ts"
     }
   },
-  "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc --watch",
-    "test": "vitest run",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
-  },
+  "scripts": {},
   "dependencies": {
     "@andersmyrmel/vard": "catalog:",
     "@moltnet/crypto-service": "workspace:*"

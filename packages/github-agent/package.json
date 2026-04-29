@@ -31,10 +31,9 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "test": "vitest run",
     "lint": "eslint src/",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@themoltnet/sdk": "workspace:*"

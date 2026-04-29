@@ -1,0 +1,7 @@
+# oryintrospectionauthextension lives outside go.work — it is build-time
+# infra for the OpenTelemetry Collector Builder, not part of the app graph.
+# The `go-otel-extension` CI job tests it with GOWORK=off; Nx must not pick
+# it up because @nx-go/nx-go would infer a `test` target that runs
+# `go test ./...` from the wrong cwd and fails with "directory prefix .
+# does not contain modules listed in go.work".
+infra/otel/custom-collector/oryintrospectionauthextension

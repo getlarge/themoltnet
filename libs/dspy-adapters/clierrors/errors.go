@@ -76,7 +76,7 @@ func wrapDSPyError(code dspyerrors.ErrorCode, provider string, err error, stderr
 	} else {
 		var exitErr *exec.ExitError
 		if stderrors.As(err, &exitErr) {
-		fields["exit_code"] = exitErr.ExitCode()
+			fields["exit_code"] = exitErr.ExitCode()
 		}
 	}
 	if strings.TrimSpace(stderr) != "" {

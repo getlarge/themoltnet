@@ -7,14 +7,11 @@
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "scripts": {
-    "build": "vite build",
     "cli": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "test": "vitest run --passWithNoTests",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
   },
   "dependencies": {
     "@moltnet/tasks": "workspace:*",

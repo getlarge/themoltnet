@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "composite": true,
-    "declarationDir": "dist/.dts",
-    "outDir": "dist",
+    "declarationDir": "out-tsc",
+    "outDir": "out-tsc",
     "rootDir": "src",
-    "tsBuildInfoFile": "./dist/.dts/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
-  "exclude": ["node_modules", "dist"],
+  "exclude": ["node_modules", "dist", "out-tsc"],
   "extends": "../../tsconfig.json",
   "include": ["src"],
   "references": [

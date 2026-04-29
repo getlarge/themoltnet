@@ -48,6 +48,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Nx local cache
+.nx/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -219,3 +222,6 @@ jobs/
 models/Xenova/e5-small-v2
 apps/**/models/Xenova/e5-small-v2
 demo/out/
+
+vitest.config.*.timestamp*
+vite.config.*.timestamp*

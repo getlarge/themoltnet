@@ -15,11 +15,11 @@
   },
   "scripts": {
     "dev": "vite build --watch",
-    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
-    "test": "vitest run --passWithNoTests",
     "lint": "eslint src/",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests"
   },
   "files": [
     "dist/index.js"

@@ -31,7 +31,6 @@ jobs:
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,7 +61,7 @@ jobs:
   deploy:
     name: Deploy
     needs: preflight
-    if: ${{ !cancelled() && (needs.preflight.result == 'success' || needs.preflight.result == 'skipped') }}
+    if: ${{ !cancelled() && needs.preflight.result == 'success' }}
     uses: ./.github/workflows/_deploy.yml
     secrets: inherit
     with:

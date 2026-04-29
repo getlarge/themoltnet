@@ -3,9 +3,9 @@
     "composite": true,
     "jsx": "react-jsx",
     "lib": ["ES2022"],
-    "outDir": "./dist",
+    "outDir": "./out-tsc",
     "rootDir": "./src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "dist", "node_modules"],
   "extends": "../../tsconfig.json",

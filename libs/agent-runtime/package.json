@@ -31,11 +31,9 @@
     "!dist/.dts"
   ],
   "scripts": {
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
     "build": "vite build",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint .",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@opentelemetry/api": "catalog:",

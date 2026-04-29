@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "emitDeclarationOnly": false,
+    "noEmit": false,
+    "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["__tests__", "node_modules", "dist", "out-tsc"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "drizzle.config.ts"]
+}

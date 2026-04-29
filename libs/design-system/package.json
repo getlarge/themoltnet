@@ -39,13 +39,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
     "dev": "tsc --watch",
     "demo": "vite demo",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint .",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests"
   },
   "peerDependencies": {
     "ink": ">=5.0.0",

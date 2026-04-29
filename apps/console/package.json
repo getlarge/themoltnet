@@ -5,13 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run --passWithNoTests",
-    "test:e2e": "playwright test",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",

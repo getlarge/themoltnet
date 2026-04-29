@@ -1,0 +1,84 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)",
+      "!{projectRoot}/__tests__/**/*",
+      "!{projectRoot}/**/*.{md,mdx}",
+      "!{projectRoot}/tsconfig.test.json",
+      "!{projectRoot}/vitest.config.*"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/pnpm-workspace.yaml",
+      "{workspaceRoot}/pnpm-lock.yaml",
+      "{workspaceRoot}/.npmrc",
+      "{workspaceRoot}/nx.json"
+    ]
+  },
+  "plugins": [
+    {
+      "options": {
+        "extensions": ["ts", "tsx"],
+        "targetName": "lint"
+      },
+      "plugin": "@nx/eslint/plugin"
+    },
+    {
+      "options": {
+        "buildDepsTargetName": "build-deps",
+        "buildTargetName": "build",
+        "devTargetName": "dev",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "serveTargetName": "serve",
+        "testTargetName": "vite-test-disabled",
+        "typecheckTargetName": "vite-typecheck-disabled",
+        "watchDepsTargetName": "watch-deps"
+      },
+      "plugin": "@nx/vite/plugin"
+    },
+    {
+      "options": {
+        "ciTargetName": "test-ci",
+        "testMode": "run",
+        "testTargetName": "test"
+      },
+      "plugin": "@nx/vitest"
+    },
+    {
+      "options": {
+        "targetName": "e2e"
+      },
+      "plugin": "@nx/playwright/plugin"
+    },
+    {
+      "options": {
+        "buildTarget": {
+          "name": "docker:build"
+        },
+        "runTarget": {
+          "name": "docker:run"
+        }
+      },
+      "plugin": "@nx/docker"
+    },
+    {
+      "options": {
+        "build": { "configName": "tsconfig.lib.json", "targetName": "build" },
+        "typecheck": { "targetName": "typecheck" }
+      },
+      "plugin": "@nx/js/typescript"
+    },
+    "@nx-go/nx-go"
+  ],
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist"]
+    }
+  }
+}

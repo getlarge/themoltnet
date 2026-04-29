@@ -9,6 +9,7 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/out-tsc/**',
       '**/node_modules/**',
       'libs/api-client/src/generated/**',
       'infra/ory/permissions.ts',

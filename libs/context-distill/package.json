@@ -4,8 +4,6 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
@@ -13,12 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc --watch",
-    "test": "vitest run",
-    "bench": "vitest bench",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "bench": "vitest bench"
   },
   "devDependencies": {
     "@moltnet/crypto-service": "workspace:*",

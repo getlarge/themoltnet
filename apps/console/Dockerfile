@@ -30,7 +30,7 @@ FROM deps AS build
 # Copy all source (design-system exports src, needed for Vite build)
 COPY . .
 
-RUN pnpm --filter @moltnet/console run build
+RUN pnpm --filter @moltnet/console exec vite build
 
 # ---------- serve ----------
 FROM nginx:alpine AS production
