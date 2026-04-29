@@ -13,7 +13,9 @@
       "proxy.golang.org",
       "sum.golang.org",
       "golang.org",
-      "*.googlesource.com"
+      "*.googlesource.com",
+      "api.github.com",
+      "*.githubusercontent.com"
     ],
     "overlaySize": "8G",
     "setupCommands": [

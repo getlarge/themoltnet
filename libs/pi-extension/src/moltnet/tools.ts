@@ -717,6 +717,60 @@ export function createMoltNetTools(
     },
   });
 
+  const getTask = defineTool({
+    name: 'moltnet_get_task',
+    label: 'Get MoltNet Task',
+    description:
+      'Fetch a task by ID — the row, including taskType, status, ' +
+      'acceptedAttemptN, references, input, timeouts. Use this when you ' +
+      'need to inspect another task (e.g. an assess_brief judging a ' +
+      'fulfill_brief: fetch the target task here, then list its ' +
+      "attempts via moltnet_list_task_attempts to read the producer's " +
+      'output and decide what to investigate).',
+    parameters: Type.Object({
+      taskId: Type.String({ description: 'Task ID (UUID).' }),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const task = await agent.tasks.get(params.taskId);
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(task, null, 2) },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const listTaskAttempts = defineTool({
+    name: 'moltnet_list_task_attempts',
+    label: 'List MoltNet Task Attempts',
+    description:
+      'List every attempt made on a task, in attempt-number order. Each ' +
+      'attempt carries the claimed agent, status, output, outputCid, ' +
+      'and timing. The accepted attempt (whose attemptN matches the ' +
+      "parent task's acceptedAttemptN) is the canonical one — its " +
+      '`output` is what consumers should reason against. Earlier failed ' +
+      'or timed_out attempts are kept for audit but should not drive ' +
+      'downstream decisions.',
+    parameters: Type.Object({
+      taskId: Type.String({ description: 'Task ID (UUID).' }),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const attempts = await agent.tasks.listAttempts(params.taskId);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(attempts, null, 2),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const reviewSessionErrors = defineTool({
     name: 'moltnet_review_session_errors',
     label: 'Review Session Tool Errors',
@@ -885,6 +939,8 @@ export function createMoltNetTools(
     getEntry,
     searchEntries,
     createEntry,
+    getTask,
+    listTaskAttempts,
     reviewSessionErrors,
     hostExec,
   ];

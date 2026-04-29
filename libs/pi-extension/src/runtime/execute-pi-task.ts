@@ -66,7 +66,14 @@ export interface ExecutePiTaskOptions {
   extraAllowedHosts?: string[];
   /** Sandbox overrides (env, VFS shadows, resources). */
   sandboxConfig?: SandboxConfig;
-  /** Forwarded to `buildPromptForTask` for per-type builders. */
+  /**
+   * Forwarded to `buildPromptForTask` for per-type builders. Static
+   * across tasks. Today no built-in builder needs per-task `extras` —
+   * judges fetch their own dependent data via MoltNet tools
+   * (`moltnet_get_task`, `moltnet_list_task_attempts`, etc.) at run
+   * time, which keeps this layer task-type-agnostic. Field is kept
+   * for forward compat with custom prompt builders that might want it.
+   */
   promptExtras?: Record<string, unknown>;
   /** Snapshot progress callback; defaults to stderr logging. */
   onSnapshotProgress?: (message: string) => void;

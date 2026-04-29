@@ -26,8 +26,10 @@ export * from './judge-pack.js';
 export * from './render-pack.js';
 
 /**
- * Context shared by all prompt builders. Concrete per-type context extras
- * (like the `assess_brief` target bundle) are passed through `extras`.
+ * Context shared by all prompt builders. Per-type extras can ride
+ * through `extras` if a builder ever needs out-of-band data; today
+ * none do — judges and curators fetch their own dependent data via
+ * MoltNet tools at run time, which keeps the daemon task-type-agnostic.
  */
 export interface PromptContext {
   diaryId: string;
@@ -61,18 +63,9 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `assess_brief input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      const target = ctx.extras?.target as
-        | Parameters<typeof buildAssessBriefPrompt>[1]['target']
-        | undefined;
-      if (!target) {
-        throw new Error(
-          'assess_brief prompt requires ctx.extras.target (resolved fulfill_brief summary)',
-        );
-      }
       return buildAssessBriefPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
-        target,
       });
     }
 

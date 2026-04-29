@@ -740,7 +740,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      - run: pnpm exec nx affected -t test build --projects='tag:lang:go'
+      # Mirror the lint/typecheck pattern: `nx affected --exclude=...`
+      # keeps the affected-graph filter intact and just removes anything
+      # that doesn't carry the right tag. The previous `--projects=...`
+      # was forwarded to executors (vite/tsc) as an unknown flag and
+      # failed the whole job. The inverted exclude `'*,!tag:lang:go'`
+      # means "exclude everything except Go-tagged projects" — i.e. of
+      # the affected set, run only Go.
+      - run: pnpm exec nx affected -t test build --exclude='*,!tag:lang:go'
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work
