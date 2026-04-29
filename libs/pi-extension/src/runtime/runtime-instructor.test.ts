@@ -30,7 +30,7 @@ describe('runtime instructor', () => {
     expect(out).toContain('moltnet_create_entry');
     expect(out).toContain('task:task-abc');
     expect(out).toContain('task_type:fulfill_brief');
-    expect(out).toContain('attempt:1');
+    expect(out).toContain('task_attempt:1');
   });
 
   it('declares the accountable-commit trailer shape', () => {
