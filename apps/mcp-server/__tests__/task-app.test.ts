@@ -18,6 +18,10 @@ describe('Task MCP App', () => {
         team_id: TEAM_ID,
         task_id: TASK_ID,
         status: 'queued',
+        task_type: 'curate_pack',
+        claimed_by_agent_id: '330e8400-e29b-41d4-a716-446655440092',
+        has_attempts: true,
+        queued_after: '2026-04-01T00:00:00.000Z',
       },
       { consoleBaseUrl: 'https://console.example.com////' },
     );
@@ -28,6 +32,7 @@ describe('Task MCP App', () => {
       teamId: string;
       taskId: string;
       status: string;
+      filters: Record<string, unknown>;
       consoleUrl: string;
       tools: string[];
     }>(result);
@@ -39,6 +44,14 @@ describe('Task MCP App', () => {
       taskId: TASK_ID,
       status: 'queued',
       consoleUrl: `https://console.example.com/tasks/${TASK_ID}`,
+      filters: {
+        team_id: TEAM_ID,
+        status: 'queued',
+        task_type: 'curate_pack',
+        claimed_by_agent_id: '330e8400-e29b-41d4-a716-446655440092',
+        has_attempts: true,
+        queued_after: '2026-04-01T00:00:00.000Z',
+      },
     });
     expect(parsed.tools).toEqual(
       expect.arrayContaining([
@@ -67,6 +80,10 @@ describe('Task MCP App', () => {
     expect(content.text).toContain("name: 'teams_list'");
     expect(content.text).toContain("name: 'team_members_list'");
     expect(content.text).toContain("name: 'tasks_list'");
+    expect(content.text).toContain('id="task-type"');
+    expect(content.text).toContain('id="has-attempts"');
+    expect(content.text).toContain('queued_after: optionalDateTime');
+    expect(content.text).toContain('claimed_by_agent_id: optionalValue');
     expect(content._meta).toMatchObject({
       ui: {
         csp: {
