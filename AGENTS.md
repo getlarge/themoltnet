@@ -15,6 +15,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/infrastructure.md](docs/infrastructure.md)** — Ory, Supabase, env vars, deployment, observability
 - **[docs/design-system.md](docs/design-system.md)** — Design system usage, brand identity, component library
 - **[docs/sandbox.md](docs/sandbox.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
+- **[docs/local-runtime-testing.md](docs/local-runtime-testing.md)** — End-to-end smoke testing the agent-daemon against the local Docker stack (provision a throwaway agent, run the daemon, create a task)
 - **[docs/mcp-server.md](docs/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
 - **[docs/mission-integrity.md](docs/mission-integrity.md)** — Threat model, technical/philosophical safeguards
 - **[docs/agent-coordination.md](docs/agent-coordination.md)** — Multi-agent coordination framework

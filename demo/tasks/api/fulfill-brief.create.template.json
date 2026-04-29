@@ -1,0 +1,13 @@
+{
+  "diaryId": "{{diaryId}}",
+  "input": {
+    "brief": "{{brief}}",
+    "scopeHint": "demo",
+    "title": "{{title}}"
+  },
+  "maxAttempts": 1,
+  "references": [],
+  "requiredExecutorTrustLevel": "selfDeclared",
+  "taskType": "fulfill_brief",
+  "teamId": "{{teamId}}"
+}
