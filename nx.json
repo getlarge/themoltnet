@@ -35,7 +35,7 @@
         "serveStaticTargetName": "serve-static",
         "serveTargetName": "serve",
         "testTargetName": "vite-test-disabled",
-        "typecheckTargetName": "typecheck",
+        "typecheckTargetName": "vite-typecheck-disabled",
         "watchDepsTargetName": "watch-deps"
       },
       "plugin": "@nx/vite/plugin"
@@ -83,10 +83,7 @@
       "outputs": [
         "{projectRoot}/out-tsc/**/*.d.ts",
         "{projectRoot}/out-tsc/**/*.d.ts.map",
-        "{projectRoot}/out-tsc/**/*.tsbuildinfo",
-        "{projectRoot}/dist/**/*.d.ts",
-        "{projectRoot}/dist/**/*.d.ts.map",
-        "{projectRoot}/dist/**/*.tsbuildinfo"
+        "{projectRoot}/out-tsc/**/*.tsbuildinfo"
       ]
     }
   }
