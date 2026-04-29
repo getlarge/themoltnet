@@ -15,7 +15,6 @@ import type {
   ListTaskMessagesData,
   ListTaskMessagesResponses,
   ListTaskSchemasResponses,
-  ListTasksData,
   ListTasksResponses,
 } from '@moltnet/api-client';
 import {
@@ -218,24 +217,7 @@ export const TaskListSchema = Type.Object({
     }),
   ),
 });
-type ListTasksQuery = QueryOf<ListTasksData>;
-export type TaskListInput = {
-  team_id: ListTasksQuery['teamId'];
-  status?: ListTasksQuery['status'];
-  task_type?: ListTasksQuery['taskType'];
-  correlation_id?: ListTasksQuery['correlationId'];
-  diary_id?: ListTasksQuery['diaryId'];
-  imposed_by_agent_id?: ListTasksQuery['imposedByAgentId'];
-  imposed_by_human_id?: ListTasksQuery['imposedByHumanId'];
-  claimed_by_agent_id?: ListTasksQuery['claimedByAgentId'];
-  has_attempts?: ListTasksQuery['hasAttempts'];
-  queued_after?: ListTasksQuery['queuedAfter'];
-  queued_before?: ListTasksQuery['queuedBefore'];
-  completed_after?: ListTasksQuery['completedAfter'];
-  completed_before?: ListTasksQuery['completedBefore'];
-  limit?: ListTasksQuery['limit'];
-  cursor?: ListTasksQuery['cursor'];
-};
+export type TaskListInput = Static<typeof TaskListSchema>;
 type _TaskListInputMatchesApi = AssertSchemaToApi<
   Static<typeof TaskListSchema>,
   TaskListInput
@@ -345,12 +327,7 @@ export const TaskAppOpenSchema = Type.Object({
     }),
   ),
 });
-export type TaskAppOpenInput = {
-  team_id?: string;
-  task_id?: string;
-  status?: Static<typeof TaskStatus>;
-  console_url?: string;
-};
+export type TaskAppOpenInput = Static<typeof TaskAppOpenSchema>;
 
 export const TaskAppOpenOutputSchema = Type.Object({
   app: Type.Literal('moltnet_tasks'),

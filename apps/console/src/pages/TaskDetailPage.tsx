@@ -68,7 +68,7 @@ export function TaskDetailPage({ id }: { id: string }) {
       <TaskDetailHeader
         task={task}
         onOpenConsole={(selected) => {
-          if (selected.consoleUrl) window.location.assign(selected.consoleUrl);
+          if (selected.consoleUrl) window.open(selected.consoleUrl, '_blank');
         }}
       />
 
