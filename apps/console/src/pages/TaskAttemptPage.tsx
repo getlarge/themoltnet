@@ -1,4 +1,9 @@
 import {
+  getTaskOptions,
+  listTaskAttemptsOptions,
+  listTaskMessagesOptions,
+} from '@moltnet/api-client/query';
+import {
   TaskActionPanel,
   TaskAttemptDetail,
   TaskMessagesTimeline,
@@ -7,11 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import {
-  fetchTask,
-  fetchTaskAttempts,
-  fetchTaskMessages,
-} from '../tasks/api.js';
+import { getApiClient } from '../api.js';
 
 export function TaskAttemptPage({
   id,
@@ -22,16 +23,23 @@ export function TaskAttemptPage({
 }) {
   const theme = useTheme();
   const taskQuery = useQuery({
-    queryKey: ['tasks', 'detail', id],
-    queryFn: () => fetchTask(id),
+    ...getTaskOptions({
+      client: getApiClient(),
+      path: { id },
+    }),
   });
   const attemptsQuery = useQuery({
-    queryKey: ['tasks', 'attempts', id],
-    queryFn: () => fetchTaskAttempts(id),
+    ...listTaskAttemptsOptions({
+      client: getApiClient(),
+      path: { id },
+    }),
   });
   const messagesQuery = useQuery({
-    queryKey: ['tasks', 'messages', id, attemptN],
-    queryFn: () => fetchTaskMessages({ taskId: id, attemptN, limit: 200 }),
+    ...listTaskMessagesOptions({
+      client: getApiClient(),
+      path: { id, n: attemptN },
+      query: { limit: 200 },
+    }),
     refetchInterval: (query) => {
       const attempt = attemptsQuery.data?.find(
         (item) => item.attemptN === attemptN,

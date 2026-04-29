@@ -1,4 +1,8 @@
 import {
+  getTaskOptions,
+  listTaskAttemptsOptions,
+} from '@moltnet/api-client/query';
+import {
   TaskActionPanel,
   TaskAttemptsTable,
   TaskDetailHeader,
@@ -9,14 +13,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { Link, useLocation } from 'wouter';
 
-import { fetchTask, fetchTaskAttempts } from '../tasks/api.js';
+import { getApiClient } from '../api.js';
 
 export function TaskDetailPage({ id }: { id: string }) {
   const theme = useTheme();
   const [, navigate] = useLocation();
   const taskQuery = useQuery({
-    queryKey: ['tasks', 'detail', id],
-    queryFn: () => fetchTask(id),
+    ...getTaskOptions({
+      client: getApiClient(),
+      path: { id },
+    }),
     refetchInterval: (query) =>
       query.state.data &&
       ['queued', 'dispatched', 'running'].includes(query.state.data.status)
@@ -24,8 +30,10 @@ export function TaskDetailPage({ id }: { id: string }) {
         : false,
   });
   const attemptsQuery = useQuery({
-    queryKey: ['tasks', 'attempts', id],
-    queryFn: () => fetchTaskAttempts(id),
+    ...listTaskAttemptsOptions({
+      client: getApiClient(),
+      path: { id },
+    }),
     refetchInterval: (query) =>
       query.state.data?.some((attempt) =>
         ['claimed', 'running'].includes(attempt.status),

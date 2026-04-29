@@ -1,11 +1,12 @@
-import type { TaskListResponse, TaskStatus } from '@moltnet/api-client';
+import type { TaskStatus } from '@moltnet/api-client';
+import { listTasksInfiniteOptions } from '@moltnet/api-client/query';
 import { TaskQueueTable } from '@moltnet/task-ui';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
-import { fetchTasks } from '../tasks/api.js';
+import { getApiClient } from '../api.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
 import { useTeam } from '../team/useTeam.js';
 
@@ -25,27 +26,20 @@ export function TasksPage() {
   const teamId = selectedTeam?.id;
 
   const enabled = Boolean(teamId);
-  const query = useInfiniteQuery<TaskListResponse>({
-    enabled,
-    queryKey: [
-      'tasks',
-      'list',
-      selectedTeam?.id ?? null,
-      status ?? null,
-      taskType.trim() || null,
-      correlationId.trim() || null,
-    ],
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    queryFn: ({ pageParam }) =>
-      fetchTasks({
+  const query = useInfiniteQuery({
+    ...listTasksInfiniteOptions({
+      client: getApiClient(),
+      query: {
         teamId: teamId ?? '',
         status,
-        taskType: taskType.trim(),
-        correlationId: correlationId.trim(),
-        cursor: pageParam as string | undefined,
+        taskType: taskType.trim() || undefined,
+        correlationId: correlationId.trim() || undefined,
         limit: PAGE_SIZE,
-      }),
+      },
+    }),
+    enabled,
+    initialPageParam: { query: { teamId: teamId ?? '' } },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     refetchInterval: (query) => {
       const hasActive = query.state.data?.pages.some((page) =>
         page.items.some((task) =>
