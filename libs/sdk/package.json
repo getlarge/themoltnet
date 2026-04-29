@@ -27,7 +27,9 @@
   "scripts": {
     "lint": "eslint src/",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
-    "check:types-isolation": "tsx ../../tools/src/check-sdk-types-isolation.ts"
+    "check:types-isolation": "tsx ../../tools/src/check-sdk-types-isolation.ts",
+    "build": "vite build",
+    "test": "vitest run"
   },
   "dependencies": {
     "@noble/ciphers": "catalog:",
