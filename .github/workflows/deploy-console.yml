@@ -22,44 +22,11 @@ permissions:
   packages: write
 
 jobs:
-  # CI's nx-affected gating may skip building the console image when
-  # @moltnet/console isn't affected. In that case there's no ci-<sha>
-  # image to promote, so probe GHCR before invoking the deploy.
-  preflight:
-    name: Preflight
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
+  deploy:
+    name: Deploy
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
-    outputs:
-      image-exists: ${{ steps.image-check.outputs.exists }}
-    steps:
-      - name: Check console CI image exists
-        id: image-check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SHA="${{ github.event.inputs.sha || github.event.workflow_run.head_sha || '' }}"
-          if [ -z "$SHA" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          IMAGE="ghcr.io/${{ github.repository }}/console:ci-$SHA"
-          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No console image for $SHA — nx affected gating skipped the build. Skipping deploy."
-          fi
-
-  deploy:
-    name: Deploy
-    needs: preflight
-    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.preflight.outputs.image-exists == 'true' }}
     uses: ./.github/workflows/_deploy.yml
     secrets: inherit
     with:

@@ -28,13 +28,9 @@ jobs:
     environment: production
     permissions:
       contents: read
-      packages: read
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
-    outputs:
-      image-exists: ${{ steps.image-check.outputs.exists }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,31 +58,10 @@ jobs:
           | jq -r '.[].name'
           | pnpm --filter @moltnet/tools check-secrets --app mcp-server --fly-toml apps/mcp-server/fly.toml
 
-      # CI's nx-affected gating may skip building the mcp-server image when
-      # @moltnet/mcp-server isn't affected. Probe GHCR before deploying.
-      - name: Check mcp-server CI image exists
-        id: image-check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SHA="${{ github.event.inputs.sha || github.event.workflow_run.head_sha || '' }}"
-          if [ -z "$SHA" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          IMAGE="ghcr.io/${{ github.repository }}/mcp-server:ci-$SHA"
-          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No mcp-server image for $SHA — nx affected gating skipped the build. Skipping deploy."
-          fi
-
   deploy:
     name: Deploy
     needs: preflight
-    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.preflight.outputs.image-exists == 'true' }}
+    if: ${{ !cancelled() && needs.preflight.result == 'success' }}
     uses: ./.github/workflows/_deploy.yml
     secrets: inherit
     with:

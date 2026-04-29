@@ -39,8 +39,45 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  # CI's nx-affected gating may skip building an image when the project
+  # isn't affected by the diff. Probe GHCR first; if the ci-<sha> image
+  # isn't there, skip the rest of the pipeline cleanly. workflow_dispatch
+  # with an explicit SHA still surfaces a missing image as an error since
+  # the caller explicitly asked for that deploy.
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      image-exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - name: Check CI image exists
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.head-sha }}
+        run: |
+          if [ -z "$SHA" ]; then
+            # Empty SHA → caller wants :latest fallback. Promote handles it.
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          IMAGE="${REGISTRY}/${{ github.repository }}/${{ inputs.ci-image-name }}:ci-${SHA}"
+          echo "Probing $IMAGE"
+          echo "$GH_TOKEN" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No ci-<sha> image for ${{ inputs.ci-image-name }} at $SHA. CI's nx affected gating skipped the build because the project wasn't affected. Skipping deploy."
+          fi
+
   promote:
     name: Promote CI image
+    needs: preflight
+    if: ${{ needs.preflight.outputs.image-exists == 'true' }}
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -87,12 +124,7 @@ jobs:
 
           if [ -n "$SHA" ]; then
             SOURCE="${REGISTRY}/${REPO}/${{ inputs.ci-image-name }}:ci-${SHA}"
-            echo "Validating CI image: $SOURCE"
-            if ! docker buildx imagetools inspect "$SOURCE" > /dev/null 2>&1; then
-              echo "::error::CI image not found: $SOURCE"
-              echo "Ensure the CI workflow completed successfully for SHA ${SHA}"
-              exit 1
-            fi
+            echo "Promoting CI image: $SOURCE"
             docker buildx imagetools create \
               --tag "${GHCR_IMAGE}:latest" \
               --tag "${GHCR_IMAGE}:${SHA}" \
@@ -116,12 +148,12 @@ jobs:
 
   deploy:
     name: Deploy to Fly.io
-    needs: promote
+    needs: [preflight, promote]
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
-    if: inputs.deploy
+    if: ${{ inputs.deploy && needs.preflight.outputs.image-exists == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
