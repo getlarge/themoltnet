@@ -149,7 +149,7 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx affected -t lint
+      - run: pnpm exec nx affected -t lint --exclude='tag:lang:go'
       - run: pnpm run check:quickstart
 
   typecheck:
@@ -172,7 +172,7 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx affected -t typecheck
+      - run: pnpm exec nx affected -t typecheck --exclude='tag:lang:go'
 
   test:
     name: Test
@@ -215,7 +215,7 @@ jobs:
       # (--parallel=1) and let each project's vitest pool use up to 2 threads.
       # Higher nx parallelism × per-project vitest pools causes worker IPC
       # timeouts under memory/CPU pressure.
-      - run: pnpm exec nx affected -t test --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      - run: pnpm exec nx affected -t test --exclude='tag:lang:go' --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
 
   code-analysis:
     name: Code Analysis (Knip)
@@ -723,13 +723,24 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    needs: [affected]
+    env:
+      NX_BASE: ${{ needs.affected.outputs.base }}
+      NX_HEAD: ${{ needs.affected.outputs.head }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      - run: go test ./apps/moltnet-cli/...
-      - run: go build ./apps/moltnet-cli
+      - run: pnpm exec nx affected -t test build --projects='tag:lang:go'
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work
