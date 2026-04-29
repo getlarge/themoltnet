@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-faster/errors"
 	"github.com/google/uuid"
@@ -7291,12 +7292,21 @@ func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Requ
 
 // ListTasksParams is parameters of listTasks operation.
 type ListTasksParams struct {
-	TeamId        uuid.UUID
-	Status        OptTaskStatus `json:",omitempty,omitzero"`
-	TaskType      OptString     `json:",omitempty,omitzero"`
-	CorrelationId OptUUID       `json:",omitempty,omitzero"`
-	Limit         OptInt        `json:",omitempty,omitzero"`
-	Cursor        OptString     `json:",omitempty,omitzero"`
+	TeamId           uuid.UUID
+	Status           OptTaskStatus `json:",omitempty,omitzero"`
+	TaskType         OptString     `json:",omitempty,omitzero"`
+	CorrelationId    OptUUID       `json:",omitempty,omitzero"`
+	DiaryId          OptUUID       `json:",omitempty,omitzero"`
+	ImposedByAgentId OptUUID       `json:",omitempty,omitzero"`
+	ImposedByHumanId OptUUID       `json:",omitempty,omitzero"`
+	ClaimedByAgentId OptUUID       `json:",omitempty,omitzero"`
+	HasAttempts      OptBool       `json:",omitempty,omitzero"`
+	QueuedAfter      OptDateTime   `json:",omitempty,omitzero"`
+	QueuedBefore     OptDateTime   `json:",omitempty,omitzero"`
+	CompletedAfter   OptDateTime   `json:",omitempty,omitzero"`
+	CompletedBefore  OptDateTime   `json:",omitempty,omitzero"`
+	Limit            OptInt        `json:",omitempty,omitzero"`
+	Cursor           OptString     `json:",omitempty,omitzero"`
 }
 
 func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams) {
@@ -7332,6 +7342,87 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 		}
 		if v, ok := packed[key]; ok {
 			params.CorrelationId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.DiaryId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "imposedByAgentId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ImposedByAgentId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "imposedByHumanId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ImposedByHumanId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "claimedByAgentId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ClaimedByAgentId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "hasAttempts",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.HasAttempts = v.(OptBool)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "queuedAfter",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.QueuedAfter = v.(OptDateTime)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "queuedBefore",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.QueuedBefore = v.(OptDateTime)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "completedAfter",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.CompletedAfter = v.(OptDateTime)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "completedBefore",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.CompletedBefore = v.(OptDateTime)
 		}
 	}
 	{
@@ -7527,6 +7618,375 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "correlationId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: diaryId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "diaryId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotDiaryIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDiaryIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.DiaryId.SetTo(paramsDotDiaryIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: imposedByAgentId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "imposedByAgentId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotImposedByAgentIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotImposedByAgentIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ImposedByAgentId.SetTo(paramsDotImposedByAgentIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "imposedByAgentId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: imposedByHumanId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "imposedByHumanId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotImposedByHumanIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotImposedByHumanIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ImposedByHumanId.SetTo(paramsDotImposedByHumanIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "imposedByHumanId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: claimedByAgentId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "claimedByAgentId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotClaimedByAgentIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotClaimedByAgentIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ClaimedByAgentId.SetTo(paramsDotClaimedByAgentIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "claimedByAgentId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: hasAttempts.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "hasAttempts",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotHasAttemptsVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotHasAttemptsVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.HasAttempts.SetTo(paramsDotHasAttemptsVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "hasAttempts",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: queuedAfter.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "queuedAfter",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotQueuedAfterVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotQueuedAfterVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.QueuedAfter.SetTo(paramsDotQueuedAfterVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "queuedAfter",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: queuedBefore.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "queuedBefore",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotQueuedBeforeVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotQueuedBeforeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.QueuedBefore.SetTo(paramsDotQueuedBeforeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "queuedBefore",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: completedAfter.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "completedAfter",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCompletedAfterVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCompletedAfterVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.CompletedAfter.SetTo(paramsDotCompletedAfterVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "completedAfter",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: completedBefore.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "completedBefore",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCompletedBeforeVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCompletedBeforeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.CompletedBefore.SetTo(paramsDotCompletedBeforeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "completedBefore",
 			In:   "query",
 			Err:  err,
 		}

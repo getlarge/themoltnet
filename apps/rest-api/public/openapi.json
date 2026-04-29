@@ -2264,6 +2264,18 @@
       },
       "ListTasksQuery": {
         "properties": {
+          "claimedByAgentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "completedAfter": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedBefore": {
+            "format": "date-time",
+            "type": "string"
+          },
           "correlationId": {
             "format": "uuid",
             "type": "string"
@@ -2271,11 +2283,34 @@
           "cursor": {
             "type": "string"
           },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "hasAttempts": {
+            "type": "boolean"
+          },
+          "imposedByAgentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imposedByHumanId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "limit": {
             "default": 20,
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
+          },
+          "queuedAfter": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "queuedBefore": {
+            "format": "date-time",
+            "type": "string"
           },
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
@@ -13944,6 +13979,86 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "diaryId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "imposedByAgentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "imposedByHumanId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "claimedByAgentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasAttempts",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "queuedAfter",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "queuedBefore",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "completedAfter",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "completedBefore",
+            "required": false,
+            "schema": {
+              "format": "date-time",
               "type": "string"
             }
           },
