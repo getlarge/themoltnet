@@ -69,7 +69,7 @@ export function TaskQueueTable({
           <span>Type</span>
           <span>Status</span>
           <span>Diary</span>
-          <span>Claimant</span>
+          <span>Requester</span>
           <span>Age</span>
           <span>Accepted</span>
         </div>

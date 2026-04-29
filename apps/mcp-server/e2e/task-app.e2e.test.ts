@@ -102,6 +102,8 @@ describe('Task MCP App E2E', () => {
     });
     expect(opened.parsed.tools).toEqual(
       expect.arrayContaining([
+        'teams_list',
+        'team_members_list',
         'tasks_list',
         'tasks_get',
         'tasks_attempts_list',
@@ -128,7 +130,8 @@ describe('Task MCP App E2E', () => {
     expect(resource.uri).toBe(TASK_APP_RESOURCE_URI);
     expect(resource.mimeType).toBe(TASK_APP_MIME_TYPE);
     expect(resource.text).toContain('MoltNet Tasks');
-    expect(resource.text).toContain('@modelcontextprotocol/ext-apps@1.6.0');
+    expect(resource.text).toContain("name: 'teams_list'");
+    expect(resource.text).toContain("name: 'team_members_list'");
     expect(resource.text).toContain("name: 'tasks_list'");
     expect(resource.text).toContain("name: 'tasks_get'");
     expect(resource._meta).toMatchObject({

@@ -42,6 +42,8 @@ describe('Task MCP App', () => {
     });
     expect(parsed.tools).toEqual(
       expect.arrayContaining([
+        'teams_list',
+        'team_members_list',
         'tasks_list',
         'tasks_get',
         'tasks_attempts_list',
@@ -62,7 +64,8 @@ describe('Task MCP App', () => {
 
     expect(content.uri).toBe(TASK_APP_RESOURCE_URI);
     expect(content.mimeType).toBe(TASK_APP_MIME_TYPE);
-    expect(content.text).toContain('@modelcontextprotocol/ext-apps@1.6.0');
+    expect(content.text).toContain("name: 'teams_list'");
+    expect(content.text).toContain("name: 'team_members_list'");
     expect(content.text).toContain("name: 'tasks_list'");
     expect(content._meta).toMatchObject({
       ui: {

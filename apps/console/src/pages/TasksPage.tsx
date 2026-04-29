@@ -1,6 +1,6 @@
-import type { TaskStatus } from '@moltnet/api-client';
+import type { TaskListResponse, TaskStatus } from '@moltnet/api-client';
 import { TaskQueueTable } from '@moltnet/task-ui';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
@@ -25,7 +25,7 @@ export function TasksPage() {
   const teamId = selectedTeam?.id;
 
   const enabled = Boolean(teamId);
-  const query = useQuery({
+  const query = useInfiniteQuery<TaskListResponse>({
     enabled,
     queryKey: [
       'tasks',
@@ -35,21 +35,27 @@ export function TasksPage() {
       taskType.trim() || null,
       correlationId.trim() || null,
     ],
-    queryFn: () =>
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    queryFn: ({ pageParam }) =>
       fetchTasks({
         teamId: teamId ?? '',
         status,
         taskType: taskType.trim(),
         correlationId: correlationId.trim(),
+        cursor: pageParam as string | undefined,
         limit: PAGE_SIZE,
       }),
     refetchInterval: (query) => {
-      const hasActive = query.state.data?.items.some((task) =>
-        ['queued', 'dispatched', 'running'].includes(task.status),
+      const hasActive = query.state.data?.pages.some((page) =>
+        page.items.some((task) =>
+          ['queued', 'dispatched', 'running'].includes(task.status),
+        ),
       );
       return hasActive ? 5_000 : false;
     },
   });
+  const tasks = query.data?.pages.flatMap((page) => page.items) ?? [];
 
   function setStatus(next: TaskStatus | undefined) {
     const nextParams = new URLSearchParams(params);
@@ -165,10 +171,22 @@ export function TasksPage() {
           </Stack>
         </Card>
       ) : (
-        <TaskQueueTable
-          tasks={query.data?.items ?? []}
-          onOpenTask={(task) => navigate(`/tasks/${task.id}`)}
-        />
+        <Stack gap={3}>
+          <TaskQueueTable
+            tasks={tasks}
+            onOpenTask={(task) => navigate(`/tasks/${task.id}`)}
+          />
+          {query.hasNextPage ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void query.fetchNextPage()}
+              disabled={query.isFetchingNextPage}
+            >
+              {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+            </Button>
+          ) : null}
+        </Stack>
       )}
     </Stack>
   );
