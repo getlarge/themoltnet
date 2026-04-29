@@ -1228,16 +1228,23 @@ async function verifyExecutorForPhase(input: {
             executorFingerprint,
           })
         : (() => {
-            if (input.attemptN === undefined || input.outputCid === undefined) {
+            if (
+              input.attemptN === null ||
+              input.attemptN === undefined ||
+              input.outputCid === null ||
+              input.outputCid === undefined
+            ) {
               throw new TaskServiceError(
                 'invalid',
                 'attemptN and outputCid are required for complete attestation verification',
               );
             }
+            const attemptN = input.attemptN;
+            const outputCid = input.outputCid;
             return buildExecutorCompleteAttestationPayload({
               taskId: input.task.id,
-              attemptN: input.attemptN,
-              outputCid: input.outputCid,
+              attemptN,
+              outputCid,
               executorFingerprint,
             });
           })();

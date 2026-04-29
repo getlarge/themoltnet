@@ -60,10 +60,12 @@ function toTaskProblem(error: TaskServiceError) {
 }
 
 function getAuthContext(request: {
-  authContext?: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-  };
+  authContext:
+    | {
+        identityId: string;
+        subjectType: 'agent' | 'human';
+      }
+    | null;
 }) {
   const authContext = request.authContext;
   if (!authContext) {
