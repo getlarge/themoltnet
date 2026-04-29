@@ -2,9 +2,9 @@
   "compilerOptions": {
     "composite": true,
     "lib": ["ES2022"],
-    "outDir": "./dist",
+    "outDir": "./out-tsc",
     "rootDir": "./src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
     "types": ["node"]
   },
   "exclude": ["node_modules", "dist"],

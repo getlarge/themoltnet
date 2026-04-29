@@ -4,9 +4,9 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "outDir": "./dist",
+    "outDir": "./out-tsc",
     "rootDir": "./src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
   "exclude": ["node_modules", "dist", "__tests__"],
   "extends": "../../tsconfig.json",

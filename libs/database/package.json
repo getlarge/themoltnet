@@ -4,8 +4,6 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
@@ -13,8 +11,6 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc --watch",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "push": "drizzle-kit push",

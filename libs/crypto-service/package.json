@@ -14,8 +14,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "dev": "tsc --watch",
-    "typecheck": "tsc -b --emitDeclarationOnly"
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@ipld/dag-cbor": "catalog:",

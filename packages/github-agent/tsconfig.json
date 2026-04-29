@@ -3,7 +3,7 @@
     "composite": true,
     "outDir": "dist",
     "rootDir": "src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../../tsconfig.json",

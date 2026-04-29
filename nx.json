@@ -79,6 +79,9 @@
         { "externalDependencies": ["typescript"] }
       ],
       "outputs": [
+        "{projectRoot}/out-tsc/**/*.d.ts",
+        "{projectRoot}/out-tsc/**/*.d.ts.map",
+        "{projectRoot}/out-tsc/**/*.tsbuildinfo",
         "{projectRoot}/dist/**/*.d.ts",
         "{projectRoot}/dist/**/*.d.ts.map",
         "{projectRoot}/dist/**/*.tsbuildinfo"

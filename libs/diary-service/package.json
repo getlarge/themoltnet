@@ -4,8 +4,6 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
@@ -17,8 +15,6 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc --watch",
     "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "dependencies": {
