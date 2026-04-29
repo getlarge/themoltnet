@@ -28,7 +28,7 @@ type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
  * Active-task context. When present, `moltnet_create_entry` is forced to
  * land entries in `diaryId` (the task diary), regardless of the env-derived
  * diary, and auto-injects provenance tags (`task:<id>`, `task_type:<type>`,
- * `attempt:<n>`). See issue #979.
+ * `task_attempt:<n>`). See issue #979.
  */
 export interface MoltNetTaskContext {
   taskId: string;
@@ -707,7 +707,7 @@ export function createMoltNetTools(
     description:
       'Create a new diary entry to record decisions, findings, incidents, or reflections. ' +
       'During an active task, the entry is forced into the task diary and tagged with ' +
-      'task:<id>, task_type:<type>, attempt:<n>; an explicit diaryId mismatching the task ' +
+      'task:<id>, task_type:<type>, task_attempt:<n>; an explicit diaryId mismatching the task ' +
       'diary is rejected.',
     parameters: Type.Object({
       title: Type.String({
@@ -748,7 +748,7 @@ export function createMoltNetTools(
         autoTags = [
           `task:${taskCtx.taskId}`,
           `task_type:${taskCtx.taskType}`,
-          `attempt:${taskCtx.attemptN}`,
+          `task_attempt:${taskCtx.attemptN}`,
         ];
       } else {
         // Outside a task (interactive / TUI): explicit param wins, else env.

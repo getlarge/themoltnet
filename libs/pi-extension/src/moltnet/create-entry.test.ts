@@ -169,7 +169,7 @@ describe('moltnet_create_entry — task-context enforcement', () => {
     expect(captured[0].body.tags).toEqual([
       'task:task-123',
       'task_type:fulfill_brief',
-      'attempt:2',
+      'task_attempt:2',
       'custom-tag',
     ]);
   });
@@ -192,7 +192,7 @@ describe('moltnet_create_entry — task-context enforcement', () => {
     expect(captured[0].body.tags).toEqual([
       'task:task-123',
       'task_type:fulfill_brief',
-      'attempt:2',
+      'task_attempt:2',
       'extra',
     ]);
   });
