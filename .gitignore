@@ -223,9 +223,5 @@ models/Xenova/e5-small-v2
 apps/**/models/Xenova/e5-small-v2
 demo/out/
 
-
-
-.nx/cache
-.nx/workspace-data
 vitest.config.*.timestamp*
 vite.config.*.timestamp*

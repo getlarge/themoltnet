@@ -77,6 +77,11 @@
         "default",
         "^default",
         { "externalDependencies": ["typescript"] }
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**/*.d.ts",
+        "{projectRoot}/dist/**/*.d.ts.map",
+        "{projectRoot}/dist/**/*.tsbuildinfo"
       ]
     }
   }
