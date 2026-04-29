@@ -35,8 +35,11 @@ import { createDatabase } from '@moltnet/database';
 const { values: args } = parseArgs({
   options: {
     name: { type: 'string', short: 'n' },
-    'api-url': { type: 'string', default: 'http://localhost:8000' },
-    'mcp-url': { type: 'string', default: 'http://localhost:8000/mcp' },
+    // Defaults match the e2e Docker Compose stack (docker-compose.e2e.yaml):
+    // rest-api -> :8080, mcp-server -> :8001. If you're targeting `pnpm
+    // dev:api` (which runs on :8000), pass --api-url explicitly.
+    'api-url': { type: 'string', default: 'http://localhost:8080' },
+    'mcp-url': { type: 'string', default: 'http://localhost:8001/mcp' },
     'repo-root': { type: 'string' },
     force: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
@@ -54,7 +57,8 @@ if (args.help || !args.name) {
       'Required env (sourced from .env.local in normal use):',
       '  DATABASE_URL',
       '  ORY_KRATOS_ADMIN_URL  ORY_HYDRA_ADMIN_URL  ORY_HYDRA_PUBLIC_URL',
-      '  ORY_KETO_READ_URL     ORY_KETO_WRITE_URL',
+      '  ORY_KETO_READ_URL  + ORY_KETO_WRITE_URL',
+      '    or equivalently ORY_KETO_PUBLIC_URL + ORY_KETO_ADMIN_URL',
     ].join('\n'),
   );
   process.exit(args.help ? 0 : 1);
@@ -105,9 +109,18 @@ async function main(): Promise<void> {
   const kratosAdminUrl = requireEnv('ORY_KRATOS_ADMIN_URL');
   const hydraAdminUrl = requireEnv('ORY_HYDRA_ADMIN_URL');
   const hydraPublicUrl = requireEnv('ORY_HYDRA_PUBLIC_URL');
-  const ketoReadUrl = requireEnv('ORY_KETO_READ_URL');
-  // Keto write defaults to the admin port if a dedicated WRITE url isn't set.
-  const ketoWriteUrl = process.env.ORY_KETO_WRITE_URL ?? ketoReadUrl;
+  // Keto naming: genesis-bootstrap uses ORY_KETO_READ_URL/WRITE_URL while
+  // env.local.example ships ORY_KETO_PUBLIC_URL/ADMIN_URL. Accept either.
+  const ketoReadUrl =
+    process.env.ORY_KETO_READ_URL ?? process.env.ORY_KETO_PUBLIC_URL;
+  const ketoWriteUrl =
+    process.env.ORY_KETO_WRITE_URL ?? process.env.ORY_KETO_ADMIN_URL;
+  if (!ketoReadUrl || !ketoWriteUrl) {
+    console.error(
+      'Missing Keto URLs. Set either ORY_KETO_READ_URL+ORY_KETO_WRITE_URL or ORY_KETO_PUBLIC_URL+ORY_KETO_ADMIN_URL.',
+    );
+    process.exit(1);
+  }
 
   console.error(`[bootstrap-local] target API: ${apiUrl}`);
   console.error(`[bootstrap-local] agent dir: ${agentDir}`);

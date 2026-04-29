@@ -11,25 +11,33 @@ why we keep it manual.
 ## Prerequisites
 
 - Docker running.
-- A model API key in `.env.local` (`ANTHROPIC_API_KEY` or whichever
-  provider you want to drive the daemon with).
+- pi authenticated for the model provider you'll drive the daemon with
+  (`~/.pi/agent/auth.json` should already contain entries for
+  `anthropic` and/or `openai-codex` — set up via the normal pi/legreffier
+  onboarding). The daemon does **not** read `ANTHROPIC_API_KEY` from env.
 - `ssh-keygen` on `PATH`.
 
 ## 1. Start the local stack
 
 The e2e Compose file ships everything the daemon needs (Postgres, Ory,
-the REST API):
+the REST API). Run from the **main repo root** (not from a worktree —
+docker compose looks for `.env.local` next to the compose file):
 
 ```bash
+cd <repo-root>
 COMPOSE_DISABLE_ENV_FILE=true \
   docker compose -f docker-compose.e2e.yaml up -d --build
 ```
 
-Wait until the REST API responds:
+Note: the e2e compose maps the REST API to **port 8080** (not 8000):
 
 ```bash
-curl -fsS http://localhost:8000/_health
+docker compose -f docker-compose.e2e.yaml ps rest-api
+# ...                 0.0.0.0:8080->8080/tcp ...
 ```
+
+There is no `/_health` route mounted at the moment; once the container
+is `(healthy)` per `docker compose ps`, you can move on.
 
 ## 2. Provision a throwaway local agent
 
@@ -38,9 +46,18 @@ voucher needed, no GitHub App created. Output is written to
 `.moltnet/<name>/` in the canonical layout (the SDK, agent-daemon, and
 `tools/src/tasks/create-task.ts` all consume the same files).
 
+> Run this from the worktree (or repo) where you want `.moltnet/<name>/`
+> to live — that's also where you'll run the daemon.
+
 ```bash
-set -a; source .env.local; set +a   # exposes DATABASE_URL + ORY_*_URL
-pnpm task:bootstrap-local --name local-dev
+# Source the local env so DATABASE_URL and ORY_*_URL are available.
+# The bootstrap script accepts either ORY_KETO_READ_URL / WRITE_URL
+# (genesis-bootstrap naming) or ORY_KETO_PUBLIC_URL / ADMIN_URL
+# (env.local.example naming). No manual remap needed.
+set -a; source <repo-root>/.env.local; set +a
+
+# Defaults match the e2e stack (rest-api :8080, mcp-server :8001).
+pnpm exec tsx tools/src/tasks/bootstrap-local-agent.ts --name local-dev
 ```
 
 The script prints a JSON summary including the agent's identity,
@@ -58,16 +75,28 @@ source .moltnet/local-dev/env
 ## 3. Start the agent-daemon against the local stack
 
 The daemon picks up the API URL from the agent's `moltnet.json`
-(`endpoints.api`), which `bootstrap-local-agent` set to
-`http://localhost:8000`. So no extra flag is needed:
+(`endpoints.api` was set in step 2). The daemon is a workspace package,
+not a global CLI — invoke it via `pnpm --filter`:
 
 ```bash
-pnpm exec agent-daemon poll \
+pnpm --filter @moltnet/agent-daemon dev poll \
   --agent local-dev \
   --team "$MOLTNET_TEAM_ID" \
-  --provider anthropic \
-  --model claude-sonnet-4-6
+  --task-types fulfill_brief \
+  --provider openai-codex \
+  --model gpt-5.4-codex \
+  --debug
 ```
+
+Notes:
+
+- `--task-types fulfill_brief` scopes the queue. Omit to accept any
+  registered type.
+- Pick the provider/model that matches your pi auth credits. Common
+  choices: `--provider openai-codex --model gpt-5.4-codex`, or
+  `--provider anthropic --model claude-sonnet-4-6`.
+- `dev` (= `tsx watch src/main.ts`) is fine for local. Use `cli` for a
+  one-shot run without watch.
 
 Leave it running. It will idle until a task lands in its queue.
 
@@ -101,8 +130,9 @@ should:
 - Live in `task.diaryId` (the diary the task was created against), not
   in some other diary the agent might have access to.
 - Carry the auto-tags `task:<id>`, `task_type:fulfill_brief`,
-  `task_attempt:1`. These are injected by the MCP `entries_create` tool
-  when a task context is active and cannot be removed by the agent.
+  `task_attempt:1`, and `correlation:<id>` when the task was created
+  with a `correlationId`. These are injected by the MCP `entries_create`
+  tool when a task context is active and cannot be removed by the agent.
 
 ## Cleanup
 
