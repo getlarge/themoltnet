@@ -184,6 +184,40 @@ describe('GET /tasks', () => {
     expect(mocks.taskService.list).toHaveBeenCalledOnce();
   });
 
+  it('passes extended filters through to taskService.list', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url:
+        `/tasks?teamId=${TEAM_ID}` +
+        `&diaryId=${DIARY_ID}` +
+        `&imposedByAgentId=${OWNER_ID}` +
+        `&imposedByHumanId=550e8400-e29b-41d4-a716-446655440099` +
+        `&claimedByAgentId=${OWNER_ID}` +
+        `&hasAttempts=true` +
+        `&queuedAfter=2026-04-28T10:00:00.000Z` +
+        `&queuedBefore=2026-04-29T10:00:00.000Z` +
+        `&completedAfter=2026-04-28T12:00:00.000Z` +
+        `&completedBefore=2026-04-29T12:00:00.000Z`,
+      headers: { authorization: 'Bearer test-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
+        imposedByAgentId: OWNER_ID,
+        imposedByHumanId: '550e8400-e29b-41d4-a716-446655440099',
+        claimedByAgentId: OWNER_ID,
+        hasAttempts: true,
+        queuedAfter: '2026-04-28T10:00:00.000Z',
+        queuedBefore: '2026-04-29T10:00:00.000Z',
+        completedAfter: '2026-04-28T12:00:00.000Z',
+        completedBefore: '2026-04-29T12:00:00.000Z',
+      }),
+    );
+  });
+
   it('returns 400 when teamId is missing', async () => {
     const response = await app.inject({
       method: 'GET',

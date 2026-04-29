@@ -18,6 +18,7 @@ import {
   type Client,
   completeTask,
   createClient,
+  createDiary,
   createDiaryGrant,
   createTask,
   failTask,
@@ -34,6 +35,8 @@ import {
   computeJsonCid,
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
+import { tasks } from '@moltnet/database';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, pollUntil, type TestAgent } from './helpers.js';
@@ -252,6 +255,122 @@ describe('Tasks API', () => {
       });
       expect(error).toBeUndefined();
       expect(data!.id).toBe(taskId);
+    });
+
+    it('filters by diaryId, claimedByAgentId, and queued window', async () => {
+      const { data: otherDiary, error: otherDiaryError } = await createDiary({
+        client,
+        auth: () => imposer.accessToken,
+        body: { name: `task-filter-${Date.now()}`, visibility: 'private' },
+        headers: { 'x-moltnet-team-id': imposer.personalTeamId },
+      });
+      expect(otherDiaryError).toBeUndefined();
+
+      const { data: primaryTask, error: primaryTaskError } = await createTask({
+        client,
+        auth: () => imposer.accessToken,
+        body: {
+          taskType: 'curate_pack',
+          teamId: imposer.personalTeamId,
+          diaryId: imposer.privateDiaryId,
+          input: {
+            diaryId: imposer.privateDiaryId,
+            taskPrompt: 'claimed task filter',
+          },
+        },
+      });
+      expect(primaryTaskError).toBeUndefined();
+
+      const { data: otherDiaryTask, error: otherDiaryTaskError } =
+        await createTask({
+          client,
+          auth: () => imposer.accessToken,
+          body: {
+            taskType: 'curate_pack',
+            teamId: imposer.personalTeamId,
+            diaryId: otherDiary!.id,
+            input: {
+              diaryId: otherDiary!.id,
+              taskPrompt: 'other diary task filter',
+            },
+          },
+        });
+      expect(otherDiaryTaskError).toBeUndefined();
+
+      const { error: claimError } = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: primaryTask!.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(claimError).toBeUndefined();
+
+      await harness.db
+        .update(tasks)
+        .set({
+          queuedAt: new Date('2026-04-28T09:00:00.000Z'),
+          createdAt: new Date('2026-04-28T09:00:00.000Z'),
+          updatedAt: new Date('2026-04-28T09:00:00.000Z'),
+        })
+        .where(eq(tasks.id, primaryTask!.id));
+      await harness.db
+        .update(tasks)
+        .set({
+          queuedAt: new Date('2026-04-28T11:00:00.000Z'),
+          createdAt: new Date('2026-04-28T11:00:00.000Z'),
+          updatedAt: new Date('2026-04-28T11:00:00.000Z'),
+        })
+        .where(eq(tasks.id, otherDiaryTask!.id));
+
+      const { data: diaryFiltered, error: diaryFilterError } = await listTasks({
+        client,
+        auth: () => imposer.accessToken,
+        query: {
+          teamId: imposer.personalTeamId,
+          diaryId: otherDiary!.id,
+        },
+      });
+      expect(diaryFilterError).toBeUndefined();
+      expect(diaryFiltered!.items.map((item) => item.id)).toContain(
+        otherDiaryTask!.id,
+      );
+      expect(diaryFiltered!.items.map((item) => item.id)).not.toContain(
+        primaryTask!.id,
+      );
+
+      const { data: claimedFiltered, error: claimedFilterError } =
+        await listTasks({
+          client,
+          auth: () => imposer.accessToken,
+          query: {
+            teamId: imposer.personalTeamId,
+            claimedByAgentId: claimer.identityId,
+          },
+        });
+      expect(claimedFilterError).toBeUndefined();
+      expect(claimedFiltered!.items.map((item) => item.id)).toContain(
+        primaryTask!.id,
+      );
+      expect(claimedFiltered!.items.map((item) => item.id)).not.toContain(
+        otherDiaryTask!.id,
+      );
+
+      const { data: queuedWindow, error: queuedWindowError } = await listTasks({
+        client,
+        auth: () => imposer.accessToken,
+        query: {
+          teamId: imposer.personalTeamId,
+          queuedAfter: '2026-04-28T10:00:00.000Z',
+          queuedBefore: '2026-04-28T12:00:00.000Z',
+        },
+      });
+      expect(queuedWindowError).toBeUndefined();
+      expect(queuedWindow!.items.map((item) => item.id)).toContain(
+        otherDiaryTask!.id,
+      );
+      expect(queuedWindow!.items.map((item) => item.id)).not.toContain(
+        primaryTask!.id,
+      );
     });
 
     it('returns 403 for non-existent task id', async () => {

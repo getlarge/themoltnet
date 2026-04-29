@@ -15586,6 +15586,42 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					In:   "query",
 				}: params.CorrelationId,
 				{
+					Name: "diaryId",
+					In:   "query",
+				}: params.DiaryId,
+				{
+					Name: "imposedByAgentId",
+					In:   "query",
+				}: params.ImposedByAgentId,
+				{
+					Name: "imposedByHumanId",
+					In:   "query",
+				}: params.ImposedByHumanId,
+				{
+					Name: "claimedByAgentId",
+					In:   "query",
+				}: params.ClaimedByAgentId,
+				{
+					Name: "hasAttempts",
+					In:   "query",
+				}: params.HasAttempts,
+				{
+					Name: "queuedAfter",
+					In:   "query",
+				}: params.QueuedAfter,
+				{
+					Name: "queuedBefore",
+					In:   "query",
+				}: params.QueuedBefore,
+				{
+					Name: "completedAfter",
+					In:   "query",
+				}: params.CompletedAfter,
+				{
+					Name: "completedBefore",
+					In:   "query",
+				}: params.CompletedBefore,
+				{
 					Name: "limit",
 					In:   "query",
 				}: params.Limit,

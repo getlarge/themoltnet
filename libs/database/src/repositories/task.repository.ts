@@ -4,9 +4,11 @@ import {
   desc,
   eq,
   gt,
+  gte,
   inArray,
   lt,
   notInArray,
+  type SQL,
   sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -34,8 +36,8 @@ import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 const PAGE_SIZE = 50;
 
 export interface TaskAttemptWithManifests extends TaskAttempt {
-  claimedExecutorManifest: ExecutorManifest['manifest'] | null;
-  completedExecutorManifest: ExecutorManifest['manifest'] | null;
+  claimedExecutorManifest: unknown;
+  completedExecutorManifest: unknown;
 }
 
 export function createTaskRepository(db: Database) {
@@ -68,15 +70,66 @@ export function createTaskRepository(db: Database) {
       status?: Task['status'];
       taskType?: string;
       correlationId?: string;
+      diaryId?: string;
+      imposedByAgentId?: string;
+      imposedByHumanId?: string;
+      claimedByAgentId?: string;
+      hasAttempts?: boolean;
+      queuedAfter?: Date;
+      queuedBefore?: Date;
+      completedAfter?: Date;
+      completedBefore?: Date;
       limit?: number;
       cursor?: string;
     }): Promise<{ items: Task[]; nextCursor?: string }> {
       const limit = Math.min(opts.limit ?? PAGE_SIZE, PAGE_SIZE);
-      const filters = [eq(tasks.teamId, opts.teamId)];
+      const filters: SQL[] = [eq(tasks.teamId, opts.teamId)];
       if (opts.status) filters.push(eq(tasks.status, opts.status));
       if (opts.taskType) filters.push(eq(tasks.taskType, opts.taskType));
       if (opts.correlationId)
         filters.push(eq(tasks.correlationId, opts.correlationId));
+      if (opts.diaryId) filters.push(eq(tasks.diaryId, opts.diaryId));
+      if (opts.imposedByAgentId) {
+        filters.push(eq(tasks.imposedByAgentId, opts.imposedByAgentId));
+      }
+      if (opts.imposedByHumanId) {
+        filters.push(eq(tasks.imposedByHumanId, opts.imposedByHumanId));
+      }
+      if (opts.claimedByAgentId) {
+        filters.push(sql`
+          exists (
+            select 1
+            from ${taskAttempts}
+            where ${taskAttempts.taskId} = ${tasks.id}
+              and ${taskAttempts.claimedByAgentId} = ${opts.claimedByAgentId}
+          )
+        `);
+      }
+      if (opts.hasAttempts === true) {
+        filters.push(sql`
+          exists (
+            select 1
+            from ${taskAttempts}
+            where ${taskAttempts.taskId} = ${tasks.id}
+          )
+        `);
+      } else if (opts.hasAttempts === false) {
+        filters.push(sql`
+          not exists (
+            select 1
+            from ${taskAttempts}
+            where ${taskAttempts.taskId} = ${tasks.id}
+          )
+        `);
+      }
+      if (opts.queuedAfter) filters.push(gte(tasks.queuedAt, opts.queuedAfter));
+      if (opts.queuedBefore) filters.push(lt(tasks.queuedAt, opts.queuedBefore));
+      if (opts.completedAfter) {
+        filters.push(gte(tasks.completedAt, opts.completedAfter));
+      }
+      if (opts.completedBefore) {
+        filters.push(lt(tasks.completedAt, opts.completedBefore));
+      }
       if (opts.cursor) filters.push(lt(tasks.createdAt, new Date(opts.cursor)));
 
       const rows = await getExecutor(db)

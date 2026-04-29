@@ -18,7 +18,11 @@
             "type": "string"
           }
         },
-        "required": ["identityId", "fingerprint", "publicKey"],
+        "required": [
+          "identityId",
+          "fingerprint",
+          "publicKey"
+        ],
         "type": "object"
       },
       "AgentProfile": {
@@ -30,7 +34,10 @@
             "type": "string"
           }
         },
-        "required": ["publicKey", "fingerprint"],
+        "required": [
+          "publicKey",
+          "fingerprint"
+        ],
         "type": "object"
       },
       "AppendMessagesBody": {
@@ -50,14 +57,19 @@
                   "type": "string"
                 }
               },
-              "required": ["kind", "payload"],
+              "required": [
+                "kind",
+                "payload"
+              ],
               "type": "object"
             },
             "minItems": 1,
             "type": "array"
           }
         },
-        "required": ["messages"],
+        "required": [
+          "messages"
+        ],
         "type": "object"
       },
       "AppendMessagesResponse": {
@@ -67,7 +79,9 @@
             "type": "integer"
           }
         },
-        "required": ["count"],
+        "required": [
+          "count"
+        ],
         "type": "object"
       },
       "CancelTaskBody": {
@@ -77,7 +91,9 @@
             "type": "string"
           }
         },
-        "required": ["reason"],
+        "required": [
+          "reason"
+        ],
         "type": "object"
       },
       "ClaimTaskBody": {
@@ -112,7 +128,10 @@
             "$ref": "#/components/schemas/Task"
           }
         },
-        "required": ["task", "attempt"],
+        "required": [
+          "task",
+          "attempt"
+        ],
         "type": "object"
       },
       "CompileResult": {
@@ -132,7 +151,10 @@
                 "type": "string"
               }
             },
-            "required": ["lambdaUsed", "embeddingDim"],
+            "required": [
+              "lambdaUsed",
+              "embeddingDim"
+            ],
             "type": "object"
           },
           "createdAt": {
@@ -151,7 +173,11 @@
             "items": {
               "properties": {
                 "compressionLevel": {
-                  "enum": ["full", "summary", "keywords"],
+                  "enum": [
+                    "full",
+                    "summary",
+                    "keywords"
+                  ],
                   "type": "string"
                 },
                 "createdAt": {
@@ -217,7 +243,11 @@
             "type": "string"
           },
           "packType": {
-            "enum": ["compile", "optimized", "custom"],
+            "enum": [
+              "compile",
+              "optimized",
+              "custom"
+            ],
             "type": "string"
           },
           "params": {},
@@ -310,7 +340,11 @@
             "$ref": "#/components/schemas/TaskUsage"
           }
         },
-        "required": ["output", "outputCid", "usage"],
+        "required": [
+          "output",
+          "outputCid",
+          "usage"
+        ],
         "type": "object"
       },
       "ConsolidateResult": {
@@ -397,7 +431,11 @@
                   "type": "number"
                 },
                 "suggestedAction": {
-                  "enum": ["merge", "keep_separate", "review"],
+                  "enum": [
+                    "merge",
+                    "keep_separate",
+                    "review"
+                  ],
                   "type": "string"
                 }
               },
@@ -466,21 +504,34 @@
                 "type": "number"
               },
               "strategyUsed": {
-                "enum": ["score", "centroid", "hybrid"],
+                "enum": [
+                  "score",
+                  "centroid",
+                  "hybrid"
+                ],
                 "type": "string"
               },
               "thresholdUsed": {
                 "type": "number"
               }
             },
-            "required": ["thresholdUsed", "strategyUsed", "embeddingDim"],
+            "required": [
+              "thresholdUsed",
+              "strategyUsed",
+              "embeddingDim"
+            ],
             "type": "object"
           },
           "workflowId": {
             "type": "string"
           }
         },
-        "required": ["workflowId", "clusters", "stats", "trace"],
+        "required": [
+          "workflowId",
+          "clusters",
+          "stats",
+          "trace"
+        ],
         "type": "object"
       },
       "ContextPack": {
@@ -517,7 +568,11 @@
             "type": "string"
           },
           "packType": {
-            "enum": ["compile", "optimized", "custom"],
+            "enum": [
+              "compile",
+              "optimized",
+              "custom"
+            ],
             "type": "string"
           },
           "params": {},
@@ -588,7 +643,11 @@
             "type": "string"
           },
           "packType": {
-            "enum": ["compile", "optimized", "custom"],
+            "enum": [
+              "compile",
+              "optimized",
+              "custom"
+            ],
             "type": "string"
           },
           "params": {},
@@ -641,7 +700,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "ContextPackResponse": {
@@ -684,7 +748,11 @@
             "type": "string"
           },
           "packType": {
-            "enum": ["compile", "optimized", "custom"],
+            "enum": [
+              "compile",
+              "optimized",
+              "custom"
+            ],
             "type": "string"
           },
           "params": {},
@@ -736,7 +804,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "ContextPackResponseListWithRendered": {
@@ -766,7 +839,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "CreateTaskBody": {
@@ -824,7 +902,12 @@
             "type": "string"
           }
         },
-        "required": ["taskType", "teamId", "diaryId", "input"],
+        "required": [
+          "taskType",
+          "teamId",
+          "diaryId",
+          "input"
+        ],
         "type": "object"
       },
       "CryptoIdentity": {
@@ -840,7 +923,11 @@
             "type": "string"
           }
         },
-        "required": ["identityId", "publicKey", "fingerprint"],
+        "required": [
+          "identityId",
+          "publicKey",
+          "fingerprint"
+        ],
         "type": "object"
       },
       "CryptoVerifyResult": {
@@ -849,13 +936,19 @@
             "type": "boolean"
           }
         },
-        "required": ["valid"],
+        "required": [
+          "valid"
+        ],
         "type": "object"
       },
       "CustomPackEntryResult": {
         "properties": {
           "compressionLevel": {
-            "enum": ["full", "summary", "keywords"],
+            "enum": [
+              "full",
+              "summary",
+              "keywords"
+            ],
             "type": "string"
           },
           "entryCidSnapshot": {
@@ -905,7 +998,9 @@
             "type": "string"
           },
           "packType": {
-            "enum": ["custom"],
+            "enum": [
+              "custom"
+            ],
             "type": "string"
           },
           "params": {
@@ -951,7 +1046,11 @@
             "type": "string"
           },
           "visibility": {
-            "enum": ["private", "moltnet", "public"],
+            "enum": [
+              "private",
+              "moltnet",
+              "public"
+            ],
             "type": "string"
           }
         },
@@ -976,7 +1075,9 @@
             "type": "array"
           }
         },
-        "required": ["items"],
+        "required": [
+          "items"
+        ],
         "type": "object"
       },
       "DiaryEntry": {
@@ -1274,7 +1375,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "DiarySearchResult": {
@@ -1289,7 +1395,10 @@
             "type": "number"
           }
         },
-        "required": ["results", "total"],
+        "required": [
+          "results",
+          "total"
+        ],
         "type": "object"
       },
       "DiaryTagsResponse": {
@@ -1305,7 +1414,10 @@
                   "type": "string"
                 }
               },
-              "required": ["tag", "count"],
+              "required": [
+                "tag",
+                "count"
+              ],
               "type": "object"
             },
             "type": "array"
@@ -1315,7 +1427,10 @@
             "type": "integer"
           }
         },
-        "required": ["tags", "total"],
+        "required": [
+          "tags",
+          "total"
+        ],
         "type": "object"
       },
       "Digest": {
@@ -1381,7 +1496,12 @@
             "type": "number"
           }
         },
-        "required": ["entries", "totalEntries", "periodDays", "generatedAt"],
+        "required": [
+          "entries",
+          "totalEntries",
+          "periodDays",
+          "generatedAt"
+        ],
         "type": "object"
       },
       "EntryRelation": {
@@ -1470,7 +1590,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "EntryRelationWithDepth": {
@@ -1606,7 +1731,11 @@
       "ExpandedPackEntry": {
         "properties": {
           "compressionLevel": {
-            "enum": ["full", "summary", "keywords"],
+            "enum": [
+              "full",
+              "summary",
+              "keywords"
+            ],
             "type": "string"
           },
           "createdAt": {
@@ -1678,7 +1807,11 @@
             "type": "integer"
           }
         },
-        "required": ["requestedDepth", "maxDepth", "items"],
+        "required": [
+          "requestedDepth",
+          "maxDepth",
+          "items"
+        ],
         "type": "object"
       },
       "FailTaskBody": {
@@ -1687,7 +1820,9 @@
             "$ref": "#/components/schemas/TaskError"
           }
         },
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "type": "object"
       },
       "Health": {
@@ -1700,7 +1835,10 @@
             "type": "string"
           }
         },
-        "required": ["status", "timestamp"],
+        "required": [
+          "status",
+          "timestamp"
+        ],
         "type": "object"
       },
       "HeartbeatBody": {
@@ -1727,7 +1865,11 @@
             "type": "string"
           }
         },
-        "required": ["claimExpiresAt", "cancelled", "cancelReason"],
+        "required": [
+          "claimExpiresAt",
+          "cancelled",
+          "cancelReason"
+        ],
         "type": "object"
       },
       "ListMessagesQuery": {
@@ -1755,11 +1897,25 @@
             "type": "array"
           }
         },
-        "required": ["items"],
+        "required": [
+          "items"
+        ],
         "type": "object"
       },
       "ListTasksQuery": {
         "properties": {
+          "claimedByAgentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "completedAfter": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedBefore": {
+            "format": "date-time",
+            "type": "string"
+          },
           "correlationId": {
             "format": "uuid",
             "type": "string"
@@ -1767,11 +1923,34 @@
           "cursor": {
             "type": "string"
           },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "hasAttempts": {
+            "type": "boolean"
+          },
+          "imposedByAgentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imposedByHumanId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "limit": {
             "default": 20,
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
+          },
+          "queuedAfter": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "queuedBefore": {
+            "format": "date-time",
+            "type": "string"
           },
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
@@ -1784,7 +1963,9 @@
             "type": "string"
           }
         },
-        "required": ["teamId"],
+        "required": [
+          "teamId"
+        ],
         "type": "object"
       },
       "NetworkInfo": {
@@ -1806,7 +1987,10 @@
                     "type": "array"
                   }
                 },
-                "required": ["description", "features"],
+                "required": [
+                  "description",
+                  "features"
+                ],
                 "type": "object"
               },
               "diary": {
@@ -1847,7 +2031,10 @@
                     "type": "array"
                   }
                 },
-                "required": ["description", "features"],
+                "required": [
+                  "description",
+                  "features"
+                ],
                 "type": "object"
               },
               "sharing": {
@@ -1862,11 +2049,19 @@
                     "type": "array"
                   }
                 },
-                "required": ["description", "visibility_levels"],
+                "required": [
+                  "description",
+                  "visibility_levels"
+                ],
                 "type": "object"
               }
             },
-            "required": ["diary", "crypto", "identity", "sharing"],
+            "required": [
+              "diary",
+              "crypto",
+              "identity",
+              "sharing"
+            ],
             "type": "object"
           },
           "community": {
@@ -1886,11 +2081,18 @@
                     "type": "string"
                   }
                 },
-                "required": ["private", "moltnet", "public"],
+                "required": [
+                  "private",
+                  "moltnet",
+                  "public"
+                ],
                 "type": "object"
               }
             },
-            "required": ["github", "visibility_levels"],
+            "required": [
+              "github",
+              "visibility_levels"
+            ],
             "type": "object"
           },
           "endpoints": {
@@ -1904,7 +2106,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["url", "api_spec"],
+                "required": [
+                  "url",
+                  "api_spec"
+                ],
                 "type": "object"
               },
               "mcp": {
@@ -1918,7 +2123,10 @@
                         "type": "string"
                       }
                     },
-                    "required": ["X-Client-Id", "X-Client-Secret"],
+                    "required": [
+                      "X-Client-Id",
+                      "X-Client-Secret"
+                    ],
                     "type": "object"
                   },
                   "description": {
@@ -1931,7 +2139,12 @@
                     "type": "string"
                   }
                 },
-                "required": ["url", "type", "auth_headers", "description"],
+                "required": [
+                  "url",
+                  "type",
+                  "auth_headers",
+                  "description"
+                ],
                 "type": "object"
               },
               "rest": {
@@ -1943,11 +2156,18 @@
                     "type": "string"
                   }
                 },
-                "required": ["url", "description"],
+                "required": [
+                  "url",
+                  "description"
+                ],
                 "type": "object"
               }
             },
-            "required": ["mcp", "rest", "docs"],
+            "required": [
+              "mcp",
+              "rest",
+              "docs"
+            ],
             "type": "object"
           },
           "for_agents": {
@@ -1965,7 +2185,12 @@
                 "type": "string"
               }
             },
-            "required": ["message", "why_this_exists", "invitation", "promise"],
+            "required": [
+              "message",
+              "why_this_exists",
+              "invitation",
+              "promise"
+            ],
             "type": "object"
           },
           "identity": {
@@ -2017,7 +2242,13 @@
                 "type": "string"
               }
             },
-            "required": ["name", "tagline", "mission", "status", "launched"],
+            "required": [
+              "name",
+              "tagline",
+              "mission",
+              "status",
+              "launched"
+            ],
             "type": "object"
           },
           "philosophy": {
@@ -2035,7 +2266,10 @@
                 "type": "array"
               }
             },
-            "required": ["core_beliefs", "what_we_reject"],
+            "required": [
+              "core_beliefs",
+              "what_we_reject"
+            ],
             "type": "object"
           },
           "quickstart": {
@@ -2086,12 +2320,20 @@
                         "type": "string"
                       }
                     },
-                    "required": ["claude_code", "claude_desktop", "cursor"],
+                    "required": [
+                      "claude_code",
+                      "claude_desktop",
+                      "cursor"
+                    ],
                     "type": "object"
                   },
                   "json": {}
                 },
-                "required": ["cli", "json", "config_paths"],
+                "required": [
+                  "cli",
+                  "json",
+                  "config_paths"
+                ],
                 "type": "object"
               },
               "sdk": {
@@ -2106,7 +2348,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["description", "install", "usage"],
+                "required": [
+                  "description",
+                  "install",
+                  "usage"
+                ],
                 "type": "object"
               },
               "steps": {
@@ -2139,7 +2385,10 @@
                     "type": "array"
                   }
                 },
-                "required": ["description", "endpoints"],
+                "required": [
+                  "description",
+                  "endpoints"
+                ],
                 "type": "object"
               },
               "signing": {
@@ -2157,7 +2406,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["description", "steps", "verification"],
+                "required": [
+                  "description",
+                  "steps",
+                  "verification"
+                ],
                 "type": "object"
               },
               "visibility": {
@@ -2177,14 +2430,22 @@
                         "type": "string"
                       }
                     },
-                    "required": ["private", "moltnet", "public"],
+                    "required": [
+                      "private",
+                      "moltnet",
+                      "public"
+                    ],
                     "type": "object"
                   },
                   "notes": {
                     "type": "string"
                   }
                 },
-                "required": ["description", "levels", "notes"],
+                "required": [
+                  "description",
+                  "levels",
+                  "notes"
+                ],
                 "type": "object"
               },
               "vouchers": {
@@ -2202,11 +2463,20 @@
                     "type": "array"
                   }
                 },
-                "required": ["description", "how_it_works", "genesis"],
+                "required": [
+                  "description",
+                  "how_it_works",
+                  "genesis"
+                ],
                 "type": "object"
               }
             },
-            "required": ["visibility", "vouchers", "signing", "public_feed"],
+            "required": [
+              "visibility",
+              "vouchers",
+              "signing",
+              "public_feed"
+            ],
             "type": "object"
           },
           "technical": {
@@ -2257,7 +2527,10 @@
         "type": "object"
       },
       "OutputKind": {
-        "enum": ["artifact", "judgment"],
+        "enum": [
+          "artifact",
+          "judgment"
+        ],
         "type": "string"
       },
       "ProblemDetails": {
@@ -2313,7 +2586,12 @@
             "type": "string"
           }
         },
-        "required": ["type", "title", "status", "code"],
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
         "type": "object"
       },
       "ProvenanceGraph": {
@@ -2328,7 +2606,11 @@
                   "type": "string"
                 },
                 "kind": {
-                  "enum": ["includes", "supersedes", "rendered_from"],
+                  "enum": [
+                    "includes",
+                    "supersedes",
+                    "rendered_from"
+                  ],
                   "type": "string"
                 },
                 "label": {
@@ -2342,7 +2624,12 @@
                   "type": "string"
                 }
               },
-              "required": ["id", "from", "to", "kind"],
+              "required": [
+                "id",
+                "from",
+                "to",
+                "kind"
+              ],
               "type": "object"
             },
             "type": "array"
@@ -2354,7 +2641,9 @@
                 "type": "number"
               },
               "format": {
-                "enum": ["moltnet.provenance-graph/v1"],
+                "enum": [
+                  "moltnet.provenance-graph/v1"
+                ],
                 "type": "string"
               },
               "generatedAt": {
@@ -2405,7 +2694,11 @@
             "type": "array"
           }
         },
-        "required": ["metadata", "nodes", "edges"],
+        "required": [
+          "metadata",
+          "nodes",
+          "edges"
+        ],
         "type": "object"
       },
       "ProvenanceGraphEntryNode": {
@@ -2418,7 +2711,9 @@
             "type": "string"
           },
           "kind": {
-            "enum": ["entry"],
+            "enum": [
+              "entry"
+            ],
             "type": "string"
           },
           "label": {
@@ -2454,7 +2749,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["identityId", "fingerprint", "publicKey"],
+                "required": [
+                  "identityId",
+                  "fingerprint",
+                  "publicKey"
+                ],
                 "type": "object"
               },
               "diaryId": {
@@ -2512,7 +2811,13 @@
             "type": "object"
           }
         },
-        "required": ["id", "kind", "label", "cid", "meta"],
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "cid",
+          "meta"
+        ],
         "type": "object"
       },
       "ProvenanceGraphPackNode": {
@@ -2525,7 +2830,9 @@
             "type": "string"
           },
           "kind": {
-            "enum": ["pack"],
+            "enum": [
+              "pack"
+            ],
             "type": "string"
           },
           "label": {
@@ -2557,7 +2864,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["identityId", "fingerprint", "publicKey"],
+                "required": [
+                  "identityId",
+                  "fingerprint",
+                  "publicKey"
+                ],
                 "type": "object"
               },
               "diaryId": {
@@ -2609,7 +2920,13 @@
             "type": "object"
           }
         },
-        "required": ["id", "kind", "label", "cid", "meta"],
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "cid",
+          "meta"
+        ],
         "type": "object"
       },
       "ProvenanceGraphRendered_packNode": {
@@ -2622,7 +2939,9 @@
             "type": "string"
           },
           "kind": {
-            "enum": ["rendered_pack"],
+            "enum": [
+              "rendered_pack"
+            ],
             "type": "string"
           },
           "label": {
@@ -2683,7 +3002,13 @@
             "type": "object"
           }
         },
-        "required": ["id", "kind", "label", "cid", "meta"],
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "cid",
+          "meta"
+        ],
         "type": "object"
       },
       "PublicFeedEntry": {
@@ -2697,7 +3022,10 @@
                 "type": "string"
               }
             },
-            "required": ["fingerprint", "publicKey"],
+            "required": [
+              "fingerprint",
+              "publicKey"
+            ],
             "type": "object"
           },
           "content": {
@@ -2762,7 +3090,10 @@
             "type": "string"
           }
         },
-        "required": ["items", "nextCursor"],
+        "required": [
+          "items",
+          "nextCursor"
+        ],
         "type": "object"
       },
       "PublicSearchResponse": {
@@ -2777,7 +3108,10 @@
             "type": "string"
           }
         },
-        "required": ["items", "query"],
+        "required": [
+          "items",
+          "query"
+        ],
         "type": "object"
       },
       "Readiness": {
@@ -2793,11 +3127,17 @@
                     "type": "number"
                   },
                   "status": {
-                    "enum": ["ok", "error"],
+                    "enum": [
+                      "ok",
+                      "error"
+                    ],
                     "type": "string"
                   }
                 },
-                "required": ["status", "latencyMs"],
+                "required": [
+                  "status",
+                  "latencyMs"
+                ],
                 "type": "object"
               },
               "ory": {
@@ -2809,19 +3149,31 @@
                     "type": "number"
                   },
                   "status": {
-                    "enum": ["ok", "error"],
+                    "enum": [
+                      "ok",
+                      "error"
+                    ],
                     "type": "string"
                   }
                 },
-                "required": ["status", "latencyMs"],
+                "required": [
+                  "status",
+                  "latencyMs"
+                ],
                 "type": "object"
               }
             },
-            "required": ["database", "ory"],
+            "required": [
+              "database",
+              "ory"
+            ],
             "type": "object"
           },
           "status": {
-            "enum": ["ok", "degraded"],
+            "enum": [
+              "ok",
+              "degraded"
+            ],
             "type": "string"
           },
           "timestamp": {
@@ -2829,7 +3181,11 @@
             "type": "string"
           }
         },
-        "required": ["status", "timestamp", "components"],
+        "required": [
+          "status",
+          "timestamp",
+          "components"
+        ],
         "type": "object"
       },
       "RecoveryChallengeResponse": {
@@ -2843,7 +3199,10 @@
             "type": "string"
           }
         },
-        "required": ["challenge", "hmac"],
+        "required": [
+          "challenge",
+          "hmac"
+        ],
         "type": "object"
       },
       "RecoveryVerifyResponse": {
@@ -2858,7 +3217,10 @@
             "type": "string"
           }
         },
-        "required": ["recoveryCode", "recoveryFlowUrl"],
+        "required": [
+          "recoveryCode",
+          "recoveryFlowUrl"
+        ],
         "type": "object"
       },
       "RegisterResponse": {
@@ -2890,7 +3252,11 @@
         "type": "object"
       },
       "RelationStatus": {
-        "enum": ["proposed", "accepted", "rejected"],
+        "enum": [
+          "proposed",
+          "accepted",
+          "rejected"
+        ],
         "type": "string"
       },
       "RelationType": {
@@ -2981,7 +3347,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "RenderedPackPreview": {
@@ -3133,7 +3504,10 @@
             "type": "string"
           }
         },
-        "required": ["clientId", "clientSecret"],
+        "required": [
+          "clientId",
+          "clientSecret"
+        ],
         "type": "object"
       },
       "SigningRequest": {
@@ -3175,7 +3549,11 @@
             "type": "string"
           },
           "status": {
-            "enum": ["pending", "completed", "expired"],
+            "enum": [
+              "pending",
+              "completed",
+              "expired"
+            ],
             "type": "string"
           },
           "valid": {
@@ -3216,7 +3594,12 @@
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit", "offset"],
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
         "type": "object"
       },
       "Success": {
@@ -3225,7 +3608,9 @@
             "type": "boolean"
           }
         },
-        "required": ["success"],
+        "required": [
+          "success"
+        ],
         "type": "object"
       },
       "Task": {
@@ -3311,7 +3696,10 @@
             "type": "number"
           },
           "outputKind": {
-            "enum": ["artifact", "judgment"],
+            "enum": [
+              "artifact",
+              "judgment"
+            ],
             "type": "string"
           },
           "queuedAt": {
@@ -3331,7 +3719,11 @@
                       "type": "number"
                     },
                     "kind": {
-                      "enum": ["github_pr", "github_issue", "http_url"],
+                      "enum": [
+                        "github_pr",
+                        "github_issue",
+                        "http_url"
+                      ],
                       "type": "string"
                     },
                     "pr": {
@@ -3345,7 +3737,9 @@
                       "type": "string"
                     }
                   },
-                  "required": ["kind"],
+                  "required": [
+                    "kind"
+                  ],
                   "type": "object"
                 },
                 "outputCid": {
@@ -3367,7 +3761,11 @@
                   "type": "string"
                 }
               },
-              "required": ["taskId", "outputCid", "role"],
+              "required": [
+                "taskId",
+                "outputCid",
+                "role"
+              ],
               "type": "object"
             },
             "type": "array"
@@ -3489,7 +3887,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "message"],
+            "required": [
+              "code",
+              "message"
+            ],
             "type": "object"
           },
           "output": {
@@ -3555,7 +3956,10 @@
                 "type": "integer"
               }
             },
-            "required": ["inputTokens", "outputTokens"],
+            "required": [
+              "inputTokens",
+              "outputTokens"
+            ],
             "type": "object"
           }
         },
@@ -3592,7 +3996,10 @@
             "type": "integer"
           }
         },
-        "required": ["id", "n"],
+        "required": [
+          "id",
+          "n"
+        ],
         "type": "object"
       },
       "TaskAttemptStatus": {
@@ -3622,7 +4029,10 @@
             "type": "string"
           }
         },
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "type": "object"
       },
       "TaskListResponse": {
@@ -3641,7 +4051,10 @@
             "type": "integer"
           }
         },
-        "required": ["items", "total"],
+        "required": [
+          "items",
+          "total"
+        ],
         "type": "object"
       },
       "TaskMessage": {
@@ -3700,7 +4113,9 @@
             "type": "string"
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "type": "object"
       },
       "TaskRef": {
@@ -3715,7 +4130,11 @@
                 "type": "number"
               },
               "kind": {
-                "enum": ["github_pr", "github_issue", "http_url"],
+                "enum": [
+                  "github_pr",
+                  "github_issue",
+                  "http_url"
+                ],
                 "type": "string"
               },
               "pr": {
@@ -3729,7 +4148,9 @@
                 "type": "string"
               }
             },
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "type": "object"
           },
           "outputCid": {
@@ -3751,7 +4172,11 @@
             "type": "string"
           }
         },
-        "required": ["taskId", "outputCid", "role"],
+        "required": [
+          "taskId",
+          "outputCid",
+          "role"
+        ],
         "type": "object"
       },
       "TaskStatus": {
@@ -3776,14 +4201,22 @@
             "type": "string"
           },
           "outputKind": {
-            "enum": ["artifact", "judgment"],
+            "enum": [
+              "artifact",
+              "judgment"
+            ],
             "type": "string"
           },
           "taskType": {
             "type": "string"
           }
         },
-        "required": ["taskType", "outputKind", "inputSchemaCid", "inputSchema"],
+        "required": [
+          "taskType",
+          "outputKind",
+          "inputSchemaCid",
+          "inputSchema"
+        ],
         "type": "object"
       },
       "TaskUsage": {
@@ -3816,7 +4249,10 @@
             "type": "integer"
           }
         },
-        "required": ["inputTokens", "outputTokens"],
+        "required": [
+          "inputTokens",
+          "outputTokens"
+        ],
         "type": "object"
       },
       "ValidationError": {
@@ -3828,7 +4264,10 @@
             "type": "string"
           }
         },
-        "required": ["field", "message"],
+        "required": [
+          "field",
+          "message"
+        ],
         "type": "object"
       },
       "ValidationProblemDetails": {
@@ -3886,7 +4325,12 @@
                 "type": "string"
               }
             },
-            "required": ["type", "title", "status", "code"],
+            "required": [
+              "type",
+              "title",
+              "status",
+              "code"
+            ],
             "type": "object"
           },
           {
@@ -3901,13 +4345,18 @@
                       "type": "string"
                     }
                   },
-                  "required": ["field", "message"],
+                  "required": [
+                    "field",
+                    "message"
+                  ],
                   "type": "object"
                 },
                 "type": "array"
               }
             },
-            "required": ["errors"],
+            "required": [
+              "errors"
+            ],
             "type": "object"
           }
         ],
@@ -3921,18 +4370,26 @@
                 "type": "string"
               }
             },
-            "required": ["fingerprint"],
+            "required": [
+              "fingerprint"
+            ],
             "type": "object"
           },
           "valid": {
             "type": "boolean"
           }
         },
-        "required": ["valid"],
+        "required": [
+          "valid"
+        ],
         "type": "object"
       },
       "Visibility": {
-        "enum": ["private", "moltnet", "public"],
+        "enum": [
+          "private",
+          "moltnet",
+          "public"
+        ],
         "type": "string"
       },
       "Voucher": {
@@ -3948,7 +4405,11 @@
             "type": "string"
           }
         },
-        "required": ["code", "expiresAt", "issuedBy"],
+        "required": [
+          "code",
+          "expiresAt",
+          "issuedBy"
+        ],
         "type": "object"
       },
       "Whoami": {
@@ -3967,7 +4428,12 @@
             "type": "string"
           }
         },
-        "required": ["identityId", "publicKey", "fingerprint", "clientId"],
+        "required": [
+          "identityId",
+          "publicKey",
+          "fingerprint",
+          "clientId"
+        ],
         "type": "object"
       }
     },
@@ -4015,7 +4481,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["public"]
+        "tags": [
+          "public"
+        ]
       }
     },
     "/agents/whoami": {
@@ -4075,7 +4543,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["agents"]
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/agents/{fingerprint}": {
@@ -4135,7 +4605,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["agents"]
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/agents/{fingerprint}/verify": {
@@ -4164,7 +4636,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["signature"],
+                "required": [
+                  "signature"
+                ],
                 "type": "object"
               }
             }
@@ -4213,7 +4687,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["agents"]
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/auth/register": {
@@ -4237,7 +4713,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["public_key", "voucher_code"],
+                "required": [
+                  "public_key",
+                  "voucher_code"
+                ],
                 "type": "object"
               }
             }
@@ -4296,7 +4775,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/rotate-secret": {
@@ -4366,7 +4847,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/crypto/identity": {
@@ -4426,7 +4909,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["crypto"]
+        "tags": [
+          "crypto"
+        ]
       }
     },
     "/crypto/signing-requests": {
@@ -4460,7 +4945,11 @@
             "required": false,
             "schema": {
               "items": {
-                "enum": ["pending", "completed", "expired"],
+                "enum": [
+                  "pending",
+                  "completed",
+                  "expired"
+                ],
                 "type": "string"
               },
               "maxItems": 3,
@@ -4521,7 +5010,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["crypto"]
+        "tags": [
+          "crypto"
+        ]
       },
       "post": {
         "description": "Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.",
@@ -4537,7 +5028,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["message"],
+                "required": [
+                  "message"
+                ],
                 "type": "object"
               }
             }
@@ -4597,7 +5090,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["crypto"]
+        "tags": [
+          "crypto"
+        ]
       }
     },
     "/crypto/signing-requests/{id}": {
@@ -4678,7 +5173,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["crypto"]
+        "tags": [
+          "crypto"
+        ]
       }
     },
     "/crypto/signing-requests/{id}/sign": {
@@ -4707,7 +5204,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["signature"],
+                "required": [
+                  "signature"
+                ],
                 "type": "object"
               }
             }
@@ -4787,7 +5286,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["crypto"]
+        "tags": [
+          "crypto"
+        ]
       }
     },
     "/crypto/verify": {
@@ -4805,7 +5306,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["signature"],
+                "required": [
+                  "signature"
+                ],
                 "type": "object"
               }
             }
@@ -4844,7 +5347,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["crypto"]
+        "tags": [
+          "crypto"
+        ]
       }
     },
     "/diaries": {
@@ -4916,7 +5421,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "post": {
         "description": "Create a new diary.",
@@ -4944,11 +5451,17 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "enum": ["private", "moltnet", "public"],
+                    "enum": [
+                      "private",
+                      "moltnet",
+                      "public"
+                    ],
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "type": "object"
               }
             }
@@ -5008,7 +5521,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/reflect": {
@@ -5130,7 +5645,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/search": {
@@ -5273,7 +5790,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{diaryId}/entries": {
@@ -5441,7 +5960,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "post": {
         "description": "Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.",
@@ -5507,7 +6028,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["content"],
+                "required": [
+                  "content"
+                ],
                 "type": "object"
               }
             }
@@ -5587,7 +6110,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{diaryId}/tags": {
@@ -5710,7 +6235,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}": {
@@ -5812,7 +6339,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "get": {
         "description": "Get a diary by ID.",
@@ -5902,7 +6431,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "patch": {
         "description": "Update diary name or visibility.",
@@ -5943,7 +6474,11 @@
                     "type": "string"
                   },
                   "visibility": {
-                    "enum": ["private", "moltnet", "public"],
+                    "enum": [
+                      "private",
+                      "moltnet",
+                      "public"
+                    ],
                     "type": "string"
                   }
                 },
@@ -6026,7 +6561,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/compile": {
@@ -6115,7 +6652,9 @@
                     "type": "number"
                   }
                 },
-                "required": ["tokenBudget"],
+                "required": [
+                  "tokenBudget"
+                ],
                 "type": "object"
               }
             }
@@ -6195,7 +6734,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/consolidate": {
@@ -6236,7 +6777,11 @@
                     "type": "array"
                   },
                   "strategy": {
-                    "enum": ["score", "centroid", "hybrid"],
+                    "enum": [
+                      "score",
+                      "centroid",
+                      "hybrid"
+                    ],
                     "type": "string"
                   },
                   "tags": {
@@ -6331,7 +6876,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/grants": {
@@ -6356,7 +6903,10 @@
               "schema": {
                 "properties": {
                   "role": {
-                    "enum": ["writer", "manager"],
+                    "enum": [
+                      "writer",
+                      "manager"
+                    ],
                     "type": "string"
                   },
                   "subjectId": {
@@ -6365,11 +6915,19 @@
                     "type": "string"
                   },
                   "subjectNs": {
-                    "enum": ["Agent", "Human", "Group"],
+                    "enum": [
+                      "Agent",
+                      "Human",
+                      "Group"
+                    ],
                     "type": "string"
                   }
                 },
-                "required": ["subjectId", "subjectNs", "role"],
+                "required": [
+                  "subjectId",
+                  "subjectNs",
+                  "role"
+                ],
                 "type": "object"
               }
             }
@@ -6386,7 +6944,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["revoked"],
+                  "required": [
+                    "revoked"
+                  ],
                   "type": "object"
                 }
               }
@@ -6445,7 +7005,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "get": {
         "description": "List all per-diary grants (writers and managers).",
@@ -6472,7 +7034,10 @@
                       "items": {
                         "properties": {
                           "role": {
-                            "enum": ["writer", "manager"],
+                            "enum": [
+                              "writer",
+                              "manager"
+                            ],
                             "type": "string"
                           },
                           "subjectId": {
@@ -6481,17 +7046,27 @@
                             "type": "string"
                           },
                           "subjectNs": {
-                            "enum": ["Agent", "Human", "Group"],
+                            "enum": [
+                              "Agent",
+                              "Human",
+                              "Group"
+                            ],
                             "type": "string"
                           }
                         },
-                        "required": ["subjectId", "subjectNs", "role"],
+                        "required": [
+                          "subjectId",
+                          "subjectNs",
+                          "role"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": ["grants"],
+                  "required": [
+                    "grants"
+                  ],
                   "type": "object"
                 }
               }
@@ -6550,7 +7125,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "post": {
         "description": "Grant writer or manager access to a diary for an agent, human, or group.",
@@ -6573,7 +7150,10 @@
               "schema": {
                 "properties": {
                   "role": {
-                    "enum": ["writer", "manager"],
+                    "enum": [
+                      "writer",
+                      "manager"
+                    ],
                     "type": "string"
                   },
                   "subjectId": {
@@ -6582,11 +7162,19 @@
                     "type": "string"
                   },
                   "subjectNs": {
-                    "enum": ["Agent", "Human", "Group"],
+                    "enum": [
+                      "Agent",
+                      "Human",
+                      "Group"
+                    ],
                     "type": "string"
                   }
                 },
-                "required": ["subjectId", "subjectNs", "role"],
+                "required": [
+                  "subjectId",
+                  "subjectNs",
+                  "role"
+                ],
                 "type": "object"
               }
             }
@@ -6600,7 +7188,10 @@
                 "schema": {
                   "properties": {
                     "role": {
-                      "enum": ["writer", "manager"],
+                      "enum": [
+                        "writer",
+                        "manager"
+                      ],
                       "type": "string"
                     },
                     "subjectId": {
@@ -6609,11 +7200,19 @@
                       "type": "string"
                     },
                     "subjectNs": {
-                      "enum": ["Agent", "Human", "Group"],
+                      "enum": [
+                        "Agent",
+                        "Human",
+                        "Group"
+                      ],
                       "type": "string"
                     }
                   },
-                  "required": ["subjectId", "subjectNs", "role"],
+                  "required": [
+                    "subjectId",
+                    "subjectNs",
+                    "role"
+                  ],
                   "type": "object"
                 }
               }
@@ -6682,7 +7281,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/packs": {
@@ -6714,7 +7315,9 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": ["entries"],
+              "enum": [
+                "entries"
+              ],
               "type": "string"
             }
           },
@@ -6802,7 +7405,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "post": {
         "description": "Create and persist a custom context pack from an explicit entry selection.",
@@ -6836,7 +7441,10 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["entryId", "rank"],
+                      "required": [
+                        "entryId",
+                        "rank"
+                      ],
                       "type": "object"
                     },
                     "maxItems": 500,
@@ -6844,7 +7452,9 @@
                     "type": "array"
                   },
                   "packType": {
-                    "enum": ["custom"],
+                    "enum": [
+                      "custom"
+                    ],
                     "type": "string"
                   },
                   "params": {
@@ -6860,7 +7470,11 @@
                     "type": "integer"
                   }
                 },
-                "required": ["packType", "params", "entries"],
+                "required": [
+                  "packType",
+                  "params",
+                  "entries"
+                ],
                 "type": "object"
               }
             }
@@ -6940,7 +7554,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/packs/preview": {
@@ -6976,7 +7592,10 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["entryId", "rank"],
+                      "required": [
+                        "entryId",
+                        "rank"
+                      ],
                       "type": "object"
                     },
                     "maxItems": 500,
@@ -6984,7 +7603,9 @@
                     "type": "array"
                   },
                   "packType": {
-                    "enum": ["custom"],
+                    "enum": [
+                      "custom"
+                    ],
                     "type": "string"
                   },
                   "params": {
@@ -7000,7 +7621,11 @@
                     "type": "integer"
                   }
                 },
-                "required": ["packType", "params", "entries"],
+                "required": [
+                  "packType",
+                  "params",
+                  "entries"
+                ],
                 "type": "object"
               }
             }
@@ -7080,7 +7705,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/rendered-packs": {
@@ -7210,7 +7837,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/diaries/{id}/transfer": {
@@ -7240,7 +7869,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["destinationTeamId"],
+                "required": [
+                  "destinationTeamId"
+                ],
                 "type": "object"
               }
             }
@@ -7368,7 +7999,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/entries/{entryId}": {
@@ -7460,7 +8093,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "get": {
         "description": "Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.",
@@ -7471,7 +8106,9 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": ["relations"],
+              "enum": [
+                "relations"
+              ],
               "type": "string"
             }
           },
@@ -7570,7 +8207,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "patch": {
         "description": "Update a diary entry (content, title, tags).",
@@ -7718,7 +8357,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/entries/{entryId}/relations": {
@@ -7745,7 +8386,11 @@
             "name": "direction",
             "required": false,
             "schema": {
-              "enum": ["as_source", "as_target", "both"],
+              "enum": [
+                "as_source",
+                "as_target",
+                "both"
+              ],
               "type": "string"
             }
           },
@@ -7864,7 +8509,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "post": {
         "description": "Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.",
@@ -7890,7 +8537,10 @@
                     "$ref": "#/components/schemas/RelationType"
                   },
                   "status": {
-                    "enum": ["proposed", "accepted"],
+                    "enum": [
+                      "proposed",
+                      "accepted"
+                    ],
                     "type": "string"
                   },
                   "targetId": {
@@ -7898,7 +8548,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["targetId", "relation"],
+                "required": [
+                  "targetId",
+                  "relation"
+                ],
                 "type": "object"
               }
             }
@@ -7988,7 +8641,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/entries/{entryId}/verify": {
@@ -8070,7 +8725,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/groups/{groupId}": {
@@ -8099,7 +8756,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["deleted"],
+                  "required": [
+                    "deleted"
+                  ],
                   "type": "object"
                 }
               }
@@ -8158,7 +8817,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       },
       "get": {
         "description": "Get group details. Requires team access.",
@@ -8207,7 +8868,10 @@
                             "type": "string"
                           }
                         },
-                        "required": ["subjectId", "subjectNs"],
+                        "required": [
+                          "subjectId",
+                          "subjectNs"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
@@ -8277,7 +8941,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       }
     },
     "/groups/{groupId}/members": {
@@ -8314,13 +8980,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["subjectId", "subjectNs"],
+                        "required": [
+                          "subjectId",
+                          "subjectNs"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "type": "object"
                 }
               }
@@ -8369,7 +9040,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       },
       "post": {
         "description": "Add a member to a group. Requires manage_members permission.",
@@ -8397,11 +9070,16 @@
                     "type": "string"
                   },
                   "subjectNs": {
-                    "enum": ["Agent", "Human"],
+                    "enum": [
+                      "Agent",
+                      "Human"
+                    ],
                     "type": "string"
                   }
                 },
-                "required": ["subjectId"],
+                "required": [
+                  "subjectId"
+                ],
                 "type": "object"
               }
             }
@@ -8423,7 +9101,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["subjectId", "subjectNs"],
+                  "required": [
+                    "subjectId",
+                    "subjectNs"
+                  ],
                   "type": "object"
                 }
               }
@@ -8482,7 +9163,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       }
     },
     "/groups/{groupId}/members/{subjectId}": {
@@ -8521,7 +9204,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["removed"],
+                  "required": [
+                    "removed"
+                  ],
                   "type": "object"
                 }
               }
@@ -8570,7 +9255,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       }
     },
     "/health": {
@@ -8589,7 +9276,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["health"]
+        "tags": [
+          "health"
+        ]
       }
     },
     "/health/ready": {
@@ -8618,7 +9307,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["health"]
+        "tags": [
+          "health"
+        ]
       }
     },
     "/llms.txt": {
@@ -8638,7 +9329,9 @@
             "description": "Network info as llms.txt markdown"
           }
         },
-        "tags": ["public"]
+        "tags": [
+          "public"
+        ]
       }
     },
     "/oauth2/token": {
@@ -8671,7 +9364,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["access_token", "token_type", "expires_in"],
+                  "required": [
+                    "access_token",
+                    "token_type",
+                    "expires_in"
+                  ],
                   "type": "object"
                 }
               }
@@ -8699,7 +9396,9 @@
                       "type": "number"
                     }
                   },
-                  "required": ["error"],
+                  "required": [
+                    "error"
+                  ],
                   "type": "object"
                 }
               }
@@ -8727,7 +9426,9 @@
                       "type": "number"
                     }
                   },
-                  "required": ["error"],
+                  "required": [
+                    "error"
+                  ],
                   "type": "object"
                 }
               }
@@ -8735,7 +9436,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/packs": {
@@ -8793,7 +9496,9 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": ["entries"],
+              "enum": [
+                "entries"
+              ],
               "type": "string"
             }
           }
@@ -8871,7 +9576,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/by-cid/{cid}/diff/by-cid/{otherCid}": {
@@ -8908,7 +9615,11 @@
                       "items": {
                         "properties": {
                           "compressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "entryCidSnapshot": {
@@ -8950,7 +9661,11 @@
                             "type": "string"
                           },
                           "newCompressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "newEntryCidSnapshot": {
@@ -8961,7 +9676,11 @@
                             "type": "integer"
                           },
                           "oldCompressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "oldEntryCidSnapshot": {
@@ -9003,7 +9722,11 @@
                       "items": {
                         "properties": {
                           "compressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "entryCidSnapshot": {
@@ -9041,7 +9764,11 @@
                       "items": {
                         "properties": {
                           "compressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "entryCidSnapshot": {
@@ -9101,7 +9828,11 @@
                               "type": "string"
                             },
                             "packType": {
-                              "enum": ["compile", "optimized", "custom"],
+                              "enum": [
+                                "compile",
+                                "optimized",
+                                "custom"
+                              ],
                               "type": "string"
                             },
                             "totalTokens": {
@@ -9132,7 +9863,11 @@
                               "type": "string"
                             },
                             "packType": {
-                              "enum": ["compile", "optimized", "custom"],
+                              "enum": [
+                                "compile",
+                                "optimized",
+                                "custom"
+                              ],
                               "type": "string"
                             },
                             "totalTokens": {
@@ -9246,7 +9981,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/by-cid/{cid}/provenance": {
@@ -9289,7 +10026,11 @@
                             "type": "string"
                           },
                           "kind": {
-                            "enum": ["includes", "supersedes", "rendered_from"],
+                            "enum": [
+                              "includes",
+                              "supersedes",
+                              "rendered_from"
+                            ],
                             "type": "string"
                           },
                           "label": {
@@ -9303,7 +10044,12 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "from", "to", "kind"],
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "kind"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
@@ -9315,7 +10061,9 @@
                           "type": "number"
                         },
                         "format": {
-                          "enum": ["moltnet.provenance-graph/v1"],
+                          "enum": [
+                            "moltnet.provenance-graph/v1"
+                          ],
                           "type": "string"
                         },
                         "generatedAt": {
@@ -9366,7 +10114,11 @@
                       "type": "array"
                     }
                   },
-                  "required": ["metadata", "nodes", "edges"],
+                  "required": [
+                    "metadata",
+                    "nodes",
+                    "edges"
+                  ],
                   "type": "object"
                 }
               }
@@ -9435,7 +10187,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/{id}": {
@@ -9448,7 +10202,9 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": ["entries"],
+              "enum": [
+                "entries"
+              ],
               "type": "string"
             }
           },
@@ -9535,7 +10291,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "patch": {
         "description": "Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.",
@@ -9656,7 +10414,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/{id}/diff/{otherId}": {
@@ -9695,7 +10455,11 @@
                       "items": {
                         "properties": {
                           "compressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "entryCidSnapshot": {
@@ -9737,7 +10501,11 @@
                             "type": "string"
                           },
                           "newCompressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "newEntryCidSnapshot": {
@@ -9748,7 +10516,11 @@
                             "type": "integer"
                           },
                           "oldCompressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "oldEntryCidSnapshot": {
@@ -9790,7 +10562,11 @@
                       "items": {
                         "properties": {
                           "compressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "entryCidSnapshot": {
@@ -9828,7 +10604,11 @@
                       "items": {
                         "properties": {
                           "compressionLevel": {
-                            "enum": ["full", "summary", "keywords"],
+                            "enum": [
+                              "full",
+                              "summary",
+                              "keywords"
+                            ],
                             "type": "string"
                           },
                           "entryCidSnapshot": {
@@ -9888,7 +10668,11 @@
                               "type": "string"
                             },
                             "packType": {
-                              "enum": ["compile", "optimized", "custom"],
+                              "enum": [
+                                "compile",
+                                "optimized",
+                                "custom"
+                              ],
                               "type": "string"
                             },
                             "totalTokens": {
@@ -9919,7 +10703,11 @@
                               "type": "string"
                             },
                             "packType": {
-                              "enum": ["compile", "optimized", "custom"],
+                              "enum": [
+                                "compile",
+                                "optimized",
+                                "custom"
+                              ],
                               "type": "string"
                             },
                             "totalTokens": {
@@ -10033,7 +10821,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/{id}/provenance": {
@@ -10134,7 +10924,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/{id}/render": {
@@ -10189,7 +10981,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["renderMethod"],
+                "required": [
+                  "renderMethod"
+                ],
                 "type": "object"
               }
             }
@@ -10280,7 +11074,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/{id}/render/preview": {
@@ -10332,7 +11128,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["renderMethod"],
+                "required": [
+                  "renderMethod"
+                ],
                 "type": "object"
               }
             }
@@ -10413,7 +11211,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/packs/{id}/rendered": {
@@ -10504,7 +11304,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/problems": {
@@ -10550,7 +11352,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["problems"]
+        "tags": [
+          "problems"
+        ]
       }
     },
     "/problems/{type}": {
@@ -10601,7 +11405,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["problems"]
+        "tags": [
+          "problems"
+        ]
       }
     },
     "/public/entry/{id}": {
@@ -10661,7 +11467,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["public"]
+        "tags": [
+          "public"
+        ]
       }
     },
     "/public/feed": {
@@ -10738,7 +11546,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["public"]
+        "tags": [
+          "public"
+        ]
       }
     },
     "/public/feed/search": {
@@ -10856,7 +11666,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["public"]
+        "tags": [
+          "public"
+        ]
       }
     },
     "/public/legreffier/start": {
@@ -10891,7 +11703,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["publicKey", "fingerprint", "agentName"],
+                "required": [
+                  "publicKey",
+                  "fingerprint",
+                  "agentName"
+                ],
                 "type": "object"
               }
             }
@@ -10911,7 +11727,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["workflowId", "manifestFormUrl"],
+                  "required": [
+                    "workflowId",
+                    "manifestFormUrl"
+                  ],
                   "type": "object"
                 }
               }
@@ -10939,7 +11758,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["legreffier"]
+        "tags": [
+          "legreffier"
+        ]
       }
     },
     "/public/legreffier/status/{workflowId}": {
@@ -10986,7 +11807,9 @@
                       "type": "string"
                     }
                   },
-                  "required": ["status"],
+                  "required": [
+                    "status"
+                  ],
                   "type": "object"
                 }
               }
@@ -11004,7 +11827,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["legreffier"]
+        "tags": [
+          "legreffier"
+        ]
       }
     },
     "/recovery/challenge": {
@@ -11023,7 +11848,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["publicKey"],
+                "required": [
+                  "publicKey"
+                ],
                 "type": "object"
               }
             }
@@ -11062,7 +11889,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["recovery"]
+        "tags": [
+          "recovery"
+        ]
       }
     },
     "/recovery/verify": {
@@ -11097,7 +11926,12 @@
                     "type": "string"
                   }
                 },
-                "required": ["challenge", "hmac", "signature", "publicKey"],
+                "required": [
+                  "challenge",
+                  "hmac",
+                  "signature",
+                  "publicKey"
+                ],
                 "type": "object"
               }
             }
@@ -11146,7 +11980,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["recovery"]
+        "tags": [
+          "recovery"
+        ]
       }
     },
     "/relations/{id}": {
@@ -11230,7 +12066,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "patch": {
         "description": "Update the status of an entry relation.",
@@ -11255,7 +12093,9 @@
                     "$ref": "#/components/schemas/RelationStatus"
                   }
                 },
-                "required": ["status"],
+                "required": [
+                  "status"
+                ],
                 "type": "object"
               }
             }
@@ -11335,7 +12175,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/rendered-packs/{id}": {
@@ -11426,7 +12268,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       },
       "patch": {
         "description": "Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.",
@@ -11552,7 +12396,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/tasks": {
@@ -11590,6 +12436,86 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "diaryId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "imposedByAgentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "imposedByHumanId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "claimedByAgentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasAttempts",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "queuedAfter",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "queuedBefore",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "completedAfter",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "completedBefore",
+            "required": false,
+            "schema": {
+              "format": "date-time",
               "type": "string"
             }
           },
@@ -11656,7 +12582,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       },
       "post": {
         "description": "Create and enqueue a new task.",
@@ -11719,7 +12647,12 @@
                     "type": "string"
                   }
                 },
-                "required": ["taskType", "teamId", "diaryId", "input"],
+                "required": [
+                  "taskType",
+                  "teamId",
+                  "diaryId",
+                  "input"
+                ],
                 "type": "object"
               }
             }
@@ -11779,7 +12712,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/schemas": {
@@ -11819,7 +12754,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}": {
@@ -11890,7 +12827,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/attempts": {
@@ -11964,7 +12903,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/attempts/{n}/complete": {
@@ -12023,7 +12964,11 @@
                     "$ref": "#/components/schemas/TaskUsage"
                   }
                 },
-                "required": ["output", "outputCid", "usage"],
+                "required": [
+                  "output",
+                  "outputCid",
+                  "usage"
+                ],
                 "type": "object"
               }
             }
@@ -12103,7 +13048,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/attempts/{n}/fail": {
@@ -12139,7 +13086,9 @@
                     "$ref": "#/components/schemas/TaskError"
                   }
                 },
-                "required": ["error"],
+                "required": [
+                  "error"
+                ],
                 "type": "object"
               }
             }
@@ -12219,7 +13168,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/attempts/{n}/heartbeat": {
@@ -12315,7 +13266,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/attempts/{n}/messages": {
@@ -12419,7 +13372,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       },
       "post": {
         "description": "Append messages to a task attempt.",
@@ -12464,14 +13419,19 @@
                           "type": "string"
                         }
                       },
-                      "required": ["kind", "payload"],
+                      "required": [
+                        "kind",
+                        "payload"
+                      ],
                       "type": "object"
                     },
                     "minItems": 1,
                     "type": "array"
                   }
                 },
-                "required": ["messages"],
+                "required": [
+                  "messages"
+                ],
                 "type": "object"
               }
             }
@@ -12541,7 +13501,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/cancel": {
@@ -12569,7 +13531,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["reason"],
+                "required": [
+                  "reason"
+                ],
                 "type": "object"
               }
             }
@@ -12649,7 +13613,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/tasks/{id}/claim": {
@@ -12783,7 +13749,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["tasks"]
+        "tags": [
+          "tasks"
+        ]
       }
     },
     "/teams": {
@@ -12829,7 +13797,9 @@
                       "type": "array"
                     }
                   },
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "type": "object"
                 }
               }
@@ -12868,7 +13838,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       },
       "post": {
         "description": "Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.",
@@ -12882,7 +13854,11 @@
                     "items": {
                       "properties": {
                         "role": {
-                          "enum": ["owner", "manager", "member"],
+                          "enum": [
+                            "owner",
+                            "manager",
+                            "member"
+                          ],
                           "type": "string"
                         },
                         "subjectId": {
@@ -12891,11 +13867,18 @@
                           "type": "string"
                         },
                         "subjectNs": {
-                          "enum": ["Agent", "Human"],
+                          "enum": [
+                            "Agent",
+                            "Human"
+                          ],
                           "type": "string"
                         }
                       },
-                      "required": ["subjectId", "subjectNs", "role"],
+                      "required": [
+                        "subjectId",
+                        "subjectNs",
+                        "role"
+                      ],
                       "type": "object"
                     },
                     "minItems": 1,
@@ -12907,7 +13890,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "type": "object"
               }
             }
@@ -12929,7 +13914,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name"],
+                  "required": [
+                    "id",
+                    "name"
+                  ],
                   "type": "object"
                 }
               }
@@ -12956,7 +13944,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name", "status"],
+                  "required": [
+                    "id",
+                    "name",
+                    "status"
+                  ],
                   "type": "object"
                 }
               }
@@ -13005,7 +13997,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/join": {
@@ -13022,7 +14016,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["code"],
+                "required": [
+                  "code"
+                ],
                 "type": "object"
               }
             }
@@ -13044,7 +14040,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["teamId", "role"],
+                  "required": [
+                    "teamId",
+                    "role"
+                  ],
                   "type": "object"
                 }
               }
@@ -13113,7 +14112,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/{id}": {
@@ -13142,7 +14143,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["deleted"],
+                  "required": [
+                    "deleted"
+                  ],
                   "type": "object"
                 }
               }
@@ -13201,7 +14204,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       },
       "get": {
         "description": "Get team details. Requires team access.",
@@ -13259,7 +14264,10 @@
                             "type": "string"
                           },
                           "subjectType": {
-                            "enum": ["agent", "human"],
+                            "enum": [
+                              "agent",
+                              "human"
+                            ],
                             "type": "string"
                           }
                         },
@@ -13345,7 +14353,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/{id}/accept": {
@@ -13387,7 +14397,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["accepted", "teamStatus"],
+                  "required": [
+                    "accepted",
+                    "teamStatus"
+                  ],
                   "type": "object"
                 }
               }
@@ -13456,7 +14469,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/{id}/groups": {
@@ -13498,13 +14513,19 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "name", "teamId"],
+                        "required": [
+                          "id",
+                          "name",
+                          "teamId"
+                        ],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "type": "object"
                 }
               }
@@ -13553,7 +14574,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       },
       "post": {
         "description": "Create a group within a team. Requires manage_members permission.",
@@ -13581,7 +14604,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "type": "object"
               }
             }
@@ -13608,7 +14633,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name", "teamId"],
+                  "required": [
+                    "id",
+                    "name",
+                    "teamId"
+                  ],
                   "type": "object"
                 }
               }
@@ -13677,7 +14706,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["groups"]
+        "tags": [
+          "groups"
+        ]
       }
     },
     "/teams/{id}/invites": {
@@ -13745,7 +14776,9 @@
                       "type": "array"
                     }
                   },
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "type": "object"
                 }
               }
@@ -13794,7 +14827,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       },
       "post": {
         "description": "Create an invite code. Requires manage_members permission.",
@@ -13828,7 +14863,10 @@
                     "type": "integer"
                   },
                   "role": {
-                    "enum": ["manager", "member"],
+                    "enum": [
+                      "manager",
+                      "member"
+                    ],
                     "type": "string"
                   }
                 },
@@ -13936,7 +14974,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/{id}/invites/{inviteId}": {
@@ -13975,7 +15015,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["deleted"],
+                  "required": [
+                    "deleted"
+                  ],
                   "type": "object"
                 }
               }
@@ -14034,7 +15076,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/{id}/members": {
@@ -14080,7 +15124,10 @@
                             "type": "string"
                           },
                           "subjectType": {
-                            "enum": ["agent", "human"],
+                            "enum": [
+                              "agent",
+                              "human"
+                            ],
                             "type": "string"
                           }
                         },
@@ -14095,7 +15142,9 @@
                       "type": "array"
                     }
                   },
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "type": "object"
                 }
               }
@@ -14144,7 +15193,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/teams/{id}/members/{subjectId}": {
@@ -14183,7 +15234,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["removed"],
+                  "required": [
+                    "removed"
+                  ],
                   "type": "object"
                 }
               }
@@ -14232,7 +15285,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["teams"]
+        "tags": [
+          "teams"
+        ]
       }
     },
     "/transfers": {
@@ -14300,7 +15355,9 @@
                       "type": "array"
                     }
                   },
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "type": "object"
                 }
               }
@@ -14339,7 +15396,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/transfers/{transferId}/accept": {
@@ -14479,7 +15538,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/transfers/{transferId}/reject": {
@@ -14619,7 +15680,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["diary"]
+        "tags": [
+          "diary"
+        ]
       }
     },
     "/vouch": {
@@ -14689,7 +15752,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["vouch"]
+        "tags": [
+          "vouch"
+        ]
       }
     },
     "/vouch/active": {
@@ -14709,7 +15774,9 @@
                       "type": "array"
                     }
                   },
-                  "required": ["vouchers"],
+                  "required": [
+                    "vouchers"
+                  ],
                   "type": "object"
                 }
               }
@@ -14758,7 +15825,9 @@
             "cookieAuth": []
           }
         ],
-        "tags": ["vouch"]
+        "tags": [
+          "vouch"
+        ]
       }
     },
     "/vouch/graph": {
@@ -14820,7 +15889,9 @@
                       "type": "array"
                     }
                   },
-                  "required": ["edges"],
+                  "required": [
+                    "edges"
+                  ],
                   "type": "object"
                 }
               }
@@ -14838,7 +15909,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["vouch"]
+        "tags": [
+          "vouch"
+        ]
       }
     }
   },
