@@ -110,9 +110,16 @@ pnpm exec tsx tools/src/tasks/create-task.ts \
   --task-file demo/tasks/api/fulfill-brief.create.template.json \
   --set diaryId="$MOLTNET_DIARY_ID" \
   --set teamId="$MOLTNET_TEAM_ID" \
-  --set title="Smoke test: write a hello file" \
-  --set brief="Create /workspace/demo/out/hello.txt containing 'hi from local-dev'. Read it back to confirm. Keep your reply under 3 sentences."
+  --set title="Smoke: hello file in a feature branch" \
+  --set brief="Create a feature branch named feat/smoke-hello, write /workspace/demo/out/hello.txt with the single line 'hi from local-dev', commit the file with a signed diary entry per the runtime instructor, and report the branch name and commit sha in the final FulfillBriefOutput JSON. There is no remote to push to — leave pullRequestUrl null."
 ```
+
+> **Why the brief is a real coding brief**: `fulfill_brief` requires the
+> agent to emit a structured `FulfillBriefOutput` JSON
+> (`{ branch, commits, pullRequestUrl, diaryEntryIds, summary }`) as its
+> final message. A "just reply 'ok'" brief, while shorter, fails
+> validation with `output_missing` even though the runtime worked
+> correctly. Pick a task that genuinely fits the shape.
 
 The daemon claims the task, boots a VM, runs the agent. Watch the
 daemon logs and the diary:
