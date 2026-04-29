@@ -307,6 +307,32 @@ export const TaskConsoleLinkOutputSchema = Type.Object({
   consoleUrl: Type.Optional(Type.String()),
 });
 
+const TaskAppFilterStatusSchema = Type.Union([
+  Type.Literal('queued'),
+  Type.Literal('dispatched'),
+  Type.Literal('running'),
+  Type.Literal('completed'),
+  Type.Literal('failed'),
+  Type.Literal('cancelled'),
+  Type.Literal('expired'),
+]);
+
+const TaskAppOpenFiltersOutputSchema = Type.Object({
+  team_id: Type.Optional(Type.String()),
+  status: Type.Optional(TaskAppFilterStatusSchema),
+  task_type: Type.Optional(Type.String()),
+  correlation_id: Type.Optional(Type.String()),
+  diary_id: Type.Optional(Type.String()),
+  imposed_by_agent_id: Type.Optional(Type.String()),
+  imposed_by_human_id: Type.Optional(Type.String()),
+  claimed_by_agent_id: Type.Optional(Type.String()),
+  has_attempts: Type.Optional(Type.Boolean()),
+  queued_after: Type.Optional(Type.String()),
+  queued_before: Type.Optional(Type.String()),
+  completed_after: Type.Optional(Type.String()),
+  completed_before: Type.Optional(Type.String()),
+});
+
 export const TaskAppOpenSchema = Type.Object({
   team_id: Type.Optional(
     Type.String({
@@ -406,7 +432,7 @@ export const TaskAppOpenOutputSchema = Type.Object({
   teamId: Type.Optional(Type.String()),
   taskId: Type.Optional(Type.String()),
   status: Type.Optional(TaskStatus),
-  filters: Type.Optional(Type.Partial(TaskListSchema)),
+  filters: Type.Optional(TaskAppOpenFiltersOutputSchema),
   consoleUrl: Type.Optional(Type.String()),
   tools: Type.Array(Type.String()),
 });
