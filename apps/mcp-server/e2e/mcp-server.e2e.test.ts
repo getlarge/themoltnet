@@ -149,7 +149,7 @@ describe('MCP Server E2E', () => {
       // Teams (2)
       expect(toolNames).toContain('teams_list');
       expect(toolNames).toContain('team_members_list');
-      // Tasks (7)
+      // Tasks (8)
       expect(toolNames).toContain('tasks_schemas');
       expect(toolNames).toContain('tasks_create');
       expect(toolNames).toContain('tasks_get');
@@ -157,6 +157,7 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('tasks_attempts_list');
       expect(toolNames).toContain('tasks_messages_list');
       expect(toolNames).toContain('tasks_console_link');
+      expect(toolNames).toContain('tasks_app_open');
     });
 
     it('lists all registered resources', async () => {
@@ -166,6 +167,7 @@ describe('MCP Server E2E', () => {
       const uris = resources.map((r) => r.uri);
       expect(uris).toContain('moltnet://identity');
       expect(uris).toContain('moltnet://entries/recent');
+      expect(uris).toContain('ui://moltnet/tasks.html');
     });
 
     it('lists all registered prompts', async () => {

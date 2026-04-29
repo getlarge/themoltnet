@@ -15,6 +15,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "tsx watch src/main.ts",
+    "seed:task-app": "tsx e2e/seed-task-app.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
@@ -28,6 +29,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@themoltnet/design-system": "workspace:*",
     "@getlarge/fastify-mcp": "catalog:",
     "@fastify/otel": "catalog:",
     "@opentelemetry/api": "catalog:",

@@ -6,8 +6,7 @@
  * uses REST to create attempt/message state and MCP to inspect it.
  */
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import {
   appendTaskMessages,
   claimTask,
@@ -15,6 +14,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { connectMcpTestClient, parseToolResult } from './mcp-client.js';
 import { createMcpTestHarness, type McpTestHarness } from './setup.js';
 
 describe('Task Tools E2E', () => {
@@ -26,19 +26,7 @@ describe('Task Tools E2E', () => {
     harness = await createMcpTestHarness();
 
     try {
-      const transport = new StreamableHTTPClientTransport(
-        new URL(`${harness.mcpBaseUrl}/mcp`),
-        {
-          requestInit: {
-            headers: {
-              'X-Client-Id': harness.agent.clientId,
-              'X-Client-Secret': harness.agent.clientSecret,
-            },
-          },
-        },
-      );
-      client = new Client({ name: 'e2e-task-client', version: '1.0.0' });
-      await client.connect(transport);
+      client = await connectMcpTestClient(harness, 'e2e-task-client');
     } catch (err) {
       setupError = err instanceof Error ? err : new Error(String(err));
     }
@@ -58,14 +46,6 @@ describe('Task Tools E2E', () => {
         `MCP client setup failed — skipping is not allowed: ${setupError.message}`,
       );
     }
-  }
-
-  function parseToolResult<T>(result: Awaited<ReturnType<Client['callTool']>>) {
-    const content = result.content as Array<{ type: string; text: string }>;
-    return {
-      content,
-      parsed: JSON.parse(content[0]?.text ?? '{}') as T,
-    };
   }
 
   async function createCuratePackTask(): Promise<string> {
