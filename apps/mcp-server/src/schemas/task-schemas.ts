@@ -321,6 +321,77 @@ export const TaskAppOpenSchema = Type.Object({
     }),
   ),
   status: Type.Optional(TaskStatus),
+  task_type: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Optional task type filter used to pre-load the queue.',
+    }),
+  ),
+  correlation_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description: 'Optional correlation ID filter used to pre-load the queue.',
+    }),
+  ),
+  diary_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description: 'Optional diary ID filter used to pre-load the queue.',
+    }),
+  ),
+  imposed_by_agent_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description:
+        'Optional requester agent ID filter used to pre-load the queue.',
+    }),
+  ),
+  imposed_by_human_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description:
+        'Optional requester human ID filter used to pre-load the queue.',
+    }),
+  ),
+  claimed_by_agent_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description:
+        'Optional worker agent ID filter used to pre-load the queue.',
+    }),
+  ),
+  has_attempts: Type.Optional(
+    Type.Boolean({
+      description:
+        'Optional attempt-presence filter used to pre-load the queue.',
+    }),
+  ),
+  queued_after: Type.Optional(
+    Type.String({
+      format: 'date-time',
+      description: 'Optional queued-at lower bound used to pre-load the queue.',
+    }),
+  ),
+  queued_before: Type.Optional(
+    Type.String({
+      format: 'date-time',
+      description: 'Optional queued-at upper bound used to pre-load the queue.',
+    }),
+  ),
+  completed_after: Type.Optional(
+    Type.String({
+      format: 'date-time',
+      description:
+        'Optional completed-at lower bound used to pre-load the queue.',
+    }),
+  ),
+  completed_before: Type.Optional(
+    Type.String({
+      format: 'date-time',
+      description:
+        'Optional completed-at upper bound used to pre-load the queue.',
+    }),
+  ),
   console_url: Type.Optional(
     Type.String({
       description: 'Optional explicit console URL for the selected task.',
@@ -335,6 +406,7 @@ export const TaskAppOpenOutputSchema = Type.Object({
   teamId: Type.Optional(Type.String()),
   taskId: Type.Optional(Type.String()),
   status: Type.Optional(TaskStatus),
+  filters: Type.Optional(Type.Partial(TaskListSchema)),
   consoleUrl: Type.Optional(Type.String()),
   tools: Type.Array(Type.String()),
 });
