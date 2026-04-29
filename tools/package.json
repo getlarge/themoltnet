@@ -15,6 +15,7 @@
     "tasksmith:harvest": "tsx src/tasksmith/harvest-prs.ts",
     "tasksmith:snapshot": "tsx src/tasksmith/snapshot.ts",
     "tasksmith:triage-fixture-green": "tsx src/tasksmith/triage-fixture-green.ts",
+    "task:bootstrap-local": "tsx src/tasks/bootstrap-local-agent.ts",
     "task:create": "tsx src/tasks/create-task.ts",
     "task:fulfill-brief": "tsx src/tasks/fulfill-brief.ts",
     "task:run": "tsx src/tasks/run-task.ts",
