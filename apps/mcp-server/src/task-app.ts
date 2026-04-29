@@ -190,6 +190,27 @@ function buildTaskAppHtml(): string {
             minmax(0, 1fr) minmax(0, 1fr) minmax(120px, 160px);
         }
       }
+      details {
+        margin-top: 10px;
+        border-top: 1px solid var(--molt-border);
+        padding-top: 10px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--molt-text-secondary);
+        font-size: 12px;
+      }
+      .advanced-fields {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr);
+        margin-top: 10px;
+      }
+      @media (min-width: 720px) {
+        .advanced-fields {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
       .row {
         display: flex;
         align-items: center;
@@ -294,7 +315,7 @@ function buildTaskAppHtml(): string {
             <input id="team-id" autocomplete="off" placeholder="team uuid" />
           </label>
           <label>
-            Worked by
+            Worker
             <select id="agent">
               <option value="">Any agent</option>
             </select>
@@ -304,6 +325,7 @@ function buildTaskAppHtml(): string {
             <select id="status">
               <option value="">Any</option>
               <option value="queued">Queued</option>
+              <option value="dispatched">Dispatched</option>
               <option value="running">Running</option>
               <option value="completed">Completed</option>
               <option value="failed">Failed</option>
@@ -312,6 +334,55 @@ function buildTaskAppHtml(): string {
             </select>
           </label>
         </div>
+        <details id="advanced-filters">
+          <summary>More filters</summary>
+          <div class="advanced-fields">
+            <label>
+              Task type
+              <input id="task-type" autocomplete="off" placeholder="curate_pack" />
+            </label>
+            <label>
+              Diary ID
+              <input id="diary-id" autocomplete="off" placeholder="diary uuid" />
+            </label>
+            <label>
+              Correlation ID
+              <input id="correlation-id" autocomplete="off" placeholder="correlation uuid" />
+            </label>
+            <label>
+              Requested by agent
+              <input id="requested-agent-id" autocomplete="off" placeholder="agent uuid" />
+            </label>
+            <label>
+              Requested by human
+              <input id="requested-human-id" autocomplete="off" placeholder="human uuid" />
+            </label>
+            <label>
+              Attempts
+              <select id="has-attempts">
+                <option value="">Any</option>
+                <option value="true">Has attempts</option>
+                <option value="false">No attempts</option>
+              </select>
+            </label>
+            <label>
+              Queued after
+              <input id="queued-after" type="datetime-local" />
+            </label>
+            <label>
+              Queued before
+              <input id="queued-before" type="datetime-local" />
+            </label>
+            <label>
+              Completed after
+              <input id="completed-after" type="datetime-local" />
+            </label>
+            <label>
+              Completed before
+              <input id="completed-before" type="datetime-local" />
+            </label>
+          </div>
+        </details>
         <div style="margin-top: 8px">
           <button class="primary" type="submit">Refresh tasks</button>
         </div>
@@ -424,11 +495,20 @@ function buildTaskAppHtml(): string {
         taskId: '',
         status: '',
         agentId: '',
+        taskType: '',
+        diaryId: '',
+        correlationId: '',
+        requestedAgentId: '',
+        requestedHumanId: '',
+        hasAttempts: '',
+        queuedAfter: '',
+        queuedBefore: '',
+        completedAfter: '',
+        completedBefore: '',
         consoleUrl: '',
         teams: [],
         members: [],
         tasks: [],
-        attemptsByTaskId: new Map(),
         nextCursor: undefined,
       };
 
@@ -438,6 +518,17 @@ function buildTaskAppHtml(): string {
       const teamIdInput = byId('team-id');
       const agentInput = byId('agent');
       const statusInput = byId('status');
+      const taskTypeInput = byId('task-type');
+      const diaryIdInput = byId('diary-id');
+      const correlationIdInput = byId('correlation-id');
+      const requestedAgentIdInput = byId('requested-agent-id');
+      const requestedHumanIdInput = byId('requested-human-id');
+      const hasAttemptsInput = byId('has-attempts');
+      const queuedAfterInput = byId('queued-after');
+      const queuedBeforeInput = byId('queued-before');
+      const completedAfterInput = byId('completed-after');
+      const completedBeforeInput = byId('completed-before');
+      const advancedFilters = byId('advanced-filters');
       const queue = byId('queue');
       const queueCount = byId('queue-count');
       const loadMore = byId('load-more');
@@ -460,6 +551,99 @@ function buildTaskAppHtml(): string {
         return JSON.stringify(value ?? null, null, 2);
       }
 
+      function optionalValue(value) {
+        const text = String(value ?? '').trim();
+        return text || undefined;
+      }
+
+      function optionalBoolean(value) {
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        return undefined;
+      }
+
+      function optionalDateTime(value) {
+        if (!value) return undefined;
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+      }
+
+      function toDateTimeLocal(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        const offsetMs = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+      }
+
+      function readFiltersFromInputs() {
+        state.teamId = optionalValue(teamIdInput.value) ?? '';
+        state.agentId = agentInput.value;
+        state.status = statusInput.value;
+        state.taskType = taskTypeInput.value.trim();
+        state.diaryId = diaryIdInput.value.trim();
+        state.correlationId = correlationIdInput.value.trim();
+        state.requestedAgentId = requestedAgentIdInput.value.trim();
+        state.requestedHumanId = requestedHumanIdInput.value.trim();
+        state.hasAttempts = hasAttemptsInput.value;
+        state.queuedAfter = queuedAfterInput.value;
+        state.queuedBefore = queuedBeforeInput.value;
+        state.completedAfter = completedAfterInput.value;
+        state.completedBefore = completedBeforeInput.value;
+      }
+
+      function hasAdvancedFilters() {
+        return Boolean(
+          state.taskType ||
+            state.diaryId ||
+            state.correlationId ||
+            state.requestedAgentId ||
+            state.requestedHumanId ||
+            state.hasAttempts ||
+            state.queuedAfter ||
+            state.queuedBefore ||
+            state.completedAfter ||
+            state.completedBefore,
+        );
+      }
+
+      function syncFilterInputs() {
+        syncTeamInputs();
+        agentInput.value = state.agentId;
+        statusInput.value = state.status;
+        taskTypeInput.value = state.taskType;
+        diaryIdInput.value = state.diaryId;
+        correlationIdInput.value = state.correlationId;
+        requestedAgentIdInput.value = state.requestedAgentId;
+        requestedHumanIdInput.value = state.requestedHumanId;
+        hasAttemptsInput.value = state.hasAttempts;
+        queuedAfterInput.value = state.queuedAfter;
+        queuedBeforeInput.value = state.queuedBefore;
+        completedAfterInput.value = state.completedAfter;
+        completedBeforeInput.value = state.completedBefore;
+        advancedFilters.open = hasAdvancedFilters();
+      }
+
+      function buildTaskListArguments(append) {
+        return {
+          team_id: state.teamId,
+          status: optionalValue(state.status),
+          task_type: optionalValue(state.taskType),
+          correlation_id: optionalValue(state.correlationId),
+          diary_id: optionalValue(state.diaryId),
+          imposed_by_agent_id: optionalValue(state.requestedAgentId),
+          imposed_by_human_id: optionalValue(state.requestedHumanId),
+          claimed_by_agent_id: optionalValue(state.agentId),
+          has_attempts: optionalBoolean(state.hasAttempts),
+          queued_after: optionalDateTime(state.queuedAfter),
+          queued_before: optionalDateTime(state.queuedBefore),
+          completed_after: optionalDateTime(state.completedAfter),
+          completed_before: optionalDateTime(state.completedBefore),
+          limit: 25,
+          cursor: append ? state.nextCursor : undefined,
+        };
+      }
+
       function getTeamLabel(team) {
         const suffix = team.personal ? ' personal' : team.role ? ' ' + team.role : '';
         return (team.name ?? team.id) + suffix;
@@ -469,31 +653,6 @@ function buildTaskAppHtml(): string {
         const name = member.displayName || member.subjectId;
         const fingerprint = member.fingerprint ? ' ' + member.fingerprint.slice(0, 12) : '';
         return name + fingerprint;
-      }
-
-      function getTaskAttempts(taskId) {
-        return state.attemptsByTaskId.get(taskId) ?? [];
-      }
-
-      function getTaskWorkerIds(taskId) {
-        return [...new Set(getTaskAttempts(taskId).map((attempt) => attempt.claimedByAgentId).filter(Boolean))];
-      }
-
-      function getWorkerTaskCounts() {
-        const counts = new Map();
-        for (const task of state.tasks) {
-          for (const agentId of getTaskWorkerIds(task.id)) {
-            counts.set(agentId, (counts.get(agentId) ?? 0) + 1);
-          }
-        }
-        return counts;
-      }
-
-      function getVisibleTasks() {
-        if (!state.agentId) return state.tasks;
-        return state.tasks.filter((task) =>
-          getTaskWorkerIds(task.id).includes(state.agentId),
-        );
       }
 
       function escapeHtml(value) {
@@ -506,19 +665,20 @@ function buildTaskAppHtml(): string {
       }
 
       function renderQueue() {
-        const visibleTasks = getVisibleTasks();
-        queueCount.textContent = visibleTasks.length
-          ? visibleTasks.length + ' task' + (visibleTasks.length === 1 ? '' : 's')
+        queueCount.textContent = state.tasks.length
+          ? state.tasks.length + ' task' + (state.tasks.length === 1 ? '' : 's')
           : 'No tasks';
         loadMore.hidden = !state.nextCursor;
         queue.innerHTML = '';
-        for (const task of visibleTasks) {
-          const workers = getTaskWorkerIds(task.id);
-          const workerText = workers.length
-            ? 'Worked by ' + workers.map((id) => getMemberLabel(state.members.find((member) => member.subjectId === id) ?? { subjectId: id })).join(', ')
-            : task.imposedByAgentId
-              ? 'Requested by ' + task.imposedByAgentId
-              : 'No attempts yet';
+        for (const task of state.tasks) {
+          const requesterText = task.imposedByAgentId
+            ? 'Requested by agent ' + task.imposedByAgentId
+            : task.imposedByHumanId
+              ? 'Requested by human ' + task.imposedByHumanId
+              : 'Requester unknown';
+          const attemptText = task.acceptedAttemptN
+            ? 'Accepted attempt ' + task.acceptedAttemptN
+            : 'No accepted attempt';
           const row = document.createElement('button');
           row.type = 'button';
           row.className = 'queue-item';
@@ -528,7 +688,7 @@ function buildTaskAppHtml(): string {
             '</strong><code class="muted mono">' +
             escapeHtml(task.id) +
             '</code><span class="muted">' +
-            escapeHtml(workerText) +
+            escapeHtml(requesterText + ' · ' + attemptText) +
             '</span></div><span class="status queue-status">' +
             escapeHtml(task.status ?? 'unknown') +
             '</span>';
@@ -622,44 +782,17 @@ function buildTaskAppHtml(): string {
         }
         const result = await app.callServerTool({
           name: 'tasks_list',
-          arguments: {
-            team_id: state.teamId,
-            status: state.status || undefined,
-            claimed_by_agent_id: state.agentId || undefined,
-            limit: 25,
-            cursor: append ? state.nextCursor : undefined,
-          },
+          arguments: buildTaskListArguments(append),
         });
         const data = parseToolJson(result);
         state.tasks = append
           ? state.tasks.concat(data.items ?? [])
           : data.items ?? [];
         state.nextCursor = data.nextCursor;
-        await loadVisibleAttempts();
         renderAgents();
         renderQueue();
         loadMore.disabled = false;
         loadMore.textContent = 'Load more';
-      }
-
-      async function loadVisibleAttempts() {
-        state.attemptsByTaskId = new Map();
-        await Promise.all(
-          state.tasks.map(async (task) => {
-            try {
-              const result = await app.callServerTool({
-                name: 'tasks_attempts_list',
-                arguments: { task_id: task.id },
-              });
-              state.attemptsByTaskId.set(
-                task.id,
-                parseToolJson(result).items ?? [],
-              );
-            } catch {
-              state.attemptsByTaskId.set(task.id, []);
-            }
-          }),
-        );
       }
 
       async function loadTask(taskId) {
@@ -682,10 +815,8 @@ function buildTaskAppHtml(): string {
           arguments: { task_id: taskId },
         });
         const items = parseToolJson(result).items ?? [];
-        state.attemptsByTaskId.set(taskId, items);
         renderAttempts(items);
         renderAgents();
-        renderQueue();
       }
 
       async function loadMessages(taskId, attemptN, row) {
@@ -702,12 +833,39 @@ function buildTaskAppHtml(): string {
         state.teamId = data.team_id ?? data.teamId ?? '';
         state.taskId = data.task_id ?? data.taskId ?? '';
         state.status = data.status ?? '';
+        state.taskType = data.task_type ?? data.filters?.task_type ?? '';
+        state.diaryId = data.diary_id ?? data.filters?.diary_id ?? '';
+        state.correlationId =
+          data.correlation_id ?? data.filters?.correlation_id ?? '';
+        state.requestedAgentId =
+          data.imposed_by_agent_id ?? data.filters?.imposed_by_agent_id ?? '';
+        state.requestedHumanId =
+          data.imposed_by_human_id ?? data.filters?.imposed_by_human_id ?? '';
+        state.agentId =
+          data.claimed_by_agent_id ?? data.filters?.claimed_by_agent_id ?? '';
+        state.hasAttempts =
+          typeof data.has_attempts === 'boolean'
+            ? String(data.has_attempts)
+            : typeof data.filters?.has_attempts === 'boolean'
+              ? String(data.filters.has_attempts)
+              : '';
+        state.queuedAfter = toDateTimeLocal(
+          data.queued_after ?? data.filters?.queued_after,
+        );
+        state.queuedBefore = toDateTimeLocal(
+          data.queued_before ?? data.filters?.queued_before,
+        );
+        state.completedAfter = toDateTimeLocal(
+          data.completed_after ?? data.filters?.completed_after,
+        );
+        state.completedBefore = toDateTimeLocal(
+          data.completed_before ?? data.filters?.completed_before,
+        );
         state.consoleUrl = data.console_url ?? data.consoleUrl ?? '';
-        syncTeamInputs();
-        statusInput.value = state.status;
+        syncFilterInputs();
         connection.textContent = 'Connected';
         if (state.teamId) {
-          void loadMembers(state.teamId);
+          void loadMembers(state.teamId, { preserveAgent: true });
         }
         if (state.taskId) {
           void loadTask(state.taskId);
@@ -728,22 +886,18 @@ function buildTaskAppHtml(): string {
       }
 
       function renderAgents() {
-        const counts = getWorkerTaskCounts();
         const options = new Map();
         for (const member of state.members.filter((item) => item.subjectType === 'agent')) {
           options.set(member.subjectId, getMemberLabel(member));
         }
-        for (const agentId of counts.keys()) {
-          if (!options.has(agentId)) {
-            options.set(agentId, agentId);
-          }
+        if (state.agentId && !options.has(state.agentId)) {
+          options.set(state.agentId, state.agentId);
         }
         agentInput.innerHTML = '<option value="">Any agent</option>';
         for (const [agentId, label] of options) {
-          const count = counts.get(agentId) ?? 0;
           const option = document.createElement('option');
           option.value = agentId;
-          option.textContent = count > 0 ? label + ' (' + count + ')' : label;
+          option.textContent = label;
           agentInput.append(option);
         }
         agentInput.value = state.agentId;
@@ -778,9 +932,11 @@ function buildTaskAppHtml(): string {
         }
       }
 
-      async function loadMembers(teamId) {
+      async function loadMembers(teamId, options = {}) {
         state.members = [];
-        state.agentId = '';
+        if (options.preserveAgent !== true) {
+          state.agentId = '';
+        }
         renderAgents();
         if (!teamId) return;
         try {
@@ -807,9 +963,7 @@ function buildTaskAppHtml(): string {
 
       byId('filters').addEventListener('submit', (event) => {
         event.preventDefault();
-        state.teamId = teamIdInput.value.trim();
-        state.agentId = agentInput.value;
-        state.status = statusInput.value;
+        readFiltersFromInputs();
         void loadTasks();
       });
       teamSelect.addEventListener('change', () => {
@@ -822,7 +976,7 @@ function buildTaskAppHtml(): string {
         state.teamId = teamIdInput.value.trim();
         state.agentId = '';
         syncTeamInputs();
-        void loadMembers(state.teamId);
+        void loadMembers(state.teamId).then(() => loadTasks());
       });
       agentInput.addEventListener('change', () => {
         state.agentId = agentInput.value;
@@ -858,16 +1012,40 @@ function getConsoleUrl(
   return `${deps.consoleBaseUrl.replaceAll(/\/+$/g, '')}/tasks/${taskId}`;
 }
 
+function definedEntries<T extends Record<string, unknown>>(
+  value: T,
+): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
+  ) as Partial<T>;
+}
+
 export function handleTasksAppOpen(
   args: TaskAppOpenInput,
   deps: Pick<McpDeps, 'consoleBaseUrl'> = {},
 ): CallToolResult {
+  const filters = definedEntries({
+    team_id: args.team_id,
+    status: args.status,
+    task_type: args.task_type,
+    correlation_id: args.correlation_id,
+    diary_id: args.diary_id,
+    imposed_by_agent_id: args.imposed_by_agent_id,
+    imposed_by_human_id: args.imposed_by_human_id,
+    claimed_by_agent_id: args.claimed_by_agent_id,
+    has_attempts: args.has_attempts,
+    queued_after: args.queued_after,
+    queued_before: args.queued_before,
+    completed_after: args.completed_after,
+    completed_before: args.completed_before,
+  });
   const output: TaskAppOpenOutput = {
     app: 'moltnet_tasks',
     resourceUri: TASK_APP_RESOURCE_URI,
     teamId: args.team_id,
     taskId: args.task_id,
     status: args.status,
+    filters,
     consoleUrl: getConsoleUrl(deps, args.task_id, args.console_url),
     tools: [
       'teams_list',

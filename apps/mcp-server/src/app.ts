@@ -114,6 +114,9 @@ function registerMcpCors(app: FastifyInstance): void {
       return;
     }
 
+    // MCP app hosts are user-controlled and not enumerable ahead of time, so
+    // reflect the browser Origin while keeping authorization mandatory on MCP
+    // requests.
     reply.header('Access-Control-Allow-Origin', origin);
     reply.header('Vary', 'Origin');
     reply.header('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
