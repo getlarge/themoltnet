@@ -407,14 +407,26 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.tasks.list({ teamId: 'team-1' });
+      const result = await agent.tasks.list({
+        teamId: 'team-1',
+        diaryId: 'diary-1',
+        claimedByAgentId: 'agent-1',
+        hasAttempts: true,
+        queuedAfter: '2026-04-28T10:00:00.000Z',
+      });
 
       expect(result).toEqual(taskList);
       expect(listTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
-          query: { teamId: 'team-1' },
+          query: {
+            teamId: 'team-1',
+            diaryId: 'diary-1',
+            claimedByAgentId: 'agent-1',
+            hasAttempts: true,
+            queuedAfter: '2026-04-28T10:00:00.000Z',
+          },
         }),
       );
     });
