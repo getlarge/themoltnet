@@ -307,6 +307,9 @@ export const TaskConsoleLinkOutputSchema = Type.Object({
   consoleUrl: Type.Optional(Type.String()),
 });
 
+// Keep the app output filter schema self-contained. Reusing TaskListSchema here
+// duplicates referenced $id schemas such as TaskStatus in tools/list responses,
+// which makes AJV-based MCP clients reject the full tool list.
 const TaskAppFilterStatusSchema = Type.Union([
   Type.Literal('queued'),
   Type.Literal('dispatched'),

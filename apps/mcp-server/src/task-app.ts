@@ -315,7 +315,7 @@ function buildTaskAppHtml(): string {
             <input id="team-id" autocomplete="off" placeholder="team uuid" />
           </label>
           <label>
-            Worked by
+            Worker
             <select id="agent">
               <option value="">Any agent</option>
             </select>
@@ -509,7 +509,6 @@ function buildTaskAppHtml(): string {
         teams: [],
         members: [],
         tasks: [],
-        attemptsByTaskId: new Map(),
         nextCursor: undefined,
       };
 
@@ -656,24 +655,6 @@ function buildTaskAppHtml(): string {
         return name + fingerprint;
       }
 
-      function getTaskAttempts(taskId) {
-        return state.attemptsByTaskId.get(taskId) ?? [];
-      }
-
-      function getTaskWorkerIds(taskId) {
-        return [...new Set(getTaskAttempts(taskId).map((attempt) => attempt.claimedByAgentId).filter(Boolean))];
-      }
-
-      function getWorkerTaskCounts() {
-        const counts = new Map();
-        for (const task of state.tasks) {
-          for (const agentId of getTaskWorkerIds(task.id)) {
-            counts.set(agentId, (counts.get(agentId) ?? 0) + 1);
-          }
-        }
-        return counts;
-      }
-
       function escapeHtml(value) {
         return String(value ?? '')
           .replaceAll('&', '&amp;')
@@ -690,12 +671,14 @@ function buildTaskAppHtml(): string {
         loadMore.hidden = !state.nextCursor;
         queue.innerHTML = '';
         for (const task of state.tasks) {
-          const workers = getTaskWorkerIds(task.id);
-          const workerText = workers.length
-            ? 'Worked by ' + workers.map((id) => getMemberLabel(state.members.find((member) => member.subjectId === id) ?? { subjectId: id })).join(', ')
-            : task.imposedByAgentId
-              ? 'Requested by ' + task.imposedByAgentId
-              : 'No attempts yet';
+          const requesterText = task.imposedByAgentId
+            ? 'Requested by agent ' + task.imposedByAgentId
+            : task.imposedByHumanId
+              ? 'Requested by human ' + task.imposedByHumanId
+              : 'Requester unknown';
+          const attemptText = task.acceptedAttemptN
+            ? 'Accepted attempt ' + task.acceptedAttemptN
+            : 'No accepted attempt';
           const row = document.createElement('button');
           row.type = 'button';
           row.className = 'queue-item';
@@ -705,7 +688,7 @@ function buildTaskAppHtml(): string {
             '</strong><code class="muted mono">' +
             escapeHtml(task.id) +
             '</code><span class="muted">' +
-            escapeHtml(workerText) +
+            escapeHtml(requesterText + ' · ' + attemptText) +
             '</span></div><span class="status queue-status">' +
             escapeHtml(task.status ?? 'unknown') +
             '</span>';
@@ -832,10 +815,8 @@ function buildTaskAppHtml(): string {
           arguments: { task_id: taskId },
         });
         const items = parseToolJson(result).items ?? [];
-        state.attemptsByTaskId.set(taskId, items);
         renderAttempts(items);
         renderAgents();
-        renderQueue();
       }
 
       async function loadMessages(taskId, attemptN, row) {
@@ -905,25 +886,18 @@ function buildTaskAppHtml(): string {
       }
 
       function renderAgents() {
-        const counts = getWorkerTaskCounts();
         const options = new Map();
         for (const member of state.members.filter((item) => item.subjectType === 'agent')) {
           options.set(member.subjectId, getMemberLabel(member));
-        }
-        for (const agentId of counts.keys()) {
-          if (!options.has(agentId)) {
-            options.set(agentId, agentId);
-          }
         }
         if (state.agentId && !options.has(state.agentId)) {
           options.set(state.agentId, state.agentId);
         }
         agentInput.innerHTML = '<option value="">Any agent</option>';
         for (const [agentId, label] of options) {
-          const count = counts.get(agentId) ?? 0;
           const option = document.createElement('option');
           option.value = agentId;
-          option.textContent = count > 0 ? label + ' (' + count + ')' : label;
+          option.textContent = label;
           agentInput.append(option);
         }
         agentInput.value = state.agentId;
