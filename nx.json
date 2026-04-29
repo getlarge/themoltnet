@@ -69,7 +69,9 @@
   ],
   "targetDefaults": {
     "build": {
-      "inputs": ["production", "^production"]
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist"]
     },
     "typecheck": {
       "cache": true,
