@@ -52,6 +52,7 @@ import {
   createGondolinWriteOps,
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
+import { buildRuntimeInstructor } from './runtime-instructor.js';
 import { parseStructuredTaskOutput } from './task-output.js';
 
 export interface ExecutePiTaskOptions {
@@ -278,6 +279,15 @@ export async function executePiTask(
         },
         getHostCwd: () => mountPath,
         hostExecBaseEnv,
+        // Daemon path is always inside an active task — wire the task
+        // context so moltnet_create_entry forces the task diary and
+        // injects provenance tags (issue #979).
+        getTaskContext: () => ({
+          taskId: task.id,
+          taskType: task.taskType,
+          attemptN,
+          diaryId,
+        }),
       });
 
       const piAuthDir = join(homedir(), '.pi', 'agent');
@@ -298,10 +308,29 @@ export async function executePiTask(
           'moltnet.task.type': task.taskType,
         },
       });
+      // Daemon-controlled runtime isolation (issue #979):
+      //  - Inline the runtime instructor as appendSystemPrompt so the
+      //    invariants (gh auth, diary discipline, accountable commits) are
+      //    in the system prompt every turn, not lazily fetched via a
+      //    pi Skill pointer the model may or may not follow.
+      //  - skillsOverride discards every locally-discovered skill
+      //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) so untrusted local
+      //    prose never appears as a `<location>` pointer in the system
+      //    prompt's `<available_skills>` block. Future skill-pack injection
+      //    (#956) will return daemon-fetched, CID-verified Skills here.
+      const runtimeInstructor = buildRuntimeInstructor({
+        taskId: task.id,
+        taskType: task.taskType,
+        attemptN,
+        diaryId,
+        agentName: opts.agentName,
+      });
       const resourceLoader = new DefaultResourceLoader({
         cwd: mountPath,
         agentDir: piAuthDir,
         extensionFactories: [piOtelExtension],
+        appendSystemPrompt: [runtimeInstructor],
+        skillsOverride: () => ({ skills: [], diagnostics: [] }),
       });
       await resourceLoader.reload();
 
