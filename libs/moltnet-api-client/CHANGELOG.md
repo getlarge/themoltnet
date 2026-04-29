@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.22.0...moltnet-api-client-v1.22.1) (2026-04-29)
+
+
+### Codegen
+
+* **codegen:** regenerate task list filter clients ([a7812bb](https://github.com/getlarge/themoltnet/commit/a7812bbf879f8e0430231cfbb7867939e265d36f))
+
 ## [1.22.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.21.0...moltnet-api-client-v1.22.0) (2026-04-26)
 
 
