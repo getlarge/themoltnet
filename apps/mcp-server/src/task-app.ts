@@ -304,6 +304,7 @@ function buildTaskAppHtml(): string {
             <select id="status">
               <option value="">Any</option>
               <option value="queued">Queued</option>
+              <option value="dispatched">Dispatched</option>
               <option value="running">Running</option>
               <option value="completed">Completed</option>
               <option value="failed">Failed</option>
@@ -489,13 +490,6 @@ function buildTaskAppHtml(): string {
         return counts;
       }
 
-      function getVisibleTasks() {
-        if (!state.agentId) return state.tasks;
-        return state.tasks.filter((task) =>
-          getTaskWorkerIds(task.id).includes(state.agentId),
-        );
-      }
-
       function escapeHtml(value) {
         return String(value ?? '')
           .replaceAll('&', '&amp;')
@@ -506,13 +500,12 @@ function buildTaskAppHtml(): string {
       }
 
       function renderQueue() {
-        const visibleTasks = getVisibleTasks();
-        queueCount.textContent = visibleTasks.length
-          ? visibleTasks.length + ' task' + (visibleTasks.length === 1 ? '' : 's')
+        queueCount.textContent = state.tasks.length
+          ? state.tasks.length + ' task' + (state.tasks.length === 1 ? '' : 's')
           : 'No tasks';
         loadMore.hidden = !state.nextCursor;
         queue.innerHTML = '';
-        for (const task of visibleTasks) {
+        for (const task of state.tasks) {
           const workers = getTaskWorkerIds(task.id);
           const workerText = workers.length
             ? 'Worked by ' + workers.map((id) => getMemberLabel(state.members.find((member) => member.subjectId === id) ?? { subjectId: id })).join(', ')
@@ -635,31 +628,10 @@ function buildTaskAppHtml(): string {
           ? state.tasks.concat(data.items ?? [])
           : data.items ?? [];
         state.nextCursor = data.nextCursor;
-        await loadVisibleAttempts();
         renderAgents();
         renderQueue();
         loadMore.disabled = false;
         loadMore.textContent = 'Load more';
-      }
-
-      async function loadVisibleAttempts() {
-        state.attemptsByTaskId = new Map();
-        await Promise.all(
-          state.tasks.map(async (task) => {
-            try {
-              const result = await app.callServerTool({
-                name: 'tasks_attempts_list',
-                arguments: { task_id: task.id },
-              });
-              state.attemptsByTaskId.set(
-                task.id,
-                parseToolJson(result).items ?? [],
-              );
-            } catch {
-              state.attemptsByTaskId.set(task.id, []);
-            }
-          }),
-        );
       }
 
       async function loadTask(taskId) {
@@ -822,7 +794,7 @@ function buildTaskAppHtml(): string {
         state.teamId = teamIdInput.value.trim();
         state.agentId = '';
         syncTeamInputs();
-        void loadMembers(state.teamId);
+        void loadMembers(state.teamId).then(() => loadTasks());
       });
       agentInput.addEventListener('change', () => {
         state.agentId = agentInput.value;
