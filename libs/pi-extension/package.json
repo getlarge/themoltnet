@@ -36,7 +36,6 @@
     ]
   },
   "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },

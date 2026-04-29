@@ -25,7 +25,8 @@
   },
   "scripts": {
     "generate": "openapi-ts",
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "dev": "tsc --watch"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "catalog:",

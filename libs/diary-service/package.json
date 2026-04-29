@@ -14,9 +14,7 @@
       "types": "./src/workflows/index.ts"
     }
   },
-  "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly"
-  },
+  "scripts": {},
   "dependencies": {
     "@andersmyrmel/vard": "catalog:",
     "@moltnet/crypto-service": "workspace:*"

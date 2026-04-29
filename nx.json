@@ -65,6 +65,13 @@
       },
       "plugin": "@nx/docker"
     },
+    {
+      "options": {
+        "build": { "configName": "tsconfig.lib.json", "targetName": "build" },
+        "typecheck": { "targetName": "typecheck" }
+      },
+      "plugin": "@nx/js/typescript"
+    },
     "@nx-go/nx-go"
   ],
   "targetDefaults": {
@@ -72,19 +79,6 @@
       "cache": true,
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist"]
-    },
-    "typecheck": {
-      "cache": true,
-      "inputs": [
-        "default",
-        "^default",
-        { "externalDependencies": ["typescript"] }
-      ],
-      "outputs": [
-        "{projectRoot}/out-tsc/**/*.d.ts",
-        "{projectRoot}/out-tsc/**/*.d.ts.map",
-        "{projectRoot}/out-tsc/**/*.tsbuildinfo"
-      ]
     }
   }
 }

@@ -12,7 +12,6 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/"
   },
   "dependencies": {

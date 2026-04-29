@@ -13,7 +13,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@sinclair/typebox": "catalog:",

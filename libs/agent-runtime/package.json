@@ -31,7 +31,6 @@
     "!dist/.dts"
   ],
   "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {

@@ -17,8 +17,8 @@
     "studio": "drizzle-kit studio",
     "db:migrate:run": "tsx src/migrate-cli.ts",
     "db:status": "tsx src/migrate-status.ts",
-    "build": "tsc -b",
-    "dev": "tsc --watch"
+    "build": "tsc -b tsconfig.lib.json",
+    "dev": "tsc --watch -p tsconfig.lib.json"
   },
   "dependencies": {
     "@dbos-inc/dbos-sdk": "catalog:",

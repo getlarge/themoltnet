@@ -10,9 +10,7 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly"
-  },
+  "scripts": {},
   "dependencies": {
     "@huggingface/transformers": "catalog:"
   },

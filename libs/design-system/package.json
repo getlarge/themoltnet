@@ -41,7 +41,6 @@
   "scripts": {
     "dev": "tsc --watch",
     "demo": "vite demo",
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "peerDependencies": {

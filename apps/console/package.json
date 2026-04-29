@@ -5,8 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:e2e": "playwright test",
-    "typecheck": "tsc -b --emitDeclarationOnly"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
