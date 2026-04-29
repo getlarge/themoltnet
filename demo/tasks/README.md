@@ -11,6 +11,12 @@ There are now **two** ways to demo tasks:
 The API flow exercises the real lifecycle shipped in #900. The file flow
 still matters for prompt-builder regression tests and quick local runs.
 
+> **For full agent-daemon end-to-end smoke tests** (claim → VM boot →
+> agent runs → diary entries land with task-provenance tags), see
+> [`docs/local-runtime-testing.md`](../../docs/local-runtime-testing.md).
+> That flow uses `pnpm task:bootstrap-local` to provision a throwaway
+> agent against the local stack, then runs the daemon for real.
+
 ## Recommended: API-backed pack pipeline demo
 
 > **Prerequisites:** the REST API and database must be running.

@@ -17,13 +17,7 @@ export function buildFulfillBriefPrompt(
   input: FulfillBriefInput,
   ctx: Ctx,
 ): string {
-  const {
-    brief,
-    title,
-    acceptanceCriteria,
-    seedFiles,
-    scopeHint,
-  } = input;
+  const { brief, title, acceptanceCriteria, seedFiles, scopeHint } = input;
 
   const criteriaSection = acceptanceCriteria?.length
     ? [
@@ -51,16 +45,13 @@ export function buildFulfillBriefPrompt(
     '',
     'You are a software engineering agent working in a sandboxed environment.',
     'Your workspace is at /workspace (mounted from the host repository).',
-    '',
-    '## IMPORTANT: Read the legreffier skill FIRST',
-    '',
-    'Before doing anything, read `/workspace/.agents/skills/legreffier/SKILL.md`.',
-    'Follow its accountable commit workflow for EVERY commit in this session.',
-    'Every commit must have a signed diary entry.',
-    `Your diary ID is: ${ctx.diaryId}`,
-    `This task's id is: ${ctx.taskId}`,
+    'The MoltNet runtime instructor (above, in this system prompt) defines the',
+    'invariants for this task: identity, gh authentication, diary discipline,',
+    'and the accountable-commit shape. Follow it for every commit.',
     '',
     `## Task: ${title ?? 'Fulfill brief'}`,
+    '',
+    `Task id: \`${ctx.taskId}\``,
     '',
     '### Brief',
     '',
@@ -74,8 +65,10 @@ export function buildFulfillBriefPrompt(
     '2. Understand the problem — read relevant code; do not speculate.',
     '3. Implement the change. Keep commits small and coherent.',
     '4. Add tests if applicable.',
-    '5. Follow the legreffier accountable-commit workflow: one diary entry per commit, signed for medium/high-risk changes.',
-    '6. Push the branch and open a PR (the legreffier skill explains how to authenticate `gh`).',
+    '5. For every commit, create a signed diary entry first via',
+    '   `moltnet_create_entry` and embed its id in the commit trailer',
+    '   `MoltNet-Diary: <id>` (per the runtime instructor).',
+    '6. Push the branch and open a PR.',
     '',
     '### Final output',
     '',
