@@ -1,40 +1,32 @@
 import type { AssessBriefInput } from '@moltnet/tasks';
 
-/**
- * The producer task projection a daemon-side resolver hands to the
- * `assess_brief` prompt builder. Carries everything the judge needs to
- * find what it's reviewing without an extra fetch: the producer's
- * branch, PR url, commits, summary, and the diary entries written
- * during fulfillment.
- *
- * Exported so the daemon's resolver and this prompt builder share
- * exactly one shape — adding a field to one without the other becomes
- * a compile error rather than a structural-typing accident.
- */
-export interface AssessBriefTarget {
-  /** Producer task id (the fulfill_brief being judged). */
-  taskId: string;
-  branch: string | null;
-  pullRequestUrl: string | null;
-  summary: string | null;
-  commitShas: string[];
-  diaryEntryIds: string[];
-}
-
-/**
- * Key the prompt-builder reads from `PromptContext.extras` to find the
- * resolved producer projection. Daemon resolvers MUST set
- * `extras[ASSESS_BRIEF_TARGET_EXTRA_KEY]` to an `AssessBriefTarget`
- * object. A typo on either side is now a compile error.
- */
-export const ASSESS_BRIEF_TARGET_EXTRA_KEY = 'target' as const;
-
 interface Ctx {
   diaryId: string;
   taskId: string;
-  target: AssessBriefTarget;
 }
 
+/**
+ * Build the system prompt for an `assess_brief` judge attempt.
+ *
+ * Design note — no pre-resolved `target` projection
+ * --------------------------------------------------
+ * Earlier drafts hand-wired a `target` bundle (branch, PR url,
+ * commits, summary, diary entry ids) into the prompt before the
+ * judge started. That coupled the daemon to one specific producer
+ * shape (`FulfillBriefOutput`), forced every executor to know how
+ * to project it, and went stale every time a producer task type
+ * grew a field. Trade-off was wrong: the runtime is meant to be
+ * task-type-agnostic, and judges are perfectly capable of
+ * fetching their own data.
+ *
+ * Now: the prompt tells the judge the `targetTaskId` and instructs
+ * it to call `moltnet_get_task` + `moltnet_list_task_attempts`
+ * itself. The judge sees whatever the producer's accepted attempt
+ * actually wrote — no projection, no lossiness, no daemon-side
+ * type knowledge required. Different producers (fulfill_brief,
+ * future task types whose products are docs / configs / changes /
+ * anything) work without any code path here.
+ */
 export function buildAssessBriefPrompt(
   input: AssessBriefInput,
   ctx: Ctx,
@@ -45,24 +37,6 @@ export function buildAssessBriefPrompt(
         `${i + 1}. **${c.id}** (weight ${c.weight}, scoring: \`${c.scoring}\`) — ${c.description}`,
     )
     .join('\n');
-
-  const commitSection = ctx.target.commitShas.length
-    ? [
-        '### Commits',
-        '',
-        ...ctx.target.commitShas.map((s) => `- ${s}`),
-        '',
-      ].join('\n')
-    : '';
-
-  const diarySection = ctx.target.diaryEntryIds.length
-    ? [
-        '### Diary entries produced during fulfillment',
-        '',
-        ...ctx.target.diaryEntryIds.map((id) => `- ${id}`),
-        '',
-      ].join('\n')
-    : '';
 
   const preambleSection = input.rubricPreamble
     ? ['### Rubric preamble', '', input.rubricPreamble, ''].join('\n')
@@ -80,13 +54,24 @@ export function buildAssessBriefPrompt(
     '',
     '## Target of assessment',
     '',
-    `**fulfill_brief task id:** ${ctx.target.taskId}`,
-    ctx.target.branch ? `**Branch:** \`${ctx.target.branch}\`` : '',
-    ctx.target.pullRequestUrl ? `**PR:** ${ctx.target.pullRequestUrl}` : '',
-    ctx.target.summary ? `**Producer summary:** ${ctx.target.summary}` : '',
+    `**Producer task id:** \`${input.targetTaskId}\``,
     '',
-    commitSection,
-    diarySection,
+    'Investigate the producer task before scoring:',
+    '',
+    `1. Call \`moltnet_get_task\` with taskId=\`${input.targetTaskId}\`. ` +
+      'Note its `taskType`, `acceptedAttemptN`, and `references[]`.',
+    `2. Call \`moltnet_list_task_attempts\` with taskId=\`${input.targetTaskId}\`. ` +
+      'Find the attempt whose `attemptN` matches `acceptedAttemptN`. Its ' +
+      '`output` is the canonical artefact you are judging — earlier ' +
+      'failed/timed_out attempts are audit-only and must NOT influence the score.',
+    "3. Read the accepted attempt's `output`. Common shapes you may encounter:",
+    '   - `pullRequestUrl` set → run `gh pr diff <number>` and `gh pr view <number>` to read the change.',
+    '   - `branch` set without a PR → run `git log <branch>` and `git diff main..<branch>`.',
+    '   - `commits[].sha` listed → use `git show <sha>` for individual commits.',
+    "   - `diaryEntryIds[]` listed → fetch each via `moltnet_get_entry` to read the producer's reasoning.",
+    '   - `summary` set → use as orientation, not as ground truth.',
+    "Adapt your investigation to whatever the output actually contains. Score conservatively when the producer's output is opaque or thin.",
+    '',
     preambleSection,
     '## Criteria',
     '',
@@ -96,7 +81,7 @@ export function buildAssessBriefPrompt(
     '',
     '- `llm_judged`: score 0..1 continuous. `rationale` REQUIRED (2–4 sentences).',
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
-    '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry listed above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
+    '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry returned by step 3 above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
     '',
     '### Final output',
     '',

@@ -27,17 +27,23 @@ describe('buildPromptForTask', () => {
     expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
   });
 
-  it('rejects assess_brief without a target in extras', () => {
+  it('builds assess_brief prompt with self-fetch instructions for the target task', () => {
+    const targetTaskId = '11111111-1111-4111-8111-111111111111';
     const task = makeFulfillBriefTask({
       taskType: ASSESS_BRIEF_TYPE,
       input: {
-        targetTaskId: '11111111-1111-4111-8111-111111111111',
+        targetTaskId,
         criteria: [
           { id: 'c1', description: 'Works', weight: 1, scoring: 'llm_judged' },
         ],
       },
     });
-    expect(() => buildPromptForTask(task, ctx)).toThrow(/target/);
+    const prompt = buildPromptForTask(task, ctx);
+    // The judge should be told the target's id and instructed to fetch
+    // it via the MoltNet tools — no pre-resolved bundle required.
+    expect(prompt).toContain(targetTaskId);
+    expect(prompt).toContain('moltnet_get_task');
+    expect(prompt).toContain('moltnet_list_task_attempts');
   });
 
   it('throws on unknown taskType', () => {

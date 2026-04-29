@@ -19,7 +19,6 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { createPromptExtrasResolver } from '../lib/resolve-prompt-extras.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
@@ -93,7 +92,6 @@ export async function runOnce(argv: string[]): Promise<number> {
       provider: opts.provider,
       model: opts.model,
       sandboxConfig: sandbox.config,
-      resolvePromptExtras: createPromptExtrasResolver(ctx.agent),
     });
 
     const runtime = new AgentRuntime({
