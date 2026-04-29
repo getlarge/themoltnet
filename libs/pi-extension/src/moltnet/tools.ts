@@ -24,6 +24,19 @@ import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
 
+/**
+ * Active-task context. When present, `moltnet_create_entry` is forced to
+ * land entries in `diaryId` (the task diary), regardless of the env-derived
+ * diary, and auto-injects provenance tags (`task:<id>`, `task_type:<type>`,
+ * `attempt:<n>`). See issue #979.
+ */
+export interface MoltNetTaskContext {
+  taskId: string;
+  taskType: string;
+  attemptN: number;
+  diaryId: string;
+}
+
 export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;
   getDiaryId(): string | null;
@@ -39,6 +52,13 @@ export interface MoltNetToolsConfig {
    * Defaults to HOST_EXEC_DEFAULT_BASE_ENV when omitted.
    */
   hostExecBaseEnv?: ReadonlySet<string>;
+  /**
+   * Active-task context, populated by the agent-daemon path. When set,
+   * `moltnet_create_entry` enforces `diaryId === taskContext.diaryId` and
+   * injects provenance tags. When absent (interactive pi-extension / TUI),
+   * entry creation behaves as before (env-derived diary, no auto-tags).
+   */
+  getTaskContext?(): MoltNetTaskContext | null;
 }
 
 /**
@@ -685,7 +705,10 @@ export function createMoltNetTools(
     name: 'moltnet_create_entry',
     label: 'Create MoltNet Diary Entry',
     description:
-      'Create a new diary entry to record decisions, findings, incidents, or reflections.',
+      'Create a new diary entry to record decisions, findings, incidents, or reflections. ' +
+      'During an active task, the entry is forced into the task diary and tagged with ' +
+      'task:<id>, task_type:<type>, attempt:<n>; an explicit diaryId mismatching the task ' +
+      'diary is rejected.',
     parameters: Type.Object({
       title: Type.String({
         description: 'Entry title (concise, descriptive)',
@@ -699,17 +722,58 @@ export function createMoltNetTools(
       importance: Type.Optional(
         Type.Number({ description: 'Importance 1-10 (default 5)' }),
       ),
+      diaryId: Type.Optional(
+        Type.String({
+          description:
+            'Explicit diary id. During an active task, must match the task diary or the call is rejected. Outside a task, overrides the env-derived diary.',
+        }),
+      ),
     }),
     async execute(_id, params) {
-      const { agent, diaryId } = ensureConnected(config);
-      const entry = await agent.entries.create(diaryId, {
+      const { agent, diaryId: envDiaryId } = ensureConnected(config);
+      const taskCtx = config.getTaskContext?.() ?? null;
+
+      let targetDiaryId: string;
+      let autoTags: string[] = [];
+
+      if (taskCtx) {
+        // During a task: task diary is canonical. Reject mismatches; ignore
+        // any env-derived diary; inject provenance tags. See issue #979.
+        if (params.diaryId && params.diaryId !== taskCtx.diaryId) {
+          throw new Error(
+            `entries_create: diaryId "${params.diaryId}" does not match the active task diary "${taskCtx.diaryId}". Entries created during a task must land in the task diary.`,
+          );
+        }
+        targetDiaryId = taskCtx.diaryId;
+        autoTags = [
+          `task:${taskCtx.taskId}`,
+          `task_type:${taskCtx.taskType}`,
+          `attempt:${taskCtx.attemptN}`,
+        ];
+      } else {
+        // Outside a task (interactive / TUI): explicit param wins, else env.
+        targetDiaryId = params.diaryId ?? envDiaryId;
+      }
+
+      const userTags = params.tags ?? [];
+      const mergedTags = autoTags.length
+        ? [...autoTags, ...userTags.filter((t) => !autoTags.includes(t))]
+        : userTags;
+
+      const entry = await agent.entries.create(targetDiaryId, {
         title: params.title,
         content: params.content,
-        tags: params.tags ?? [],
+        tags: mergedTags,
         importance: params.importance ?? 5,
       });
       const text = JSON.stringify(
-        { id: entry.id, title: entry.title, createdAt: entry.createdAt },
+        {
+          id: entry.id,
+          title: entry.title,
+          createdAt: entry.createdAt,
+          diaryId: targetDiaryId,
+          tags: mergedTags,
+        },
         null,
         2,
       );
