@@ -95,6 +95,7 @@ describe('moltnet_create_entry — task-context enforcement', () => {
     taskType: 'fulfill_brief',
     attemptN: 2,
     diaryId: 'task-diary',
+    correlationId: null,
   };
 
   it('lands the entry in the task diary even when env diary differs', async () => {
@@ -194,6 +195,50 @@ describe('moltnet_create_entry — task-context enforcement', () => {
       'task_type:fulfill_brief',
       'task_attempt:2',
       'extra',
+    ]);
+  });
+
+  it('appends correlation:<id> when the task carries a correlationId', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const ctxWithCorrelation: MoltNetTaskContext = {
+      ...taskCtx,
+      correlationId: 'corr-abc',
+    };
+    const config = configFor(agent, 'env-diary', ctxWithCorrelation);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    // Assert
+    expect(captured[0].body.tags).toEqual([
+      'task:task-123',
+      'task_type:fulfill_brief',
+      'task_attempt:2',
+      'correlation:corr-abc',
+    ]);
+  });
+
+  it('omits the correlation tag when correlationId is null', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', taskCtx); // correlationId: null
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    // Assert
+    expect(captured[0].body.tags).not.toContain(
+      expect.stringMatching(/^correlation:/),
+    );
+    expect(captured[0].body.tags).toEqual([
+      'task:task-123',
+      'task_type:fulfill_brief',
+      'task_attempt:2',
     ]);
   });
 });
