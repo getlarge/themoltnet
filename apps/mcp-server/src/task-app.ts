@@ -625,6 +625,7 @@ function buildTaskAppHtml(): string {
           arguments: {
             team_id: state.teamId,
             status: state.status || undefined,
+            claimed_by_agent_id: state.agentId || undefined,
             limit: 25,
             cursor: append ? state.nextCursor : undefined,
           },
@@ -825,7 +826,7 @@ function buildTaskAppHtml(): string {
       });
       agentInput.addEventListener('change', () => {
         state.agentId = agentInput.value;
-        renderQueue();
+        void loadTasks();
       });
       loadMore.addEventListener('click', () => {
         void loadTasks({ append: true });
