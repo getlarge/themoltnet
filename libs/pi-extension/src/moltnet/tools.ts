@@ -28,13 +28,20 @@ type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
  * Active-task context. When present, `moltnet_create_entry` is forced to
  * land entries in `diaryId` (the task diary), regardless of the env-derived
  * diary, and auto-injects provenance tags (`task:<id>`, `task_type:<type>`,
- * `task_attempt:<n>`). See issue #979.
+ * `task_attempt:<n>`, and `correlation:<id>` when the task carries one).
+ * See issue #979.
  */
 export interface MoltNetTaskContext {
   taskId: string;
   taskType: string;
   attemptN: number;
   diaryId: string;
+  /**
+   * Optional correlation id. When set, propagated as a `correlation:<id>`
+   * provenance tag so all entries from a multi-task workflow can be
+   * grouped without enumerating individual task ids.
+   */
+  correlationId: string | null;
 }
 
 export interface MoltNetToolsConfig {
@@ -707,7 +714,7 @@ export function createMoltNetTools(
     description:
       'Create a new diary entry to record decisions, findings, incidents, or reflections. ' +
       'During an active task, the entry is forced into the task diary and tagged with ' +
-      'task:<id>, task_type:<type>, task_attempt:<n>; an explicit diaryId mismatching the task ' +
+      'task:<id>, task_type:<type>, task_attempt:<n>, and correlation:<id> when set; an explicit diaryId mismatching the task ' +
       'diary is rejected.',
     parameters: Type.Object({
       title: Type.String({
@@ -749,6 +756,9 @@ export function createMoltNetTools(
           `task:${taskCtx.taskId}`,
           `task_type:${taskCtx.taskType}`,
           `task_attempt:${taskCtx.attemptN}`,
+          ...(taskCtx.correlationId
+            ? [`correlation:${taskCtx.correlationId}`]
+            : []),
         ];
       } else {
         // Outside a task (interactive / TUI): explicit param wins, else env.

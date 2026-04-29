@@ -294,6 +294,7 @@ export async function executePiTask(
           taskType: task.taskType,
           attemptN,
           diaryId,
+          correlationId: task.correlationId ?? null,
         }),
       });
 
@@ -331,6 +332,7 @@ export async function executePiTask(
         attemptN,
         diaryId,
         agentName: opts.agentName,
+        correlationId: task.correlationId ?? null,
       });
       const resourceLoader = new DefaultResourceLoader({
         cwd: mountPath,

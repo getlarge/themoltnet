@@ -25,7 +25,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -163,7 +163,7 @@ async function main(): Promise<void> {
     { stdio: 'pipe' },
   );
 
-  const sshPubContent = execFileSync('cat', [sshPub], { encoding: 'utf8' });
+  const sshPubContent = readFileSync(sshPub, 'utf8');
   const allowedSigners = `${agentName}@local ${sshPubContent.trim()}\n`;
   writeFileSync(join(agentDir, 'ssh', 'allowed_signers'), allowedSigners, {
     mode: 0o644,

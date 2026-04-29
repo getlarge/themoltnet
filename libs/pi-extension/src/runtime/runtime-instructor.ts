@@ -4,6 +4,8 @@ export interface RuntimeInstructorContext {
   attemptN: number;
   diaryId: string;
   agentName: string;
+  /** Optional correlation id grouping this task with others. */
+  correlationId: string | null;
 }
 
 /**
@@ -57,7 +59,7 @@ export function buildRuntimeInstructor(ctx: RuntimeInstructorContext): string {
     '  (the task diary). The MCP `moltnet_create_entry` tool enforces this',
     '  and rejects mismatched explicit `diaryId` parameters.',
     `- Provenance tags \`task:${ctx.taskId}\`, \`task_type:${ctx.taskType}\`,`,
-    `  and \`task_attempt:${ctx.attemptN}\` are auto-injected on every entry.`,
+    `  and \`task_attempt:${ctx.attemptN}\`${ctx.correlationId ? `, plus \`correlation:${ctx.correlationId}\`` : ''} are auto-injected on every entry.`,
     '  You may add additional tags; you cannot remove the auto-tags.',
     '',
     '## Accountable commits',

@@ -8,6 +8,7 @@ const ctx = {
   attemptN: 1,
   diaryId: 'diary-xyz',
   agentName: 'legreffier',
+  correlationId: null,
 };
 
 describe('runtime instructor', () => {
@@ -42,5 +43,15 @@ describe('runtime instructor', () => {
     const out = buildRuntimeInstructor(ctx);
     expect(out).toMatch(/\/home\/agent\/\.skill\//);
     expect(out).toMatch(/advisory/i);
+  });
+
+  it('mentions correlation:<id> when the task carries a correlationId', () => {
+    const out = buildRuntimeInstructor({ ...ctx, correlationId: 'corr-xyz' });
+    expect(out).toContain('correlation:corr-xyz');
+  });
+
+  it('omits the correlation tag when correlationId is null', () => {
+    const out = buildRuntimeInstructor(ctx); // correlationId: null
+    expect(out).not.toMatch(/correlation:/);
   });
 });
