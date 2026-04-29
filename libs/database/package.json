@@ -17,7 +17,8 @@
     "studio": "drizzle-kit studio",
     "db:migrate:run": "tsx src/migrate-cli.ts",
     "db:status": "tsx src/migrate-status.ts",
-    "typecheck": "tsc -b --emitDeclarationOnly"
+    "build": "tsc -b",
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@dbos-inc/dbos-sdk": "catalog:",
@@ -31,5 +32,7 @@
     "@testcontainers/postgresql": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts"
 }
