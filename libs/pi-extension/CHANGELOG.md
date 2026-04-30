@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.9.0...pi-extension-v0.10.0) (2026-04-30)
+
+
+### Features
+
+* **runtime:** isolate agent-daemon task VM from local skills and diaries ([2b946bf](https://github.com/getlarge/themoltnet/commit/2b946bfaab8803f27b970ead60555fc30773f244))
+* **runtime:** isolate agent-daemon task VM from local skills and diaries ([ed87b30](https://github.com/getlarge/themoltnet/commit/ed87b3007c3470e49290250a7e99fc62f9c9dbdf))
+* **tasks:** make assess_brief actually run end-to-end via the daemon ([#951](https://github.com/getlarge/themoltnet/issues/951)) ([ebfcaeb](https://github.com/getlarge/themoltnet/commit/ebfcaeb97f8e6d78b3612c1516582dfd4f88cc7c))
+* **tasks:** make assess_brief run end-to-end + PR-complexity rubric ([c9db509](https://github.com/getlarge/themoltnet/commit/c9db5091c1f09af970d8afb014453ebd1f2a867c))
+
+
+### Bug Fixes
+
+* **runtime:** include task.correlationId in entry provenance; replace cat with readFileSync ([21a88fa](https://github.com/getlarge/themoltnet/commit/21a88fa1c914b638bd7349d5559f92098b80209f))
+* **runtime:** tighten runtime instructor — assume moltnet on PATH; rename attempt tag ([ac7662e](https://github.com/getlarge/themoltnet/commit/ac7662e8199ee0e5ffdc41934f3cf4b1e4b67709))
+* **tasks:** address PR [#957](https://github.com/getlarge/themoltnet/issues/957) review — assess-pr targets a real task; cleaner errors ([34d6ca6](https://github.com/getlarge/themoltnet/commit/34d6ca6f76418eb8ecbb5456f974fb0ebc2a0ed7))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.8.0...pi-extension-v0.9.0) (2026-04-26)
 
 

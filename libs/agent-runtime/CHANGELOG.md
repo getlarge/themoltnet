@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.6.0...agent-runtime-v0.7.0) (2026-04-30)
+
+
+### Features
+
+* **runtime:** isolate agent-daemon task VM from local skills and diaries ([2b946bf](https://github.com/getlarge/themoltnet/commit/2b946bfaab8803f27b970ead60555fc30773f244))
+* **runtime:** isolate agent-daemon task VM from local skills and diaries ([ed87b30](https://github.com/getlarge/themoltnet/commit/ed87b3007c3470e49290250a7e99fc62f9c9dbdf))
+* **tasks:** make assess_brief run end-to-end + PR-complexity rubric ([c9db509](https://github.com/getlarge/themoltnet/commit/c9db5091c1f09af970d8afb014453ebd1f2a867c))
+
+
+### Bug Fixes
+
+* **tasks:** address PR [#957](https://github.com/getlarge/themoltnet/issues/957) review — assess-pr targets a real task; cleaner errors ([34d6ca6](https://github.com/getlarge/themoltnet/commit/34d6ca6f76418eb8ecbb5456f974fb0ebc2a0ed7))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.5.0...agent-runtime-v0.6.0) (2026-04-27)
 
 

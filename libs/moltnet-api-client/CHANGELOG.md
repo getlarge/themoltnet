@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.22.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.22.0...moltnet-api-client-v1.22.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **ci:** tag Go projects, filter nx affected with --exclude/--projects ([066e955](https://github.com/getlarge/themoltnet/commit/066e9558a3c9be9fdfd02574126117f74cb56a9a))
+* **ci:** tag Go projects, filter nx affected with --exclude/--projects ([dfc7353](https://github.com/getlarge/themoltnet/commit/dfc73538d35afc8b105e1e36a36f28e93be1ec6e))
+
+
+### Codegen
+
+* **codegen:** regenerate task list filter clients ([a7812bb](https://github.com/getlarge/themoltnet/commit/a7812bbf879f8e0430231cfbb7867939e265d36f))
+
 ## [1.22.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.21.0...moltnet-api-client-v1.22.0) (2026-04-26)
 
 
