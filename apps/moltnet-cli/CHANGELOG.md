@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.34.1](https://github.com/getlarge/themoltnet/compare/cli-v1.34.0...cli-v1.34.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **ci:** tag Go projects, filter nx affected with --exclude/--projects ([066e955](https://github.com/getlarge/themoltnet/commit/066e9558a3c9be9fdfd02574126117f74cb56a9a))
+* **ci:** tag Go projects, filter nx affected with --exclude/--projects ([dfc7353](https://github.com/getlarge/themoltnet/commit/dfc73538d35afc8b105e1e36a36f28e93be1ec6e))
+
 ## [1.34.0](https://github.com/getlarge/themoltnet/compare/cli-v1.33.0...cli-v1.34.0) (2026-04-27)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.1](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.0...dspy-adapters-v0.9.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **ci:** tag Go projects, filter nx affected with --exclude/--projects ([066e955](https://github.com/getlarge/themoltnet/commit/066e9558a3c9be9fdfd02574126117f74cb56a9a))
+* **ci:** tag Go projects, filter nx affected with --exclude/--projects ([dfc7353](https://github.com/getlarge/themoltnet/commit/dfc73538d35afc8b105e1e36a36f28e93be1ec6e))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.8.0...dspy-adapters-v0.9.0) (2026-04-16)
 
 
