@@ -23,9 +23,15 @@
  *
  * Flags
  * -----
- *   -i, --issue     GitHub issue number or URL (required)
- *   -a, --agent     MoltNet agent name (default: legreffier)
- *       --dry-run   Print the synthesized Task input + skip the POST.
+ *   -i, --issue            GitHub issue number or URL (required)
+ *   -a, --agent            MoltNet agent name (default: legreffier)
+ *   -c, --correlation-id   Reuse an existing correlation id (e.g. to extend
+ *                          a prior chain after a producer rerun). When
+ *                          omitted, a fresh UUID is minted so the assess
+ *                          sibling created later via `task:assess-pr` can
+ *                          inherit it and `tasks_list --correlation-id`
+ *                          returns the full chain.
+ *       --dry-run          Print the synthesized Task input + skip the POST.
  *
  * Exit codes
  * ----------
@@ -33,6 +39,7 @@
  *   1 — bad args, missing creds, missing MOLTNET_TEAM_ID, gh failure, API error
  */
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
@@ -47,13 +54,14 @@ const { values: args } = parseArgs({
   options: {
     issue: { type: 'string', short: 'i' },
     agent: { type: 'string', short: 'a', default: 'legreffier' },
+    'correlation-id': { type: 'string', short: 'c' },
     'dry-run': { type: 'boolean', default: false },
   },
 });
 
 if (!args.issue) {
   console.error(
-    'Usage: tsx tools/src/tasks/fulfill-brief.ts --issue <number|url> [--agent <name>] [--dry-run]',
+    'Usage: tsx tools/src/tasks/fulfill-brief.ts --issue <number|url> [--agent <name>] [--correlation-id <uuid>] [--dry-run]',
   );
   process.exit(1);
 }
@@ -68,6 +76,20 @@ if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
   );
   process.exit(1);
 }
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const providedCorrelationId = args['correlation-id'];
+if (
+  providedCorrelationId !== undefined &&
+  !UUID_RE.test(providedCorrelationId)
+) {
+  console.error(
+    `Invalid --correlation-id "${providedCorrelationId}": must be a UUID.`,
+  );
+  process.exit(1);
+}
+const correlationId = providedCorrelationId ?? randomUUID();
 
 function getAgentGhToken(agentDir: string): string {
   const credsPath = join(agentDir, 'moltnet.json');
@@ -182,6 +204,7 @@ async function main() {
           taskType: FULFILL_BRIEF_TYPE,
           teamId,
           diaryId,
+          correlationId,
           input,
         },
         null,
@@ -196,6 +219,7 @@ async function main() {
     taskType: FULFILL_BRIEF_TYPE,
     teamId,
     diaryId,
+    correlationId,
     input: input as unknown as Record<string, unknown>,
     references: [
       {
@@ -210,8 +234,17 @@ async function main() {
     ],
   });
 
-  console.error(`[task] created ${task.id} (status=${task.status})`);
-  console.log(JSON.stringify({ id: task.id, status: task.status }, null, 2));
+  console.error(
+    `[task] created ${task.id} (status=${task.status}) correlationId=${correlationId}` +
+      (providedCorrelationId === undefined ? ' [minted]' : ' [provided]'),
+  );
+  console.log(
+    JSON.stringify(
+      { id: task.id, status: task.status, correlationId },
+      null,
+      2,
+    ),
+  );
 }
 
 main().catch((err) => {

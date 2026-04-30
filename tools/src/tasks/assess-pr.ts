@@ -10,24 +10,27 @@
  * to have produced a PR. The PR's URL is on the producer task's output
  * (`fulfill_brief.output.pullRequestUrl`), not in this imposer's input.
  *
- * The judge agent reads the producer task's accepted attempt output to
- * see what was produced (resolver in `apps/agent-daemon/src/lib/
- * resolve-prompt-extras.ts` projects it into the prompt's `target`
- * bundle), notices a `pullRequestUrl`, and runs `gh pr diff` from
- * inside the sandbox. The PR-complexity rubric drives the scoring.
+ * The judge agent reads the producer task's accepted attempt output by
+ * calling `moltnet_get_task` and `moltnet_list_task_attempts` itself
+ * (no daemon-side projection), notices a `pullRequestUrl`, and runs
+ * `gh pr diff` from inside the sandbox. The PR-complexity rubric
+ * drives the scoring.
  *
  * This imposer therefore needs **only the producer task's id**, not
  * the PR reference. The earlier draft of this script took `--pr` and
  * tried to bypass the producer task with a sentinel UUID, which
  * guaranteed every assessment failed at prompt-build time. Fixed.
  *
+ * The producer task's `correlationId` (if set) is propagated onto the
+ * assess task so both halves of the chain share one id — that's how
+ * `tasks_list --correlation-id <uuid>` returns the full pair.
+ *
  * Prerequisites
  * -------------
  * - `.moltnet/<agent>/` populated with `moltnet.json` and `env`
  *   (at minimum `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`)
  * - The target `fulfill_brief` task must exist and have at least one
- *   accepted attempt. The daemon resolver will surface a clear error
- *   at run time if either is missing.
+ *   accepted attempt. Both are checked before POST.
  *
  * Usage
  * -----
@@ -123,43 +126,12 @@ async function main() {
     rubricPreamble: PR_COMPLEXITY_V1_PREAMBLE,
   };
 
-  // The daemon's resolver hydrates the judge's `target` bundle from the
-  // producer task's accepted attempt output. Failing fast on a missing
-  // producer would be friendlier, but checking here would couple the
-  // imposer to the SDK's get/listAttempts shape — we already do that
-  // below for the actual create() call. If the target doesn't exist or
-  // has no accepted attempt, the daemon's resolver returns undefined,
-  // the prompt builder throws `prompt_build_failed: requires target`,
-  // and the operator sees a clear error on the failed attempt.
-  if (dryRun) {
-    console.log(
-      JSON.stringify(
-        {
-          taskType: ASSESS_BRIEF_TYPE,
-          teamId,
-          diaryId,
-          input,
-          references: [
-            {
-              taskId: targetTaskId,
-              outputCid: '<resolved-from-target-task-at-create-time>',
-              role: 'judged_work',
-            },
-          ],
-        },
-        null,
-        2,
-      ),
-    );
-    return;
-  }
-
   const agent = await connect({ configDir: agentDir });
 
   // Sanity check the target before we POST: a non-existent task or one
   // without an accepted attempt is a configuration error the operator
-  // should know about now, not via a cryptic prompt_build_failed in
-  // the daemon's logs ten minutes from now.
+  // should know about now, not after the daemon has already claimed
+  // the assess task and burned a model attempt.
   const target = await agent.tasks.get(targetTaskId).catch(() => null);
   if (!target) {
     throw new Error(
@@ -170,8 +142,8 @@ async function main() {
   if (target.taskType !== 'fulfill_brief') {
     console.error(
       `[warn] Target task ${targetTaskId} has taskType="${target.taskType}", ` +
-        'expected "fulfill_brief". Continuing anyway — the daemon resolver ' +
-        'will best-effort project whatever shape the output has.',
+        'expected "fulfill_brief". Continuing anyway — the judge will ' +
+        'fetch and adapt to whatever output shape it finds.',
     );
   }
   if (target.acceptedAttemptN === null) {
@@ -198,10 +170,42 @@ async function main() {
     );
   }
 
+  // Inherit the producer's correlationId so `tasks_list --correlation-id`
+  // returns both halves of the chain. Producer tasks created without a
+  // correlationId yield null here; we pass undefined to the API, which
+  // leaves the assess task's correlationId null too — also fine, just
+  // means the chain isn't queryable by a shared id.
+  const correlationId = target.correlationId ?? undefined;
+
+  if (dryRun) {
+    console.log(
+      JSON.stringify(
+        {
+          taskType: ASSESS_BRIEF_TYPE,
+          teamId,
+          diaryId,
+          correlationId,
+          input,
+          references: [
+            {
+              taskId: targetTaskId,
+              outputCid: acceptedAttempt.outputCid,
+              role: 'judged_work',
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
   const task = await agent.tasks.create({
     taskType: ASSESS_BRIEF_TYPE,
     teamId,
     diaryId,
+    correlationId,
     input: input as unknown as Record<string, unknown>,
     references: [
       {
@@ -211,6 +215,17 @@ async function main() {
       },
     ],
   });
+
+  if (correlationId) {
+    console.error(
+      `[task] inherited correlationId ${correlationId} from producer`,
+    );
+  } else {
+    console.error(
+      `[task] producer ${targetTaskId} has no correlationId; ` +
+        'assess task will not share a chain id.',
+    );
+  }
 
   console.error(`[task] created ${task.id} (status=${task.status})`);
   console.log(JSON.stringify({ id: task.id, status: task.status }, null, 2));
