@@ -41,6 +41,7 @@ import {
   createGondolinReadOps,
   createGondolinWriteOps,
 } from './tool-operations.js';
+import { initI18n } from './i18n.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
 
 export {
@@ -53,6 +54,8 @@ export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
 const GUEST_WORKSPACE = '/workspace';
 
 export default function moltnetExtension(pi: ExtensionAPI) {
+  initI18n(pi);
+
   // -- Flags ------------------------------------------------------------------
 
   pi.registerFlag('agent', {
