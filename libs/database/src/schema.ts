@@ -168,8 +168,15 @@ export const diaries = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
 
-    // Identity that originally created this diary (Ory Kratos identity ID)
-    createdBy: uuid('created_by').notNull(),
+    // Principal that originally created this diary. Exactly one of
+    // creator_agent_id / creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
 
     // Team that governs access to this diary
     teamId: uuid('team_id')
@@ -194,12 +201,20 @@ export const diaries = pgTable(
       .notNull(),
   },
   (table) => [
-    index('diaries_created_by_idx').on(table.createdBy),
-    index('diaries_created_by_visibility_idx').on(
-      table.createdBy,
-      table.visibility,
-    ),
+    index('diaries_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('diaries_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    index('diaries_creator_agent_visibility_idx')
+      .on(table.creatorAgentId, table.visibility)
+      .where(sql`creator_agent_id IS NOT NULL`),
     index('diaries_team_idx').on(table.teamId),
+    check(
+      'diaries_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -231,7 +246,14 @@ export const diaryEntries = pgTable(
     // Metadata
     tags: text('tags').array(),
     // Strong provenance: authenticated principal that created the entry.
-    createdBy: uuid('created_by').notNull(),
+    // Exactly one of creator_agent_id / creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
 
     // Prompt injection risk flag (set by vard scanner)
     injectionRisk: boolean('injection_risk').default(false).notNull(),
@@ -256,7 +278,16 @@ export const diaryEntries = pgTable(
   },
   (table) => [
     index('diary_entries_diary_idx').on(table.diaryId),
-    index('diary_entries_created_by_idx').on(table.createdBy),
+    index('diary_entries_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('diary_entries_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    check(
+      'diary_entries_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
 
     // Index for entry type filtering (memory system)
     index('diary_entries_entry_type_idx').on(table.entryType),
@@ -528,7 +559,14 @@ export const contextPacks = pgTable(
       .default(sql`'{}'::jsonb`)
       .notNull(),
     // Strong provenance: authenticated principal that materialized the pack.
-    createdBy: uuid('created_by').notNull(),
+    // Exactly one of creator_agent_id / creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
     supersedesPackId: uuid('supersedes_pack_id').references(
       (): AnyPgColumn => contextPacks.id,
     ),
@@ -548,6 +586,16 @@ export const contextPacks = pgTable(
       .on(table.expiresAt)
       .where(sql`pinned = false`),
     index('context_packs_pinned_idx').on(table.pinned),
+    index('context_packs_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('context_packs_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    check(
+      'context_packs_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -608,7 +656,15 @@ export const teams = pgTable(
     // Auto-created personal team (1 owner, no invites, no additional members)
     personal: boolean('personal').default(false).notNull(),
 
-    createdBy: uuid('created_by').notNull(),
+    // Principal that created this team. Exactly one of creator_agent_id /
+    // creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
 
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -617,7 +673,18 @@ export const teams = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index('teams_created_by_idx').on(table.createdBy)],
+  (table) => [
+    index('teams_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('teams_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    check(
+      'teams_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
+  ],
 );
 
 /**
@@ -637,7 +704,15 @@ export const groups = pgTable(
       .notNull()
       .references(() => teams.id, { onDelete: 'cascade' }),
 
-    createdBy: uuid('created_by').notNull(),
+    // Principal that created this group. Exactly one of creator_agent_id /
+    // creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
 
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -646,6 +721,16 @@ export const groups = pgTable(
   (table) => [
     index('groups_team_idx').on(table.teamId),
     uniqueIndex('groups_name_team_idx').on(table.name, table.teamId),
+    index('groups_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('groups_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    check(
+      'groups_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -673,7 +758,15 @@ export const teamInvites = pgTable(
     maxUses: integer('max_uses').default(1).notNull(),
     useCount: integer('use_count').default(0).notNull(),
 
-    createdBy: uuid('created_by').notNull(),
+    // Principal that created this invite. Exactly one of creator_agent_id /
+    // creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
 
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -683,6 +776,16 @@ export const teamInvites = pgTable(
   (table) => [
     uniqueIndex('team_invites_code_idx').on(table.code),
     index('team_invites_team_idx').on(table.teamId),
+    index('team_invites_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('team_invites_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    check(
+      'team_invites_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -797,7 +900,15 @@ export const renderedPacks = pgTable(
     contentHash: varchar('content_hash', { length: 100 }).notNull(),
     renderMethod: varchar('render_method', { length: 100 }).notNull(),
     totalTokens: integer('total_tokens').notNull(),
-    createdBy: uuid('created_by').notNull(),
+    // Principal that rendered this pack. Exactly one of creator_agent_id /
+    // creator_human_id is set per row (XOR check).
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
     pinned: boolean('pinned').default(false).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).default(
       sql`(now() + interval '7 days')`,
@@ -819,6 +930,16 @@ export const renderedPacks = pgTable(
     index('rendered_packs_verified_task_idx')
       .on(table.verifiedTaskId)
       .where(sql`verified_task_id IS NOT NULL`),
+    index('rendered_packs_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('rendered_packs_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    check(
+      'rendered_packs_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
   ],
 );
 
