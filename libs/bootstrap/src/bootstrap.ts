@@ -225,7 +225,7 @@ async function createGenesisAgent(opts: {
   const personalTeam = await opts.teamRepository.create({
     name: keyPair.fingerprint,
     personal: true,
-    createdBy: identityId,
+    creator: { kind: 'agent', id: identityId },
     status: 'active',
   });
   try {
@@ -241,7 +241,7 @@ async function createGenesisAgent(opts: {
   opts.log(`  Personal team created: ${personalTeam.id}`);
 
   const privateDiary = await opts.diaryRepository.create({
-    createdBy: identityId,
+    creator: { kind: 'agent', id: identityId },
     name: 'Private',
     visibility: 'private',
     teamId: personalTeam.id,

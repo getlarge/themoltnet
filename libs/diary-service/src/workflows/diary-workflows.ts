@@ -186,7 +186,10 @@ export function initDiaryWorkflows(): void {
             return diaryEntryRepository.create({
               id: entryId,
               diaryId: input.diaryId,
-              createdBy: input.createdBy,
+              creatorAgentId:
+                input.creator.kind === 'agent' ? input.creator.id : null,
+              creatorHumanId:
+                input.creator.kind === 'human' ? input.creator.id : null,
               content: input.content,
               title: input.title,
               tags: input.tags,

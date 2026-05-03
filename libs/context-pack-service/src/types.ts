@@ -6,9 +6,19 @@ import type {
   PackDiffCompressionLevel,
   PackDiffRow,
   RenderedPack,
+  RenderedPackWithCreator,
 } from '@moltnet/database';
 
 export type { PackDiffCompressionLevel, PackDiffRow };
+
+/**
+ * Discriminated principal — caller resolves (identityId, ns) at the auth
+ * boundary. For human, `id` is humans.id (NOT the Kratos identityId).
+ */
+export interface PackCreator {
+  kind: 'agent' | 'human';
+  id: string;
+}
 
 export interface SelectedEntry {
   entryId: string;
@@ -55,7 +65,7 @@ export interface CreateCustomPackInput {
   params: Record<string, unknown>;
   tokenBudget?: number;
   pinned?: boolean;
-  createdBy: string;
+  creator: PackCreator;
   ttlDays?: number;
 }
 
@@ -63,7 +73,7 @@ export interface CreateRenderedPackInput {
   sourcePackId: string;
   renderedMarkdown?: string;
   renderMethod: string;
-  createdBy: string;
+  creator: PackCreator;
   pinned?: boolean;
   ttlDays?: number;
 }
@@ -160,7 +170,7 @@ export interface ListRenderedPacksByDiaryInput {
 }
 
 export interface ListRenderedPacksByDiaryResult {
-  items: RenderedPack[];
+  items: RenderedPackWithCreator[];
   total: number;
   limit: number;
   offset: number;
