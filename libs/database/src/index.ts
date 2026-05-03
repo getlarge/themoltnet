@@ -92,6 +92,7 @@ export {
 export {
   createRenderedPackRepository,
   type RenderedPackRepository,
+  type RenderedPackWithCreator,
 } from './repositories/rendered-pack.repository.js';
 export {
   createSigningRequestRepository,
