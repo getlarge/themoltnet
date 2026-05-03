@@ -77,6 +77,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<Map<string, boolean>>;
+  canWritePack(
+    packId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   canManagePack(
     packId: string,
     subjectId: string,
@@ -374,6 +379,21 @@ export function createPermissionChecker(
       );
     },
 
+    canWritePack(
+      packId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.ContextPack,
+        packId,
+        ContextPackPermission.Write,
+        subjectNs,
+        subjectId,
+        log,
+      );
+    },
     canManagePack(
       packId: string,
       subjectId: string,

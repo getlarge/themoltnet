@@ -14,6 +14,7 @@ import {
   createClient,
   createDiaryCustomPack,
   createDiaryEntry,
+  createDiaryGrant,
   getContextPackById,
   getLatestRenderedPack,
   getRenderedPackById,
@@ -351,6 +352,56 @@ describe('Rendered packs', () => {
 
     expect(error).toBeDefined();
     expect(response.status).toBe(403);
+  });
+
+  // Regression: persisting an agent-refined render is a derivation, not a
+  // mutation of the source pack. Writer role on the diary must suffice;
+  // requiring `manage` blocks the canonical agent-refined render flow
+  // (see issue #991).
+  it('allows a writer-granted agent to persist an agent-refined render', async () => {
+    const writer = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    const { error: grantError, response: grantResponse } =
+      await createDiaryGrant({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          subjectId: writer.identityId,
+          subjectNs: 'Agent',
+          role: 'writer',
+        },
+      });
+    expect(
+      grantError,
+      `grant failed: ${JSON.stringify(grantError)}`,
+    ).toBeUndefined();
+    expect(grantResponse.status).toBe(201);
+
+    const renderedMarkdown = '# agent-refined\n\nrefined body';
+    const { data, error, response } = await renderContextPack({
+      client,
+      auth: () => writer.accessToken,
+      path: { id: sourcePackId },
+      body: {
+        renderMethod: 'agent-refined',
+        renderedMarkdown,
+      },
+    });
+
+    expect(error, `render failed: ${JSON.stringify(error)}`).toBeUndefined();
+    expect(response.status).toBe(201);
+    const result = data as RenderedPackResult;
+    expect(result.sourcePackId).toBe(sourcePackId);
+    expect(result.renderMethod).toBe('agent-refined');
+    expect(result.renderedMarkdown).toBe(renderedMarkdown);
+    expect(result.contentHash).toBe(
+      createHash('sha256').update(renderedMarkdown).digest('hex'),
+    );
   });
 
   it('returns 404 for non-existent source pack', async () => {

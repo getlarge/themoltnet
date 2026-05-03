@@ -139,6 +139,10 @@ class ContextPack implements Namespace {
   permits = {
     read: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.read(ctx)),
+    // Persist a derived artifact (e.g. a rendered pack) without mutating
+    // the source pack itself. Strictly weaker than `manage`.
+    write: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
     manage: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.manage(ctx)),
     // Stricter than read: judge must be part of the owning team.
