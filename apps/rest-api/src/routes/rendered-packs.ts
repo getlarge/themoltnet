@@ -146,15 +146,15 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       try {
-        const canManage = await fastify.permissionChecker.canManagePack(
+        const canWrite = await fastify.permissionChecker.canWritePack(
           sourcePack.id,
           identityId,
           subjectNs,
         );
-        if (!canManage) {
+        if (!canWrite) {
           throw createProblem(
             'forbidden',
-            'Not authorized to manage this pack',
+            'Not authorized to persist a rendered pack derived from this pack (writer role required on the source diary)',
           );
         }
 
