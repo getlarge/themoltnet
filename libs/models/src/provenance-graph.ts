@@ -51,10 +51,16 @@ const ProvenanceGraphHumanCreatorSchema = Type.Object({
   identityId: Type.Union([UuidSchema, Type.Null()]),
 });
 
-export const ProvenanceGraphCreatorSchema = Type.Union([
-  ProvenanceGraphAgentCreatorSchema,
-  ProvenanceGraphHumanCreatorSchema,
-]);
+export const ProvenanceGraphCreatorSchema = Type.Union(
+  [ProvenanceGraphAgentCreatorSchema, ProvenanceGraphHumanCreatorSchema],
+  {
+    // Hint to the normalize-spec post-processor (and any OpenAPI 3.1
+    // tooling) that this is a discriminated union. ogen requires
+    // `oneOf + discriminator` to generate a sum type; without it, the
+    // schema becomes a "complex anyOf" and the operation is skipped.
+    discriminator: { propertyName: 'kind' },
+  },
+);
 
 export const ProvenanceGraphEntryMetaSchema = Type.Object({
   entryId: UuidSchema,
@@ -66,9 +72,7 @@ export const ProvenanceGraphEntryMetaSchema = Type.Object({
   signed: Type.Boolean(),
   title: Type.Union([Type.String(), Type.Null()]),
   tags: Type.Array(Type.String()),
-  creator: Type.Optional(
-    Type.Union([ProvenanceGraphCreatorSchema, Type.Null()]),
-  ),
+  creator: Type.Optional(ProvenanceGraphCreatorSchema),
 });
 
 export const ProvenanceGraphPackNodeSchema = Type.Object({
@@ -79,9 +83,7 @@ export const ProvenanceGraphPackNodeSchema = Type.Object({
   meta: Type.Composite([
     ProvenanceGraphPackMetaSchema,
     Type.Object({
-      creator: Type.Optional(
-        Type.Union([ProvenanceGraphCreatorSchema, Type.Null()]),
-      ),
+      creator: Type.Optional(ProvenanceGraphCreatorSchema),
     }),
   ]),
 });

@@ -38,18 +38,23 @@ func (h *stubRenderedPacksHandler) ListDiaryRenderedPacks(
 		h.listRenderMethod = rm
 	}
 	return &moltnetapi.RenderedPackList{
-		Items: []moltnetapi.RenderedPack{
-			{
-				ID:           uuid.MustParse("aa000000-0000-0000-0000-000000000001"),
-				PackCid:      "bafy-rendered-1",
-				SourcePackId: uuid.MustParse("bb000000-0000-0000-0000-000000000001"),
-				DiaryId:      params.ID,
-				ContentHash:  "sha256:abc",
-				RenderMethod: "agent-refined",
-				TotalTokens:  200,
-				Pinned:       false,
-			},
-		},
+		Items: func() []moltnetapi.RenderedPack {
+			creator := moltnetapi.RenderedPackCreator{Type: moltnetapi.AgentPrincipalRenderedPackCreator}
+			creator.SetAgentPrincipal(testAgentPrincipal())
+			return []moltnetapi.RenderedPack{
+				{
+					ID:           uuid.MustParse("aa000000-0000-0000-0000-000000000001"),
+					PackCid:      "bafy-rendered-1",
+					SourcePackId: uuid.MustParse("bb000000-0000-0000-0000-000000000001"),
+					DiaryId:      params.ID,
+					ContentHash:  "sha256:abc",
+					RenderMethod: "agent-refined",
+					TotalTokens:  200,
+					Creator:      creator,
+					Pinned:       false,
+				},
+			}
+		}(),
 		Total:  1,
 		Limit:  20,
 		Offset: 0,

@@ -139,9 +139,58 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "anyOf": [
+              {
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -293,7 +342,7 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -567,17 +616,56 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
           "creator": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentIdentity"
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
               },
               {
-                "type": "null"
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
               }
             ]
           },
@@ -647,7 +735,6 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
           "creator",
           "supersedesPackId",
           "pinned",
@@ -662,17 +749,56 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
           "creator": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentIdentity"
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
               },
               {
-                "type": "null"
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
               }
             ]
           },
@@ -748,7 +874,6 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
           "creator",
           "supersedesPackId",
           "pinned",
@@ -788,17 +913,56 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
           "creator": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentIdentity"
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
               },
               {
-                "type": "null"
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
               }
             ]
           },
@@ -874,7 +1038,6 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
           "creator",
           "supersedesPackId",
           "pinned",
@@ -1108,9 +1271,58 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "anyOf": [
+              {
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
+              }
+            ]
           },
           "id": {
             "format": "uuid",
@@ -1149,7 +1361,7 @@
         },
         "required": [
           "id",
-          "createdBy",
+          "creator",
           "teamId",
           "name",
           "visibility",
@@ -1203,9 +1415,58 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "anyOf": [
+              {
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -1293,7 +1554,7 @@
         "required": [
           "id",
           "diaryId",
-          "createdBy",
+          "creator",
           "title",
           "content",
           "tags",
@@ -1344,10 +1605,53 @@
           "creator": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentIdentity"
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
               },
               {
-                "type": "null"
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
               }
             ]
           },
@@ -1485,9 +1789,58 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "anyOf": [
+              {
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -1578,7 +1931,7 @@
         "required": [
           "id",
           "diaryId",
-          "createdBy",
+          "creator",
           "title",
           "content",
           "tags",
@@ -2813,6 +3166,59 @@
           }
         ]
       },
+      "PrincipalIdentity": {
+        "anyOf": [
+          {
+            "properties": {
+              "fingerprint": {
+                "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                "type": "string"
+              },
+              "identityId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "kind": {
+                "enum": ["agent"],
+                "type": "string"
+              },
+              "publicKey": {
+                "description": "Ed25519 public key with prefix",
+                "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                "type": "string"
+              }
+            },
+            "required": ["kind", "identityId", "fingerprint", "publicKey"],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "humanId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "identityId": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "enum": ["human"],
+                "type": "string"
+              }
+            },
+            "required": ["kind", "humanId", "identityId"],
+            "type": "object"
+          }
+        ]
+      },
       "ProblemDetails": {
         "properties": {
           "code": {
@@ -3086,6 +3492,10 @@
                                   "format": "uuid",
                                   "type": "string"
                                 },
+                                "kind": {
+                                  "enum": ["agent"],
+                                  "type": "string"
+                                },
                                 "publicKey": {
                                   "description": "Ed25519 public key with prefix",
                                   "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
@@ -3093,6 +3503,7 @@
                                 }
                               },
                               "required": [
+                                "kind",
                                 "identityId",
                                 "fingerprint",
                                 "publicKey"
@@ -3100,9 +3511,36 @@
                               "type": "object"
                             },
                             {
-                              "type": "null"
+                              "properties": {
+                                "humanId": {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "identityId": {
+                                  "anyOf": [
+                                    {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "kind": {
+                                  "enum": ["human"],
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["kind", "humanId", "identityId"],
+                              "type": "object"
                             }
-                          ]
+                          ],
+                          "discriminator": {
+                            "propertyName": "kind"
+                          }
                         },
                         "diaryId": {
                           "description": "UUID v4 identifier",
@@ -3221,6 +3659,10 @@
                                   "format": "uuid",
                                   "type": "string"
                                 },
+                                "kind": {
+                                  "enum": ["agent"],
+                                  "type": "string"
+                                },
                                 "publicKey": {
                                   "description": "Ed25519 public key with prefix",
                                   "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
@@ -3228,6 +3670,7 @@
                                 }
                               },
                               "required": [
+                                "kind",
                                 "identityId",
                                 "fingerprint",
                                 "publicKey"
@@ -3235,9 +3678,36 @@
                               "type": "object"
                             },
                             {
-                              "type": "null"
+                              "properties": {
+                                "humanId": {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "identityId": {
+                                  "anyOf": [
+                                    {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "kind": {
+                                  "enum": ["human"],
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["kind", "humanId", "identityId"],
+                              "type": "object"
                             }
-                          ]
+                          ],
+                          "discriminator": {
+                            "propertyName": "kind"
+                          }
                         },
                         "diaryId": {
                           "description": "UUID v4 identifier",
@@ -3729,9 +4199,58 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "anyOf": [
+              {
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "humanId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -3777,7 +4296,7 @@
           "contentHash",
           "renderMethod",
           "totalTokens",
-          "createdBy",
+          "creator",
           "pinned",
           "expiresAt",
           "createdAt"
@@ -9782,11 +10301,6 @@
                       "format": "date-time",
                       "type": "string"
                     },
-                    "createdBy": {
-                      "description": "UUID v4 identifier",
-                      "format": "uuid",
-                      "type": "string"
-                    },
                     "id": {
                       "description": "UUID v4 identifier",
                       "format": "uuid",
@@ -9818,14 +10332,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "name",
-                    "teamId",
-                    "createdBy",
-                    "createdAt",
-                    "members"
-                  ],
+                  "required": ["id", "name", "teamId", "createdAt", "members"],
                   "type": "object"
                 }
               }
@@ -11169,6 +11676,10 @@
                                             "format": "uuid",
                                             "type": "string"
                                           },
+                                          "kind": {
+                                            "enum": ["agent"],
+                                            "type": "string"
+                                          },
                                           "publicKey": {
                                             "description": "Ed25519 public key with prefix",
                                             "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
@@ -11176,6 +11687,7 @@
                                           }
                                         },
                                         "required": [
+                                          "kind",
                                           "identityId",
                                           "fingerprint",
                                           "publicKey"
@@ -11183,9 +11695,40 @@
                                         "type": "object"
                                       },
                                       {
-                                        "type": "null"
+                                        "properties": {
+                                          "humanId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          "identityId": {
+                                            "anyOf": [
+                                              {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "kind": {
+                                            "enum": ["human"],
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "kind",
+                                          "humanId",
+                                          "identityId"
+                                        ],
+                                        "type": "object"
                                       }
-                                    ]
+                                    ],
+                                    "discriminator": {
+                                      "propertyName": "kind"
+                                    }
                                   },
                                   "diaryId": {
                                     "description": "UUID v4 identifier",
@@ -11304,6 +11847,10 @@
                                             "format": "uuid",
                                             "type": "string"
                                           },
+                                          "kind": {
+                                            "enum": ["agent"],
+                                            "type": "string"
+                                          },
                                           "publicKey": {
                                             "description": "Ed25519 public key with prefix",
                                             "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
@@ -11311,6 +11858,7 @@
                                           }
                                         },
                                         "required": [
+                                          "kind",
                                           "identityId",
                                           "fingerprint",
                                           "publicKey"
@@ -11318,9 +11866,40 @@
                                         "type": "object"
                                       },
                                       {
-                                        "type": "null"
+                                        "properties": {
+                                          "humanId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          "identityId": {
+                                            "anyOf": [
+                                              {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "kind": {
+                                            "enum": ["human"],
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "kind",
+                                          "humanId",
+                                          "identityId"
+                                        ],
+                                        "type": "object"
                                       }
-                                    ]
+                                    ],
+                                    "discriminator": {
+                                      "propertyName": "kind"
+                                    }
                                   },
                                   "diaryId": {
                                     "description": "UUID v4 identifier",
@@ -15717,11 +16296,6 @@
                       "format": "date-time",
                       "type": "string"
                     },
-                    "createdBy": {
-                      "description": "UUID v4 identifier",
-                      "format": "uuid",
-                      "type": "string"
-                    },
                     "id": {
                       "description": "UUID v4 identifier",
                       "format": "uuid",
@@ -15789,7 +16363,6 @@
                     "name",
                     "status",
                     "personal",
-                    "createdBy",
                     "createdAt",
                     "updatedAt",
                     "members"

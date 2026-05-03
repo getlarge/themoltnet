@@ -98,7 +98,24 @@ export type ValidationError = {
 
 export type DiaryCatalog = {
   id: string;
-  createdBy: string;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   teamId: string;
   name: string;
   visibility: 'private' | 'moltnet' | 'public';
@@ -107,6 +124,25 @@ export type DiaryCatalog = {
   updatedAt: string;
 };
 
+export type PrincipalIdentity =
+  | {
+      kind: 'agent';
+      identityId: string;
+      /**
+       * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+       */
+      fingerprint: string;
+      /**
+       * Ed25519 public key with prefix
+       */
+      publicKey: string;
+    }
+  | {
+      kind: 'human';
+      humanId: string;
+      identityId: string | null;
+    };
+
 export type DiaryCatalogList = {
   items: Array<DiaryCatalog>;
 };
@@ -114,7 +150,24 @@ export type DiaryCatalogList = {
 export type DiaryEntry = {
   id: string;
   diaryId: string;
-  createdBy: string;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   title: string | null;
   content: string;
   tags: Array<string> | null;
@@ -198,7 +251,24 @@ export type DiaryEntryWithCreator = {
   contentSignature: string | null;
   createdAt: string;
   updatedAt: string;
-  creator: AgentIdentity | null;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
 };
 
 export type DiaryList = {
@@ -245,8 +315,24 @@ export type ContextPack = {
   packType: 'compile' | 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
-  createdBy: string;
-  creator: AgentIdentity | null;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
@@ -261,8 +347,24 @@ export type ContextPackExpanded = {
   packType: 'compile' | 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
-  createdBy: string;
-  creator: AgentIdentity | null;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
@@ -278,8 +380,24 @@ export type ContextPackResponse = {
   packType: 'compile' | 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
-  createdBy: string;
-  creator: AgentIdentity | null;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
@@ -670,7 +788,24 @@ export type CompileResult = {
   packType: 'compile' | 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
-  createdBy: string;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
@@ -722,7 +857,24 @@ export type RenderedPack = {
   contentHash: string;
   renderMethod: string;
   totalTokens: number;
-  createdBy: string;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
@@ -813,20 +965,30 @@ export type ProvenanceGraph = {
           createdAt: string;
           expiresAt: string | null;
           supersedesPackId: string | null;
-          creator?: {
-            /**
-             * UUID v4 identifier
-             */
-            identityId: string;
-            /**
-             * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-             */
-            fingerprint: string;
-            /**
-             * Ed25519 public key with prefix
-             */
-            publicKey: string;
-          } | null;
+          creator?:
+            | {
+                kind: 'agent';
+                /**
+                 * UUID v4 identifier
+                 */
+                identityId: string;
+                /**
+                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                 */
+                fingerprint: string;
+                /**
+                 * Ed25519 public key with prefix
+                 */
+                publicKey: string;
+              }
+            | {
+                kind: 'human';
+                /**
+                 * UUID v4 identifier
+                 */
+                humanId: string;
+                identityId: string | null;
+              };
         };
       }
     | {
@@ -865,20 +1027,30 @@ export type ProvenanceGraph = {
           signed: boolean;
           title: string | null;
           tags: Array<string>;
-          creator?: {
-            /**
-             * UUID v4 identifier
-             */
-            identityId: string;
-            /**
-             * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-             */
-            fingerprint: string;
-            /**
-             * Ed25519 public key with prefix
-             */
-            publicKey: string;
-          } | null;
+          creator?:
+            | {
+                kind: 'agent';
+                /**
+                 * UUID v4 identifier
+                 */
+                identityId: string;
+                /**
+                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                 */
+                fingerprint: string;
+                /**
+                 * Ed25519 public key with prefix
+                 */
+                publicKey: string;
+              }
+            | {
+                kind: 'human';
+                /**
+                 * UUID v4 identifier
+                 */
+                humanId: string;
+                identityId: string | null;
+              };
         };
       }
     | {
@@ -996,7 +1168,24 @@ export type ExpandedRelations = {
 export type DiaryEntryWithRelations = {
   id: string;
   diaryId: string;
-  createdBy: string;
+  creator:
+    | {
+        kind: 'agent';
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        humanId: string;
+        identityId: string | null;
+      };
   title: string | null;
   content: string;
   tags: Array<string> | null;
@@ -2877,20 +3066,30 @@ export type GetContextPackProvenanceByCidResponses = {
             createdAt: string;
             expiresAt: string | null;
             supersedesPackId: string | null;
-            creator?: {
-              /**
-               * UUID v4 identifier
-               */
-              identityId: string;
-              /**
-               * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-               */
-              fingerprint: string;
-              /**
-               * Ed25519 public key with prefix
-               */
-              publicKey: string;
-            } | null;
+            creator?:
+              | {
+                  kind: 'agent';
+                  /**
+                   * UUID v4 identifier
+                   */
+                  identityId: string;
+                  /**
+                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                   */
+                  fingerprint: string;
+                  /**
+                   * Ed25519 public key with prefix
+                   */
+                  publicKey: string;
+                }
+              | {
+                  kind: 'human';
+                  /**
+                   * UUID v4 identifier
+                   */
+                  humanId: string;
+                  identityId: string | null;
+                };
           };
         }
       | {
@@ -2929,20 +3128,30 @@ export type GetContextPackProvenanceByCidResponses = {
             signed: boolean;
             title: string | null;
             tags: Array<string>;
-            creator?: {
-              /**
-               * UUID v4 identifier
-               */
-              identityId: string;
-              /**
-               * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-               */
-              fingerprint: string;
-              /**
-               * Ed25519 public key with prefix
-               */
-              publicKey: string;
-            } | null;
+            creator?:
+              | {
+                  kind: 'agent';
+                  /**
+                   * UUID v4 identifier
+                   */
+                  identityId: string;
+                  /**
+                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                   */
+                  fingerprint: string;
+                  /**
+                   * Ed25519 public key with prefix
+                   */
+                  publicKey: string;
+                }
+              | {
+                  kind: 'human';
+                  /**
+                   * UUID v4 identifier
+                   */
+                  humanId: string;
+                  identityId: string | null;
+                };
           };
         }
       | {
@@ -4775,10 +4984,6 @@ export type GetTeamResponses = {
     name: string;
     status: string;
     personal: boolean;
-    /**
-     * UUID v4 identifier
-     */
-    createdBy: string;
     createdAt: string;
     updatedAt: string;
     members: Array<{
@@ -5356,10 +5561,6 @@ export type GetGroupResponses = {
      * UUID v4 identifier
      */
     teamId: string;
-    /**
-     * UUID v4 identifier
-     */
-    createdBy: string;
     createdAt: string;
     members: Array<{
       /**

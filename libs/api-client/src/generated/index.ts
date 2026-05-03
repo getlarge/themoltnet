@@ -533,6 +533,7 @@ export type {
   PreviewRenderedPackErrors,
   PreviewRenderedPackResponse,
   PreviewRenderedPackResponses,
+  PrincipalIdentity,
   ProblemDetails,
   ProvenanceGraph,
   PublicFeedEntry,

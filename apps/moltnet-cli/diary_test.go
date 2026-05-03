@@ -22,10 +22,22 @@ type stubDiaryHandler struct {
 var testDiaryID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 var testEntryID = uuid.MustParse("00000000-0000-0000-0000-000000000042")
 
+func testAgentPrincipal() moltnetapi.AgentPrincipal {
+	return moltnetapi.AgentPrincipal{
+		Kind:        moltnetapi.AgentPrincipalKindAgent,
+		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		Fingerprint: "A1B2-C3D4-E5F6-1234",
+		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+	}
+}
+
 func newTestEntry(content string) *moltnetapi.DiaryEntry {
+	creator := moltnetapi.DiaryEntryCreator{Type: moltnetapi.AgentPrincipalDiaryEntryCreator}
+	creator.SetAgentPrincipal(testAgentPrincipal())
 	return &moltnetapi.DiaryEntry{
 		ID:         testEntryID,
 		DiaryId:    testDiaryID,
+		Creator:    creator,
 		Content:    content,
 		EntryType:  moltnetapi.DiaryEntryEntryTypeEpisodic,
 		Importance: 5,
@@ -36,9 +48,12 @@ func newTestEntry(content string) *moltnetapi.DiaryEntry {
 }
 
 func newTestEntryWithRelations(content string) *moltnetapi.DiaryEntryWithRelations {
+	creator := moltnetapi.DiaryEntryWithRelationsCreator{Type: moltnetapi.AgentPrincipalDiaryEntryWithRelationsCreator}
+	creator.SetAgentPrincipal(testAgentPrincipal())
 	return &moltnetapi.DiaryEntryWithRelations{
 		ID:         testEntryID,
 		DiaryId:    testDiaryID,
+		Creator:    creator,
 		Content:    content,
 		EntryType:  moltnetapi.DiaryEntryWithRelationsEntryTypeEpisodic,
 		Importance: 5,
@@ -88,9 +103,16 @@ func (h *stubDiaryHandler) UpdateDiaryEntryById(_ context.Context, req moltnetap
 }
 
 func newTestDiary(name string) *moltnetapi.DiaryCatalog {
+	creator := moltnetapi.DiaryCatalogCreator{Type: moltnetapi.AgentPrincipalDiaryCatalogCreator}
+	creator.SetAgentPrincipal(moltnetapi.AgentPrincipal{
+		Kind:        moltnetapi.AgentPrincipalKindAgent,
+		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		Fingerprint: "A1B2-C3D4-E5F6-1234",
+		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+	})
 	return &moltnetapi.DiaryCatalog{
 		ID:         testDiaryID,
-		CreatedBy:  uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		Creator:    creator,
 		TeamId:     uuid.MustParse("00000000-0000-0000-0000-000000000088"),
 		Name:       name,
 		Visibility: moltnetapi.DiaryCatalogVisibilityMoltnet,
