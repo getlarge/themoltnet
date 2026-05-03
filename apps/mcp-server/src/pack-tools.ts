@@ -387,7 +387,7 @@ export async function handleRenderedPacksUpdate(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'packs_update_rendered' }, 'tool.invoked');
+  deps.logger.debug({ tool: 'rendered_packs_update' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -406,7 +406,7 @@ export async function handleRenderedPacksUpdate(
 
   if (error || !data) {
     deps.logger.error(
-      { tool: 'packs_update_rendered', err: error },
+      { tool: 'rendered_packs_update', err: error },
       'tool.error',
     );
     return errorResult(
@@ -587,7 +587,7 @@ export function registerPackTools(
 
   fastify.mcpAddTool(
     {
-      name: 'packs_update_rendered',
+      name: 'rendered_packs_update',
       description:
         'Update a rendered pack — pin/unpin or change expiration date. ' +
         'Pin a rendered pack to protect it from garbage collection. ' +

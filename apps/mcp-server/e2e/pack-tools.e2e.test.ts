@@ -213,7 +213,7 @@ describe('Pack Tools E2E', () => {
     expect(unpinParsed.expiresAt).toBeDefined();
   });
 
-  it('packs_update_rendered pins and unpins a rendered pack', async () => {
+  it('rendered_packs_update pins and unpins a rendered pack', async () => {
     requireSetup();
 
     // Compile to get a source pack
@@ -256,7 +256,7 @@ describe('Pack Tools E2E', () => {
 
     // Pin the rendered pack
     const pinResult = await client.callTool({
-      name: 'packs_update_rendered',
+      name: 'rendered_packs_update',
       arguments: { rendered_pack_id: renderedPackId, pinned: true },
     });
     const pinContent = pinResult.content as Array<{
@@ -265,7 +265,7 @@ describe('Pack Tools E2E', () => {
     }>;
     expect(
       pinResult.isError,
-      `packs_update_rendered (pin) error: ${pinContent[0].text}`,
+      `rendered_packs_update (pin) error: ${pinContent[0].text}`,
     ).toBeUndefined();
     const pinParsed = JSON.parse(pinContent[0].text);
     expect(pinParsed.pinned).toBe(true);
@@ -273,7 +273,7 @@ describe('Pack Tools E2E', () => {
     // Unpin with new expiresAt
     const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const unpinResult = await client.callTool({
-      name: 'packs_update_rendered',
+      name: 'rendered_packs_update',
       arguments: {
         rendered_pack_id: renderedPackId,
         pinned: false,
@@ -286,7 +286,7 @@ describe('Pack Tools E2E', () => {
     }>;
     expect(
       unpinResult.isError,
-      `packs_update_rendered (unpin) error: ${unpinContent2[0].text}`,
+      `rendered_packs_update (unpin) error: ${unpinContent2[0].text}`,
     ).toBeUndefined();
     const unpinParsed2 = JSON.parse(unpinContent2[0].text);
     expect(unpinParsed2.pinned).toBe(false);
