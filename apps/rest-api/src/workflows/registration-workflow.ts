@@ -193,13 +193,16 @@ export function initRegistrationWorkflow(): void {
   const createPersonalTeamStep = DBOS.registerStep(
     async (identityId: string, fingerprint: string): Promise<string> => {
       const { teamRepository } = getDeps();
-      const existing = await teamRepository.findPersonalByCreator(identityId);
+      const existing = await teamRepository.findPersonalByCreator({
+        kind: 'agent',
+        id: identityId,
+      });
       if (existing) return existing.id;
 
       const team = await teamRepository.create({
         name: fingerprint,
         personal: true,
-        createdBy: identityId,
+        creator: { kind: 'agent', id: identityId },
         status: 'active',
       });
       return team.id;
@@ -235,12 +238,15 @@ export function initRegistrationWorkflow(): void {
   const createPrivateDiaryStep = DBOS.registerStep(
     async (identityId: string, personalTeamId: string): Promise<void> => {
       const { diaryRepository, relationshipWriter } = getDeps();
-      const owned = await diaryRepository.listByCreator(identityId);
+      const owned = await diaryRepository.listByCreator({
+        kind: 'agent',
+        id: identityId,
+      });
       const existing = owned.find((d) => d.name === 'Private');
       const diary =
         existing ??
         (await diaryRepository.create({
-          createdBy: identityId,
+          creator: { kind: 'agent', id: identityId },
           name: 'Private',
           visibility: 'private',
           teamId: personalTeamId,

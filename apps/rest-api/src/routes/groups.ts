@@ -25,6 +25,7 @@ import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem, isUniqueViolation } from '../problems/index.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -77,13 +78,17 @@ export async function groupRoutes(fastify: FastifyInstance) {
 
       const { name } = request.body;
 
+      const creator = await authContextToCreator(
+        request,
+        fastify.humanRepository,
+      );
       let group;
       try {
         group = await fastify.transactionRunner.runInTransaction(async () => {
           return fastify.groupRepository.create({
             name,
             teamId: id,
-            createdBy: identityId,
+            creator,
           });
         });
       } catch (err) {
@@ -206,7 +211,6 @@ export async function groupRoutes(fastify: FastifyInstance) {
         id: group.id,
         name: group.name,
         teamId: group.teamId,
-        createdBy: group.createdBy,
         createdAt: group.createdAt,
         members: members.map((m) => ({
           subjectId: m.subjectId,

@@ -360,7 +360,9 @@ export const TeamDetailSchema = Type.Object({
   name: Type.String(),
   status: Type.String(),
   personal: Type.Boolean(),
-  createdBy: UuidSchema,
+  // creator field omitted in this PR — Group B in the unified-principal-creator
+  // refactor. DB has paired creator_agent_id / creator_human_id columns ready
+  // for a follow-up PR that adds a discriminated `creator` to this response.
   createdAt: DateTimeUnsafe,
   updatedAt: DateTimeUnsafe,
   members: Type.Array(TeamMemberSchema),
@@ -490,7 +492,9 @@ export const GroupDetailSchema = Type.Object({
   id: UuidSchema,
   name: Type.String(),
   teamId: UuidSchema,
-  createdBy: UuidSchema,
+  // creator field omitted in this PR — Group B in the unified-principal-creator
+  // refactor. DB has paired creator_agent_id / creator_human_id columns ready
+  // for a follow-up PR that adds a discriminated `creator` to this response.
   createdAt: DateTimeUnsafe,
   members: Type.Array(GroupMemberResponseSchema),
 });

@@ -129,15 +129,18 @@ export function initHumanOnboardingWorkflow(): void {
   );
 
   const createPersonalTeamStep = DBOS.registerStep(
-    async (identityId: string, username: string): Promise<string> => {
+    async (humanId: string, username: string): Promise<string> => {
       const { teamRepository } = getDeps();
-      const existing = await teamRepository.findPersonalByCreator(identityId);
+      const existing = await teamRepository.findPersonalByCreator({
+        kind: 'human',
+        id: humanId,
+      });
       if (existing) return existing.id;
 
       const team = await teamRepository.create({
         name: username,
         personal: true,
-        createdBy: identityId,
+        creator: { kind: 'human', id: humanId },
         status: 'active',
       });
       return team.id;
@@ -171,14 +174,17 @@ export function initHumanOnboardingWorkflow(): void {
   );
 
   const createPrivateDiaryStep = DBOS.registerStep(
-    async (identityId: string, personalTeamId: string): Promise<void> => {
+    async (humanId: string, personalTeamId: string): Promise<void> => {
       const { diaryRepository, relationshipWriter } = getDeps();
-      const owned = await diaryRepository.listByCreator(identityId);
+      const owned = await diaryRepository.listByCreator({
+        kind: 'human',
+        id: humanId,
+      });
       const existing = owned.find((d) => d.name === 'Private');
       const diary =
         existing ??
         (await diaryRepository.create({
-          createdBy: identityId,
+          creator: { kind: 'human', id: humanId },
           name: 'Private',
           visibility: 'private',
           teamId: personalTeamId,
@@ -211,17 +217,14 @@ export function initHumanOnboardingWorkflow(): void {
         // Step 2: Register in Keto
         await registerInKetoStep(identityId);
 
-        // Step 3: Create personal team
-        const personalTeamId = await createPersonalTeamStep(
-          identityId,
-          username,
-        );
+        // Step 3: Create personal team (FK target for creator_human_id is humans.id)
+        const personalTeamId = await createPersonalTeamStep(humanId, username);
 
-        // Step 4: Grant team ownership
+        // Step 4: Grant team ownership (Keto uses identityId)
         await grantTeamOwnerStep(personalTeamId, identityId);
 
-        // Step 5: Create private diary
-        await createPrivateDiaryStep(identityId, personalTeamId);
+        // Step 5: Create private diary (FK target for creator_human_id is humans.id)
+        await createPrivateDiaryStep(humanId, personalTeamId);
 
         return { humanId, identityId, personalTeamId };
       } catch (error: unknown) {

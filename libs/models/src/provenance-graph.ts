@@ -33,11 +33,28 @@ export const ProvenanceGraphPackMetaSchema = Type.Object({
   supersedesPackId: Type.Union([UuidSchema, Type.Null()]),
 });
 
-export const ProvenanceGraphCreatorSchema = Type.Object({
+/**
+ * Discriminated creator: matches the apps/rest-api PrincipalIdentitySchema
+ * shape but is declared inline here so @moltnet/models stays free of an
+ * apps/* dependency.
+ */
+const ProvenanceGraphAgentCreatorSchema = Type.Object({
+  kind: Type.Literal('agent'),
   identityId: UuidSchema,
   fingerprint: FingerprintSchema,
   publicKey: PublicKeySchema,
 });
+
+const ProvenanceGraphHumanCreatorSchema = Type.Object({
+  kind: Type.Literal('human'),
+  humanId: UuidSchema,
+  identityId: Type.Union([UuidSchema, Type.Null()]),
+});
+
+export const ProvenanceGraphCreatorSchema = Type.Union([
+  ProvenanceGraphAgentCreatorSchema,
+  ProvenanceGraphHumanCreatorSchema,
+]);
 
 export const ProvenanceGraphEntryMetaSchema = Type.Object({
   entryId: UuidSchema,

@@ -17,6 +17,7 @@ import {
   RenderPackBodySchema,
   RenderPackPreviewBodySchema,
 } from '../schemas.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 
 function translatePackServiceError(err: PackServiceError): never {
   switch (err.code) {
@@ -158,11 +159,15 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           );
         }
 
+        const renderCreator = await authContextToCreator(
+          request,
+          fastify.humanRepository,
+        );
         const result = await fastify.contextPackService.createRenderedPack({
           sourcePackId: request.params.id,
           renderedMarkdown,
           renderMethod: request.body.renderMethod,
-          createdBy: identityId,
+          creator: renderCreator,
           pinned: request.body.pinned,
         });
 

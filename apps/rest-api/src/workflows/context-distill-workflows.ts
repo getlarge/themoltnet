@@ -110,6 +110,12 @@ export interface ConsolidateWorkflowInput {
 export interface CompileWorkflowInput {
   diaryId: string;
   identityId: string;
+  /**
+   * Discriminated principal that initiated the compile. Used to populate
+   * paired creator FK columns on the resulting context_pack row. The
+   * workflow caller resolves humans.id at the auth boundary.
+   */
+  creator: { kind: 'agent' | 'human'; id: string };
   taskPrompt?: string;
   tokenBudget: number;
   lambda?: CompileOptions['lambda'];
@@ -463,14 +469,17 @@ export function initContextDistillWorkflows(): void {
       const createdAtDate = new Date(createdAt);
       const packInput: NewContextPack = {
         diaryId: input.diaryId,
-        createdBy: input.identityId,
+        creatorAgentId:
+          input.creator.kind === 'agent' ? input.creator.id : null,
+        creatorHumanId:
+          input.creator.kind === 'human' ? input.creator.id : null,
         packCid,
         packType: 'compile',
         params,
         payload: {
           v: 'moltnet:pack:v1',
           diaryId: input.diaryId,
-          createdBy: input.identityId,
+          creator: input.creator,
           createdAt,
           packType: 'compile',
           params,
@@ -498,12 +507,22 @@ export function initContextDistillWorkflows(): void {
       );
 
       const { contextPackRepository, dataSource } = getDeps();
-      const existingPack = await contextPackRepository.findByCid(packCid);
-      if (existingPack) {
+      const existingPackWithCreator =
+        await contextPackRepository.findByCid(packCid);
+      if (existingPackWithCreator) {
         const packEntries = await contextPackRepository.listEntries(
-          existingPack.id,
+          existingPackWithCreator.id,
         );
-        await grantPackParentStep(existingPack.id, input.diaryId);
+        await grantPackParentStep(existingPackWithCreator.id, input.diaryId);
+        // Project back to the raw ContextPack shape (paired creator columns,
+        // no inflated discriminated creator). The route boundary inflates via
+        // rowToResponseWithCreator, so the workflow result stays canonical.
+        const { creator, ...rest } = existingPackWithCreator;
+        const existingPack: ContextPack = {
+          ...rest,
+          creatorAgentId: creator.kind === 'agent' ? creator.identityId : null,
+          creatorHumanId: creator.kind === 'human' ? creator.humanId : null,
+        };
         return { pack: existingPack, packEntries, compileResult };
       }
 

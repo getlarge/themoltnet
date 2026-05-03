@@ -27,6 +27,10 @@ import {
   EntryVerifyResultSchema,
   SuccessSchema,
 } from '../schemas.js';
+import {
+  authContextToCreator,
+  rowToResponseWithCreator,
+} from '../utils/auth-principal.js';
 
 const queryTagSchema = Type.String({
   minLength: 1,
@@ -205,6 +209,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           );
         }
 
+        const entryCreator = await authContextToCreator(
+          request,
+          fastify.humanRepository,
+        );
         const entry = await fastify.diaryService.createEntry(
           {
             diaryId,
@@ -216,11 +224,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             contentHash: resolvedContentHash,
             contentSignature,
             signingNonce,
+            creator: entryCreator,
           },
           agentId,
           subjectNs,
         );
-        return await reply.status(201).send(entry);
+        return await reply
+          .status(201)
+          .send(await rowToResponseWithCreator(entry, fastify));
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         // Unique constraint on content_signature → signing request already used
@@ -317,7 +328,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       });
 
       return {
-        items,
+        items: await Promise.all(
+          items.map((row) => rowToResponseWithCreator(row, fastify)),
+        ),
         total,
         limit: limit ?? 20,
         offset: offset ?? 0,
@@ -521,7 +534,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Entry not found');
       }
 
-      return entry;
+      return await rowToResponseWithCreator(entry, fastify);
     } catch (err) {
       if (err instanceof DiaryServiceError) translateServiceError(err);
       throw err;
@@ -588,8 +601,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
 
+      const entryWithCreator = await rowToResponseWithCreator(entry, fastify);
       if (!wantsExpandedRelations(request.query.expand)) {
-        return entry;
+        return entryWithCreator;
       }
 
       const depth = request.query.depth ?? 1;
@@ -602,7 +616,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const maxDepth = traversal.reduce((m, r) => Math.max(m, r.depth), 0);
 
       return {
-        ...entry,
+        ...entryWithCreator,
         relations: {
           requestedDepth: depth,
           maxDepth,
@@ -814,7 +828,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             agentId,
           );
         }
-        return { results, total: results.length };
+        const inflated = await Promise.all(
+          results.map((row) => rowToResponseWithCreator(row, fastify)),
+        );
+        return { results: inflated, total: inflated.length };
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;

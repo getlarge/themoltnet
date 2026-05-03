@@ -1,7 +1,8 @@
 import { Type } from '@sinclair/typebox';
 
 import { DateTime } from './atoms.js';
-import { AgentIdentitySchema, DiaryEntryWithCreatorSchema } from './diary.js';
+import { DiaryEntryWithCreatorSchema } from './diary.js';
+import { PrincipalIdentitySchema } from './principal.js';
 
 // ── Context Packs ─────────────────────────────────────────
 
@@ -47,8 +48,7 @@ export const ContextPackSchema = Type.Object(
     ]),
     params: Type.Unknown(),
     payload: Type.Unknown(),
-    createdBy: Type.String({ format: 'uuid' }),
-    creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
+    creator: PrincipalIdentitySchema,
     supersedesPackId: Type.Union([
       Type.String({ format: 'uuid' }),
       Type.Null(),
@@ -143,7 +143,7 @@ export const CompileResultSchema = Type.Object(
     ]),
     params: Type.Unknown(),
     payload: Type.Unknown(),
-    createdBy: Type.String({ format: 'uuid' }),
+    creator: PrincipalIdentitySchema,
     supersedesPackId: Type.Union([
       Type.String({ format: 'uuid' }),
       Type.Null(),
@@ -458,7 +458,7 @@ export const RenderedPackSchema = Type.Object(
     contentHash: Type.String(),
     renderMethod: Type.String(),
     totalTokens: Type.Integer(),
-    createdBy: Type.String({ format: 'uuid' }),
+    creator: PrincipalIdentitySchema,
     pinned: Type.Boolean(),
     expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,

@@ -463,9 +463,19 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     tokenValidator,
     sessionResolver,
     teamResolver: {
+      // subjectId may be either an agent identityId or a humans.id; try
+      // both, agent first (more common path), human as fallback.
       findPersonalTeamId: async (subjectId: string) => {
-        const team = await teamRepository.findPersonalByCreator(subjectId);
-        return team?.id ?? null;
+        const agentTeam = await teamRepository.findPersonalByCreator({
+          kind: 'agent',
+          id: subjectId,
+        });
+        if (agentTeam) return agentTeam.id;
+        const humanTeam = await teamRepository.findPersonalByCreator({
+          kind: 'human',
+          id: subjectId,
+        });
+        return humanTeam?.id ?? null;
       },
     },
     hydraPublicUrl: oryUrls.hydraPublicUrl,
