@@ -11,6 +11,7 @@
 import type { CompileParams, PackEntryRef } from '@moltnet/crypto-service';
 import { computeContentCid, computePackCid } from '@moltnet/crypto-service';
 import {
+  agents,
   contextPackEntries,
   contextPacks,
   createContextPackRepository,
@@ -217,19 +218,27 @@ describe('compile provenance (integration)', () => {
     packRepo = createContextPackRepository(db);
     entryRepo = createDiaryEntryRepository(db);
 
-    // Seed team + diary
+    // Seed agent + team + diary
+    await db
+      .insert(agents)
+      .values({
+        identityId: OWNER_ID,
+        publicKey: 'ed25519:provenancetestkey',
+        fingerprint: 'A1B2-C3D4-E5F6-PR01',
+      })
+      .onConflictDoNothing();
     const TEAM_ID = '00000000-0000-4000-b000-000000000001';
     await db
       .insert(teams)
       .values({
         id: TEAM_ID,
         name: 'Provenance Test Team',
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
       })
       .onConflictDoNothing();
     await db.insert(diaries).values({
       id: DIARY_ID,
-      createdBy: OWNER_ID,
+      creatorAgentId: OWNER_ID,
       teamId: TEAM_ID,
       name: 'Compile Provenance Test',
       visibility: 'private',
@@ -240,7 +249,7 @@ describe('compile provenance (integration)', () => {
       await entryRepo.create({
         id: entry.id,
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
         entryType: entry.entryType,
         title: entry.title,
         content: entry.content,
@@ -310,7 +319,8 @@ describe('compile provenance (integration)', () => {
       // Persist pack
       const pack = await packRepo.createPack({
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
+        creatorHumanId: null,
         packCid,
         packType: 'compile',
         params,
@@ -410,7 +420,8 @@ describe('compile provenance (integration)', () => {
 
       await packRepo.createPack({
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
+        creatorHumanId: null,
         packCid,
         packType: 'compile',
         params,
@@ -421,7 +432,9 @@ describe('compile provenance (integration)', () => {
       const found = await packRepo.findByCid(packCid);
       expect(found).not.toBeNull();
       expect(found!.packCid).toBe(packCid);
-      expect(found!.createdBy).toBe(OWNER_ID);
+      expect(found!.creator).toEqual(
+        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+      );
     });
   });
 
@@ -440,7 +453,8 @@ describe('compile provenance (integration)', () => {
 
       const pack = await packRepo.createPack({
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
+        creatorHumanId: null,
         packCid,
         packType: 'compile',
         params,
@@ -517,7 +531,8 @@ describe('compile provenance (integration)', () => {
 
       const compilePack = await packRepo.createPack({
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
+        creatorHumanId: null,
         packCid: compileCid,
         packType: 'compile',
         params,
@@ -546,7 +561,8 @@ describe('compile provenance (integration)', () => {
 
       const optimizedPack = await packRepo.createPack({
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
+        creatorHumanId: null,
         packCid: optimizedCid,
         packType: 'optimized',
         params: { sourcePackCid: compileCid, gepaTrials: 8, gepaScore: 0.91 },

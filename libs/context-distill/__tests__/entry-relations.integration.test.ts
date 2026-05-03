@@ -11,6 +11,7 @@
 
 import { computeContentCid } from '@moltnet/crypto-service';
 import {
+  agents,
   createDatabase,
   createDiaryEntryRepository,
   createEntryRelationRepository,
@@ -186,15 +187,27 @@ describe('entry relations from consolidation (integration)', () => {
     entryRepo = createDiaryEntryRepository(db);
     relationRepo = createEntryRelationRepository(db);
 
-    // Seed team + diary
+    // Seed agent + team + diary
+    await db
+      .insert(agents)
+      .values({
+        identityId: OWNER_ID,
+        publicKey: 'ed25519:relationstestkey',
+        fingerprint: 'A1B2-C3D4-E5F6-RE01',
+      })
+      .onConflictDoNothing();
     const TEAM_ID = '00000000-0000-4000-b000-000000000001';
     await db
       .insert(teams)
-      .values({ id: TEAM_ID, name: 'Relations Test Team', createdBy: OWNER_ID })
+      .values({
+        id: TEAM_ID,
+        name: 'Relations Test Team',
+        creatorAgentId: OWNER_ID,
+      })
       .onConflictDoNothing();
     await db.insert(diaries).values({
       id: DIARY_ID,
-      createdBy: OWNER_ID,
+      creatorAgentId: OWNER_ID,
       teamId: TEAM_ID,
       name: 'Relations Test Diary',
       visibility: 'private',
@@ -205,7 +218,7 @@ describe('entry relations from consolidation (integration)', () => {
       await entryRepo.create({
         id: entry.id,
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
         entryType: entry.entryType,
         title: entry.title,
         content: entry.content,

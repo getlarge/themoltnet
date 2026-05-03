@@ -19,12 +19,18 @@ function makePackRow(overrides?: Record<string, unknown>) {
     packType: 'compile' as const,
     params: {},
     payload: { compileStats: { totalTokens: 100 } },
-    createdBy: 'identity-uuid',
+    creatorAgentId: 'identity-uuid',
+    creatorHumanId: null,
     supersedesPackId: null,
     pinned: false,
     expiresAt: null,
     createdAt: new Date('2026-01-01'),
-    creator: null,
+    creator: {
+      kind: 'agent' as const,
+      identityId: 'identity-uuid',
+      fingerprint: 'A1B2-C3D4-E5F6-1234',
+      publicKey: 'ed25519:test',
+    },
     ...overrides,
   };
 }
