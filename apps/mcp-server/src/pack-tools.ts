@@ -12,8 +12,10 @@ import {
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  getRenderedPackById,
   listContextPacks,
   listDiaryPacks,
+  listDiaryRenderedPacks,
   previewDiaryCustomPack,
   previewRenderedPack,
   renderContextPack,
@@ -32,6 +34,8 @@ import type {
   PackRenderInput,
   PackRenderPreviewInput,
   PackUpdateInput,
+  RenderedPackGetInput,
+  RenderedPackListInput,
   RenderedPackUpdateInput,
 } from './schemas/pack-schemas.js';
 import {
@@ -53,6 +57,10 @@ import {
   PackRenderSchema,
   PackUpdateOutputSchema,
   PackUpdateSchema,
+  RenderedPackGetOutputSchema,
+  RenderedPackGetSchema,
+  RenderedPackListOutputSchema,
+  RenderedPackListSchema,
   RenderedPackUpdateOutputSchema,
   RenderedPackUpdateSchema,
 } from './schemas/pack-schemas.js';
@@ -311,12 +319,75 @@ export async function handlePacksUpdate(
   return structuredResult(data);
 }
 
+export async function handleRenderedPacksGet(
+  args: RenderedPackGetInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'rendered_packs_get' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await getRenderedPackById({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.rendered_pack_id },
+  });
+
+  if (error || !data) {
+    deps.logger.error({ tool: 'rendered_packs_get', err: error }, 'tool.error');
+    return errorResult(
+      extractApiErrorMessage(error, 'Rendered pack not found'),
+    );
+  }
+
+  return structuredResult(data);
+}
+
+export async function handleRenderedPacksList(
+  args: RenderedPackListInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'rendered_packs_list' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await listDiaryRenderedPacks({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.diary_id },
+    query: {
+      ...(args.limit !== undefined && { limit: args.limit }),
+      ...(args.offset !== undefined && { offset: args.offset }),
+      ...(args.source_pack_id !== undefined && {
+        sourcePackId: args.source_pack_id,
+      }),
+      ...(args.render_method !== undefined && {
+        renderMethod: args.render_method,
+      }),
+    },
+  });
+
+  if (error || !data) {
+    deps.logger.error(
+      { tool: 'rendered_packs_list', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to list rendered packs'),
+    );
+  }
+
+  return structuredResult(data);
+}
+
 export async function handleRenderedPacksUpdate(
   args: RenderedPackUpdateInput,
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'packs_update_rendered' }, 'tool.invoked');
+  deps.logger.debug({ tool: 'rendered_packs_update' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -335,7 +406,7 @@ export async function handleRenderedPacksUpdate(
 
   if (error || !data) {
     deps.logger.error(
-      { tool: 'packs_update_rendered', err: error },
+      { tool: 'rendered_packs_update', err: error },
       'tool.error',
     );
     return errorResult(
@@ -516,7 +587,7 @@ export function registerPackTools(
 
   fastify.mcpAddTool(
     {
-      name: 'packs_update_rendered',
+      name: 'rendered_packs_update',
       description:
         'Update a rendered pack — pin/unpin or change expiration date. ' +
         'Pin a rendered pack to protect it from garbage collection. ' +
@@ -547,6 +618,28 @@ export function registerPackTools(
       outputSchema: PackRenderOutputSchema,
     },
     async (args, ctx) => handlePacksRender(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'rendered_packs_get',
+      description:
+        'Fetch a persisted rendered pack by ID. Returns the rendered markdown plus metadata linking it back to its source context pack.',
+      inputSchema: RenderedPackGetSchema,
+      outputSchema: RenderedPackGetOutputSchema,
+    },
+    async (args, ctx) => handleRenderedPacksGet(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'rendered_packs_list',
+      description:
+        'List rendered packs for a diary. Optionally filter by source_pack_id or render_method.',
+      inputSchema: RenderedPackListSchema,
+      outputSchema: RenderedPackListOutputSchema,
+    },
+    async (args, ctx) => handleRenderedPacksList(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
