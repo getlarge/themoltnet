@@ -30,6 +30,13 @@ export {
 } from './dbos.js';
 export { runMigrations } from './migrate.js';
 export {
+  type AgentPrincipal,
+  type HumanPrincipal,
+  type PrincipalIdentity,
+  type PrincipalRow,
+  resolvePrincipal,
+} from './principal-resolver.js';
+export {
   type AgentRepository,
   createAgentRepository,
 } from './repositories/agent.repository.js';
