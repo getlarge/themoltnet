@@ -18,12 +18,17 @@ import {
 
 import type { Database } from '../db.js';
 import {
+  type PrincipalIdentity,
+  resolvePrincipal,
+} from '../principal-resolver.js';
+import {
   agents,
   type ContextPack,
   contextPackEntries,
   type ContextPackEntry,
   contextPacks,
   diaryEntries,
+  humans,
   type NewContextPack,
   type NewContextPackEntry,
 } from '../schema.js';
@@ -37,10 +42,11 @@ const packSelection = {
   packType: contextPacks.packType,
   params: contextPacks.params,
   payload: contextPacks.payload,
-  createdBy: contextPacks.createdBy,
-  creatorIdentityId: agents.identityId,
-  creatorFingerprint: agents.fingerprint,
-  creatorPublicKey: agents.publicKey,
+  creatorAgentId: contextPacks.creatorAgentId,
+  creatorAgentFingerprint: agents.fingerprint,
+  creatorAgentPublicKey: agents.publicKey,
+  creatorHumanId: contextPacks.creatorHumanId,
+  creatorHumanIdentityId: humans.identityId,
   supersedesPackId: contextPacks.supersedesPackId,
   pinned: contextPacks.pinned,
   expiresAt: contextPacks.expiresAt,
@@ -48,9 +54,9 @@ const packSelection = {
 } as const;
 
 interface PackRow extends ContextPack {
-  creatorIdentityId: string | null;
-  creatorFingerprint: string | null;
-  creatorPublicKey: string | null;
+  creatorAgentFingerprint: string | null;
+  creatorAgentPublicKey: string | null;
+  creatorHumanIdentityId: string | null;
 }
 
 const expandedEntrySelection = {
@@ -77,9 +83,11 @@ const expandedEntrySelection = {
   entryContentSignature: diaryEntries.contentSignature,
   entryCreatedAt: diaryEntries.createdAt,
   entryUpdatedAt: diaryEntries.updatedAt,
-  entryCreatorIdentityId: agents.identityId,
-  entryCreatorFingerprint: agents.fingerprint,
-  entryCreatorPublicKey: agents.publicKey,
+  entryCreatorAgentId: diaryEntries.creatorAgentId,
+  entryCreatorAgentFingerprint: agents.fingerprint,
+  entryCreatorAgentPublicKey: agents.publicKey,
+  entryCreatorHumanId: diaryEntries.creatorHumanId,
+  entryCreatorHumanIdentityId: humans.identityId,
 } as const;
 
 function normalizePack(row: PackRow): ContextPackWithCreator {
@@ -91,15 +99,13 @@ function normalizePack(row: PackRow): ContextPackWithCreator {
     packType: row.packType,
     params: row.params,
     payload: row.payload,
-    createdBy: row.createdBy,
-    creator:
-      row.creatorIdentityId && row.creatorFingerprint && row.creatorPublicKey
-        ? {
-            identityId: row.creatorIdentityId,
-            fingerprint: row.creatorFingerprint,
-            publicKey: row.creatorPublicKey,
-          }
-        : null,
+    creator: resolvePrincipal({
+      creatorAgentId: row.creatorAgentId,
+      creatorAgentFingerprint: row.creatorAgentFingerprint,
+      creatorAgentPublicKey: row.creatorAgentPublicKey,
+      creatorHumanId: row.creatorHumanId,
+      creatorHumanIdentityId: row.creatorHumanIdentityId,
+    }),
     supersedesPackId: row.supersedesPackId,
     pinned: row.pinned,
     expiresAt: row.expiresAt,
@@ -124,9 +130,11 @@ interface ExpandedPackEntryRow extends InferSelectModel<
   entryContentSignature: string | null;
   entryCreatedAt: Date;
   entryUpdatedAt: Date;
-  entryCreatorIdentityId: string | null;
-  entryCreatorFingerprint: string | null;
-  entryCreatorPublicKey: string | null;
+  entryCreatorAgentId: string | null;
+  entryCreatorAgentFingerprint: string | null;
+  entryCreatorAgentPublicKey: string | null;
+  entryCreatorHumanId: string | null;
+  entryCreatorHumanIdentityId: string | null;
 }
 
 function normalizeExpandedEntry(row: ExpandedPackEntryRow): ExpandedPackEntry {
@@ -155,16 +163,13 @@ function normalizeExpandedEntry(row: ExpandedPackEntryRow): ExpandedPackEntry {
       contentSignature: row.entryContentSignature,
       createdAt: row.entryCreatedAt,
       updatedAt: row.entryUpdatedAt,
-      creator:
-        row.entryCreatorIdentityId === null ||
-        row.entryCreatorFingerprint === null ||
-        row.entryCreatorPublicKey === null
-          ? null
-          : {
-              identityId: row.entryCreatorIdentityId,
-              fingerprint: row.entryCreatorFingerprint,
-              publicKey: row.entryCreatorPublicKey,
-            },
+      creator: resolvePrincipal({
+        creatorAgentId: row.entryCreatorAgentId,
+        creatorAgentFingerprint: row.entryCreatorAgentFingerprint,
+        creatorAgentPublicKey: row.entryCreatorAgentPublicKey,
+        creatorHumanId: row.entryCreatorHumanId,
+        creatorHumanIdentityId: row.entryCreatorHumanIdentityId,
+      }),
     },
   };
 }
@@ -198,7 +203,8 @@ export function createContextPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(packSelection)
         .from(contextPacks)
-        .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
+        .leftJoin(agents, eq(contextPacks.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(contextPacks.creatorHumanId, humans.id))
         .where(eq(contextPacks.id, id))
         .limit(1)) as PackRow[];
 
@@ -209,7 +215,8 @@ export function createContextPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(packSelection)
         .from(contextPacks)
-        .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
+        .leftJoin(agents, eq(contextPacks.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(contextPacks.creatorHumanId, humans.id))
         .where(eq(contextPacks.packCid, packCid))
         .limit(1)) as PackRow[];
 
@@ -236,7 +243,8 @@ export function createContextPackRepository(db: Database) {
           diaryEntries,
           eq(contextPackEntries.entryId, diaryEntries.id),
         )
-        .leftJoin(agents, eq(diaryEntries.createdBy, agents.identityId))
+        .leftJoin(agents, eq(diaryEntries.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(diaryEntries.creatorHumanId, humans.id))
         .where(eq(contextPackEntries.packId, packId))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
@@ -259,7 +267,8 @@ export function createContextPackRepository(db: Database) {
           diaryEntries,
           eq(contextPackEntries.entryId, diaryEntries.id),
         )
-        .leftJoin(agents, eq(diaryEntries.createdBy, agents.identityId))
+        .leftJoin(agents, eq(diaryEntries.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(diaryEntries.creatorHumanId, humans.id))
         .where(inArray(contextPackEntries.packId, packIds))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
@@ -351,7 +360,8 @@ export function createContextPackRepository(db: Database) {
         getExecutor(db)
           .select(packSelection)
           .from(contextPacks)
-          .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
+          .leftJoin(agents, eq(contextPacks.creatorAgentId, agents.identityId))
+          .leftJoin(humans, eq(contextPacks.creatorHumanId, humans.id))
           .where(whereClause)
           .orderBy(desc(contextPacks.createdAt))
           .limit(limit)
@@ -477,7 +487,8 @@ export function createContextPackRepository(db: Database) {
             contextPacks,
             eq(contextPackEntries.packId, contextPacks.id),
           )
-          .leftJoin(agents, eq(contextPacks.createdBy, agents.identityId))
+          .leftJoin(agents, eq(contextPacks.creatorAgentId, agents.identityId))
+          .leftJoin(humans, eq(contextPacks.creatorHumanId, humans.id))
           .where(whereClause)
           .orderBy(desc(contextPacks.createdAt))
           .limit(limit)
@@ -509,22 +520,17 @@ export interface ExpandedPackEntry extends InferSelectModel<
 > {
   entry: Omit<
     InferSelectModel<typeof diaryEntries>,
-    'embedding' | 'createdBy' | 'signingNonce'
+    'embedding' | 'creatorAgentId' | 'creatorHumanId' | 'signingNonce'
   > & {
-    creator: {
-      identityId: string;
-      fingerprint: string;
-      publicKey: string;
-    } | null;
+    creator: PrincipalIdentity;
   };
 }
 
-export interface ContextPackWithCreator extends ContextPack {
-  creator: {
-    identityId: string;
-    fingerprint: string;
-    publicKey: string;
-  } | null;
+export interface ContextPackWithCreator extends Omit<
+  ContextPack,
+  'creatorAgentId' | 'creatorHumanId'
+> {
+  creator: PrincipalIdentity;
 }
 
 export type PackDiffCompressionLevel = 'full' | 'summary' | 'keywords';
