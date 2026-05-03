@@ -32,8 +32,12 @@ export { runMigrations } from './migrate.js';
 export {
   type AgentPrincipal,
   type HumanPrincipal,
+  PrincipalAgentJoinFailedError,
   type PrincipalIdentity,
+  PrincipalMissingError,
+  PrincipalResolutionError,
   type PrincipalRow,
+  PrincipalXorViolatedError,
   resolvePrincipal,
 } from './principal-resolver.js';
 export {

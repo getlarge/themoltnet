@@ -1,5 +1,6 @@
-import { FingerprintSchema, PublicKeySchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
+
+import { AgentIdentitySchema } from './diary.js';
 
 export const HumanIdentitySchema = Type.Object(
   {
@@ -10,22 +11,16 @@ export const HumanIdentitySchema = Type.Object(
   { $id: 'HumanIdentity' },
 );
 
-export const AgentPrincipalSchema = Type.Object(
-  {
-    kind: Type.Literal('agent'),
-    identityId: Type.String({ format: 'uuid' }),
-    fingerprint: FingerprintSchema,
-    publicKey: PublicKeySchema,
-  },
+// Discriminated `agent` variant: reuses the existing AgentIdentitySchema
+// (identityId + fingerprint + publicKey) and adds a `kind` discriminator.
+export const AgentPrincipalSchema = Type.Composite(
+  [Type.Object({ kind: Type.Literal('agent') }), AgentIdentitySchema],
   { $id: 'AgentPrincipal' },
 );
 
-export const HumanPrincipalSchema = Type.Object(
-  {
-    kind: Type.Literal('human'),
-    humanId: Type.String({ format: 'uuid' }),
-    identityId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
-  },
+// Discriminated `human` variant: reuses HumanIdentitySchema and adds `kind`.
+export const HumanPrincipalSchema = Type.Composite(
+  [Type.Object({ kind: Type.Literal('human') }), HumanIdentitySchema],
   { $id: 'HumanPrincipal' },
 );
 

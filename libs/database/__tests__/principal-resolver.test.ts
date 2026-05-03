@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  PrincipalAgentJoinFailedError,
+  PrincipalMissingError,
   type PrincipalRow,
+  PrincipalXorViolatedError,
   resolvePrincipal,
 } from '../src/principal-resolver.js';
 
@@ -52,7 +55,7 @@ describe('resolvePrincipal', () => {
     });
   });
 
-  it('throws when both agent and human columns are set (XOR violation)', () => {
+  it('throws PrincipalXorViolatedError with both IDs in context', () => {
     const row: PrincipalRow = {
       creatorAgentId: '11111111-1111-1111-1111-111111111111',
       creatorAgentFingerprint: 'A1B2-C3D4-E5F6-1234',
@@ -60,10 +63,24 @@ describe('resolvePrincipal', () => {
       creatorHumanId: '22222222-2222-2222-2222-222222222222',
       creatorHumanIdentityId: null,
     };
-    expect(() => resolvePrincipal(row)).toThrow(/XOR|both/i);
+    let caught: unknown;
+    try {
+      resolvePrincipal(row);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PrincipalXorViolatedError);
+    const err = caught as PrincipalXorViolatedError;
+    expect(err.code).toBe('PRINCIPAL_XOR_VIOLATED');
+    expect(err.context).toEqual({
+      creatorAgentId: '11111111-1111-1111-1111-111111111111',
+      creatorHumanId: '22222222-2222-2222-2222-222222222222',
+    });
+    expect(err.message).toContain('11111111-1111-1111-1111-111111111111');
+    expect(err.message).toContain('22222222-2222-2222-2222-222222222222');
   });
 
-  it('throws when neither agent nor human columns are set', () => {
+  it('throws PrincipalMissingError when neither column is set', () => {
     const row: PrincipalRow = {
       creatorAgentId: null,
       creatorAgentFingerprint: null,
@@ -71,10 +88,10 @@ describe('resolvePrincipal', () => {
       creatorHumanId: null,
       creatorHumanIdentityId: null,
     };
-    expect(() => resolvePrincipal(row)).toThrow(/missing|neither/i);
+    expect(() => resolvePrincipal(row)).toThrow(PrincipalMissingError);
   });
 
-  it('throws when agent variant missing fingerprint (JOIN miss)', () => {
+  it('throws PrincipalAgentJoinFailedError with missing-field details', () => {
     const row: PrincipalRow = {
       creatorAgentId: '11111111-1111-1111-1111-111111111111',
       creatorAgentFingerprint: null,
@@ -82,6 +99,40 @@ describe('resolvePrincipal', () => {
       creatorHumanId: null,
       creatorHumanIdentityId: null,
     };
-    expect(() => resolvePrincipal(row)).toThrow(/fingerprint|JOIN/i);
+    let caught: unknown;
+    try {
+      resolvePrincipal(row);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PrincipalAgentJoinFailedError);
+    const err = caught as PrincipalAgentJoinFailedError;
+    expect(err.code).toBe('PRINCIPAL_AGENT_JOIN_FAILED');
+    expect(err.missing).toEqual({ fingerprint: true, publicKey: true });
+    expect(err.context.creatorAgentId).toBe(
+      '11111111-1111-1111-1111-111111111111',
+    );
+    expect(err.message).toMatch(/fingerprint.*publicKey/);
+  });
+
+  it('PrincipalAgentJoinFailedError reports only the missing field', () => {
+    const row: PrincipalRow = {
+      creatorAgentId: '11111111-1111-1111-1111-111111111111',
+      creatorAgentFingerprint: 'A1B2-C3D4-E5F6-1234',
+      creatorAgentPublicKey: null,
+      creatorHumanId: null,
+      creatorHumanIdentityId: null,
+    };
+    let caught: unknown;
+    try {
+      resolvePrincipal(row);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PrincipalAgentJoinFailedError);
+    expect((caught as PrincipalAgentJoinFailedError).missing).toEqual({
+      fingerprint: false,
+      publicKey: true,
+    });
   });
 });
