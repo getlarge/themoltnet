@@ -23,10 +23,15 @@ import { getExecutor } from '../transaction-context.js';
 
 const INVITE_CODE_PREFIX = 'mlt_inv_';
 
+export interface TeamCreator {
+  kind: 'agent' | 'human';
+  id: string;
+}
+
 export interface CreateTeamInput {
   name: string;
   personal: boolean;
-  createdBy: string;
+  creator: TeamCreator;
   status: 'founding' | 'active' | 'archived';
 }
 
@@ -35,7 +40,7 @@ export interface CreateInviteInput {
   role: 'manager' | 'member';
   maxUses: number;
   expiresAt: Date;
-  createdBy: string;
+  creator: TeamCreator;
 }
 
 export interface CreateFoundingAcceptanceInput {
@@ -49,7 +54,7 @@ export interface TeamRepository {
   create(input: CreateTeamInput): Promise<Team>;
   findById(id: string): Promise<Team | null>;
   listByIds(ids: string[]): Promise<Team[]>;
-  findPersonalByCreator(createdBy: string): Promise<Team | null>;
+  findPersonalByCreator(creator: TeamCreator): Promise<Team | null>;
   updateStatus(
     id: string,
     status: 'founding' | 'active' | 'archived',
@@ -85,7 +90,10 @@ export function createTeamRepository(db: Database): TeamRepository {
         .values({
           name: input.name,
           personal: input.personal,
-          createdBy: input.createdBy,
+          creatorAgentId:
+            input.creator.kind === 'agent' ? input.creator.id : null,
+          creatorHumanId:
+            input.creator.kind === 'human' ? input.creator.id : null,
           status: input.status,
         })
         .returning();
@@ -106,11 +114,15 @@ export function createTeamRepository(db: Database): TeamRepository {
       return db.select().from(teams).where(inArray(teams.id, ids));
     },
 
-    async findPersonalByCreator(createdBy) {
+    async findPersonalByCreator(creator) {
+      const creatorMatch =
+        creator.kind === 'agent'
+          ? eq(teams.creatorAgentId, creator.id)
+          : eq(teams.creatorHumanId, creator.id);
       const [team] = await db
         .select()
         .from(teams)
-        .where(and(eq(teams.createdBy, createdBy), eq(teams.personal, true)))
+        .where(and(creatorMatch, eq(teams.personal, true)))
         .limit(1);
       return team ?? null;
     },
@@ -153,7 +165,10 @@ export function createTeamRepository(db: Database): TeamRepository {
           role: input.role,
           maxUses: input.maxUses,
           expiresAt: input.expiresAt,
-          createdBy: input.createdBy,
+          creatorAgentId:
+            input.creator.kind === 'agent' ? input.creator.id : null,
+          creatorHumanId:
+            input.creator.kind === 'human' ? input.creator.id : null,
         })
         .returning();
       return invite;

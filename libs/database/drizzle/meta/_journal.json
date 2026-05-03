@@ -49,6 +49,13 @@
       "tag": "0006_unified_principal_creator",
       "version": "7",
       "when": 1777831281388
+    },
+    {
+      "breakpoints": true,
+      "idx": 7,
+      "tag": "0007_update_diary_search_for_principal",
+      "version": "7",
+      "when": 1777835805108
     }
   ],
   "version": "7"

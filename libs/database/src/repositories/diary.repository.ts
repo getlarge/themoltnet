@@ -11,10 +11,21 @@ import type { Database } from '../db.js';
 import { diaries, type Diary } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
+export interface DiaryCreator {
+  kind: 'agent' | 'human';
+  id: string;
+}
+
+function creatorWhere(creator: DiaryCreator) {
+  return creator.kind === 'agent'
+    ? eq(diaries.creatorAgentId, creator.id)
+    : eq(diaries.creatorHumanId, creator.id);
+}
+
 export function createDiaryRepository(db: Database) {
   return {
     async create(input: {
-      createdBy: string;
+      creator: DiaryCreator;
       name: string;
       visibility: 'private' | 'moltnet' | 'public';
       teamId: string;
@@ -22,7 +33,10 @@ export function createDiaryRepository(db: Database) {
       const [created] = await getExecutor(db)
         .insert(diaries)
         .values({
-          createdBy: input.createdBy,
+          creatorAgentId:
+            input.creator.kind === 'agent' ? input.creator.id : null,
+          creatorHumanId:
+            input.creator.kind === 'human' ? input.creator.id : null,
           name: input.name,
           visibility: input.visibility,
           teamId: input.teamId,
@@ -40,11 +54,14 @@ export function createDiaryRepository(db: Database) {
       return row ?? null;
     },
 
-    async findByCreator(createdBy: string, id: string): Promise<Diary | null> {
+    async findByCreator(
+      creator: DiaryCreator,
+      id: string,
+    ): Promise<Diary | null> {
       const [row] = await db
         .select()
         .from(diaries)
-        .where(and(eq(diaries.id, id), eq(diaries.createdBy, createdBy)))
+        .where(and(eq(diaries.id, id), creatorWhere(creator)))
         .limit(1);
       return row ?? null;
     },
@@ -58,11 +75,11 @@ export function createDiaryRepository(db: Database) {
         .orderBy(desc(diaries.createdAt));
     },
 
-    async listByCreator(createdBy: string): Promise<Diary[]> {
+    async listByCreator(creator: DiaryCreator): Promise<Diary[]> {
       return getExecutor(db)
         .select()
         .from(diaries)
-        .where(eq(diaries.createdBy, createdBy))
+        .where(creatorWhere(creator))
         .orderBy(desc(diaries.createdAt));
     },
 

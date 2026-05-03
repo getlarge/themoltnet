@@ -12,10 +12,15 @@ import type { Database } from '../db.js';
 import { type Group, groups } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
+export interface GroupCreator {
+  kind: 'agent' | 'human';
+  id: string;
+}
+
 export interface CreateGroupInput {
   name: string;
   teamId: string;
-  createdBy: string;
+  creator: GroupCreator;
 }
 
 export interface GroupRepository {
@@ -33,7 +38,10 @@ export function createGroupRepository(db: Database): GroupRepository {
         .values({
           name: input.name,
           teamId: input.teamId,
-          createdBy: input.createdBy,
+          creatorAgentId:
+            input.creator.kind === 'agent' ? input.creator.id : null,
+          creatorHumanId:
+            input.creator.kind === 'human' ? input.creator.id : null,
         })
         .returning();
       return group;
