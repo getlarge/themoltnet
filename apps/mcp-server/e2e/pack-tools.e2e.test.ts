@@ -292,4 +292,109 @@ describe('Pack Tools E2E', () => {
     expect(unpinParsed2.pinned).toBe(false);
     expect(unpinParsed2.expiresAt).toBeDefined();
   });
+
+  it('rendered_packs_get and rendered_packs_list expose persisted rendered packs', async () => {
+    requireSetup();
+
+    // Compile to get a source pack
+    const compileResult = await client.callTool({
+      name: 'diaries_compile',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        token_budget: 2000,
+      },
+    });
+    const compileContent = compileResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      compileResult.isError,
+      `diaries_compile error: ${compileContent[0].text}`,
+    ).toBeUndefined();
+    const compileParsed = JSON.parse(compileContent[0].text);
+    const sourcePackId = compileParsed.id as string;
+
+    // Render the pack to persist a rendered pack
+    const renderResult = await client.callTool({
+      name: 'packs_render',
+      arguments: {
+        pack_id: sourcePackId,
+        render_method: 'server:pack-to-docs-v1',
+      },
+    });
+    const renderContent = renderResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      renderResult.isError,
+      `packs_render error: ${renderContent[0].text}`,
+    ).toBeUndefined();
+    const renderParsed = JSON.parse(renderContent[0].text);
+    const renderedPackId = renderParsed.id as string;
+    const expectedMarkdown = renderParsed.renderedMarkdown as string;
+
+    // rendered_packs_get returns content + metadata
+    const getResult = await client.callTool({
+      name: 'rendered_packs_get',
+      arguments: { rendered_pack_id: renderedPackId },
+    });
+    const getContent = getResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      getResult.isError,
+      `rendered_packs_get error: ${getContent[0].text}`,
+    ).toBeUndefined();
+    const getParsed = JSON.parse(getContent[0].text);
+    expect(getParsed.id).toBe(renderedPackId);
+    expect(getParsed.sourcePackId).toBe(sourcePackId);
+    expect(getParsed.diaryId).toBe(harness.privateDiaryId);
+    expect(getParsed.renderMethod).toBe('server:pack-to-docs-v1');
+    expect(typeof getParsed.content).toBe('string');
+    expect(getParsed.content.length).toBeGreaterThan(0);
+    expect(getParsed.content).toBe(expectedMarkdown);
+    expect(typeof getParsed.contentHash).toBe('string');
+
+    // rendered_packs_list surfaces the rendered pack (filtered by source)
+    const listResult = await client.callTool({
+      name: 'rendered_packs_list',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        source_pack_id: sourcePackId,
+      },
+    });
+    const listContent = listResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      listResult.isError,
+      `rendered_packs_list error: ${listContent[0].text}`,
+    ).toBeUndefined();
+    const listParsed = JSON.parse(listContent[0].text);
+    expect(Array.isArray(listParsed.items)).toBe(true);
+    expect(
+      listParsed.items.some(
+        (p: { id: string; sourcePackId: string }) =>
+          p.id === renderedPackId && p.sourcePackId === sourcePackId,
+      ),
+    ).toBe(true);
+  });
+
+  it('rendered_packs_get returns a clear error for unknown UUID', async () => {
+    requireSetup();
+
+    const result = await client.callTool({
+      name: 'rendered_packs_get',
+      arguments: {
+        rendered_pack_id: '00000000-0000-4000-8000-000000000000',
+      },
+    });
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text.toLowerCase()).toMatch(/not found|404/);
+  });
 });
