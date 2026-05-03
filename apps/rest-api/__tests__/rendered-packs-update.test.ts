@@ -25,10 +25,16 @@ const MOCK_RENDERED_PACK = {
   contentHash: 'abc123',
   renderMethod: 'agent-refined',
   totalTokens: 100,
-  createdBy: OWNER_ID,
+  creator: {
+    kind: 'agent' as const,
+    identityId: OWNER_ID,
+    fingerprint: 'A1B2-C3D4-E5F6-1234',
+    publicKey: 'ed25519:mockkeypayload',
+  },
   pinned: false,
   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   createdAt: new Date('2026-03-22T10:00:00Z'),
+  verifiedTaskId: null,
 };
 
 describe('PATCH /rendered-packs/:id', () => {

@@ -18,7 +18,8 @@ const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
 const MOCK_DIARY = {
   id: DIARY_ID,
-  createdBy: OWNER_ID,
+  creatorAgentId: OWNER_ID,
+  creatorHumanId: null,
   teamId: '00000000-0000-4000-b000-000000000001',
   name: 'private',
   visibility: 'private' as const,
@@ -53,17 +54,17 @@ describe('Diary entry routes', () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json().content).toBe('Test diary entry content');
-      expect(response.json().createdBy).toBe(OWNER_ID);
+      const body = response.json();
+      expect(body.creator).toEqual(
+        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+      );
       expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           diaryId: DIARY_ID,
           content: 'Test diary entry content',
           contentHash: expect.stringMatching(/^bafk/),
-          title: undefined,
-          tags: undefined,
-          importance: undefined,
-          entryType: undefined,
-        },
+          creator: { kind: 'agent', id: OWNER_ID },
+        }),
         OWNER_ID,
         'Agent',
       );
@@ -147,7 +148,9 @@ describe('Diary entry routes', () => {
       const body = response.json();
       expect(body.items).toHaveLength(2);
       expect(body.total).toBe(5);
-      expect(body.items[0].createdBy).toBe(OWNER_ID);
+      expect(body.items[0].creator).toEqual(
+        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+      );
     });
 
     it('passes query parameters through', async () => {
@@ -520,7 +523,10 @@ describe('Diary entry routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().id).toBe(ENTRY_ID);
-      expect(response.json().createdBy).toBe(OWNER_ID);
+      const body = response.json();
+      expect(body.creator).toEqual(
+        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+      );
     });
 
     it('returns 404 when not found', async () => {
@@ -594,7 +600,9 @@ describe('Diary entry routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().results).toHaveLength(1);
-      expect(response.json().results[0].createdBy).toBe(OWNER_ID);
+      expect(response.json().results[0].creator).toEqual(
+        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+      );
     });
 
     it('searches without query (lists all)', async () => {

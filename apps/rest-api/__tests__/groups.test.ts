@@ -24,7 +24,8 @@ const MOCK_GROUP = {
   id: GROUP_ID,
   name: 'Engineering',
   teamId: TEAM_ID,
-  createdBy: OWNER_ID,
+  creatorAgentId: OWNER_ID,
+  creatorHumanId: null,
   createdAt: new Date('2026-01-30T10:00:00Z'),
 };
 
@@ -32,7 +33,8 @@ const MOCK_TEAM = {
   id: TEAM_ID,
   name: 'Test Team',
   personal: false,
-  createdBy: OWNER_ID,
+  creatorAgentId: OWNER_ID,
+  creatorHumanId: null,
   status: 'active' as const,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
@@ -186,7 +188,7 @@ describe('Group routes', () => {
         id: GROUP_ID,
         name: 'Engineering',
         teamId: TEAM_ID,
-        createdBy: OWNER_ID,
+        // creator field omitted in this PR (Group B - DTO surface deferred)
         members: [{ subjectId: OTHER_AGENT_ID, subjectNs: 'Agent' }],
       });
     });

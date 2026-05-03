@@ -1,6 +1,5 @@
+import { FingerprintSchema, PublicKeySchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
-
-import { AgentIdentitySchema } from './diary.js';
 
 export const HumanIdentitySchema = Type.Object(
   {
@@ -11,21 +10,63 @@ export const HumanIdentitySchema = Type.Object(
   { $id: 'HumanIdentity' },
 );
 
-// Discriminated `agent` variant: reuses the existing AgentIdentitySchema
-// (identityId + fingerprint + publicKey) and adds a `kind` discriminator.
-export const AgentPrincipalSchema = Type.Composite(
-  [Type.Object({ kind: Type.Literal('agent') }), AgentIdentitySchema],
-  { $id: 'AgentPrincipal' },
+// Variants declared as Type.Unsafe (raw JSON Schema) so we can attach
+// `additionalProperties: true` and the discriminator metadata that
+// fast-json-stringify needs to keep variant-specific fields on
+// serialization. TypeBox's Type.Composite + Type.Union path strips
+// fields when fjs can't decide which variant applies.
+
+export const AgentPrincipalSchema = Type.Object(
+  {
+    kind: Type.Literal('agent'),
+    identityId: Type.String({ format: 'uuid' }),
+    fingerprint: FingerprintSchema,
+    publicKey: PublicKeySchema,
+  },
+  {
+    $id: 'AgentPrincipal',
+    additionalProperties: false,
+  },
 );
 
-// Discriminated `human` variant: reuses HumanIdentitySchema and adds `kind`.
-export const HumanPrincipalSchema = Type.Composite(
-  [Type.Object({ kind: Type.Literal('human') }), HumanIdentitySchema],
-  { $id: 'HumanPrincipal' },
+export const HumanPrincipalSchema = Type.Object(
+  {
+    kind: Type.Literal('human'),
+    humanId: Type.String({ format: 'uuid' }),
+    identityId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+  },
+  {
+    $id: 'HumanPrincipal',
+    additionalProperties: false,
+  },
 );
 
+// Use Type.Union with both variants inlined (no $ref) so fast-json-stringify
+// can build a complete oneOf schema without resolving external refs at
+// serialization time. TypeBox's Type.Union produces anyOf in JSON Schema —
+// fjs handles anyOf by trying each variant and picking the first match,
+// which works as long as the variants are NON-overlapping (the `kind`
+// discriminator literal guarantees that).
 export const PrincipalIdentitySchema = Type.Union(
-  [AgentPrincipalSchema, HumanPrincipalSchema],
+  [
+    Type.Object(
+      {
+        kind: Type.Literal('agent'),
+        identityId: Type.String({ format: 'uuid' }),
+        fingerprint: FingerprintSchema,
+        publicKey: PublicKeySchema,
+      },
+      {},
+    ),
+    Type.Object(
+      {
+        kind: Type.Literal('human'),
+        humanId: Type.String({ format: 'uuid' }),
+        identityId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+      },
+      {},
+    ),
+  ],
   { $id: 'PrincipalIdentity' },
 );
 

@@ -59,7 +59,8 @@ function createEntry(id: string, tags: string[] | null = null): DiaryEntry {
     contentHash: computeContentCid('semantic', null, content, tags),
     contentSignature: null,
     signingNonce: null,
-    createdBy: '00000000-0000-0000-0000-000000000002',
+    creatorAgentId: '00000000-0000-0000-0000-000000000002',
+    creatorHumanId: null,
     createdAt: new Date('2026-03-06T00:00:00Z'),
     updatedAt: new Date('2026-03-06T00:00:00Z'),
   };
@@ -101,7 +102,8 @@ describe('context-distill compile workflow', () => {
         packType: 'compile',
         params: {},
         payload: {},
-        createdBy: '00000000-0000-0000-0000-000000000002',
+        creatorAgentId: '00000000-0000-0000-0000-000000000002',
+        creatorHumanId: null,
         supersedesPackId: null,
         pinned: false,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -140,6 +142,10 @@ describe('context-distill compile workflow', () => {
     await contextDistillWorkflows.compile({
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
+      creator: {
+        kind: 'agent' as const,
+        id: '00000000-0000-0000-0000-000000000002',
+      },
       taskPrompt: 'architecture decisions',
       tokenBudget: 2000,
       wRecency: 0.2,
@@ -167,6 +173,10 @@ describe('context-distill compile workflow', () => {
     await contextDistillWorkflows.compile({
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
+      creator: {
+        kind: 'agent' as const,
+        id: '00000000-0000-0000-0000-000000000002',
+      },
       tokenBudget: 2000,
     });
 
@@ -189,6 +199,10 @@ describe('context-distill compile workflow', () => {
     const result = await contextDistillWorkflows.compile({
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
+      creator: {
+        kind: 'agent' as const,
+        id: '00000000-0000-0000-0000-000000000002',
+      },
       tokenBudget: 2000,
       excludeTags: ['incident'],
     });
@@ -208,6 +222,10 @@ describe('context-distill compile workflow', () => {
     await contextDistillWorkflows.compile({
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
+      creator: {
+        kind: 'agent' as const,
+        id: '00000000-0000-0000-0000-000000000002',
+      },
       tokenBudget: 2000,
       createdBefore: '2026-03-01T00:00:00Z',
       createdAfter: '2025-12-01T00:00:00Z',
@@ -225,6 +243,10 @@ describe('context-distill compile workflow', () => {
     await contextDistillWorkflows.compile({
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
+      creator: {
+        kind: 'agent' as const,
+        id: '00000000-0000-0000-0000-000000000002',
+      },
       tokenBudget: 2000,
       entryTypes: ['semantic', 'procedural'],
     });
@@ -280,6 +302,10 @@ describe('context-distill compile workflow', () => {
     const result = await contextDistillWorkflows.consolidate({
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
+      creator: {
+        kind: 'agent' as const,
+        id: '00000000-0000-0000-0000-000000000002',
+      },
     });
 
     expect(result.clusters).toHaveLength(1);

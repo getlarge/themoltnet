@@ -18,6 +18,7 @@ const PACK_ID = '990e8400-e29b-41d4-a716-446655440000';
 const PACK_ID_2 = '990e8400-e29b-41d4-a716-446655440001';
 const PACK_CID = 'bafytestpack';
 const MOCK_CREATOR = {
+  kind: 'agent' as const,
   identityId: OWNER_ID,
   fingerprint: VALID_AUTH_CONTEXT.fingerprint,
   publicKey: VALID_AUTH_CONTEXT.publicKey,
@@ -31,7 +32,6 @@ const MOCK_PACK = {
   packType: 'compile' as const,
   params: { tokenBudget: 4000 },
   payload: { entries: [] },
-  createdBy: OWNER_ID,
   creator: MOCK_CREATOR,
   supersedesPackId: PACK_ID_2,
   pinned: false,
@@ -53,10 +53,12 @@ const MOCK_RENDERED_PACK = {
   contentHash: 'rendered-hash-1',
   renderMethod: 'server:pack-to-docs-v1',
   totalTokens: 42,
-  createdBy: OWNER_ID,
+  creatorAgentId: OWNER_ID,
+  creatorHumanId: null,
   pinned: false,
   expiresAt: new Date('2026-03-31T10:00:00Z'),
   createdAt: new Date('2026-03-24T10:00:00Z'),
+  verifiedTaskId: null,
 };
 const MOCK_RENDERED_PACK_2 = {
   ...MOCK_RENDERED_PACK,
@@ -87,7 +89,8 @@ describe('Pack routes', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.diaryService.findDiary.mockResolvedValue({
       id: DIARY_ID,
-      createdBy: OWNER_ID,
+      creatorAgentId: OWNER_ID,
+      creatorHumanId: null,
       teamId: '00000000-0000-4000-b000-000000000001',
       name: 'moltnet',
       visibility: 'private',
@@ -114,13 +117,16 @@ describe('Pack routes', () => {
           packCid: 'bafyrendered1',
           sourcePackId: PACK_ID,
           diaryId: DIARY_ID,
+          content: '',
           contentHash: 'hash-1',
           renderMethod: 'server:pack-to-docs-v1',
           totalTokens: 42,
-          createdBy: OWNER_ID,
+          creatorAgentId: OWNER_ID,
+          creatorHumanId: null,
           pinned: false,
           expiresAt: new Date('2026-03-31T10:00:00Z'),
           createdAt: new Date('2026-03-24T10:00:00Z'),
+          verifiedTaskId: null,
         },
       ],
     });
@@ -308,16 +314,18 @@ describe('Pack routes', () => {
       ]),
     );
     expect(
-      response.json().nodes.filter(
-        (node: { kind: string }) => node.kind === 'rendered_pack',
-      ),
+      response
+        .json()
+        .nodes.filter(
+          (node: { kind: string }) => node.kind === 'rendered_pack',
+        ),
     ).toHaveLength(0);
     expect(
       mocks.contextPackRepository.listEntriesExpandedByPackIds,
     ).toHaveBeenCalledWith([PACK_ID, PACK_ID_2]);
-    expect(mocks.renderedPackRepository.listBySourcePackIds).toHaveBeenCalledWith(
-      [PACK_ID, PACK_ID_2],
-    );
+    expect(
+      mocks.renderedPackRepository.listBySourcePackIds,
+    ).toHaveBeenCalledWith([PACK_ID, PACK_ID_2]);
   });
 
   it('includes a derived rendered pack in the provenance graph', async () => {
@@ -405,9 +413,11 @@ describe('Pack routes', () => {
       ]),
     );
     expect(
-      response.json().nodes.filter(
-        (node: { kind: string }) => node.kind === 'rendered_pack',
-      ),
+      response
+        .json()
+        .nodes.filter(
+          (node: { kind: string }) => node.kind === 'rendered_pack',
+        ),
     ).toHaveLength(2);
   });
 
@@ -556,7 +566,8 @@ describe('Pack routes', () => {
           recipe: 'ax-agent-selected',
           selectionMethod: 'rag-multi-query',
         },
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
+        creatorHumanId: null,
         pinned: true,
         expiresAt: null,
       }),

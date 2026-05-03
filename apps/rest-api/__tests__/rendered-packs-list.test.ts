@@ -17,10 +17,16 @@ const RENDERED_PACK_1 = {
   contentHash: 'sha256:aaa',
   renderMethod: 'agent-refined',
   totalTokens: 200,
-  createdBy: OWNER_ID,
+  creator: {
+    kind: 'agent' as const,
+    identityId: OWNER_ID,
+    fingerprint: 'A1B2-C3D4-E5F6-1234',
+    publicKey: 'ed25519:mockkeypayload',
+  },
   pinned: false,
   expiresAt: null,
   createdAt: new Date('2026-03-01T00:00:00Z'),
+  verifiedTaskId: null,
 };
 
 const RENDERED_PACK_2 = {
@@ -43,7 +49,8 @@ describe('GET /diaries/:id/rendered-packs', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.diaryService.findDiary.mockResolvedValue({
       id: DIARY_ID,
-      createdBy: OWNER_ID,
+      creatorAgentId: OWNER_ID,
+      creatorHumanId: null,
       teamId: '00000000-0000-4000-b000-000000000001',
       name: 'moltnet',
       visibility: 'private',
