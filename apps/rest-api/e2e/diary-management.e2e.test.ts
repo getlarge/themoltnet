@@ -81,7 +81,12 @@ describe('Diary Management', () => {
       expect(error).toBeUndefined();
       expect(data!.name).toBe('Work Notes');
       expect(data!.visibility).toBe('private');
-      expect(data!.createdBy).toBe(agentA.identityId);
+      expect(data!.creator).toEqual(
+        expect.objectContaining({
+          kind: 'agent',
+          identityId: agentA.identityId,
+        }),
+      );
       expect(data!.id).toBeDefined();
     });
 
