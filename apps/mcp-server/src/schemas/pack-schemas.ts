@@ -16,9 +16,13 @@ import type {
   GetContextPackProvenanceByCidResponses,
   GetContextPackProvenanceByIdData,
   GetContextPackProvenanceByIdResponses,
+  GetRenderedPackByIdData,
+  GetRenderedPackByIdResponses,
   ListContextPacksData,
   ListContextPacksResponses,
   ListDiaryPacksData,
+  ListDiaryRenderedPacksData,
+  ListDiaryRenderedPacksResponses,
   PreviewDiaryCustomPackData,
   PreviewDiaryCustomPackResponses,
   PreviewRenderedPackData,
@@ -269,6 +273,48 @@ export type RenderedPackUpdateInput = {
   >['verifiedTaskId'];
 };
 
+export const RenderedPackGetSchema = Type.Object({
+  rendered_pack_id: Type.String({
+    description: 'Rendered pack ID (UUID) to fetch.',
+  }),
+});
+export type RenderedPackGetInput = {
+  rendered_pack_id: PathOf<GetRenderedPackByIdData>['id'];
+};
+
+export const RenderedPackListSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary ID (UUID) to list rendered packs for.',
+  }),
+  source_pack_id: Type.Optional(
+    Type.String({
+      description: 'Filter by source context pack ID (UUID).',
+    }),
+  ),
+  render_method: Type.Optional(
+    Type.String({
+      description:
+        'Filter by render method label (e.g. "server:pack-to-docs-v1").',
+    }),
+  ),
+  limit: Type.Optional(
+    Type.Number({ description: 'Max results (default 20).' }),
+  ),
+  offset: Type.Optional(
+    Type.Number({ description: 'Offset for pagination (default 0).' }),
+  ),
+});
+type ListDiaryRenderedPacksQuery = NonNullable<
+  ListDiaryRenderedPacksData['query']
+>;
+export type RenderedPackListInput = {
+  diary_id: PathOf<ListDiaryRenderedPacksData>['id'];
+  source_pack_id?: ListDiaryRenderedPacksQuery['sourcePackId'];
+  render_method?: ListDiaryRenderedPacksQuery['renderMethod'];
+  limit?: ListDiaryRenderedPacksQuery['limit'];
+  offset?: ListDiaryRenderedPacksQuery['offset'];
+};
+
 export const PackRenderSchema = Type.Object({
   pack_id: Type.String({
     description: 'Source context pack UUID to render',
@@ -414,6 +460,30 @@ const RenderedPackSchema = Type.Object({
   pinned: Type.Boolean(),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
+});
+
+const RenderedPackWithContentSchema = Type.Object({
+  id: Type.String(),
+  packCid: Type.String(),
+  sourcePackId: Type.String(),
+  diaryId: Type.String(),
+  content: Type.String(),
+  contentHash: Type.String(),
+  renderMethod: Type.String(),
+  totalTokens: Type.Number(),
+  pinned: Type.Boolean(),
+  expiresAt: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+  verifiedTaskId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+});
+
+export const RenderedPackGetOutputSchema = RenderedPackWithContentSchema;
+
+export const RenderedPackListOutputSchema = Type.Object({
+  items: Type.Array(RenderedPackSchema),
+  total: Type.Number(),
+  limit: Type.Number(),
+  offset: Type.Number(),
 });
 
 export const PackGetOutputSchema = ContextPackResponseSchema;
@@ -714,6 +784,14 @@ type _PackRenderInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackRenderSchema>,
   PackRenderInput
 >;
+type _RenderedPackGetInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof RenderedPackGetSchema>,
+  RenderedPackGetInput
+>;
+type _RenderedPackListInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof RenderedPackListSchema>,
+  RenderedPackListInput
+>;
 type _PackRenderPreviewInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackRenderPreviewSchema>,
   PackRenderPreviewInput
@@ -750,6 +828,14 @@ type _PackRenderOutputMatchesApi = AssertOutputMatchesApi<
 type _RenderedPackUpdateOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof RenderedPackUpdateOutputSchema>,
   ResponseOf<UpdateRenderedPackResponses>
+>;
+type _RenderedPackGetOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof RenderedPackGetOutputSchema>,
+  ResponseOf<GetRenderedPackByIdResponses>
+>;
+type _RenderedPackListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof RenderedPackListOutputSchema>,
+  ResponseOf<ListDiaryRenderedPacksResponses>
 >;
 type _PackProvenanceByIdOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof PackProvenanceOutputSchema>,

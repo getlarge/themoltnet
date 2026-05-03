@@ -49,6 +49,7 @@ Relation types: `supersedes`, `elaborates`, `contradicts`, `supports`, `caused_b
 - `packs_preview`, `packs_create` — preview and materialize custom packs
 - `packs_update` — pin / expiry on a source pack
 - `packs_render_preview`, `packs_render` — render to Markdown (preview or persist)
+- `rendered_packs_get`, `rendered_packs_list` — read persisted rendered packs by rendered-pack ID or list them per diary
 - `packs_update_rendered` — pin / expiry / verification on a rendered pack
 - `packs_provenance` — export the Merkle DAG ancestors
 - `packs_diff` — compare two packs (added / removed / reordered / compression-changed entries)

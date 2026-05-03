@@ -8,6 +8,8 @@ import {
   handlePacksProvenance,
   handlePacksRender,
   handlePacksRenderPreview,
+  handleRenderedPacksGet,
+  handleRenderedPacksList,
 } from '../src/pack-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
@@ -23,8 +25,10 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   createDiaryCustomPack: vi.fn(),
   getContextPackById: vi.fn(),
+  getRenderedPackById: vi.fn(),
   listContextPacks: vi.fn(),
   listDiaryPacks: vi.fn(),
+  listDiaryRenderedPacks: vi.fn(),
   previewDiaryCustomPack: vi.fn(),
   previewRenderedPack: vi.fn(),
   getContextPackProvenanceById: vi.fn(),
@@ -37,8 +41,10 @@ import {
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  getRenderedPackById,
   listContextPacks,
   listDiaryPacks,
+  listDiaryRenderedPacks,
   previewDiaryCustomPack,
   previewRenderedPack,
   renderContextPack,
@@ -705,6 +711,154 @@ describe('Pack tools', () => {
 
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed.renderMethod).toBe('server:pack-to-docs-v1');
+    });
+  });
+
+  describe('rendered_packs_get', () => {
+    const RENDERED_PACK_ID = '22dfd8a0-5d22-4d80-8605-2d06596f95a3';
+
+    it('returns rendered pack content by ID', async () => {
+      const data = {
+        id: RENDERED_PACK_ID,
+        packCid: 'bafy-rendered',
+        sourcePackId: PACK_ID,
+        diaryId: DIARY_ID,
+        content: '# Rendered Markdown',
+        contentHash: 'sha256-abc',
+        renderMethod: 'server:pack-to-docs-v1',
+        totalTokens: 42,
+        pinned: false,
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      vi.mocked(getRenderedPackById).mockResolvedValue(sdkOk(data) as never);
+
+      const result = await handleRenderedPacksGet(
+        { rendered_pack_id: RENDERED_PACK_ID },
+        deps,
+        context,
+      );
+
+      expect(getRenderedPackById).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: RENDERED_PACK_ID } }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('id', RENDERED_PACK_ID);
+      expect(parsed).toHaveProperty('content', '# Rendered Markdown');
+      expect(parsed).toHaveProperty('sourcePackId', PACK_ID);
+    });
+
+    it('returns error when not authenticated', async () => {
+      const unauthContext = createMockContext(null);
+      const result = await handleRenderedPacksGet(
+        { rendered_pack_id: RENDERED_PACK_ID },
+        deps,
+        unauthContext,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Not authenticated');
+    });
+
+    it('returns error when rendered pack not found', async () => {
+      vi.mocked(getRenderedPackById).mockResolvedValue(
+        sdkErr({
+          error: 'Not Found',
+          message: 'Not Found',
+          statusCode: 404,
+          detail: 'Rendered pack not found',
+        }) as never,
+      );
+
+      const result = await handleRenderedPacksGet(
+        { rendered_pack_id: RENDERED_PACK_ID },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Rendered pack not found');
+    });
+  });
+
+  describe('rendered_packs_list', () => {
+    it('lists rendered packs for a diary', async () => {
+      const data = {
+        items: [
+          {
+            id: '220e8400-e29b-41d4-a716-446655440001',
+            packCid: 'bafy-rendered',
+            sourcePackId: PACK_ID,
+            diaryId: DIARY_ID,
+            contentHash: 'sha256-abc',
+            renderMethod: 'server:pack-to-docs-v1',
+            totalTokens: 42,
+            createdBy: 'agent-001',
+            pinned: false,
+            expiresAt: null,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      };
+      vi.mocked(listDiaryRenderedPacks).mockResolvedValue(sdkOk(data) as never);
+
+      const result = await handleRenderedPacksList(
+        { diary_id: DIARY_ID },
+        deps,
+        context,
+      );
+
+      expect(listDiaryRenderedPacks).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: DIARY_ID }, query: {} }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('items');
+      expect(parsed.items).toHaveLength(1);
+    });
+
+    it('forwards optional filters', async () => {
+      vi.mocked(listDiaryRenderedPacks).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 5, offset: 0 }) as never,
+      );
+
+      await handleRenderedPacksList(
+        {
+          diary_id: DIARY_ID,
+          source_pack_id: PACK_ID,
+          render_method: 'server:pack-to-docs-v1',
+          limit: 5,
+          offset: 0,
+        },
+        deps,
+        context,
+      );
+
+      expect(listDiaryRenderedPacks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: DIARY_ID },
+          query: {
+            limit: 5,
+            offset: 0,
+            sourcePackId: PACK_ID,
+            renderMethod: 'server:pack-to-docs-v1',
+          },
+        }),
+      );
+    });
+
+    it('returns error when not authenticated', async () => {
+      const unauthContext = createMockContext(null);
+      const result = await handleRenderedPacksList(
+        { diary_id: DIARY_ID },
+        deps,
+        unauthContext,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Not authenticated');
     });
   });
 });
