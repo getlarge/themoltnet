@@ -67,10 +67,14 @@ BEGIN
 
   IF orphan_count > 0 THEN
     RAISE EXCEPTION
-      'Migration aborted: % rows have created_by not matching any agent. '
-      'Manual backfill required for human-created rows. '
-      'Inspect each table with: '
-      'SELECT created_by FROM <table> WHERE created_by NOT IN (SELECT identity_id FROM agents);',
+      'Migration aborted: % rows have created_by values not found in agents. '
+      'If any of these belong to human users, run the following backfill BEFORE '
+      're-running this migration (repeat per affected table):\n'
+      '  UPDATE <table> SET creator_human_id = h.id '
+      '    FROM humans h WHERE h.identity_id = <table>.created_by;\n'
+      'Then re-run the migration. To inspect the offending rows: '
+      '  SELECT created_by FROM <table> '
+      '    WHERE created_by NOT IN (SELECT identity_id FROM agents);',
       orphan_count;
   END IF;
 END $$;

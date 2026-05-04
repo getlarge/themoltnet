@@ -29,6 +29,7 @@ import {
 } from '../schemas.js';
 import {
   authContextToCreator,
+  batchInflateRowsWithCreator,
   rowToResponseWithCreator,
 } from '../utils/auth-principal.js';
 
@@ -328,9 +329,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       });
 
       return {
-        items: await Promise.all(
-          items.map((row) => rowToResponseWithCreator(row, fastify)),
-        ),
+        items: await batchInflateRowsWithCreator(items, fastify),
         total,
         limit: limit ?? 20,
         offset: offset ?? 0,
@@ -828,9 +827,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             agentId,
           );
         }
-        const inflated = await Promise.all(
-          results.map((row) => rowToResponseWithCreator(row, fastify)),
-        );
+        const inflated = await batchInflateRowsWithCreator(results, fastify);
         return { results: inflated, total: inflated.length };
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);

@@ -114,6 +114,25 @@ export function initHumanOnboardingWorkflow(): void {
     },
   );
 
+  // Compensation step — registered so DBOS replays it durably if the
+  // workflow process crashes between failure and compensation. Without
+  // this, a crash leaves the human partially onboarded with identityId
+  // still set; on replay, the original failed step retries and may
+  // succeed, leaving stale state.
+  const compensateClearIdentityIdStep = DBOS.registerStep(
+    async (humanId: string): Promise<void> => {
+      const { humanRepository } = getDeps();
+      await humanRepository.clearIdentityId(humanId);
+    },
+    {
+      name: 'onboarding.step.compensateClearIdentityId',
+      retriesAllowed: true,
+      maxAttempts: 5,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
   const registerInKetoStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
@@ -228,15 +247,18 @@ export function initHumanOnboardingWorkflow(): void {
 
         return { humanId, identityId, personalTeamId };
       } catch (error: unknown) {
-        // Compensation: clear identityId so onboarding retries on next login
-        const { logger, humanRepository } = getDeps();
+        // Compensation: clear identityId so onboarding retries on next login.
+        // Wrapped in a registered DBOS step so a process crash mid-compensation
+        // is replayed durably (rather than leaving the human row in a
+        // partially-onboarded state).
+        const { logger } = getDeps();
         logger.error(
           { err: error, humanId, identityId },
           'onboarding.compensation_started',
         );
 
         try {
-          await humanRepository.clearIdentityId(humanId);
+          await compensateClearIdentityIdStep(humanId);
         } catch (compensationError: unknown) {
           logger.error(
             { err: compensationError, humanId },

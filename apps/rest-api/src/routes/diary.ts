@@ -36,6 +36,7 @@ import {
 } from '../schemas.js';
 import {
   authContextToCreator,
+  batchInflateRowsWithCreator,
   inflateCreator,
   rowToResponseWithCreator,
 } from '../utils/auth-principal.js';
@@ -173,9 +174,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         request.authContext!.identityId,
         request.authContext!.currentTeamId ?? undefined,
       );
-      const items = await Promise.all(
-        rows.map((row) => rowToResponseWithCreator(row, fastify)),
-      );
+      const items = await batchInflateRowsWithCreator(rows, fastify);
       return { items };
     },
   );

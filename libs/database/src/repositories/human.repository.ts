@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Human, humans } from '../schema.js';
@@ -23,6 +23,21 @@ export function createHumanRepository(db: Database) {
       return row ?? null;
     },
 
+    /**
+     * Batch lookup humans by `humans.id`. Returns a Map keyed by `id`.
+     * Mirrors `agentRepository.findByIdentityIds` for the human side of
+     * principal-row inflation.
+     */
+    async findByIds(ids: readonly string[]): Promise<Map<string, Human>> {
+      const unique = Array.from(new Set(ids.filter(Boolean)));
+      if (unique.length === 0) return new Map();
+      const rows = await getExecutor(db)
+        .select()
+        .from(humans)
+        .where(inArray(humans.id, unique));
+      return new Map(rows.map((h) => [h.id, h]));
+    },
+
     async findByIdentityId(identityId: string): Promise<Human | null> {
       const [row] = await getExecutor(db)
         .select()
@@ -41,8 +56,18 @@ export function createHumanRepository(db: Database) {
      * Uses ON CONFLICT DO NOTHING + a follow-up SELECT for race safety:
      * if two requests arrive for the same identityId concurrently, both
      * the INSERT and the SELECT will resolve cleanly without throwing.
+     *
+     * Refuses null/empty identityId — the underlying `eq(humans.identityId,
+     * null)` would compile to `identity_id = NULL` (never matches) and a
+     * subsequent insert would create a pre-onboarding row attached to no
+     * Kratos identity. Callers MUST resolve identity before calling.
      */
     async findOrCreateByIdentityId(identityId: string): Promise<Human> {
+      if (!identityId) {
+        throw new Error(
+          'findOrCreateByIdentityId: identityId is required (received null/empty); resolve identity before calling',
+        );
+      }
       const existing = await this.findByIdentityId(identityId);
       if (existing) return existing;
 

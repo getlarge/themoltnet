@@ -326,6 +326,7 @@ export function createMockServices(): MockServices {
     humanRepository: {
       create: vi.fn(),
       findById: vi.fn(),
+      findByIds: vi.fn().mockResolvedValue(new Map()),
       findByIdentityId: vi.fn(),
       findOrCreateByIdentityId: vi.fn(),
       setIdentityId: vi.fn(),
@@ -344,6 +345,23 @@ export function createMockServices(): MockServices {
           publicKey: 'ed25519:mockkeypayload',
           // FingerprintSchema pattern: ^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$
           fingerprint: 'A1B2-C3D4-E5F6-1234',
+        }),
+      // Batch variant used by list/search routes via batchInflateRowsWithCreator.
+      // Returns a Map keyed by identityId; default contains OWNER_ID so list
+      // tests work without per-test setup.
+      findByIdentityIds: vi
+        .fn()
+        .mockImplementation((ids: readonly string[]) => {
+          const unique = Array.from(new Set(ids.filter(Boolean)));
+          const map = new Map();
+          for (const id of unique) {
+            map.set(id, {
+              identityId: id,
+              publicKey: 'ed25519:mockkeypayload',
+              fingerprint: 'A1B2-C3D4-E5F6-1234',
+            });
+          }
+          return Promise.resolve(map);
         }),
       findByPublicKey: vi.fn(),
       upsert: vi.fn(),
