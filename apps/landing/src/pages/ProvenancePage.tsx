@@ -684,7 +684,7 @@ export function ProvenancePage() {
                       ) : null}
                     </div>
                     <Text variant="body">{selectedNode.label}</Text>
-                    {selectedCreator ? (
+                    {selectedCreator && selectedCreator.kind === 'agent' ? (
                       <div
                         style={{
                           display: 'flex',

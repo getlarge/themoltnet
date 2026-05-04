@@ -185,7 +185,7 @@ export function ProvenanceGraphSurface({
                   </text>
                 </>
               ) : null}
-              {creator ? (
+              {creator && creator.kind === 'agent' ? (
                 <foreignObject
                   x={currentPosition.x + 16}
                   y={currentPosition.y + 12}
