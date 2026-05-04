@@ -10,6 +10,7 @@ const VALID_SESSION_TOKEN = 'ory_st_valid_session_token_123';
 const VALID_COOKIE_HEADER =
   'csrf_token=abc; ory_kratos_session=MTczMjE5ODk2MHxEdjBGQUFFR01; theme=dark';
 const VALID_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
+const VALID_HUMAN_ID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 function createMockFrontendApi() {
   return {
@@ -27,6 +28,9 @@ function createValidSessionResponse() {
       traits: {
         email: 'test@example.com',
         username: 'testuser',
+      },
+      metadata_public: {
+        human_id: VALID_HUMAN_ID,
       },
     },
   };
@@ -51,6 +55,7 @@ describe('createSessionResolver', () => {
     expect(result).toEqual({
       subjectType: 'human',
       identityId: VALID_IDENTITY_ID,
+      humanId: VALID_HUMAN_ID,
       clientId: null,
       scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
       currentTeamId: null,
@@ -174,6 +179,26 @@ describe('createSessionResolver', () => {
       id: 'session-uuid',
       active: true,
       identity: null,
+    });
+
+    const result = await resolver.resolveSession({
+      sessionToken: VALID_SESSION_TOKEN,
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('returns null when human identity is missing metadata_public.human_id', async () => {
+    mockFrontendApi.toSession.mockResolvedValue({
+      id: 'session-uuid',
+      active: true,
+      identity: {
+        id: VALID_IDENTITY_ID,
+        schema_id: 'moltnet_human',
+        traits: { username: 'x' },
+        // metadata_public deliberately omitted — onboarding webhook
+        // hasn't fired yet, so we can't bind to a humans row.
+      },
     });
 
     const result = await resolver.resolveSession({

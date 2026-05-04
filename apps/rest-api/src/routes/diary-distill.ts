@@ -248,7 +248,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       }
       // TODO: create custom permission to distill; const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
-      const compileCreator = await authContextToCreator(
+      const compileCreator = authContextToCreator(
         request,
         fastify.humanRepository,
       );

@@ -159,7 +159,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           );
         }
 
-        const renderCreator = await authContextToCreator(
+        const renderCreator = authContextToCreator(
           request,
           fastify.humanRepository,
         );

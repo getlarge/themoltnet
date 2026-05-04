@@ -311,10 +311,9 @@ export async function packRoutes(fastify: FastifyInstance) {
         tokenBudget?: number;
         pinned?: boolean;
       };
-      authContext: {
-        identityId: string;
-        subjectType: 'agent' | 'human';
-      };
+      authContext:
+        | { identityId: string; subjectType: 'agent' }
+        | { identityId: string; subjectType: 'human'; humanId: string };
     },
     persist: boolean,
   ) => {
@@ -396,7 +395,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       // a DBOS workflow with retry/compensation semantics, matching the compile
       // flow. Keto is an external side effect and cannot be made atomic with
       // the Postgres transaction in this route handler.
-      const packCreator = await authContextToCreator(
+      const packCreator = authContextToCreator(
         request,
         fastify.humanRepository,
       );

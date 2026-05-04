@@ -485,10 +485,16 @@ export async function hookRoutes(fastify: FastifyInstance) {
           const human = await fastify.humanRepository.findByIdentityId(subject);
 
           if (human) {
+            // Surface humans.id directly in the JWT so route handlers can
+            // build a creator FK without re-querying the humans table.
+            // This also avoids the race with the human-onboarding workflow
+            // where authContextToCreator would otherwise INSERT a duplicate
+            // humans row keyed by identityId before setIdentityIdStep ran.
             return await reply.status(200).send({
               session: {
                 access_token: {
                   'moltnet:identity_id': subject,
+                  'moltnet:human_id': human.id,
                   'moltnet:subject_type': 'human',
                 },
               },

@@ -158,10 +158,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name, foundingMembers } = request.body;
 
-      const creator = await authContextToCreator(
-        request,
-        fastify.humanRepository,
-      );
+      const creator = authContextToCreator(request, fastify.humanRepository);
 
       if (!foundingMembers || foundingMembers.length === 0) {
         // Instant active team — original behavior
@@ -594,7 +591,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       const expiresInHours = request.body.expiresInHours ?? 168;
-      const inviteCreator = await authContextToCreator(
+      const inviteCreator = authContextToCreator(
         request,
         fastify.humanRepository,
       );

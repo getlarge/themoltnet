@@ -24,6 +24,14 @@ export interface HumanAuthContext extends BaseAuthContext {
   subjectType: 'human';
   /** Null when authenticated via direct Kratos session (no OAuth2 client). */
   clientId: string | null;
+  /**
+   * Internal `humans.id` for this principal — set by the
+   * after-registration webhook (Kratos `metadata_public.human_id`) and
+   * read here. Always present for an authenticated human; required by
+   * resource-creating routes whose paired-FK columns target `humans.id`,
+   * not the Kratos identityId.
+   */
+  humanId: string;
 }
 
 export type AuthContext = AgentAuthContext | HumanAuthContext;

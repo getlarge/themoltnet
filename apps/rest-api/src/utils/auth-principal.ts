@@ -8,9 +8,13 @@
  *   `rendered_packs`, `teams`, `groups`, `team_invites`) FK
  *   `creator_human_id` against `humans.id`, NOT against the Kratos
  *   identity ID that lives on `request.authContext.identityId`.
- * - We translate the identity ID into the matching `humans.id` here
- *   (creating the row on first contact) so service / repo layers
- *   never have to know about the indirection.
+ * - `humans.id` is sourced from the Kratos identity's
+ *   `metadata_public.human_id` (set by the after-registration webhook
+ *   BEFORE any session/token can exist) and surfaced in the
+ *   `HumanAuthContext.humanId` field by the auth layer. We read it
+ *   directly here instead of doing a DB lookup keyed by identityId —
+ *   that lookup would race the human-onboarding DBOS workflow's
+ *   `setIdentityIdStep` and trigger duplicate-row INSERTs.
  * - For agent principals, `agents.identity_id` IS the FK target,
  *   so no translation is needed.
  */
@@ -36,10 +40,17 @@ import {
  * observability tooling can correlate failures with identityId.
  */
 interface RequestWithAuthContext {
-  authContext?: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-  } | null;
+  authContext?:
+    | {
+        identityId: string;
+        subjectType: 'agent';
+      }
+    | {
+        identityId: string;
+        subjectType: 'human';
+        humanId: string;
+      }
+    | null;
   log?: {
     error(obj: object, msg: string): void;
   };
@@ -54,28 +65,12 @@ export interface RepositoryCreator {
   id: string;
 }
 
-/**
- * Thrown when `authContextToCreator` cannot translate the
- * authenticated principal into a `RepositoryCreator`. Carries
- * `code` and `identityId` so the global error handler can emit
- * a structured 5xx and observability tooling can aggregate.
- */
-export class AuthContextResolutionError extends Error {
-  readonly code = 'AUTH_CONTEXT_RESOLUTION_FAILED';
-  constructor(
-    message: string,
-    public readonly identityId: string,
-    public readonly cause?: unknown,
-  ) {
-    super(message);
-    this.name = 'AuthContextResolutionError';
-  }
-}
-
-export async function authContextToCreator(
+export function authContextToCreator(
   request: RequestWithAuthContext,
-  humans: HumanRepository,
-): Promise<RepositoryCreator> {
+  // Kept for backwards-compat with existing call sites; no longer used
+  // because humans.id is read directly from authContext.humanId.
+  _humans?: HumanRepository,
+): RepositoryCreator {
   const ctx = request.authContext;
   if (!ctx) {
     throw new Error(
@@ -85,29 +80,9 @@ export async function authContextToCreator(
   if (ctx.subjectType === 'agent') {
     return { kind: 'agent', id: ctx.identityId };
   }
-  // Human: translate Kratos identityId -> humans.id (insert if missing).
-  // Wrap the lookup so errors from the DB layer are observable: the
-  // global handler sees a typed error with identityId in context, and
-  // the request log carries the same fields for Axiom/OTel aggregation.
-  try {
-    const human = await humans.findOrCreateByIdentityId(ctx.identityId);
-    return { kind: 'human', id: human.id };
-  } catch (err) {
-    request.log?.error(
-      {
-        err,
-        identityId: ctx.identityId,
-        subjectType: 'human',
-        op: 'authContextToCreator.findOrCreateByIdentityId',
-      },
-      'authContextToCreator: failed to resolve human principal',
-    );
-    throw new AuthContextResolutionError(
-      `Failed to resolve human principal for identityId=${ctx.identityId}`,
-      ctx.identityId,
-      err,
-    );
-  }
+  // Human: humans.id is on the auth context (sourced from Kratos
+  // metadata_public.human_id). No DB lookup, no race with onboarding.
+  return { kind: 'human', id: ctx.humanId };
 }
 
 /**

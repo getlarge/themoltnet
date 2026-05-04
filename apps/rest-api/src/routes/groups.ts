@@ -78,10 +78,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
 
       const { name } = request.body;
 
-      const creator = await authContextToCreator(
-        request,
-        fastify.humanRepository,
-      );
+      const creator = authContextToCreator(request, fastify.humanRepository);
       let group;
       try {
         group = await fastify.transactionRunner.runInTransaction(async () => {

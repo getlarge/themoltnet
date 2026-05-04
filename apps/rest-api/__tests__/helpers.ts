@@ -327,8 +327,17 @@ export function createMockServices(): MockServices {
       create: vi.fn(),
       findById: vi.fn(),
       findByIds: vi.fn().mockResolvedValue(new Map()),
-      findByIdentityId: vi.fn(),
-      findOrCreateByIdentityId: vi.fn(),
+      // Default returns a human row with the OWNER_ID identityId so route
+      // tests that exercise authContextToCreator with subjectType:'human'
+      // resolve cleanly. Tests that need miss-paths can override.
+      findByIdentityId: vi.fn().mockImplementation((identityId: string) =>
+        Promise.resolve({
+          id: 'human-id-' + identityId,
+          identityId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      ),
       setIdentityId: vi.fn(),
       clearIdentityId: vi.fn(),
     },
