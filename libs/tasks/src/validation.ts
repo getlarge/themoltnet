@@ -91,6 +91,15 @@ export function validateTaskOutput(
   return schemaErrors('output', entry.outputSchema, output);
 }
 
+/**
+ * Resolve the TypeBox output schema registered for `taskType`. Returns
+ * `null` for unknown task types — callers (e.g. submit-tool factories)
+ * decide how to surface that.
+ */
+export function getTaskOutputSchema(taskType: string): TSchema | null {
+  return getTaskTypeEntry(taskType)?.outputSchema ?? null;
+}
+
 export function validateTaskCreateRequest(args: {
   taskType: string;
   input: unknown;
