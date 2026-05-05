@@ -43,11 +43,6 @@ import {
 } from './tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
 
-export {
-  buildPiJudgeRecipeManifest,
-  computePiJudgeRecipeCid,
-  resolvePiJudgeRecipeVersions,
-} from './moltnet/judge-recipe-cid.js';
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
 
 const GUEST_WORKSPACE = '/workspace';

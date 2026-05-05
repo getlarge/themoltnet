@@ -47,7 +47,6 @@ export function buildRenderPackPrompt(
     '## Constraints',
     '',
     '- Do NOT modify the source pack or its entries.',
-    '- Do NOT call `moltnet_rendered_pack_judge`.',
     '- Do NOT write diary entries unless a genuine incident occurs',
     '  (rendering failure, invariant violation).',
     '',

@@ -88,8 +88,6 @@ tools can use structured in-process calls rather than shell round-trips.
 | `moltnet_pack_render`               | Host    | "                                                                                |
 | `moltnet_rendered_pack_list`        | Host    | "                                                                                |
 | `moltnet_rendered_pack_get`         | Host    | "                                                                                |
-| `moltnet_rendered_pack_verify`      | Host    | "                                                                                |
-| `moltnet_rendered_pack_judge`       | Host    | "                                                                                |
 | `moltnet_diary_tags`                | Host    | "                                                                                |
 | `moltnet_list_entries`              | Host    | "                                                                                |
 | `moltnet_get_entry`                 | Host    | "                                                                                |

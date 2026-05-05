@@ -10,16 +10,9 @@ import { execFileSync } from 'node:child_process';
 import { Type } from '@mariozechner/pi-ai';
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import { defineTool } from '@mariozechner/pi-coding-agent';
-import { computeJsonCid } from '@moltnet/crypto-service';
 import type { connect } from '@themoltnet/sdk';
 
 import type { TrackedError } from '../commands/types.js';
-import {
-  buildSourceEntriesMarkdown,
-  DEFAULT_RUBRIC,
-  type FidelityScores,
-  runFidelityJudge,
-} from './judge/fidelity.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
@@ -365,193 +358,6 @@ export function createMoltNetTools(
       return {
         content: [
           { type: 'text' as const, text: JSON.stringify(rendered, null, 2) },
-        ],
-        details: {},
-      };
-    },
-  });
-
-  const createJudgePackTask = defineTool({
-    name: 'moltnet_judge_pack_task_create',
-    label: 'Create Judge Pack Task',
-    description:
-      'Create a judge_pack task for a rendered pack. Returns a taskId that ' +
-      'moltnet_rendered_pack_judge can claim and execute. ' +
-      'The rubric is required — pass the structured rubric JSON from @moltnet/tasks Rubric schema.',
-    parameters: Type.Object({
-      renderedPackId: Type.String({ description: 'Rendered pack ID to judge' }),
-      sourcePackId: Type.String({
-        description:
-          'Source pack ID. Fetch it from the rendered pack if unknown.',
-      }),
-      rubric: Type.Any({
-        description:
-          'Structured rubric object (Rubric schema from @moltnet/tasks). ' +
-          'Must have rubricId, version, criteria[].',
-      }),
-      diaryId: Type.Optional(
-        Type.String({
-          description:
-            'Diary ID to impose the task on. Defaults to the connected diary.',
-        }),
-      ),
-    }),
-    async execute(_id, params) {
-      const {
-        agent,
-        diaryId: connectedDiaryId,
-        teamId: connectedTeamId,
-      } = ensureConnected(config);
-      const task = await agent.tasks.create({
-        taskType: 'judge_pack',
-        input: {
-          renderedPackId: params.renderedPackId,
-          sourcePackId: params.sourcePackId,
-          rubric: params.rubric,
-        },
-        diaryId: params.diaryId ?? connectedDiaryId,
-        teamId: connectedTeamId,
-      });
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({ taskId: task.id, task }, null, 2),
-          },
-        ],
-        details: {},
-      };
-    },
-  });
-
-  const judgeRenderedPack = defineTool({
-    name: 'moltnet_rendered_pack_judge',
-    label: 'Judge MoltNet Rendered Pack',
-    description:
-      'Claim a judge_pack task, run the fidelity judge locally, complete the task ' +
-      'with structured scores, and set verifiedTaskId on the rendered pack. ' +
-      'Create the task first with moltnet_judge_pack_task_create.',
-    parameters: Type.Object({
-      taskId: Type.String({
-        description: 'judge_pack task ID from moltnet_judge_pack_task_create',
-      }),
-      rubricOverride: Type.Optional(
-        Type.String({
-          description:
-            'Freeform rubric string override for the LLM judge prompt. ' +
-            'When omitted the task rubric preamble (or built-in default) is used.',
-        }),
-      ),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const { agent } = ensureConnected(config);
-      const model = ctx?.model;
-      if (!model) {
-        throw new Error(
-          'No active model in pi session — cannot run the fidelity judge.',
-        );
-      }
-
-      const claimed = await agent.tasks.claim(params.taskId);
-      const input = claimed.task.input as {
-        renderedPackId: string;
-        sourcePackId: string;
-        rubric?: { preamble?: string };
-      };
-
-      const rendered = await agent.packs.getRendered(input.renderedPackId);
-      if (!rendered.content?.trim()) {
-        throw new Error(
-          `rendered pack ${input.renderedPackId} has empty content`,
-        );
-      }
-      const sourcePack = (await agent.packs.get(input.sourcePackId, {
-        expand: 'entries',
-      })) as ExpandedPack;
-      if (!sourcePack.entries || sourcePack.entries.length === 0) {
-        throw new Error(`source pack ${input.sourcePackId} has no entries`);
-      }
-      const sourceEntriesMd = buildSourceEntriesMarkdown(
-        sourcePack.entries.map((entry) => ({
-          title: entry.entry.title,
-          content: entry.entry.content,
-        })),
-      );
-
-      const rubric =
-        params.rubricOverride?.trim() ||
-        input.rubric?.preamble?.trim() ||
-        DEFAULT_RUBRIC;
-
-      let scores: FidelityScores;
-      try {
-        scores = await runFidelityJudge({
-          model,
-          sourceEntries: sourceEntriesMd,
-          renderedContent: rendered.content,
-          rubric,
-        });
-      } catch (err) {
-        await agent.tasks
-          .fail(params.taskId, claimed.attempt.attemptN, {
-            error: {
-              code: 'judge_failed',
-              message: (err as Error).message ?? String(err),
-            },
-          })
-          .catch(() => {});
-        throw new Error(
-          `judge failed: ${(err as Error).message ?? String(err)}`,
-        );
-      }
-
-      const modelId =
-        (model as { provider?: string; id?: string }).provider &&
-        (model as { id?: string }).id
-          ? `${(model as { provider: string }).provider}:${(model as { id: string }).id}`
-          : ((model as { id?: string }).id ?? 'pi:unknown');
-
-      const output = {
-        scores: [
-          { criterionId: 'coverage', score: scores.coverage },
-          { criterionId: 'grounding', score: scores.grounding },
-          { criterionId: 'faithfulness', score: scores.faithfulness },
-        ],
-        composite: scores.composite,
-        verdict: scores.reasoning,
-        judgeModel: modelId,
-      };
-
-      const outputCid = await computeJsonCid(output);
-      const completed = await agent.tasks.complete(
-        params.taskId,
-        claimed.attempt.attemptN,
-        {
-          output,
-          outputCid,
-          usage: { inputTokens: 0, outputTokens: 0 },
-        },
-      );
-
-      await agent.packs.updateRendered(input.renderedPackId, {
-        verifiedTaskId: params.taskId,
-      });
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(
-              {
-                renderedPackId: input.renderedPackId,
-                taskId: params.taskId,
-                scores,
-                task: completed,
-              },
-              null,
-              2,
-            ),
-          },
         ],
         details: {},
       };
@@ -1125,8 +931,6 @@ export function createMoltNetTools(
     renderPack,
     listRenderedPacks,
     getRenderedPack,
-    createJudgePackTask,
-    judgeRenderedPack,
     diaryTags,
     listEntries,
     getEntry,
