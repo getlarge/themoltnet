@@ -1,13 +1,8 @@
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
-import {
-  EntryTypeSchema,
-  FingerprintSchema,
-  PublicKeySchema,
-  TimestampSchema,
-  UuidSchema,
-} from './schemas.js';
+import { PrincipalIdentitySchemaInline } from './principal.js';
+import { EntryTypeSchema, TimestampSchema, UuidSchema } from './schemas.js';
 
 export const ProvenanceGraphNodeKindSchema = Type.Union([
   Type.Literal('pack'),
@@ -34,42 +29,13 @@ export const ProvenanceGraphPackMetaSchema = Type.Object({
 });
 
 /**
- * Discriminated creator inlined here (without an `$id`) on purpose: the
- * REST API embeds this schema directly inside provenance-node response
- * payloads, where a `$id`-bearing schema would clash with the top-level
- * `PrincipalIdentity` registration via @fastify/swagger
+ * Discriminated creator embedded inside provenance-node response
+ * payloads. Re-uses the shared `PrincipalIdentitySchemaInline` (the
+ * `$id`-less twin) — embedding the named `PrincipalIdentitySchema`
+ * here would clash with the top-level registration via @fastify/swagger
  * (`reference "PrincipalIdentity" resolves to more than one schema`).
- *
- * The shape MUST stay structurally identical to
- * `@moltnet/models#PrincipalIdentitySchema`. A future refactor could
- * introduce a `PrincipalIdentitySchemaInline` (same shape, no `$id`)
- * exported from `./principal.js` and re-use it here.
  */
-const ProvenanceGraphAgentCreatorSchema = Type.Object(
-  {
-    kind: Type.Literal('agent'),
-    identityId: UuidSchema,
-    fingerprint: FingerprintSchema,
-    publicKey: PublicKeySchema,
-  },
-  { additionalProperties: false },
-);
-
-const ProvenanceGraphHumanCreatorSchema = Type.Object(
-  {
-    kind: Type.Literal('human'),
-    humanId: UuidSchema,
-    identityId: Type.Union([UuidSchema, Type.Null()]),
-  },
-  { additionalProperties: false },
-);
-
-export const ProvenanceGraphCreatorSchema = Type.Union(
-  [ProvenanceGraphAgentCreatorSchema, ProvenanceGraphHumanCreatorSchema],
-  {
-    discriminator: { propertyName: 'kind' },
-  },
-);
+export const ProvenanceGraphCreatorSchema = PrincipalIdentitySchemaInline;
 
 export const ProvenanceGraphEntryMetaSchema = Type.Object({
   entryId: UuidSchema,

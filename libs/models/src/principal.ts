@@ -40,6 +40,26 @@ export const HumanPrincipalSchema = Type.Object(
   },
 );
 
+const principalUnionVariants = [
+  Type.Object(
+    {
+      kind: Type.Literal('agent'),
+      identityId: UuidSchema,
+      fingerprint: FingerprintSchema,
+      publicKey: PublicKeySchema,
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      kind: Type.Literal('human'),
+      humanId: UuidSchema,
+      identityId: Type.Union([UuidSchema, Type.Null()]),
+    },
+    { additionalProperties: false },
+  ),
+];
+
 /**
  * Inlined union — see the long-form rationale in
  * `apps/rest-api/src/schemas/principal.ts` for why we cannot $ref the
@@ -52,30 +72,27 @@ export const HumanPrincipalSchema = Type.Object(
  * still exported so generated clients (Go SDK, openapi-ts) get proper
  * sum types; the inline copies keep fjs / Ajv happy at runtime.
  */
-export const PrincipalIdentitySchema = Type.Union(
-  [
-    Type.Object(
-      {
-        kind: Type.Literal('agent'),
-        identityId: UuidSchema,
-        fingerprint: FingerprintSchema,
-        publicKey: PublicKeySchema,
-      },
-      { additionalProperties: false },
-    ),
-    Type.Object(
-      {
-        kind: Type.Literal('human'),
-        humanId: UuidSchema,
-        identityId: Type.Union([UuidSchema, Type.Null()]),
-      },
-      { additionalProperties: false },
-    ),
-  ],
-  {
-    $id: 'PrincipalIdentity',
-    discriminator: { propertyName: 'kind' },
-  },
+export const PrincipalIdentitySchema = Type.Union(principalUnionVariants, {
+  $id: 'PrincipalIdentity',
+  discriminator: { propertyName: 'kind' },
+});
+
+/**
+ * `$id`-less twin of `PrincipalIdentitySchema`. Required anywhere the
+ * schema is **embedded** inline into another schema (MCP `outputSchema`
+ * — every tool that returns a creator-bearing object embeds its own
+ * copy; provenance-graph node `meta.creator`, etc.). Ajv 8 throws
+ * `reference "PrincipalIdentity" resolves to more than one schema` if
+ * the same `$id` appears twice in the same compilation pass, which is
+ * exactly what happens when the MCP server lists tools and Ajv
+ * traverses every advertised `outputSchema`.
+ *
+ * Structurally identical to `PrincipalIdentitySchema` (they share the
+ * variants array); change one, change both.
+ */
+export const PrincipalIdentitySchemaInline = Type.Union(
+  principalUnionVariants,
+  { discriminator: { propertyName: 'kind' } },
 );
 
 export type AgentPrincipal = (typeof AgentPrincipalSchema)['static'];

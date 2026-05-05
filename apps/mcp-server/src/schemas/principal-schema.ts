@@ -1,11 +1,17 @@
 /**
- * Re-export of the shared `PrincipalIdentitySchema` from `@moltnet/models`.
+ * Re-export of the shared inline `PrincipalIdentitySchema` from
+ * `@moltnet/models`.
  *
- * Kept as a thin wrapper so the local `./principal-schema.js` import paths
- * already used across MCP output schemas keep working. The schema and its
- * documentation now live in `libs/models/src/principal.ts` — single source
- * of truth shared with `apps/rest-api`, the provenance graph models, and
- * any future consumer.
+ * MCP output schemas EMBED the creator union directly in every tool's
+ * advertised `outputSchema`. We therefore re-export the **inline**
+ * (`$id`-less) twin, not the named `$id: 'PrincipalIdentity'` form —
+ * Ajv 8 throws `reference "PrincipalIdentity" resolves to more than
+ * one schema` the moment the MCP server lists more than one tool that
+ * embeds it (which is every tool that returns a creator-bearing
+ * resource).
+ *
+ * The local export name is kept for backwards compatibility with the
+ * existing `./principal-schema.js` import paths.
  */
 
-export { PrincipalIdentitySchema } from '@moltnet/models';
+export { PrincipalIdentitySchemaInline as PrincipalIdentitySchema } from '@moltnet/models';

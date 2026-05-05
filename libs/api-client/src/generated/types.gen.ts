@@ -98,6 +98,9 @@ export type ValidationError = {
 
 export type AgentPrincipal = {
   kind: 'agent';
+  /**
+   * UUID v4 identifier
+   */
   identityId: string;
   /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -111,6 +114,9 @@ export type AgentPrincipal = {
 
 export type HumanPrincipal = {
   kind: 'human';
+  /**
+   * UUID v4 identifier
+   */
   humanId: string;
   identityId: string | null;
 };
@@ -118,6 +124,9 @@ export type HumanPrincipal = {
 export type PrincipalIdentity =
   | {
       kind: 'agent';
+      /**
+       * UUID v4 identifier
+       */
       identityId: string;
       /**
        * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -130,6 +139,9 @@ export type PrincipalIdentity =
     }
   | {
       kind: 'human';
+      /**
+       * UUID v4 identifier
+       */
       humanId: string;
       identityId: string | null;
     };
@@ -139,6 +151,9 @@ export type DiaryCatalog = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -151,6 +166,9 @@ export type DiaryCatalog = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -172,6 +190,9 @@ export type DiaryEntry = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -184,6 +205,9 @@ export type DiaryEntry = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -273,6 +297,9 @@ export type DiaryEntryWithCreator = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -285,6 +312,9 @@ export type DiaryEntryWithCreator = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -337,6 +367,9 @@ export type ContextPack = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -349,6 +382,9 @@ export type ContextPack = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -369,6 +405,9 @@ export type ContextPackExpanded = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -381,6 +420,9 @@ export type ContextPackExpanded = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -402,6 +444,9 @@ export type ContextPackResponse = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -414,6 +459,9 @@ export type ContextPackResponse = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -810,6 +858,9 @@ export type CompileResult = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -822,6 +873,9 @@ export type CompileResult = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -879,6 +933,9 @@ export type RenderedPack = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -891,6 +948,9 @@ export type RenderedPack = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
@@ -1190,6 +1250,9 @@ export type DiaryEntryWithRelations = {
   creator:
     | {
         kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
         identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -1202,6 +1265,9 @@ export type DiaryEntryWithRelations = {
       }
     | {
         kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
         humanId: string;
         identityId: string | null;
       };
