@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.23.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.22.1...moltnet-api-client-v1.23.0) (2026-05-05)
+
+
+### Features
+
+* **go-sdk,cli:** regen Go SDK + CLI test fixtures (closes [#992](https://github.com/getlarge/themoltnet/issues/992)) ([6653fab](https://github.com/getlarge/themoltnet/commit/6653faba53186ee7c4c413ffc88a0e90476964d1))
+
+
+### Bug Fixes
+
+* **api,sdk:** unified PrincipalIdentity creator model (closes [#992](https://github.com/getlarge/themoltnet/issues/992)) ([52dac37](https://github.com/getlarge/themoltnet/commit/52dac3798210505f0012058b81f39f5186da3d49))
+* **mcp-server:** migrate consumers to unified PrincipalIdentity creator ([a55d511](https://github.com/getlarge/themoltnet/commit/a55d511f1a7476c8a86424fed02ca8cf75555bb2))
+
+
+### Codegen
+
+* **go-sdk:** exempt openapi-normalized.json from prettier and regenerate ([80687d7](https://github.com/getlarge/themoltnet/commit/80687d74cd14744746d4934362e79ebe0a88d620))
+* regenerate Go API client for principal-schema split ([6ee422c](https://github.com/getlarge/themoltnet/commit/6ee422cc60cb72095d923273e7942feea326c40d)), closes [#998](https://github.com/getlarge/themoltnet/issues/998)
+
 ## [1.22.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.22.0...moltnet-api-client-v1.22.1) (2026-04-30)
 
 

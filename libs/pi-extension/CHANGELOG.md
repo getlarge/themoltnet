@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.10.0...pi-extension-v0.11.0) (2026-05-05)
+
+
+### Features
+
+* **deps:** bump pi-coding-agent + pi-ai to 0.73.0 and enable submit-tool terminate ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([4c7f4e9](https://github.com/getlarge/themoltnet/commit/4c7f4e9d08bc988d046bdec5e9001d21a93c8b66))
+* **pi-extension:** add OTel parse_result counter for task-output capture ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([5efda78](https://github.com/getlarge/themoltnet/commit/5efda7863e3a703e8cb1fde14221e1926e5c69aa))
+* **pi-extension:** namespace task provenance tags under task:*, expand list/search filters ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([253135b](https://github.com/getlarge/themoltnet/commit/253135b0a942c910010eedffbc59f5b48b33b657))
+* **pi-extension:** wire per-task-type submit-output tool ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([65aa6b3](https://github.com/getlarge/themoltnet/commit/65aa6b3e7112faab582e37f15369491ab10fecdf))
+* structured task output via submit-tool + measurement ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([2e86b87](https://github.com/getlarge/themoltnet/commit/2e86b87b0381833bb0747bf25bc708aba4fc3203))
+
+
+### Bug Fixes
+
+* **pi-extension:** schema-guided submit tool, narrow catch, count invalid args ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([66e104c](https://github.com/getlarge/themoltnet/commit/66e104c9d4673e46e44a525871c405f53de2772e))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.9.0...pi-extension-v0.10.0) (2026-04-30)
 
 
