@@ -12,6 +12,7 @@ export * from './crypto.js';
 export * from './diary.js';
 export * from './network.js';
 export * from './packs.js';
+export * from './principal.js';
 export * from './relations.js';
 export * from './tasks.js';
 
@@ -74,6 +75,11 @@ import {
   RenderedPackWithContentSchema,
 } from './packs.js';
 import {
+  AgentPrincipalSchema,
+  HumanPrincipalSchema,
+  PrincipalIdentitySchema,
+} from './principal.js';
+import {
   ConsolidateResultSchema,
   EntryRelationListSchema,
   EntryRelationSchema,
@@ -93,6 +99,13 @@ export const sharedSchemas = [
   EntryTypeSchema,
   ProblemDetailsSchema,
   ValidationProblemDetailsSchema,
+  // Register the principal variants BEFORE PrincipalIdentitySchema so the
+  // union's Type.Ref(...) entries can resolve at addSchema() time. Anything
+  // that embeds `creator: PrincipalIdentitySchema` (diary, packs, teams,
+  // ...) MUST be registered AFTER these three.
+  AgentPrincipalSchema,
+  HumanPrincipalSchema,
+  PrincipalIdentitySchema,
   DiaryCatalogSchema,
   DiaryCatalogListSchema,
   DiaryEntrySchema,

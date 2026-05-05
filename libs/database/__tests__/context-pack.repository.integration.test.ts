@@ -15,6 +15,7 @@ import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createContextPackRepository } from '../src/repositories/context-pack.repository.js';
 import {
+  agents,
   contextPackEntries,
   contextPacks,
   diaries,
@@ -50,12 +51,12 @@ describe('ContextPackRepository (integration)', () => {
       Parameters<
         ReturnType<typeof createContextPackRepository>['createPack']
       >[0],
-      'diaryId' | 'createdBy'
+      'diaryId' | 'creatorAgentId' | 'creatorHumanId'
     >,
   ) =>
     repo.createPack({
       diaryId: DIARY_ID,
-      createdBy: OWNER_ID,
+      creatorAgentId: OWNER_ID,
       ...input,
     });
 
@@ -73,11 +74,25 @@ describe('ContextPackRepository (integration)', () => {
     ({ db, pool } = createDatabase(databaseUrl));
     repo = createContextPackRepository(db);
 
+    // Seed an agent so creator_agent_id FK to agents.identity_id is satisfied.
+    await db
+      .insert(agents)
+      .values({
+        identityId: OWNER_ID,
+        publicKey: 'ed25519:integration-test',
+        fingerprint: 'TEST-PACK-Y001-0001',
+      })
+      .onConflictDoNothing();
+
     // Seed a team row so diaries.team_id FK is satisfied
     const TEAM_ID = '00000000-0000-4000-b000-000000000001';
     await db
       .insert(teams)
-      .values({ id: TEAM_ID, name: 'Pack Test Team', createdBy: OWNER_ID })
+      .values({
+        id: TEAM_ID,
+        name: 'Pack Test Team',
+        creatorAgentId: OWNER_ID,
+      })
       .onConflictDoNothing();
 
     await db
@@ -85,14 +100,14 @@ describe('ContextPackRepository (integration)', () => {
       .values([
         {
           id: DIARY_ID,
-          createdBy: OWNER_ID,
+          creatorAgentId: OWNER_ID,
           teamId: TEAM_ID,
           name: 'Context Pack Test Diary',
           visibility: 'private',
         },
         {
           id: OTHER_DIARY_ID,
-          createdBy: OWNER_ID,
+          creatorAgentId: OWNER_ID,
           teamId: TEAM_ID,
           name: 'Other Context Pack Test Diary',
           visibility: 'private',
@@ -106,7 +121,7 @@ describe('ContextPackRepository (integration)', () => {
         {
           id: ENTRY_ID,
           diaryId: DIARY_ID,
-          createdBy: OWNER_ID,
+          creatorAgentId: OWNER_ID,
           content: 'Entry used for reverse pack lookup',
           title: 'Entry lookup seed',
           entryType: 'semantic',
@@ -115,7 +130,7 @@ describe('ContextPackRepository (integration)', () => {
         {
           id: OTHER_ENTRY_ID,
           diaryId: OTHER_DIARY_ID,
-          createdBy: OWNER_ID,
+          creatorAgentId: OWNER_ID,
           content: 'Other entry',
           title: 'Other entry seed',
           entryType: 'semantic',
@@ -289,7 +304,7 @@ describe('ContextPackRepository (integration)', () => {
       });
       const otherPack = await repo.createPack({
         diaryId: OTHER_DIARY_ID,
-        createdBy: OWNER_ID,
+        creatorAgentId: OWNER_ID,
         packCid: 'bafy-pack-entry-other',
         params: { tokenBudget: 4000 },
         payload: {},

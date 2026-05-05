@@ -22,8 +22,8 @@ const MOCK_PACK = {
   packType: 'compile' as const,
   params: {},
   payload: {},
-  createdBy: OWNER_ID,
   creator: {
+    kind: 'agent' as const,
     identityId: OWNER_ID,
     fingerprint: 'C212-DAFA-27C5-6C57',
     publicKey: 'ed25519:test',

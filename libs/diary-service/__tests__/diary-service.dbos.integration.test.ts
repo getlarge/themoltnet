@@ -68,6 +68,7 @@ describe('DiaryService (DBOS integration)', () => {
 
   async function setupDatabase(url: string) {
     const {
+      agents,
       createDatabase,
       createDiaryEntryRepository,
       createDiaryRepository,
@@ -88,6 +89,7 @@ describe('DiaryService (DBOS integration)', () => {
       diaryEntries,
       diaries,
       teams,
+      agents,
     };
   }
 
@@ -176,16 +178,30 @@ describe('DiaryService (DBOS integration)', () => {
       diaries: dbSetup.diaries,
     };
 
+    // Seed an agent first — teams.creator_agent_id FK targets agents.identity_id.
+    await dbSetup.db.db
+      .insert(dbSetup.agents)
+      .values({
+        identityId: OWNER_ID,
+        publicKey: 'ed25519:dbosintegrationkey',
+        fingerprint: 'A1B2-C3D4-E5F6-DB01',
+      })
+      .onConflictDoNothing();
+
     // Seed a team so diaries.team_id FK is satisfied
     const TEAM_ID = '00000000-0000-4000-c000-000000000001';
     await dbSetup.db.db
       .insert(dbSetup.teams)
-      .values({ id: TEAM_ID, name: 'DBOS Test Team', createdBy: OWNER_ID })
+      .values({
+        id: TEAM_ID,
+        name: 'DBOS Test Team',
+        creatorAgentId: OWNER_ID,
+      })
       .onConflictDoNothing();
 
     // Create a test diary container so diary_entries FK constraint is satisfied
     const diary = await dbSetup.diaryRepo.create({
-      createdBy: OWNER_ID,
+      creator: { kind: 'agent', id: OWNER_ID },
       teamId: TEAM_ID,
       name: 'DBOS Test Diary',
       visibility: 'private',
@@ -269,6 +285,7 @@ describe('DiaryService (DBOS integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Test atomic create',
         },
         OWNER_ID,
@@ -301,6 +318,7 @@ describe('DiaryService (DBOS integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Should persist after Keto retry',
         },
         OWNER_ID,
@@ -320,6 +338,7 @@ describe('DiaryService (DBOS integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Entry to delete',
         },
         OWNER_ID,
@@ -349,6 +368,7 @@ describe('DiaryService (DBOS integration)', () => {
         service.createEntry(
           {
             diaryId: DIARY_ID,
+            creator: { kind: 'agent', id: OWNER_ID },
             content: `Entry ${i}`,
           },
           OWNER_ID,
@@ -382,6 +402,7 @@ describe('DiaryService (DBOS integration)', () => {
           service.createEntry(
             {
               diaryId: DIARY_ID,
+              creator: { kind: 'agent', id: OWNER_ID },
               content: `Entry ${i}`,
             },
             OWNER_ID,
@@ -416,6 +437,7 @@ describe('DiaryService (DBOS integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Test workflow execution',
         },
         OWNER_ID,
@@ -432,6 +454,7 @@ describe('DiaryService (DBOS integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Entry to delete',
         },
         OWNER_ID,

@@ -1185,14 +1185,14 @@ func (s *AddGroupMemberUnauthorized) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *AgentIdentity) Encode(e *jx.Encoder) {
+func (s *AgentPrincipal) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *AgentIdentity) encodeFields(e *jx.Encoder) {
+func (s *AgentPrincipal) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("fingerprint")
 		e.Str(s.Fingerprint)
@@ -1202,21 +1202,26 @@ func (s *AgentIdentity) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.IdentityId)
 	}
 	{
+		e.FieldStart("kind")
+		s.Kind.Encode(e)
+	}
+	{
 		e.FieldStart("publicKey")
 		e.Str(s.PublicKey)
 	}
 }
 
-var jsonFieldsNameOfAgentIdentity = [3]string{
+var jsonFieldsNameOfAgentPrincipal = [4]string{
 	0: "fingerprint",
 	1: "identityId",
-	2: "publicKey",
+	2: "kind",
+	3: "publicKey",
 }
 
-// Decode decodes AgentIdentity from json.
-func (s *AgentIdentity) Decode(d *jx.Decoder) error {
+// Decode decodes AgentPrincipal from json.
+func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode AgentIdentity to nil")
+		return errors.New("invalid: unable to decode AgentPrincipal to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -1246,8 +1251,18 @@ func (s *AgentIdentity) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
-		case "publicKey":
+		case "kind":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Kind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"kind\"")
+			}
+		case "publicKey":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.PublicKey = string(v)
@@ -1263,12 +1278,12 @@ func (s *AgentIdentity) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode AgentIdentity")
+		return errors.Wrap(err, "decode AgentPrincipal")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1280,8 +1295,8 @@ func (s *AgentIdentity) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfAgentIdentity) {
-					name = jsonFieldsNameOfAgentIdentity[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfAgentPrincipal) {
+					name = jsonFieldsNameOfAgentPrincipal[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -1302,14 +1317,52 @@ func (s *AgentIdentity) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *AgentIdentity) MarshalJSON() ([]byte, error) {
+func (s *AgentPrincipal) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentIdentity) UnmarshalJSON(data []byte) error {
+func (s *AgentPrincipal) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AgentPrincipalKind as json.
+func (s AgentPrincipalKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes AgentPrincipalKind from json.
+func (s *AgentPrincipalKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AgentPrincipalKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch AgentPrincipalKind(v) {
+	case AgentPrincipalKindAgent:
+		*s = AgentPrincipalKindAgent
+	default:
+		*s = AgentPrincipalKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s AgentPrincipalKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AgentPrincipalKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -3270,8 +3323,8 @@ func (s *CompileResult) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
 	}
 	{
 		e.FieldStart("diaryId")
@@ -3331,7 +3384,7 @@ var jsonFieldsNameOfCompileResult = [15]string{
 	0:  "compileStats",
 	1:  "compileTrace",
 	2:  "createdAt",
-	3:  "createdBy",
+	3:  "creator",
 	4:  "diaryId",
 	5:  "entries",
 	6:  "expiresAt",
@@ -3386,17 +3439,15 @@ func (s *CompileResult) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
+		case "creator":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
+				if err := s.Creator.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
+				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		case "diaryId":
 			requiredBitSet[0] |= 1 << 4
@@ -3713,6 +3764,120 @@ func (s *CompileResultCompileTrace) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CompileResultCompileTrace) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CompileResultCreator as json.
+func (s CompileResultCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s CompileResultCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalCompileResultCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalCompileResultCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes CompileResultCreator from json.
+func (s *CompileResultCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CompileResultCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalCompileResultCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalCompileResultCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalCompileResultCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalCompileResultCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CompileResultCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CompileResultCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -6231,10 +6396,6 @@ func (s *ContextPackResponse) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
-	}
-	{
 		e.FieldStart("creator")
 		s.Creator.Encode(e)
 	}
@@ -6294,21 +6455,20 @@ func (s *ContextPackResponse) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfContextPackResponse = [14]string{
+var jsonFieldsNameOfContextPackResponse = [13]string{
 	0:  "createdAt",
-	1:  "createdBy",
-	2:  "creator",
-	3:  "diaryId",
-	4:  "entries",
-	5:  "expiresAt",
-	6:  "id",
-	7:  "packCid",
-	8:  "packCodec",
-	9:  "packType",
-	10: "params",
-	11: "payload",
-	12: "pinned",
-	13: "supersedesPackId",
+	1:  "creator",
+	2:  "diaryId",
+	3:  "entries",
+	4:  "expiresAt",
+	5:  "id",
+	6:  "packCid",
+	7:  "packCodec",
+	8:  "packType",
+	9:  "params",
+	10: "payload",
+	11: "pinned",
+	12: "supersedesPackId",
 }
 
 // Decode decodes ContextPackResponse from json.
@@ -6332,20 +6492,8 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
-			}
 		case "creator":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.Creator.Decode(d); err != nil {
 					return err
@@ -6355,7 +6503,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		case "diaryId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -6384,7 +6532,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"entries\"")
 			}
 		case "expiresAt":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -6394,7 +6542,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -6406,7 +6554,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "packCid":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCid = string(v)
@@ -6418,7 +6566,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
 		case "packCodec":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCodec = string(v)
@@ -6430,7 +6578,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCodec\"")
 			}
 		case "packType":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.PackType.Decode(d); err != nil {
 					return err
@@ -6440,7 +6588,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packType\"")
 			}
 		case "params":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.RawAppend(nil)
 				s.Params = jx.Raw(v)
@@ -6452,7 +6600,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"params\"")
 			}
 		case "payload":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.RawAppend(nil)
 				s.Payload = jx.Raw(v)
@@ -6464,7 +6612,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"payload\"")
 			}
 		case "pinned":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Bool()
 				s.Pinned = bool(v)
@@ -6476,7 +6624,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
 		case "supersedesPackId":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.SupersedesPackId.Decode(d); err != nil {
 					return err
@@ -6495,8 +6643,8 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b11101111,
-		0b00111111,
+		0b11110111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -6538,6 +6686,120 @@ func (s *ContextPackResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ContextPackResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ContextPackResponseCreator as json.
+func (s ContextPackResponseCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s ContextPackResponseCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalContextPackResponseCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalContextPackResponseCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes ContextPackResponseCreator from json.
+func (s *ContextPackResponseCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ContextPackResponseCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalContextPackResponseCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalContextPackResponseCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalContextPackResponseCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalContextPackResponseCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ContextPackResponseCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ContextPackResponseCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -13557,8 +13819,8 @@ func (s *DiaryCatalog) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
 	}
 	{
 		e.FieldStart("id")
@@ -13588,7 +13850,7 @@ func (s *DiaryCatalog) encodeFields(e *jx.Encoder) {
 
 var jsonFieldsNameOfDiaryCatalog = [8]string{
 	0: "createdAt",
-	1: "createdBy",
+	1: "creator",
 	2: "id",
 	3: "name",
 	4: "signed",
@@ -13618,17 +13880,15 @@ func (s *DiaryCatalog) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
+		case "creator":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
+				if err := s.Creator.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
+				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		case "id":
 			requiredBitSet[0] |= 1 << 2
@@ -13752,6 +14012,120 @@ func (s *DiaryCatalog) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DiaryCatalog) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiaryCatalogCreator as json.
+func (s DiaryCatalogCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s DiaryCatalogCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalDiaryCatalogCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalDiaryCatalogCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes DiaryCatalogCreator from json.
+func (s *DiaryCatalogCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiaryCatalogCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalDiaryCatalogCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalDiaryCatalogCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalDiaryCatalogCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalDiaryCatalogCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiaryCatalogCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiaryCatalogCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -13934,8 +14308,8 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
 	}
 	{
 		e.FieldStart("diaryId")
@@ -13989,7 +14363,7 @@ var jsonFieldsNameOfDiaryEntry = [15]string{
 	2:  "contentHash",
 	3:  "contentSignature",
 	4:  "createdAt",
-	5:  "createdBy",
+	5:  "creator",
 	6:  "diaryId",
 	7:  "entryType",
 	8:  "id",
@@ -14066,17 +14440,15 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
+		case "creator":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
+				if err := s.Creator.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
+				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		case "diaryId":
 			requiredBitSet[0] |= 1 << 6
@@ -14248,6 +14620,120 @@ func (s *DiaryEntry) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DiaryEntry) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiaryEntryCreator as json.
+func (s DiaryEntryCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s DiaryEntryCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalDiaryEntryCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalDiaryEntryCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes DiaryEntryCreator from json.
+func (s *DiaryEntryCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiaryEntryCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalDiaryEntryCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalDiaryEntryCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalDiaryEntryCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalDiaryEntryCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiaryEntryCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiaryEntryCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -14646,6 +15132,120 @@ func (s *DiaryEntryWithCreator) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes DiaryEntryWithCreatorCreator as json.
+func (s DiaryEntryWithCreatorCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s DiaryEntryWithCreatorCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalDiaryEntryWithCreatorCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalDiaryEntryWithCreatorCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes DiaryEntryWithCreatorCreator from json.
+func (s *DiaryEntryWithCreatorCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiaryEntryWithCreatorCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalDiaryEntryWithCreatorCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalDiaryEntryWithCreatorCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalDiaryEntryWithCreatorCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalDiaryEntryWithCreatorCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiaryEntryWithCreatorCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiaryEntryWithCreatorCreator) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes DiaryEntryWithCreatorEntryType as json.
 func (s DiaryEntryWithCreatorEntryType) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -14724,8 +15324,8 @@ func (s *DiaryEntryWithRelations) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
 	}
 	{
 		e.FieldStart("diaryId")
@@ -14785,7 +15385,7 @@ var jsonFieldsNameOfDiaryEntryWithRelations = [16]string{
 	2:  "contentHash",
 	3:  "contentSignature",
 	4:  "createdAt",
-	5:  "createdBy",
+	5:  "creator",
 	6:  "diaryId",
 	7:  "entryType",
 	8:  "id",
@@ -14863,17 +15463,15 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
+		case "creator":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
+				if err := s.Creator.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
+				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		case "diaryId":
 			requiredBitSet[0] |= 1 << 6
@@ -15055,6 +15653,120 @@ func (s *DiaryEntryWithRelations) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DiaryEntryWithRelations) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiaryEntryWithRelationsCreator as json.
+func (s DiaryEntryWithRelationsCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s DiaryEntryWithRelationsCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalDiaryEntryWithRelationsCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalDiaryEntryWithRelationsCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes DiaryEntryWithRelationsCreator from json.
+func (s *DiaryEntryWithRelationsCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiaryEntryWithRelationsCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalDiaryEntryWithRelationsCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalDiaryEntryWithRelationsCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalDiaryEntryWithRelationsCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalDiaryEntryWithRelationsCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiaryEntryWithRelationsCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiaryEntryWithRelationsCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -23662,10 +24374,6 @@ func (s *GetGroupOK) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
-	}
-	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
@@ -23687,13 +24395,12 @@ func (s *GetGroupOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetGroupOK = [6]string{
+var jsonFieldsNameOfGetGroupOK = [5]string{
 	0: "createdAt",
-	1: "createdBy",
-	2: "id",
-	3: "members",
-	4: "name",
-	5: "teamId",
+	1: "id",
+	2: "members",
+	3: "name",
+	4: "teamId",
 }
 
 // Decode decodes GetGroupOK from json.
@@ -23717,20 +24424,8 @@ func (s *GetGroupOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
-			}
 		case "id":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -23742,7 +24437,7 @@ func (s *GetGroupOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "members":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				s.Members = make([]GetGroupOKMembersItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -23760,7 +24455,7 @@ func (s *GetGroupOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"members\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -23772,7 +24467,7 @@ func (s *GetGroupOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "teamId":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -23793,7 +24488,7 @@ func (s *GetGroupOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -25786,10 +26481,6 @@ func (s *GetTeamOK) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
-	}
-	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
@@ -25819,15 +26510,14 @@ func (s *GetTeamOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetTeamOK = [8]string{
+var jsonFieldsNameOfGetTeamOK = [7]string{
 	0: "createdAt",
-	1: "createdBy",
-	2: "id",
-	3: "members",
-	4: "name",
-	5: "personal",
-	6: "status",
-	7: "updatedAt",
+	1: "id",
+	2: "members",
+	3: "name",
+	4: "personal",
+	5: "status",
+	6: "updatedAt",
 }
 
 // Decode decodes GetTeamOK from json.
@@ -25851,20 +26541,8 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
-			}
 		case "id":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -25876,7 +26554,7 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "members":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				s.Members = make([]GetTeamOKMembersItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -25894,7 +26572,7 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"members\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -25906,7 +26584,7 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "personal":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Bool()
 				s.Personal = bool(v)
@@ -25918,7 +26596,7 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"personal\"")
 			}
 		case "status":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Status = string(v)
@@ -25930,7 +26608,7 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -25951,7 +26629,7 @@ func (s *GetTeamOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b11111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -26841,6 +27519,170 @@ func (s *HeartbeatResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *HeartbeatResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *HumanPrincipal) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *HumanPrincipal) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("humanId")
+		json.EncodeUUID(e, s.HumanId)
+	}
+	{
+		e.FieldStart("identityId")
+		s.IdentityId.Encode(e)
+	}
+	{
+		e.FieldStart("kind")
+		s.Kind.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfHumanPrincipal = [3]string{
+	0: "humanId",
+	1: "identityId",
+	2: "kind",
+}
+
+// Decode decodes HumanPrincipal from json.
+func (s *HumanPrincipal) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode HumanPrincipal to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "humanId":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.HumanId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"humanId\"")
+			}
+		case "identityId":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.IdentityId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"identityId\"")
+			}
+		case "kind":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Kind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"kind\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode HumanPrincipal")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfHumanPrincipal) {
+					name = jsonFieldsNameOfHumanPrincipal[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *HumanPrincipal) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *HumanPrincipal) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes HumanPrincipalKind as json.
+func (s HumanPrincipalKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes HumanPrincipalKind from json.
+func (s *HumanPrincipalKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode HumanPrincipalKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch HumanPrincipalKind(v) {
+	case HumanPrincipalKindHuman:
+		*s = HumanPrincipalKindHuman
+	default:
+		*s = HumanPrincipalKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s HumanPrincipalKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *HumanPrincipalKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -38030,104 +38872,6 @@ func (s *OptInt) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes ProvenanceGraphEntryNodeMetaCreator as json.
-func (o OptNilProvenanceGraphEntryNodeMetaCreator) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes ProvenanceGraphEntryNodeMetaCreator from json.
-func (o *OptNilProvenanceGraphEntryNodeMetaCreator) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptNilProvenanceGraphEntryNodeMetaCreator to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v ProvenanceGraphEntryNodeMetaCreator
-		o.Value = v
-		o.Set = true
-		o.Null = true
-		return nil
-	}
-	o.Set = true
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptNilProvenanceGraphEntryNodeMetaCreator) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptNilProvenanceGraphEntryNodeMetaCreator) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes ProvenanceGraphPackNodeMetaCreator as json.
-func (o OptNilProvenanceGraphPackNodeMetaCreator) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes ProvenanceGraphPackNodeMetaCreator from json.
-func (o *OptNilProvenanceGraphPackNodeMetaCreator) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptNilProvenanceGraphPackNodeMetaCreator to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v ProvenanceGraphPackNodeMetaCreator
-		o.Value = v
-		o.Set = true
-		o.Null = true
-		return nil
-	}
-	o.Set = true
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptNilProvenanceGraphPackNodeMetaCreator) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptNilProvenanceGraphPackNodeMetaCreator) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes uuid.UUID as json.
 func (o OptNilUUID) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -38209,6 +38953,72 @@ func (s OptProvenanceGraphEdgesItemMeta) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptProvenanceGraphEdgesItemMeta) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ProvenanceGraphEntryNodeMetaCreator as json.
+func (o OptProvenanceGraphEntryNodeMetaCreator) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ProvenanceGraphEntryNodeMetaCreator from json.
+func (o *OptProvenanceGraphEntryNodeMetaCreator) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptProvenanceGraphEntryNodeMetaCreator to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptProvenanceGraphEntryNodeMetaCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptProvenanceGraphEntryNodeMetaCreator) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ProvenanceGraphPackNodeMetaCreator as json.
+func (o OptProvenanceGraphPackNodeMetaCreator) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ProvenanceGraphPackNodeMetaCreator from json.
+func (o *OptProvenanceGraphPackNodeMetaCreator) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptProvenanceGraphPackNodeMetaCreator to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptProvenanceGraphPackNodeMetaCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptProvenanceGraphPackNodeMetaCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -40767,33 +41577,48 @@ func (s *ProvenanceGraphEntryNodeMeta) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode implements json.Marshaler.
-func (s *ProvenanceGraphEntryNodeMetaCreator) Encode(e *jx.Encoder) {
+// Encode encodes ProvenanceGraphEntryNodeMetaCreator as json.
+func (s ProvenanceGraphEntryNodeMetaCreator) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
-// encodeFields encodes fields.
-func (s *ProvenanceGraphEntryNodeMetaCreator) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("fingerprint")
-		e.Str(s.Fingerprint)
+func (s ProvenanceGraphEntryNodeMetaCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalProvenanceGraphEntryNodeMetaCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalProvenanceGraphEntryNodeMetaCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
 	}
-	{
-		e.FieldStart("identityId")
-		json.EncodeUUID(e, s.IdentityId)
-	}
-	{
-		e.FieldStart("publicKey")
-		e.Str(s.PublicKey)
-	}
-}
-
-var jsonFieldsNameOfProvenanceGraphEntryNodeMetaCreator = [3]string{
-	0: "fingerprint",
-	1: "identityId",
-	2: "publicKey",
 }
 
 // Decode decodes ProvenanceGraphEntryNodeMetaCreator from json.
@@ -40801,91 +41626,60 @@ func (s *ProvenanceGraphEntryNodeMetaCreator) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ProvenanceGraphEntryNodeMetaCreator to nil")
 	}
-	var requiredBitSet [1]uint8
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
 
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "fingerprint":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.Fingerprint = string(v)
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
 				if err != nil {
 					return err
 				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"fingerprint\"")
-			}
-		case "identityId":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.IdentityId = v
-				if err != nil {
-					return err
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalProvenanceGraphEntryNodeMetaCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalProvenanceGraphEntryNodeMetaCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
 				}
 				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"identityId\"")
 			}
-		case "publicKey":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.PublicKey = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"publicKey\"")
-			}
-		default:
 			return d.Skip()
-		}
-		return nil
+		})
 	}); err != nil {
-		return errors.Wrap(err, "decode ProvenanceGraphEntryNodeMetaCreator")
+		return errors.Wrap(err, "capture")
 	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphEntryNodeMetaCreator) {
-					name = jsonFieldsNameOfProvenanceGraphEntryNodeMetaCreator[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalProvenanceGraphEntryNodeMetaCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
 		}
+	case HumanPrincipalProvenanceGraphEntryNodeMetaCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *ProvenanceGraphEntryNodeMetaCreator) MarshalJSON() ([]byte, error) {
+func (s ProvenanceGraphEntryNodeMetaCreator) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
@@ -41742,33 +42536,48 @@ func (s *ProvenanceGraphPackNodeMeta) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode implements json.Marshaler.
-func (s *ProvenanceGraphPackNodeMetaCreator) Encode(e *jx.Encoder) {
+// Encode encodes ProvenanceGraphPackNodeMetaCreator as json.
+func (s ProvenanceGraphPackNodeMetaCreator) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
-// encodeFields encodes fields.
-func (s *ProvenanceGraphPackNodeMetaCreator) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("fingerprint")
-		e.Str(s.Fingerprint)
+func (s ProvenanceGraphPackNodeMetaCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalProvenanceGraphPackNodeMetaCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalProvenanceGraphPackNodeMetaCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
 	}
-	{
-		e.FieldStart("identityId")
-		json.EncodeUUID(e, s.IdentityId)
-	}
-	{
-		e.FieldStart("publicKey")
-		e.Str(s.PublicKey)
-	}
-}
-
-var jsonFieldsNameOfProvenanceGraphPackNodeMetaCreator = [3]string{
-	0: "fingerprint",
-	1: "identityId",
-	2: "publicKey",
 }
 
 // Decode decodes ProvenanceGraphPackNodeMetaCreator from json.
@@ -41776,91 +42585,60 @@ func (s *ProvenanceGraphPackNodeMetaCreator) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ProvenanceGraphPackNodeMetaCreator to nil")
 	}
-	var requiredBitSet [1]uint8
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
 
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "fingerprint":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.Fingerprint = string(v)
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
 				if err != nil {
 					return err
 				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"fingerprint\"")
-			}
-		case "identityId":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.IdentityId = v
-				if err != nil {
-					return err
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalProvenanceGraphPackNodeMetaCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalProvenanceGraphPackNodeMetaCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
 				}
 				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"identityId\"")
 			}
-		case "publicKey":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.PublicKey = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"publicKey\"")
-			}
-		default:
 			return d.Skip()
-		}
-		return nil
+		})
 	}); err != nil {
-		return errors.Wrap(err, "decode ProvenanceGraphPackNodeMetaCreator")
+		return errors.Wrap(err, "capture")
 	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphPackNodeMetaCreator) {
-					name = jsonFieldsNameOfProvenanceGraphPackNodeMetaCreator[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalProvenanceGraphPackNodeMetaCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
 		}
+	case HumanPrincipalProvenanceGraphPackNodeMetaCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *ProvenanceGraphPackNodeMetaCreator) MarshalJSON() ([]byte, error) {
+func (s ProvenanceGraphPackNodeMetaCreator) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
@@ -45645,8 +46423,8 @@ func (s *RenderedPack) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("createdBy")
-		json.EncodeUUID(e, s.CreatedBy)
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
 	}
 	{
 		e.FieldStart("diaryId")
@@ -45685,7 +46463,7 @@ func (s *RenderedPack) encodeFields(e *jx.Encoder) {
 var jsonFieldsNameOfRenderedPack = [11]string{
 	0:  "contentHash",
 	1:  "createdAt",
-	2:  "createdBy",
+	2:  "creator",
 	3:  "diaryId",
 	4:  "expiresAt",
 	5:  "id",
@@ -45729,17 +46507,15 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "createdBy":
+		case "creator":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedBy = v
-				if err != nil {
+				if err := s.Creator.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdBy\"")
+				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		case "diaryId":
 			requiredBitSet[0] |= 1 << 3
@@ -45888,6 +46664,120 @@ func (s *RenderedPack) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RenderedPack) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderedPackCreator as json.
+func (s RenderedPackCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s RenderedPackCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalRenderedPackCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalRenderedPackCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes RenderedPackCreator from json.
+func (s *RenderedPackCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderedPackCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalRenderedPackCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalRenderedPackCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalRenderedPackCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalRenderedPackCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RenderedPackCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderedPackCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

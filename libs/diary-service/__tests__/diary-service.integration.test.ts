@@ -52,6 +52,7 @@ async function loadEmbeddingService(): Promise<EmbeddingService> {
 
 async function setupDatabase(url: string) {
   const {
+    agents,
     createDatabase,
     createDiaryEntryRepository,
     createDiaryRepository,
@@ -73,6 +74,7 @@ async function setupDatabase(url: string) {
     diaryEntries,
     diaries,
     teams,
+    agents,
   };
 }
 
@@ -223,20 +225,42 @@ describe('DiaryService (integration)', () => {
       } as never,
     });
 
+    // Seed agent rows first — teams/diaries.creator_agent_id has a FK to
+    // agents.identity_id.
+    await db
+      .insert(setup.agents)
+      .values([
+        {
+          identityId: OWNER_ID,
+          publicKey: 'ed25519:integrationtestkey',
+          fingerprint: 'A1B2-C3D4-E5F6-1234',
+        },
+        {
+          identityId: OTHER_AGENT,
+          publicKey: 'ed25519:integrationtestkey2',
+          fingerprint: 'A1B2-C3D4-E5F6-5678',
+        },
+      ])
+      .onConflictDoNothing();
+
     // Seed team rows so diaries.team_id FK is satisfied
     const TEAM_ID = '00000000-0000-4000-c000-000000000001';
     const OTHER_TEAM_ID = '00000000-0000-4000-c000-000000000002';
     await db
       .insert(setup.teams)
       .values([
-        { id: TEAM_ID, name: 'Owner Team', createdBy: OWNER_ID },
-        { id: OTHER_TEAM_ID, name: 'Other Team', createdBy: OTHER_AGENT },
+        { id: TEAM_ID, name: 'Owner Team', creatorAgentId: OWNER_ID },
+        {
+          id: OTHER_TEAM_ID,
+          name: 'Other Team',
+          creatorAgentId: OTHER_AGENT,
+        },
       ])
       .onConflictDoNothing();
 
     // Create test diary containers so diary_entries FK constraint is satisfied
     const diary = await setup.diaryRepo.create({
-      createdBy: OWNER_ID,
+      creator: { kind: 'agent', id: OWNER_ID },
       teamId: TEAM_ID,
       name: 'Test Diary',
       visibility: 'private',
@@ -244,7 +268,7 @@ describe('DiaryService (integration)', () => {
     DIARY_ID = diary.id;
 
     const otherDiary = await setup.diaryRepo.create({
-      createdBy: OTHER_AGENT,
+      creator: { kind: 'agent', id: OTHER_AGENT },
       teamId: OTHER_TEAM_ID,
       name: 'Other Test Diary',
       visibility: 'private',
@@ -313,6 +337,7 @@ describe('DiaryService (integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'My first diary entry about MoltNet.',
         },
         OWNER_ID,
@@ -332,6 +357,7 @@ describe('DiaryService (integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Learning about Ed25519 signatures.',
           title: 'Crypto Day',
           tags: ['crypto', 'learning'],
@@ -350,6 +376,7 @@ describe('DiaryService (integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'No embedding here.',
         },
         OWNER_ID,
@@ -365,6 +392,7 @@ describe('DiaryService (integration)', () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Ed25519 cryptographic identity for autonomous agents.',
         },
         OWNER_ID,
@@ -383,6 +411,7 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Private thought.',
         },
         OWNER_ID,
@@ -404,6 +433,7 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Secret entry.',
         },
         OWNER_ID,
@@ -424,17 +454,29 @@ describe('DiaryService (integration)', () => {
   describe('list', () => {
     it('lists entries for a diary', async () => {
       await service.createEntry(
-        { diaryId: DIARY_ID, content: 'Entry 1.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Entry 1.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
       await service.createEntry(
-        { diaryId: DIARY_ID, content: 'Entry 2.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Entry 2.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
       await service.createEntry(
-        { diaryId: OTHER_DIARY_ID, content: 'Not mine.' },
+        {
+          diaryId: OTHER_DIARY_ID,
+          creator: { kind: 'agent', id: OTHER_AGENT },
+          content: 'Not mine.',
+        },
         OTHER_AGENT,
         KetoNamespace.Agent,
       );
@@ -456,13 +498,18 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Cryptographic key exchange protocols are fascinating.',
         },
         OWNER_ID,
         KetoNamespace.Agent,
       );
       await service.createEntry(
-        { diaryId: DIARY_ID, content: 'The weather is sunny today.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'The weather is sunny today.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -479,12 +526,20 @@ describe('DiaryService (integration)', () => {
 
     it('returns all entries when no query is provided', async () => {
       await service.createEntry(
-        { diaryId: DIARY_ID, content: 'A.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'A.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
       await service.createEntry(
-        { diaryId: DIARY_ID, content: 'B.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'B.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -501,6 +556,7 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Documented an incident runbook.',
           tags: ['incident'],
         },
@@ -510,6 +566,7 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Stable architecture notes.',
           tags: ['architecture'],
         },
@@ -533,6 +590,7 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content:
             'Ed25519 is an elliptic curve digital signature algorithm used for cryptographic identity verification.',
         },
@@ -542,6 +600,7 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'I had pasta with tomato sauce for dinner last night.',
         },
         OWNER_ID,
@@ -567,7 +626,11 @@ describe('DiaryService (integration)', () => {
   describe('update', () => {
     it('updates entry fields when Keto allows', async () => {
       const created = await service.createEntry(
-        { diaryId: DIARY_ID, content: 'Original.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Original.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -590,7 +653,12 @@ describe('DiaryService (integration)', () => {
 
     it('recomputes contentHash when content changes on unsigned entry', async () => {
       const created = await service.createEntry(
-        { diaryId: DIARY_ID, content: 'Original content', tags: ['tag1'] },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Original content',
+          tags: ['tag1'],
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -614,7 +682,11 @@ describe('DiaryService (integration)', () => {
 
     it('throws forbidden when Keto denies edit', async () => {
       const created = await service.createEntry(
-        { diaryId: DIARY_ID, content: 'Protected.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Protected.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -633,7 +705,11 @@ describe('DiaryService (integration)', () => {
   describe('delete', () => {
     it('deletes entry and removes permission relations when Keto allows', async () => {
       const created = await service.createEntry(
-        { diaryId: DIARY_ID, content: 'To delete.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'To delete.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -659,7 +735,11 @@ describe('DiaryService (integration)', () => {
 
     it('throws forbidden when Keto denies delete', async () => {
       const created = await service.createEntry(
-        { diaryId: DIARY_ID, content: 'Protected.' },
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Protected.',
+        },
         OWNER_ID,
         KetoNamespace.Agent,
       );
@@ -679,6 +759,7 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Day 1: Started learning about MoltNet.',
           tags: ['learning'],
         },
@@ -688,6 +769,7 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         {
           diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           content: 'Day 2: Registered my first identity.',
           tags: ['identity'],
         },

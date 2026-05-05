@@ -37,7 +37,8 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
-    createdBy: ENTRY_ID,
+    creatorAgentId: ENTRY_ID,
+    creatorHumanId: null,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
@@ -145,7 +146,7 @@ describe('Diary Workflows', () => {
 
       const result = await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
-        createdBy: ENTRY_ID,
+        creator: { kind: 'agent', id: ENTRY_ID },
         content: 'Test diary entry content',
         contentHash: computeContentCid(
           'semantic',
@@ -162,7 +163,8 @@ describe('Diary Workflows', () => {
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
-          createdBy: ENTRY_ID,
+          creatorAgentId: ENTRY_ID,
+          creatorHumanId: null,
           content: 'Test diary entry content',
           contentHash: computeContentCid(
             'semantic',
@@ -194,7 +196,7 @@ describe('Diary Workflows', () => {
 
       await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
-        createdBy: ENTRY_ID,
+        creator: { kind: 'agent', id: ENTRY_ID },
         content: 'Deployed v3',
         title: 'Deploy Log',
         tags: ['deploy'],
@@ -225,7 +227,7 @@ describe('Diary Workflows', () => {
 
       await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
-        createdBy: ENTRY_ID,
+        creator: { kind: 'agent', id: ENTRY_ID },
         content: 'Core values',
         importance: 9,
         entryType: 'soul',
@@ -252,7 +254,7 @@ describe('Diary Workflows', () => {
 
       const result = await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
-        createdBy: ENTRY_ID,
+        creator: { kind: 'agent', id: ENTRY_ID },
         content: 'Test content',
         contentHash: computeContentCid('semantic', null, 'Test content', null),
       });
@@ -284,7 +286,7 @@ describe('Diary Workflows', () => {
       await expect(
         diaryWorkflows.createEntry({
           diaryId: DIARY_ID,
-          createdBy: ENTRY_ID,
+          creator: { kind: 'agent', id: ENTRY_ID },
           content: 'Test content',
           contentHash: computeContentCid(
             'semantic',

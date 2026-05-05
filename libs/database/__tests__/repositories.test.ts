@@ -179,7 +179,7 @@ describe('createDiaryRepository', () => {
     db._chain.returning.mockResolvedValue([mockEntry]);
 
     const result = await repo.create({
-      createdBy: AGENT_ID,
+      creator: { kind: 'agent', id: AGENT_ID },
       teamId: '00000000-0000-4000-b000-000000000001',
       name: 'Test Diary',
       visibility: 'private' as const,

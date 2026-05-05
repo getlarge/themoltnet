@@ -14,7 +14,7 @@ import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
-import { diaries, diaryEntries, teams } from '../src/schema.js';
+import { agents, diaries, diaryEntries, teams } from '../src/schema.js';
 
 // Shared container state — one DB for all describes in this file
 let sharedDb: Database;
@@ -49,35 +49,51 @@ describe('DiaryRepository (integration)', () => {
   beforeAll(async () => {
     diaryRepo = createDiaryRepository(sharedDb);
 
+    // Seed an agent row first — teams.creator_agent_id has a FK to agents.identity_id
+    await sharedDb
+      .insert(agents)
+      .values({
+        identityId: CREATED_BY,
+        publicKey: 'ed25519:integration-test',
+        fingerprint: 'TEST-DIAR-Y001-0002',
+      })
+      .onConflictDoNothing();
+
     // Seed a team row so that diaries.team_id FK is satisfied
     await sharedDb
       .insert(teams)
-      .values({ id: TEAM_ID, name: 'Test Team', createdBy: CREATED_BY })
+      .values({
+        id: TEAM_ID,
+        name: 'Test Team',
+        creatorAgentId: CREATED_BY,
+      })
       .onConflictDoNothing();
   });
 
   afterEach(async () => {
     // Scope delete to this describe's creator so we don't remove the seed row
     // used by DiaryEntryRepository tests sharing the same container.
-    await sharedDb.delete(diaries).where(eq(diaries.createdBy, CREATED_BY));
+    await sharedDb
+      .delete(diaries)
+      .where(eq(diaries.creatorAgentId, CREATED_BY));
   });
 
   describe('listByIds', () => {
     it('returns diaries matching the given IDs', async () => {
       const d1 = await diaryRepo.create({
-        createdBy: CREATED_BY,
+        creator: { kind: 'agent', id: CREATED_BY },
         teamId: TEAM_ID,
         name: 'A',
         visibility: 'private',
       });
       const d2 = await diaryRepo.create({
-        createdBy: CREATED_BY,
+        creator: { kind: 'agent', id: CREATED_BY },
         teamId: TEAM_ID,
         name: 'B',
         visibility: 'private',
       });
       await diaryRepo.create({
-        createdBy: CREATED_BY,
+        creator: { kind: 'agent', id: CREATED_BY },
         teamId: TEAM_ID,
         name: 'C',
         visibility: 'private',
@@ -93,7 +109,7 @@ describe('DiaryRepository (integration)', () => {
 
     it('returns empty array when ids list is empty', async () => {
       await diaryRepo.create({
-        createdBy: CREATED_BY,
+        creator: { kind: 'agent', id: CREATED_BY },
         teamId: TEAM_ID,
         name: 'A',
         visibility: 'private',
@@ -106,7 +122,7 @@ describe('DiaryRepository (integration)', () => {
 
     it('ignores ids that do not exist', async () => {
       const d1 = await diaryRepo.create({
-        createdBy: CREATED_BY,
+        creator: { kind: 'agent', id: CREATED_BY },
         teamId: TEAM_ID,
         name: 'A',
         visibility: 'private',
@@ -132,22 +148,37 @@ describe('DiaryEntryRepository (integration)', () => {
   const createEntry = (
     input: Omit<
       Parameters<ReturnType<typeof createDiaryEntryRepository>['create']>[0],
-      'diaryId' | 'createdBy'
+      'diaryId' | 'creatorAgentId' | 'creatorHumanId'
     >,
   ) =>
     repo.create({
       diaryId: DIARY_ID,
-      createdBy: CREATED_BY,
+      creatorAgentId: CREATED_BY,
       ...input,
     });
 
   beforeAll(async () => {
     repo = createDiaryEntryRepository(sharedDb);
 
+    // Seed an agent row first — diaries/teams/diary_entries.creator_agent_id
+    // has a FK to agents.identity_id
+    await sharedDb
+      .insert(agents)
+      .values({
+        identityId: CREATED_BY,
+        publicKey: 'ed25519:integration-test',
+        fingerprint: 'TEST-DIAR-Y001-0001',
+      })
+      .onConflictDoNothing();
+
     // Seed a team row so that diaries.team_id FK is satisfied
     await sharedDb
       .insert(teams)
-      .values({ id: TEAM_ID, name: 'Entry Test Team', createdBy: CREATED_BY })
+      .values({
+        id: TEAM_ID,
+        name: 'Entry Test Team',
+        creatorAgentId: CREATED_BY,
+      })
       .onConflictDoNothing();
 
     // diary_entries.diary_id has a FK to diaries.id — seed the parent row
@@ -155,7 +186,7 @@ describe('DiaryEntryRepository (integration)', () => {
       .insert(diaries)
       .values({
         id: DIARY_ID,
-        createdBy: CREATED_BY,
+        creatorAgentId: CREATED_BY,
         teamId: TEAM_ID,
         name: 'Test Diary',
         visibility: 'private',
@@ -415,7 +446,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
       expect(results.length).toBe(1);
       expect(results[0].content).toContain('cryptographic');
-      expect(results[0].createdBy).toBe(CREATED_BY);
+      expect(results[0].creatorAgentId).toBe(CREATED_BY);
     });
 
     it('falls back to list when no query or embedding provided', async () => {

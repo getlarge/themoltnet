@@ -20,6 +20,10 @@ import {
   DigestSchema,
 } from '../schemas.js';
 import {
+  authContextToCreator,
+  rowToResponseWithCreator,
+} from '../utils/auth-principal.js';
+import {
   CompileWorkflowError,
   contextDistillWorkflows,
 } from '../workflows/context-distill-workflows.js';
@@ -244,6 +248,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       }
       // TODO: create custom permission to distill; const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
+      const compileCreator = authContextToCreator(request);
       let result;
       try {
         result = await runWorkflow(
@@ -256,6 +261,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           {
             diaryId,
             identityId,
+            creator: compileCreator,
             taskPrompt,
             tokenBudget,
             lambda,
@@ -276,7 +282,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       }
 
       return {
-        ...result.pack,
+        ...(await rowToResponseWithCreator(result.pack, fastify)),
         entries: result.packEntries,
         compileStats: result.compileResult.stats,
         compileTrace: result.compileResult.trace,

@@ -66,9 +66,18 @@ function extractAuthContextFromClaims(
   }
 
   if (subjectType === 'human') {
+    const humanId = claims['moltnet:human_id'] as string | undefined;
+    if (!humanId) {
+      // Token was issued before humans.id was wired into JWT claims, or
+      // the token-exchange hook was unable to resolve the humans row.
+      // Refuse to surface an authContext rather than handing routes a
+      // principal they can't translate into a creator FK.
+      return null;
+    }
     return {
       subjectType: 'human',
       identityId,
+      humanId,
       clientId: clientId || null,
       scopes,
       currentTeamId: null,
@@ -116,9 +125,14 @@ async function fetchClientMetadata(
     const metaType = metadata.type;
 
     if (metaType === 'moltnet_human') {
+      const metaHumanId = metadata.human_id;
+      if (!metaHumanId) {
+        return null;
+      }
       return {
         subjectType: 'human',
         identityId: metaIdentityId,
+        humanId: metaHumanId,
         clientId: clientId || null,
         scopes,
         currentTeamId: null,

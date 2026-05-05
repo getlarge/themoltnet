@@ -35,6 +35,12 @@ import {
   SuccessSchema,
 } from '../schemas.js';
 import {
+  authContextToCreator,
+  batchInflateRowsWithCreator,
+  inflateCreator,
+  rowToResponseWithCreator,
+} from '../utils/auth-principal.js';
+import {
   diaryTransferWorkflow,
   TRANSFER_DECISION_EVENT,
 } from '../workflows/diary-transfer-workflow.js';
@@ -120,15 +126,25 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
       }
 
+      const creator = authContextToCreator(request);
       const diary = await fastify.diaryService.createDiary({
-        createdBy: identityId,
+        creator,
         name,
         visibility,
         teamId,
         subjectNs,
       });
 
-      return reply.status(201).send(diary);
+      return reply.status(201).send({
+        id: diary.id,
+        teamId: diary.teamId,
+        name: diary.name,
+        visibility: diary.visibility,
+        signed: diary.signed,
+        createdAt: diary.createdAt,
+        updatedAt: diary.updatedAt,
+        creator: await inflateCreator(creator, fastify),
+      });
     },
   );
 
@@ -151,10 +167,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const items = await fastify.diaryService.listDiaries(
+      const rows = await fastify.diaryService.listDiaries(
         request.authContext!.identityId,
         request.authContext!.currentTeamId ?? undefined,
       );
+      const items = await batchInflateRowsWithCreator(rows, fastify);
       return { items };
     },
   );
@@ -190,7 +207,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           identityId,
           subjectNs,
         );
-        return diary;
+        return await rowToResponseWithCreator(diary, fastify);
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;
@@ -261,7 +278,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           throw createProblem('not-found', 'Diary not found');
         }
 
-        return diary;
+        return await rowToResponseWithCreator(diary, fastify);
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;

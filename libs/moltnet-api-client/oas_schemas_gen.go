@@ -290,43 +290,89 @@ type AddGroupMemberUnauthorized ProblemDetails
 
 func (*AddGroupMemberUnauthorized) addGroupMemberRes() {}
 
-// Ref: #/components/schemas/AgentIdentity
-type AgentIdentity struct {
+// Ref: #/components/schemas/AgentPrincipal
+type AgentPrincipal struct {
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
-	Fingerprint string    `json:"fingerprint"`
-	IdentityId  uuid.UUID `json:"identityId"`
+	Fingerprint string `json:"fingerprint"`
+	// UUID v4 identifier.
+	IdentityId uuid.UUID          `json:"identityId"`
+	Kind       AgentPrincipalKind `json:"kind"`
 	// Ed25519 public key with prefix.
 	PublicKey string `json:"publicKey"`
 }
 
 // GetFingerprint returns the value of Fingerprint.
-func (s *AgentIdentity) GetFingerprint() string {
+func (s *AgentPrincipal) GetFingerprint() string {
 	return s.Fingerprint
 }
 
 // GetIdentityId returns the value of IdentityId.
-func (s *AgentIdentity) GetIdentityId() uuid.UUID {
+func (s *AgentPrincipal) GetIdentityId() uuid.UUID {
 	return s.IdentityId
 }
 
+// GetKind returns the value of Kind.
+func (s *AgentPrincipal) GetKind() AgentPrincipalKind {
+	return s.Kind
+}
+
 // GetPublicKey returns the value of PublicKey.
-func (s *AgentIdentity) GetPublicKey() string {
+func (s *AgentPrincipal) GetPublicKey() string {
 	return s.PublicKey
 }
 
 // SetFingerprint sets the value of Fingerprint.
-func (s *AgentIdentity) SetFingerprint(val string) {
+func (s *AgentPrincipal) SetFingerprint(val string) {
 	s.Fingerprint = val
 }
 
 // SetIdentityId sets the value of IdentityId.
-func (s *AgentIdentity) SetIdentityId(val uuid.UUID) {
+func (s *AgentPrincipal) SetIdentityId(val uuid.UUID) {
 	s.IdentityId = val
 }
 
+// SetKind sets the value of Kind.
+func (s *AgentPrincipal) SetKind(val AgentPrincipalKind) {
+	s.Kind = val
+}
+
 // SetPublicKey sets the value of PublicKey.
-func (s *AgentIdentity) SetPublicKey(val string) {
+func (s *AgentPrincipal) SetPublicKey(val string) {
 	s.PublicKey = val
+}
+
+type AgentPrincipalKind string
+
+const (
+	AgentPrincipalKindAgent AgentPrincipalKind = "agent"
+)
+
+// AllValues returns all AgentPrincipalKind values.
+func (AgentPrincipalKind) AllValues() []AgentPrincipalKind {
+	return []AgentPrincipalKind{
+		AgentPrincipalKindAgent,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentPrincipalKind) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentPrincipalKindAgent:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentPrincipalKind) UnmarshalText(data []byte) error {
+	switch AgentPrincipalKind(data) {
+	case AgentPrincipalKindAgent:
+		*s = AgentPrincipalKindAgent
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/AgentProfile
@@ -860,7 +906,7 @@ type CompileResult struct {
 	CompileStats     CompileStats               `json:"compileStats"`
 	CompileTrace     CompileResultCompileTrace  `json:"compileTrace"`
 	CreatedAt        time.Time                  `json:"createdAt"`
-	CreatedBy        uuid.UUID                  `json:"createdBy"`
+	Creator          CompileResultCreator       `json:"creator"`
 	DiaryId          uuid.UUID                  `json:"diaryId"`
 	Entries          []CompileResultEntriesItem `json:"entries"`
 	ExpiresAt        NilDateTime                `json:"expiresAt"`
@@ -889,9 +935,9 @@ func (s *CompileResult) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetCreatedBy returns the value of CreatedBy.
-func (s *CompileResult) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
+// GetCreator returns the value of Creator.
+func (s *CompileResult) GetCreator() CompileResultCreator {
+	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -964,9 +1010,9 @@ func (s *CompileResult) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetCreatedBy sets the value of CreatedBy.
-func (s *CompileResult) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
+// SetCreator sets the value of Creator.
+func (s *CompileResult) SetCreator(val CompileResultCreator) {
+	s.Creator = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -1060,6 +1106,74 @@ func (s *CompileResultCompileTrace) SetLambdaUsed(val float64) {
 // SetTaskPromptHash sets the value of TaskPromptHash.
 func (s *CompileResultCompileTrace) SetTaskPromptHash(val OptString) {
 	s.TaskPromptHash = val
+}
+
+// CompileResultCreator represents sum type.
+type CompileResultCreator struct {
+	Type           CompileResultCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// CompileResultCreatorType is oneOf type of CompileResultCreator.
+type CompileResultCreatorType string
+
+// Possible values for CompileResultCreatorType.
+const (
+	AgentPrincipalCompileResultCreator CompileResultCreatorType = "agent"
+	HumanPrincipalCompileResultCreator CompileResultCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether CompileResultCreator is AgentPrincipal.
+func (s CompileResultCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalCompileResultCreator
+}
+
+// IsHumanPrincipal reports whether CompileResultCreator is HumanPrincipal.
+func (s CompileResultCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalCompileResultCreator
+}
+
+// SetAgentPrincipal sets CompileResultCreator to AgentPrincipal.
+func (s *CompileResultCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalCompileResultCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if CompileResultCreator is AgentPrincipal.
+func (s CompileResultCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalCompileResultCreator returns new CompileResultCreator from AgentPrincipal.
+func NewAgentPrincipalCompileResultCreator(v AgentPrincipal) CompileResultCreator {
+	var s CompileResultCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets CompileResultCreator to HumanPrincipal.
+func (s *CompileResultCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalCompileResultCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if CompileResultCreator is HumanPrincipal.
+func (s CompileResultCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalCompileResultCreator returns new CompileResultCreator from HumanPrincipal.
+func NewHumanPrincipalCompileResultCreator(v HumanPrincipal) CompileResultCreator {
+	var s CompileResultCreator
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 type CompileResultEntriesItem struct {
@@ -2060,8 +2174,7 @@ func (s *ConsolidateResultTraceStrategyUsed) UnmarshalText(data []byte) error {
 // Ref: #/components/schemas/ContextPackResponse
 type ContextPackResponse struct {
 	CreatedAt        time.Time                   `json:"createdAt"`
-	CreatedBy        uuid.UUID                   `json:"createdBy"`
-	Creator          AgentIdentity               `json:"creator"`
+	Creator          ContextPackResponseCreator  `json:"creator"`
 	DiaryId          uuid.UUID                   `json:"diaryId"`
 	Entries          []ExpandedPackEntry         `json:"entries"`
 	ExpiresAt        NilDateTime                 `json:"expiresAt"`
@@ -2080,13 +2193,8 @@ func (s *ContextPackResponse) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetCreatedBy returns the value of CreatedBy.
-func (s *ContextPackResponse) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
-}
-
 // GetCreator returns the value of Creator.
-func (s *ContextPackResponse) GetCreator() AgentIdentity {
+func (s *ContextPackResponse) GetCreator() ContextPackResponseCreator {
 	return s.Creator
 }
 
@@ -2150,13 +2258,8 @@ func (s *ContextPackResponse) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetCreatedBy sets the value of CreatedBy.
-func (s *ContextPackResponse) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
-}
-
 // SetCreator sets the value of Creator.
-func (s *ContextPackResponse) SetCreator(val AgentIdentity) {
+func (s *ContextPackResponse) SetCreator(val ContextPackResponseCreator) {
 	s.Creator = val
 }
 
@@ -2217,6 +2320,74 @@ func (s *ContextPackResponse) SetSupersedesPackId(val NilUUID) {
 
 func (*ContextPackResponse) getContextPackByIdRes() {}
 func (*ContextPackResponse) updateContextPackRes()  {}
+
+// ContextPackResponseCreator represents sum type.
+type ContextPackResponseCreator struct {
+	Type           ContextPackResponseCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// ContextPackResponseCreatorType is oneOf type of ContextPackResponseCreator.
+type ContextPackResponseCreatorType string
+
+// Possible values for ContextPackResponseCreatorType.
+const (
+	AgentPrincipalContextPackResponseCreator ContextPackResponseCreatorType = "agent"
+	HumanPrincipalContextPackResponseCreator ContextPackResponseCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether ContextPackResponseCreator is AgentPrincipal.
+func (s ContextPackResponseCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalContextPackResponseCreator
+}
+
+// IsHumanPrincipal reports whether ContextPackResponseCreator is HumanPrincipal.
+func (s ContextPackResponseCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalContextPackResponseCreator
+}
+
+// SetAgentPrincipal sets ContextPackResponseCreator to AgentPrincipal.
+func (s *ContextPackResponseCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalContextPackResponseCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if ContextPackResponseCreator is AgentPrincipal.
+func (s ContextPackResponseCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalContextPackResponseCreator returns new ContextPackResponseCreator from AgentPrincipal.
+func NewAgentPrincipalContextPackResponseCreator(v AgentPrincipal) ContextPackResponseCreator {
+	var s ContextPackResponseCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets ContextPackResponseCreator to HumanPrincipal.
+func (s *ContextPackResponseCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalContextPackResponseCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if ContextPackResponseCreator is HumanPrincipal.
+func (s ContextPackResponseCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalContextPackResponseCreator returns new ContextPackResponseCreator from HumanPrincipal.
+func NewHumanPrincipalContextPackResponseCreator(v HumanPrincipal) ContextPackResponseCreator {
+	var s ContextPackResponseCreator
+	s.SetHumanPrincipal(v)
+	return s
+}
 
 // Ref: #/components/schemas/ContextPackResponseList
 type ContextPackResponseList struct {
@@ -4320,7 +4491,7 @@ func (*DeleteTeamUnauthorized) deleteTeamRes() {}
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
 	CreatedAt  time.Time              `json:"createdAt"`
-	CreatedBy  uuid.UUID              `json:"createdBy"`
+	Creator    DiaryCatalogCreator    `json:"creator"`
 	ID         uuid.UUID              `json:"id"`
 	Name       string                 `json:"name"`
 	Signed     bool                   `json:"signed"`
@@ -4334,9 +4505,9 @@ func (s *DiaryCatalog) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetCreatedBy returns the value of CreatedBy.
-func (s *DiaryCatalog) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
+// GetCreator returns the value of Creator.
+func (s *DiaryCatalog) GetCreator() DiaryCatalogCreator {
+	return s.Creator
 }
 
 // GetID returns the value of ID.
@@ -4374,9 +4545,9 @@ func (s *DiaryCatalog) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetCreatedBy sets the value of CreatedBy.
-func (s *DiaryCatalog) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
+// SetCreator sets the value of Creator.
+func (s *DiaryCatalog) SetCreator(val DiaryCatalogCreator) {
+	s.Creator = val
 }
 
 // SetID sets the value of ID.
@@ -4412,6 +4583,74 @@ func (s *DiaryCatalog) SetVisibility(val DiaryCatalogVisibility) {
 func (*DiaryCatalog) createDiaryRes() {}
 func (*DiaryCatalog) getDiaryRes()    {}
 func (*DiaryCatalog) updateDiaryRes() {}
+
+// DiaryCatalogCreator represents sum type.
+type DiaryCatalogCreator struct {
+	Type           DiaryCatalogCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// DiaryCatalogCreatorType is oneOf type of DiaryCatalogCreator.
+type DiaryCatalogCreatorType string
+
+// Possible values for DiaryCatalogCreatorType.
+const (
+	AgentPrincipalDiaryCatalogCreator DiaryCatalogCreatorType = "agent"
+	HumanPrincipalDiaryCatalogCreator DiaryCatalogCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether DiaryCatalogCreator is AgentPrincipal.
+func (s DiaryCatalogCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalDiaryCatalogCreator
+}
+
+// IsHumanPrincipal reports whether DiaryCatalogCreator is HumanPrincipal.
+func (s DiaryCatalogCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalDiaryCatalogCreator
+}
+
+// SetAgentPrincipal sets DiaryCatalogCreator to AgentPrincipal.
+func (s *DiaryCatalogCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalDiaryCatalogCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if DiaryCatalogCreator is AgentPrincipal.
+func (s DiaryCatalogCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalDiaryCatalogCreator returns new DiaryCatalogCreator from AgentPrincipal.
+func NewAgentPrincipalDiaryCatalogCreator(v AgentPrincipal) DiaryCatalogCreator {
+	var s DiaryCatalogCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets DiaryCatalogCreator to HumanPrincipal.
+func (s *DiaryCatalogCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalDiaryCatalogCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if DiaryCatalogCreator is HumanPrincipal.
+func (s DiaryCatalogCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalDiaryCatalogCreator returns new DiaryCatalogCreator from HumanPrincipal.
+func NewHumanPrincipalDiaryCatalogCreator(v HumanPrincipal) DiaryCatalogCreator {
+	var s DiaryCatalogCreator
+	s.SetHumanPrincipal(v)
+	return s
+}
 
 // Ref: #/components/schemas/DiaryCatalogList
 type DiaryCatalogList struct {
@@ -4485,7 +4724,7 @@ type DiaryEntry struct {
 	ContentHash      NilString           `json:"contentHash"`
 	ContentSignature NilString           `json:"contentSignature"`
 	CreatedAt        time.Time           `json:"createdAt"`
-	CreatedBy        uuid.UUID           `json:"createdBy"`
+	Creator          DiaryEntryCreator   `json:"creator"`
 	DiaryId          uuid.UUID           `json:"diaryId"`
 	EntryType        DiaryEntryEntryType `json:"entryType"`
 	ID               uuid.UUID           `json:"id"`
@@ -4522,9 +4761,9 @@ func (s *DiaryEntry) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetCreatedBy returns the value of CreatedBy.
-func (s *DiaryEntry) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
+// GetCreator returns the value of Creator.
+func (s *DiaryEntry) GetCreator() DiaryEntryCreator {
+	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -4597,9 +4836,9 @@ func (s *DiaryEntry) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetCreatedBy sets the value of CreatedBy.
-func (s *DiaryEntry) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
+// SetCreator sets the value of Creator.
+func (s *DiaryEntry) SetCreator(val DiaryEntryCreator) {
+	s.Creator = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -4649,6 +4888,70 @@ func (s *DiaryEntry) SetUpdatedAt(val time.Time) {
 
 func (*DiaryEntry) createDiaryEntryRes()     {}
 func (*DiaryEntry) updateDiaryEntryByIdRes() {}
+
+// DiaryEntryCreator represents sum type.
+type DiaryEntryCreator struct {
+	Type           DiaryEntryCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// DiaryEntryCreatorType is oneOf type of DiaryEntryCreator.
+type DiaryEntryCreatorType string
+
+// Possible values for DiaryEntryCreatorType.
+const (
+	AgentPrincipalDiaryEntryCreator DiaryEntryCreatorType = "agent"
+	HumanPrincipalDiaryEntryCreator DiaryEntryCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether DiaryEntryCreator is AgentPrincipal.
+func (s DiaryEntryCreator) IsAgentPrincipal() bool { return s.Type == AgentPrincipalDiaryEntryCreator }
+
+// IsHumanPrincipal reports whether DiaryEntryCreator is HumanPrincipal.
+func (s DiaryEntryCreator) IsHumanPrincipal() bool { return s.Type == HumanPrincipalDiaryEntryCreator }
+
+// SetAgentPrincipal sets DiaryEntryCreator to AgentPrincipal.
+func (s *DiaryEntryCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalDiaryEntryCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if DiaryEntryCreator is AgentPrincipal.
+func (s DiaryEntryCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalDiaryEntryCreator returns new DiaryEntryCreator from AgentPrincipal.
+func NewAgentPrincipalDiaryEntryCreator(v AgentPrincipal) DiaryEntryCreator {
+	var s DiaryEntryCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets DiaryEntryCreator to HumanPrincipal.
+func (s *DiaryEntryCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalDiaryEntryCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if DiaryEntryCreator is HumanPrincipal.
+func (s DiaryEntryCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalDiaryEntryCreator returns new DiaryEntryCreator from HumanPrincipal.
+func NewHumanPrincipalDiaryEntryCreator(v HumanPrincipal) DiaryEntryCreator {
+	var s DiaryEntryCreator
+	s.SetHumanPrincipal(v)
+	return s
+}
 
 type DiaryEntryEntryType string
 
@@ -4726,7 +5029,7 @@ type DiaryEntryWithCreator struct {
 	ContentHash      NilString                      `json:"contentHash"`
 	ContentSignature NilString                      `json:"contentSignature"`
 	CreatedAt        time.Time                      `json:"createdAt"`
-	Creator          AgentIdentity                  `json:"creator"`
+	Creator          DiaryEntryWithCreatorCreator   `json:"creator"`
 	DiaryId          uuid.UUID                      `json:"diaryId"`
 	EntryType        DiaryEntryWithCreatorEntryType `json:"entryType"`
 	ID               uuid.UUID                      `json:"id"`
@@ -4764,7 +5067,7 @@ func (s *DiaryEntryWithCreator) GetCreatedAt() time.Time {
 }
 
 // GetCreator returns the value of Creator.
-func (s *DiaryEntryWithCreator) GetCreator() AgentIdentity {
+func (s *DiaryEntryWithCreator) GetCreator() DiaryEntryWithCreatorCreator {
 	return s.Creator
 }
 
@@ -4839,7 +5142,7 @@ func (s *DiaryEntryWithCreator) SetCreatedAt(val time.Time) {
 }
 
 // SetCreator sets the value of Creator.
-func (s *DiaryEntryWithCreator) SetCreator(val AgentIdentity) {
+func (s *DiaryEntryWithCreator) SetCreator(val DiaryEntryWithCreatorCreator) {
 	s.Creator = val
 }
 
@@ -4886,6 +5189,74 @@ func (s *DiaryEntryWithCreator) SetTitle(val NilString) {
 // SetUpdatedAt sets the value of UpdatedAt.
 func (s *DiaryEntryWithCreator) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
+}
+
+// DiaryEntryWithCreatorCreator represents sum type.
+type DiaryEntryWithCreatorCreator struct {
+	Type           DiaryEntryWithCreatorCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// DiaryEntryWithCreatorCreatorType is oneOf type of DiaryEntryWithCreatorCreator.
+type DiaryEntryWithCreatorCreatorType string
+
+// Possible values for DiaryEntryWithCreatorCreatorType.
+const (
+	AgentPrincipalDiaryEntryWithCreatorCreator DiaryEntryWithCreatorCreatorType = "agent"
+	HumanPrincipalDiaryEntryWithCreatorCreator DiaryEntryWithCreatorCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether DiaryEntryWithCreatorCreator is AgentPrincipal.
+func (s DiaryEntryWithCreatorCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalDiaryEntryWithCreatorCreator
+}
+
+// IsHumanPrincipal reports whether DiaryEntryWithCreatorCreator is HumanPrincipal.
+func (s DiaryEntryWithCreatorCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalDiaryEntryWithCreatorCreator
+}
+
+// SetAgentPrincipal sets DiaryEntryWithCreatorCreator to AgentPrincipal.
+func (s *DiaryEntryWithCreatorCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalDiaryEntryWithCreatorCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if DiaryEntryWithCreatorCreator is AgentPrincipal.
+func (s DiaryEntryWithCreatorCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalDiaryEntryWithCreatorCreator returns new DiaryEntryWithCreatorCreator from AgentPrincipal.
+func NewAgentPrincipalDiaryEntryWithCreatorCreator(v AgentPrincipal) DiaryEntryWithCreatorCreator {
+	var s DiaryEntryWithCreatorCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets DiaryEntryWithCreatorCreator to HumanPrincipal.
+func (s *DiaryEntryWithCreatorCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalDiaryEntryWithCreatorCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if DiaryEntryWithCreatorCreator is HumanPrincipal.
+func (s DiaryEntryWithCreatorCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalDiaryEntryWithCreatorCreator returns new DiaryEntryWithCreatorCreator from HumanPrincipal.
+func NewHumanPrincipalDiaryEntryWithCreatorCreator(v HumanPrincipal) DiaryEntryWithCreatorCreator {
+	var s DiaryEntryWithCreatorCreator
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 type DiaryEntryWithCreatorEntryType string
@@ -4964,7 +5335,7 @@ type DiaryEntryWithRelations struct {
 	ContentHash      NilString                        `json:"contentHash"`
 	ContentSignature NilString                        `json:"contentSignature"`
 	CreatedAt        time.Time                        `json:"createdAt"`
-	CreatedBy        uuid.UUID                        `json:"createdBy"`
+	Creator          DiaryEntryWithRelationsCreator   `json:"creator"`
 	DiaryId          uuid.UUID                        `json:"diaryId"`
 	EntryType        DiaryEntryWithRelationsEntryType `json:"entryType"`
 	ID               uuid.UUID                        `json:"id"`
@@ -5002,9 +5373,9 @@ func (s *DiaryEntryWithRelations) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetCreatedBy returns the value of CreatedBy.
-func (s *DiaryEntryWithRelations) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
+// GetCreator returns the value of Creator.
+func (s *DiaryEntryWithRelations) GetCreator() DiaryEntryWithRelationsCreator {
+	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -5082,9 +5453,9 @@ func (s *DiaryEntryWithRelations) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetCreatedBy sets the value of CreatedBy.
-func (s *DiaryEntryWithRelations) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
+// SetCreator sets the value of Creator.
+func (s *DiaryEntryWithRelations) SetCreator(val DiaryEntryWithRelationsCreator) {
+	s.Creator = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -5138,6 +5509,74 @@ func (s *DiaryEntryWithRelations) SetUpdatedAt(val time.Time) {
 }
 
 func (*DiaryEntryWithRelations) getDiaryEntryByIdRes() {}
+
+// DiaryEntryWithRelationsCreator represents sum type.
+type DiaryEntryWithRelationsCreator struct {
+	Type           DiaryEntryWithRelationsCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// DiaryEntryWithRelationsCreatorType is oneOf type of DiaryEntryWithRelationsCreator.
+type DiaryEntryWithRelationsCreatorType string
+
+// Possible values for DiaryEntryWithRelationsCreatorType.
+const (
+	AgentPrincipalDiaryEntryWithRelationsCreator DiaryEntryWithRelationsCreatorType = "agent"
+	HumanPrincipalDiaryEntryWithRelationsCreator DiaryEntryWithRelationsCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether DiaryEntryWithRelationsCreator is AgentPrincipal.
+func (s DiaryEntryWithRelationsCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalDiaryEntryWithRelationsCreator
+}
+
+// IsHumanPrincipal reports whether DiaryEntryWithRelationsCreator is HumanPrincipal.
+func (s DiaryEntryWithRelationsCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalDiaryEntryWithRelationsCreator
+}
+
+// SetAgentPrincipal sets DiaryEntryWithRelationsCreator to AgentPrincipal.
+func (s *DiaryEntryWithRelationsCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalDiaryEntryWithRelationsCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if DiaryEntryWithRelationsCreator is AgentPrincipal.
+func (s DiaryEntryWithRelationsCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalDiaryEntryWithRelationsCreator returns new DiaryEntryWithRelationsCreator from AgentPrincipal.
+func NewAgentPrincipalDiaryEntryWithRelationsCreator(v AgentPrincipal) DiaryEntryWithRelationsCreator {
+	var s DiaryEntryWithRelationsCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets DiaryEntryWithRelationsCreator to HumanPrincipal.
+func (s *DiaryEntryWithRelationsCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalDiaryEntryWithRelationsCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if DiaryEntryWithRelationsCreator is HumanPrincipal.
+func (s DiaryEntryWithRelationsCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalDiaryEntryWithRelationsCreator returns new DiaryEntryWithRelationsCreator from HumanPrincipal.
+func NewHumanPrincipalDiaryEntryWithRelationsCreator(v HumanPrincipal) DiaryEntryWithRelationsCreator {
+	var s DiaryEntryWithRelationsCreator
+	s.SetHumanPrincipal(v)
+	return s
+}
 
 type DiaryEntryWithRelationsEntryType string
 
@@ -8683,8 +9122,6 @@ func (*GetGroupNotFound) getGroupRes() {}
 type GetGroupOK struct {
 	CreatedAt time.Time `json:"createdAt"`
 	// UUID v4 identifier.
-	CreatedBy uuid.UUID `json:"createdBy"`
-	// UUID v4 identifier.
 	ID      uuid.UUID               `json:"id"`
 	Members []GetGroupOKMembersItem `json:"members"`
 	Name    string                  `json:"name"`
@@ -8695,11 +9132,6 @@ type GetGroupOK struct {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *GetGroupOK) GetCreatedAt() time.Time {
 	return s.CreatedAt
-}
-
-// GetCreatedBy returns the value of CreatedBy.
-func (s *GetGroupOK) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
 }
 
 // GetID returns the value of ID.
@@ -8725,11 +9157,6 @@ func (s *GetGroupOK) GetTeamId() uuid.UUID {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *GetGroupOK) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
-}
-
-// SetCreatedBy sets the value of CreatedBy.
-func (s *GetGroupOK) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
 }
 
 // SetID sets the value of ID.
@@ -9460,8 +9887,6 @@ func (*GetTeamNotFound) getTeamRes() {}
 type GetTeamOK struct {
 	CreatedAt time.Time `json:"createdAt"`
 	// UUID v4 identifier.
-	CreatedBy uuid.UUID `json:"createdBy"`
-	// UUID v4 identifier.
 	ID        uuid.UUID              `json:"id"`
 	Members   []GetTeamOKMembersItem `json:"members"`
 	Name      string                 `json:"name"`
@@ -9473,11 +9898,6 @@ type GetTeamOK struct {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *GetTeamOK) GetCreatedAt() time.Time {
 	return s.CreatedAt
-}
-
-// GetCreatedBy returns the value of CreatedBy.
-func (s *GetTeamOK) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
 }
 
 // GetID returns the value of ID.
@@ -9513,11 +9933,6 @@ func (s *GetTeamOK) GetUpdatedAt() time.Time {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *GetTeamOK) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
-}
-
-// SetCreatedBy sets the value of CreatedBy.
-func (s *GetTeamOK) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
 }
 
 // SetID sets the value of ID.
@@ -9797,6 +10212,79 @@ func (s *HeartbeatResponse) SetClaimExpiresAt(val time.Time) {
 }
 
 func (*HeartbeatResponse) taskHeartbeatRes() {}
+
+// Ref: #/components/schemas/HumanPrincipal
+type HumanPrincipal struct {
+	// UUID v4 identifier.
+	HumanId uuid.UUID `json:"humanId"`
+	// UUID v4 identifier.
+	IdentityId NilUUID            `json:"identityId"`
+	Kind       HumanPrincipalKind `json:"kind"`
+}
+
+// GetHumanId returns the value of HumanId.
+func (s *HumanPrincipal) GetHumanId() uuid.UUID {
+	return s.HumanId
+}
+
+// GetIdentityId returns the value of IdentityId.
+func (s *HumanPrincipal) GetIdentityId() NilUUID {
+	return s.IdentityId
+}
+
+// GetKind returns the value of Kind.
+func (s *HumanPrincipal) GetKind() HumanPrincipalKind {
+	return s.Kind
+}
+
+// SetHumanId sets the value of HumanId.
+func (s *HumanPrincipal) SetHumanId(val uuid.UUID) {
+	s.HumanId = val
+}
+
+// SetIdentityId sets the value of IdentityId.
+func (s *HumanPrincipal) SetIdentityId(val NilUUID) {
+	s.IdentityId = val
+}
+
+// SetKind sets the value of Kind.
+func (s *HumanPrincipal) SetKind(val HumanPrincipalKind) {
+	s.Kind = val
+}
+
+type HumanPrincipalKind string
+
+const (
+	HumanPrincipalKindHuman HumanPrincipalKind = "human"
+)
+
+// AllValues returns all HumanPrincipalKind values.
+func (HumanPrincipalKind) AllValues() []HumanPrincipalKind {
+	return []HumanPrincipalKind{
+		HumanPrincipalKindHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s HumanPrincipalKind) MarshalText() ([]byte, error) {
+	switch s {
+	case HumanPrincipalKindHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *HumanPrincipalKind) UnmarshalText(data []byte) error {
+	switch HumanPrincipalKind(data) {
+	case HumanPrincipalKindHuman:
+		*s = HumanPrincipalKindHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type InitiateTransferAccepted struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -14082,132 +14570,6 @@ func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEn
 	return d
 }
 
-// NewOptNilProvenanceGraphEntryNodeMetaCreator returns new OptNilProvenanceGraphEntryNodeMetaCreator with value set to v.
-func NewOptNilProvenanceGraphEntryNodeMetaCreator(v ProvenanceGraphEntryNodeMetaCreator) OptNilProvenanceGraphEntryNodeMetaCreator {
-	return OptNilProvenanceGraphEntryNodeMetaCreator{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptNilProvenanceGraphEntryNodeMetaCreator is optional nullable ProvenanceGraphEntryNodeMetaCreator.
-type OptNilProvenanceGraphEntryNodeMetaCreator struct {
-	Value ProvenanceGraphEntryNodeMetaCreator
-	Set   bool
-	Null  bool
-}
-
-// IsSet returns true if OptNilProvenanceGraphEntryNodeMetaCreator was set.
-func (o OptNilProvenanceGraphEntryNodeMetaCreator) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptNilProvenanceGraphEntryNodeMetaCreator) Reset() {
-	var v ProvenanceGraphEntryNodeMetaCreator
-	o.Value = v
-	o.Set = false
-	o.Null = false
-}
-
-// SetTo sets value to v.
-func (o *OptNilProvenanceGraphEntryNodeMetaCreator) SetTo(v ProvenanceGraphEntryNodeMetaCreator) {
-	o.Set = true
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o OptNilProvenanceGraphEntryNodeMetaCreator) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *OptNilProvenanceGraphEntryNodeMetaCreator) SetToNull() {
-	o.Set = true
-	o.Null = true
-	var v ProvenanceGraphEntryNodeMetaCreator
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptNilProvenanceGraphEntryNodeMetaCreator) Get() (v ProvenanceGraphEntryNodeMetaCreator, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptNilProvenanceGraphEntryNodeMetaCreator) Or(d ProvenanceGraphEntryNodeMetaCreator) ProvenanceGraphEntryNodeMetaCreator {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptNilProvenanceGraphPackNodeMetaCreator returns new OptNilProvenanceGraphPackNodeMetaCreator with value set to v.
-func NewOptNilProvenanceGraphPackNodeMetaCreator(v ProvenanceGraphPackNodeMetaCreator) OptNilProvenanceGraphPackNodeMetaCreator {
-	return OptNilProvenanceGraphPackNodeMetaCreator{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptNilProvenanceGraphPackNodeMetaCreator is optional nullable ProvenanceGraphPackNodeMetaCreator.
-type OptNilProvenanceGraphPackNodeMetaCreator struct {
-	Value ProvenanceGraphPackNodeMetaCreator
-	Set   bool
-	Null  bool
-}
-
-// IsSet returns true if OptNilProvenanceGraphPackNodeMetaCreator was set.
-func (o OptNilProvenanceGraphPackNodeMetaCreator) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptNilProvenanceGraphPackNodeMetaCreator) Reset() {
-	var v ProvenanceGraphPackNodeMetaCreator
-	o.Value = v
-	o.Set = false
-	o.Null = false
-}
-
-// SetTo sets value to v.
-func (o *OptNilProvenanceGraphPackNodeMetaCreator) SetTo(v ProvenanceGraphPackNodeMetaCreator) {
-	o.Set = true
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o OptNilProvenanceGraphPackNodeMetaCreator) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *OptNilProvenanceGraphPackNodeMetaCreator) SetToNull() {
-	o.Set = true
-	o.Null = true
-	var v ProvenanceGraphPackNodeMetaCreator
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptNilProvenanceGraphPackNodeMetaCreator) Get() (v ProvenanceGraphPackNodeMetaCreator, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptNilProvenanceGraphPackNodeMetaCreator) Or(d ProvenanceGraphPackNodeMetaCreator) ProvenanceGraphPackNodeMetaCreator {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptNilUUID returns new OptNilUUID with value set to v.
 func NewOptNilUUID(v uuid.UUID) OptNilUUID {
 	return OptNilUUID{
@@ -14311,6 +14673,98 @@ func (o OptProvenanceGraphEdgesItemMeta) Get() (v ProvenanceGraphEdgesItemMeta, 
 
 // Or returns value if set, or given parameter if does not.
 func (o OptProvenanceGraphEdgesItemMeta) Or(d ProvenanceGraphEdgesItemMeta) ProvenanceGraphEdgesItemMeta {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptProvenanceGraphEntryNodeMetaCreator returns new OptProvenanceGraphEntryNodeMetaCreator with value set to v.
+func NewOptProvenanceGraphEntryNodeMetaCreator(v ProvenanceGraphEntryNodeMetaCreator) OptProvenanceGraphEntryNodeMetaCreator {
+	return OptProvenanceGraphEntryNodeMetaCreator{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProvenanceGraphEntryNodeMetaCreator is optional ProvenanceGraphEntryNodeMetaCreator.
+type OptProvenanceGraphEntryNodeMetaCreator struct {
+	Value ProvenanceGraphEntryNodeMetaCreator
+	Set   bool
+}
+
+// IsSet returns true if OptProvenanceGraphEntryNodeMetaCreator was set.
+func (o OptProvenanceGraphEntryNodeMetaCreator) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProvenanceGraphEntryNodeMetaCreator) Reset() {
+	var v ProvenanceGraphEntryNodeMetaCreator
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProvenanceGraphEntryNodeMetaCreator) SetTo(v ProvenanceGraphEntryNodeMetaCreator) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProvenanceGraphEntryNodeMetaCreator) Get() (v ProvenanceGraphEntryNodeMetaCreator, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProvenanceGraphEntryNodeMetaCreator) Or(d ProvenanceGraphEntryNodeMetaCreator) ProvenanceGraphEntryNodeMetaCreator {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptProvenanceGraphPackNodeMetaCreator returns new OptProvenanceGraphPackNodeMetaCreator with value set to v.
+func NewOptProvenanceGraphPackNodeMetaCreator(v ProvenanceGraphPackNodeMetaCreator) OptProvenanceGraphPackNodeMetaCreator {
+	return OptProvenanceGraphPackNodeMetaCreator{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProvenanceGraphPackNodeMetaCreator is optional ProvenanceGraphPackNodeMetaCreator.
+type OptProvenanceGraphPackNodeMetaCreator struct {
+	Value ProvenanceGraphPackNodeMetaCreator
+	Set   bool
+}
+
+// IsSet returns true if OptProvenanceGraphPackNodeMetaCreator was set.
+func (o OptProvenanceGraphPackNodeMetaCreator) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProvenanceGraphPackNodeMetaCreator) Reset() {
+	var v ProvenanceGraphPackNodeMetaCreator
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProvenanceGraphPackNodeMetaCreator) SetTo(v ProvenanceGraphPackNodeMetaCreator) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProvenanceGraphPackNodeMetaCreator) Get() (v ProvenanceGraphPackNodeMetaCreator, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProvenanceGraphPackNodeMetaCreator) Or(d ProvenanceGraphPackNodeMetaCreator) ProvenanceGraphPackNodeMetaCreator {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -15850,8 +16304,8 @@ func (s *ProvenanceGraphEntryNodeKind) UnmarshalText(data []byte) error {
 type ProvenanceGraphEntryNodeMeta struct {
 	ContentHash NilString `json:"contentHash"`
 	// ISO 8601 timestamp.
-	CreatedAt time.Time                                 `json:"createdAt"`
-	Creator   OptNilProvenanceGraphEntryNodeMetaCreator `json:"creator"`
+	CreatedAt time.Time                              `json:"createdAt"`
+	Creator   OptProvenanceGraphEntryNodeMetaCreator `json:"creator"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID `json:"diaryId"`
 	// UUID v4 identifier.
@@ -15876,7 +16330,7 @@ func (s *ProvenanceGraphEntryNodeMeta) GetCreatedAt() time.Time {
 }
 
 // GetCreator returns the value of Creator.
-func (s *ProvenanceGraphEntryNodeMeta) GetCreator() OptNilProvenanceGraphEntryNodeMetaCreator {
+func (s *ProvenanceGraphEntryNodeMeta) GetCreator() OptProvenanceGraphEntryNodeMetaCreator {
 	return s.Creator
 }
 
@@ -15926,7 +16380,7 @@ func (s *ProvenanceGraphEntryNodeMeta) SetCreatedAt(val time.Time) {
 }
 
 // SetCreator sets the value of Creator.
-func (s *ProvenanceGraphEntryNodeMeta) SetCreator(val OptNilProvenanceGraphEntryNodeMetaCreator) {
+func (s *ProvenanceGraphEntryNodeMeta) SetCreator(val OptProvenanceGraphEntryNodeMetaCreator) {
 	s.Creator = val
 }
 
@@ -15965,43 +16419,72 @@ func (s *ProvenanceGraphEntryNodeMeta) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
 }
 
+// ProvenanceGraphEntryNodeMetaCreator represents sum type.
 type ProvenanceGraphEntryNodeMetaCreator struct {
-	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
-	Fingerprint string `json:"fingerprint"`
-	// UUID v4 identifier.
-	IdentityId uuid.UUID `json:"identityId"`
-	// Ed25519 public key with prefix.
-	PublicKey string `json:"publicKey"`
+	Type           ProvenanceGraphEntryNodeMetaCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
 }
 
-// GetFingerprint returns the value of Fingerprint.
-func (s *ProvenanceGraphEntryNodeMetaCreator) GetFingerprint() string {
-	return s.Fingerprint
+// ProvenanceGraphEntryNodeMetaCreatorType is oneOf type of ProvenanceGraphEntryNodeMetaCreator.
+type ProvenanceGraphEntryNodeMetaCreatorType string
+
+// Possible values for ProvenanceGraphEntryNodeMetaCreatorType.
+const (
+	AgentPrincipalProvenanceGraphEntryNodeMetaCreator ProvenanceGraphEntryNodeMetaCreatorType = "agent"
+	HumanPrincipalProvenanceGraphEntryNodeMetaCreator ProvenanceGraphEntryNodeMetaCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether ProvenanceGraphEntryNodeMetaCreator is AgentPrincipal.
+func (s ProvenanceGraphEntryNodeMetaCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalProvenanceGraphEntryNodeMetaCreator
 }
 
-// GetIdentityId returns the value of IdentityId.
-func (s *ProvenanceGraphEntryNodeMetaCreator) GetIdentityId() uuid.UUID {
-	return s.IdentityId
+// IsHumanPrincipal reports whether ProvenanceGraphEntryNodeMetaCreator is HumanPrincipal.
+func (s ProvenanceGraphEntryNodeMetaCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalProvenanceGraphEntryNodeMetaCreator
 }
 
-// GetPublicKey returns the value of PublicKey.
-func (s *ProvenanceGraphEntryNodeMetaCreator) GetPublicKey() string {
-	return s.PublicKey
+// SetAgentPrincipal sets ProvenanceGraphEntryNodeMetaCreator to AgentPrincipal.
+func (s *ProvenanceGraphEntryNodeMetaCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalProvenanceGraphEntryNodeMetaCreator
+	s.AgentPrincipal = v
 }
 
-// SetFingerprint sets the value of Fingerprint.
-func (s *ProvenanceGraphEntryNodeMetaCreator) SetFingerprint(val string) {
-	s.Fingerprint = val
+// GetAgentPrincipal returns AgentPrincipal and true boolean if ProvenanceGraphEntryNodeMetaCreator is AgentPrincipal.
+func (s ProvenanceGraphEntryNodeMetaCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
 }
 
-// SetIdentityId sets the value of IdentityId.
-func (s *ProvenanceGraphEntryNodeMetaCreator) SetIdentityId(val uuid.UUID) {
-	s.IdentityId = val
+// NewAgentPrincipalProvenanceGraphEntryNodeMetaCreator returns new ProvenanceGraphEntryNodeMetaCreator from AgentPrincipal.
+func NewAgentPrincipalProvenanceGraphEntryNodeMetaCreator(v AgentPrincipal) ProvenanceGraphEntryNodeMetaCreator {
+	var s ProvenanceGraphEntryNodeMetaCreator
+	s.SetAgentPrincipal(v)
+	return s
 }
 
-// SetPublicKey sets the value of PublicKey.
-func (s *ProvenanceGraphEntryNodeMetaCreator) SetPublicKey(val string) {
-	s.PublicKey = val
+// SetHumanPrincipal sets ProvenanceGraphEntryNodeMetaCreator to HumanPrincipal.
+func (s *ProvenanceGraphEntryNodeMetaCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalProvenanceGraphEntryNodeMetaCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if ProvenanceGraphEntryNodeMetaCreator is HumanPrincipal.
+func (s ProvenanceGraphEntryNodeMetaCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalProvenanceGraphEntryNodeMetaCreator returns new ProvenanceGraphEntryNodeMetaCreator from HumanPrincipal.
+func NewHumanPrincipalProvenanceGraphEntryNodeMetaCreator(v HumanPrincipal) ProvenanceGraphEntryNodeMetaCreator {
+	var s ProvenanceGraphEntryNodeMetaCreator
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // Entry memory type.
@@ -16359,8 +16842,8 @@ func (s *ProvenanceGraphPackNodeKind) UnmarshalText(data []byte) error {
 
 type ProvenanceGraphPackNodeMeta struct {
 	// ISO 8601 timestamp.
-	CreatedAt time.Time                                `json:"createdAt"`
-	Creator   OptNilProvenanceGraphPackNodeMetaCreator `json:"creator"`
+	CreatedAt time.Time                             `json:"createdAt"`
+	Creator   OptProvenanceGraphPackNodeMetaCreator `json:"creator"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID `json:"diaryId"`
 	// ISO 8601 timestamp.
@@ -16381,7 +16864,7 @@ func (s *ProvenanceGraphPackNodeMeta) GetCreatedAt() time.Time {
 }
 
 // GetCreator returns the value of Creator.
-func (s *ProvenanceGraphPackNodeMeta) GetCreator() OptNilProvenanceGraphPackNodeMetaCreator {
+func (s *ProvenanceGraphPackNodeMeta) GetCreator() OptProvenanceGraphPackNodeMetaCreator {
 	return s.Creator
 }
 
@@ -16431,7 +16914,7 @@ func (s *ProvenanceGraphPackNodeMeta) SetCreatedAt(val time.Time) {
 }
 
 // SetCreator sets the value of Creator.
-func (s *ProvenanceGraphPackNodeMeta) SetCreator(val OptNilProvenanceGraphPackNodeMetaCreator) {
+func (s *ProvenanceGraphPackNodeMeta) SetCreator(val OptProvenanceGraphPackNodeMetaCreator) {
 	s.Creator = val
 }
 
@@ -16475,43 +16958,72 @@ func (s *ProvenanceGraphPackNodeMeta) SetSupersedesPackId(val NilUUID) {
 	s.SupersedesPackId = val
 }
 
+// ProvenanceGraphPackNodeMetaCreator represents sum type.
 type ProvenanceGraphPackNodeMetaCreator struct {
-	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
-	Fingerprint string `json:"fingerprint"`
-	// UUID v4 identifier.
-	IdentityId uuid.UUID `json:"identityId"`
-	// Ed25519 public key with prefix.
-	PublicKey string `json:"publicKey"`
+	Type           ProvenanceGraphPackNodeMetaCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
 }
 
-// GetFingerprint returns the value of Fingerprint.
-func (s *ProvenanceGraphPackNodeMetaCreator) GetFingerprint() string {
-	return s.Fingerprint
+// ProvenanceGraphPackNodeMetaCreatorType is oneOf type of ProvenanceGraphPackNodeMetaCreator.
+type ProvenanceGraphPackNodeMetaCreatorType string
+
+// Possible values for ProvenanceGraphPackNodeMetaCreatorType.
+const (
+	AgentPrincipalProvenanceGraphPackNodeMetaCreator ProvenanceGraphPackNodeMetaCreatorType = "agent"
+	HumanPrincipalProvenanceGraphPackNodeMetaCreator ProvenanceGraphPackNodeMetaCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether ProvenanceGraphPackNodeMetaCreator is AgentPrincipal.
+func (s ProvenanceGraphPackNodeMetaCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalProvenanceGraphPackNodeMetaCreator
 }
 
-// GetIdentityId returns the value of IdentityId.
-func (s *ProvenanceGraphPackNodeMetaCreator) GetIdentityId() uuid.UUID {
-	return s.IdentityId
+// IsHumanPrincipal reports whether ProvenanceGraphPackNodeMetaCreator is HumanPrincipal.
+func (s ProvenanceGraphPackNodeMetaCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalProvenanceGraphPackNodeMetaCreator
 }
 
-// GetPublicKey returns the value of PublicKey.
-func (s *ProvenanceGraphPackNodeMetaCreator) GetPublicKey() string {
-	return s.PublicKey
+// SetAgentPrincipal sets ProvenanceGraphPackNodeMetaCreator to AgentPrincipal.
+func (s *ProvenanceGraphPackNodeMetaCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalProvenanceGraphPackNodeMetaCreator
+	s.AgentPrincipal = v
 }
 
-// SetFingerprint sets the value of Fingerprint.
-func (s *ProvenanceGraphPackNodeMetaCreator) SetFingerprint(val string) {
-	s.Fingerprint = val
+// GetAgentPrincipal returns AgentPrincipal and true boolean if ProvenanceGraphPackNodeMetaCreator is AgentPrincipal.
+func (s ProvenanceGraphPackNodeMetaCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
 }
 
-// SetIdentityId sets the value of IdentityId.
-func (s *ProvenanceGraphPackNodeMetaCreator) SetIdentityId(val uuid.UUID) {
-	s.IdentityId = val
+// NewAgentPrincipalProvenanceGraphPackNodeMetaCreator returns new ProvenanceGraphPackNodeMetaCreator from AgentPrincipal.
+func NewAgentPrincipalProvenanceGraphPackNodeMetaCreator(v AgentPrincipal) ProvenanceGraphPackNodeMetaCreator {
+	var s ProvenanceGraphPackNodeMetaCreator
+	s.SetAgentPrincipal(v)
+	return s
 }
 
-// SetPublicKey sets the value of PublicKey.
-func (s *ProvenanceGraphPackNodeMetaCreator) SetPublicKey(val string) {
-	s.PublicKey = val
+// SetHumanPrincipal sets ProvenanceGraphPackNodeMetaCreator to HumanPrincipal.
+func (s *ProvenanceGraphPackNodeMetaCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalProvenanceGraphPackNodeMetaCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if ProvenanceGraphPackNodeMetaCreator is HumanPrincipal.
+func (s ProvenanceGraphPackNodeMetaCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalProvenanceGraphPackNodeMetaCreator returns new ProvenanceGraphPackNodeMetaCreator from HumanPrincipal.
+func NewHumanPrincipalProvenanceGraphPackNodeMetaCreator(v HumanPrincipal) ProvenanceGraphPackNodeMetaCreator {
+	var s ProvenanceGraphPackNodeMetaCreator
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // Ref: #/components/schemas/ProvenanceGraphRendered_packNode
@@ -17825,17 +18337,17 @@ func (*RenderContextPackUnauthorized) renderContextPackRes() {}
 
 // Ref: #/components/schemas/RenderedPack
 type RenderedPack struct {
-	ContentHash  string      `json:"contentHash"`
-	CreatedAt    time.Time   `json:"createdAt"`
-	CreatedBy    uuid.UUID   `json:"createdBy"`
-	DiaryId      uuid.UUID   `json:"diaryId"`
-	ExpiresAt    NilDateTime `json:"expiresAt"`
-	ID           uuid.UUID   `json:"id"`
-	PackCid      string      `json:"packCid"`
-	Pinned       bool        `json:"pinned"`
-	RenderMethod string      `json:"renderMethod"`
-	SourcePackId uuid.UUID   `json:"sourcePackId"`
-	TotalTokens  int         `json:"totalTokens"`
+	ContentHash  string              `json:"contentHash"`
+	CreatedAt    time.Time           `json:"createdAt"`
+	Creator      RenderedPackCreator `json:"creator"`
+	DiaryId      uuid.UUID           `json:"diaryId"`
+	ExpiresAt    NilDateTime         `json:"expiresAt"`
+	ID           uuid.UUID           `json:"id"`
+	PackCid      string              `json:"packCid"`
+	Pinned       bool                `json:"pinned"`
+	RenderMethod string              `json:"renderMethod"`
+	SourcePackId uuid.UUID           `json:"sourcePackId"`
+	TotalTokens  int                 `json:"totalTokens"`
 }
 
 // GetContentHash returns the value of ContentHash.
@@ -17848,9 +18360,9 @@ func (s *RenderedPack) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetCreatedBy returns the value of CreatedBy.
-func (s *RenderedPack) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
+// GetCreator returns the value of Creator.
+func (s *RenderedPack) GetCreator() RenderedPackCreator {
+	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -17903,9 +18415,9 @@ func (s *RenderedPack) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetCreatedBy sets the value of CreatedBy.
-func (s *RenderedPack) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
+// SetCreator sets the value of Creator.
+func (s *RenderedPack) SetCreator(val RenderedPackCreator) {
+	s.Creator = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -17946,6 +18458,74 @@ func (s *RenderedPack) SetSourcePackId(val uuid.UUID) {
 // SetTotalTokens sets the value of TotalTokens.
 func (s *RenderedPack) SetTotalTokens(val int) {
 	s.TotalTokens = val
+}
+
+// RenderedPackCreator represents sum type.
+type RenderedPackCreator struct {
+	Type           RenderedPackCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// RenderedPackCreatorType is oneOf type of RenderedPackCreator.
+type RenderedPackCreatorType string
+
+// Possible values for RenderedPackCreatorType.
+const (
+	AgentPrincipalRenderedPackCreator RenderedPackCreatorType = "agent"
+	HumanPrincipalRenderedPackCreator RenderedPackCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether RenderedPackCreator is AgentPrincipal.
+func (s RenderedPackCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalRenderedPackCreator
+}
+
+// IsHumanPrincipal reports whether RenderedPackCreator is HumanPrincipal.
+func (s RenderedPackCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalRenderedPackCreator
+}
+
+// SetAgentPrincipal sets RenderedPackCreator to AgentPrincipal.
+func (s *RenderedPackCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalRenderedPackCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if RenderedPackCreator is AgentPrincipal.
+func (s RenderedPackCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalRenderedPackCreator returns new RenderedPackCreator from AgentPrincipal.
+func NewAgentPrincipalRenderedPackCreator(v AgentPrincipal) RenderedPackCreator {
+	var s RenderedPackCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets RenderedPackCreator to HumanPrincipal.
+func (s *RenderedPackCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalRenderedPackCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if RenderedPackCreator is HumanPrincipal.
+func (s RenderedPackCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalRenderedPackCreator returns new RenderedPackCreator from HumanPrincipal.
+func NewHumanPrincipalRenderedPackCreator(v HumanPrincipal) RenderedPackCreator {
+	var s RenderedPackCreator
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // Ref: #/components/schemas/RenderedPackList

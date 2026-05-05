@@ -206,15 +206,17 @@ func (h *stubJudgeLocalHandler) GetContextPackById(
 	_ context.Context,
 	params moltnetapi.GetContextPackByIdParams,
 ) (moltnetapi.GetContextPackByIdRes, error) {
+	creator := moltnetapi.ContextPackResponseCreator{Type: moltnetapi.AgentPrincipalContextPackResponseCreator}
+	creator.SetAgentPrincipal(moltnetapi.AgentPrincipal{
+		Kind:        moltnetapi.AgentPrincipalKindAgent,
+		IdentityId:  uuid.MustParse("dd000000-0000-0000-0000-000000000001"),
+		Fingerprint: "A1B2-C3D4-E5F6-A7B8",
+		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+	})
 	return &moltnetapi.ContextPackResponse{
 		ID:        params.ID,
 		DiaryId:   uuid.MustParse("cc000000-0000-0000-0000-000000000001"),
-		CreatedBy: uuid.MustParse("dd000000-0000-0000-0000-000000000001"),
-		Creator: moltnetapi.AgentIdentity{
-			IdentityId:  uuid.MustParse("dd000000-0000-0000-0000-000000000001"),
-			Fingerprint: "A1B2-C3D4-E5F6-A7B8",
-			PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-		},
+		Creator:   creator,
 		PackCid:   "bafy-source",
 		PackCodec: "dag-cbor",
 		PackType:  moltnetapi.ContextPackResponsePackTypeCompile,

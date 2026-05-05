@@ -98,9 +98,34 @@ export function createSessionResolver(
           return null;
         }
 
+        // Read humans.id directly from Kratos metadata_public.human_id —
+        // populated by the after-registration webhook BEFORE any session
+        // can exist. Reading it here (instead of doing a DB lookup keyed
+        // by identityId) eliminates the race with the human-onboarding
+        // DBOS workflow's setIdentityIdStep: that workflow updates
+        // humans.identity_id, but humans.id is stable from the moment
+        // the webhook returns, so we can pin to it without any window
+        // where a route handler sees a half-onboarded principal.
+        const metaPublic = identity.metadata_public as
+          | { human_id?: unknown }
+          | null
+          | undefined;
+        const humanId =
+          typeof metaPublic?.human_id === 'string'
+            ? metaPublic.human_id
+            : undefined;
+        if (!humanId) {
+          logger.warn(
+            { identityId: identity.id },
+            'session-resolver: human identity missing metadata_public.human_id — webhook not yet processed?',
+          );
+          return null;
+        }
+
         return {
           subjectType: 'human',
           identityId: identity.id,
+          humanId,
           clientId: null,
           scopes,
           currentTeamId: null,

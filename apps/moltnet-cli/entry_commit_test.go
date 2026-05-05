@@ -322,9 +322,12 @@ func (h *stubCommitHandler) SubmitSignature(_ context.Context, req *moltnetapi.S
 
 func (h *stubCommitHandler) CreateDiaryEntry(_ context.Context, req *moltnetapi.CreateDiaryEntryReq, _ moltnetapi.CreateDiaryEntryParams) (moltnetapi.CreateDiaryEntryRes, error) {
 	h.gotCreateReq = req
+	creator := moltnetapi.DiaryEntryCreator{Type: moltnetapi.AgentPrincipalDiaryEntryCreator}
+	creator.SetAgentPrincipal(testAgentPrincipal())
 	return &moltnetapi.DiaryEntry{
 		ID:         uuid.MustParse("00000000-0000-0000-0000-000000000099"),
 		DiaryId:    testDiaryID,
+		Creator:    creator,
 		Content:    req.Content,
 		EntryType:  moltnetapi.DiaryEntryEntryTypeProcedural,
 		Importance: 5,

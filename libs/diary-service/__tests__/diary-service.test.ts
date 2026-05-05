@@ -50,7 +50,8 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
-    createdBy: OWNER_ID,
+    creatorAgentId: OWNER_ID,
+    creatorHumanId: null,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
@@ -182,7 +183,8 @@ const TEAM_ID = '00000000-0000-4000-b000-000000000001';
 
 const MOCK_DIARY = {
   id: DIARY_ID,
-  createdBy: OWNER_ID,
+  creatorAgentId: OWNER_ID,
+  creatorHumanId: null,
   teamId: TEAM_ID,
   name: 'default',
   visibility: 'private' as const,
@@ -247,6 +249,7 @@ describe('DiaryService', () => {
         tags: ['test'],
         importance: 8,
         entryType: 'identity' as const,
+        creator: { kind: 'agent' as const, id: OWNER_ID },
       };
       const result = await service.createEntry(
         input,
@@ -263,7 +266,7 @@ describe('DiaryService', () => {
           input.content,
           input.tags,
         ),
-        createdBy: OWNER_ID,
+        creator: { kind: 'agent', id: OWNER_ID },
       });
     });
 
@@ -313,7 +316,7 @@ describe('DiaryService', () => {
 
       await expect(
         service.createDiary({
-          createdBy: OWNER_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           teamId: TEAM_ID,
           name: 'My Diary',
         }),
@@ -334,7 +337,7 @@ describe('DiaryService', () => {
 
       await expect(
         service.createDiary({
-          createdBy: OWNER_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
           teamId: TEAM_ID,
           name: 'My Diary',
         }),
@@ -351,7 +354,7 @@ describe('DiaryService', () => {
       writer.grantDiaryTeam.mockResolvedValue(undefined);
 
       const result = await service.createDiary({
-        createdBy: OWNER_ID,
+        creator: { kind: 'agent', id: OWNER_ID },
         teamId: TEAM_ID,
         name: 'My Diary',
       });

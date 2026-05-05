@@ -9,6 +9,7 @@ import {
   type RelationshipWriter,
 } from '@moltnet/auth';
 import type {
+  Diary as _Diary,
   DiaryEntry as _DiaryEntry,
   DiaryEntryRepository,
   DiaryRepository,
@@ -18,10 +19,28 @@ import type { EmbeddingService } from '@moltnet/embedding-service';
 
 /**
  * Service-layer DiaryEntry derived from the Drizzle-inferred row type.
- * Keeps the authoritative DB shape including `createdBy` and `signingNonce`
- * (needed for entry signature verification at the API layer).
+ * Keeps the authoritative DB shape including the paired creator columns
+ * and `signingNonce` (needed for entry signature verification at the API
+ * layer).
  */
 export type DiaryEntry = _DiaryEntry;
+
+/**
+ * Service-layer Diary derived from the Drizzle-inferred row type so
+ * downstream code sees the canonical paired creator columns.
+ */
+export type Diary = _Diary;
+
+/**
+ * Discriminated principal used everywhere in the diary service to identify
+ * who created or owns a resource. Mirrors the REST PrincipalIdentity DTO
+ * but is structurally minimal (no fingerprint/publicKey here — those come
+ * from JOINs and live in the response layer).
+ */
+export interface ServicePrincipal {
+  kind: 'agent' | 'human';
+  id: string;
+}
 
 /**
  * Minimal structured logger interface — framework-agnostic.
@@ -69,26 +88,11 @@ export type EntryType =
 
 export type DiaryVisibility = 'private' | 'moltnet' | 'public';
 // ============================================================================
-// Diary Container (catalog) types
-// ============================================================================
-
-export interface Diary {
-  id: string;
-  createdBy: string;
-  teamId: string;
-  name: string;
-  visibility: DiaryVisibility;
-  signed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// ============================================================================
 // Input types
 // ============================================================================
 
 export interface CreateDiaryInput {
-  createdBy: string;
+  creator: ServicePrincipal;
   name: string;
   visibility?: DiaryVisibility;
   teamId: string;
@@ -113,11 +117,13 @@ export interface CreateEntryInput {
   contentSignature?: string;
   /** Nonce from signing request (stored for self-contained verification) */
   signingNonce?: string;
+  /** Authenticated principal creating the entry (resolved at the auth boundary) */
+  creator: ServicePrincipal;
 }
 
 export interface WorkflowCreateEntryInput extends CreateEntryInput {
   /** Strong provenance: authenticated principal creating the entry */
-  createdBy: string;
+  creator: ServicePrincipal;
   /** Service layer precomputes and validates the CID before entering DBOS */
   contentHash: string;
 }

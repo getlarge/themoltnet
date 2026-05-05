@@ -176,6 +176,7 @@ describe('Hook routes', () => {
       const body = response.json();
       expect(body.session.access_token).toEqual({
         'moltnet:identity_id': HUMAN_IDENTITY_ID,
+        'moltnet:human_id': HUMAN_ID,
         'moltnet:subject_type': 'human',
       });
     });

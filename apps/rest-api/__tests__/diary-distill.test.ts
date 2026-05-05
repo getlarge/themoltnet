@@ -48,7 +48,8 @@ const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
 const MOCK_DIARY = {
   id: DIARY_ID,
-  createdBy: '550e8400-e29b-41d4-a716-446655440000',
+  creatorAgentId: '550e8400-e29b-41d4-a716-446655440000',
+  creatorHumanId: null,
   teamId: '00000000-0000-4000-b000-000000000001',
   name: 'private',
   visibility: 'private' as const,
@@ -157,7 +158,8 @@ describe('Diary distill routes', () => {
           packType: 'compile',
           params: { tokenBudget: 4000 },
           payload: {},
-          createdBy: OWNER_ID,
+          creatorAgentId: OWNER_ID,
+          creatorHumanId: null,
           supersedesPackId: null,
           pinned: false,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),

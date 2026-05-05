@@ -25,6 +25,38 @@
         ],
         "type": "object"
       },
+      "AgentPrincipal": {
+        "properties": {
+          "fingerprint": {
+            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+            "type": "string"
+          },
+          "identityId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "agent"
+            ],
+            "type": "string"
+          },
+          "publicKey": {
+            "description": "Ed25519 public key with prefix",
+            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "identityId",
+          "fingerprint",
+          "publicKey"
+        ],
+        "type": "object"
+      },
       "AgentProfile": {
         "properties": {
           "fingerprint": {
@@ -161,9 +193,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -269,7 +314,7 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -540,13 +585,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
           "creator": {
-            "$ref": "#/components/schemas/AgentIdentity",
-            "nullable": true
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -594,7 +648,6 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
           "creator",
           "supersedesPackId",
           "pinned",
@@ -609,13 +662,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
           "creator": {
-            "$ref": "#/components/schemas/AgentIdentity",
-            "nullable": true
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -669,7 +731,6 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
           "creator",
           "supersedesPackId",
           "pinned",
@@ -714,13 +775,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
-          },
           "creator": {
-            "$ref": "#/components/schemas/AgentIdentity",
-            "nullable": true
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -774,7 +844,6 @@
           "packType",
           "params",
           "payload",
-          "createdBy",
           "creator",
           "supersedesPackId",
           "pinned",
@@ -1023,9 +1092,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "id": {
             "format": "uuid",
@@ -1056,7 +1138,7 @@
         },
         "required": [
           "id",
-          "createdBy",
+          "creator",
           "teamId",
           "name",
           "visibility",
@@ -1100,9 +1182,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -1155,7 +1250,7 @@
         "required": [
           "id",
           "diaryId",
-          "createdBy",
+          "creator",
           "title",
           "content",
           "tags",
@@ -1192,8 +1287,21 @@
             "type": "string"
           },
           "creator": {
-            "$ref": "#/components/schemas/AgentIdentity",
-            "nullable": true
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -1282,9 +1390,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -1340,7 +1461,7 @@
         "required": [
           "id",
           "diaryId",
-          "createdBy",
+          "creator",
           "title",
           "content",
           "tags",
@@ -1869,6 +1990,33 @@
           "claimExpiresAt",
           "cancelled",
           "cancelReason"
+        ],
+        "type": "object"
+      },
+      "HumanPrincipal": {
+        "properties": {
+          "humanId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "identityId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "human"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "humanId",
+          "identityId"
         ],
         "type": "object"
       },
@@ -2533,6 +2681,23 @@
         ],
         "type": "string"
       },
+      "PrincipalIdentity": {
+        "discriminator": {
+          "mapping": {
+            "agent": "#/components/schemas/AgentPrincipal",
+            "human": "#/components/schemas/HumanPrincipal"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AgentPrincipal"
+          },
+          {
+            "$ref": "#/components/schemas/HumanPrincipal"
+          }
+        ]
+      },
       "ProblemDetails": {
         "properties": {
           "code": {
@@ -2731,30 +2896,21 @@
                 "type": "string"
               },
               "creator": {
-                "nullable": true,
-                "properties": {
-                  "fingerprint": {
-                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                    "type": "string"
+                "discriminator": {
+                  "mapping": {
+                    "agent": "#/components/schemas/AgentPrincipal",
+                    "human": "#/components/schemas/HumanPrincipal"
                   },
-                  "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "description": "Ed25519 public key with prefix",
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                    "type": "string"
-                  }
+                  "propertyName": "kind"
                 },
-                "required": [
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
-                "type": "object"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentPrincipal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HumanPrincipal"
+                  }
+                ]
               },
               "diaryId": {
                 "description": "UUID v4 identifier",
@@ -2846,30 +3002,21 @@
                 "type": "string"
               },
               "creator": {
-                "nullable": true,
-                "properties": {
-                  "fingerprint": {
-                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                    "type": "string"
+                "discriminator": {
+                  "mapping": {
+                    "agent": "#/components/schemas/AgentPrincipal",
+                    "human": "#/components/schemas/HumanPrincipal"
                   },
-                  "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "description": "Ed25519 public key with prefix",
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                    "type": "string"
-                  }
+                  "propertyName": "kind"
                 },
-                "required": [
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
-                "type": "object"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentPrincipal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HumanPrincipal"
+                  }
+                ]
               },
               "diaryId": {
                 "description": "UUID v4 identifier",
@@ -3279,9 +3426,22 @@
             "format": "date-time",
             "type": "string"
           },
-          "createdBy": {
-            "format": "uuid",
-            "type": "string"
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "diaryId": {
             "format": "uuid",
@@ -3321,7 +3481,7 @@
           "contentHash",
           "renderMethod",
           "totalTokens",
-          "createdBy",
+          "creator",
           "pinned",
           "expiresAt",
           "createdAt"
@@ -8846,11 +9006,6 @@
                       "format": "date-time",
                       "type": "string"
                     },
-                    "createdBy": {
-                      "description": "UUID v4 identifier",
-                      "format": "uuid",
-                      "type": "string"
-                    },
                     "id": {
                       "description": "UUID v4 identifier",
                       "format": "uuid",
@@ -8889,7 +9044,6 @@
                     "id",
                     "name",
                     "teamId",
-                    "createdBy",
                     "createdAt",
                     "members"
                   ],
@@ -14233,11 +14387,6 @@
                       "format": "date-time",
                       "type": "string"
                     },
-                    "createdBy": {
-                      "description": "UUID v4 identifier",
-                      "format": "uuid",
-                      "type": "string"
-                    },
                     "id": {
                       "description": "UUID v4 identifier",
                       "format": "uuid",
@@ -14300,7 +14449,6 @@
                     "name",
                     "status",
                     "personal",
-                    "createdBy",
                     "createdAt",
                     "updatedAt",
                     "members"

@@ -4,7 +4,7 @@
  * Database operations for agents and identity lookups
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Agent, agents, type NewAgent } from '../schema.js';
@@ -45,6 +45,23 @@ export function createAgentRepository(db: Database) {
         .limit(1);
 
       return agent || null;
+    },
+
+    /**
+     * Batch lookup agents by Ory identity IDs. Returns a Map keyed by
+     * identityId for O(1) per-row resolution. Used by route helpers to
+     * avoid the N+1 pattern when inflating creator on a list of rows.
+     */
+    async findByIdentityIds(
+      identityIds: readonly string[],
+    ): Promise<Map<string, Agent>> {
+      const unique = Array.from(new Set(identityIds.filter(Boolean)));
+      if (unique.length === 0) return new Map();
+      const rows = await getExecutor(db)
+        .select()
+        .from(agents)
+        .where(inArray(agents.identityId, unique));
+      return new Map(rows.map((a) => [a.identityId, a]));
     },
 
     /**

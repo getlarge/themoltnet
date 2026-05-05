@@ -34,6 +34,7 @@ import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 import {
   FOUNDING_ACCEPT_EVENT,
   teamFoundingWorkflow,
@@ -157,6 +158,8 @@ export async function teamRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name, foundingMembers } = request.body;
 
+      const creator = authContextToCreator(request);
+
       if (!foundingMembers || foundingMembers.length === 0) {
         // Instant active team — original behavior
         const team = await fastify.transactionRunner.runInTransaction(
@@ -164,7 +167,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
             return fastify.teamRepository.create({
               name,
               personal: false,
-              createdBy: identityId,
+              creator,
               status: 'active',
             });
           },
@@ -201,7 +204,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
           return fastify.teamRepository.create({
             name,
             personal: false,
-            createdBy: identityId,
+            creator,
             status: 'founding',
           });
         },
@@ -344,7 +347,12 @@ export async function teamRoutes(fastify: FastifyInstance) {
       );
 
       return {
-        ...team,
+        id: team.id,
+        name: team.name,
+        status: team.status,
+        personal: team.personal,
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt,
         members: enrichedMembers,
       };
     },
@@ -583,12 +591,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       const expiresInHours = request.body.expiresInHours ?? 168;
+      const inviteCreator = authContextToCreator(request);
       const invite = await fastify.teamRepository.createInvite({
         teamId: id,
         role: request.body.role ?? 'member',
         maxUses: request.body.maxUses ?? 1,
         expiresAt: new Date(Date.now() + expiresInHours * 3600_000),
-        createdBy: identityId,
+        creator: inviteCreator,
       });
 
       return reply.status(201).send({

@@ -35,6 +35,10 @@ import {
   PackQuerySchema,
   PackUpdateBodySchema,
 } from '../schemas.js';
+import {
+  authContextToCreator,
+  rowToResponseWithCreator,
+} from '../utils/auth-principal.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
 
 interface SelectedEntry {
@@ -307,10 +311,9 @@ export async function packRoutes(fastify: FastifyInstance) {
         tokenBudget?: number;
         pinned?: boolean;
       };
-      authContext: {
-        identityId: string;
-        subjectType: 'agent' | 'human';
-      };
+      authContext:
+        | { identityId: string; subjectType: 'agent' }
+        | { identityId: string; subjectType: 'human'; humanId: string };
     },
     persist: boolean,
   ) => {
@@ -392,6 +395,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       // a DBOS workflow with retry/compensation semantics, matching the compile
       // flow. Keto is an external side effect and cannot be made atomic with
       // the Postgres transaction in this route handler.
+      const packCreator = authContextToCreator(request);
       const pack = await fastify.dataSource.runTransaction(async () => {
         const createdPack = await fastify.contextPackRepository.createPack({
           diaryId: diary.id,
@@ -399,7 +403,8 @@ export async function packRoutes(fastify: FastifyInstance) {
           packType: 'custom',
           params: request.body.params,
           payload,
-          createdBy: request.authContext.identityId,
+          creatorAgentId: packCreator.kind === 'agent' ? packCreator.id : null,
+          creatorHumanId: packCreator.kind === 'human' ? packCreator.id : null,
           pinned,
           expiresAt,
           createdAt: createdAtDate,
@@ -748,24 +753,21 @@ export async function packRoutes(fastify: FastifyInstance) {
         }));
       }
 
-      const response: {
-        items: typeof items;
-        total: number;
-        limit: number;
-        offset: number;
-        renderedPacks?: Awaited<
-          ReturnType<typeof fastify.renderedPackRepository.listBySourcePackIds>
-        >;
-      } = {
+      const inflatedRendered = packs.renderedPacks
+        ? await Promise.all(
+            packs.renderedPacks.map((rp) =>
+              rowToResponseWithCreator(rp, fastify),
+            ),
+          )
+        : undefined;
+
+      const response = {
         items,
         total: packs.total,
         limit,
         offset,
+        ...(inflatedRendered ? { renderedPacks: inflatedRendered } : {}),
       };
-
-      if (packs.renderedPacks) {
-        response.renderedPacks = packs.renderedPacks;
-      }
 
       return response;
     },

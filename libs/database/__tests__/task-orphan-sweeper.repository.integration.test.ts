@@ -59,12 +59,12 @@ describe('TaskRepository.listOrphanedTasks (integration)', () => {
       id: TEAM_ID,
       name: 'sweeper-test-team',
       personal: true,
-      createdBy: AGENT_ID,
+      creatorAgentId: AGENT_ID,
     });
     await db.insert(diaries).values({
       id: DIARY_ID,
       name: 'sweeper-test-diary',
-      createdBy: AGENT_ID,
+      creatorAgentId: AGENT_ID,
       teamId: TEAM_ID,
     });
   }, 60_000);

@@ -481,7 +481,7 @@ export class ContextPackService {
     const payload = {
       v: 'moltnet:pack:v1',
       diaryId: input.diaryId,
-      createdBy: input.createdBy,
+      creator: input.creator,
       createdAt: createdAt.toISOString(),
       packType: 'custom',
       params: input.params,
@@ -495,7 +495,10 @@ export class ContextPackService {
         packType: 'custom',
         params: input.params,
         payload,
-        createdBy: input.createdBy,
+        creatorAgentId:
+          input.creator.kind === 'agent' ? input.creator.id : null,
+        creatorHumanId:
+          input.creator.kind === 'human' ? input.creator.id : null,
         pinned,
         expiresAt,
         createdAt,
@@ -591,7 +594,10 @@ export class ContextPackService {
         contentHash,
         renderMethod: input.renderMethod,
         totalTokens,
-        createdBy: input.createdBy,
+        creatorAgentId:
+          input.creator.kind === 'agent' ? input.creator.id : null,
+        creatorHumanId:
+          input.creator.kind === 'human' ? input.creator.id : null,
         pinned,
         expiresAt,
         createdAt,

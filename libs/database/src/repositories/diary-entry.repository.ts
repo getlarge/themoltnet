@@ -193,7 +193,8 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
   return {
     id: row.id as string,
     diaryId: row.diary_id as string,
-    createdBy: row.created_by as string,
+    creatorAgentId: (row.creator_agent_id as string) ?? null,
+    creatorHumanId: (row.creator_human_id as string) ?? null,
     title: (row.title as string) ?? null,
     content: row.content as string,
     embedding: null, // hybrid_search omits embedding for performance
@@ -789,7 +790,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agents, eq(diaries.createdBy, agents.identityId))
+        .innerJoin(agents, eq(diaries.creatorAgentId, agents.identityId))
         .where(and(...conditions))
         .orderBy(desc(diaryEntries.createdAt), desc(diaryEntries.id))
         .limit(fetchLimit);
@@ -863,7 +864,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agents, eq(diaries.createdBy, agents.identityId))
+        .innerJoin(agents, eq(diaries.creatorAgentId, agents.identityId))
         .where(and(...conditions))
         .orderBy(asc(diaryEntries.createdAt), asc(diaryEntries.id))
         .limit(limit);
@@ -921,7 +922,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agents, eq(diaries.createdBy, agents.identityId))
+        .innerJoin(agents, eq(diaries.creatorAgentId, agents.identityId))
         .where(and(eq(diaryEntries.id, id), eq(diaries.visibility, 'public')))
         .limit(1);
 

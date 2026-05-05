@@ -41,6 +41,7 @@ import type {
   ListTagsInput,
   ReflectInput,
   SearchInput,
+  ServicePrincipal,
   TagCount,
   UpdateDiaryInput,
   UpdateEntryInput,
@@ -63,7 +64,7 @@ export interface DiaryService {
     agentId: string,
     subjectNs: KetoNamespace,
   ): Promise<Diary>;
-  findOwnedDiary(agentId: string, id: string): Promise<Diary | null>;
+  findOwnedDiary(creator: ServicePrincipal, id: string): Promise<Diary | null>;
   updateDiary(
     id: string,
     agentId: string,
@@ -101,7 +102,10 @@ export interface DiaryService {
     agentId: string,
     subjectNs: KetoNamespace,
   ): Promise<DiaryEntry[]>;
-  searchOwned(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
+  searchOwned(
+    input: SearchInput,
+    creator: ServicePrincipal,
+  ): Promise<DiaryEntry[]>;
   searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
@@ -172,7 +176,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     ): Promise<Diary> {
       const doCreate = async () => {
         const diary = await diaryRepository.create({
-          createdBy: input.createdBy,
+          creator: input.creator,
           name: input.name,
           visibility: input.visibility ?? 'private',
           teamId: input.teamId,
@@ -184,7 +188,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           // diary is not left in a state where it exists in DB but has no
           // Keto team relation (which would cause 403 on all subsequent ops).
           logger.error(
-            { diaryId: diary.id, createdBy: input.createdBy, err },
+            { diaryId: diary.id, creator: input.creator, err },
             'diary.keto_grant_failed',
           );
           try {
@@ -202,7 +206,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         logger.info(
           {
             diaryId: diary.id,
-            createdBy: input.createdBy,
+            creator: input.creator,
             teamId: input.teamId,
           },
           'diary.created',
@@ -250,8 +254,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
     },
 
-    findOwnedDiary(createdBy: string, id: string): Promise<Diary | null> {
-      return diaryRepository.findByCreator(createdBy, id);
+    findOwnedDiary(
+      creator: ServicePrincipal,
+      id: string,
+    ): Promise<Diary | null> {
+      return diaryRepository.findByCreator(creator, id);
     },
 
     async updateDiary(
@@ -364,7 +371,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         ...input,
         contentHash: computedContentHash,
         entryType: resolvedEntryType,
-        createdBy: agentId,
+        creator: input.creator,
       });
       logger.info(
         {
@@ -452,9 +459,9 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async searchOwned(
       input: SearchInput,
-      agentId: string,
+      creator: ServicePrincipal,
     ): Promise<DiaryEntry[]> {
-      const ownedDiaries = await diaryRepository.listByCreator(agentId);
+      const ownedDiaries = await diaryRepository.listByCreator(creator);
       if (!ownedDiaries.length) return [];
       return diaryEntryRepository.search({
         ...input,

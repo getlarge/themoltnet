@@ -162,7 +162,7 @@ func (s *AddGroupMemberUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *AgentIdentity) Validate() error {
+func (s *AgentPrincipal) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -188,6 +188,17 @@ func (s *AgentIdentity) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "fingerprint",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Kind.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
 			Error: err,
 		})
 	}
@@ -218,6 +229,15 @@ func (s *AgentIdentity) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s AgentPrincipalKind) Validate() error {
+	switch s {
+	case "agent":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *AppendMessagesResponse) Validate() error {
@@ -995,6 +1015,17 @@ func (s *CompileResult) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := s.Creator.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "creator",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Entries == nil {
 			return errors.New("nil is invalid value")
 		}
@@ -1071,6 +1102,23 @@ func (s *CompileResultCompileTrace) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s CompileResultCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalCompileResultCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalCompileResultCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s *CompileResultEntriesItem) Validate() error {
@@ -2118,6 +2166,23 @@ func (s *ContextPackResponse) Validate() error {
 	return nil
 }
 
+func (s ContextPackResponseCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalContextPackResponseCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalContextPackResponseCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
 func (s *ContextPackResponseList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -2244,6 +2309,31 @@ func (s *ContextPackResponseListWithRendered) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "offset",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		var failures []validate.FieldError
+		for i, elem := range s.RenderedPacks {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "renderedPacks",
 			Error: err,
 		})
 	}
@@ -4073,6 +4163,17 @@ func (s *DiaryCatalog) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if err := s.Creator.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "creator",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Visibility.Validate(); err != nil {
 			return err
 		}
@@ -4087,6 +4188,23 @@ func (s *DiaryCatalog) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s DiaryCatalogCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalDiaryCatalogCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalDiaryCatalogCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s *DiaryCatalogList) Validate() error {
@@ -4160,6 +4278,17 @@ func (s *DiaryEntry) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := s.Creator.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "creator",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.EntryType.Validate(); err != nil {
 			return err
 		}
@@ -4195,6 +4324,23 @@ func (s *DiaryEntry) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s DiaryEntryCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalDiaryEntryCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalDiaryEntryCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s DiaryEntryEntryType) Validate() error {
@@ -4282,6 +4428,23 @@ func (s *DiaryEntryWithCreator) Validate() error {
 	return nil
 }
 
+func (s DiaryEntryWithCreatorCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalDiaryEntryWithCreatorCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalDiaryEntryWithCreatorCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
 func (s DiaryEntryWithCreatorEntryType) Validate() error {
 	switch s {
 	case "episodic":
@@ -4315,6 +4478,17 @@ func (s *DiaryEntryWithRelations) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "accessCount",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Creator.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "creator",
 			Error: err,
 		})
 	}
@@ -4372,6 +4546,23 @@ func (s *DiaryEntryWithRelations) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s DiaryEntryWithRelationsCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalDiaryEntryWithRelationsCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalDiaryEntryWithRelationsCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s DiaryEntryWithRelationsEntryType) Validate() error {
@@ -7104,6 +7295,38 @@ func (s *GetWhoamiUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *HumanPrincipal) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Kind.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s HumanPrincipalKind) Validate() error {
+	switch s {
+	case "human":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *InitiateTransferBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9273,62 +9496,21 @@ func (s *ProvenanceGraphEntryNodeMeta) Validate() error {
 	return nil
 }
 
-func (s *ProvenanceGraphEntryNodeMetaCreator) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     0,
-			MinLengthSet:  false,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Fingerprint)); err != nil {
-			return errors.Wrap(err, "string")
+func (s ProvenanceGraphEntryNodeMetaCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalProvenanceGraphEntryNodeMetaCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "fingerprint",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     0,
-			MinLengthSet:  false,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^ed25519:[A-Za-z0-9+/=]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.PublicKey)); err != nil {
-			return errors.Wrap(err, "string")
+	case HumanPrincipalProvenanceGraphEntryNodeMetaCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "publicKey",
-			Error: err,
-		})
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
 }
 
 func (s ProvenanceGraphEntryNodeMetaEntryType) Validate() error {
@@ -9498,62 +9680,21 @@ func (s *ProvenanceGraphPackNodeMeta) Validate() error {
 	return nil
 }
 
-func (s *ProvenanceGraphPackNodeMetaCreator) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     0,
-			MinLengthSet:  false,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Fingerprint)); err != nil {
-			return errors.Wrap(err, "string")
+func (s ProvenanceGraphPackNodeMetaCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalProvenanceGraphPackNodeMetaCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "fingerprint",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     0,
-			MinLengthSet:  false,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^ed25519:[A-Za-z0-9+/=]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.PublicKey)); err != nil {
-			return errors.Wrap(err, "string")
+	case HumanPrincipalProvenanceGraphPackNodeMetaCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "publicKey",
-			Error: err,
-		})
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
 }
 
 func (s *ProvenanceGraphRenderedPackNode) Validate() error {
@@ -10287,6 +10428,46 @@ func (s *RenderContextPackUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *RenderedPack) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Creator.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "creator",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RenderedPackCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalRenderedPackCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalRenderedPackCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
 func (s *RenderedPackList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -10296,6 +10477,23 @@ func (s *RenderedPackList) Validate() error {
 	if err := func() error {
 		if s.Items == nil {
 			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Items {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
 		}
 		return nil
 	}(); err != nil {

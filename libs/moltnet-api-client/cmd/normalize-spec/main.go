@@ -182,10 +182,36 @@ func extractDiscriminatedUnionSchemas(spec any) {
 		components["schemas"] = schemas
 	}
 
-	walkExtractOneOf(root, schemas)
+	// Walk repeatedly until no new schemas are added: extracting a top-level
+	// variant can expose a nested discriminated union that itself needs
+	// extraction (e.g. ProvenanceGraphPackNode → meta.creator → AgentPrincipal).
+	for {
+		before := len(schemas)
+		walkExtractOneOf(root, schemas)
+		// Also walk newly extracted schemas to catch nested discriminated unions.
+		for _, s := range schemas {
+			walkExtractOneOf(s, schemas)
+		}
+		if len(schemas) == before {
+			break
+		}
+	}
 }
 
 // walkExtractOneOf recursively finds oneOf+discriminator and extracts inline schemas.
+//
+// Schema name derivation:
+//   - For each variant, the discriminator value (e.g. `kind: "agent"`) is
+//     used to derive the component schema name.
+//   - If a `title` is set on the variant we use it directly (best-effort
+//     human-friendly name set by the author of the schema).
+//   - Otherwise we look at the variant's required properties to guess: if
+//     it has fields like `humanId` we name it `Human<Capitalize(kind)>`,
+//     `agentId`/`identityId+fingerprint` -> `Agent<Capitalize(kind)>`, and
+//     for the original ProvenanceGraph node case we keep the historical
+//     `ProvenanceGraph<Capitalize(kind)>Node` naming.
+//
+// The mapping field is always populated so ogen can emit a sum type.
 func walkExtractOneOf(v any, schemas map[string]any) {
 	switch val := v.(type) {
 	case map[string]any:
@@ -215,7 +241,7 @@ func walkExtractOneOf(v any, schemas map[string]any) {
 					if kindVal == "" {
 						continue
 					}
-					schemaName := fmt.Sprintf("ProvenanceGraph%sNode", capitalize(kindVal))
+					schemaName := deriveDiscriminatedSchemaName(member, kindVal)
 					schemas[schemaName] = member
 					members[i] = map[string]any{
 						"$ref": "#/components/schemas/" + schemaName,
@@ -242,6 +268,40 @@ func capitalize(s string) string {
 		return s
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// deriveDiscriminatedSchemaName picks a stable component name for an inline
+// variant of a oneOf+discriminator. The heuristics check the variant's
+// required-property set to distinguish the two oneOf families we currently
+// have (provenance graph nodes vs principal identity) without requiring a
+// schema title.
+func deriveDiscriminatedSchemaName(variant map[string]any, kindVal string) string {
+	props, _ := variant["properties"].(map[string]any)
+	required, _ := variant["required"].([]any)
+	requiredSet := make(map[string]bool, len(required))
+	for _, r := range required {
+		if name, ok := r.(string); ok {
+			requiredSet[name] = true
+		}
+	}
+	hasProp := func(name string) bool {
+		if _, ok := props[name]; ok {
+			return true
+		}
+		return requiredSet[name]
+	}
+
+	// Principal-identity family: { kind, identityId, fingerprint, publicKey }
+	// (agent) or { kind, humanId, identityId } (human).
+	if hasProp("fingerprint") && hasProp("publicKey") {
+		return capitalize(kindVal) + "Principal"
+	}
+	if hasProp("humanId") {
+		return capitalize(kindVal) + "Principal"
+	}
+
+	// Default — historical provenance graph node naming (pack/entry/rendered_pack).
+	return fmt.Sprintf("ProvenanceGraph%sNode", capitalize(kindVal))
 }
 
 // sortedMap is a JSON-marshalable map with deterministic (sorted) key order.
@@ -342,8 +402,17 @@ func normalize(v any) any {
 //
 // The variants are recursively normalized before being placed in oneOf.
 func tryConvertDiscriminatedUnion(obj map[string]any) (map[string]any, bool) {
-	if len(obj) != 1 {
-		return nil, false
+	// Allow obj to carry `anyOf` plus an allowlist of harmless siblings:
+	// `discriminator` (TypeBox Type.Union with { discriminator: { propertyName } })
+	// and `nullable` (left over from a prior tryConvertNullable pass on
+	// Type.Optional(Type.Union([...]))). Anything else means the schema has
+	// additional constraints and we can't safely convert.
+	for k := range obj {
+		switch k {
+		case "anyOf", "discriminator", "nullable":
+		default:
+			return nil, false
+		}
 	}
 	members, ok := obj["anyOf"].([]any)
 	if !ok || len(members) < 2 {

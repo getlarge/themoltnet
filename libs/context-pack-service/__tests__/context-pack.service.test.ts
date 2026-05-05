@@ -30,11 +30,13 @@ function makeRenderedPackRow(overrides?: Record<string, unknown>) {
       'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     renderMethod: 'pack-to-docs-v1',
     totalTokens: 42,
-    createdBy: 'identity-uuid',
+    creatorAgentId: 'identity-uuid',
+    creatorHumanId: null,
     pinned: false,
     expiresAt: new Date('2026-04-05'),
     createdAt: new Date('2026-03-29'),
     updatedAt: new Date('2026-03-29'),
+    verifiedTaskId: null,
     ...overrides,
   };
 }
@@ -50,12 +52,12 @@ function makeDeps(
     packType: 'custom' as const,
     params: {},
     payload: {},
-    createdBy: 'identity-uuid',
+    creatorAgentId: 'identity-uuid',
+    creatorHumanId: null,
     supersedesPackId: null,
     pinned: false,
     expiresAt: new Date('2026-04-05'),
     createdAt: new Date('2026-03-29'),
-    creator: null,
   };
 
   return {
@@ -190,7 +192,7 @@ describe('ContextPackService', () => {
         diaryId: 'diary-uuid',
         entries: [{ entryId: 'entry-1', rank: 1 }],
         params: { recipe: 'test' },
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
       });
 
       expect(result.packCid).toMatch(/^bafyr/);
@@ -209,7 +211,7 @@ describe('ContextPackService', () => {
         packType: 'custom' as const,
         params: {},
         payload: {},
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
         supersedesPackId: null,
         pinned: false,
         expiresAt: null,
@@ -228,7 +230,7 @@ describe('ContextPackService', () => {
         diaryId: 'diary-uuid',
         entries: [{ entryId: 'entry-1', rank: 1 }],
         params: { recipe: 'test' },
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
       });
 
       expect(result.packCid).toBeDefined();
@@ -245,7 +247,7 @@ describe('ContextPackService', () => {
         sourcePackId: 'pack-uuid',
         renderedMarkdown: '# Hello\n\nThis is rendered content.',
         renderMethod: 'pack-to-docs-v1',
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
       });
 
       expect(result.packCid).toMatch(/^bafyr/);
@@ -302,7 +304,7 @@ describe('ContextPackService', () => {
       const createResult = await service.createRenderedPack({
         sourcePackId: 'pack-uuid',
         renderMethod: 'server:pack-to-docs-v1',
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
       });
 
       expect(
@@ -332,7 +334,7 @@ describe('ContextPackService', () => {
           sourcePackId: 'nonexistent',
           renderedMarkdown: '# Hello',
           renderMethod: 'pack-to-docs-v1',
-          createdBy: 'identity-uuid',
+          creator: { kind: 'agent' as const, id: 'identity-uuid' },
         }),
       ).rejects.toThrow(PackServiceError);
     });
@@ -357,7 +359,7 @@ describe('ContextPackService', () => {
         sourcePackId: 'pack-uuid',
         renderedMarkdown: '# Hello',
         renderMethod: 'pack-to-docs-v1',
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
       });
 
       expect(result.id).toBe('existing-rendered');
@@ -373,7 +375,7 @@ describe('ContextPackService', () => {
           sourcePackId: 'pack-uuid',
           renderedMarkdown: '# Hello',
           renderMethod: 'server:pack-to-docs-v1',
-          createdBy: 'identity-uuid',
+          creator: { kind: 'agent' as const, id: 'identity-uuid' },
         }),
       ).rejects.toMatchObject({
         code: 'validation',
@@ -390,7 +392,7 @@ describe('ContextPackService', () => {
         service.createRenderedPack({
           sourcePackId: 'pack-uuid',
           renderMethod: 'agent-refined',
-          createdBy: 'identity-uuid',
+          creator: { kind: 'agent' as const, id: 'identity-uuid' },
         }),
       ).rejects.toMatchObject({
         code: 'validation',
@@ -406,7 +408,7 @@ describe('ContextPackService', () => {
         sourcePackId: 'pack-uuid',
         renderedMarkdown: '# Pinned content',
         renderMethod: 'pack-to-docs-v1',
-        createdBy: 'identity-uuid',
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
         pinned: true,
       });
 
@@ -479,12 +481,12 @@ describe('ContextPackService', () => {
         packType: 'custom' as const,
         params: {},
         payload: {},
-        createdBy: 'me',
+        creatorAgentId: 'me',
+        creatorHumanId: null,
         supersedesPackId: null,
         pinned: false,
         expiresAt: null,
         createdAt: new Date(),
-        creator: null,
       });
       const deps = makeDeps({
         contextPackRepository: {

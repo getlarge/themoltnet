@@ -114,6 +114,25 @@ export function initHumanOnboardingWorkflow(): void {
     },
   );
 
+  // Compensation step — registered so DBOS replays it durably if the
+  // workflow process crashes between failure and compensation. Without
+  // this, a crash leaves the human partially onboarded with identityId
+  // still set; on replay, the original failed step retries and may
+  // succeed, leaving stale state.
+  const compensateClearIdentityIdStep = DBOS.registerStep(
+    async (humanId: string): Promise<void> => {
+      const { humanRepository } = getDeps();
+      await humanRepository.clearIdentityId(humanId);
+    },
+    {
+      name: 'onboarding.step.compensateClearIdentityId',
+      retriesAllowed: true,
+      maxAttempts: 5,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
   const registerInKetoStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
@@ -129,15 +148,18 @@ export function initHumanOnboardingWorkflow(): void {
   );
 
   const createPersonalTeamStep = DBOS.registerStep(
-    async (identityId: string, username: string): Promise<string> => {
+    async (humanId: string, username: string): Promise<string> => {
       const { teamRepository } = getDeps();
-      const existing = await teamRepository.findPersonalByCreator(identityId);
+      const existing = await teamRepository.findPersonalByCreator({
+        kind: 'human',
+        id: humanId,
+      });
       if (existing) return existing.id;
 
       const team = await teamRepository.create({
         name: username,
         personal: true,
-        createdBy: identityId,
+        creator: { kind: 'human', id: humanId },
         status: 'active',
       });
       return team.id;
@@ -171,14 +193,17 @@ export function initHumanOnboardingWorkflow(): void {
   );
 
   const createPrivateDiaryStep = DBOS.registerStep(
-    async (identityId: string, personalTeamId: string): Promise<void> => {
+    async (humanId: string, personalTeamId: string): Promise<void> => {
       const { diaryRepository, relationshipWriter } = getDeps();
-      const owned = await diaryRepository.listByCreator(identityId);
+      const owned = await diaryRepository.listByCreator({
+        kind: 'human',
+        id: humanId,
+      });
       const existing = owned.find((d) => d.name === 'Private');
       const diary =
         existing ??
         (await diaryRepository.create({
-          createdBy: identityId,
+          creator: { kind: 'human', id: humanId },
           name: 'Private',
           visibility: 'private',
           teamId: personalTeamId,
@@ -211,29 +236,29 @@ export function initHumanOnboardingWorkflow(): void {
         // Step 2: Register in Keto
         await registerInKetoStep(identityId);
 
-        // Step 3: Create personal team
-        const personalTeamId = await createPersonalTeamStep(
-          identityId,
-          username,
-        );
+        // Step 3: Create personal team (FK target for creator_human_id is humans.id)
+        const personalTeamId = await createPersonalTeamStep(humanId, username);
 
-        // Step 4: Grant team ownership
+        // Step 4: Grant team ownership (Keto uses identityId)
         await grantTeamOwnerStep(personalTeamId, identityId);
 
-        // Step 5: Create private diary
-        await createPrivateDiaryStep(identityId, personalTeamId);
+        // Step 5: Create private diary (FK target for creator_human_id is humans.id)
+        await createPrivateDiaryStep(humanId, personalTeamId);
 
         return { humanId, identityId, personalTeamId };
       } catch (error: unknown) {
-        // Compensation: clear identityId so onboarding retries on next login
-        const { logger, humanRepository } = getDeps();
+        // Compensation: clear identityId so onboarding retries on next login.
+        // Wrapped in a registered DBOS step so a process crash mid-compensation
+        // is replayed durably (rather than leaving the human row in a
+        // partially-onboarded state).
+        const { logger } = getDeps();
         logger.error(
           { err: error, humanId, identityId },
           'onboarding.compensation_started',
         );
 
         try {
-          await humanRepository.clearIdentityId(humanId);
+          await compensateClearIdentityIdStep(humanId);
         } catch (compensationError: unknown) {
           logger.error(
             { err: compensationError, humanId },

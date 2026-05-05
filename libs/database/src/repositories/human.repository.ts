@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Human, humans } from '../schema.js';
@@ -21,6 +21,21 @@ export function createHumanRepository(db: Database) {
         .where(eq(humans.id, id))
         .limit(1);
       return row ?? null;
+    },
+
+    /**
+     * Batch lookup humans by `humans.id`. Returns a Map keyed by `id`.
+     * Mirrors `agentRepository.findByIdentityIds` for the human side of
+     * principal-row inflation.
+     */
+    async findByIds(ids: readonly string[]): Promise<Map<string, Human>> {
+      const unique = Array.from(new Set(ids.filter(Boolean)));
+      if (unique.length === 0) return new Map();
+      const rows = await getExecutor(db)
+        .select()
+        .from(humans)
+        .where(inArray(humans.id, unique));
+      return new Map(rows.map((h) => [h.id, h]));
     },
 
     async findByIdentityId(identityId: string): Promise<Human | null> {

@@ -7,6 +7,7 @@ import {
 import { Type } from '@sinclair/typebox';
 
 import { DateTime, EntryTypeSchema } from './atoms.js';
+import { PrincipalIdentitySchema } from './principal.js';
 import { ExpandedRelationsSchema } from './relations.js';
 
 // ── Diary ───────────────────────────────────────────────────
@@ -15,7 +16,7 @@ export const DiaryEntrySchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     diaryId: Type.String({ format: 'uuid' }),
-    createdBy: Type.String({ format: 'uuid' }),
+    creator: PrincipalIdentitySchema,
     title: Type.Union([Type.String(), Type.Null()]),
     content: Type.String(),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
@@ -99,7 +100,7 @@ export const DigestSchema = Type.Object(
 export const DiaryCatalogSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    createdBy: Type.String({ format: 'uuid' }),
+    creator: PrincipalIdentitySchema,
     teamId: Type.String({ format: 'uuid' }),
     name: Type.String(),
     visibility: Type.Union(visibilityLiterals),
@@ -149,7 +150,7 @@ export const DiaryEntryWithCreatorSchema = Type.Object(
     contentSignature: Type.Union([Type.String(), Type.Null()]),
     createdAt: DateTime,
     updatedAt: DateTime,
-    creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
+    creator: PrincipalIdentitySchema,
   },
   { $id: 'DiaryEntryWithCreator' },
 );

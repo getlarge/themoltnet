@@ -76,7 +76,8 @@ export function createMockEntry(
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
-    createdBy: OWNER_ID,
+    creatorAgentId: OWNER_ID,
+    creatorHumanId: null,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
@@ -88,6 +89,7 @@ export function createMockEntry(
     entryType: 'semantic' as const,
     contentHash: null,
     contentSignature: null,
+    signingNonce: null,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
@@ -324,13 +326,52 @@ export function createMockServices(): MockServices {
     humanRepository: {
       create: vi.fn(),
       findById: vi.fn(),
-      findByIdentityId: vi.fn(),
+      findByIds: vi.fn().mockResolvedValue(new Map()),
+      // Default returns a human row with the OWNER_ID identityId so route
+      // tests that exercise authContextToCreator with subjectType:'human'
+      // resolve cleanly. Tests that need miss-paths can override.
+      findByIdentityId: vi.fn().mockImplementation((identityId: string) =>
+        Promise.resolve({
+          id: 'human-id-' + identityId,
+          identityId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      ),
       setIdentityId: vi.fn(),
       clearIdentityId: vi.fn(),
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
-      findByIdentityId: vi.fn(),
+      findByIdentityId: vi
+        .fn()
+        // Default agent so inflateCreator resolves to a valid PrincipalIdentity
+        // in routes that echo back the just-created principal. Tests that need
+        // a different identity / null can override.
+        .mockResolvedValue({
+          identityId: OWNER_ID,
+          // PublicKeySchema pattern: ^ed25519:[A-Za-z0-9+/=]+$
+          publicKey: 'ed25519:mockkeypayload',
+          // FingerprintSchema pattern: ^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$
+          fingerprint: 'A1B2-C3D4-E5F6-1234',
+        }),
+      // Batch variant used by list/search routes via batchInflateRowsWithCreator.
+      // Returns a Map keyed by identityId; default contains OWNER_ID so list
+      // tests work without per-test setup.
+      findByIdentityIds: vi
+        .fn()
+        .mockImplementation((ids: readonly string[]) => {
+          const unique = Array.from(new Set(ids.filter(Boolean)));
+          const map = new Map();
+          for (const id of unique) {
+            map.set(id, {
+              identityId: id,
+              publicKey: 'ed25519:mockkeypayload',
+              fingerprint: 'A1B2-C3D4-E5F6-1234',
+            });
+          }
+          return Promise.resolve(map);
+        }),
       findByPublicKey: vi.fn(),
       upsert: vi.fn(),
       delete: vi.fn(),

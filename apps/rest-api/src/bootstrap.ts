@@ -463,9 +463,23 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     tokenValidator,
     sessionResolver,
     teamResolver: {
+      // subjectId is the Kratos identity_id from the JWT/session. For agents
+      // it IS the FK target on teams.creator_agent_id. For humans it is
+      // NOT the FK target — teams.creator_human_id references humans.id,
+      // which we have to look up via humans.identityId.
       findPersonalTeamId: async (subjectId: string) => {
-        const team = await teamRepository.findPersonalByCreator(subjectId);
-        return team?.id ?? null;
+        const agentTeam = await teamRepository.findPersonalByCreator({
+          kind: 'agent',
+          id: subjectId,
+        });
+        if (agentTeam) return agentTeam.id;
+        const human = await humanRepository.findByIdentityId(subjectId);
+        if (!human) return null;
+        const humanTeam = await teamRepository.findPersonalByCreator({
+          kind: 'human',
+          id: human.id,
+        });
+        return humanTeam?.id ?? null;
       },
     },
     hydraPublicUrl: oryUrls.hydraPublicUrl,

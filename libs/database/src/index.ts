@@ -30,6 +30,19 @@ export {
 } from './dbos.js';
 export { runMigrations } from './migrate.js';
 export {
+  type AgentPrincipal,
+  type HumanPrincipal,
+  PrincipalAgentJoinFailedError,
+  PrincipalAgentNotFoundError,
+  PrincipalHumanNotFoundError,
+  type PrincipalIdentity,
+  PrincipalMissingError,
+  PrincipalResolutionError,
+  type PrincipalRow,
+  PrincipalXorViolatedError,
+  resolvePrincipal,
+} from './principal-resolver.js';
+export {
   type AgentRepository,
   createAgentRepository,
 } from './repositories/agent.repository.js';
@@ -85,6 +98,7 @@ export {
 export {
   createRenderedPackRepository,
   type RenderedPackRepository,
+  type RenderedPackWithCreator,
 } from './repositories/rendered-pack.repository.js';
 export {
   createSigningRequestRepository,

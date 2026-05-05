@@ -147,7 +147,9 @@ describe('Groups E2E', () => {
         expect(data!.id).toBe(groupId);
         expect(data!.name).toBe('engineering');
         expect(data!.teamId).toBe(projectTeamId);
-        expect(data!.createdBy).toBe(agentA.identityId);
+        // creator field omitted in this PR — Group B in the
+        // unified-principal-creator refactor. GroupDetailSchema no longer
+        // includes createdBy; DB has paired columns ready for follow-up.
         expect(data!.createdAt).toBeDefined();
         expect(data!.members).toBeInstanceOf(Array);
       });
