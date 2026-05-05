@@ -1,6 +1,13 @@
+import { Value } from '@sinclair/typebox/value';
 import { describe, expect, it } from 'vitest';
 
-import { type Rubric, validateRubricWeights } from './rubric.js';
+import {
+  AssertionResult,
+  type Rubric,
+  RubricScoringMode,
+  validateRubricWeights,
+} from './rubric.js';
+import { JudgePackScore } from './task-types/judge-pack.js';
 
 const base: Rubric = {
   rubricId: 'test',
@@ -56,5 +63,114 @@ describe('validateRubricWeights', () => {
       ],
     };
     expect(validateRubricWeights(rubric)).toMatch(/1\.2/);
+  });
+
+  it('accepts llm_assertions as a scoring mode (#999)', () => {
+    // Mixing llm_assertions with deterministic checks is the common case
+    // for fidelity rubrics — grounding becomes per-claim binary while
+    // coverage stays a deterministic threshold.
+    const rubric: Rubric = {
+      ...base,
+      criteria: [
+        {
+          id: 'coverage',
+          description: 'C',
+          weight: 0.4,
+          scoring: 'deterministic_coverage_check',
+        },
+        {
+          id: 'grounding',
+          description: 'G',
+          weight: 0.6,
+          scoring: 'llm_assertions',
+        },
+      ],
+    };
+    expect(validateRubricWeights(rubric)).toBeNull();
+    expect(Value.Check(RubricScoringMode, 'llm_assertions')).toBe(true);
+  });
+});
+
+describe('AssertionResult', () => {
+  it('requires evidence on PASS — agentskills.io grading principle', () => {
+    // The whole point of binary-with-evidence is that PASS without a
+    // pointer at the supporting span is unauditable. Make sure the
+    // schema enforces it rather than relying on prose to remind judges.
+    const ok = {
+      id: 'claim-1',
+      text: 'The pack mentions hedge X verbatim',
+      passed: true,
+      evidence: 'source entry abc, line 4: "X applies on most slides"',
+    };
+    const missingEvidence = {
+      id: 'claim-1',
+      text: 'The pack mentions hedge X verbatim',
+      passed: true,
+    };
+    expect(Value.Check(AssertionResult, ok)).toBe(true);
+    expect(Value.Check(AssertionResult, missingEvidence)).toBe(false);
+  });
+
+  it('requires evidence on FAIL — for cluster analysis of failure modes', () => {
+    const ok = {
+      id: 'claim-2',
+      text: 'Within ~10% of live transcripts',
+      passed: false,
+      evidence:
+        'source says "within ~10% on most slides"; rendered drops "on most slides"',
+    };
+    const emptyEvidence = { ...ok, evidence: '' };
+    expect(Value.Check(AssertionResult, ok)).toBe(true);
+    // minLength: 1 must reject empty strings — silent FAILs poison the
+    // dataset just as much as silent PASSes.
+    expect(Value.Check(AssertionResult, emptyEvidence)).toBe(false);
+  });
+});
+
+describe('JudgePackScore with llm_assertions (#999)', () => {
+  it('accepts a score with the new assertions array', () => {
+    const score = {
+      criterionId: 'grounding',
+      score: 0,
+      assertions: [
+        {
+          id: 'claim-1',
+          text: 'pack mentions hedge X',
+          passed: true,
+          evidence: 'source entry abc',
+        },
+        {
+          id: 'claim-2',
+          text: 'within ~10% (no hedge)',
+          passed: false,
+          evidence: 'source had "on most slides"; rendered dropped it',
+        },
+      ],
+    };
+    expect(Value.Check(JudgePackScore, score)).toBe(true);
+  });
+
+  it('keeps assertions optional so existing llm_judged scores still validate', () => {
+    // Backward compatibility: rubrics that haven't migrated to
+    // llm_assertions must still produce schema-valid scores. The
+    // assertions field is opt-in.
+    const score = {
+      criterionId: 'old-style',
+      score: 0.85,
+      rationale: 'mostly fine',
+    };
+    expect(Value.Check(JudgePackScore, score)).toBe(true);
+  });
+
+  it('rejects an assertions array with an empty entry', () => {
+    // minItems: 1 protects against the judge emitting `assertions: []`
+    // when it should have either omitted the field (non-llm_assertions
+    // criterion) or enumerated real claims.
+    const score = {
+      criterionId: 'grounding',
+      score: 1,
+      assertions: [],
+    };
+    expect(Value.Check(JudgePackScore, score)).toBe(false);
   });
 });

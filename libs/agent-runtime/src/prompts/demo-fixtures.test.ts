@@ -33,8 +33,12 @@ describe('demo/tasks pack-pipeline fixtures', () => {
     const task = load('judge-pack.json');
     expect(task.taskType).toBe('judge_pack');
     const prompt = buildPromptForTask(task, ctx);
-    expect(prompt).toContain('pack-fidelity-v2');
+    expect(prompt).toContain('pack-fidelity-v3');
     expect(prompt).toContain('coverage');
     expect(prompt).toContain('deterministic_coverage_check');
+    // The grounding criterion uses the per-claim binary mode added in
+    // #999. The scoring rule MUST be in the prompt so the judge knows
+    // how to enumerate assertions and derive the criterion score.
+    expect(prompt).toContain('llm_assertions');
   });
 });

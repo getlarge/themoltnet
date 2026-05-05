@@ -17,16 +17,16 @@
           "weight": 0.2
         },
         {
-          "description": "No factual claims in the rendered content that cannot be traced to a source entry.",
+          "description": "No factual claims in the rendered content that cannot be traced to a source entry. Enumerate per-claim assertions: for each distinct factual claim in the rendered content, return {id, text, passed, evidence}. PASS requires citing a source entry id and quoting the supporting span; FAIL requires quoting the offending claim verbatim. The criterion score is 1 iff every assertion passes.",
           "id": "grounding",
-          "scoring": "llm_judged",
+          "scoring": "llm_assertions",
           "weight": 0.4
         }
       ],
-      "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims.",
-      "rubricId": "pack-fidelity-v2",
+      "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims. Grounding uses per-claim binary assertions with evidence — see #999.",
+      "rubricId": "pack-fidelity-v3",
       "scope": "packs",
-      "version": "v2"
+      "version": "v3"
     },
     "sourcePackId": "{{sourcePackId}}"
   },

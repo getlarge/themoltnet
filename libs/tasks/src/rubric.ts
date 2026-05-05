@@ -19,7 +19,13 @@ import { type Static, Type } from '@sinclair/typebox';
 /**
  * How a judge must score a single criterion.
  *
- * - `llm_judged`: 0..1 continuous, `rationale` required.
+ * - `llm_judged`: 0..1 continuous, `rationale` required. Smooths failures
+ *   into the gradient — use `llm_assertions` instead for properties where
+ *   a single failure is a real failure (grounding, faithfulness).
+ * - `llm_assertions`: judge enumerates per-claim assertions with
+ *   `{passed, evidence}`. The criterion's numeric `score` is derived:
+ *   `1` iff every assertion passes, else `0`. Per-claim evidence is the
+ *   dataset for cluster-analysis of failure modes. See #999.
  * - `boolean`: 0 or 1, `rationale` optional.
  * - `deterministic_signature_check`: judge runs a signature check;
  *   result is 0 or 1. No LLM discretion.
@@ -29,6 +35,7 @@ import { type Static, Type } from '@sinclair/typebox';
 export const RubricScoringMode = Type.Union(
   [
     Type.Literal('llm_judged'),
+    Type.Literal('llm_assertions'),
     Type.Literal('boolean'),
     Type.Literal('deterministic_signature_check'),
     Type.Literal('deterministic_coverage_check'),
@@ -36,6 +43,35 @@ export const RubricScoringMode = Type.Union(
   { $id: 'RubricScoringMode' },
 );
 export type RubricScoringMode = Static<typeof RubricScoringMode>;
+
+/**
+ * One binary check produced by an `llm_assertions`-mode criterion.
+ *
+ * `evidence` is REQUIRED for both PASS and FAIL — agentskills.io grading
+ * principle: \"Don't give the benefit of the doubt.\" A PASS without
+ * concrete evidence (a quoted span, an entry id, a source location)
+ * cannot be audited. A FAIL without evidence cannot be clustered into
+ * structural fixes. The same shape is reused by `judge-eval-variant`
+ * (#943) so tooling, dashboards, and analysis stay uniform.
+ */
+export const AssertionResult = Type.Object(
+  {
+    /** Stable id within a criterion, suitable for trend analysis across runs. */
+    id: Type.String({ minLength: 1 }),
+    /** The assertion as authored or as enumerated by the judge. */
+    text: Type.String({ minLength: 1 }),
+    passed: Type.Boolean(),
+    /**
+     * Concrete reason — for PASS, point at the quoted span or source entry
+     * that satisfies the assertion; for FAIL, quote the offending claim or
+     * cite what is missing. Free-form prose intentionally; structured
+     * fields belong on the criterion `evidence` record.
+     */
+    evidence: Type.String({ minLength: 1 }),
+  },
+  { $id: 'AssertionResult', additionalProperties: false },
+);
+export type AssertionResult = Static<typeof AssertionResult>;
 
 export const RubricCriterion = Type.Object(
   {

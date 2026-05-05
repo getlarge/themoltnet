@@ -21,7 +21,7 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
-import { Rubric } from '../rubric.js';
+import { AssertionResult, Rubric } from '../rubric.js';
 
 export const JUDGE_PACK_TYPE = 'judge_pack' as const;
 
@@ -51,10 +51,25 @@ export type JudgePackInput = Static<typeof JudgePackInput>;
 export const JudgePackScore = Type.Object(
   {
     criterionId: Type.String({ minLength: 1 }),
-    /** 0..1 continuous for `llm_judged`, exactly 0 or 1 for deterministic/boolean. */
+    /**
+     * Per-criterion numeric score, 0..1.
+     * - `llm_judged`: continuous 0..1 (smooths failures — see #999).
+     * - `llm_assertions`: derived — `1` iff every entry in `assertions`
+     *   has `passed: true`, else `0`. The judge MUST set this consistently
+     *   with the assertions array; the runtime rejects mismatches.
+     * - `boolean` / `deterministic_*`: exactly 0 or 1.
+     */
     score: Type.Number({ minimum: 0, maximum: 1 }),
     /** Required for `llm_judged`, optional otherwise. */
     rationale: Type.Optional(Type.String()),
+    /**
+     * Per-claim binary results — REQUIRED when the criterion's `scoring`
+     * mode is `llm_assertions`, otherwise omitted. The list is the
+     * dataset for cluster-analysis of failure modes; every entry carries
+     * concrete `evidence` regardless of pass/fail. See #999 and the
+     * shared `AssertionResult` type in `../rubric.ts`.
+     */
+    assertions: Type.Optional(Type.Array(AssertionResult, { minItems: 1 })),
     /**
      * Structured evidence for deterministic scorings. Shape depends on
      * the criterion's `scoring` mode; stored as free-form JSON for
@@ -87,9 +102,7 @@ export const JudgePackOutput = Type.Object(
      * attestations. `null` is accepted and treated as "unavailable"
      * equivalent to omission.
      */
-    rendererBinaryCid: Type.Optional(
-      Type.Union([Type.String(), Type.Null()]),
-    ),
+    rendererBinaryCid: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   },
   { $id: 'JudgePackOutput', additionalProperties: false },
 );
