@@ -32,25 +32,42 @@ ALTER TABLE team_invites
   ADD COLUMN creator_agent_id uuid REFERENCES agents(identity_id) ON DELETE RESTRICT,
   ADD COLUMN creator_human_id uuid REFERENCES humans(id) ON DELETE RESTRICT;
 
--- 2. Backfill: every existing created_by UUID is an agent identity_id today
--- (operator-confirmed: no human-created rows exist in production yet).
--- Abort with a clear error if any row would be silently lost — humans created
--- via the REST API today are tracked in `humans` but their `created_by` UUID
--- on these resource tables is the Kratos identity_id. If any such rows exist
--- they require manual backfill against `humans.identity_id` -> `humans.id`.
+-- 2. Backfill creator_{agent,human}_id from the legacy created_by column.
 --
--- NOTE: NOT EXISTS (correlated subquery), not NOT IN (subquery). Postgres
--- treats `x NOT IN (SELECT col FROM t)` as UNKNOWN whenever `col` contains
--- a NULL — meaning the WHERE clause silently drops EVERY row, the orphan
--- count comes back 0, and the backfill UPDATEs run on data that should
--- have aborted. `agents.identity_id` is NOT NULL today, but this migration
--- has to remain correct under any future relaxation of that constraint.
--- NOT EXISTS is unaffected by NULLs and is cheaper besides.
+-- created_by holds a Kratos identity_id that resolves to either an `agents`
+-- row (creator_agent_id := created_by) or a `humans` row (creator_human_id
+-- := humans.id WHERE humans.identity_id = created_by). The original version
+-- of this migration assumed every row was agent-created and aborted on any
+-- non-agent row; that assumption was false in production (humans had been
+-- creating resources via the REST API since the humans table was added,
+-- see episodic entry f1fe4fe6-f9ef-4c9f-be1b-6a79c7816354).
 --
--- Each affected table is reported by name in the error message so an
--- operator can run the targeted backfill without grepping for which
--- table tripped the check — the previous version printed a single
--- aggregate count and a literal "<table>" placeholder.
+-- New ordering:
+--   2a. Resolve agents (set creator_agent_id where created_by is in agents).
+--   2b. Resolve humans (set creator_human_id where created_by is in humans).
+--   2c. Re-count rows where neither column is set — these are the only
+--       genuine orphans. Abort with the per-table list if any exist.
+--
+-- NOT EXISTS (correlated subquery), not NOT IN (subquery): NOT IN against a
+-- subquery that yields a NULL silently treats the WHERE as UNKNOWN and drops
+-- every row, so the orphan count comes back 0 and the abort never fires.
+-- NOT EXISTS is NULL-safe and cheaper.
+UPDATE diaries        d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+UPDATE diary_entries  d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+UPDATE context_packs  d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+UPDATE rendered_packs d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+UPDATE teams          d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+UPDATE groups         d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+UPDATE team_invites   d SET creator_agent_id = d.created_by WHERE EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+
+UPDATE diaries        d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+UPDATE diary_entries  d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+UPDATE context_packs  d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+UPDATE rendered_packs d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+UPDATE teams          d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+UPDATE groups         d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+UPDATE team_invites   d SET creator_human_id = h.id FROM humans h WHERE h.identity_id = d.created_by AND d.creator_agent_id IS NULL;
+
 DO $$
 DECLARE
   orphan_diaries        integer;
@@ -62,13 +79,13 @@ DECLARE
   orphan_team_invites   integer;
   affected text[] := ARRAY[]::text[];
 BEGIN
-  SELECT count(*) INTO orphan_diaries        FROM diaries        d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
-  SELECT count(*) INTO orphan_diary_entries  FROM diary_entries  d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
-  SELECT count(*) INTO orphan_context_packs  FROM context_packs  d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
-  SELECT count(*) INTO orphan_rendered_packs FROM rendered_packs d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
-  SELECT count(*) INTO orphan_teams          FROM teams          d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
-  SELECT count(*) INTO orphan_groups         FROM groups         d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
-  SELECT count(*) INTO orphan_team_invites   FROM team_invites   d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_diaries        FROM diaries        d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
+  SELECT count(*) INTO orphan_diary_entries  FROM diary_entries  d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
+  SELECT count(*) INTO orphan_context_packs  FROM context_packs  d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
+  SELECT count(*) INTO orphan_rendered_packs FROM rendered_packs d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
+  SELECT count(*) INTO orphan_teams          FROM teams          d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
+  SELECT count(*) INTO orphan_groups         FROM groups         d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
+  SELECT count(*) INTO orphan_team_invites   FROM team_invites   d WHERE d.creator_agent_id IS NULL AND d.creator_human_id IS NULL;
 
   IF orphan_diaries        > 0 THEN affected := array_append(affected, format('diaries (%s)',        orphan_diaries));        END IF;
   IF orphan_diary_entries  > 0 THEN affected := array_append(affected, format('diary_entries (%s)',  orphan_diary_entries));  END IF;
@@ -79,23 +96,13 @@ BEGIN
   IF orphan_team_invites   > 0 THEN affected := array_append(affected, format('team_invites (%s)',   orphan_team_invites));   END IF;
 
   IF array_length(affected, 1) > 0 THEN
-    -- E'...' (escape-string syntax) on the WHOLE concatenated literal so
-    -- the embedded \n sequences are interpreted as newlines. Postgres
-    -- only honors backslash escapes inside E'...'; mixing 'plain' and
-    -- E'plain' literals across line continuations produces a parse
-    -- error at the first non-E continuation, which is what we hit.
-    RAISE EXCEPTION E'Migration aborted: rows have created_by values not found in agents. Affected tables: %. If any of these belong to human users, run the following backfill BEFORE re-running this migration (substitute the actual table name from the affected list):\n  UPDATE <affected_table> SET creator_human_id = h.id\n    FROM humans h WHERE h.identity_id = <affected_table>.created_by;\nThen re-run the migration. To inspect the offending rows:\n  SELECT created_by FROM <affected_table>\n    WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = <affected_table>.created_by);',
+    -- E'...' on the whole literal so the embedded \n sequences become real
+    -- newlines. Mixing 'plain' and E'plain' across line continuations is a
+    -- parse error at the first non-E continuation.
+    RAISE EXCEPTION E'Migration aborted: rows have created_by values found in neither agents nor humans. Affected tables: %. These rows reference an identity_id that no longer exists. Inspect with:\n  SELECT id, created_by FROM <affected_table>\n    WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = <affected_table>.created_by)\n      AND NOT EXISTS (SELECT 1 FROM humans h WHERE h.identity_id = <affected_table>.created_by);\nThen either restore the missing principal or delete the orphan rows before re-running the migration.',
       array_to_string(affected, ', ');
   END IF;
 END $$;
-
-UPDATE diaries        SET creator_agent_id = created_by;
-UPDATE diary_entries  SET creator_agent_id = created_by;
-UPDATE context_packs  SET creator_agent_id = created_by;
-UPDATE rendered_packs SET creator_agent_id = created_by;
-UPDATE teams          SET creator_agent_id = created_by;
-UPDATE groups         SET creator_agent_id = created_by;
-UPDATE team_invites   SET creator_agent_id = created_by;
 
 -- 3. XOR check constraints (now safe — every row has exactly creator_agent_id set).
 ALTER TABLE diaries        ADD CONSTRAINT diaries_creator_xor        CHECK ((creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL));
