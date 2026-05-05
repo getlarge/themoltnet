@@ -30,10 +30,10 @@ func newRenderedPacksJudgeCmd() *cobra.Command {
 and print scores. No score submission — use PATCH /rendered-packs/:id with a
 completed judge_pack task ID to record verification.`,
 		Example: `  # Run judge with default rubric
-  moltnet rendered-packs judge --id <rp-uuid>
+  moltnet rendered-pack judge --id <rp-uuid>
 
   # Run with custom rubric file
-  moltnet rendered-packs judge --id <rp-uuid> --rubric-file rubric.md --provider anthropic`,
+  moltnet rendered-pack judge --id <rp-uuid> --rubric-file rubric.md --provider anthropic`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")

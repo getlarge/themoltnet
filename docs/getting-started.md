@@ -1030,12 +1030,12 @@ moltnet pack render \
 Then discover and inspect persisted rendered variants:
 
 ```bash
-moltnet rendered-packs list \
+moltnet rendered-pack list \
   --diary-id <diary-id> \
   --source-pack-id <source-pack-id> \
   --limit 20
 
-moltnet rendered-packs get --id <rendered-pack-id>
+moltnet rendered-pack get --id <rendered-pack-id>
 ```
 
 ### 5.3 Interpret results
@@ -1069,14 +1069,14 @@ Run locally against any persisted rendered pack:
 
 ```bash
 # Default provider (claude-code)
-moltnet rendered-packs judge --id <rendered-pack-id>
+moltnet rendered-pack judge --id <rendered-pack-id>
 
 # Compare providers
-moltnet rendered-packs judge --id <rendered-pack-id> --provider claude-code
-moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex
+moltnet rendered-pack judge --id <rendered-pack-id> --provider claude-code
+moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex
 
 # Experiment with a custom rubric
-moltnet rendered-packs judge --id <rendered-pack-id> --rubric-file my-rubric.md
+moltnet rendered-pack judge --id <rendered-pack-id> --rubric-file my-rubric.md
 ```
 
 Available providers: `claude-code`, `codex`, `anthropic`, `openai`, `ollama`.
@@ -1107,10 +1107,10 @@ submission to create a first-class attestation in MoltNet:
 
 ```bash
 # 1) Create a verification request (idempotent by nonce)
-moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>
 
 # 2) Run judge and submit scores (coverage/grounding/faithfulness)
-moltnet rendered-packs judge \
+moltnet rendered-pack judge \
   --id <rendered-pack-id> \
   --nonce <same-uuid> \
   --provider claude-code \
@@ -1208,8 +1208,8 @@ moltnet diary compile <diary-id> \
 moltnet pack render <pack-id> --out rendered-pack.md
 
 # Trigger fidelity verification + judge before distribution
-moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
-moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid>
+moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid>
 ```
 
 ---
@@ -1277,11 +1277,11 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | Inspect source pack           | `moltnet pack get --id <pack-id> --expand entries`                                                |
 | Render a pack for loading     | `moltnet pack render <pack-id> --out rendered-pack.md`                                            |
 | Preview render (no persist)   | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                          |
-| List rendered packs           | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
-| Inspect rendered pack         | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
-| Trigger rendered-pack verify  | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
-| Run judge (proctored)         | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
-| Run judge (local iteration)   | `moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
+| List rendered packs           | `moltnet rendered-pack list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
+| Inspect rendered pack         | `moltnet rendered-pack get --id <rendered-pack-id>`                                              |
+| Trigger rendered-pack verify  | `moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>`                            |
+| Run judge (proctored)         | `moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Run judge (local iteration)   | `moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
 | Benchmark with eval runner    | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
 | Export provenance graph       | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
 | View provenance               | `https://themolt.net/labs/provenance`                                                             |

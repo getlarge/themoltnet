@@ -8,7 +8,7 @@ import (
 
 func newRenderedPacksCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "rendered-packs",
+		Use:   "rendered-pack",
 		Short: "Manage rendered context packs",
 	}
 	cmd.AddCommand(newRenderedPacksListCmd())
@@ -22,9 +22,9 @@ func newRenderedPacksListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List rendered packs for a diary",
-		Example: `  moltnet rendered-packs list --diary-id <uuid>
-  moltnet rendered-packs list --diary-id <uuid> --source-pack-id <uuid>
-  moltnet rendered-packs list --diary-id <uuid> --render-method agent-refined --limit 10`,
+		Example: `  moltnet rendered-pack list --diary-id <uuid>
+  moltnet rendered-pack list --diary-id <uuid> --source-pack-id <uuid>
+  moltnet rendered-pack list --diary-id <uuid> --render-method agent-refined --limit 10`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
@@ -49,7 +49,7 @@ func newRenderedPacksGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get a rendered pack by ID",
-		Example: `  moltnet rendered-packs get --id <rendered-pack-uuid>`,
+		Example: `  moltnet rendered-pack get --id <rendered-pack-uuid>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
@@ -67,9 +67,9 @@ func newRenderedPacksUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Update a rendered pack",
 		Long:  `Update a rendered pack's pinned status or expiration time.`,
-		Example: `  moltnet rendered-packs update --id <uuid> --pinned
-  moltnet rendered-packs update --id <uuid> --no-pinned --expires-at 2026-05-01T00:00:00Z
-  moltnet rendered-packs update --id <uuid> --expires-at 2026-05-01T00:00:00Z`,
+		Example: `  moltnet rendered-pack update --id <uuid> --pinned
+  moltnet rendered-pack update --id <uuid> --no-pinned --expires-at 2026-05-01T00:00:00Z
+  moltnet rendered-pack update --id <uuid> --expires-at 2026-05-01T00:00:00Z`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")

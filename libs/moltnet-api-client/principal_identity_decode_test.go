@@ -1,4 +1,4 @@
-// Regression test for issue #992 — `moltnet rendered-packs judge` crashed
+// Regression test for issue #992 — `moltnet rendered-pack judge` crashed
 // with `decode field "creator": decode AgentIdentity: "{" expected: unexpected
 // byte 110 'n' at 2450` because the previous Go SDK generated a non-nullable
 // AgentIdentity for ContextPackResponse.Creator. After moving the REST DTO to
