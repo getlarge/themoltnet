@@ -102,6 +102,14 @@ export const humanCreator = {
   identityId: HUMAN_IDENTITY_ID,
 };
 
+// `identityId: null` covers humans who have a humans.id row but have not
+// completed their first Kratos login yet — the API returns null until then.
+export const humanCreatorPendingLogin = {
+  kind: 'human' as const,
+  humanId: HUMAN_ID,
+  identityId: null,
+};
+
 /** Helper to extract text content from a CallToolResult */
 export function getTextContent(result: {
   content: { type: string; text?: string }[];

@@ -463,12 +463,12 @@ const _TaskGetOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskOutputSchema>,
   ResponseOf<GetTaskResponses> & { consoleUrl?: string }
 > = true;
-type _TaskListOutputMatchesApi = AssertOutputMatchesApi<
+const _TaskListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskListOutputSchema>,
   Omit<ResponseOf<ListTasksResponses>, 'items'> & {
     items: TaskWithConsoleUrl[];
   }
->;
+> = true;
 const _TaskAttemptsOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskAttemptsListOutputSchema>,
   { items: ResponseOf<ListTaskAttemptsResponses> }

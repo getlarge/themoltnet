@@ -19,6 +19,7 @@ import {
   DIARY_ID,
   getTextContent,
   humanCreator,
+  humanCreatorPendingLogin,
   parseResult,
   sdkErr,
   sdkOk,
@@ -142,6 +143,18 @@ describe('Pack tools', () => {
 
       const parsed = parseResult<{ creator: unknown }>(result);
       expect(parsed.creator).toEqual(humanCreator);
+    });
+
+    it('returns pack by ID with human creator pending Kratos login', async () => {
+      vi.mocked(getContextPackById).mockResolvedValue(
+        sdkOk({ ...mockPack, creator: humanCreatorPendingLogin }) as never,
+      );
+
+      const result = await handlePacksGet({ pack_id: PACK_ID }, deps, context);
+
+      const parsed = parseResult<{ creator: { identityId: unknown } }>(result);
+      expect(parsed.creator).toEqual(humanCreatorPendingLogin);
+      expect(parsed.creator.identityId).toBeNull();
     });
 
     it('returns error when not authenticated', async () => {

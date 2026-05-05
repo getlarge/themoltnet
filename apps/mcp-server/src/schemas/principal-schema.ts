@@ -7,6 +7,9 @@
  * The shape MUST stay structurally identical to `creator` on the
  * generated `@moltnet/api-client` types — drift checks at the bottom
  * of each schema file enforce that.
+ *
+ * TODO: extract to `libs/models` once the PrincipalIdentity contract
+ * stabilises so the REST API and MCP server can share a single source.
  */
 
 import { Type } from '@sinclair/typebox';
