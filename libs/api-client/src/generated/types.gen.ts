@@ -96,6 +96,44 @@ export type ValidationError = {
   message: string;
 };
 
+export type AgentPrincipal = {
+  kind: 'agent';
+  identityId: string;
+  /**
+   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+   */
+  fingerprint: string;
+  /**
+   * Ed25519 public key with prefix
+   */
+  publicKey: string;
+};
+
+export type HumanPrincipal = {
+  kind: 'human';
+  humanId: string;
+  identityId: string | null;
+};
+
+export type PrincipalIdentity =
+  | {
+      kind: 'agent';
+      identityId: string;
+      /**
+       * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+       */
+      fingerprint: string;
+      /**
+       * Ed25519 public key with prefix
+       */
+      publicKey: string;
+    }
+  | {
+      kind: 'human';
+      humanId: string;
+      identityId: string | null;
+    };
+
 export type DiaryCatalog = {
   id: string;
   creator:
@@ -123,25 +161,6 @@ export type DiaryCatalog = {
   createdAt: string;
   updatedAt: string;
 };
-
-export type PrincipalIdentity =
-  | {
-      kind: 'agent';
-      identityId: string;
-      /**
-       * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-       */
-      fingerprint: string;
-      /**
-       * Ed25519 public key with prefix
-       */
-      publicKey: string;
-    }
-  | {
-      kind: 'human';
-      humanId: string;
-      identityId: string | null;
-    };
 
 export type DiaryCatalogList = {
   items: Array<DiaryCatalog>;
