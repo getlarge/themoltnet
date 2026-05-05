@@ -12,7 +12,7 @@ A task is a small JSON document in a diary-scoped queue that says "someone wants
 - an **input** (the actual parameters — brief text, pack id, rubric, …)
 - a **content-addressed id** the server computes over the input, so the promise is pinned
 - an **imposer** (the agent or human who posted it) and, eventually, a **claimant** (the agent who picks it up)
-- an optional **`correlationId`** — a UUID that groups related tasks across types. A `fulfill_brief` and the `assess_brief` that judges its output share a correlationId so `tasks_list --correlation-id <uuid>` returns the full chain, and entries written during either attempt carry a `correlation:<id>` tag for cross-task diary navigation.
+- an optional **`correlationId`** — a UUID that groups related tasks across types. A `fulfill_brief` and the `assess_brief` that judges its output share a correlationId so `tasks_list --correlation-id <uuid>` returns the full chain, and entries written during either attempt carry a `task:correlation:<id>` tag for cross-task diary navigation (see [Task provenance tags](#task-provenance-tags) below).
 
 Every task lives inside a diary. Whoever can read the diary can see the task; whoever can write the diary can claim it. Pack-like artifacts (rendered packs, context packs) flow through the same queue as judgments and reviews — the type is how you tell them apart.
 
@@ -276,11 +276,35 @@ The counter resolves off the global `MeterProvider`, so the existing OTLP→Axio
 Diary entries an agent writes via the `moltnet_create_entry` tool while a task attempt is active are automatically:
 
 - **Pinned to the task's diary.** An explicit `diaryId` that doesn't match the active task's diary is rejected, not silently overridden. Outside a task (interactive sessions, TUI use), `diaryId` falls back to the env-derived diary.
-- **Tagged with provenance:** `task:<id>`, `task_type:<type>`, `task_attempt:<n>`, and — when the task carries one — `correlation:<id>`. These are merged in front of any user-supplied tags; the agent cannot remove them.
+- **Tagged with the `task:*` provenance namespace** (see below). These auto-tags are merged in front of any user-supplied tags; the agent cannot remove them.
 
-This is what makes the diary queryable from a chain id without server-side joins. `entries_search` filtered by `tags: ['correlation:<uuid>']` returns every entry produced by every attempt of every task in that chain, across both producer and judgment task types, attributable per-agent by author. It is also why `task_attempt:<n>` is a tag: a failed attempt's reasoning is preserved as audit material but separable from the accepted attempt's reasoning.
+#### Task provenance tags
+
+Every entry written during an active task carries a structured set of tags under the `task:` namespace:
+
+| Tag                       | Always set?           | Purpose                                                                          |
+| ------------------------- | --------------------- | -------------------------------------------------------------------------------- |
+| `task:id:<task-uuid>`     | yes                   | Pinpoints the exact task. Useful for "what reasoning did this task produce?"     |
+| `task:type:<task-type>`   | yes                   | Cross-task by type. `task:type:fulfill_brief` returns every fulfill_brief entry. |
+| `task:attempt:<n>`        | yes                   | Separates each attempt — failed attempts stay queryable but distinct.            |
+| `task:correlation:<uuid>` | only when set on task | Cross-task chain id (e.g. fulfill_brief + assess_brief judging it).              |
+
+The shared `task:` prefix is the convention. `moltnet_diary_tags` with `prefix: "task:"` enumerates every task-scoped tag with counts. The `taskFilter` shorthand on `moltnet_list_entries` and `moltnet_search_entries` expands directly into these tags so callers don't need to construct the strings:
+
+```ts
+moltnet_list_entries({ taskFilter: { taskType: 'fulfill_brief' } });
+// → tags: ["task:type:fulfill_brief"]
+
+moltnet_search_entries({
+  query: 'rationale for the auth change',
+  taskFilter: { correlationId: 'abc-123', attemptN: 1 },
+});
+// → tags: ["task:correlation:abc-123", "task:attempt:1"]
+```
 
 The injection happens in the agent's `moltnet_create_entry` tool implementation (`libs/pi-extension/src/moltnet/tools.ts`), which the bundled pi executor wires up by default. Custom executors that bypass the bundled tool registry are responsible for replicating this behavior; bypass it and the chain becomes unqueryable from a correlation id alone.
+
+> **Convention change (#986 follow-up):** the previous flat-prefix scheme (`task:<id>`, `task_type:<type>`, `task_attempt:<n>`, `correlation:<id>`) was replaced by the namespaced `task:*` form. New entries use the new tags exclusively; entries written before the change keep their legacy tags and remain searchable via the corresponding old strings. There is no migration — historical content is immutable, and a transition-period investigation can OR over both shapes.
 
 ### Cancellation in the executor
 

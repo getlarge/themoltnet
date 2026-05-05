@@ -168,9 +168,9 @@ describe('moltnet_create_entry — task-context enforcement', () => {
 
     // Assert
     expect(captured[0].body.tags).toEqual([
-      'task:task-123',
-      'task_type:fulfill_brief',
-      'task_attempt:2',
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
       'custom-tag',
     ]);
   });
@@ -186,19 +186,19 @@ describe('moltnet_create_entry — task-context enforcement', () => {
     await callExecute(tool, {
       title: 'hello',
       content: 'body',
-      tags: ['task:task-123', 'extra'],
+      tags: ['task:id:task-123', 'extra'],
     });
 
     // Assert
     expect(captured[0].body.tags).toEqual([
-      'task:task-123',
-      'task_type:fulfill_brief',
-      'task_attempt:2',
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
       'extra',
     ]);
   });
 
-  it('appends correlation:<id> when the task carries a correlationId', async () => {
+  it('appends task:correlation:<id> when the task carries a correlationId', async () => {
     // Arrange
     const captured: CapturedCreate[] = [];
     const agent = makeFakeAgent(captured);
@@ -214,10 +214,10 @@ describe('moltnet_create_entry — task-context enforcement', () => {
 
     // Assert
     expect(captured[0].body.tags).toEqual([
-      'task:task-123',
-      'task_type:fulfill_brief',
-      'task_attempt:2',
-      'correlation:corr-abc',
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
+      'task:correlation:corr-abc',
     ]);
   });
 
@@ -233,12 +233,12 @@ describe('moltnet_create_entry — task-context enforcement', () => {
 
     // Assert
     expect(captured[0].body.tags).not.toContain(
-      expect.stringMatching(/^correlation:/),
+      expect.stringMatching(/^task:correlation:/),
     );
     expect(captured[0].body.tags).toEqual([
-      'task:task-123',
-      'task_type:fulfill_brief',
-      'task_attempt:2',
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
     ]);
   });
 });
