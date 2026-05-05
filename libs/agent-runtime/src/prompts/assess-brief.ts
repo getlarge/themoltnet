@@ -1,5 +1,7 @@
 import type { AssessBriefInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   taskId: string;
@@ -83,12 +85,25 @@ export function buildAssessBriefPrompt(
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
     '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry returned by step 3 above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
     '',
-    '### Final output',
+    'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before reporting structured output.',
     '',
-    'Emit a JSON object matching `AssessBriefOutput`:',
-    '  { "scores": [{criterionId, score, rationale?, evidence?}], "composite", "verdict", "judgeModel"? }',
-    '`composite` = Σ(weight_i × score_i) recomputed. The runtime will reject a mismatch.',
-    'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before emitting the JSON.',
+    buildFinalOutputBlock({
+      taskType: 'assess_brief',
+      outputSchemaName: 'AssessBriefOutput',
+      shapeSketch: [
+        '{',
+        '  "scores": [',
+        '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }',
+        '  ],',
+        '  "composite": <sum>,',
+        '  "verdict": "<1-3 sentence overall>",',
+        '  "judgeModel": "<provider:model>"',
+        '}',
+      ].join('\n'),
+      extraNotes: [
+        '`composite` = Σ(weight_i × score_i) recomputed. The runtime rejects a mismatch.',
+      ],
+    }),
   ];
 
   return lines.filter(Boolean).join('\n');

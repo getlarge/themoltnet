@@ -1,5 +1,7 @@
 import type { CuratePackInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   taskId: string;
@@ -178,24 +180,24 @@ export function buildCuratePackPrompt(
     '  output, not in the diary.',
     '- Respect hard include/exclude filters literally.',
     '',
-    '## Final output',
-    '',
-    'Write to stdout a JSON object matching `CuratePackOutput`:',
-    '```',
-    '{',
-    '  "packId": "<uuid>",',
-    '  "packCid": "<cid>",',
-    '  "entries": [',
-    '    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }',
-    '  ],',
-    '  "recipeParams": { "recipe": "...", "prompt": "...", ... },',
-    '  "checkpoints": [',
-    '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
-    '  ],',
-    '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>"',
-    '}',
-    '```',
-    'The runtime parses this. Failing to emit it is a task failure.',
+    buildFinalOutputBlock({
+      taskType: 'curate_pack',
+      outputSchemaName: 'CuratePackOutput',
+      shapeSketch: [
+        '{',
+        '  "packId": "<uuid>",',
+        '  "packCid": "<cid>",',
+        '  "entries": [',
+        '    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }',
+        '  ],',
+        '  "recipeParams": { "recipe": "...", "prompt": "...", ... },',
+        '  "checkpoints": [',
+        '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
+        '  ],',
+        '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>"',
+        '}',
+      ].join('\n'),
+    }),
   ];
 
   return lines.filter((l): l is string => l !== null).join('\n');

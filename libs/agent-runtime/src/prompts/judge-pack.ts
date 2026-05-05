@@ -1,16 +1,14 @@
 import type { JudgePackInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   taskId: string;
 }
 
 export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
-  const {
-    renderedPackId,
-    sourcePackId,
-    rubric,
-  } = input;
+  const { renderedPackId, sourcePackId, rubric } = input;
 
   const criteriaList = rubric.criteria
     .map(
@@ -91,24 +89,30 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
     '  may leak guidance that biases judgment.',
     '- Keep the session focused on scoring; no speculative exploration.',
     '',
-    '## Final output',
-    '',
-    'Write to stdout a JSON object matching `JudgePackOutput`:',
-    '```',
-    '{',
-    '  "scores": [{"criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {...}}],',
-    '  "composite": <sum-of-weighted-scores>,',
-    '  "verdict": "<1-3 sentence overall>",',
-    '  "judgeModel": "<provider:model>",',
-    '  "rendererBinaryCid": "<cid-string-only-if-available>"',
-    '}',
-    '```',
-    'Omit `rendererBinaryCid` entirely when no binary CID is exposed by',
-    '`moltnet_rendered_pack_get`. Do NOT emit `null` — the field is optional',
-    'and absence is the correct representation when unavailable.',
     'Write a signed diary entry (tags: `judgment`, `judge_pack`, ' +
       `\`rubric:${rubric.rubricId}\`) capturing the rationale before`,
-    'emitting the JSON.',
+    'reporting structured output.',
+    '',
+    buildFinalOutputBlock({
+      taskType: 'judge_pack',
+      outputSchemaName: 'JudgePackOutput',
+      shapeSketch: [
+        '{',
+        '  "scores": [',
+        '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }',
+        '  ],',
+        '  "composite": <sum-of-weighted-scores>,',
+        '  "verdict": "<1-3 sentence overall>",',
+        '  "judgeModel": "<provider:model>",',
+        '  "rendererBinaryCid": "<cid-string-only-if-available>"',
+        '}',
+      ].join('\n'),
+      extraNotes: [
+        'Omit `rendererBinaryCid` entirely when no binary CID is exposed by',
+        '`moltnet_rendered_pack_get`. Do NOT emit `null` — the field is',
+        'optional and absence is the correct representation when unavailable.',
+      ],
+    }),
   ];
 
   return lines.filter((l): l is string => l !== null).join('\n');

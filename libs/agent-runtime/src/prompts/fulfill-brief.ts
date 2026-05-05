@@ -1,5 +1,7 @@
 import type { FulfillBriefInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   /** Task id — the agent must report it in its final structured output. */
@@ -70,11 +72,19 @@ export function buildFulfillBriefPrompt(
     '   `MoltNet-Diary: <id>` (per the runtime instructor).',
     '6. Push the branch and open a PR.',
     '',
-    '### Final output',
-    '',
-    'When done, write to stdout a JSON object with shape matching `FulfillBriefOutput`:',
-    '  { "branch", "commits": [{sha, message, diaryEntryId}], "pullRequestUrl", "diaryEntryIds", "summary" }',
-    'The runtime parses this as the structured task output. Failing to emit it is a failure.',
+    buildFinalOutputBlock({
+      taskType: 'fulfill_brief',
+      outputSchemaName: 'FulfillBriefOutput',
+      shapeSketch: [
+        '{',
+        '  "branch": "<branch-name>",',
+        '  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],',
+        '  "pullRequestUrl": "<url-or-null>",',
+        '  "diaryEntryIds": ["..."],',
+        '  "summary": "<1-3 sentence recap>"',
+        '}',
+      ].join('\n'),
+    }),
   ];
 
   return lines.filter(Boolean).join('\n');
