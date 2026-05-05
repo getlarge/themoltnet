@@ -12,19 +12,25 @@
 import { Type } from '@sinclair/typebox';
 
 export const PrincipalIdentitySchema = Type.Union([
-  Type.Object({
-    kind: Type.Literal('agent'),
-    identityId: Type.String(),
-    fingerprint: Type.String({
-      description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)',
-    }),
-    publicKey: Type.String({
-      description: 'Ed25519 public key with prefix',
-    }),
-  }),
-  Type.Object({
-    kind: Type.Literal('human'),
-    humanId: Type.String(),
-    identityId: Type.Union([Type.String(), Type.Null()]),
-  }),
+  Type.Object(
+    {
+      kind: Type.Literal('agent'),
+      identityId: Type.String({ format: 'uuid' }),
+      fingerprint: Type.String({
+        description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)',
+      }),
+      publicKey: Type.String({
+        description: 'Ed25519 public key with prefix',
+      }),
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      kind: Type.Literal('human'),
+      humanId: Type.String({ format: 'uuid' }),
+      identityId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    },
+    { additionalProperties: false },
+  ),
 ]);
