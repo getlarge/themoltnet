@@ -271,6 +271,8 @@ The counter resolves off the global `MeterProvider`, so the existing OTLP→Axio
 
 **Session termination on capture:** the submit tool returns `terminate: true` on a valid call, which pi-coding-agent's agent-loop reads to end the session immediately — no follow-up LLM turn, no extra tokens spent narrating "ok, done." Available in `@mariozechner/pi-coding-agent >= 0.69.0` (we use `^0.73.0`).
 
+**Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description, parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in `libs/agent-runtime/src/output-tools.ts`. The prompt builder reads `submitOutputToolName(taskType)` from the same module so the model and the executor see one source of truth for the tool name. Any executor — pi-extension today, a Codex-SDK adapter or local-MCP bridge tomorrow — wires the same contract into its native tool API: read the schema as `parameters`, the description verbatim, the toolName as the registration name, and supply a `terminate-on-valid-capture` callback. No string templates duplicated across packages.
+
 ### Entry provenance during a task
 
 Diary entries an agent writes via the `moltnet_create_entry` tool while a task attempt is active are automatically:

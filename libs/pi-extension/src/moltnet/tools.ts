@@ -27,9 +27,10 @@ type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
 /**
  * Active-task context. When present, `moltnet_create_entry` is forced to
  * land entries in `diaryId` (the task diary), regardless of the env-derived
- * diary, and auto-injects provenance tags (`task:<id>`, `task_type:<type>`,
- * `task_attempt:<n>`, and `correlation:<id>` when the task carries one).
- * See issue #979.
+ * diary, and auto-injects provenance tags under the `task:*` namespace
+ * (`task:id:<id>`, `task:type:<type>`, `task:attempt:<n>`, and
+ * `task:correlation:<id>` when the task carries one). See issue #979 +
+ * the #986 follow-up that introduced the namespace.
  */
 export interface MoltNetTaskContext {
   taskId: string;
@@ -37,9 +38,10 @@ export interface MoltNetTaskContext {
   attemptN: number;
   diaryId: string;
   /**
-   * Optional correlation id. When set, propagated as a `correlation:<id>`
-   * provenance tag so all entries from a multi-task workflow can be
-   * grouped without enumerating individual task ids.
+   * Optional correlation id. When set, propagated as a
+   * `task:correlation:<id>` provenance tag so all entries from a
+   * multi-task workflow can be grouped without enumerating individual
+   * task ids.
    */
   correlationId: string | null;
 }

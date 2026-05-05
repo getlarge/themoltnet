@@ -32,7 +32,7 @@ import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import type { TObject } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
-import { getTaskOutputSchema } from '@themoltnet/agent-runtime';
+import { getSubmitOutputContract } from '@themoltnet/agent-runtime';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -85,37 +85,29 @@ export function createSubmitOutputTool(
   taskType: string,
   opts: CreateSubmitOutputToolOptions = {},
 ): SubmitOutputToolHandle {
-  const maybeSchema = getTaskOutputSchema(taskType);
-  if (!maybeSchema) {
+  // The (toolName, description, parametersSchema) triple lives in
+  // @themoltnet/agent-runtime so the prompt builder and any executor
+  // share one source of truth. pi-extension is the executor; future
+  // executors (Codex SDK adapter, etc.) read the same contract.
+  const contract = getSubmitOutputContract(taskType);
+  if (!contract) {
     throw new UnknownTaskTypeForSubmitToolError(taskType);
   }
   // Every built-in *Output schema is `Type.Object`. Cast to TObject so
   // it can ride straight through as the tool's `parameters` schema —
   // pi/TypeBox tool parameters require an object at the top level. If a
-  // future task type registers a non-object output schema this cast will
-  // surface as a runtime error in `defineTool`, which is the correct
-  // failure mode (loud, not silent).
-  const schema = maybeSchema as TObject;
+  // future task type registers a non-object output schema this cast
+  // will surface as a runtime error in `defineTool`, which is the
+  // correct failure mode (loud, not silent).
+  const schema = contract.parametersSchema as TObject;
 
-  const toolName = `submit_${taskType}_output`;
   let captured: Record<string, unknown> | null = null;
   let callCount = 0;
 
   const tool = defineTool({
-    name: toolName,
+    name: contract.toolName,
     label: `Submit ${taskType} output`,
-    description:
-      `Submit the structured output for this ${taskType} task. ` +
-      'Call exactly once when done. The arguments below ARE the output ' +
-      "payload — pass each top-level field of the task type's output " +
-      'schema directly. The runtime captures the validated payload and ' +
-      'ends the session; you do not need to repeat the JSON in your ' +
-      'final assistant message.',
-    // The task type's *Output schema is registered directly as the tool
-    // parameters. The model sees field names, types, and per-field
-    // descriptions at planning time — without this, the tool advertises
-    // an opaque blob and tool-call success rates collapse to "did the
-    // model guess the shape?"
+    description: contract.description,
     parameters: schema,
     async execute(_id, params) {
       const errors = [...Value.Errors(schema, params)];

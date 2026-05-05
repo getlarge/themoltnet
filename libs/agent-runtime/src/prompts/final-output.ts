@@ -34,9 +34,13 @@ export interface FinalOutputBlockOptions {
   extraNotes?: string[];
 }
 
+import { submitOutputToolName } from '../output-tools.js';
+
 export function buildFinalOutputBlock(opts: FinalOutputBlockOptions): string {
   const { taskType, outputSchemaName, shapeSketch, extraNotes } = opts;
-  const submitTool = `submit_${taskType}_output`;
+  // Pulled from the submit-output contract so the prompt and the
+  // executor that registers the tool share one source of truth.
+  const submitTool = submitOutputToolName(taskType);
 
   const lines: string[] = [
     '## Final output (read this carefully)',
