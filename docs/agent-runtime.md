@@ -269,7 +269,7 @@ The submit-tool path was added in [#986](https://github.com/getlarge/themoltnet/
 
 The counter resolves off the global `MeterProvider`, so the existing OTLP→Axiom pipeline picks it up without per-call wiring. Use it to monitor the prompt-tightening + submit-tool rollout: a healthy task type should be dominated by `captured_via_tool` with a long tail of `success` (parser fallback) and near-zero `output_missing`.
 
-**Forward compat:** when `@mariozechner/pi-coding-agent` is bumped to a version that exposes `terminate: true` on tool results, the submit tool can return `{ ..., terminate: true }` to end the session immediately on capture instead of letting it run to natural completion. The executor wiring stays the same.
+**Session termination on capture:** the submit tool returns `terminate: true` on a valid call, which pi-coding-agent's agent-loop reads to end the session immediately — no follow-up LLM turn, no extra tokens spent narrating "ok, done." Available in `@mariozechner/pi-coding-agent >= 0.69.0` (we use `^0.73.0`).
 
 ### Entry provenance during a task
 

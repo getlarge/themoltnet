@@ -1,9 +1,6 @@
 /**
  * Per-task-type "submit output" tool that captures the validated payload
- * via a closure and surfaces it to the executor without depending on the
- * `terminate: true` tool-result field — that field is not exposed by the
- * pinned `@mariozechner/pi-coding-agent@0.67.68` (verified by grepping
- * the installed package; see issue #986 episodic diary entry).
+ * via a closure and surfaces it to the executor.
  *
  * Behaviour:
  *
@@ -15,14 +12,16 @@
  *      mid-session, not session-ending.
  *
  *   2. On a valid call, the validated args are stored in the captured
- *      reference exposed via `getCaptured()`. The tool returns a
- *      friendly "captured" message; the model may continue talking, but
- *      the executor treats `getCaptured()` as authoritative once the
- *      session resolves.
+ *      reference exposed via `getCaptured()` and the tool result returns
+ *      `terminate: true`. pi-coding-agent's agent-loop reads that flag
+ *      (see `@mariozechner/pi-agent-core` `agent-loop.ts:208,512`) and
+ *      ends the session immediately — no follow-up LLM turn, no extra
+ *      tokens spent narrating "ok, done."
  *
- *   3. If the model calls the tool more than once, the latest valid call
- *      wins. This matches "submit exactly once" semantics from the
- *      prompt while staying defensive against retries.
+ *   3. If the model somehow calls the tool more than once before
+ *      termination resolves, the latest valid call wins. This matches
+ *      "submit exactly once" semantics from the prompt while staying
+ *      defensive against retries.
  *
  * The model still has to *decide* to call the tool — pi-coding-agent's
  * `AgentLoopConfig` does not expose `toolChoice`, so we cannot force the
@@ -135,6 +134,7 @@ export function createSubmitOutputTool(
           },
         ],
         details,
+        terminate: true,
       };
     },
   }) as ToolDefinition<any, any>;
