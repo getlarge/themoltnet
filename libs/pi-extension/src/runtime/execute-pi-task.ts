@@ -455,6 +455,7 @@ export async function executePiTask(
       const parsed = await parseStructuredTaskOutput(
         assistantText,
         task.taskType,
+        { model: opts.model },
       );
       parsedOutput = parsed.output;
       parsedOutputCid = parsed.outputCid; // already computed in parseStructuredTaskOutput

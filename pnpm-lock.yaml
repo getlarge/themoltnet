@@ -1380,6 +1380,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
+      '@opentelemetry/sdk-metrics':
+        specifier: 'catalog:'
+        version: 2.5.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base':
         specifier: 'catalog:'
         version: 2.5.1(@opentelemetry/api@1.9.0)
