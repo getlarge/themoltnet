@@ -49,13 +49,25 @@ export abstract class PrincipalResolutionError extends Error {
   abstract readonly code:
     | 'PRINCIPAL_XOR_VIOLATED'
     | 'PRINCIPAL_MISSING'
-    | 'PRINCIPAL_AGENT_JOIN_FAILED';
+    | 'PRINCIPAL_AGENT_JOIN_FAILED'
+    | 'PRINCIPAL_AGENT_NOT_FOUND'
+    | 'PRINCIPAL_HUMAN_NOT_FOUND';
 
   constructor(
     message: string,
+    /**
+     * Structured payload that observability tooling can read off the
+     * error WITHOUT walking own-property names. All
+     * `PrincipalResolutionError` subtypes MUST stuff every relevant
+     * identifier in here — bare instance fields are dropped by some
+     * pino serializers and many error-tracking SDKs flatten only
+     * `{ message, name, code, context }`. If you add a new field,
+     * add it to `context`.
+     */
     public readonly context: {
       creatorAgentId: string | null;
       creatorHumanId: string | null;
+      missing?: { fingerprint: boolean; publicKey: boolean };
     },
   ) {
     super(message);
@@ -106,7 +118,7 @@ export class PrincipalAgentJoinFailedError extends PrincipalResolutionError {
 
   constructor(
     creatorAgentId: string,
-    public readonly missing: { fingerprint: boolean; publicKey: boolean },
+    missing: { fingerprint: boolean; publicKey: boolean },
   ) {
     const missingFields = [
       missing.fingerprint ? 'fingerprint' : null,
@@ -116,7 +128,43 @@ export class PrincipalAgentJoinFailedError extends PrincipalResolutionError {
       .join(', ');
     super(
       `PrincipalRow agent variant for creator_agent_id=${creatorAgentId} is missing ${missingFields} — the LEFT JOIN to agents returned no match. Either the FK target was deleted (impossible under ON DELETE RESTRICT) or the .leftJoin(agents, …) clause was omitted from the query.`,
+      { creatorAgentId, creatorHumanId: null, missing },
+    );
+  }
+}
+
+/**
+ * Looked up an agent by `creator_agent_id` against the `agents` table and
+ * got no row back. Distinct from `PrincipalAgentJoinFailedError`: that one
+ * fires when a JOIN-shaped query missed; THIS one fires when a separate
+ * SELECT against `agents` after-the-fact came back empty (e.g. the inflate
+ * path that re-queries by id). Either case implies the FK target was
+ * deleted out from under us — `ON DELETE RESTRICT` should make this
+ * impossible, so see this error == data corruption.
+ */
+export class PrincipalAgentNotFoundError extends PrincipalResolutionError {
+  readonly code = 'PRINCIPAL_AGENT_NOT_FOUND';
+
+  constructor(creatorAgentId: string) {
+    super(
+      `PrincipalRow agent variant for creator_agent_id=${creatorAgentId} not found in agents — the FK target was deleted out from under us (ON DELETE RESTRICT should make this impossible).`,
       { creatorAgentId, creatorHumanId: null },
+    );
+  }
+}
+
+/**
+ * Looked up a human by `creator_human_id` against the `humans` table and
+ * got no row back. Same semantics as `PrincipalAgentNotFoundError` but for
+ * the human side.
+ */
+export class PrincipalHumanNotFoundError extends PrincipalResolutionError {
+  readonly code = 'PRINCIPAL_HUMAN_NOT_FOUND';
+
+  constructor(creatorHumanId: string) {
+    super(
+      `PrincipalRow human variant for creator_human_id=${creatorHumanId} not found in humans — the FK target was deleted out from under us (ON DELETE RESTRICT should make this impossible).`,
+      { creatorAgentId: null, creatorHumanId },
     );
   }
 }

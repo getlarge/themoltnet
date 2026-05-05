@@ -25,8 +25,11 @@ import type {
   PrincipalIdentity,
 } from '@moltnet/database';
 import {
+  PrincipalAgentNotFoundError,
+  PrincipalHumanNotFoundError,
   PrincipalMissingError,
   PrincipalXorViolatedError,
+  resolvePrincipal,
 } from '@moltnet/database';
 
 /**
@@ -67,9 +70,6 @@ export interface RepositoryCreator {
 
 export function authContextToCreator(
   request: RequestWithAuthContext,
-  // Kept for backwards-compat with existing call sites; no longer used
-  // because humans.id is read directly from authContext.humanId.
-  _humans?: HumanRepository,
 ): RepositoryCreator {
   const ctx = request.authContext;
   if (!ctx) {
@@ -104,9 +104,7 @@ export async function inflateCreator(
   if (creator.kind === 'agent') {
     const agent = await deps.agentRepository.findByIdentityId(creator.id);
     if (!agent) {
-      throw new Error(
-        `inflateCreator: agent ${creator.id} not found — race with agent deletion?`,
-      );
+      throw new PrincipalAgentNotFoundError(creator.id);
     }
     return {
       kind: 'agent',
@@ -117,9 +115,7 @@ export async function inflateCreator(
   }
   const human = await deps.humanRepository.findById(creator.id);
   if (!human) {
-    throw new Error(
-      `inflateCreator: human ${creator.id} not found — race with human deletion?`,
-    );
+    throw new PrincipalHumanNotFoundError(creator.id);
   }
   return {
     kind: 'human',
@@ -233,41 +229,35 @@ export async function batchInflateRowsWithCreator<
 
   return rows.map((row) => {
     const { creatorAgentId: _a, creatorHumanId: _h, ...rest } = row;
-    let creator: PrincipalIdentity;
-    if (row.creatorAgentId && row.creatorHumanId) {
-      throw new PrincipalXorViolatedError(
-        row.creatorAgentId,
-        row.creatorHumanId,
-      );
+
+    // Project the in-memory batch lookup into the JOIN-shaped row that
+    // resolvePrincipal expects. Reusing resolvePrincipal here keeps a
+    // single source of truth for XOR / missing / join-failed handling
+    // and the typed PrincipalResolutionError hierarchy — anything else
+    // is a re-implementation that drifts.
+    const agent = row.creatorAgentId
+      ? (agentMap.get(row.creatorAgentId) ?? null)
+      : null;
+    if (row.creatorAgentId && !agent) {
+      // Lookup miss against the batched agents query — agents row was
+      // deleted under us (impossible under FK ON DELETE RESTRICT, so
+      // this == data corruption, not user input).
+      throw new PrincipalAgentNotFoundError(row.creatorAgentId);
     }
-    if (row.creatorAgentId) {
-      const agent = agentMap.get(row.creatorAgentId);
-      if (!agent) {
-        throw new Error(
-          `batchInflateRowsWithCreator: agent ${row.creatorAgentId} not found in batch lookup`,
-        );
-      }
-      creator = {
-        kind: 'agent',
-        identityId: agent.identityId,
-        fingerprint: agent.fingerprint,
-        publicKey: agent.publicKey,
-      };
-    } else if (row.creatorHumanId) {
-      const human = humanMap.get(row.creatorHumanId);
-      if (!human) {
-        throw new Error(
-          `batchInflateRowsWithCreator: human ${row.creatorHumanId} not found in batch lookup`,
-        );
-      }
-      creator = {
-        kind: 'human',
-        humanId: human.id,
-        identityId: human.identityId,
-      };
-    } else {
-      throw new PrincipalMissingError();
+    const human = row.creatorHumanId
+      ? (humanMap.get(row.creatorHumanId) ?? null)
+      : null;
+    if (row.creatorHumanId && !human) {
+      throw new PrincipalHumanNotFoundError(row.creatorHumanId);
     }
+
+    const creator = resolvePrincipal({
+      creatorAgentId: row.creatorAgentId,
+      creatorAgentFingerprint: agent?.fingerprint ?? null,
+      creatorAgentPublicKey: agent?.publicKey ?? null,
+      creatorHumanId: row.creatorHumanId,
+      creatorHumanIdentityId: human?.identityId ?? null,
+    });
     return { ...rest, creator };
   });
 }

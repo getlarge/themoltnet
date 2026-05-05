@@ -108,7 +108,11 @@ describe('resolvePrincipal', () => {
     expect(caught).toBeInstanceOf(PrincipalAgentJoinFailedError);
     const err = caught as PrincipalAgentJoinFailedError;
     expect(err.code).toBe('PRINCIPAL_AGENT_JOIN_FAILED');
-    expect(err.missing).toEqual({ fingerprint: true, publicKey: true });
+    // `missing` lives on `err.context`, not as a bare own-property —
+    // observability tooling and many pino serializers only walk the
+    // structured `context` payload, so anything that needs to survive
+    // the wire must live there.
+    expect(err.context.missing).toEqual({ fingerprint: true, publicKey: true });
     expect(err.context.creatorAgentId).toBe(
       '11111111-1111-1111-1111-111111111111',
     );
@@ -130,7 +134,7 @@ describe('resolvePrincipal', () => {
       caught = err;
     }
     expect(caught).toBeInstanceOf(PrincipalAgentJoinFailedError);
-    expect((caught as PrincipalAgentJoinFailedError).missing).toEqual({
+    expect((caught as PrincipalAgentJoinFailedError).context.missing).toEqual({
       fingerprint: false,
       publicKey: true,
     });

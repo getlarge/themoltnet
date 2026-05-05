@@ -3,10 +3,32 @@
 -- creator_agent_id + creator_human_id added), so we DROP and CREATE rather
 -- than CREATE OR REPLACE.
 --
+-- BREAKING CHANGE — RETURNS TABLE shape change. Callers that bind columns
+-- by ORDINAL POSITION (e.g. raw libpq with PQgetvalue(res, row, col_index))
+-- will silently read the wrong column once this migration applies. All
+-- in-tree callers select by name (`SELECT * FROM diary_search(...)` →
+-- drizzle row mappers keyed on column name), so they are safe; ANY
+-- external SQL client that hardcoded ordinals must be updated before
+-- deploying. There is no auto-rollback: this migration cannot be reverted
+-- in-place without a follow-up migration that re-CREATEs the prior
+-- signature, since `created_by` was already dropped from `diaries` and
+-- `diary_entries` by 0006_unified_principal_creator.sql. To revert in an
+-- emergency: (a) recreate created_by columns on the affected tables,
+-- (b) backfill from creator_agent_id/creator_human_id, (c) restore the
+-- prior diary_search() signature from git history.
+--
 -- The author_fingerprint / author_public_key projection still resolves via
--- diaries.creator_agent_id only (LEFT JOIN to agents). Human-created diaries
--- get NULL author info — same as the public_feed contract (humans don't
--- expose ed25519 keys to the feed today).
+-- diaries.creator_agent_id only (LEFT JOIN to agents) — NOT against the
+-- entry's creator. This is deliberate: today the feed surfaces the diary
+-- *owner* on every result, not the per-entry author, so an entry written
+-- by an agent into a human-owned diary still shows the diary owner's
+-- (NULL) signing material. If we ever want per-entry attribution on the
+-- feed, switch the LEFT JOIN to `agents a ON a.identity_id =
+-- de.creator_agent_id` and add a similar LEFT JOIN against humans for
+-- the human-creator case.
+--
+-- Human-created diaries get NULL author info — same as the public_feed
+-- contract (humans don't expose ed25519 keys to the feed today).
 --
 -- See diary entries:
 --   c2ec5a9e-7ee5-442e-acb8-38e9c15c0c69 (semantic decision)

@@ -210,10 +210,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           );
         }
 
-        const entryCreator = authContextToCreator(
-          request,
-          fastify.humanRepository,
-        );
+        const entryCreator = authContextToCreator(request);
         const entry = await fastify.diaryService.createEntry(
           {
             diaryId,

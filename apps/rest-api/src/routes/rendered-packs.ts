@@ -159,10 +159,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           );
         }
 
-        const renderCreator = authContextToCreator(
-          request,
-          fastify.humanRepository,
-        );
+        const renderCreator = authContextToCreator(request);
         const result = await fastify.contextPackService.createRenderedPack({
           sourcePackId: request.params.id,
           renderedMarkdown,

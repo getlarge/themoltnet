@@ -38,44 +38,54 @@ ALTER TABLE team_invites
 -- via the REST API today are tracked in `humans` but their `created_by` UUID
 -- on these resource tables is the Kratos identity_id. If any such rows exist
 -- they require manual backfill against `humans.identity_id` -> `humans.id`.
+--
+-- NOTE: NOT EXISTS (correlated subquery), not NOT IN (subquery). Postgres
+-- treats `x NOT IN (SELECT col FROM t)` as UNKNOWN whenever `col` contains
+-- a NULL — meaning the WHERE clause silently drops EVERY row, the orphan
+-- count comes back 0, and the backfill UPDATEs run on data that should
+-- have aborted. `agents.identity_id` is NOT NULL today, but this migration
+-- has to remain correct under any future relaxation of that constraint.
+-- NOT EXISTS is unaffected by NULLs and is cheaper besides.
+--
+-- Each affected table is reported by name in the error message so an
+-- operator can run the targeted backfill without grepping for which
+-- table tripped the check — the previous version printed a single
+-- aggregate count and a literal "<table>" placeholder.
 DO $$
 DECLARE
-  orphan_count integer;
+  orphan_diaries        integer;
+  orphan_diary_entries  integer;
+  orphan_context_packs  integer;
+  orphan_rendered_packs integer;
+  orphan_teams          integer;
+  orphan_groups         integer;
+  orphan_team_invites   integer;
+  affected text[] := ARRAY[]::text[];
 BEGIN
-  SELECT count(*) INTO orphan_count FROM (
-    SELECT created_by FROM diaries
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-    UNION ALL
-    SELECT created_by FROM diary_entries
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-    UNION ALL
-    SELECT created_by FROM context_packs
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-    UNION ALL
-    SELECT created_by FROM rendered_packs
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-    UNION ALL
-    SELECT created_by FROM teams
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-    UNION ALL
-    SELECT created_by FROM groups
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-    UNION ALL
-    SELECT created_by FROM team_invites
-      WHERE created_by NOT IN (SELECT identity_id FROM agents)
-  ) orphans;
+  SELECT count(*) INTO orphan_diaries        FROM diaries        d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_diary_entries  FROM diary_entries  d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_context_packs  FROM context_packs  d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_rendered_packs FROM rendered_packs d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_teams          FROM teams          d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_groups         FROM groups         d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
+  SELECT count(*) INTO orphan_team_invites   FROM team_invites   d WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = d.created_by);
 
-  IF orphan_count > 0 THEN
-    RAISE EXCEPTION
-      'Migration aborted: % rows have created_by values not found in agents. '
-      'If any of these belong to human users, run the following backfill BEFORE '
-      're-running this migration (repeat per affected table):\n'
-      '  UPDATE <table> SET creator_human_id = h.id '
-      '    FROM humans h WHERE h.identity_id = <table>.created_by;\n'
-      'Then re-run the migration. To inspect the offending rows: '
-      '  SELECT created_by FROM <table> '
-      '    WHERE created_by NOT IN (SELECT identity_id FROM agents);',
-      orphan_count;
+  IF orphan_diaries        > 0 THEN affected := array_append(affected, format('diaries (%s)',        orphan_diaries));        END IF;
+  IF orphan_diary_entries  > 0 THEN affected := array_append(affected, format('diary_entries (%s)',  orphan_diary_entries));  END IF;
+  IF orphan_context_packs  > 0 THEN affected := array_append(affected, format('context_packs (%s)',  orphan_context_packs));  END IF;
+  IF orphan_rendered_packs > 0 THEN affected := array_append(affected, format('rendered_packs (%s)', orphan_rendered_packs)); END IF;
+  IF orphan_teams          > 0 THEN affected := array_append(affected, format('teams (%s)',          orphan_teams));          END IF;
+  IF orphan_groups         > 0 THEN affected := array_append(affected, format('groups (%s)',         orphan_groups));         END IF;
+  IF orphan_team_invites   > 0 THEN affected := array_append(affected, format('team_invites (%s)',   orphan_team_invites));   END IF;
+
+  IF array_length(affected, 1) > 0 THEN
+    -- E'...' (escape-string syntax) on the WHOLE concatenated literal so
+    -- the embedded \n sequences are interpreted as newlines. Postgres
+    -- only honors backslash escapes inside E'...'; mixing 'plain' and
+    -- E'plain' literals across line continuations produces a parse
+    -- error at the first non-E continuation, which is what we hit.
+    RAISE EXCEPTION E'Migration aborted: rows have created_by values not found in agents. Affected tables: %. If any of these belong to human users, run the following backfill BEFORE re-running this migration (substitute the actual table name from the affected list):\n  UPDATE <affected_table> SET creator_human_id = h.id\n    FROM humans h WHERE h.identity_id = <affected_table>.created_by;\nThen re-run the migration. To inspect the offending rows:\n  SELECT created_by FROM <affected_table>\n    WHERE NOT EXISTS (SELECT 1 FROM agents a WHERE a.identity_id = <affected_table>.created_by);',
+      array_to_string(affected, ', ');
   END IF;
 END $$;
 
@@ -97,6 +107,20 @@ ALTER TABLE groups         ADD CONSTRAINT groups_creator_xor         CHECK ((cre
 ALTER TABLE team_invites   ADD CONSTRAINT team_invites_creator_xor   CHECK ((creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL));
 
 -- 4. Drop the old indexes and columns.
+--
+-- Index drop ordering: this section drops indexes BEFORE the new ones in
+-- step 5 are created. That is intentional — DROP INDEX takes a brief
+-- ACCESS EXCLUSIVE lock on the underlying table; sequencing it first
+-- (rather than interleaving with CREATE INDEX) keeps the lock window
+-- minimal and avoids unrelated CREATE INDEX failures from rolling back
+-- a successful drop. There is a small read-perf gap between the drops
+-- here and the CREATE INDEX in step 5 — acceptable because: (a) every
+-- existing query that targeted the old `created_by` index now targets
+-- the new `creator_agent_id` filtered index that planner-rewrites the
+-- same way, (b) this migration only runs once per environment, and
+-- (c) the table column `created_by` is dropped in this same step, so
+-- the old index would be deleted by Postgres on the next ALTER anyway —
+-- explicit DROP INDEX just makes the order legible.
 DROP INDEX IF EXISTS diaries_created_by_idx;
 DROP INDEX IF EXISTS diaries_created_by_visibility_idx;
 DROP INDEX IF EXISTS diary_entries_created_by_idx;

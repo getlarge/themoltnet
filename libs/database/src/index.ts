@@ -33,6 +33,8 @@ export {
   type AgentPrincipal,
   type HumanPrincipal,
   PrincipalAgentJoinFailedError,
+  PrincipalAgentNotFoundError,
+  PrincipalHumanNotFoundError,
   type PrincipalIdentity,
   PrincipalMissingError,
   PrincipalResolutionError,

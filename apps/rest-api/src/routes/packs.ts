@@ -395,10 +395,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       // a DBOS workflow with retry/compensation semantics, matching the compile
       // flow. Keto is an external side effect and cannot be made atomic with
       // the Postgres transaction in this route handler.
-      const packCreator = authContextToCreator(
-        request,
-        fastify.humanRepository,
-      );
+      const packCreator = authContextToCreator(request);
       const pack = await fastify.dataSource.runTransaction(async () => {
         const createdPack = await fastify.contextPackRepository.createPack({
           diaryId: diary.id,
