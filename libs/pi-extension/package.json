@@ -49,8 +49,8 @@
     "@themoltnet/sdk": "workspace:*"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": ">=0.67.0",
-    "@mariozechner/pi-ai": ">=0.67.0"
+    "@mariozechner/pi-coding-agent": ">=0.73.0",
+    "@mariozechner/pi-ai": ">=0.73.0"
   },
   "peerDependenciesMeta": {
     "@mariozechner/pi-coding-agent": {
@@ -64,6 +64,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@mariozechner/pi-ai": "catalog:",
     "@mariozechner/pi-coding-agent": "catalog:",
+    "@opentelemetry/sdk-metrics": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:",

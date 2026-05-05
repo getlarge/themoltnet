@@ -27,9 +27,10 @@ type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
 /**
  * Active-task context. When present, `moltnet_create_entry` is forced to
  * land entries in `diaryId` (the task diary), regardless of the env-derived
- * diary, and auto-injects provenance tags (`task:<id>`, `task_type:<type>`,
- * `task_attempt:<n>`, and `correlation:<id>` when the task carries one).
- * See issue #979.
+ * diary, and auto-injects provenance tags under the `task:*` namespace
+ * (`task:id:<id>`, `task:type:<type>`, `task:attempt:<n>`, and
+ * `task:correlation:<id>` when the task carries one). See issue #979 +
+ * the #986 follow-up that introduced the namespace.
  */
 export interface MoltNetTaskContext {
   taskId: string;
@@ -37,9 +38,10 @@ export interface MoltNetTaskContext {
   attemptN: number;
   diaryId: string;
   /**
-   * Optional correlation id. When set, propagated as a `correlation:<id>`
-   * provenance tag so all entries from a multi-task workflow can be
-   * grouped without enumerating individual task ids.
+   * Optional correlation id. When set, propagated as a
+   * `task:correlation:<id>` provenance tag so all entries from a
+   * multi-task workflow can be grouped without enumerating individual
+   * task ids.
    */
   correlationId: string | null;
 }
@@ -92,6 +94,33 @@ function ensureConnected(config: MoltNetToolsConfig) {
   const diaryId = config.getDiaryId();
   if (!agent || !diaryId) throw new Error('MoltNet not connected');
   return { agent, diaryId, teamId: config.getTeamId() ?? '' };
+}
+
+interface TaskFilterShorthand {
+  taskId?: string;
+  taskType?: string;
+  correlationId?: string;
+  attemptN?: number;
+}
+
+/**
+ * Expand the `taskFilter` shorthand on the diary list/search tools into
+ * the matching `task:*` provenance tags emitted by `moltnet_create_entry`
+ * during a task. Returning an array (possibly empty) lets callers spread
+ * it into a larger `tags` AND-filter without conditionals.
+ */
+export function compileTaskFilterTags(
+  filter: TaskFilterShorthand | undefined,
+): string[] {
+  if (!filter) return [];
+  const tags: string[] = [];
+  if (filter.taskId) tags.push(`task:id:${filter.taskId}`);
+  if (filter.taskType) tags.push(`task:type:${filter.taskType}`);
+  if (filter.correlationId)
+    tags.push(`task:correlation:${filter.correlationId}`);
+  if (typeof filter.attemptN === 'number')
+    tags.push(`task:attempt:${filter.attemptN}`);
+  return tags;
 }
 
 /**
@@ -582,18 +611,49 @@ export function createMoltNetTools(
     name: 'moltnet_list_entries',
     label: 'List MoltNet Diary Entries',
     description:
-      'List entries from the MoltNet diary. When `entryIds` is provided, batch-fetches those specific entries (max 50) and returns full fields including entryType, contentSignature, and contentHash for signature checks. Otherwise returns recent entries with a content preview.',
+      'List entries from the MoltNet diary. When `entryIds` is provided, batch-fetches those specific entries (max 50) and returns full fields including entryType, contentSignature, and contentHash for signature checks. Otherwise returns recent entries with a content preview, filtered by any combination of tags (AND), excludeTags (NONE), entryType, and the taskFilter shorthand which expands into the right `task:*` tags.',
     parameters: Type.Object({
       limit: Type.Optional(
         Type.Number({ description: 'Max entries to return (default 10)' }),
       ),
-      tag: Type.Optional(
-        Type.String({ description: 'Filter by tag (optional)' }),
+      tags: Type.Optional(
+        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
+          description:
+            'Tags filter — entry must have ALL listed tags (AND). Max 20.',
+          maxItems: 20,
+        }),
+      ),
+      excludeTags: Type.Optional(
+        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
+          description:
+            'Tags to exclude — entry must have NONE of these. Max 20.',
+          maxItems: 20,
+        }),
+      ),
+      entryType: Type.Optional(
+        Type.String({
+          description:
+            'Filter by entry type (procedural, semantic, episodic, reflection, identity, soul).',
+        }),
+      ),
+      taskFilter: Type.Optional(
+        Type.Object(
+          {
+            taskId: Type.Optional(Type.String()),
+            taskType: Type.Optional(Type.String()),
+            correlationId: Type.Optional(Type.String()),
+            attemptN: Type.Optional(Type.Number()),
+          },
+          {
+            description:
+              'Shorthand: any combination compiles to the matching task:* tags (task:id:<id>, task:type:<type>, task:correlation:<id>, task:attempt:<n>) and is merged into the tags filter.',
+          },
+        ),
       ),
       entryIds: Type.Optional(
         Type.Array(Type.String(), {
           description:
-            'Batch-fetch specific entries by UUID (max 50). Overrides `limit` and `tag` for selection.',
+            'Batch-fetch specific entries by UUID (max 50). Overrides every other filter.',
           maxItems: 50,
         }),
       ),
@@ -609,7 +669,11 @@ export function createMoltNetTools(
         query.ids = params.entryIds;
       } else {
         query.limit = params.limit ?? 10;
-        if (params.tag) query.tag = params.tag;
+        const expandedTags = compileTaskFilterTags(params.taskFilter);
+        const allTags = [...(params.tags ?? []), ...expandedTags];
+        if (allTags.length) query.tags = allTags;
+        if (params.excludeTags?.length) query.excludeTags = params.excludeTags;
+        if (params.entryType) query.entryType = params.entryType;
       }
 
       const entries = await agent.entries.list(diaryId, query);
@@ -676,7 +740,12 @@ export function createMoltNetTools(
     name: 'moltnet_search_entries',
     label: 'Search MoltNet Diary Entries',
     description:
-      'Search diary entries by semantic query. Uses vector similarity to find relevant entries.',
+      'Hybrid (semantic + lexical) search over diary entries. ' +
+      'Optional tags / excludeTags / entryTypes filters AND with the ' +
+      'query; the taskFilter shorthand expands into task:* provenance ' +
+      'tags so `taskFilter: { taskType: "fulfill_brief" }` returns only ' +
+      'entries from fulfill_brief attempts. Filters apply server-side ' +
+      'before ranking.',
     parameters: Type.Object({
       query: Type.String({
         description: 'Natural language search query',
@@ -684,13 +753,58 @@ export function createMoltNetTools(
       limit: Type.Optional(
         Type.Number({ description: 'Max results (default 5)' }),
       ),
+      tags: Type.Optional(
+        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
+          description: 'Entry must have ALL listed tags (AND). Max 20.',
+          maxItems: 20,
+        }),
+      ),
+      excludeTags: Type.Optional(
+        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
+          description: 'Entry must have NONE of these tags. Max 20.',
+          maxItems: 20,
+        }),
+      ),
+      entryTypes: Type.Optional(
+        Type.Array(Type.String(), {
+          description:
+            'Restrict to these entry types (procedural, semantic, episodic, reflection, identity, soul). Max 6.',
+          maxItems: 6,
+        }),
+      ),
+      taskFilter: Type.Optional(
+        Type.Object(
+          {
+            taskId: Type.Optional(Type.String()),
+            taskType: Type.Optional(Type.String()),
+            correlationId: Type.Optional(Type.String()),
+            attemptN: Type.Optional(Type.Number()),
+          },
+          {
+            description:
+              'Shorthand: any combination compiles to the matching task:* tags and is merged into the tags filter.',
+          },
+        ),
+      ),
     }),
     async execute(_id, params) {
       const { agent, diaryId } = ensureConnected(config);
+      const expandedTags = compileTaskFilterTags(params.taskFilter);
+      const allTags = [...(params.tags ?? []), ...expandedTags];
       const results = await agent.entries.search({
         diaryId,
         query: params.query,
         limit: params.limit ?? 5,
+        ...(allTags.length ? { tags: allTags } : {}),
+        ...(params.excludeTags?.length
+          ? { excludeTags: params.excludeTags }
+          : {}),
+        // The model-facing TypeBox schema accepts free-form strings to
+        // give the LLM a useful error if it picks a non-canonical type;
+        // the SDK enforces the literal union. Cast here is the seam.
+        ...(params.entryTypes?.length
+          ? { entryTypes: params.entryTypes as never }
+          : {}),
       });
       const text = JSON.stringify(
         results.results?.map((e: Record<string, unknown>) => ({
@@ -714,8 +828,9 @@ export function createMoltNetTools(
     description:
       'Create a new diary entry to record decisions, findings, incidents, or reflections. ' +
       'During an active task, the entry is forced into the task diary and tagged with ' +
-      'task:<id>, task_type:<type>, task_attempt:<n>, and correlation:<id> when set; an explicit diaryId mismatching the task ' +
-      'diary is rejected.',
+      'the task:* provenance namespace (task:id:<id>, task:type:<type>, ' +
+      'task:attempt:<n>, plus task:correlation:<id> when set); an explicit diaryId ' +
+      'mismatching the task diary is rejected.',
     parameters: Type.Object({
       title: Type.String({
         description: 'Entry title (concise, descriptive)',
@@ -752,12 +867,16 @@ export function createMoltNetTools(
           );
         }
         targetDiaryId = taskCtx.diaryId;
+        // task:* namespace — see docs/agent-runtime.md "Task provenance
+        // tags" for the full convention. All task-related provenance
+        // shares this prefix so `moltnet_diary_tags --prefix task:` and
+        // `moltnet_list_entries --tags task:type:<type>` filter cleanly.
         autoTags = [
-          `task:${taskCtx.taskId}`,
-          `task_type:${taskCtx.taskType}`,
-          `task_attempt:${taskCtx.attemptN}`,
+          `task:id:${taskCtx.taskId}`,
+          `task:type:${taskCtx.taskType}`,
+          `task:attempt:${taskCtx.attemptN}`,
           ...(taskCtx.correlationId
-            ? [`correlation:${taskCtx.correlationId}`]
+            ? [`task:correlation:${taskCtx.correlationId}`]
             : []),
         ];
       } else {

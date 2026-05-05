@@ -26,12 +26,16 @@ describe('runtime instructor', () => {
     expect(out).toMatch(/GIT_CONFIG_GLOBAL/);
   });
 
-  it('declares the diary discipline invariant', () => {
+  it('declares the diary discipline invariant with the task:* tag namespace', () => {
     const out = buildRuntimeInstructor(ctx);
     expect(out).toContain('moltnet_create_entry');
-    expect(out).toContain('task:task-abc');
-    expect(out).toContain('task_type:fulfill_brief');
-    expect(out).toContain('task_attempt:1');
+    expect(out).toContain('task:id:task-abc');
+    expect(out).toContain('task:type:fulfill_brief');
+    expect(out).toContain('task:attempt:1');
+    // Old flat-prefix scheme must not leak into the prompt — agents
+    // would otherwise produce conflicting freeform tags.
+    expect(out).not.toMatch(/`task_type:/);
+    expect(out).not.toMatch(/`task_attempt:/);
   });
 
   it('declares the accountable-commit trailer shape', () => {
@@ -45,13 +49,13 @@ describe('runtime instructor', () => {
     expect(out).toMatch(/advisory/i);
   });
 
-  it('mentions correlation:<id> when the task carries a correlationId', () => {
+  it('mentions task:correlation:<id> when the task carries a correlationId', () => {
     const out = buildRuntimeInstructor({ ...ctx, correlationId: 'corr-xyz' });
-    expect(out).toContain('correlation:corr-xyz');
+    expect(out).toContain('task:correlation:corr-xyz');
   });
 
   it('omits the correlation tag when correlationId is null', () => {
     const out = buildRuntimeInstructor(ctx); // correlationId: null
-    expect(out).not.toMatch(/correlation:/);
+    expect(out).not.toMatch(/task:correlation:/);
   });
 });

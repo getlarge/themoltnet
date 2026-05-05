@@ -29,6 +29,7 @@ import {
   DefaultResourceLoader,
   SessionManager,
 } from '@mariozechner/pi-coding-agent';
+import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   buildPromptForTask,
   type ClaimedTask,
@@ -53,7 +54,11 @@ import {
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
-import { parseStructuredTaskOutput } from './task-output.js';
+import { resolveSubmitTools } from './submit-output-tool.js';
+import {
+  parseStructuredTaskOutput,
+  recordTaskOutputParseResult,
+} from './task-output.js';
 
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
@@ -268,6 +273,16 @@ export async function executePiTask(
       }),
     ] as unknown as ToolDefinition[];
 
+    // Per-task-type submit-output tool. Captured payload (when the
+    // model calls the tool with valid args) becomes the authoritative
+    // output; the parser fallback is only consulted when the model
+    // never calls the tool, OR when the task type has no registered
+    // output schema (resolveSubmitTools returns null).
+    const { handle: submitToolHandle, tools: submitToolDefs } =
+      resolveSubmitTools(task.taskType, { model: opts.model });
+    const submitTools: ToolDefinition[] =
+      submitToolDefs as unknown as ToolDefinition[];
+
     try {
       const moltnetAgent = await connect({ configDir: managed.agentDir });
       // Build the host-exec env allowlist: default keys + all agent env keys
@@ -347,7 +362,7 @@ export async function executePiTask(
         agentDir: piAuthDir,
         cwd: mountPath,
         model: modelHandle,
-        customTools: [...gondolinCustomTools, ...moltnetTools],
+        customTools: [...gondolinCustomTools, ...moltnetTools, ...submitTools],
         sessionManager: SessionManager.inMemory(),
         resourceLoader,
       });
@@ -452,18 +467,53 @@ export async function executePiTask(
     let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
     if (!runError && !llmAbort && !cancelled) {
-      const parsed = await parseStructuredTaskOutput(
-        assistantText,
-        task.taskType,
-      );
-      parsedOutput = parsed.output;
-      parsedOutputCid = parsed.outputCid; // already computed in parseStructuredTaskOutput
-      parseError = parsed.error;
-      if (parseError) {
-        await emit('error', {
-          message: parseError.message,
-          phase: 'output_validation',
-        });
+      // Prefer the submit-tool's captured payload over the parser path.
+      // The submit-tool already validated args against the task type's
+      // output schema; if the model called it successfully we trust the
+      // captured value and skip parsing the trailing assistant text.
+      const captured = submitToolHandle?.getCaptured() ?? null;
+      if (captured) {
+        try {
+          parsedOutput = captured;
+          parsedOutputCid = await computeJsonCid(captured);
+          recordTaskOutputParseResult({
+            taskType: task.taskType,
+            model: opts.model,
+            code: 'captured_via_tool',
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          parsedOutput = null;
+          parsedOutputCid = null;
+          parseError = {
+            code: 'output_cid_compute_failed',
+            message: `Captured submit-tool output could not be canonicalized: ${message}`,
+          };
+          recordTaskOutputParseResult({
+            taskType: task.taskType,
+            model: opts.model,
+            code: 'output_cid_compute_failed',
+          });
+          await emit('error', {
+            message: parseError.message,
+            phase: 'output_validation',
+          });
+        }
+      } else {
+        const parsed = await parseStructuredTaskOutput(
+          assistantText,
+          task.taskType,
+          { model: opts.model },
+        );
+        parsedOutput = parsed.output;
+        parsedOutputCid = parsed.outputCid;
+        parseError = parsed.error;
+        if (parseError) {
+          await emit('error', {
+            message: parseError.message,
+            phase: 'output_validation',
+          });
+        }
       }
     }
 

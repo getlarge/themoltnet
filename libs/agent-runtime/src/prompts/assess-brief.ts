@@ -1,5 +1,7 @@
 import type { AssessBriefInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   taskId: string;
@@ -72,6 +74,20 @@ export function buildAssessBriefPrompt(
     '   - `summary` set → use as orientation, not as ground truth.',
     "Adapt your investigation to whatever the output actually contains. Score conservatively when the producer's output is opaque or thin.",
     '',
+    "### Querying the producer's diary entries",
+    '',
+    `Beyond the explicit \`diaryEntryIds[]\` from step 3, the producer's`,
+    'attempts auto-tag every entry with the `task:*` provenance namespace.',
+    'You can pull the full set without enumerating ids by passing the',
+    '`taskFilter` shorthand to `moltnet_list_entries` or',
+    '`moltnet_search_entries`:',
+    '',
+    `- All entries from the producer task: \`taskFilter: { taskId: "${input.targetTaskId}" }\`.`,
+    '- Just the accepted attempt: add `attemptN: <acceptedAttemptN>`.',
+    '- The producer plus any prior chain (when a correlationId was set):',
+    '  read it from the task you fetched in step 1 and pass',
+    '  `taskFilter: { correlationId: "<id>" }`.',
+    '',
     preambleSection,
     '## Criteria',
     '',
@@ -83,12 +99,25 @@ export function buildAssessBriefPrompt(
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
     '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry returned by step 3 above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
     '',
-    '### Final output',
+    'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before reporting structured output.',
     '',
-    'Emit a JSON object matching `AssessBriefOutput`:',
-    '  { "scores": [{criterionId, score, rationale?, evidence?}], "composite", "verdict", "judgeModel"? }',
-    '`composite` = Σ(weight_i × score_i) recomputed. The runtime will reject a mismatch.',
-    'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before emitting the JSON.',
+    buildFinalOutputBlock({
+      taskType: 'assess_brief',
+      outputSchemaName: 'AssessBriefOutput',
+      shapeSketch: [
+        '{',
+        '  "scores": [',
+        '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }',
+        '  ],',
+        '  "composite": <sum>,',
+        '  "verdict": "<1-3 sentence overall>",',
+        '  "judgeModel": "<provider:model>"',
+        '}',
+      ].join('\n'),
+      extraNotes: [
+        '`composite` = Σ(weight_i × score_i) recomputed. The runtime rejects a mismatch.',
+      ],
+    }),
   ];
 
   return lines.filter(Boolean).join('\n');

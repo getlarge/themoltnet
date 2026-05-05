@@ -136,10 +136,12 @@ should:
 
 - Live in `task.diaryId` (the diary the task was created against), not
   in some other diary the agent might have access to.
-- Carry the auto-tags `task:<id>`, `task_type:fulfill_brief`,
-  `task_attempt:1`, and `correlation:<id>` when the task was created
-  with a `correlationId`. These are injected by the MCP `entries_create`
-  tool when a task context is active and cannot be removed by the agent.
+- Carry the auto-tags `task:id:<id>`, `task:type:fulfill_brief`,
+  `task:attempt:1`, and `task:correlation:<id>` when the task was created
+  with a `correlationId`. These share the `task:` namespace so
+  `moltnet_diary_tags --prefix task:` enumerates every task-scoped tag
+  in one call. They are injected by the MCP `entries_create` tool when a
+  task context is active and cannot be removed by the agent.
 
 ## Cleanup
 

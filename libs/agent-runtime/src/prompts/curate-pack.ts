@@ -1,5 +1,7 @@
 import type { CuratePackInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   taskId: string;
@@ -118,9 +120,16 @@ export function buildCuratePackPrompt(
     '## Tools available (not a recipe — use what the situation calls for)',
     '',
     '- `moltnet_diary_tags` — tag inventory with counts. Cheap reconnaissance',
-    '  when the prompt implies a scope but not a tag.',
+    '  when the prompt implies a scope but not a tag. Pass',
+    '  `prefix: "task:"` to enumerate task-provenance tags only',
+    '  (`task:type:*`, `task:correlation:*`, etc.).',
     '- `moltnet_search_entries` — hybrid semantic + lexical search.',
-    '- `moltnet_list_entries` — tag-filtered listing.',
+    '  Filters AND with the query: pass `tags`, `excludeTags`,',
+    '  `entryTypes`, or the `taskFilter` shorthand to narrow before',
+    '  ranking. Example: `taskFilter: { taskType: "fulfill_brief" }`',
+    '  returns only entries from fulfill_brief attempts.',
+    '- `moltnet_list_entries` — multi-tag (AND) listing with optional',
+    '  `excludeTags`, `entryType`, and the same `taskFilter` shorthand.',
     '- `moltnet_get_entry` — full entry read, for disambiguation.',
     '- `moltnet_pack_create` — terminal call that persists the pack.',
     '',
@@ -178,24 +187,24 @@ export function buildCuratePackPrompt(
     '  output, not in the diary.',
     '- Respect hard include/exclude filters literally.',
     '',
-    '## Final output',
-    '',
-    'Write to stdout a JSON object matching `CuratePackOutput`:',
-    '```',
-    '{',
-    '  "packId": "<uuid>",',
-    '  "packCid": "<cid>",',
-    '  "entries": [',
-    '    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }',
-    '  ],',
-    '  "recipeParams": { "recipe": "...", "prompt": "...", ... },',
-    '  "checkpoints": [',
-    '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
-    '  ],',
-    '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>"',
-    '}',
-    '```',
-    'The runtime parses this. Failing to emit it is a task failure.',
+    buildFinalOutputBlock({
+      taskType: 'curate_pack',
+      outputSchemaName: 'CuratePackOutput',
+      shapeSketch: [
+        '{',
+        '  "packId": "<uuid>",',
+        '  "packCid": "<cid>",',
+        '  "entries": [',
+        '    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }',
+        '  ],',
+        '  "recipeParams": { "recipe": "...", "prompt": "...", ... },',
+        '  "checkpoints": [',
+        '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
+        '  ],',
+        '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>"',
+        '}',
+      ].join('\n'),
+    }),
   ];
 
   return lines.filter((l): l is string => l !== null).join('\n');

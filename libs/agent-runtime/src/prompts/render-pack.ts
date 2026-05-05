@@ -1,5 +1,7 @@
 import type { RenderPackInput } from '@moltnet/tasks';
 
+import { buildFinalOutputBlock } from './final-output.js';
+
 interface Ctx {
   diaryId: string;
   taskId: string;
@@ -49,20 +51,20 @@ export function buildRenderPackPrompt(
     '- Do NOT write diary entries unless a genuine incident occurs',
     '  (rendering failure, invariant violation).',
     '',
-    '## Final output',
-    '',
-    'Write to stdout a JSON object matching `RenderPackOutput`:',
-    '```',
-    '{',
-    '  "renderedPackId": "<uuid-or-null>",',
-    '  "renderedCid": "<cid>",',
-    '  "renderMethod": "<label>",',
-    '  "byteSize": <int>,',
-    '  "entriesRendered": <int>,',
-    '  "summary": "<1-3 sentence recap>"',
-    '}',
-    '```',
-    'Failing to emit it is a task failure.',
+    buildFinalOutputBlock({
+      taskType: 'render_pack',
+      outputSchemaName: 'RenderPackOutput',
+      shapeSketch: [
+        '{',
+        '  "renderedPackId": "<uuid-or-null>",',
+        '  "renderedCid": "<cid>",',
+        '  "renderMethod": "<label>",',
+        '  "byteSize": <int>,',
+        '  "entriesRendered": <int>,',
+        '  "summary": "<1-3 sentence recap>"',
+        '}',
+      ].join('\n'),
+    }),
   ];
 
   return lines.join('\n');

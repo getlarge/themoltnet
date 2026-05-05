@@ -5,10 +5,34 @@
  * e2e once we have one that exercises pi against a real task type.
  */
 import { computeJsonCid } from '@moltnet/crypto-service';
-import { describe, expect, it, vi } from 'vitest';
+import { metrics } from '@opentelemetry/api';
+import {
+  AggregationTemporality,
+  type CollectionResult,
+  MeterProvider,
+  MetricReader,
+} from '@opentelemetry/sdk-metrics';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { wireSessionAbort } from './execute-pi-task.js';
-import { extractJsonObject, parseStructuredTaskOutput } from './task-output.js';
+import {
+  __resetTaskOutputCounterForTests,
+  extractJsonObject,
+  parseStructuredTaskOutput,
+  recordTaskOutputParseResult,
+  type TaskOutputParseCode,
+} from './task-output.js';
+
+class CollectingReader extends MetricReader {
+  protected async onShutdown(): Promise<void> {}
+  protected async onForceFlush(): Promise<void> {}
+  selectAggregationTemporality(): AggregationTemporality {
+    return AggregationTemporality.CUMULATIVE;
+  }
+  async snapshot(): Promise<CollectionResult> {
+    return this.collect();
+  }
+}
 
 describe('extractJsonObject', () => {
   it('returns null for empty input', () => {
@@ -118,6 +142,145 @@ describe('parseStructuredTaskOutput', () => {
     expect(result.error).toEqual({
       code: 'unknown_task_type',
       message: expect.stringContaining('Unknown task type'),
+    });
+  });
+});
+
+describe('agent_runtime.task_output.parse_result counter', () => {
+  let provider: MeterProvider;
+  let reader: CollectingReader;
+
+  beforeEach(() => {
+    reader = new CollectingReader();
+    provider = new MeterProvider({ readers: [reader] });
+    metrics.setGlobalMeterProvider(provider);
+    __resetTaskOutputCounterForTests();
+  });
+
+  afterEach(async () => {
+    await provider.shutdown();
+    metrics.disable();
+    __resetTaskOutputCounterForTests();
+  });
+
+  type DataPoint = {
+    attributes: Record<string, unknown>;
+    value: number;
+  };
+  type Snapshot = Record<TaskOutputParseCode, DataPoint[]>;
+
+  async function snapshotByCode(): Promise<Snapshot> {
+    const collected = await reader.snapshot();
+    const out: Snapshot = {
+      success: [],
+      output_missing: [],
+      output_validation_failed: [],
+      unknown_task_type: [],
+      output_cid_compute_failed: [],
+      captured_via_tool: [],
+    };
+    for (const sm of collected.resourceMetrics.scopeMetrics) {
+      for (const m of sm.metrics) {
+        if (m.descriptor.name !== 'agent_runtime.task_output.parse_result') {
+          continue;
+        }
+        for (const dp of m.dataPoints) {
+          const code = dp.attributes.code as TaskOutputParseCode;
+          out[code].push({
+            attributes: { ...dp.attributes },
+            value: dp.value as number,
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  it('increments `success` with task_type + model labels on a valid payload', async () => {
+    const output = {
+      branch: 'feat/x',
+      commits: [],
+      pullRequestUrl: null,
+      diaryEntryIds: [],
+      summary: 's',
+    };
+    await parseStructuredTaskOutput(JSON.stringify(output), 'fulfill_brief', {
+      model: 'claude-sonnet-4-6',
+    });
+    const snap = await snapshotByCode();
+    expect(snap.success).toHaveLength(1);
+    expect(snap.success[0].attributes).toMatchObject({
+      task_type: 'fulfill_brief',
+      model: 'claude-sonnet-4-6',
+      code: 'success',
+    });
+    expect(snap.success[0].value).toBe(1);
+  });
+
+  it('increments `output_missing` when no JSON is present', async () => {
+    await parseStructuredTaskOutput('ok done', 'fulfill_brief', {
+      model: 'm',
+    });
+    const snap = await snapshotByCode();
+    expect(snap.output_missing).toHaveLength(1);
+    expect(snap.output_missing[0].attributes.code).toBe('output_missing');
+  });
+
+  it('increments `output_validation_failed` on schema mismatch', async () => {
+    await parseStructuredTaskOutput(
+      JSON.stringify({ branch: 123 }),
+      'fulfill_brief',
+      { model: 'm' },
+    );
+    const snap = await snapshotByCode();
+    expect(snap.output_validation_failed).toHaveLength(1);
+  });
+
+  it('increments `unknown_task_type` when the type is not registered', async () => {
+    await parseStructuredTaskOutput('{}', 'totally_made_up', { model: 'm' });
+    const snap = await snapshotByCode();
+    expect(snap.unknown_task_type).toHaveLength(1);
+  });
+
+  it('falls back to model="unknown" when the caller omits the label', async () => {
+    await parseStructuredTaskOutput('not json', 'fulfill_brief');
+    const snap = await snapshotByCode();
+    expect(snap.output_missing[0].attributes.model).toBe('unknown');
+  });
+
+  it('exposes recordTaskOutputParseResult for the captured_via_tool path', async () => {
+    recordTaskOutputParseResult({
+      taskType: 'curate_pack',
+      model: 'm',
+      code: 'captured_via_tool',
+    });
+    const snap = await snapshotByCode();
+    expect(snap.captured_via_tool).toHaveLength(1);
+    expect(snap.captured_via_tool[0].attributes).toMatchObject({
+      task_type: 'curate_pack',
+      model: 'm',
+      code: 'captured_via_tool',
+    });
+  });
+
+  it('exposes recordTaskOutputParseResult for output_cid_compute_failed (captured-tool path)', async () => {
+    // The captured-tool branch in executePiTask wraps computeJsonCid in
+    // try/catch and records this code on throw. The full executor path
+    // needs a VM to exercise; covering the counter label here protects
+    // the contract — a typo in the executor's record() call would
+    // surface as "code labelled wrong" in production dashboards
+    // otherwise.
+    recordTaskOutputParseResult({
+      taskType: 'render_pack',
+      model: 'm',
+      code: 'output_cid_compute_failed',
+    });
+    const snap = await snapshotByCode();
+    expect(snap.output_cid_compute_failed).toHaveLength(1);
+    expect(snap.output_cid_compute_failed[0].attributes).toMatchObject({
+      task_type: 'render_pack',
+      model: 'm',
+      code: 'output_cid_compute_failed',
     });
   });
 });
