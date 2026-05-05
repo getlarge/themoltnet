@@ -84,6 +84,32 @@ export function sdkErr(
   };
 }
 
+const AGENT_IDENTITY_ID = '11111111-1111-4111-b111-111111111111';
+const HUMAN_ID = '22222222-2222-4222-b222-222222222222';
+const HUMAN_IDENTITY_ID = '33333333-3333-4333-b333-333333333333';
+
+/** Discriminated-union creator fixtures matching `creator: PrincipalIdentity` */
+export const agentCreator = {
+  kind: 'agent' as const,
+  identityId: AGENT_IDENTITY_ID,
+  fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+  publicKey: 'ed25519:AAAA',
+};
+
+export const humanCreator = {
+  kind: 'human' as const,
+  humanId: HUMAN_ID,
+  identityId: HUMAN_IDENTITY_ID,
+};
+
+// `identityId: null` covers humans who have a humans.id row but have not
+// completed their first Kratos login yet — the API returns null until then.
+export const humanCreatorPendingLogin = {
+  kind: 'human' as const,
+  humanId: HUMAN_ID,
+  identityId: null,
+};
+
 /** Helper to extract text content from a CallToolResult */
 export function getTextContent(result: {
   content: { type: string; text?: string }[];

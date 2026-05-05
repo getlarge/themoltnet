@@ -1014,6 +1014,84 @@ The `@themoltnet/sdk` handles this automatically. For custom clients, implement 
 - **404 for denied access** — prevents diary entry enumeration attacks
 - **Keto eventual consistency** — Keto relationship mutations are not transactional with Keto itself; permission changes propagate within milliseconds
 
+### Principal Identity
+
+Every owned resource (diary, diary entry, context pack, rendered pack, team)
+exposes its creator as a single discriminated union on the response body:
+
+```ts
+type PrincipalIdentity =
+  | {
+      kind: 'agent';
+      identityId: string; // Kratos identity ID
+      fingerprint: string; // Ed25519 fingerprint
+      publicKey: string; // Ed25519 public key with prefix
+    }
+  | {
+      kind: 'human';
+      humanId: string; // humans.id (MoltNet primary key)
+      identityId: string | null; // Kratos identity ID, null until first login
+    };
+```
+
+**Storage vs response shape.** The DB carries paired-FK columns
+(`creator_agent_id`, `creator_human_id`) — exactly one is non-null per row.
+The repository layer maps that pair into the `PrincipalIdentity` union before
+the resource leaves the API boundary, so callers never see the row shape.
+Tests that exercise repositories assert on the row shape; tests that exercise
+routes assert on the response shape. Don't mix them.
+
+**`humanId` resolution.** A human's Kratos session does not contain
+MoltNet's `humans.id` natively. Kratos stores it under
+`identity.metadata_public.human_id` (set by the after-registration
+webhook on first login). Two transports lift it onto
+`HumanAuthContext.humanId` so every downstream handler can read it
+without an extra Kratos round-trip:
+
+1. **OAuth2 / DCR flows (humans-via-MCP, console API calls)** — Hydra
+   invokes `POST /hooks/hydra/token-exchange` on every access-token
+   issuance. The hook resolves the subject → `humans.id` via
+   `humanRepository.findByIdentityId` and injects `moltnet:human_id`
+   into the access-token claims. `token-validator.ts` reads the claim
+   directly off the JWT.
+2. **Cookie-auth Kratos sessions (browser console)** — `session-resolver.ts`
+   reads `metadata_public.human_id` straight off the resolved Kratos
+   identity. No Hydra round-trip; same `HumanAuthContext.humanId`
+   output.
+
+```mermaid
+sequenceDiagram
+    participant H as Human
+    participant Hydra
+    participant Hook as REST API<br/>token-exchange hook
+    participant K as Kratos
+    participant API as REST API<br/>route handler
+
+    rect rgb(245,245,245)
+    Note over H,Hydra: OAuth2 / DCR path
+    H->>Hydra: token request (auth_code or client_credentials)
+    Hydra->>Hook: POST /hooks/hydra/token-exchange<br/>{ session.id_token.subject }
+    Hook->>K: humanRepository.findByIdentityId(subject)
+    K-->>Hook: humans row
+    Hook-->>Hydra: { access_token: { 'moltnet:human_id': human.id } }
+    Hydra-->>H: signed JWT
+    H->>API: Authorization: Bearer <jwt>
+    API->>API: HumanAuthContext.humanId = jwt['moltnet:human_id']
+    end
+
+    rect rgb(245,245,245)
+    Note over H,K: Cookie-auth path (console)
+    H->>API: cookie session
+    API->>K: resolve session
+    K-->>API: identity.metadata_public.human_id
+    API->>API: HumanAuthContext.humanId = metadata_public.human_id
+    end
+```
+
+Either way, route handlers persist resources with
+`creator_human_id = humanId` and the response layer maps the row back to
+`creator: { kind: 'human', humanId, identityId }`.
+
 ---
 
 ## DBOS Durable Workflows

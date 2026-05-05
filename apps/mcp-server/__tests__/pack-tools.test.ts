@@ -13,10 +13,13 @@ import {
 } from '../src/pack-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
+  agentCreator,
   createMockContext,
   createMockDeps,
   DIARY_ID,
   getTextContent,
+  humanCreator,
+  humanCreatorPendingLogin,
   parseResult,
   sdkErr,
   sdkOk,
@@ -61,7 +64,7 @@ const mockPack = {
   packType: 'compile',
   params: {},
   payload: {},
-  createdBy: 'agent-001',
+  creator: agentCreator,
   supersedesPackId: null,
   pinned: false,
   expiresAt: null,
@@ -115,7 +118,7 @@ describe('Pack tools', () => {
   });
 
   describe('packs_get', () => {
-    it('returns pack by ID', async () => {
+    it('returns pack by ID with agent creator', async () => {
       vi.mocked(getContextPackById).mockResolvedValue(sdkOk(mockPack) as never);
 
       const result = await handlePacksGet({ pack_id: PACK_ID }, deps, context);
@@ -126,8 +129,32 @@ describe('Pack tools', () => {
           query: {},
         }),
       );
-      const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('id', PACK_ID);
+      const parsed = parseResult<{ id: string; creator: unknown }>(result);
+      expect(parsed.id).toBe(PACK_ID);
+      expect(parsed.creator).toEqual(agentCreator);
+    });
+
+    it('returns pack by ID with human creator', async () => {
+      vi.mocked(getContextPackById).mockResolvedValue(
+        sdkOk({ ...mockPack, creator: humanCreator }) as never,
+      );
+
+      const result = await handlePacksGet({ pack_id: PACK_ID }, deps, context);
+
+      const parsed = parseResult<{ creator: unknown }>(result);
+      expect(parsed.creator).toEqual(humanCreator);
+    });
+
+    it('returns pack by ID with human creator pending Kratos login', async () => {
+      vi.mocked(getContextPackById).mockResolvedValue(
+        sdkOk({ ...mockPack, creator: humanCreatorPendingLogin }) as never,
+      );
+
+      const result = await handlePacksGet({ pack_id: PACK_ID }, deps, context);
+
+      const parsed = parseResult<{ creator: { identityId: unknown } }>(result);
+      expect(parsed.creator).toEqual(humanCreatorPendingLogin);
+      expect(parsed.creator.identityId).toBeNull();
     });
 
     it('returns error when not authenticated', async () => {
@@ -201,7 +228,7 @@ describe('Pack tools', () => {
             contentHash: 'bafkrendered',
             renderMethod: 'server:pack-to-docs-v1',
             totalTokens: 42,
-            createdBy: 'agent-001',
+            creator: agentCreator,
             pinned: false,
             expiresAt: null,
             createdAt: new Date().toISOString(),
@@ -793,7 +820,7 @@ describe('Pack tools', () => {
             contentHash: 'sha256-abc',
             renderMethod: 'server:pack-to-docs-v1',
             totalTokens: 42,
-            createdBy: 'agent-001',
+            creator: agentCreator,
             pinned: false,
             expiresAt: null,
             createdAt: new Date().toISOString(),

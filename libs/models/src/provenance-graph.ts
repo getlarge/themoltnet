@@ -1,13 +1,8 @@
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
-import {
-  EntryTypeSchema,
-  FingerprintSchema,
-  PublicKeySchema,
-  TimestampSchema,
-  UuidSchema,
-} from './schemas.js';
+import { PrincipalIdentitySchemaInline } from './principal.js';
+import { EntryTypeSchema, TimestampSchema, UuidSchema } from './schemas.js';
 
 export const ProvenanceGraphNodeKindSchema = Type.Union([
   Type.Literal('pack'),
@@ -34,33 +29,13 @@ export const ProvenanceGraphPackMetaSchema = Type.Object({
 });
 
 /**
- * Discriminated creator: matches the apps/rest-api PrincipalIdentitySchema
- * shape but is declared inline here so @moltnet/models stays free of an
- * apps/* dependency.
+ * Discriminated creator embedded inside provenance-node response
+ * payloads. Re-uses the shared `PrincipalIdentitySchemaInline` (the
+ * `$id`-less twin) — embedding the named `PrincipalIdentitySchema`
+ * here would clash with the top-level registration via @fastify/swagger
+ * (`reference "PrincipalIdentity" resolves to more than one schema`).
  */
-const ProvenanceGraphAgentCreatorSchema = Type.Object({
-  kind: Type.Literal('agent'),
-  identityId: UuidSchema,
-  fingerprint: FingerprintSchema,
-  publicKey: PublicKeySchema,
-});
-
-const ProvenanceGraphHumanCreatorSchema = Type.Object({
-  kind: Type.Literal('human'),
-  humanId: UuidSchema,
-  identityId: Type.Union([UuidSchema, Type.Null()]),
-});
-
-export const ProvenanceGraphCreatorSchema = Type.Union(
-  [ProvenanceGraphAgentCreatorSchema, ProvenanceGraphHumanCreatorSchema],
-  {
-    // Hint to the normalize-spec post-processor (and any OpenAPI 3.1
-    // tooling) that this is a discriminated union. ogen requires
-    // `oneOf + discriminator` to generate a sum type; without it, the
-    // schema becomes a "complex anyOf" and the operation is skipped.
-    discriminator: { propertyName: 'kind' },
-  },
-);
+export const ProvenanceGraphCreatorSchema = PrincipalIdentitySchemaInline;
 
 export const ProvenanceGraphEntryMetaSchema = Type.Object({
   entryId: UuidSchema,

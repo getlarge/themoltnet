@@ -70,6 +70,13 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
   currentTeamId: null,
 };
 
+// NOTE: this fixture mirrors the raw DB row shape — `creatorAgentId` /
+// `creatorHumanId` paired-FK columns — used by the repository layer.
+// REST API responses surface those columns as a single discriminated union
+// `creator: PrincipalIdentity = { kind: 'agent', ... } | { kind: 'human', ... }`
+// (see libs/models/src/schemas.ts). Don't mix the two: tests that hit a
+// route should assert against the response shape, tests that hit a
+// repository can assert against this row shape.
 export function createMockEntry(
   overrides: Partial<DiaryEntry> = {},
 ): DiaryEntry {

@@ -1274,7 +1274,7 @@ func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"publicKey\"")
 			}
 		default:
-			return d.Skip()
+			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {
@@ -27594,7 +27594,7 @@ func (s *HumanPrincipal) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"kind\"")
 			}
 		default:
-			return d.Skip()
+			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {

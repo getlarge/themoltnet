@@ -455,29 +455,29 @@ export const TaskSchemasOutputSchema = Type.Object({
 type TaskWithConsoleUrl = ResponseOf<CreateTaskResponses> & {
   consoleUrl?: string;
 };
-type _TaskCreateOutputMatchesApi = AssertOutputMatchesApi<
+const _TaskCreateOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskOutputSchema>,
   TaskWithConsoleUrl
->;
-type _TaskGetOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TaskGetOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskOutputSchema>,
   ResponseOf<GetTaskResponses> & { consoleUrl?: string }
->;
-type _TaskListOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TaskListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskListOutputSchema>,
   Omit<ResponseOf<ListTasksResponses>, 'items'> & {
     items: TaskWithConsoleUrl[];
   }
->;
-type _TaskAttemptsOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TaskAttemptsOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskAttemptsListOutputSchema>,
   { items: ResponseOf<ListTaskAttemptsResponses> }
->;
-type _TaskMessagesOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TaskMessagesOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskMessagesListOutputSchema>,
   { items: ResponseOf<ListTaskMessagesResponses> }
->;
-type _TaskSchemasOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TaskSchemasOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskSchemasOutputSchema>,
   ResponseOf<ListTaskSchemasResponses>
->;
+> = true;

@@ -26,6 +26,7 @@
         "type": "object"
       },
       "AgentPrincipal": {
+        "additionalProperties": false,
         "properties": {
           "fingerprint": {
             "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
@@ -1994,6 +1995,7 @@
         "type": "object"
       },
       "HumanPrincipal": {
+        "additionalProperties": false,
         "properties": {
           "humanId": {
             "description": "UUID v4 identifier",

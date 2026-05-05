@@ -30,6 +30,7 @@
             "type": "string"
           },
           "identityId": {
+            "description": "UUID v4 identifier",
             "format": "uuid",
             "type": "string"
           },
@@ -175,6 +176,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -195,12 +197,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -657,6 +661,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -677,12 +682,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -795,6 +802,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -815,12 +823,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -964,6 +974,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -984,12 +995,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -1327,6 +1340,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -1347,12 +1361,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -1476,6 +1492,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -1496,12 +1513,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -1668,6 +1687,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -1688,12 +1708,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -1860,6 +1882,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -1880,12 +1903,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -2656,12 +2681,14 @@
         "additionalProperties": false,
         "properties": {
           "humanId": {
+            "description": "UUID v4 identifier",
             "format": "uuid",
             "type": "string"
           },
           "identityId": {
             "anyOf": [
               {
+                "description": "UUID v4 identifier",
                 "format": "uuid",
                 "type": "string"
               },
@@ -3268,6 +3295,7 @@
                 "type": "string"
               },
               "identityId": {
+                "description": "UUID v4 identifier",
                 "format": "uuid",
                 "type": "string"
               },
@@ -3288,12 +3316,14 @@
             "additionalProperties": false,
             "properties": {
               "humanId": {
+                "description": "UUID v4 identifier",
                 "format": "uuid",
                 "type": "string"
               },
               "identityId": {
                 "anyOf": [
                   {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -3577,6 +3607,7 @@
                         "creator": {
                           "anyOf": [
                             {
+                              "additionalProperties": false,
                               "properties": {
                                 "fingerprint": {
                                   "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
@@ -3607,6 +3638,7 @@
                               "type": "object"
                             },
                             {
+                              "additionalProperties": false,
                               "properties": {
                                 "humanId": {
                                   "description": "UUID v4 identifier",
@@ -3744,6 +3776,7 @@
                         "creator": {
                           "anyOf": [
                             {
+                              "additionalProperties": false,
                               "properties": {
                                 "fingerprint": {
                                   "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
@@ -3774,6 +3807,7 @@
                               "type": "object"
                             },
                             {
+                              "additionalProperties": false,
                               "properties": {
                                 "humanId": {
                                   "description": "UUID v4 identifier",
@@ -4306,6 +4340,7 @@
                     "type": "string"
                   },
                   "identityId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -4326,12 +4361,14 @@
                 "additionalProperties": false,
                 "properties": {
                   "humanId": {
+                    "description": "UUID v4 identifier",
                     "format": "uuid",
                     "type": "string"
                   },
                   "identityId": {
                     "anyOf": [
                       {
+                        "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
@@ -11766,6 +11803,7 @@
                                   "creator": {
                                     "anyOf": [
                                       {
+                                        "additionalProperties": false,
                                         "properties": {
                                           "fingerprint": {
                                             "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
@@ -11796,6 +11834,7 @@
                                         "type": "object"
                                       },
                                       {
+                                        "additionalProperties": false,
                                         "properties": {
                                           "humanId": {
                                             "description": "UUID v4 identifier",
@@ -11937,6 +11976,7 @@
                                   "creator": {
                                     "anyOf": [
                                       {
+                                        "additionalProperties": false,
                                         "properties": {
                                           "fingerprint": {
                                             "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
@@ -11967,6 +12007,7 @@
                                         "type": "object"
                                       },
                                       {
+                                        "additionalProperties": false,
                                         "properties": {
                                           "humanId": {
                                             "description": "UUID v4 identifier",
