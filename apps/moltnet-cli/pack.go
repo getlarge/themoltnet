@@ -343,6 +343,9 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 	fmt.Fprintf(&b, "# Context Pack %s\n\n", id)
 	fmt.Fprintf(&b, "Entries: %d\n", len(pack.Entries))
 	fmt.Fprintf(&b, "Created: %s\n", pack.CreatedAt.UTC().Format(time.RFC3339))
+	agent, agentOK := pack.Creator.GetAgentPrincipal()
+	human, humanOK := pack.Creator.GetHumanPrincipal()
+	fmt.Fprintf(&b, "Created by: %s\n", formatPrincipalDisplay(agent, agentOK, human, humanOK))
 	b.WriteString("\n---\n\n")
 
 	for i, entry := range pack.Entries {
