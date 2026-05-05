@@ -34,30 +34,39 @@ export const ProvenanceGraphPackMetaSchema = Type.Object({
 });
 
 /**
- * Discriminated creator: matches the apps/rest-api PrincipalIdentitySchema
- * shape but is declared inline here so @moltnet/models stays free of an
- * apps/* dependency.
+ * Discriminated creator inlined here (without an `$id`) on purpose: the
+ * REST API embeds this schema directly inside provenance-node response
+ * payloads, where a `$id`-bearing schema would clash with the top-level
+ * `PrincipalIdentity` registration via @fastify/swagger
+ * (`reference "PrincipalIdentity" resolves to more than one schema`).
+ *
+ * The shape MUST stay structurally identical to
+ * `@moltnet/models#PrincipalIdentitySchema`. A future refactor could
+ * introduce a `PrincipalIdentitySchemaInline` (same shape, no `$id`)
+ * exported from `./principal.js` and re-use it here.
  */
-const ProvenanceGraphAgentCreatorSchema = Type.Object({
-  kind: Type.Literal('agent'),
-  identityId: UuidSchema,
-  fingerprint: FingerprintSchema,
-  publicKey: PublicKeySchema,
-});
+const ProvenanceGraphAgentCreatorSchema = Type.Object(
+  {
+    kind: Type.Literal('agent'),
+    identityId: UuidSchema,
+    fingerprint: FingerprintSchema,
+    publicKey: PublicKeySchema,
+  },
+  { additionalProperties: false },
+);
 
-const ProvenanceGraphHumanCreatorSchema = Type.Object({
-  kind: Type.Literal('human'),
-  humanId: UuidSchema,
-  identityId: Type.Union([UuidSchema, Type.Null()]),
-});
+const ProvenanceGraphHumanCreatorSchema = Type.Object(
+  {
+    kind: Type.Literal('human'),
+    humanId: UuidSchema,
+    identityId: Type.Union([UuidSchema, Type.Null()]),
+  },
+  { additionalProperties: false },
+);
 
 export const ProvenanceGraphCreatorSchema = Type.Union(
   [ProvenanceGraphAgentCreatorSchema, ProvenanceGraphHumanCreatorSchema],
   {
-    // Hint to the normalize-spec post-processor (and any OpenAPI 3.1
-    // tooling) that this is a discriminated union. ogen requires
-    // `oneOf + discriminator` to generate a sum type; without it, the
-    // schema becomes a "complex anyOf" and the operation is skipped.
     discriminator: { propertyName: 'kind' },
   },
 );

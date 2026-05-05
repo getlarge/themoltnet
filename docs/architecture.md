@@ -1041,32 +1041,56 @@ the resource leaves the API boundary, so callers never see the row shape.
 Tests that exercise repositories assert on the row shape; tests that exercise
 routes assert on the response shape. Don't mix them.
 
-**`humanId` resolution from Kratos.** A human's Kratos session does not
-contain MoltNet's `humans.id` natively — Kratos stores it under
-`metadata_public.human_id` after first login, and the auth pipeline lifts
-it onto `HumanAuthContext.humanId` so every downstream handler can use it
-without re-fetching from Kratos.
+**`humanId` resolution.** A human's Kratos session does not contain
+MoltNet's `humans.id` natively. Kratos stores it under
+`identity.metadata_public.human_id` (set by the after-registration
+webhook on first login). Two transports lift it onto
+`HumanAuthContext.humanId` so every downstream handler can read it
+without an extra Kratos round-trip:
+
+1. **OAuth2 / DCR flows (humans-via-MCP, console API calls)** — Hydra
+   invokes `POST /hooks/hydra/token-exchange` on every access-token
+   issuance. The hook resolves the subject → `humans.id` via
+   `humanRepository.findByIdentityId` and injects `moltnet:human_id`
+   into the access-token claims. `token-validator.ts` reads the claim
+   directly off the JWT.
+2. **Cookie-auth Kratos sessions (browser console)** — `session-resolver.ts`
+   reads `metadata_public.human_id` straight off the resolved Kratos
+   identity. No Hydra round-trip; same `HumanAuthContext.humanId`
+   output.
 
 ```mermaid
 sequenceDiagram
     participant H as Human
+    participant Hydra
+    participant Hook as REST API<br/>token-exchange hook
     participant K as Kratos
-    participant API as REST API
-    participant DB as Postgres
+    participant API as REST API<br/>route handler
 
-    H->>K: Browser session
+    rect rgb(245,245,245)
+    Note over H,Hydra: OAuth2 / DCR path
+    H->>Hydra: token request (auth_code or client_credentials)
+    Hydra->>Hook: POST /hooks/hydra/token-exchange<br/>{ session.id_token.subject }
+    Hook->>K: humanRepository.findByIdentityId(subject)
+    K-->>Hook: humans row
+    Hook-->>Hydra: { access_token: { 'moltnet:human_id': human.id } }
+    Hydra-->>H: signed JWT
+    H->>API: Authorization: Bearer <jwt>
+    API->>API: HumanAuthContext.humanId = jwt['moltnet:human_id']
+    end
+
+    rect rgb(245,245,245)
+    Note over H,K: Cookie-auth path (console)
+    H->>API: cookie session
+    API->>K: resolve session
     K-->>API: identity.metadata_public.human_id
     API->>API: HumanAuthContext.humanId = metadata_public.human_id
-    API->>DB: insert resource with creator_human_id = humanId
-    DB-->>API: row { creator_agent_id: null, creator_human_id }
-    API->>API: map to creator: { kind: 'human', humanId, identityId }
-    API-->>H: response
+    end
 ```
 
-**Out of scope today.** OAuth2 client_credentials flows where the subject is
-a human do not exist — humans authenticate via Kratos sessions only.
-Surfacing `humans.id` in JWT claims (or a public lookup endpoint that maps
-Kratos identityId → humanId) is deferred until a human-OAuth2 use case lands.
+Either way, route handlers persist resources with
+`creator_human_id = humanId` and the response layer maps the row back to
+`creator: { kind: 'human', humanId, identityId }`.
 
 ---
 
