@@ -17,11 +17,13 @@ import {
 } from '../src/diary-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
+  agentCreator,
   createMockContext,
   createMockDeps,
   DIARY_ID,
   ENTRY_ID,
   getTextContent,
+  humanCreator,
   parseResult,
   sdkErr,
   sdkOk,
@@ -651,18 +653,28 @@ describe('Diary tools', () => {
   });
 
   describe('diaries_list', () => {
-    it('returns list of diaries', async () => {
+    it('returns list of diaries with both agent and human creators', async () => {
       const data = {
         items: [
           {
             id: DIARY_ID,
-            name: 'My Diary',
+            name: 'Agent Diary',
             visibility: 'private',
-            createdBy: 'owner-id',
+            creator: agentCreator,
             teamId: '00000000-0000-4000-b000-000000000001',
             signed: false,
             createdAt: '2025-01-01T00:00:00.000Z',
             updatedAt: '2025-01-01T00:00:00.000Z',
+          },
+          {
+            id: '550e8400-e29b-41d4-a716-446655440099',
+            name: 'Human Diary',
+            visibility: 'moltnet',
+            creator: humanCreator,
+            teamId: '00000000-0000-4000-b000-000000000001',
+            signed: false,
+            createdAt: '2025-01-02T00:00:00.000Z',
+            updatedAt: '2025-01-02T00:00:00.000Z',
           },
         ],
       };
@@ -673,9 +685,12 @@ describe('Diary tools', () => {
       expect(listDiaries).toHaveBeenCalledWith(
         expect.objectContaining({ auth: expect.any(Function) }),
       );
-      const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('items');
-      expect(parsed.items).toHaveLength(1);
+      const parsed = parseResult<{ items: Array<{ creator: unknown }> }>(
+        result,
+      );
+      expect(parsed.items).toHaveLength(2);
+      expect(parsed.items[0]?.creator).toEqual(agentCreator);
+      expect(parsed.items[1]?.creator).toEqual(humanCreator);
     });
 
     it('returns empty list when no diaries', async () => {
@@ -718,7 +733,7 @@ describe('Diary tools', () => {
         id: DIARY_ID,
         name: 'My Diary',
         visibility: 'private',
-        createdBy: 'owner-id',
+        creator: agentCreator,
         teamId: '00000000-0000-4000-b000-000000000001',
         signed: false,
         createdAt: '2025-01-01T00:00:00.000Z',
@@ -747,7 +762,7 @@ describe('Diary tools', () => {
         id: DIARY_ID,
         name: 'Public Diary',
         visibility: 'public',
-        createdBy: 'owner-id',
+        creator: agentCreator,
         teamId: '00000000-0000-4000-b000-000000000001',
         signed: false,
         createdAt: '2025-01-01T00:00:00.000Z',
@@ -802,7 +817,7 @@ describe('Diary tools', () => {
         id: DIARY_ID,
         name: 'My Diary',
         visibility: 'private',
-        createdBy: 'owner-id',
+        creator: agentCreator,
         teamId: '00000000-0000-4000-b000-000000000001',
         signed: false,
         createdAt: '2025-01-01T00:00:00.000Z',
@@ -924,7 +939,7 @@ describe('Diary tools', () => {
           packType: 'compile',
           params: {},
           payload: {},
-          createdBy: 'agent-001',
+          creator: agentCreator,
           supersedesPackId: null,
           pinned: false,
           expiresAt: null,
@@ -982,7 +997,7 @@ describe('Diary tools', () => {
           packType: 'compile',
           params: {},
           payload: {},
-          createdBy: 'agent-001',
+          creator: agentCreator,
           supersedesPackId: null,
           pinned: false,
           expiresAt: null,
@@ -1031,7 +1046,7 @@ describe('Diary tools', () => {
           packType: 'compile',
           params: {},
           payload: {},
-          createdBy: 'agent-001',
+          creator: agentCreator,
           supersedesPackId: null,
           pinned: false,
           expiresAt: null,

@@ -158,7 +158,6 @@ export const TeamMembersListOutputSchema = Type.Object({
   name: Type.String(),
   status: Type.String(),
   personal: Type.Boolean(),
-  createdBy: Type.String(),
   createdAt: Type.String(),
   updatedAt: Type.String(),
   members: Type.Array(TeamMemberSchema),
@@ -211,38 +210,38 @@ export const TeamsMemberRemoveOutputSchema = Type.Object({
 
 // --- Compile-time drift checks ---
 
-type _TeamsListOutputMatchesApi = AssertOutputMatchesApi<
+const _TeamsListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsListOutputSchema>,
   ResponseOf<ListTeamsResponses>
->;
-type _TeamMembersListOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamMembersListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamMembersListOutputSchema>,
   ResponseOf<GetTeamResponses>
->;
-type _TeamsJoinOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamsJoinOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsJoinOutputSchema>,
   ResponseOf<JoinTeamResponses>
->;
-type _TeamsDeleteOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamsDeleteOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsDeleteOutputSchema>,
   ResponseOf<DeleteTeamResponses>
->;
-type _TeamsInviteCreateOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamsInviteCreateOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsInviteCreateOutputSchema>,
   ResponseOf<CreateTeamInviteResponses>
->;
-type _TeamsInviteListOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamsInviteListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsInviteListOutputSchema>,
   ResponseOf<ListTeamInvitesResponses>
->;
-type _TeamsInviteDeleteOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamsInviteDeleteOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsInviteDeleteOutputSchema>,
   ResponseOf<DeleteTeamInviteResponses>
->;
-type _TeamsMemberRemoveOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _TeamsMemberRemoveOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsMemberRemoveOutputSchema>,
   ResponseOf<RemoveTeamMemberResponses>
->;
+> = true;
 
 // teams_create has 2 response codes (201 sync, 202 async workflow); the
 // flattened schema unions both — no direct drift check possible.

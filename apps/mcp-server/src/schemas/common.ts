@@ -52,13 +52,15 @@ export type ResponseOf<TResponses> = TResponses[keyof TResponses];
  * exactly — neither side silently gains or loses fields when the REST API
  * evolves.
  *
- * Both constraints (`TSchema extends TApi` and `TApi extends TSchema`) must
- * hold, otherwise the drift-check alias fails to compile:
+ * Resolves to `true` when both directions hold, `never` otherwise. The
+ * result MUST be consumed via a `const` assignment so the compiler errors
+ * when it is `never` — a bare `type _Foo = AssertOutputMatchesApi<...>`
+ * alias compiles silently with `never`:
  *
- *   type _FooOutputMatchesApi = AssertOutputMatchesApi<
+ *   const _FooOutputMatchesApi: AssertOutputMatchesApi<
  *     Static<typeof FooOutputSchema>,
  *     FooApiResponse
- *   >;
+ *   > = true;
  */
 export type AssertOutputMatchesApi<TSchema, TApi> = [TSchema] extends [TApi]
   ? [TApi] extends [TSchema]

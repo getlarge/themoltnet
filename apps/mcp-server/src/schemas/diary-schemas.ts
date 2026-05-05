@@ -27,6 +27,7 @@ import type {
   ResponseOf,
   SnakeCasedProperties,
 } from './common.js';
+import { PrincipalIdentitySchema } from './principal-schema.js';
 
 export const DiariesConsolidateSchema = Type.Object({
   diary_id: Type.String({ description: 'Diary identifier (UUID).' }),
@@ -136,7 +137,7 @@ const VisibilitySchema = Type.Union([
 
 const DiaryCatalogSchema = Type.Object({
   id: Type.String(),
-  createdBy: Type.String(),
+  creator: PrincipalIdentitySchema,
   teamId: Type.String(),
   name: Type.String(),
   visibility: VisibilitySchema,
@@ -230,7 +231,7 @@ export const DiariesCompileOutputSchema = Type.Object({
   packType: PackTypeSchema,
   params: Type.Unknown(),
   payload: Type.Unknown(),
-  createdBy: Type.String(),
+  creator: PrincipalIdentitySchema,
   supersedesPackId: Type.Union([Type.String(), Type.Null()]),
   pinned: Type.Boolean(),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
@@ -275,23 +276,23 @@ type _DiariesGetInputMatchesSchema = AssertSchemaToApi<
   DiariesGetInput
 >;
 
-type _DiariesListOutputMatchesApi = AssertOutputMatchesApi<
+const _DiariesListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof DiariesListOutputSchema>,
   ResponseOf<ListDiariesResponses>
->;
-type _DiariesCreateOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _DiariesCreateOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof DiariesCreateOutputSchema>,
   ResponseOf<CreateDiaryResponses>
->;
-type _DiariesGetOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _DiariesGetOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof DiariesGetOutputSchema>,
   ResponseOf<GetDiaryResponses>
->;
-type _DiariesConsolidateOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _DiariesConsolidateOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof DiariesConsolidateOutputSchema>,
   ResponseOf<ConsolidateDiaryResponses>
->;
-type _DiariesCompileOutputMatchesApi = AssertOutputMatchesApi<
+> = true;
+const _DiariesCompileOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof DiariesCompileOutputSchema>,
   ResponseOf<CompileDiaryResponses>
->;
+> = true;
