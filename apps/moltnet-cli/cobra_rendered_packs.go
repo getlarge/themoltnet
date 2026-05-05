@@ -15,6 +15,34 @@ func newRenderedPacksCmd() *cobra.Command {
 	cmd.AddCommand(newRenderedPacksGetCmd())
 	cmd.AddCommand(newRenderedPacksUpdateCmd())
 	cmd.AddCommand(newRenderedPacksJudgeCmd())
+	cmd.AddCommand(newRenderedPackToSkillCmd())
+	return cmd
+}
+
+func newRenderedPackToSkillCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "to-skill",
+		Short: "Convert a rendered pack into an AgentSkills SKILL.md bundle",
+		Long: `Fetch a rendered pack by UUID and write an AgentSkills-conformant
+SKILL.md to <out>/<slug>/SKILL.md. The frontmatter carries identity fields
+under the moltnet: namespace (rendered_pack_id, rendered_pack_cid,
+source_pack_id, bundled_at) so re-runs detect updates without an external
+sidecar file. Idempotent on the same rendered pack ID; errors on slug
+collision against a different ID.`,
+		Example: `  moltnet rendered-pack to-skill --id <rendered-pack-uuid> --out .claude/skills
+  moltnet rendered-pack to-skill --id <rendered-pack-uuid> --out .codex/skills`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			id, _ := cmd.Flags().GetString("id")
+			out, _ := cmd.Flags().GetString("out")
+			return runRenderedPackToSkill(apiURL, credPath, id, out)
+		},
+	}
+	cmd.Flags().String("id", "", "Rendered pack UUID (required)")
+	cmd.Flags().String("out", "", "Output directory; SKILL.md is written to <out>/<slug>/SKILL.md (required)")
+	_ = cmd.MarkFlagRequired("id")
+	_ = cmd.MarkFlagRequired("out")
 	return cmd
 }
 
