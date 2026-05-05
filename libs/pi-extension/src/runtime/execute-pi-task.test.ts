@@ -262,6 +262,27 @@ describe('agent_runtime.task_output.parse_result counter', () => {
       code: 'captured_via_tool',
     });
   });
+
+  it('exposes recordTaskOutputParseResult for output_cid_compute_failed (captured-tool path)', async () => {
+    // The captured-tool branch in executePiTask wraps computeJsonCid in
+    // try/catch and records this code on throw. The full executor path
+    // needs a VM to exercise; covering the counter label here protects
+    // the contract — a typo in the executor's record() call would
+    // surface as "code labelled wrong" in production dashboards
+    // otherwise.
+    recordTaskOutputParseResult({
+      taskType: 'render_pack',
+      model: 'm',
+      code: 'output_cid_compute_failed',
+    });
+    const snap = await snapshotByCode();
+    expect(snap.output_cid_compute_failed).toHaveLength(1);
+    expect(snap.output_cid_compute_failed[0].attributes).toMatchObject({
+      task_type: 'render_pack',
+      model: 'm',
+      code: 'output_cid_compute_failed',
+    });
+  });
 });
 
 describe('wireSessionAbort', () => {

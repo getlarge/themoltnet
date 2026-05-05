@@ -54,7 +54,7 @@ import {
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
-import { createSubmitOutputTool } from './submit-output-tool.js';
+import { resolveSubmitTools } from './submit-output-tool.js';
 import {
   parseStructuredTaskOutput,
   recordTaskOutputParseResult,
@@ -273,23 +273,15 @@ export async function executePiTask(
       }),
     ] as unknown as ToolDefinition[];
 
-    // Per-task-type submit-output tool. Captured payload (when the model
-    // calls the tool with valid args) becomes the authoritative output;
-    // the parser fallback is only consulted when the model never calls
-    // the tool. Construction is wrapped in try/catch because
-    // `getTaskOutputSchema` returns null for unknown types — in that
-    // case we silently skip the submit-tool wiring and fall back to the
-    // parser path so unknown task types still execute.
-    let submitToolHandle: ReturnType<typeof createSubmitOutputTool> | null =
-      null;
-    try {
-      submitToolHandle = createSubmitOutputTool(task.taskType);
-    } catch {
-      submitToolHandle = null;
-    }
-    const submitTools: ToolDefinition[] = submitToolHandle
-      ? [submitToolHandle.tool as unknown as ToolDefinition]
-      : [];
+    // Per-task-type submit-output tool. Captured payload (when the
+    // model calls the tool with valid args) becomes the authoritative
+    // output; the parser fallback is only consulted when the model
+    // never calls the tool, OR when the task type has no registered
+    // output schema (resolveSubmitTools returns null).
+    const { handle: submitToolHandle, tools: submitToolDefs } =
+      resolveSubmitTools(task.taskType, { model: opts.model });
+    const submitTools: ToolDefinition[] =
+      submitToolDefs as unknown as ToolDefinition[];
 
     try {
       const moltnetAgent = await connect({ configDir: managed.agentDir });

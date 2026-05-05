@@ -30,15 +30,27 @@
  */
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import { defineTool } from '@mariozechner/pi-coding-agent';
-import type { TSchema } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { TObject } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 import { getTaskOutputSchema } from '@themoltnet/agent-runtime';
+
+import { recordTaskOutputParseResult } from './task-output.js';
 
 interface SubmitOutputDetails {
   captured: boolean;
   callCount: number;
   error: string | null;
+}
+
+export interface CreateSubmitOutputToolOptions {
+  /**
+   * Optional model identifier for the OTel counter labels. Mirrors the
+   * `model` opt threaded into `parseStructuredTaskOutput` so the
+   * submit-tool path's `output_validation_failed` and
+   * `captured_via_tool` observations carry the same `{task_type, model}`
+   * cardinality.
+   */
+  model?: string;
 }
 
 export interface SubmitOutputToolHandle {
@@ -54,18 +66,36 @@ export interface SubmitOutputToolHandle {
   getCallCount: () => number;
 }
 
+/**
+ * Sentinel thrown when the requested task type has no registered output
+ * schema. The executor recognises this specific error class and falls
+ * back to the parser path; any other error from `createSubmitOutputTool`
+ * is unexpected and must propagate.
+ */
+export class UnknownTaskTypeForSubmitToolError extends Error {
+  constructor(public readonly taskType: string) {
+    super(
+      `createSubmitOutputTool: no output schema registered for task type "${taskType}"`,
+    );
+    this.name = 'UnknownTaskTypeForSubmitToolError';
+  }
+}
+
 export function createSubmitOutputTool(
   taskType: string,
+  opts: CreateSubmitOutputToolOptions = {},
 ): SubmitOutputToolHandle {
   const maybeSchema = getTaskOutputSchema(taskType);
   if (!maybeSchema) {
-    throw new Error(
-      `createSubmitOutputTool: no output schema registered for task type "${taskType}"`,
-    );
+    throw new UnknownTaskTypeForSubmitToolError(taskType);
   }
-  // Bind to a non-nullable local so the inner `execute` closure sees the
-  // narrowed TSchema instead of `TSchema | null`.
-  const schema: TSchema = maybeSchema;
+  // Every built-in *Output schema is `Type.Object`. Cast to TObject so
+  // it can ride straight through as the tool's `parameters` schema —
+  // pi/TypeBox tool parameters require an object at the top level. If a
+  // future task type registers a non-object output schema this cast will
+  // surface as a runtime error in `defineTool`, which is the correct
+  // failure mode (loud, not silent).
+  const schema = maybeSchema as TObject;
 
   const toolName = `submit_${taskType}_output`;
   let captured: Record<string, unknown> | null = null;
@@ -76,23 +106,19 @@ export function createSubmitOutputTool(
     label: `Submit ${taskType} output`,
     description:
       `Submit the structured output for this ${taskType} task. ` +
-      'Call exactly once when done. Args are validated against the task ' +
-      "type's output schema; invalid args return a tool error you can " +
-      'retry. The runtime captures the validated payload — you do not need ' +
-      'to repeat the JSON in your final assistant message.',
-    parameters: Type.Object(
-      {
-        output: Type.Unknown({
-          description:
-            `The structured output payload matching the task type's ` +
-            'output schema. Pass the full object as a single argument.',
-        }),
-      },
-      { additionalProperties: false },
-    ),
+      'Call exactly once when done. The arguments below ARE the output ' +
+      "payload — pass each top-level field of the task type's output " +
+      'schema directly. The runtime captures the validated payload and ' +
+      'ends the session; you do not need to repeat the JSON in your ' +
+      'final assistant message.',
+    // The task type's *Output schema is registered directly as the tool
+    // parameters. The model sees field names, types, and per-field
+    // descriptions at planning time — without this, the tool advertises
+    // an opaque blob and tool-call success rates collapse to "did the
+    // model guess the shape?"
+    parameters: schema,
     async execute(_id, params) {
-      const candidate = (params as { output: unknown }).output;
-      const errors = [...Value.Errors(schema, candidate)];
+      const errors = [...Value.Errors(schema, params)];
       if (errors.length > 0) {
         const detailMsg = errors
           .slice(0, 3)
@@ -103,6 +129,11 @@ export function createSubmitOutputTool(
           callCount,
           error: 'output_validation_failed',
         };
+        recordTaskOutputParseResult({
+          taskType,
+          model: opts.model,
+          code: 'output_validation_failed',
+        });
         return {
           content: [
             {
@@ -117,7 +148,7 @@ export function createSubmitOutputTool(
         };
       }
 
-      captured = candidate as Record<string, unknown>;
+      captured = params as Record<string, unknown>;
       callCount += 1;
       const details: SubmitOutputDetails = {
         captured: true,
@@ -143,5 +174,38 @@ export function createSubmitOutputTool(
     tool,
     getCaptured: () => captured,
     getCallCount: () => callCount,
+  };
+}
+
+/**
+ * Build the submit-tool wiring for one task attempt. Returns a handle
+ * (or `null` if no submit-tool should be registered) plus the
+ * `customTools`-shaped array ready to spread into the session config.
+ *
+ * The catch is **narrowed** to `UnknownTaskTypeForSubmitToolError` —
+ * exporters/dependency-API drift would otherwise be silently degraded
+ * to parser-only behaviour, which reintroduces the failure mode this
+ * change is fixing. Any other error from the factory propagates.
+ */
+export function resolveSubmitTools(
+  taskType: string,
+  opts: CreateSubmitOutputToolOptions = {},
+): {
+  handle: SubmitOutputToolHandle | null;
+  tools: ToolDefinition<any, any>[];
+} {
+  let handle: SubmitOutputToolHandle | null;
+  try {
+    handle = createSubmitOutputTool(taskType, opts);
+  } catch (err) {
+    if (err instanceof UnknownTaskTypeForSubmitToolError) {
+      handle = null;
+    } else {
+      throw err;
+    }
+  }
+  return {
+    handle,
+    tools: handle ? [handle.tool] : [],
   };
 }
