@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.7.0...agent-runtime-v0.8.0) (2026-05-05)
+
+
+### Features
+
+* **agent-runtime:** tighten task-type final-output prompts ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([3117f89](https://github.com/getlarge/themoltnet/commit/3117f891f514dce41f5903fe269043e787972082))
+* **pi-extension:** namespace task provenance tags under task:*, expand list/search filters ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([253135b](https://github.com/getlarge/themoltnet/commit/253135b0a942c910010eedffbc59f5b48b33b657))
+* structured task output via submit-tool + measurement ([#986](https://github.com/getlarge/themoltnet/issues/986)) ([2e86b87](https://github.com/getlarge/themoltnet/commit/2e86b87b0381833bb0747bf25bc708aba4fc3203))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.6.0...agent-runtime-v0.7.0) (2026-04-30)
 
 
