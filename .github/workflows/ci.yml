@@ -227,10 +227,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run database migrations
         run: pnpm run db:migrate
-      # Nx schedules task-level parallelism across projects; each project's
-      # vitest.config.ts pins fileParallelism: false so files run serially
-      # inside a project (avoids N×M workers on 4-vCPU GHA runners).
-      - run: pnpm exec nx affected -t test
+      # Cap Nx task-level parallelism at 2 on the 4-vCPU GHA runner. Each
+      # vitest task spawns its own fork pool; with Nx default parallelism
+      # the runqueue oversubscribes and individual fastify-inject tests
+      # (mock-only, normally <10ms) start hitting 10s+ wall-clock.
+      - run: pnpm exec nx affected -t test --parallel=2
 
   code-analysis:
     name: Code Analysis (Knip)
