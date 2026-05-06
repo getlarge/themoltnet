@@ -136,14 +136,21 @@ will pick up the `taskType`, dispatch to the matching prompt builder in
 
 ### Offline pack pipeline fixtures
 
-| File                        | Task type     | Purpose                                                                     |
-| --------------------------- | ------------- | --------------------------------------------------------------------------- |
-| `curate-ci-incidents.json`  | `curate_pack` | Curator builds a pack from the legreffier diary on CI/flaky-test incidents. |
-| `curate-pack.template.json` | `curate_pack` | Same shape with `{{diaryId}}`, `{{teamId}}`, `{{taskPrompt}}` placeholders. |
-| `render-pack.json`          | `render_pack` | Renderer turns a pack into markdown via `moltnet_pack_render`.              |
-| `render-pack.template.json` | `render_pack` | Same shape with `{{diaryId}}`, `{{teamId}}`, `{{packId}}` placeholders.     |
-| `judge-pack.json`           | `judge_pack`  | Judge scores a rendered pack against the `pack-fidelity-v2` rubric.         |
-| `judge-pack.template.json`  | `judge_pack`  | Same shape with source/rendered placeholders for chaining a live demo.      |
+The `*.template.json` files are the **demo entry points** (driven by
+`run-task.ts` with `--set` substitutions, see "Offline pipeline run"
+below). The fully-resolved `*.json` siblings are **regression test
+fixtures** loaded by `libs/agent-runtime/src/prompts/demo-fixtures.test.ts`
+to assert that a concrete, schema-valid task body builds a coherent
+prompt — they are not used in any demo workflow.
+
+| File                        | Task type     | Purpose                                                                                                         |
+| --------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| `curate-pack.template.json` | `curate_pack` | Demo: curator builds a pack with `{{diaryId}}`, `{{teamId}}`, `{{taskPrompt}}` placeholders.                    |
+| `curate-ci-incidents.json`  | `curate_pack` | Test fixture: resolved curate-pack body for CI/flaky-test incidents.                                            |
+| `render-pack.template.json` | `render_pack` | Demo: renderer turns a pack into markdown — `{{diaryId}}`, `{{teamId}}`, `{{packId}}` placeholders.             |
+| `render-pack.json`          | `render_pack` | Test fixture: resolved render-pack body.                                                                        |
+| `judge-pack.template.json`  | `judge_pack`  | Demo: judge with `{{diaryId}}`, `{{teamId}}`, source/rendered placeholders, scoring against `pack-fidelity-v3`. |
+| `judge-pack.json`           | `judge_pack`  | Test fixture: resolved judge-pack body, `pack-fidelity-v3` rubric.                                              |
 
 ### Offline pipeline run
 
