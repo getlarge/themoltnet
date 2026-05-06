@@ -213,13 +213,24 @@ jobs:
       - name: Check formatting
         run: pnpm exec nx format:check
 
+      # The Nx Cloud CLI lazy-downloads its runner bundle from
+      # cloud.nx.app on first invocation. The download is sometimes
+      # transiently unavailable; retry the start command itself.
       - name: Start Nx Cloud CI run
         if: needs.affected.outputs.has-agents == 'true'
         run: |
-          pnpm exec nx-cloud start-ci-run \
-            --distribute-on=manual \
-            --assignment-rules=.nx/workflows/assignment-rules.yml \
-            --require-explicit-completion
+          for attempt in 1 2 3; do
+            if pnpm exec nx-cloud start-ci-run \
+                --distribute-on=manual \
+                --assignment-rules=.nx/workflows/assignment-rules.yml \
+                --require-explicit-completion; then
+              exit 0
+            fi
+            echo "::warning::nx-cloud start-ci-run attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+          done
+          echo "::error::nx-cloud start-ci-run failed after 3 attempts"
+          exit 1
 
       - name: Run affected lint, typecheck, test, build
         if: needs.affected.outputs.has-agents == 'true'
