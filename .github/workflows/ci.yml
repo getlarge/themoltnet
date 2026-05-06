@@ -168,9 +168,12 @@ jobs:
         with:
           go-version: '1.25'
       - name: Install golangci-lint
+        # Pin via the published binary install (the official curl|sh
+        # installer hits GitHub API rate limits; `go install` is the
+        # documented fallback and uses GOPROXY caching, more reliable
+        # for high-frequency CI).
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b "$(go env GOPATH)/bin" v2.5.0
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
       - name: Start Nx Cloud agent

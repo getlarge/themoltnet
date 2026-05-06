@@ -50,7 +50,9 @@ function main() {
   try {
     affected = nxJson('show projects --affected');
   } catch (err) {
-    process.stderr.write(`[agents-matrix] affected probe failed: ${err.message}\n`);
+    process.stderr.write(
+      `[agents-matrix] affected probe failed: ${err.message}\n`,
+    );
     affected = [];
   }
 
@@ -58,9 +60,7 @@ function main() {
   const affectedCount = affected.length;
   const percent = totalCount === 0 ? 0 : (affectedCount / totalCount) * 100;
   const tier =
-    affectedCount === 0
-      ? { name: 'none', agents: 0 }
-      : pickTier(percent);
+    affectedCount === 0 ? { name: 'none', agents: 0 } : pickTier(percent);
 
   const agentIds = range(1, tier.agents);
 
