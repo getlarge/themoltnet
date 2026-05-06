@@ -1,13 +1,5 @@
 # Changelog
 
-## [1.36.0](https://github.com/getlarge/themoltnet/compare/cli-v1.35.0...cli-v1.36.0) (2026-05-06)
-
-
-### Features
-
-* **cli,mcp:** expose rendered-pack description; warn in to-skill ([fff3e8f](https://github.com/getlarge/themoltnet/commit/fff3e8f3f26d752d03d238f4a0bfc93ec0075173))
-* **cli:** rendered-pack to-skill ([#518](https://github.com/getlarge/themoltnet/issues/518) V1) ([f762b61](https://github.com/getlarge/themoltnet/commit/f762b612533903d20e2c29754e2d0c0627918fe3))
-
 ## [1.35.0](https://github.com/getlarge/themoltnet/compare/cli-v1.34.1...cli-v1.35.0) (2026-05-06)
 
 
