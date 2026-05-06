@@ -17,7 +17,7 @@ const ctx = { diaryId: 'd1', taskId: 't1' };
 const rubric: Rubric = {
   rubricId: 'r1',
   version: 'v1',
-  criteria: [{ id: 'c1', description: 'd', weight: 1, scoring: 'llm_judged' }],
+  criteria: [{ id: 'c1', description: 'd', weight: 1, scoring: 'llm_score' }],
 };
 
 const TASK_FIXTURES: Array<{
@@ -50,7 +50,7 @@ const TASK_FIXTURES: Array<{
           input: {
             targetTaskId: '11111111-1111-4111-8111-111111111111',
             criteria: [
-              { id: 'c', description: 'd', weight: 1, scoring: 'llm_judged' },
+              { id: 'c', description: 'd', weight: 1, scoring: 'llm_score' },
             ],
           },
         }),

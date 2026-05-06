@@ -95,7 +95,7 @@ export function buildAssessBriefPrompt(
     '',
     '### Scoring rules',
     '',
-    '- `llm_judged`: score 0..1 continuous. `rationale` REQUIRED (2–4 sentences).',
+    '- `llm_score`: score 0..1 continuous. `rationale` REQUIRED (2–4 sentences).',
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
     '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry returned by step 3 above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
     '',

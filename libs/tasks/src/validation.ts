@@ -17,6 +17,7 @@ interface TaskTypeDefinition {
   readonly requiresCriteria: boolean;
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
+  readonly validateOutput?: (output: unknown) => string | null;
 }
 
 function getTaskTypeEntry(taskType: string) {
@@ -88,7 +89,17 @@ export function validateTaskOutput(
     ];
   }
 
-  return schemaErrors('output', entry.outputSchema, output);
+  const errors = schemaErrors('output', entry.outputSchema, output);
+  if (errors.length > 0) return errors;
+
+  if (entry.validateOutput) {
+    const validationError = entry.validateOutput(output);
+    if (validationError) {
+      return [{ field: 'output', message: validationError }];
+    }
+  }
+
+  return [];
 }
 
 /**

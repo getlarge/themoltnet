@@ -31,8 +31,10 @@
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import type { TObject } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
-import { getSubmitOutputContract } from '@themoltnet/agent-runtime';
+import {
+  getSubmitOutputContract,
+  validateTaskOutput,
+} from '@themoltnet/agent-runtime';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -110,11 +112,19 @@ export function createSubmitOutputTool(
     description: contract.description,
     parameters: schema,
     async execute(_id, params) {
-      const errors = [...Value.Errors(schema, params)];
+      // Use the registry-aware validator: runs the TypeBox schema check
+      // AND any task-type-specific cross-field rule (e.g. judge_pack's
+      // `llm_checklist` score↔assertions consistency from #999). Without
+      // the cross-field pass, an LLM that submits `score: 1` alongside a
+      // failing assertion sails through here and the bad payload
+      // pollutes attestations. Returning isError:true lets the agent
+      // re-call with a corrected payload mid-session — same recovery
+      // affordance as a plain schema miss.
+      const errors = validateTaskOutput(taskType, params);
       if (errors.length > 0) {
         const detailMsg = errors
           .slice(0, 3)
-          .map((err) => `${err.path || '<root>'}: ${err.message}`)
+          .map((err) => `${err.field}: ${err.message}`)
           .join('; ');
         const details: SubmitOutputDetails = {
           captured: false,
@@ -131,7 +141,7 @@ export function createSubmitOutputTool(
             {
               type: 'text' as const,
               text:
-                `Output failed schema validation: ${detailMsg}. ` +
+                `Output failed validation: ${detailMsg}. ` +
                 'Re-call this tool with a corrected output.',
             },
           ],

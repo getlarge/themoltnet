@@ -21,7 +21,7 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
-import { Rubric } from '../rubric.js';
+import { AssertionResult, Rubric } from '../rubric.js';
 
 export const JUDGE_PACK_TYPE = 'judge_pack' as const;
 
@@ -51,10 +51,25 @@ export type JudgePackInput = Static<typeof JudgePackInput>;
 export const JudgePackScore = Type.Object(
   {
     criterionId: Type.String({ minLength: 1 }),
-    /** 0..1 continuous for `llm_judged`, exactly 0 or 1 for deterministic/boolean. */
+    /**
+     * Per-criterion numeric score, 0..1.
+     * - `llm_score`: continuous 0..1 (smooths failures — see #999).
+     * - `llm_checklist`: derived — `1` iff every entry in `assertions`
+     *   has `passed: true`, else `0`. The judge MUST set this consistently
+     *   with the assertions array; the runtime rejects mismatches.
+     * - `boolean` / `deterministic_*`: exactly 0 or 1.
+     */
     score: Type.Number({ minimum: 0, maximum: 1 }),
-    /** Required for `llm_judged`, optional otherwise. */
+    /** Required for `llm_score`, optional otherwise. */
     rationale: Type.Optional(Type.String()),
+    /**
+     * Per-claim binary results — REQUIRED when the criterion's `scoring`
+     * mode is `llm_checklist`, otherwise omitted. The list is the
+     * dataset for cluster-analysis of failure modes; every entry carries
+     * concrete `evidence` regardless of pass/fail. See #999 and the
+     * shared `AssertionResult` type in `../rubric.ts`.
+     */
+    assertions: Type.Optional(Type.Array(AssertionResult, { minItems: 1 })),
     /**
      * Structured evidence for deterministic scorings. Shape depends on
      * the criterion's `scoring` mode; stored as free-form JSON for
@@ -77,7 +92,7 @@ export const JudgePackOutput = Type.Object(
     /** 1–3 sentence overall verdict. */
     verdict: Type.String({ minLength: 1 }),
 
-    /** Model id used for `llm_judged` criteria. */
+    /** Model id used for `llm_score` criteria. */
     judgeModel: Type.Optional(Type.String()),
 
     /**
@@ -87,10 +102,50 @@ export const JudgePackOutput = Type.Object(
      * attestations. `null` is accepted and treated as "unavailable"
      * equivalent to omission.
      */
-    rendererBinaryCid: Type.Optional(
-      Type.Union([Type.String(), Type.Null()]),
-    ),
+    rendererBinaryCid: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   },
   { $id: 'JudgePackOutput', additionalProperties: false },
 );
 export type JudgePackOutput = Static<typeof JudgePackOutput>;
+
+/**
+ * Cross-field validator for JudgePackOutput. Run after the TypeBox
+ * schema check passes. Enforces invariants the schema can't express:
+ *
+ * 1. If a `JudgePackScore` carries an `assertions` array (i.e. the
+ *    judge ran the criterion in `llm_checklist` mode), its numeric
+ *    `score` MUST equal `1` if every `assertions[i].passed` is true,
+ *    else `0`. The prompt instructs the judge to derive `score` from
+ *    the array, but the LLM can drift — without this check, the
+ *    runtime accepts inconsistent payloads and propagates them into
+ *    composite scores and judge attestations (#999 P1).
+ *
+ * 2. If `score` is exactly `1` AND `assertions` is present, every
+ *    assertion must have `passed: true`. Catches the failure mode in
+ *    the issue: "score: 1 with a failing assertion accepted."
+ *
+ * Cross-rubric checks (e.g. "did the judge populate `assertions` for
+ * every criterion the rubric marked `llm_checklist`?") require the
+ * input rubric and live in a separate, runtime-side validator. This
+ * one is rubric-agnostic on purpose — it catches within-score
+ * inconsistency without needing the original task input.
+ */
+export function validateJudgePackOutput(output: unknown): string | null {
+  // Schema validation already ran at this point — narrow safely.
+  const scores = (output as JudgePackOutput).scores;
+  for (let i = 0; i < scores.length; i++) {
+    const s = scores[i];
+    if (!s.assertions) continue;
+    const allPassed = s.assertions.every((a) => a.passed);
+    const expected = allPassed ? 1 : 0;
+    if (s.score !== expected) {
+      return (
+        `scores[${i}] (criterionId="${s.criterionId}"): ` +
+        `assertions ${allPassed ? 'all pass' : 'have at least one fail'} ` +
+        `but score=${s.score}. Score must be derived: 1 iff every ` +
+        `assertion passes, else 0 (#999 llm_checklist rule).`
+      );
+    }
+  }
+  return null;
+}
