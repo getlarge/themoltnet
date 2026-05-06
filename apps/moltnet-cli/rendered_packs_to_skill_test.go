@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
 )
 
@@ -203,6 +204,53 @@ func TestWriteSkillBundle_IdempotentSameID(t *testing.T) {
 	}
 	if !strings.Contains(string(got), "rendered_pack_cid: cid2") {
 		t.Errorf("cid not updated")
+	}
+}
+
+func TestDescriptionForBundle_UsesServerValue(t *testing.T) {
+	pack := &moltnetapi.RenderedPackWithContent{
+		ID:           mustUUID(t, "11111111-1111-1111-1111-111111111111"),
+		RenderMethod: "agent:pack-to-docs-v1",
+		Description:  moltnetapi.NewNilString("Use when working on auth flows"),
+	}
+	got, isPlaceholder := descriptionForBundle(pack)
+	if got != "Use when working on auth flows" {
+		t.Errorf("description = %q, want server value", got)
+	}
+	if isPlaceholder {
+		t.Errorf("isPlaceholder = true, want false")
+	}
+}
+
+func TestDescriptionForBundle_FallsBackOnNullDescription(t *testing.T) {
+	var nullDesc moltnetapi.NilString
+	nullDesc.SetToNull()
+	pack := &moltnetapi.RenderedPackWithContent{
+		ID:           mustUUID(t, "22222222-2222-2222-2222-222222222222"),
+		RenderMethod: "agent:pack-to-docs-v1",
+		Description:  nullDesc,
+	}
+	got, isPlaceholder := descriptionForBundle(pack)
+	if !isPlaceholder {
+		t.Errorf("isPlaceholder = false, want true")
+	}
+	if !strings.Contains(got, "no description set") {
+		t.Errorf("description should explain absence; got %q", got)
+	}
+	if !strings.Contains(got, "moltnet rendered-pack update") {
+		t.Errorf("description should hint the update command; got %q", got)
+	}
+}
+
+func TestDescriptionForBundle_FallsBackOnWhitespaceOnly(t *testing.T) {
+	pack := &moltnetapi.RenderedPackWithContent{
+		ID:           mustUUID(t, "33333333-3333-3333-3333-333333333333"),
+		RenderMethod: "agent:pack-to-docs-v1",
+		Description:  moltnetapi.NewNilString("   "),
+	}
+	_, isPlaceholder := descriptionForBundle(pack)
+	if !isPlaceholder {
+		t.Errorf("whitespace-only description should be treated as absent")
 	}
 }
 

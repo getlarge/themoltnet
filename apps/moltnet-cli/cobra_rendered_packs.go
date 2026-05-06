@@ -94,10 +94,16 @@ func newRenderedPacksUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a rendered pack",
-		Long:  `Update a rendered pack's pinned status or expiration time.`,
+		Long: `Update a rendered pack's pinned status, expiration time, or description.
+
+The description is sidecar metadata used as the activation language for
+AgentSkills installations (see ` + "`rendered-pack to-skill`" + `). It is not part of
+the pack CID — editing it does not supersede the rendered pack.`,
 		Example: `  moltnet rendered-pack update --id <uuid> --pinned
   moltnet rendered-pack update --id <uuid> --no-pinned --expires-at 2026-05-01T00:00:00Z
-  moltnet rendered-pack update --id <uuid> --expires-at 2026-05-01T00:00:00Z`,
+  moltnet rendered-pack update --id <uuid> --expires-at 2026-05-01T00:00:00Z
+  moltnet rendered-pack update --id <uuid> --description "Use when working on auth flows"
+  moltnet rendered-pack update --id <uuid> --clear-description`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
@@ -113,18 +119,34 @@ func newRenderedPacksUpdateCmd() *cobra.Command {
 				pinned = &v
 			}
 
-			if pinned == nil && expiresAt == "" {
-				return fmt.Errorf("at least one of --pinned, --no-pinned, or --expires-at must be provided")
+			// description tri-state:
+			//   nil pointer  → field not set in PATCH (no change)
+			//   non-nil ptr to ""  → null on the server (clear)
+			//   non-nil ptr to "x" → "x" on the server (set)
+			var description *string
+			if cmd.Flags().Changed("description") {
+				v, _ := cmd.Flags().GetString("description")
+				description = &v
+			} else if cmd.Flags().Changed("clear-description") {
+				empty := ""
+				description = &empty
 			}
 
-			return runRenderedPacksUpdate(apiURL, credPath, id, pinned, expiresAt)
+			if pinned == nil && expiresAt == "" && description == nil {
+				return fmt.Errorf("at least one of --pinned, --no-pinned, --expires-at, --description, or --clear-description must be provided")
+			}
+
+			return runRenderedPacksUpdate(apiURL, credPath, id, pinned, expiresAt, description)
 		},
 	}
 	cmd.Flags().String("id", "", "Rendered pack UUID (required)")
 	cmd.Flags().Bool("pinned", false, "Pin the rendered pack")
 	cmd.Flags().Bool("no-pinned", false, "Unpin the rendered pack")
 	cmd.Flags().String("expires-at", "", "Expiration time in RFC3339 format")
+	cmd.Flags().String("description", "", "Activation language for AgentSkills installations (≤256 chars)")
+	cmd.Flags().Bool("clear-description", false, "Clear the rendered pack description")
 	_ = cmd.MarkFlagRequired("id")
 	cmd.MarkFlagsMutuallyExclusive("pinned", "no-pinned")
+	cmd.MarkFlagsMutuallyExclusive("description", "clear-description")
 	return cmd
 }

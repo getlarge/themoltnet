@@ -78,7 +78,7 @@ func runRenderedPacksGet(apiURL, credPath, id string) error {
 	return printJSON(pack)
 }
 
-func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt string) error {
+func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt string, description *string) error {
 	renderedPackID, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid --id %q: %w", id, err)
@@ -99,6 +99,15 @@ func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt
 			return fmt.Errorf("invalid --expires-at %q: %w", expiresAt, err)
 		}
 		req.ExpiresAt = moltnetapi.NewOptDateTime(t)
+	}
+	if description != nil {
+		// "" sentinel from --clear-description means null on server; otherwise the
+		// non-empty string is the new description.
+		if *description == "" {
+			req.Description.SetToNull()
+		} else {
+			req.Description.SetTo(*description)
+		}
 	}
 
 	res, err := client.UpdateRenderedPack(

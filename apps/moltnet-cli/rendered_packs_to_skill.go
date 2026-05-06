@@ -19,13 +19,13 @@ import (
 // carries identity fields under the `moltnet:` namespace so re-runs can
 // detect updates without an external sidecar.
 type skillBundle struct {
-	slug             string
-	description      string
-	body             string
-	renderedPackID   uuid.UUID
-	renderedPackCid  string
-	sourcePackID     uuid.UUID
-	bundledAt        time.Time
+	slug            string
+	description     string
+	body            string
+	renderedPackID  uuid.UUID
+	renderedPackCid string
+	sourcePackID    uuid.UUID
+	bundledAt       time.Time
 }
 
 // renderSkillMarkdown serialises a skillBundle into AgentSkills SKILL.md form.
@@ -162,9 +162,10 @@ func runRenderedPackToSkill(apiURL, credPath, id, outDir string) error {
 		return fmt.Errorf("rendered pack %s has empty content", renderedPackID)
 	}
 
+	description, isPlaceholder := descriptionForBundle(pack)
 	bundle := skillBundle{
 		slug:            slugForRenderedPack(pack.ID),
-		description:     fmt.Sprintf("Rendered pack %s (method: %s)", pack.ID, pack.RenderMethod),
+		description:     description,
 		body:            pack.Content,
 		renderedPackID:  pack.ID,
 		renderedPackCid: pack.PackCid,
@@ -177,6 +178,27 @@ func runRenderedPackToSkill(apiURL, credPath, id, outDir string) error {
 		return err
 	}
 
+	if isPlaceholder {
+		fmt.Fprintf(
+			os.Stderr,
+			"warning: rendered pack %s has no description; SKILL.md uses a placeholder that won't drive activation. Set one with:\n  moltnet rendered-pack update --id %s --description \"Use when ...\"\n",
+			pack.ID, pack.ID,
+		)
+	}
 	fmt.Fprintf(os.Stderr, "Wrote %s\n", path)
 	return nil
+}
+
+// descriptionForBundle returns the SKILL.md description for a rendered pack,
+// preferring the server-side `description` sidecar field when set. When the
+// server has no description, returns a placeholder string and isPlaceholder=true
+// so the caller can warn.
+func descriptionForBundle(pack *moltnetapi.RenderedPackWithContent) (string, bool) {
+	if !pack.Description.Null && strings.TrimSpace(pack.Description.Value) != "" {
+		return pack.Description.Value, false
+	}
+	return fmt.Sprintf(
+		"Rendered pack %s (method: %s) — no description set; run `moltnet rendered-pack update --id %s --description ...`",
+		pack.ID, pack.RenderMethod, pack.ID,
+	), true
 }
