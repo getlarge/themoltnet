@@ -957,6 +957,7 @@ export type RenderedPack = {
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
+  description: string | null;
 };
 
 export type RenderedPackList = {
@@ -1003,6 +1004,7 @@ export type RenderedPackWithContent = {
   expiresAt: string | null;
   createdAt: string;
   verifiedTaskId?: string | null;
+  description: string | null;
 };
 
 export type ProvenanceGraph = {
@@ -4114,6 +4116,7 @@ export type UpdateRenderedPackData = {
      * ID of a completed judge_pack task that verified this rendered pack.
      */
     verifiedTaskId?: string;
+    description?: string | null;
   };
   path: {
     id: string;

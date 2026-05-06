@@ -14570,6 +14570,69 @@ func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEn
 	return d
 }
 
+// NewOptNilString returns new OptNilString with value set to v.
+func NewOptNilString(v string) OptNilString {
+	return OptNilString{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilString is optional nullable string.
+type OptNilString struct {
+	Value string
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilString was set.
+func (o OptNilString) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilString) Reset() {
+	var v string
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilString) SetTo(v string) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilString) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilString) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v string
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilString) Get() (v string, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilUUID returns new OptNilUUID with value set to v.
 func NewOptNilUUID(v uuid.UUID) OptNilUUID {
 	return OptNilUUID{
@@ -18340,6 +18403,7 @@ type RenderedPack struct {
 	ContentHash  string              `json:"contentHash"`
 	CreatedAt    time.Time           `json:"createdAt"`
 	Creator      RenderedPackCreator `json:"creator"`
+	Description  NilString           `json:"description"`
 	DiaryId      uuid.UUID           `json:"diaryId"`
 	ExpiresAt    NilDateTime         `json:"expiresAt"`
 	ID           uuid.UUID           `json:"id"`
@@ -18363,6 +18427,11 @@ func (s *RenderedPack) GetCreatedAt() time.Time {
 // GetCreator returns the value of Creator.
 func (s *RenderedPack) GetCreator() RenderedPackCreator {
 	return s.Creator
+}
+
+// GetDescription returns the value of Description.
+func (s *RenderedPack) GetDescription() NilString {
+	return s.Description
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -18418,6 +18487,11 @@ func (s *RenderedPack) SetCreatedAt(val time.Time) {
 // SetCreator sets the value of Creator.
 func (s *RenderedPack) SetCreator(val RenderedPackCreator) {
 	s.Creator = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RenderedPack) SetDescription(val NilString) {
+	s.Description = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -18761,6 +18835,7 @@ type RenderedPackWithContent struct {
 	Content        string      `json:"content"`
 	ContentHash    string      `json:"contentHash"`
 	CreatedAt      time.Time   `json:"createdAt"`
+	Description    NilString   `json:"description"`
 	DiaryId        uuid.UUID   `json:"diaryId"`
 	ExpiresAt      NilDateTime `json:"expiresAt"`
 	ID             uuid.UUID   `json:"id"`
@@ -18785,6 +18860,11 @@ func (s *RenderedPackWithContent) GetContentHash() string {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *RenderedPackWithContent) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetDescription returns the value of Description.
+func (s *RenderedPackWithContent) GetDescription() NilString {
+	return s.Description
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -18845,6 +18925,11 @@ func (s *RenderedPackWithContent) SetContentHash(val string) {
 // SetCreatedAt sets the value of CreatedAt.
 func (s *RenderedPackWithContent) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RenderedPackWithContent) SetDescription(val NilString) {
+	s.Description = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -21939,10 +22024,18 @@ func (*UpdateRenderedPackNotFound) updateRenderedPackRes() {}
 
 // At least one field must be provided. See route handler for field-combination constraints.
 type UpdateRenderedPackReq struct {
-	ExpiresAt OptDateTime `json:"expiresAt"`
-	Pinned    OptBool     `json:"pinned"`
+	// Activation language for AgentSkills installations. Sidecar metadata; not part of the pack CID.
+	// Pass null to clear.
+	Description OptNilString `json:"description"`
+	ExpiresAt   OptDateTime  `json:"expiresAt"`
+	Pinned      OptBool      `json:"pinned"`
 	// ID of a completed judge_pack task that verified this rendered pack.
 	VerifiedTaskId OptUUID `json:"verifiedTaskId"`
+}
+
+// GetDescription returns the value of Description.
+func (s *UpdateRenderedPackReq) GetDescription() OptNilString {
+	return s.Description
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -21958,6 +22051,11 @@ func (s *UpdateRenderedPackReq) GetPinned() OptBool {
 // GetVerifiedTaskId returns the value of VerifiedTaskId.
 func (s *UpdateRenderedPackReq) GetVerifiedTaskId() OptUUID {
 	return s.VerifiedTaskId
+}
+
+// SetDescription sets the value of Description.
+func (s *UpdateRenderedPackReq) SetDescription(val OptNilString) {
+	s.Description = val
 }
 
 // SetExpiresAt sets the value of ExpiresAt.

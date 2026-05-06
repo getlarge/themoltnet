@@ -2903,6 +2903,21 @@ func (s *Server) decodeUpdateRenderedPackRequest(r *http.Request) (
 			}
 			return req, rawBody, close, err
 		}
+		if err := func() error {
+			if value, ok := request.Get(); ok {
+				if err := func() error {
+					if err := value.Validate(); err != nil {
+						return err
+					}
+					return nil
+				}(); err != nil {
+					return err
+				}
+			}
+			return nil
+		}(); err != nil {
+			return req, rawBody, close, errors.Wrap(err, "validate")
+		}
 		return request, rawBody, close, nil
 	default:
 		return req, rawBody, close, validate.InvalidContentType(ct)

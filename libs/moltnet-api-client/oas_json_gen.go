@@ -38872,6 +38872,57 @@ func (s *OptInt) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes string as json.
+func (o OptNilString) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes string from json.
+func (o *OptNilString) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilString to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v string
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	v, err := d.Str()
+	if err != nil {
+		return err
+	}
+	o.Value = string(v)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilString) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilString) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes uuid.UUID as json.
 func (o OptNilUUID) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -46427,6 +46478,10 @@ func (s *RenderedPack) encodeFields(e *jx.Encoder) {
 		s.Creator.Encode(e)
 	}
 	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
 		e.FieldStart("diaryId")
 		json.EncodeUUID(e, s.DiaryId)
 	}
@@ -46460,18 +46515,19 @@ func (s *RenderedPack) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRenderedPack = [11]string{
+var jsonFieldsNameOfRenderedPack = [12]string{
 	0:  "contentHash",
 	1:  "createdAt",
 	2:  "creator",
-	3:  "diaryId",
-	4:  "expiresAt",
-	5:  "id",
-	6:  "packCid",
-	7:  "pinned",
-	8:  "renderMethod",
-	9:  "sourcePackId",
-	10: "totalTokens",
+	3:  "description",
+	4:  "diaryId",
+	5:  "expiresAt",
+	6:  "id",
+	7:  "packCid",
+	8:  "pinned",
+	9:  "renderMethod",
+	10: "sourcePackId",
+	11: "totalTokens",
 }
 
 // Decode decodes RenderedPack from json.
@@ -46517,8 +46573,18 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"creator\"")
 			}
-		case "diaryId":
+		case "description":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "diaryId":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -46530,7 +46596,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "expiresAt":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -46540,7 +46606,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -46552,7 +46618,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "packCid":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCid = string(v)
@@ -46564,7 +46630,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
 		case "pinned":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Bool()
 				s.Pinned = bool(v)
@@ -46576,7 +46642,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
 		case "renderMethod":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.RenderMethod = string(v)
@@ -46588,7 +46654,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"renderMethod\"")
 			}
 		case "sourcePackId":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SourcePackId = v
@@ -46600,7 +46666,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourcePackId\"")
 			}
 		case "totalTokens":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalTokens = int(v)
@@ -46622,7 +46688,7 @@ func (s *RenderedPack) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -47375,6 +47441,10 @@ func (s *RenderedPackWithContent) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
 		e.FieldStart("diaryId")
 		json.EncodeUUID(e, s.DiaryId)
 	}
@@ -47414,19 +47484,20 @@ func (s *RenderedPackWithContent) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRenderedPackWithContent = [12]string{
+var jsonFieldsNameOfRenderedPackWithContent = [13]string{
 	0:  "content",
 	1:  "contentHash",
 	2:  "createdAt",
-	3:  "diaryId",
-	4:  "expiresAt",
-	5:  "id",
-	6:  "packCid",
-	7:  "pinned",
-	8:  "renderMethod",
-	9:  "sourcePackId",
-	10: "totalTokens",
-	11: "verifiedTaskId",
+	3:  "description",
+	4:  "diaryId",
+	5:  "expiresAt",
+	6:  "id",
+	7:  "packCid",
+	8:  "pinned",
+	9:  "renderMethod",
+	10: "sourcePackId",
+	11: "totalTokens",
+	12: "verifiedTaskId",
 }
 
 // Decode decodes RenderedPackWithContent from json.
@@ -47474,8 +47545,18 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "diaryId":
+		case "description":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "diaryId":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -47487,7 +47568,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "expiresAt":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -47497,7 +47578,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -47509,7 +47590,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "packCid":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCid = string(v)
@@ -47521,7 +47602,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
 		case "pinned":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Bool()
 				s.Pinned = bool(v)
@@ -47533,7 +47614,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
 		case "renderMethod":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.RenderMethod = string(v)
@@ -47545,7 +47626,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"renderMethod\"")
 			}
 		case "sourcePackId":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SourcePackId = v
@@ -47557,7 +47638,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourcePackId\"")
 			}
 		case "totalTokens":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalTokens = int(v)
@@ -47589,7 +47670,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -55410,6 +55491,12 @@ func (s *UpdateRenderedPackReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *UpdateRenderedPackReq) encodeFields(e *jx.Encoder) {
 	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
 		if s.ExpiresAt.Set {
 			e.FieldStart("expiresAt")
 			s.ExpiresAt.Encode(e, json.EncodeDateTime)
@@ -55429,10 +55516,11 @@ func (s *UpdateRenderedPackReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateRenderedPackReq = [3]string{
-	0: "expiresAt",
-	1: "pinned",
-	2: "verifiedTaskId",
+var jsonFieldsNameOfUpdateRenderedPackReq = [4]string{
+	0: "description",
+	1: "expiresAt",
+	2: "pinned",
+	3: "verifiedTaskId",
 }
 
 // Decode decodes UpdateRenderedPackReq from json.
@@ -55445,6 +55533,16 @@ func (s *UpdateRenderedPackReq) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		propertiesCount++
 		switch string(k) {
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
 		case "expiresAt":
 			if err := func() error {
 				s.ExpiresAt.Reset()
