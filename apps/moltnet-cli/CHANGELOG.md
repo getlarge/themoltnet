@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.35.0](https://github.com/getlarge/themoltnet/compare/cli-v1.34.1...cli-v1.35.0) (2026-05-06)
+
+
+### Features
+
+* **go-sdk,cli:** regen Go SDK + CLI test fixtures (closes [#992](https://github.com/getlarge/themoltnet/issues/992)) ([6653fab](https://github.com/getlarge/themoltnet/commit/6653faba53186ee7c4c413ffc88a0e90476964d1))
+* **mcp-server:** expose rendered_packs_get and rendered_packs_list ([6e9b525](https://github.com/getlarge/themoltnet/commit/6e9b525ffe650e2c6f6c0dbe03b3c94eb6c5dd3e))
+* **moltnet-cli:** render PrincipalIdentity creator in pack markdown output ([c9e9f32](https://github.com/getlarge/themoltnet/commit/c9e9f32dc46fa39b77d4fd5daa4d96cf534ebfc1)), closes [#998](https://github.com/getlarge/themoltnet/issues/998)
+
+
+### Bug Fixes
+
+* **api,sdk:** unified PrincipalIdentity creator model (closes [#992](https://github.com/getlarge/themoltnet/issues/992)) ([52dac37](https://github.com/getlarge/themoltnet/commit/52dac3798210505f0012058b81f39f5186da3d49))
+* **mcp-server:** migrate consumers to unified PrincipalIdentity creator ([a55d511](https://github.com/getlarge/themoltnet/commit/a55d511f1a7476c8a86424fed02ca8cf75555bb2))
+* **release:** recover cli v1.35.0 release cycle ([2b1dab4](https://github.com/getlarge/themoltnet/commit/2b1dab4bf0e371b55ce82205e3e43714410d75c4))
+* **release:** recover cli v1.35.0 release cycle ([319690a](https://github.com/getlarge/themoltnet/commit/319690a5c756ab0526b38b7fea00c2b197960028))
+
 ## [1.34.1](https://github.com/getlarge/themoltnet/compare/cli-v1.34.0...cli-v1.34.1) (2026-04-30)
 
 
