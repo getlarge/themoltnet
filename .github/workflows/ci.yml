@@ -148,8 +148,21 @@ jobs:
         with:
           node-version: 22.19.0
           cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      # Install golangci-lint onto PATH so the @nx-go/nx-go:lint executor
+      # (configured per Go project to use `golangci-lint`) finds it. The
+      # depguard rules in each Go module's .golangci.yml enforce the same
+      # cross-project boundary policy as @nx/enforce-module-boundaries does
+      # for TypeScript.
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+            | sh -s -- -b "$(go env GOPATH)/bin" v2.5.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx affected -t lint --exclude='tag:lang:go'
+      - run: pnpm exec nx affected -t lint
       - run: pnpm run check:quickstart
 
   typecheck:
@@ -208,14 +221,18 @@ jobs:
         with:
           node-version: 22.19.0
           cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
       - run: pnpm install --frozen-lockfile
       - name: Run database migrations
         run: pnpm run db:migrate
       # GitHub-hosted runners have 4 vCPUs. Run nx tasks sequentially
-      # (--parallel=1) and let each project's vitest pool use up to 2 threads.
-      # Higher nx parallelism × per-project vitest pools causes worker IPC
-      # timeouts under memory/CPU pressure.
-      - run: pnpm exec nx affected -t test --exclude='tag:lang:go' --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      # (--parallel=1) and let each project's vitest pool use up to 2
+      # threads. Higher nx parallelism × per-project vitest pools causes
+      # worker IPC timeouts under memory/CPU pressure. Vitest-only flags
+      # after `--` are dropped on non-vitest executors (nx-go:test, etc).
+      - run: pnpm exec nx affected -t test --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
 
   code-analysis:
     name: Code Analysis (Knip)
@@ -716,38 +733,6 @@ jobs:
       - name: Teardown Docker Compose
         if: always()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
-
-  go:
-    name: Go CLI
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    needs: [affected]
-    env:
-      NX_BASE: ${{ needs.affected.outputs.base }}
-      NX_HEAD: ${{ needs.affected.outputs.head }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-      # Mirror the lint/typecheck pattern: `nx affected --exclude=...`
-      # keeps the affected-graph filter intact and just removes anything
-      # that doesn't carry the right tag. The previous `--projects=...`
-      # was forwarded to executors (vite/tsc) as an unknown flag and
-      # failed the whole job. The inverted exclude `'*,!tag:lang:go'`
-      # means "exclude everything except Go-tagged projects" — i.e. of
-      # the affected set, run only Go.
-      - run: pnpm exec nx affected -t test build --exclude='*,!tag:lang:go'
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work

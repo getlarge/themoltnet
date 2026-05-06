@@ -18,5 +18,12 @@
   "devDependencies": {
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:runtime",
+      "scope:identity",
+      "platform:server"
+    ]
   }
 }

@@ -16,5 +16,12 @@
   },
   "devDependencies": {
     "typescript": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:shared",
+      "platform:isomorphic"
+    ]
   }
 }

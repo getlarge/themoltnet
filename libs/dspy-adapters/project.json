@@ -1,4 +1,14 @@
 {
   "name": "dspy-adapters",
-  "tags": ["lang:go"]
+  "tags": ["lang:go", "type:util", "scope:agent", "platform:isomorphic"],
+  "targets": {
+    "lint": {
+      "executor": "@nx-go/nx-go:lint",
+      "options": {
+        "args": ["run"],
+        "linter": "golangci-lint"
+      },
+      "parallelism": false
+    }
+  }
 }

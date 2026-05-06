@@ -1,0 +1,31 @@
+version: '2'
+
+# Architectural boundaries for apps/moltnet-cli.
+#
+# moltnet-cli is currently the only Go app in the workspace, so
+# cross-app rules have nothing to forbid. depguard is wired so the
+# go:lint:arch script runs cleanly across all three modules; add deny
+# rules here when a second Go app lands.
+
+run:
+  timeout: 3m
+  modules-download-mode: readonly
+
+linters:
+  default: none
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        # depguard requires at least one deny entry; this is a guard against
+        # accidentally pulling in deprecated packages used elsewhere in Go's
+        # stdlib. Replace with real cross-app rules when a second Go app
+        # lands.
+        no-deprecated-stdlib:
+          list-mode: lax
+          files:
+            - '$all'
+          deny:
+            - pkg: io/ioutil
+              desc: 'deprecated since Go 1.16 — use io and os instead.'

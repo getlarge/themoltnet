@@ -1,0 +1,28 @@
+version: '2'
+
+# Architectural boundaries for libs/moltnet-api-client.
+#
+# moltnet-api-client is a leaf module: it is generated from the OpenAPI spec
+# and must not depend on sibling modules in this workspace. Code-quality
+# linters are scoped out of this PR — opt in via a follow-up.
+
+run:
+  timeout: 3m
+  modules-download-mode: readonly
+
+linters:
+  default: none
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        leaf:
+          list-mode: lax
+          files:
+            - '$all'
+          deny:
+            - pkg: github.com/getlarge/themoltnet/apps
+              desc: 'moltnet-api-client must not depend on apps/.'
+            - pkg: github.com/getlarge/themoltnet/libs/dspy-adapters
+              desc: 'moltnet-api-client is a leaf — no sibling lib deps.'

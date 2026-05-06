@@ -1,4 +1,14 @@
 {
   "name": "moltnet-api-client",
-  "tags": ["lang:go"]
+  "tags": ["lang:go", "type:client", "scope:public", "platform:isomorphic"],
+  "targets": {
+    "lint": {
+      "executor": "@nx-go/nx-go:lint",
+      "options": {
+        "args": ["run"],
+        "linter": "golangci-lint"
+      },
+      "parallelism": false
+    }
+  }
 }

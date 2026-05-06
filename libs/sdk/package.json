@@ -53,5 +53,12 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:identity",
+      "platform:isomorphic"
+    ]
   }
 }

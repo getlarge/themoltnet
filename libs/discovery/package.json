@@ -10,5 +10,12 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {}
+  "scripts": {},
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:platform",
+      "platform:isomorphic"
+    ]
+  }
 }

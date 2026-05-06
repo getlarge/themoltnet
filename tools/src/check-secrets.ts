@@ -12,7 +12,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+// TODO(boundaries): tools should not import from apps. Extract
+// getRequiredSecrets into a shared lib (e.g. libs/config-schema) and remove.
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { getRequiredSecrets as getMcpServerSecrets } from '@moltnet/mcp-server';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { getRequiredSecrets as getRestApiSecrets } from '@moltnet/rest-api';
 import { parse } from 'smol-toml';
 

@@ -22,5 +22,12 @@
     "@types/pg": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:diary",
+      "platform:isomorphic"
+    ]
   }
 }

@@ -25,5 +25,12 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "fastify": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:identity",
+      "platform:server"
+    ]
   }
 }

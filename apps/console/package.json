@@ -29,5 +29,12 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:public",
+      "platform:browser"
+    ]
   }
 }

@@ -29,5 +29,12 @@
     "@themoltnet/cli-linux-x64": "workspace:*",
     "@themoltnet/cli-win32-arm64": "workspace:*",
     "@themoltnet/cli-win32-x64": "workspace:*"
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:tooling",
+      "platform:cli"
+    ]
   }
 }

@@ -21,5 +21,12 @@
     "@sinclair/typebox": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:task",
+      "platform:server"
+    ]
   }
 }

@@ -1,5 +1,5 @@
 import eslint from '@eslint/js';
-import boundaries from 'eslint-plugin-boundaries';
+import nxPlugin from '@nx/eslint-plugin';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
@@ -20,74 +20,179 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
 
-  // Workspace boundary rules — enforce layered architecture
+  // Workspace boundary rules — driven by Nx project tags declared in each
+  // package.json `nx.tags` block. Tag dimensions:
+  //   type:     app | feature | runtime | data-access | client | ui | util | tool
+  //   scope:    identity | diary | crypto | agent | task | platform | public | tooling | shared
+  //   platform: server | browser | cli | extension | isomorphic
   //
-  // Element types (source files):
-  //   app  — apps/*/src/**
-  //   lib  — libs/*/src/**
-  //   tool — tools/*/src/**
-  //
-  // Rules:
-  //   libs  → cannot import app packages (@moltnet/{landing,mcp-server,rest-api,server})
-  //   apps  → cannot import app packages
-  //   tools → cannot import app packages
+  // Rules below encode the layered architecture. The lang:go tag exists for Go
+  // projects (handled by golangci-lint depguard, not this rule).
   {
     files: [
       'apps/*/src/**/*.ts',
       'apps/*/src/**/*.tsx',
       'libs/*/src/**/*.ts',
-      'tools/*/src/**/*.ts',
+      'libs/*/src/**/*.tsx',
+      'tools/src/**/*.ts',
+      'packages/*/src/**/*.ts',
+      'packages/*/src/**/*.tsx',
     ],
     plugins: {
-      boundaries,
-    },
-    settings: {
-      'boundaries/elements': [
-        { type: 'app', pattern: 'apps/*/src/**', mode: 'file' },
-        { type: 'lib', pattern: 'libs/*/src/**', mode: 'file' },
-        { type: 'tool', pattern: 'tools/*/src/**', mode: 'file' },
-      ],
-      'boundaries/include': [
-        'apps/*/src/**',
-        'libs/*/src/**',
-        'tools/*/src/**',
-      ],
+      '@nx': nxPlugin,
     },
     rules: {
-      'boundaries/external': [
+      '@nx/enforce-module-boundaries': [
         'error',
         {
-          default: 'allow',
-          rules: [
+          enforceBuildableLibDependency: false,
+          allow: [],
+          depConstraints: [
+            // Apps may depend on anything except other apps and tools.
             {
-              from: 'lib',
-              disallow: [
-                '@moltnet/landing',
-                '@moltnet/mcp-server',
-                '@moltnet/rest-api',
+              sourceTag: 'type:app',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:runtime',
+                'type:data-access',
+                'type:client',
+                'type:ui',
+                'type:util',
               ],
-              message:
-                'Libs must not import from apps. Extract shared code into a lib.',
             },
+            // Features (domain services) may depend on lower layers only.
             {
-              from: 'tool',
-              disallow: [
-                '@moltnet/landing',
-                '@moltnet/mcp-server',
-                '@moltnet/rest-api',
+              sourceTag: 'type:feature',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:data-access',
+                'type:client',
+                'type:util',
               ],
-              message:
-                'Tools must not import from apps. Extract shared code into a lib.',
             },
+            // Runtime libs (agent runtime, bootstrap, pi-extension) may use
+            // features and lower; bootstrap legitimately needs data-access.
             {
-              from: 'app',
-              disallow: [
-                '@moltnet/landing',
-                '@moltnet/mcp-server',
-                '@moltnet/rest-api',
+              sourceTag: 'type:runtime',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:runtime',
+                'type:data-access',
+                'type:client',
+                'type:util',
               ],
-              message:
-                'Apps must not import from other apps. Extract shared code into a lib.',
+            },
+            // Data-access is leaf-ish: only utils.
+            {
+              sourceTag: 'type:data-access',
+              onlyDependOnLibsWithTags: ['type:util'],
+            },
+            // UI libs may depend on UI, clients, and utils.
+            {
+              sourceTag: 'type:ui',
+              onlyDependOnLibsWithTags: ['type:ui', 'type:client', 'type:util'],
+            },
+            // Public API clients (sdk, api-client, cli, legreffier) may depend
+            // on utils, other clients, and ui (the design-system has CLI/React
+            // surfaces consumed by interactive CLIs).
+            {
+              sourceTag: 'type:client',
+              onlyDependOnLibsWithTags: [
+                'type:client',
+                'type:ui',
+                'type:util',
+              ],
+            },
+            // Utils are leaves — they depend only on other utils.
+            {
+              sourceTag: 'type:util',
+              onlyDependOnLibsWithTags: ['type:util'],
+            },
+            // Tools is a leaf — internal CLIs may consume anything but
+            // nothing depends on them (enforced by tools NOT being in any
+            // other rule's onlyDependOnLibsWithTags list).
+            {
+              sourceTag: 'type:tool',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:runtime',
+                'type:data-access',
+                'type:client',
+                'type:util',
+              ],
+            },
+            // Browser code cannot pull in server-only libs, nor server-only
+            // npm packages. Banned externals are picked to surface the most
+            // common foot-guns (Node servers, DB drivers, server frameworks,
+            // workflow engines). Add to the list as new server deps appear.
+            {
+              sourceTag: 'platform:browser',
+              onlyDependOnLibsWithTags: [
+                'platform:browser',
+                'platform:isomorphic',
+              ],
+              bannedExternalImports: [
+                'fastify',
+                '@fastify/*',
+                'pg',
+                'pg-pool',
+                'drizzle-orm',
+                'drizzle-orm/*',
+                '@dbos-inc/*',
+                '@ory/client',
+              ],
+            },
+            // Server code cannot pull in browser-only libs nor browser-only
+            // npm packages. `react` is intentionally NOT banned — Ink-based
+            // CLIs render React in a terminal. `react-dom` is the real
+            // browser marker.
+            {
+              sourceTag: 'platform:server',
+              onlyDependOnLibsWithTags: [
+                'platform:server',
+                'platform:isomorphic',
+              ],
+              bannedExternalImports: ['react-dom', 'react-dom/*'],
+            },
+            // CLI binaries can use server, cli, extension, and isomorphic libs.
+            // (agent-daemon is a CLI app that drives the pi-extension runtime.)
+            {
+              sourceTag: 'platform:cli',
+              onlyDependOnLibsWithTags: [
+                'platform:cli',
+                'platform:server',
+                'platform:extension',
+                'platform:isomorphic',
+              ],
+            },
+            // Pi-extension runs in Gondolin VM, may reach for cli/server libs.
+            {
+              sourceTag: 'platform:extension',
+              onlyDependOnLibsWithTags: [
+                'platform:extension',
+                'platform:cli',
+                'platform:server',
+                'platform:isomorphic',
+              ],
+            },
+            // Isomorphic libs may only depend on other isomorphic libs and
+            // must not pull in platform-specific npm packages (server
+            // frameworks, DB drivers, browser renderers, etc).
+            {
+              sourceTag: 'platform:isomorphic',
+              onlyDependOnLibsWithTags: ['platform:isomorphic'],
+              bannedExternalImports: [
+                'fastify',
+                '@fastify/*',
+                'pg',
+                'pg-pool',
+                'drizzle-orm',
+                'drizzle-orm/*',
+                '@dbos-inc/*',
+                '@ory/client',
+                'react-dom',
+                'react-dom/*',
+              ],
             },
           ],
         },
@@ -203,32 +308,6 @@ export default tseslint.config(
             "MemberExpression[object.name='process'][property.name='env']",
           message:
             'Use the config module instead of accessing process.env directly.',
-        },
-      ],
-    },
-  },
-
-  // Enforce tools/ as a leaf package — apps, libs, and packages must not import from it
-  {
-    files: [
-      'apps/*/src/**/*.ts',
-      'apps/*/src/**/*.tsx',
-      'libs/*/src/**/*.ts',
-      'libs/*/src/**/*.tsx',
-      'packages/*/src/**/*.ts',
-      'packages/*/src/**/*.tsx',
-    ],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@moltnet/tools', '@moltnet/tools/*'],
-              message:
-                'tools/ is a leaf package — nothing else may import from it. Move shared types to a lib.',
-            },
-          ],
         },
       ],
     },
