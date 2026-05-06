@@ -41,6 +41,7 @@ const renderedPackSelection = {
   expiresAt: renderedPacks.expiresAt,
   createdAt: renderedPacks.createdAt,
   verifiedTaskId: renderedPacks.verifiedTaskId,
+  description: renderedPacks.description,
 } as const;
 
 interface RenderedPackRow extends RenderedPack {
@@ -70,6 +71,7 @@ function normalizeRenderedPack(row: RenderedPackRow): RenderedPackWithCreator {
     expiresAt: row.expiresAt,
     createdAt: row.createdAt,
     verifiedTaskId: row.verifiedTaskId,
+    description: row.description,
   };
 }
 
@@ -258,6 +260,19 @@ export function createRenderedPackRepository(db: Database) {
       const [row] = await getExecutor(db)
         .update(renderedPacks)
         .set({ verifiedTaskId })
+        .where(eq(renderedPacks.id, id))
+        .returning();
+
+      return row ?? null;
+    },
+
+    async setDescription(
+      id: string,
+      description: string | null,
+    ): Promise<RenderedPack | null> {
+      const [row] = await getExecutor(db)
+        .update(renderedPacks)
+        .set({ description })
         .where(eq(renderedPacks.id, id))
         .returning();
 

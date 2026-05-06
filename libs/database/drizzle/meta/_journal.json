@@ -56,6 +56,13 @@
       "tag": "0007_update_diary_search_for_principal",
       "version": "7",
       "when": 1777835805108
+    },
+    {
+      "breakpoints": true,
+      "idx": 8,
+      "tag": "0008_rendered_packs_description",
+      "version": "7",
+      "when": 1778055002574
     }
   ],
   "version": "7"

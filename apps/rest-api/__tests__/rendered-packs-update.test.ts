@@ -35,6 +35,7 @@ const MOCK_RENDERED_PACK = {
   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   createdAt: new Date('2026-03-22T10:00:00Z'),
   verifiedTaskId: null,
+  description: null,
 };
 
 describe('PATCH /rendered-packs/:id', () => {
@@ -422,6 +423,113 @@ describe('PATCH /rendered-packs/:id', () => {
       });
 
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('description', () => {
+    it('sets description on happy path', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.renderedPackRepository.setDescription.mockResolvedValueOnce({
+        ...MOCK_RENDERED_PACK,
+        description: 'Use when working on auth flows',
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { description: 'Use when working on auth flows' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().description).toBe(
+        'Use when working on auth flows',
+      );
+      expect(mocks.renderedPackRepository.setDescription).toHaveBeenCalledWith(
+        RENDERED_PACK_ID,
+        'Use when working on auth flows',
+      );
+    });
+
+    it('clears description when null is passed', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce({
+        ...MOCK_RENDERED_PACK,
+        description: 'old text',
+      });
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.renderedPackRepository.setDescription.mockResolvedValueOnce({
+        ...MOCK_RENDERED_PACK,
+        description: null,
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { description: null },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().description).toBeNull();
+      expect(mocks.renderedPackRepository.setDescription).toHaveBeenCalledWith(
+        RENDERED_PACK_ID,
+        null,
+      );
+    });
+
+    it('rejects description longer than 256 chars', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { description: 'x'.repeat(257) },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(
+        mocks.renderedPackRepository.setDescription,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('combines description with pinned in one PATCH', async () => {
+      mocks.renderedPackRepository.findById.mockResolvedValueOnce(
+        MOCK_RENDERED_PACK,
+      );
+      mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+      mocks.renderedPackRepository.setDescription.mockResolvedValueOnce({
+        ...MOCK_RENDERED_PACK,
+        description: 'Use when X',
+      });
+      mocks.renderedPackRepository.pin.mockResolvedValueOnce({
+        ...MOCK_RENDERED_PACK,
+        pinned: true,
+        expiresAt: null,
+        description: 'Use when X',
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/rendered-packs/${RENDERED_PACK_ID}`,
+        headers: authHeaders,
+        payload: { description: 'Use when X', pinned: true },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.renderedPackRepository.setDescription).toHaveBeenCalledWith(
+        RENDERED_PACK_ID,
+        'Use when X',
+      );
+      expect(mocks.renderedPackRepository.pin).toHaveBeenCalledWith(
+        RENDERED_PACK_ID,
+      );
     });
   });
 });

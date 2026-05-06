@@ -365,6 +365,17 @@ export const RenderedPackUpdateBodySchema = Type.Object(
           'ID of a completed judge_pack task that verified this rendered pack.',
       }),
     ),
+    description: Type.Optional(
+      Type.Union([
+        Type.String({
+          minLength: 1,
+          maxLength: 256,
+          description:
+            'Activation language for AgentSkills installations. Sidecar metadata; not part of the pack CID. Pass null to clear.',
+        }),
+        Type.Null(),
+      ]),
+    ),
   },
   {
     minProperties: 1,
@@ -462,6 +473,7 @@ export const RenderedPackSchema = Type.Object(
     pinned: Type.Boolean(),
     expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,
+    description: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'RenderedPack' },
 );
@@ -521,6 +533,7 @@ export const RenderedPackWithContentSchema = Type.Object(
     verifiedTaskId: Type.Optional(
       Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     ),
+    description: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'RenderedPackWithContent' },
 );

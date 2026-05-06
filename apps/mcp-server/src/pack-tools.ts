@@ -401,6 +401,9 @@ export async function handleRenderedPacksUpdate(
       ...(args.verified_task_id !== undefined && {
         verifiedTaskId: args.verified_task_id,
       }),
+      ...(args.description !== undefined && {
+        description: args.description,
+      }),
     },
   });
 

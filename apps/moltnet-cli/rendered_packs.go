@@ -40,7 +40,7 @@ func runRenderedPacksList(apiURL, credPath, diaryID string, limit, offset int, s
 
 	res, err := client.ListDiaryRenderedPacks(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("rendered-packs list: %w", formatTransportError(err))
+		return fmt.Errorf("rendered-pack list: %w", formatTransportError(err))
 	}
 
 	list, ok := res.(*moltnetapi.RenderedPackList)
@@ -67,7 +67,7 @@ func runRenderedPacksGet(apiURL, credPath, id string) error {
 		moltnetapi.GetRenderedPackByIdParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("rendered-packs get: %w", formatTransportError(err))
+		return fmt.Errorf("rendered-pack get: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.RenderedPackWithContent)
@@ -78,7 +78,7 @@ func runRenderedPacksGet(apiURL, credPath, id string) error {
 	return printJSON(pack)
 }
 
-func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt string) error {
+func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt string, description *string) error {
 	renderedPackID, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid --id %q: %w", id, err)
@@ -100,6 +100,15 @@ func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt
 		}
 		req.ExpiresAt = moltnetapi.NewOptDateTime(t)
 	}
+	if description != nil {
+		// "" sentinel from --clear-description means null on server; otherwise the
+		// non-empty string is the new description.
+		if *description == "" {
+			req.Description.SetToNull()
+		} else {
+			req.Description.SetTo(*description)
+		}
+	}
 
 	res, err := client.UpdateRenderedPack(
 		context.Background(),
@@ -107,7 +116,7 @@ func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt
 		moltnetapi.UpdateRenderedPackParams{ID: renderedPackID},
 	)
 	if err != nil {
-		return fmt.Errorf("rendered-packs update: %w", formatTransportError(err))
+		return fmt.Errorf("rendered-pack update: %w", formatTransportError(err))
 	}
 
 	pack, ok := res.(*moltnetapi.RenderedPackWithContent)

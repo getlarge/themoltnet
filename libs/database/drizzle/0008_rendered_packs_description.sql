@@ -1,0 +1,1 @@
+ALTER TABLE "rendered_packs" ADD COLUMN "description" text;

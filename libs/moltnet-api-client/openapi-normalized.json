@@ -3445,6 +3445,10 @@
               }
             ]
           },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -3486,7 +3490,8 @@
           "creator",
           "pinned",
           "expiresAt",
-          "createdAt"
+          "createdAt",
+          "description"
         ],
         "type": "object"
       },
@@ -3607,6 +3612,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -3653,7 +3662,8 @@
           "totalTokens",
           "pinned",
           "expiresAt",
-          "createdAt"
+          "createdAt",
+          "description"
         ],
         "type": "object"
       },
@@ -12450,6 +12460,13 @@
                 "description": "At least one field must be provided. See route handler for field-combination constraints.",
                 "minProperties": 1,
                 "properties": {
+                  "description": {
+                    "description": "Activation language for AgentSkills installations. Sidecar metadata; not part of the pack CID. Pass null to clear.",
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "nullable": true,
+                    "type": "string"
+                  },
                   "expiresAt": {
                     "format": "date-time",
                     "type": "string"

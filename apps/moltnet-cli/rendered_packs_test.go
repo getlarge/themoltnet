@@ -17,12 +17,16 @@ import (
 
 type stubRenderedPacksHandler struct {
 	moltnetapi.UnimplementedHandler
-	listCalls        int
-	listDiaryID      uuid.UUID
-	listSourcePackID uuid.UUID
-	listRenderMethod string
-	getCalls         int
-	getID            uuid.UUID
+	listCalls         int
+	listDiaryID       uuid.UUID
+	listSourcePackID  uuid.UUID
+	listRenderMethod  string
+	getCalls          int
+	getID             uuid.UUID
+	updateCalls       int
+	updateID          uuid.UUID
+	updateDescription moltnetapi.OptNilString
+	updatePinned      moltnetapi.OptBool
 }
 
 func (h *stubRenderedPacksHandler) ListDiaryRenderedPacks(
@@ -77,6 +81,39 @@ func (h *stubRenderedPacksHandler) GetRenderedPackById(
 		RenderMethod: "agent-refined",
 		TotalTokens:  200,
 		Pinned:       false,
+	}, nil
+}
+
+func (h *stubRenderedPacksHandler) UpdateRenderedPack(
+	_ context.Context,
+	req moltnetapi.OptUpdateRenderedPackReq,
+	params moltnetapi.UpdateRenderedPackParams,
+) (moltnetapi.UpdateRenderedPackRes, error) {
+	h.updateCalls++
+	h.updateID = params.ID
+	if req.Set {
+		h.updateDescription = req.Value.Description
+		h.updatePinned = req.Value.Pinned
+	}
+	desc := req.Value.Description
+	return &moltnetapi.RenderedPackWithContent{
+		ID:           params.ID,
+		PackCid:      "bafy-rendered-1",
+		SourcePackId: uuid.MustParse("bb000000-0000-0000-0000-000000000001"),
+		DiaryId:      uuid.MustParse("cc000000-0000-0000-0000-000000000001"),
+		Content:      "# Rendered",
+		ContentHash:  "sha256:abc",
+		RenderMethod: "agent-refined",
+		TotalTokens:  200,
+		Pinned:       req.Value.Pinned.Or(false),
+		Description: func() moltnetapi.NilString {
+			if desc.Set && !desc.Null {
+				return moltnetapi.NewNilString(desc.Value)
+			}
+			var nilStr moltnetapi.NilString
+			nilStr.SetToNull()
+			return nilStr
+		}(),
 	}, nil
 }
 
@@ -188,5 +225,67 @@ func TestRunRenderedPacksGet_ReturnsPack(t *testing.T) {
 	}
 	if h.getID.String() != renderedPackID {
 		t.Errorf("rendered pack ID mismatch: got %s want %s", h.getID, renderedPackID)
+	}
+}
+
+// ── update --description ─────────────────────────────────────────────────────
+
+func TestRunRenderedPacksUpdate_SetsDescription(t *testing.T) {
+	h := &stubRenderedPacksHandler{}
+	ts := newRenderedPacksTestServer(t, h)
+	credPath := writeRenderedPacksCreds(t, ts.URL)
+
+	renderedPackID := "aa000000-0000-0000-0000-000000000001"
+	desc := "Use when working on auth flows"
+	if err := runRenderedPacksUpdate(ts.URL, credPath, renderedPackID, nil, "", &desc); err != nil {
+		t.Fatalf("runRenderedPacksUpdate: %v", err)
+	}
+
+	if h.updateCalls != 1 {
+		t.Fatalf("expected 1 update call, got %d", h.updateCalls)
+	}
+	if !h.updateDescription.Set || h.updateDescription.Null {
+		t.Errorf("expected description Set=true Null=false, got %+v", h.updateDescription)
+	}
+	if h.updateDescription.Value != desc {
+		t.Errorf("description mismatch: got %q want %q", h.updateDescription.Value, desc)
+	}
+}
+
+func TestRunRenderedPacksUpdate_ClearsDescription(t *testing.T) {
+	h := &stubRenderedPacksHandler{}
+	ts := newRenderedPacksTestServer(t, h)
+	credPath := writeRenderedPacksCreds(t, ts.URL)
+
+	renderedPackID := "aa000000-0000-0000-0000-000000000001"
+	empty := ""
+	if err := runRenderedPacksUpdate(ts.URL, credPath, renderedPackID, nil, "", &empty); err != nil {
+		t.Fatalf("runRenderedPacksUpdate: %v", err)
+	}
+
+	if h.updateCalls != 1 {
+		t.Fatalf("expected 1 update call, got %d", h.updateCalls)
+	}
+	if !h.updateDescription.Set || !h.updateDescription.Null {
+		t.Errorf("expected description Set=true Null=true, got %+v", h.updateDescription)
+	}
+}
+
+func TestRunRenderedPacksUpdate_DescriptionNotSetWhenNil(t *testing.T) {
+	h := &stubRenderedPacksHandler{}
+	ts := newRenderedPacksTestServer(t, h)
+	credPath := writeRenderedPacksCreds(t, ts.URL)
+
+	renderedPackID := "aa000000-0000-0000-0000-000000000001"
+	pinned := true
+	if err := runRenderedPacksUpdate(ts.URL, credPath, renderedPackID, &pinned, "", nil); err != nil {
+		t.Fatalf("runRenderedPacksUpdate: %v", err)
+	}
+
+	if h.updateDescription.Set {
+		t.Errorf("expected description not set, got %+v", h.updateDescription)
+	}
+	if !h.updatePinned.Set || h.updatePinned.Value != true {
+		t.Errorf("expected pinned=true, got %+v", h.updatePinned)
 	}
 }

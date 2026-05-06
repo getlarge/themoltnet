@@ -264,6 +264,15 @@ export const RenderedPackUpdateSchema = Type.Object({
         'ID of a completed judge_pack task on the same diary that verified this rendered pack.',
     }),
   ),
+  description: Type.Optional(
+    Type.Union([
+      Type.String({
+        description:
+          'Activation language for AgentSkills installations (≤256 chars). Sidecar metadata; not part of the pack CID. Pass null to clear.',
+      }),
+      Type.Null(),
+    ]),
+  ),
 });
 export type RenderedPackUpdateInput = {
   rendered_pack_id: PathOf<UpdateRenderedPackData>['id'];
@@ -272,6 +281,7 @@ export type RenderedPackUpdateInput = {
   verified_task_id?: NonNullable<
     BodyOf<UpdateRenderedPackData>
   >['verifiedTaskId'];
+  description?: NonNullable<BodyOf<UpdateRenderedPackData>>['description'];
 };
 
 export const RenderedPackGetSchema = Type.Object({
@@ -454,6 +464,7 @@ const RenderedPackSchema = Type.Object({
   pinned: Type.Boolean(),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
+  description: Type.Union([Type.String(), Type.Null()]),
 });
 
 const RenderedPackWithContentSchema = Type.Object({
@@ -469,6 +480,7 @@ const RenderedPackWithContentSchema = Type.Object({
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
   verifiedTaskId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  description: Type.Union([Type.String(), Type.Null()]),
 });
 
 export const RenderedPackGetOutputSchema = RenderedPackWithContentSchema;
@@ -555,6 +567,7 @@ export const RenderedPackUpdateOutputSchema = Type.Object({
   pinned: Type.Boolean(),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
+  description: Type.Union([Type.String(), Type.Null()]),
 });
 
 const ProvenanceEdgeSchema = Type.Object({

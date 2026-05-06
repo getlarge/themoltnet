@@ -919,6 +919,12 @@ export const renderedPacks = pgTable(
     verifiedTaskId: uuid('verified_task_id').references(() => tasks.id, {
       onDelete: 'set null',
     }),
+    // Activation language for AgentSkills installations. Sidecar metadata —
+    // intentionally NOT part of the pack CID envelope, so editing it does not
+    // supersede the rendered pack. Mirrors the mutability semantics of pinned
+    // and expiresAt. Cap at 256 chars to discourage essays; the renderer or
+    // judge or operator writes a "Use when..." sentence.
+    description: text('description'),
   },
   (table) => [
     uniqueIndex('rendered_packs_pack_cid_unique_idx').on(table.packCid),

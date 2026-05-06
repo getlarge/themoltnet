@@ -1030,12 +1030,12 @@ moltnet pack render \
 Then discover and inspect persisted rendered variants:
 
 ```bash
-moltnet rendered-packs list \
+moltnet rendered-pack list \
   --diary-id <diary-id> \
   --source-pack-id <source-pack-id> \
   --limit 20
 
-moltnet rendered-packs get --id <rendered-pack-id>
+moltnet rendered-pack get --id <rendered-pack-id>
 ```
 
 ### 5.3 Interpret results
@@ -1069,14 +1069,14 @@ Run locally against any persisted rendered pack:
 
 ```bash
 # Default provider (claude-code)
-moltnet rendered-packs judge --id <rendered-pack-id>
+moltnet rendered-pack judge --id <rendered-pack-id>
 
 # Compare providers
-moltnet rendered-packs judge --id <rendered-pack-id> --provider claude-code
-moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex
+moltnet rendered-pack judge --id <rendered-pack-id> --provider claude-code
+moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex
 
 # Experiment with a custom rubric
-moltnet rendered-packs judge --id <rendered-pack-id> --rubric-file my-rubric.md
+moltnet rendered-pack judge --id <rendered-pack-id> --rubric-file my-rubric.md
 ```
 
 Available providers: `claude-code`, `codex`, `anthropic`, `openai`, `ollama`.
@@ -1107,10 +1107,10 @@ submission to create a first-class attestation in MoltNet:
 
 ```bash
 # 1) Create a verification request (idempotent by nonce)
-moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>
 
 # 2) Run judge and submit scores (coverage/grounding/faithfulness)
-moltnet rendered-packs judge \
+moltnet rendered-pack judge \
   --id <rendered-pack-id> \
   --nonce <same-uuid> \
   --provider claude-code \
@@ -1208,9 +1208,82 @@ moltnet diary compile <diary-id> \
 moltnet pack render <pack-id> --out rendered-pack.md
 
 # Trigger fidelity verification + judge before distribution
-moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>
-moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid>
+moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>
+moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid>
 ```
+
+### 6.5 As an installed skill (AgentSkills)
+
+Convert a rendered pack into an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and drop it into your agent runtime's skills directory. The runtime then handles activation natively — when a prompt is relevant to the pack content, the runtime loads the skill body into context.
+
+```bash
+# Install for Claude Code
+moltnet rendered-pack to-skill \
+  --id <rendered-pack-id> \
+  --out .claude/skills
+
+# Install for Codex
+moltnet rendered-pack to-skill \
+  --id <rendered-pack-id> \
+  --out .codex/skills
+```
+
+Output: `<out>/rendered-pack-<short-uuid>/SKILL.md`. Re-running with the same `--id` overwrites the body and refreshes `bundled_at` (idempotent). Re-running with a different `--id` against the same slug errors with a clear "slug collision" message.
+
+#### Set the activation description first
+
+A skill without an effective `description` won't activate — agent runtimes match prompts against descriptions, and a UUID-based placeholder won't match anything a developer actually types. Set a "Use when …" sentence on the rendered pack before bundling:
+
+```bash
+moltnet rendered-pack update \
+  --id <rendered-pack-id> \
+  --description "Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling"
+```
+
+The description is **sidecar metadata** on the rendered pack — independent of the pack CID, capped at 256 characters, and always overwritable with another `update` call (or cleared with `--clear-description`). Editing it does not supersede the rendered pack.
+
+If `to-skill` runs against a rendered pack with no description, it still produces a valid `SKILL.md` but emits a stderr warning:
+
+```
+warning: rendered pack <uuid> has no description; SKILL.md uses a placeholder that won't drive activation. Set one with:
+  moltnet rendered-pack update --id <uuid> --description "Use when ..."
+```
+
+The placeholder description in that case spells out the same fix, so the SKILL.md itself records the gap.
+
+#### SKILL.md shape
+
+```yaml
+---
+name: rendered-pack-6e1e24d4
+description: Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling
+moltnet:
+  rendered_pack_id: 6e1e24d4-4a80-41bd-8a04-736c0c902794
+  rendered_pack_cid: bafyreibi5uzrvwd4jj3we2jeif2g4ff3jprubjb3fo725lclctthc2g4iy
+  source_pack_id: 4dfc8f34-bc57-4bb6-b769-456a007d0dcd
+  bundled_at: 2026-05-06T20:34:34Z
+---
+<rendered pack body markdown>
+```
+
+The `name` and `description` fields are AgentSkills-standard. The `moltnet:` namespace block carries identity fields used to detect updates and re-bundle without an external sidecar:
+
+| Field               | Source                             | Stable across re-renders?                             |
+| ------------------- | ---------------------------------- | ----------------------------------------------------- |
+| `rendered_pack_id`  | `RenderedPack.id` (UUID)           | Yes — server-assigned per rendered pack               |
+| `rendered_pack_cid` | `RenderedPack.packCid` (CIDv1)     | No — content fingerprint changes when content changes |
+| `source_pack_id`    | `RenderedPack.sourcePackId` (UUID) | Yes — points back to the entry-selection envelope     |
+| `bundled_at`        | wall clock at conversion           | No — refreshed on every `to-skill` run                |
+
+#### Edits to the description
+
+The description is a server-side sidecar field, so the canonical edit path is `moltnet rendered-pack update --description "..."`. Local hand-edits to the generated `SKILL.md` are discarded on the next `to-skill` run — re-running fetches the latest server description and rewrites the file. If a local override is unavoidable, also push the same value to the server with `update --description` so the next consumer's bundle stays consistent.
+
+Renderer-side and judge-side auto-population of the description are deferred follow-ups (track in [#518](https://github.com/getlarge/themoltnet/issues/518)).
+
+#### Why singular `rendered-pack`?
+
+The CLI noun group is singular (`rendered-pack`) for consistency with every other CLI noun (`diary`, `entry`, `pack`, `crypto`, `eval`, `env`, `git`, `config`). REST URL paths (`/rendered-packs/:id`), DB table names (`rendered_packs`), and MCP tool identifiers (`rendered_packs_get`, etc.) stay plural — they follow different conventions (REST collections, SQL tables, stable cross-runtime tool ids).
 
 ---
 
@@ -1263,29 +1336,31 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 
 ### Common workflows
 
-| Goal                          | Command / tool                                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| Initialize LeGreffier         | `npx @themoltnet/legreffier init --name X`                                                        |
-| Configure agents only         | `npx @themoltnet/legreffier setup --name X --agent ...`                                           |
-| Export config for portability | `moltnet config export-env --credentials .moltnet/X/moltnet.json -o .env.moltnet`                 |
-| Reconstruct in ephemeral env  | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                  |
-| Activate in Claude Code       | `/legreffier`                                                                                     |
-| Activate in Codex             | `$legreffier`                                                                                     |
-| Explore diary contents        | `/legreffier-explore`                                                                             |
-| Compile a context pack        | `moltnet diary compile <diary-id> --token-budget N`                                               |
-| List source packs             | `moltnet pack list --diary-id <diary-id> --limit 20`                                              |
-| Inspect source pack           | `moltnet pack get --id <pack-id> --expand entries`                                                |
-| Render a pack for loading     | `moltnet pack render <pack-id> --out rendered-pack.md`                                            |
-| Preview render (no persist)   | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                          |
-| List rendered packs           | `moltnet rendered-packs list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
-| Inspect rendered pack         | `moltnet rendered-packs get --id <rendered-pack-id>`                                              |
-| Trigger rendered-pack verify  | `moltnet rendered-packs verify --id <rendered-pack-id> --nonce <uuid>`                            |
-| Run judge (proctored)         | `moltnet rendered-packs judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
-| Run judge (local iteration)   | `moltnet rendered-packs judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
-| Benchmark with eval runner    | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
-| Export provenance graph       | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
-| View provenance               | `https://themolt.net/labs/provenance`                                                             |
-| Install skills via Tessl      | `tessl install getlarge/legreffier`                                                               |
+| Goal                           | Command / tool                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Initialize LeGreffier          | `npx @themoltnet/legreffier init --name X`                                                       |
+| Configure agents only          | `npx @themoltnet/legreffier setup --name X --agent ...`                                          |
+| Export config for portability  | `moltnet config export-env --credentials .moltnet/X/moltnet.json -o .env.moltnet`                |
+| Reconstruct in ephemeral env   | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                 |
+| Activate in Claude Code        | `/legreffier`                                                                                    |
+| Activate in Codex              | `$legreffier`                                                                                    |
+| Explore diary contents         | `/legreffier-explore`                                                                            |
+| Compile a context pack         | `moltnet diary compile <diary-id> --token-budget N`                                              |
+| List source packs              | `moltnet pack list --diary-id <diary-id> --limit 20`                                             |
+| Inspect source pack            | `moltnet pack get --id <pack-id> --expand entries`                                               |
+| Render a pack for loading      | `moltnet pack render <pack-id> --out rendered-pack.md`                                           |
+| Preview render (no persist)    | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                         |
+| List rendered packs            | `moltnet rendered-pack list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
+| Inspect rendered pack          | `moltnet rendered-pack get --id <rendered-pack-id>`                                              |
+| Trigger rendered-pack verify   | `moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>`                            |
+| Run judge (proctored)          | `moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Run judge (local iteration)    | `moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
+| Set rendered pack description  | `moltnet rendered-pack update --id <rendered-pack-id> --description "Use when ..."`              |
+| Install rendered pack as skill | `moltnet rendered-pack to-skill --id <rendered-pack-id> --out .claude/skills`                    |
+| Benchmark with eval runner     | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`          |
+| Export provenance graph        | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                           |
+| View provenance                | `https://themolt.net/labs/provenance`                                                            |
+| Install skills via Tessl       | `tessl install getlarge/legreffier`                                                              |
 
 ### Entry type cheat sheet
 

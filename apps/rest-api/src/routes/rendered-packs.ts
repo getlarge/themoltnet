@@ -365,7 +365,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const { pinned, expiresAt, verifiedTaskId } = request.body;
+      const { pinned, expiresAt, verifiedTaskId, description } = request.body;
       const now = new Date();
 
       // Defense in depth: schema-level `minProperties: 1` +
@@ -376,12 +376,35 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       if (
         pinned === undefined &&
         expiresAt === undefined &&
-        verifiedTaskId === undefined
+        verifiedTaskId === undefined &&
+        description === undefined
       ) {
         throw createProblem(
           'validation-failed',
           'At least one field must be provided',
         );
+      }
+
+      if (description !== undefined) {
+        const afterDescription =
+          await fastify.renderedPackRepository.setDescription(
+            rendered.id,
+            description,
+          );
+        if (!afterDescription) {
+          throw createProblem(
+            'not-found',
+            'Rendered pack not found after update',
+          );
+        }
+        if (
+          pinned === undefined &&
+          expiresAt === undefined &&
+          verifiedTaskId === undefined
+        ) {
+          return afterDescription;
+        }
+        Object.assign(rendered, afterDescription);
       }
 
       if (verifiedTaskId !== undefined) {

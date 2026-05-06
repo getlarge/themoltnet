@@ -353,7 +353,7 @@ func TestE2E_CLI_Pack_CreateAndRender(t *testing.T) {
 	}
 
 	// Render in preview mode — returns markdown without persisting a
-	// rendered pack row. Keeps this test independent of rendered-packs list.
+	// rendered pack row. Keeps this test independent of rendered-pack list.
 	renderOut, _ := h.run(t,
 		"pack", "render",
 		"--preview",
@@ -381,7 +381,7 @@ func TestE2E_CLI_RenderedPacks_List(t *testing.T) {
 	}
 
 	stdout, _ := h.run(t,
-		"rendered-packs", "list",
+		"rendered-pack", "list",
 		"--diary-id", e2eDiaryID.String(),
 		"--limit", "50",
 	)
