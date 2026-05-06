@@ -24,8 +24,8 @@ describe('validateTaskCreateRequest', () => {
         renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
         rubric: {
-          rubricId: 'pack-fidelity-v2',
-          version: 'v2',
+          rubricId: 'pack-fidelity-v3',
+          version: 'v3',
           scope: 'packs',
           preamble: 'Judge the pack faithfully.',
           criteria: [
