@@ -10,10 +10,21 @@ export default defineConfig({
     include: ['__tests__/**/*.test.ts'],
     // e2e tests require DATABASE_URL; run separately via vitest.config.e2e.ts
     exclude: ['__tests__/e2e/**'],
-    // 30s headroom for shared-runner contention. Tests are pure mocks +
-    // fastify in-process injection that should finish in <50ms; under
-    // Nx Cloud DTE an agent may co-locate this suite with other vitest
-    // tasks, and 10s isn't enough for individual tests under that load.
+    // CI failure mode: '[vitest-worker]: Timeout calling "onTaskUpdate"'
+    // — vitest's parent↔fork IPC times out at 5s when the agent is
+    // CPU-saturated (default fork pool spawns ~numCPUs/2 forks per
+    // vitest task). Switch to threads with a tight max=2, min=1: each
+    // test file still gets its own thread (DBOS workflow queues
+    // register at module load, so we can't share threads across files),
+    // but the box runs at most 2 worker threads at a time. Mirrors the
+    // pre-DTE '--pool=threads --maxThreads=2 --minThreads=1' incantation.
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        maxThreads: 2,
+        minThreads: 1,
+      },
+    },
     testTimeout: 30_000,
   },
 });
