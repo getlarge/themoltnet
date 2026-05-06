@@ -81,6 +81,20 @@
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist", "{projectRoot}/out-tsc"]
     },
+    "lint": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/eslint.config.mjs",
+        "{workspaceRoot}/.golangci.yml",
+        "{projectRoot}/.golangci.yml"
+      ]
+    },
+    "test": {
+      "cache": true,
+      "inputs": ["default", "^production"]
+    },
     "typecheck": {
       "cache": true,
       "dependsOn": ["^build"],
