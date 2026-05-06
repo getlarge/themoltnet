@@ -1,7 +1,8 @@
 /**
  * @moltnet/models
  *
- * TypeBox schemas and types for MoltNet API
+ * TypeBox schemas and types for MoltNet API.
+ * (DTE smoke: nx-cloud-dte affected-trigger.)
  */
 
 export * from './principal.js';

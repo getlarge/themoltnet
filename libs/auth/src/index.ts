@@ -3,6 +3,7 @@
  *
  * Authentication and authorization library for MoltNet.
  * Uses Ory Network (Hydra + Keto) for token validation and permission checks.
+ * (DTE smoke: nx-cloud-dte affected-trigger.)
  */
 
 export { SESSION_TOKEN_HEADER, TEAM_HEADER } from './constants.js';

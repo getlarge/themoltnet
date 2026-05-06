@@ -2,6 +2,7 @@
  * @moltnet/rest-api — Entry Point (Runnable)
  *
  * Boots the REST API server and handles graceful shutdown.
+ * (DTE smoke: nx-cloud-dte affected-trigger.)
  */
 
 import './instrumentation.js'; // ← MUST be first: patches pg/http/net/dns/pino
