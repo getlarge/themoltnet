@@ -1,16 +1,17 @@
-// Compute Nx Cloud agent matrix sizes from the affected slice.
+// Compute Nx Cloud agent matrix size from the affected slice.
 //
 // Inputs (env): NX_BASE, NX_HEAD (set by the caller; nx-set-shas in CI).
 // Outputs (GitHub Actions outputs):
-//   medium-matrix : JSON {agent: [1..N]} for the linux-medium pool
-//   large-matrix  : JSON {agent: [1..N]} for the linux-large pool
-//   tier          : "small" | "medium" | "large"
+//   matrix          : JSON {agent: [1..N]} for the agents pool
+//   tier            : "none" | "small" | "medium" | "large"
+//   has-agents      : "true" | "false"
 //   affected-count, total-count, percent
 //
-// Tiers map % of affected projects → (medium, large) agent counts:
-//   small  : 0–32%  → (1, 0)   small PRs don't need large agents
-//   medium : 33–66% → (2, 1)
-//   large  : 67–100% → (3, 2)
+// Tiers map % of affected projects → agent count:
+//   none   : 0 affected   → 0 agents (skip DTE entirely)
+//   small  : 1–32%        → 1 agent
+//   medium : 33–66%       → 2 agents
+//   large  : 67–100%      → 4 agents
 //
 // Agents are 1-indexed contiguous ranges. The matrix shape is
 // `{agent: [1, 2, 3]}` — GitHub Actions expands to one job per element.
@@ -34,9 +35,9 @@ function range(start, end) {
 }
 
 const tiers = [
-  { name: 'small', max: 32, medium: 1, large: 0 },
-  { name: 'medium', max: 66, medium: 2, large: 1 },
-  { name: 'large', max: 100, medium: 3, large: 2 },
+  { name: 'small', max: 32, agents: 1 },
+  { name: 'medium', max: 66, agents: 2 },
+  { name: 'large', max: 100, agents: 4 },
 ];
 
 function pickTier(percent) {
@@ -49,7 +50,6 @@ function main() {
   try {
     affected = nxJson('show projects --affected');
   } catch (err) {
-    // First-run / no base SHA: treat as no affected projects → no agents.
     process.stderr.write(`[agents-matrix] affected probe failed: ${err.message}\n`);
     affected = [];
   }
@@ -57,29 +57,21 @@ function main() {
   const totalCount = total.length;
   const affectedCount = affected.length;
   const percent = totalCount === 0 ? 0 : (affectedCount / totalCount) * 100;
-  // Zero affected: skip the pipeline entirely. Anything between 1 and tier.max
-  // gets the configured agent counts.
   const tier =
     affectedCount === 0
-      ? { name: 'none', medium: 0, large: 0 }
+      ? { name: 'none', agents: 0 }
       : pickTier(percent);
 
-  const mediumIds = range(1, tier.medium);
-  const largeIds = range(1, tier.large);
+  const agentIds = range(1, tier.agents);
 
   const out = {
     'affected-count': affectedCount,
     'total-count': totalCount,
     percent: percent.toFixed(1),
     tier: tier.name,
-    'medium-count': tier.medium,
-    'large-count': tier.large,
-    'medium-matrix': JSON.stringify({ agent: mediumIds }),
-    'large-matrix': JSON.stringify({ agent: largeIds }),
-    // Surface a flag the orchestrator/agents can gate on: when 0 agents in
-    // both pools, skip the DTE pipeline entirely (full cache hit / nothing
-    // to do).
-    'has-agents': mediumIds.length + largeIds.length > 0 ? 'true' : 'false',
+    'agent-count': tier.agents,
+    matrix: JSON.stringify({ agent: agentIds }),
+    'has-agents': agentIds.length > 0 ? 'true' : 'false',
   };
 
   const githubOutput = process.env.GITHUB_OUTPUT;
@@ -90,7 +82,6 @@ function main() {
     fs.appendFileSync(githubOutput, `${lines}\n`);
   }
 
-  // Always log to stderr for run inspection.
   process.stderr.write(`[agents-matrix] ${JSON.stringify(out)}\n`);
 }
 

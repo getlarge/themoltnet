@@ -79,6 +79,12 @@
       "cache": true,
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist"]
+    },
+    "typecheck": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["default", "^production"],
+      "outputs": []
     }
   }
 }

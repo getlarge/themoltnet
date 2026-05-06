@@ -1,13 +1,8 @@
 # Nx Cloud assignment rules — manual DTE on GitHub-hosted runners.
 #
-# Agent classes (linux-medium / linux-large) are LOGICAL names. They map to
-# the matrix entries in .github/workflows/ci.yml. Both currently resolve to
-# `ubuntu-latest` (4 vCPU); upgrade `linux-large` to a larger GitHub-hosted
-# runner label (e.g. ubuntu-latest-8-cores) when one is available.
-#
-# Parallelism caps are per agent. They protect against the same vitest
-# worker-IPC saturation that --parallel=1 protects against in the legacy
-# single-runner setup. test/build cap at 1 on linux-medium, 2 on linux-large.
+# Single agent class today (linux-medium = ubuntu-latest, 4 vCPU). Add
+# a second class with `agent: linux-large` here when a larger
+# GitHub-hosted runner label is wired into ci.yml.
 
 assignment-rules:
   # Lint and typecheck are CPU-light; pack them densely.
@@ -16,25 +11,9 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
-  # Heavy vite builds + tsx-heavy projects: prefer linux-large with
-  # parallelism 2 for headroom; falls back to linux-medium parallelism 1.
-  - targets: [build, test]
-    projects:
-      - '@moltnet/console'
-      - '@moltnet/landing'
-      - '@themoltnet/agent-runtime'
-      - '@moltnet/rest-api'
-      - '@moltnet/mcp-server'
-    run-on:
-      - agent: linux-large
-        parallelism: 2
-      - agent: linux-medium
-        parallelism: 1
-
-  # Default test/build for the rest.
+  # test/build cap at 1 per agent — vitest worker IPC starts to time
+  # out under contention on 4-vCPU runners.
   - targets: [test, build]
     run-on:
       - agent: linux-medium
         parallelism: 1
-      - agent: linux-large
-        parallelism: 2

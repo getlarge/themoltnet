@@ -34,6 +34,9 @@ jobs:
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       landing: ${{ steps.compute.outputs.landing }}
+      agents-matrix: ${{ steps.matrix.outputs.matrix }}
+      has-agents: ${{ steps.matrix.outputs.has-agents }}
+      tier: ${{ steps.matrix.outputs.tier }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,72 +131,30 @@ jobs:
           else
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Compute Nx Cloud agent matrix
+        id: matrix
+        run: node .github/scripts/agents-changeset-matrix.cjs
 
-  # Compute Nx Cloud agent pool sizes from the affected slice. Outputs
-  # JSON matrices consumed by the agents-* jobs below.
-  changeset-matrix:
-    name: Compute agent matrix
+  # Nx Cloud DTE agents. Each matrix slot is a GitHub-hosted runner that
+  # calls `nx-cloud start-agent` and shuts down when the orchestrator
+  # marks the run complete. Tests use testcontainers internally for any
+  # Postgres they need — no GHA `services:` block required. Agents only
+  # need Docker (which `ubuntu-latest` ships with).
+  agents:
+    name: 'Agent #${{ matrix.agent }}'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
     permissions:
       contents: read
     needs: [affected]
-    env:
-      NX_BASE: ${{ needs.affected.outputs.base }}
-      NX_HEAD: ${{ needs.affected.outputs.head }}
-    outputs:
-      medium-matrix: ${{ steps.matrix.outputs.medium-matrix }}
-      large-matrix: ${{ steps.matrix.outputs.large-matrix }}
-      has-agents: ${{ steps.matrix.outputs.has-agents }}
-      tier: ${{ steps.matrix.outputs.tier }}
-      affected-count: ${{ steps.matrix.outputs.affected-count }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - id: matrix
-        run: node .github/scripts/agents-changeset-matrix.cjs
-
-  # Nx Cloud DTE agents (linux-medium pool). Each matrix slot is a
-  # GitHub-hosted runner that calls `nx-cloud start-agent` and shuts down
-  # when the orchestrator marks the run complete.
-  agents-medium:
-    name: Agent (linux-medium #${{ matrix.agent }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    needs: [affected, changeset-matrix]
-    if: needs.changeset-matrix.outputs.has-agents == 'true' && needs.changeset-matrix.outputs.medium-matrix != '{"agent":[]}'
+    if: needs.affected.outputs.has-agents == 'true'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.changeset-matrix.outputs.medium-matrix) }}
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: moltnet
-          POSTGRES_PASSWORD: moltnet_secret
-          POSTGRES_DB: moltnet
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U moltnet"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
+      matrix: ${{ fromJson(needs.affected.outputs.agents-matrix) }}
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-      NX_AGENT_LAUNCH_TEMPLATE: linux-medium
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
-      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5432/moltnet
     steps:
       - uses: actions/checkout@v4
         with:
@@ -212,65 +173,6 @@ jobs:
             | sh -s -- -b "$(go env GOPATH)/bin" v2.5.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
-      - name: Run database migrations
-        run: pnpm run db:migrate
-      - name: Start Nx Cloud agent
-        run: pnpm exec nx-cloud start-agent
-
-  # Nx Cloud DTE agents (linux-large pool). Logically larger; today both
-  # pools resolve to ubuntu-latest. Upgrade `runs-on` here when a larger
-  # GitHub-hosted runner label is available.
-  agents-large:
-    name: Agent (linux-large #${{ matrix.agent }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    needs: [affected, changeset-matrix]
-    if: needs.changeset-matrix.outputs.has-agents == 'true' && needs.changeset-matrix.outputs.large-matrix != '{"agent":[]}'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.changeset-matrix.outputs.large-matrix) }}
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: moltnet
-          POSTGRES_PASSWORD: moltnet_secret
-          POSTGRES_DB: moltnet
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U moltnet"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-      NX_AGENT_LAUNCH_TEMPLATE: linux-large
-      NX_BASE: ${{ needs.affected.outputs.base }}
-      NX_HEAD: ${{ needs.affected.outputs.head }}
-      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5432/moltnet
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b "$(go env GOPATH)/bin" v2.5.0
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-      - run: pnpm install --frozen-lockfile
-      - name: Run database migrations
-        run: pnpm run db:migrate
       - name: Start Nx Cloud agent
         run: pnpm exec nx-cloud start-agent
 
@@ -284,7 +186,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-    needs: [affected, changeset-matrix]
+    needs: [affected]
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
@@ -300,27 +202,28 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # When nothing is affected, skip DTE entirely — Nx Cloud cache (or no
-      # tasks) handles it. We still run check:quickstart because it covers
-      # docs/skill drift not modeled in the affected graph.
+      # check:quickstart + nx format:check cover concerns not modeled in
+      # the affected graph (docs/skill drift, formatting). Run them on the
+      # orchestrator regardless of has-agents.
       - name: Run check:quickstart
         run: pnpm run check:quickstart
+      - name: Check formatting
+        run: pnpm exec nx format:check
 
       - name: Start Nx Cloud CI run
-        if: needs.changeset-matrix.outputs.has-agents == 'true'
+        if: needs.affected.outputs.has-agents == 'true'
         run: |
           pnpm exec nx-cloud start-ci-run \
             --distribute-on=manual \
             --assignment-rules=.nx/workflows/assignment-rules.yml \
-            --stop-agents-after=build \
             --require-explicit-completion
 
       - name: Run affected lint, typecheck, test, build
-        if: needs.changeset-matrix.outputs.has-agents == 'true'
+        if: needs.affected.outputs.has-agents == 'true'
         run: pnpm exec nx affected -t lint typecheck test build
 
       - name: Complete Nx Cloud CI run
-        if: always() && needs.changeset-matrix.outputs.has-agents == 'true'
+        if: always() && needs.affected.outputs.has-agents == 'true'
         run: pnpm exec nx-cloud complete-ci-run
 
   code-analysis:
