@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.24.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.23.0...moltnet-api-client-v1.24.0) (2026-05-06)
+
+
+### Features
+
+* **cli:** rendered-pack to-skill ([#518](https://github.com/getlarge/themoltnet/issues/518) V1) ([f762b61](https://github.com/getlarge/themoltnet/commit/f762b612533903d20e2c29754e2d0c0627918fe3))
+
+
+### Codegen
+
+* **codegen:** regenerate clients for rendered-pack description ([0ce4633](https://github.com/getlarge/themoltnet/commit/0ce46335756c75302bf805b7decb4fe0d0225603))
+
 ## [1.23.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.22.1...moltnet-api-client-v1.23.0) (2026-05-05)
 
 
