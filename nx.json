@@ -78,7 +78,7 @@
     "build": {
       "cache": true,
       "inputs": ["production", "^production"],
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/out-tsc"]
     },
     "typecheck": {
       "cache": true,
