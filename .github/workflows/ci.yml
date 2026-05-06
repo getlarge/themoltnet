@@ -176,8 +176,29 @@ jobs:
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
+      # Same flake guard as orchestrator: nx-cloud lazy-downloads its
+      # runner bundle; cloud.nx.app sometimes 5xx's with a 10s timeout.
+      # Retry the agent start (which blocks on tasks anyway, so a real
+      # mid-run failure won't loop — only initial bundle fetches).
       - name: Start Nx Cloud agent
-        run: pnpm exec nx-cloud start-agent
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm exec nx-cloud start-agent; then
+              exit 0
+            fi
+            elapsed=$SECONDS
+            # Only retry if we failed within the first 30s (bundle
+            # download window). After that, a failure means the agent
+            # is genuinely broken; don't loop.
+            if [ "$elapsed" -gt 30 ]; then
+              echo "::error::nx-cloud start-agent failed after $elapsed s — not retrying"
+              exit 1
+            fi
+            echo "::warning::nx-cloud start-agent attempt $attempt failed early ($elapsed s), retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+          done
+          echo "::error::nx-cloud start-agent failed after 3 attempts"
+          exit 1
 
   # Orchestrator: opens the Nx Cloud DTE run, fans tasks to the agents,
   # waits for completion. Replaces the legacy lint / typecheck / test
