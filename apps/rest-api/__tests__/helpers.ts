@@ -202,6 +202,8 @@ export interface MockServices {
     pin: ReturnType<typeof vi.fn>;
     unpin: ReturnType<typeof vi.fn>;
     updateExpiry: ReturnType<typeof vi.fn>;
+    setVerifiedTask: ReturnType<typeof vi.fn>;
+    setDescription: ReturnType<typeof vi.fn>;
   };
   contextPackService: {
     createCustomPack: ReturnType<typeof vi.fn>;
@@ -303,6 +305,7 @@ export function createMockServices(): MockServices {
       unpin: vi.fn(),
       updateExpiry: vi.fn(),
       setVerifiedTask: vi.fn(),
+      setDescription: vi.fn(),
     },
     contextPackService: {
       createCustomPack: vi.fn(),

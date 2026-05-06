@@ -27,6 +27,7 @@ const RENDERED_PACK_1 = {
   expiresAt: null,
   createdAt: new Date('2026-03-01T00:00:00Z'),
   verifiedTaskId: null,
+  description: null,
 };
 
 const RENDERED_PACK_2 = {
