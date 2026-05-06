@@ -1212,6 +1212,64 @@ moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>
 moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid>
 ```
 
+### 6.5 As an installed skill (AgentSkills)
+
+Convert a rendered pack into an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and drop it into your agent runtime's skills directory. The runtime then handles activation natively — when a prompt is relevant to the pack content, the runtime loads the skill body into context.
+
+```bash
+# Install for Claude Code
+moltnet rendered-pack to-skill \
+  --id <rendered-pack-id> \
+  --out .claude/skills
+
+# Install for Codex
+moltnet rendered-pack to-skill \
+  --id <rendered-pack-id> \
+  --out .codex/skills
+```
+
+Output: `<out>/rendered-pack-<short-uuid>/SKILL.md`. Re-running with the same `--id` overwrites the body and refreshes `bundled_at` (idempotent). Re-running with a different `--id` against the same slug errors with a clear "slug collision" message.
+
+#### SKILL.md shape
+
+```yaml
+---
+name: rendered-pack-6e1e24d4
+description: Rendered pack 6e1e24d4-... (method: agent:pack-to-docs-v1)
+moltnet:
+  rendered_pack_id: 6e1e24d4-4a80-41bd-8a04-736c0c902794
+  rendered_pack_cid: bafyreibi5uzrvwd4jj3we2jeif2g4ff3jprubjb3fo725lclctthc2g4iy
+  source_pack_id: 4dfc8f34-bc57-4bb6-b769-456a007d0dcd
+  bundled_at: 2026-05-06T20:34:34Z
+---
+
+<rendered pack body markdown>
+```
+
+The `name` and `description` fields are AgentSkills-standard. The `moltnet:` namespace block carries identity fields used to detect updates and re-bundle without an external sidecar:
+
+| Field | Source | Stable across re-renders? |
+|---|---|---|
+| `rendered_pack_id` | `RenderedPack.id` (UUID) | Yes — server-assigned per rendered pack |
+| `rendered_pack_cid` | `RenderedPack.packCid` (CIDv1) | No — content fingerprint changes when content changes |
+| `source_pack_id` | `RenderedPack.sourcePackId` (UUID) | Yes — points back to the entry-selection envelope |
+| `bundled_at` | wall clock at conversion | No — refreshed on every `to-skill` run |
+
+#### Activation language (current limitation)
+
+V1 generates a placeholder description of the form `Rendered pack <uuid> (method: <render-method>)`. This is **not** an effective activation phrase — agent runtimes match prompts against descriptions, and a UUID-based description won't match anything a developer actually types. Body content does still enter the runtime's skill-discovery prompt in some implementations (Claude Code), so a topically-relevant pack can still trigger via body match — but the description is the primary signal and we're shipping a placeholder.
+
+Two paths to fix this, both deferred to V2 of #518:
+
+1. **Server-side hint** — add an optional `description` field on `RenderedPack`. The renderer or judge writes activation language at render time. Smallest schema delta.
+2. **Local LLM synthesis** — `to-skill` calls a local model to synthesize a description from the body. No server change, slower, per-machine.
+
+Until either lands, you can hand-edit the `description` line of the generated `SKILL.md`. Re-running `to-skill` against the same rendered pack overwrites the body but **also overwrites the description** — there's no "preserve user-edited frontmatter" logic in V1. Track that gap in [#518](https://github.com/getlarge/themoltnet/issues/518) before relying on hand-edits.
+
+#### Why singular `rendered-pack`?
+
+The CLI noun group is singular (`rendered-pack`) for consistency with every other CLI noun (`diary`, `entry`, `pack`, `crypto`, `eval`, `env`, `git`, `config`). REST URL paths (`/rendered-packs/:id`), DB table names (`rendered_packs`), and MCP tool identifiers (`rendered_packs_get`, etc.) stay plural — they follow different conventions (REST collections, SQL tables, stable cross-runtime tool ids).
+
 ---
 
 ## Commit Authorship Modes
@@ -1282,6 +1340,7 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | Trigger rendered-pack verify  | `moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>`                            |
 | Run judge (proctored)         | `moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
 | Run judge (local iteration)   | `moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
+| Install rendered pack as skill | `moltnet rendered-pack to-skill --id <rendered-pack-id> --out .claude/skills`                    |
 | Benchmark with eval runner    | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`           |
 | Export provenance graph       | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                            |
 | View provenance               | `https://themolt.net/labs/provenance`                                                             |
