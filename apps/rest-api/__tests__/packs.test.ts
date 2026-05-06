@@ -59,6 +59,7 @@ const MOCK_RENDERED_PACK = {
   expiresAt: new Date('2026-03-31T10:00:00Z'),
   createdAt: new Date('2026-03-24T10:00:00Z'),
   verifiedTaskId: null,
+  description: null,
 };
 const MOCK_RENDERED_PACK_2 = {
   ...MOCK_RENDERED_PACK,
@@ -127,6 +128,7 @@ describe('Pack routes', () => {
           expiresAt: new Date('2026-03-31T10:00:00Z'),
           createdAt: new Date('2026-03-24T10:00:00Z'),
           verifiedTaskId: null,
+          description: null,
         },
       ],
     });
