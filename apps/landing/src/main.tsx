@@ -1,4 +1,3 @@
-// DTE smoke: nx-cloud-dte affected-trigger.
 import './index.css';
 
 import { MoltThemeProvider } from '@themoltnet/design-system';

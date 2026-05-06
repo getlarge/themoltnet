@@ -1,4 +1,3 @@
-// DTE smoke: nx-cloud-dte affected-trigger.
 export type {
   Agent,
   AgentsNamespace,
