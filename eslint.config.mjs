@@ -121,21 +121,38 @@ export default tseslint.config(
                 'type:util',
               ],
             },
-            // Browser code cannot pull in server-only libs.
+            // Browser code cannot pull in server-only libs, nor server-only
+            // npm packages. Banned externals are picked to surface the most
+            // common foot-guns (Node servers, DB drivers, server frameworks,
+            // workflow engines). Add to the list as new server deps appear.
             {
               sourceTag: 'platform:browser',
               onlyDependOnLibsWithTags: [
                 'platform:browser',
                 'platform:isomorphic',
               ],
+              bannedExternalImports: [
+                'fastify',
+                '@fastify/*',
+                'pg',
+                'pg-pool',
+                'drizzle-orm',
+                'drizzle-orm/*',
+                '@dbos-inc/*',
+                '@ory/client',
+              ],
             },
-            // Server code cannot pull in browser-only libs.
+            // Server code cannot pull in browser-only libs nor browser-only
+            // npm packages. `react` is intentionally NOT banned — Ink-based
+            // CLIs render React in a terminal. `react-dom` is the real
+            // browser marker.
             {
               sourceTag: 'platform:server',
               onlyDependOnLibsWithTags: [
                 'platform:server',
                 'platform:isomorphic',
               ],
+              bannedExternalImports: ['react-dom', 'react-dom/*'],
             },
             // CLI binaries can use server, cli, extension, and isomorphic libs.
             // (agent-daemon is a CLI app that drives the pi-extension runtime.)
