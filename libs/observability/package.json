@@ -43,7 +43,7 @@
     "tags": [
       "type:util",
       "scope:platform",
-      "platform:isomorphic"
+      "platform:server"
     ]
   }
 }

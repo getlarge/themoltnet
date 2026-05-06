@@ -175,10 +175,24 @@ export default tseslint.config(
                 'platform:isomorphic',
               ],
             },
-            // Isomorphic libs may only depend on other isomorphic libs.
+            // Isomorphic libs may only depend on other isomorphic libs and
+            // must not pull in platform-specific npm packages (server
+            // frameworks, DB drivers, browser renderers, etc).
             {
               sourceTag: 'platform:isomorphic',
               onlyDependOnLibsWithTags: ['platform:isomorphic'],
+              bannedExternalImports: [
+                'fastify',
+                '@fastify/*',
+                'pg',
+                'pg-pool',
+                'drizzle-orm',
+                'drizzle-orm/*',
+                '@dbos-inc/*',
+                '@ory/client',
+                'react-dom',
+                'react-dom/*',
+              ],
             },
           ],
         },
