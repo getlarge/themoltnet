@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.24.0...moltnet-api-client-v1.24.1) (2026-05-06)
+
+
+### Codegen
+
+* **cli:** bump moltnet-api-client to v1.24.0 ([5353430](https://github.com/getlarge/themoltnet/commit/53534306f03bf8b3f213676514ceac1438672530))
+
 ## [1.24.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.23.0...moltnet-api-client-v1.24.0) (2026-05-06)
 
 
