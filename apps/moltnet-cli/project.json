@@ -1,4 +1,13 @@
 {
   "name": "moltnet-cli",
-  "tags": ["lang:go", "type:app", "scope:tooling", "platform:cli"]
+  "tags": ["lang:go", "type:app", "scope:tooling", "platform:cli"],
+  "targets": {
+    "lint": {
+      "executor": "@nx-go/nx-go:lint",
+      "options": {
+        "args": ["run"],
+        "linter": "golangci-lint"
+      }
+    }
+  }
 }
