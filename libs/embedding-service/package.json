@@ -17,5 +17,12 @@
   "devDependencies": {
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:data-access",
+      "scope:platform",
+      "platform:server"
+    ]
   }
 }

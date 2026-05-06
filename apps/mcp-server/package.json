@@ -62,5 +62,12 @@
     "vitest": "catalog:",
     "tsx": "catalog:",
     "vite": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:public",
+      "platform:server"
+    ]
   }
 }

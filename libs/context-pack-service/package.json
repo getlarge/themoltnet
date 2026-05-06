@@ -21,5 +21,12 @@
   "devDependencies": {
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:diary",
+      "platform:server"
+    ]
   }
 }

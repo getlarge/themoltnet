@@ -38,5 +38,12 @@
     "vitest": "catalog:",
     "fastify": "catalog:",
     "pino-pretty": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:platform",
+      "platform:isomorphic"
+    ]
   }
 }

@@ -1,4 +1,4 @@
 {
   "name": "moltnet-api-client",
-  "tags": ["lang:go"]
+  "tags": ["lang:go", "type:client", "scope:public", "platform:isomorphic"]
 }

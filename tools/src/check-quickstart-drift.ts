@@ -7,7 +7,7 @@ import {
   MOLTNET_CONFIG_PATH,
   MOLTNET_REGISTER_COMMAND,
   MOLTNET_SDK_INSTALL_COMMAND,
-} from '../../libs/discovery/src/index.js';
+} from '@moltnet/discovery';
 
 const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 

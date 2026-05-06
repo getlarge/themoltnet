@@ -1,4 +1,4 @@
 {
   "name": "dspy-adapters",
-  "tags": ["lang:go"]
+  "tags": ["lang:go", "type:util", "scope:agent", "platform:isomorphic"]
 }

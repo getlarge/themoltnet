@@ -33,6 +33,9 @@
       "path": "../libs/database"
     },
     {
+      "path": "../libs/discovery"
+    },
+    {
       "path": "../libs/embedding-service"
     },
     {

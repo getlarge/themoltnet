@@ -1,0 +1,27 @@
+version: '2'
+
+# Architectural boundaries for libs/dspy-adapters.
+#
+# dspy-adapters is a leaf module: DSPy integration helpers shared by Go
+# tooling. It must not depend on apps/ or sibling libs.
+
+run:
+  timeout: 3m
+  modules-download-mode: readonly
+
+linters:
+  default: none
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        leaf:
+          list-mode: lax
+          files:
+            - '$all'
+          deny:
+            - pkg: github.com/getlarge/themoltnet/apps
+              desc: 'dspy-adapters must not depend on apps/.'
+            - pkg: github.com/getlarge/themoltnet/libs/moltnet-api-client
+              desc: 'dspy-adapters is a leaf — no sibling lib deps.'

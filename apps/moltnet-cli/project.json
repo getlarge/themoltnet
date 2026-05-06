@@ -1,4 +1,4 @@
 {
   "name": "moltnet-cli",
-  "tags": ["lang:go"]
+  "tags": ["lang:go", "type:app", "scope:tooling", "platform:cli"]
 }

@@ -23,5 +23,12 @@
   "devDependencies": {
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:task",
+      "platform:isomorphic"
+    ]
   }
 }

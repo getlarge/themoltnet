@@ -76,5 +76,12 @@
     "type": "git",
     "url": "git+https://github.com/getlarge/themoltnet.git",
     "directory": "libs/design-system"
+  },
+  "nx": {
+    "tags": [
+      "type:ui",
+      "scope:public",
+      "platform:isomorphic"
+    ]
   }
 }

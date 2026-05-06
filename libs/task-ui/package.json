@@ -33,5 +33,12 @@
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:ui",
+      "scope:task",
+      "platform:browser"
+    ]
   }
 }

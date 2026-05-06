@@ -24,5 +24,12 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:runtime",
+      "scope:agent",
+      "platform:cli"
+    ]
   }
 }

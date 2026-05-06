@@ -45,5 +45,12 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:diary",
+      "platform:cli"
+    ]
   }
 }

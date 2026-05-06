@@ -46,6 +46,7 @@ catalog:
   '@nx-go/nx-go': ^4.0.0
   '@nx/docker': 22.7.0
   '@nx/eslint': 22.7.0
+  '@nx/eslint-plugin': 22.7.0
   '@nx/playwright': 22.7.0
   '@nx/vite': 22.7.0
   '@nx/vitest': 22.7.0
@@ -84,7 +85,6 @@ catalog:
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
   eslint: ^9.39.4
-  eslint-plugin-boundaries: ^5.4.0
   eslint-plugin-react-hooks: ^7.0.1
   eslint-plugin-simple-import-sort: ^12.1.1
   fast-jwt: ^6.1.0
