@@ -31,7 +31,7 @@
         {
           "description": "No factual claims in the rendered content that cannot be traced to a source entry. Enumerate per-claim assertions: for each distinct factual claim in the rendered content, return {id, text, passed, evidence}. PASS requires citing a source entry id and quoting the supporting span; FAIL requires quoting the offending claim verbatim. The criterion score is 1 iff every assertion passes.",
           "id": "grounding",
-          "scoring": "llm_assertions",
+          "scoring": "llm_checklist",
           "weight": 0.4
         }
       ],

@@ -39,6 +39,6 @@ describe('demo/tasks pack-pipeline fixtures', () => {
     // The grounding criterion uses the per-claim binary mode added in
     // #999. The scoring rule MUST be in the prompt so the judge knows
     // how to enumerate assertions and derive the criterion score.
-    expect(prompt).toContain('llm_assertions');
+    expect(prompt).toContain('llm_checklist');
   });
 });

@@ -20,9 +20,9 @@ describe('validateRubricWeights', () => {
     const rubric: Rubric = {
       ...base,
       criteria: [
-        { id: 'a', description: 'A', weight: 0.4, scoring: 'llm_judged' },
-        { id: 'b', description: 'B', weight: 0.2, scoring: 'llm_judged' },
-        { id: 'c', description: 'C', weight: 0.4, scoring: 'llm_judged' },
+        { id: 'a', description: 'A', weight: 0.4, scoring: 'llm_score' },
+        { id: 'b', description: 'B', weight: 0.2, scoring: 'llm_score' },
+        { id: 'c', description: 'C', weight: 0.4, scoring: 'llm_score' },
       ],
     };
     expect(validateRubricWeights(rubric)).toBeNull();
@@ -32,10 +32,10 @@ describe('validateRubricWeights', () => {
     const rubric: Rubric = {
       ...base,
       criteria: [
-        { id: 'a', description: 'A', weight: 0.1, scoring: 'llm_judged' },
-        { id: 'b', description: 'B', weight: 0.2, scoring: 'llm_judged' },
-        { id: 'c', description: 'C', weight: 0.3, scoring: 'llm_judged' },
-        { id: 'd', description: 'D', weight: 0.4, scoring: 'llm_judged' },
+        { id: 'a', description: 'A', weight: 0.1, scoring: 'llm_score' },
+        { id: 'b', description: 'B', weight: 0.2, scoring: 'llm_score' },
+        { id: 'c', description: 'C', weight: 0.3, scoring: 'llm_score' },
+        { id: 'd', description: 'D', weight: 0.4, scoring: 'llm_score' },
       ],
     };
     expect(validateRubricWeights(rubric)).toBeNull();
@@ -45,8 +45,8 @@ describe('validateRubricWeights', () => {
     const rubric: Rubric = {
       ...base,
       criteria: [
-        { id: 'a', description: 'A', weight: 0.3, scoring: 'llm_judged' },
-        { id: 'b', description: 'B', weight: 0.4, scoring: 'llm_judged' },
+        { id: 'a', description: 'A', weight: 0.3, scoring: 'llm_score' },
+        { id: 'b', description: 'B', weight: 0.4, scoring: 'llm_score' },
       ],
     };
     const err = validateRubricWeights(rubric);
@@ -58,15 +58,15 @@ describe('validateRubricWeights', () => {
     const rubric: Rubric = {
       ...base,
       criteria: [
-        { id: 'a', description: 'A', weight: 0.6, scoring: 'llm_judged' },
-        { id: 'b', description: 'B', weight: 0.6, scoring: 'llm_judged' },
+        { id: 'a', description: 'A', weight: 0.6, scoring: 'llm_score' },
+        { id: 'b', description: 'B', weight: 0.6, scoring: 'llm_score' },
       ],
     };
     expect(validateRubricWeights(rubric)).toMatch(/1\.2/);
   });
 
-  it('accepts llm_assertions as a scoring mode (#999)', () => {
-    // Mixing llm_assertions with deterministic checks is the common case
+  it('accepts llm_checklist as a scoring mode (#999)', () => {
+    // Mixing llm_checklist with deterministic checks is the common case
     // for fidelity rubrics — grounding becomes per-claim binary while
     // coverage stays a deterministic threshold.
     const rubric: Rubric = {
@@ -82,12 +82,12 @@ describe('validateRubricWeights', () => {
           id: 'grounding',
           description: 'G',
           weight: 0.6,
-          scoring: 'llm_assertions',
+          scoring: 'llm_checklist',
         },
       ],
     };
     expect(validateRubricWeights(rubric)).toBeNull();
-    expect(Value.Check(RubricScoringMode, 'llm_assertions')).toBe(true);
+    expect(Value.Check(RubricScoringMode, 'llm_checklist')).toBe(true);
   });
 });
 
@@ -127,7 +127,7 @@ describe('AssertionResult', () => {
   });
 });
 
-describe('JudgePackScore with llm_assertions (#999)', () => {
+describe('JudgePackScore with llm_checklist (#999)', () => {
   it('accepts a score with the new assertions array', () => {
     const score = {
       criterionId: 'grounding',
@@ -150,9 +150,9 @@ describe('JudgePackScore with llm_assertions (#999)', () => {
     expect(Value.Check(JudgePackScore, score)).toBe(true);
   });
 
-  it('keeps assertions optional so existing llm_judged scores still validate', () => {
+  it('keeps assertions optional so existing llm_score scores still validate', () => {
     // Backward compatibility: rubrics that haven't migrated to
-    // llm_assertions must still produce schema-valid scores. The
+    // llm_checklist must still produce schema-valid scores. The
     // assertions field is opt-in.
     const score = {
       criterionId: 'old-style',
@@ -164,7 +164,7 @@ describe('JudgePackScore with llm_assertions (#999)', () => {
 
   it('rejects an assertions array with an empty entry', () => {
     // minItems: 1 protects against the judge emitting `assertions: []`
-    // when it should have either omitted the field (non-llm_assertions
+    // when it should have either omitted the field (non-llm_checklist
     // criterion) or enumerated real claims.
     const score = {
       criterionId: 'grounding',

@@ -53,18 +53,18 @@ export const JudgePackScore = Type.Object(
     criterionId: Type.String({ minLength: 1 }),
     /**
      * Per-criterion numeric score, 0..1.
-     * - `llm_judged`: continuous 0..1 (smooths failures — see #999).
-     * - `llm_assertions`: derived — `1` iff every entry in `assertions`
+     * - `llm_score`: continuous 0..1 (smooths failures — see #999).
+     * - `llm_checklist`: derived — `1` iff every entry in `assertions`
      *   has `passed: true`, else `0`. The judge MUST set this consistently
      *   with the assertions array; the runtime rejects mismatches.
      * - `boolean` / `deterministic_*`: exactly 0 or 1.
      */
     score: Type.Number({ minimum: 0, maximum: 1 }),
-    /** Required for `llm_judged`, optional otherwise. */
+    /** Required for `llm_score`, optional otherwise. */
     rationale: Type.Optional(Type.String()),
     /**
      * Per-claim binary results — REQUIRED when the criterion's `scoring`
-     * mode is `llm_assertions`, otherwise omitted. The list is the
+     * mode is `llm_checklist`, otherwise omitted. The list is the
      * dataset for cluster-analysis of failure modes; every entry carries
      * concrete `evidence` regardless of pass/fail. See #999 and the
      * shared `AssertionResult` type in `../rubric.ts`.
@@ -92,7 +92,7 @@ export const JudgePackOutput = Type.Object(
     /** 1–3 sentence overall verdict. */
     verdict: Type.String({ minLength: 1 }),
 
-    /** Model id used for `llm_judged` criteria. */
+    /** Model id used for `llm_score` criteria. */
     judgeModel: Type.Optional(Type.String()),
 
     /**

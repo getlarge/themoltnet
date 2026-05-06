@@ -19,10 +19,10 @@ import { type Static, Type } from '@sinclair/typebox';
 /**
  * How a judge must score a single criterion.
  *
- * - `llm_judged`: 0..1 continuous, `rationale` required. Smooths failures
- *   into the gradient — use `llm_assertions` instead for properties where
+ * - `llm_score`: 0..1 continuous, `rationale` required. Smooths failures
+ *   into the gradient — use `llm_checklist` instead for properties where
  *   a single failure is a real failure (grounding, faithfulness).
- * - `llm_assertions`: judge enumerates per-claim assertions with
+ * - `llm_checklist`: judge enumerates per-claim assertions with
  *   `{passed, evidence}`. The criterion's numeric `score` is derived:
  *   `1` iff every assertion passes, else `0`. Per-claim evidence is the
  *   dataset for cluster-analysis of failure modes. See #999.
@@ -34,8 +34,8 @@ import { type Static, Type } from '@sinclair/typebox';
  */
 export const RubricScoringMode = Type.Union(
   [
-    Type.Literal('llm_judged'),
-    Type.Literal('llm_assertions'),
+    Type.Literal('llm_score'),
+    Type.Literal('llm_checklist'),
     Type.Literal('boolean'),
     Type.Literal('deterministic_signature_check'),
     Type.Literal('deterministic_coverage_check'),
@@ -45,7 +45,7 @@ export const RubricScoringMode = Type.Union(
 export type RubricScoringMode = Static<typeof RubricScoringMode>;
 
 /**
- * One binary check produced by an `llm_assertions`-mode criterion.
+ * One binary check produced by an `llm_checklist`-mode criterion.
  *
  * `evidence` is REQUIRED for both PASS and FAIL — agentskills.io grading
  * principle: \"Don't give the benefit of the doubt.\" A PASS without

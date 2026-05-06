@@ -34,7 +34,7 @@ describe('buildPromptForTask', () => {
       input: {
         targetTaskId,
         criteria: [
-          { id: 'c1', description: 'Works', weight: 1, scoring: 'llm_judged' },
+          { id: 'c1', description: 'Works', weight: 1, scoring: 'llm_score' },
         ],
       },
     });

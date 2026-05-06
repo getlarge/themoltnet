@@ -33,7 +33,7 @@ describe('validateTaskCreateRequest', () => {
               id: 'grounding',
               description: 'No unsupported claims.',
               weight: 1,
-              scoring: 'llm_judged',
+              scoring: 'llm_score',
             },
           ],
         },

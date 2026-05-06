@@ -26,14 +26,14 @@ export const AssessBriefCriterion = Type.Object(
     weight: Type.Number({ minimum: 0, maximum: 1 }),
     /**
      * How the assessor must score:
-     *   - `llm_judged`: 0..1 continuous, justified in `rationale`.
+     *   - `llm_score`: 0..1 continuous, justified in `rationale`.
      *   - `boolean`: 0 or 1, no LLM discretion.
      *   - `deterministic_signature_check`: verifier runs a signature check;
      *     result is 0 or 1. Used for criteria like "every commit has a
      *     valid Ed25519 diary signature."
      */
     scoring: Type.Union([
-      Type.Literal('llm_judged'),
+      Type.Literal('llm_score'),
       Type.Literal('boolean'),
       Type.Literal('deterministic_signature_check'),
     ]),
@@ -62,7 +62,7 @@ export const AssessBriefScore = Type.Object(
   {
     criterionId: Type.String({ minLength: 1 }),
     score: Type.Number({ minimum: 0, maximum: 1 }),
-    /** Required for `llm_judged`; optional for `boolean`/`deterministic_*`. */
+    /** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
     rationale: Type.Optional(Type.String()),
     /** Present only for `deterministic_signature_check`. */
     evidence: Type.Optional(
@@ -91,7 +91,7 @@ export const AssessBriefOutput = Type.Object(
     /** 1–3 sentence overall verdict. */
     verdict: Type.String({ minLength: 1 }),
 
-    /** Model identifier used for `llm_judged` criteria, for auditability. */
+    /** Model identifier used for `llm_score` criteria, for auditability. */
     judgeModel: Type.Optional(Type.String()),
   },
   { $id: 'AssessBriefOutput', additionalProperties: false },

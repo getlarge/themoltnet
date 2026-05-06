@@ -117,7 +117,7 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
               id: 'cognitive_load',
               description: 'Reviewability',
               weight: 1,
-              scoring: 'llm_judged',
+              scoring: 'llm_score',
             },
           ],
         },
