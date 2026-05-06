@@ -82,4 +82,117 @@ describe('validateTaskOutput', () => {
       ]),
     );
   });
+
+  describe('judge_pack llm_checklist score↔assertions consistency (#999)', () => {
+    function buildOutput(
+      assertions: Array<{
+        id: string;
+        text: string;
+        passed: boolean;
+        evidence: string;
+      }>,
+      score: number,
+    ) {
+      return {
+        scores: [
+          {
+            criterionId: 'grounding',
+            score,
+            assertions,
+          },
+        ],
+        composite: score,
+        verdict: 'test',
+      };
+    }
+
+    it('accepts score=1 when every assertion passes', () => {
+      const errors = validateTaskOutput(
+        'judge_pack',
+        buildOutput(
+          [
+            { id: 'c1', text: 'ok', passed: true, evidence: 'src entry abc' },
+            { id: 'c2', text: 'ok', passed: true, evidence: 'src entry def' },
+          ],
+          1,
+        ),
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it('accepts score=0 when any assertion fails', () => {
+      const errors = validateTaskOutput(
+        'judge_pack',
+        buildOutput(
+          [
+            { id: 'c1', text: 'ok', passed: true, evidence: 'src entry abc' },
+            {
+              id: 'c2',
+              text: 'fab',
+              passed: false,
+              evidence: 'no supporting span',
+            },
+          ],
+          0,
+        ),
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it('rejects score=1 when an assertion failed (the headline P1 bug)', () => {
+      const errors = validateTaskOutput(
+        'judge_pack',
+        buildOutput(
+          [
+            { id: 'c1', text: 'ok', passed: true, evidence: 'src entry abc' },
+            {
+              id: 'c2',
+              text: 'fab',
+              passed: false,
+              evidence: 'no supporting span',
+            },
+          ],
+          1,
+        ),
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].field).toBe('output');
+      expect(errors[0].message).toContain('have at least one fail');
+      expect(errors[0].message).toContain('score=1');
+    });
+
+    it('rejects score=0 when every assertion passed', () => {
+      const errors = validateTaskOutput(
+        'judge_pack',
+        buildOutput(
+          [
+            { id: 'c1', text: 'ok', passed: true, evidence: 'src entry abc' },
+            { id: 'c2', text: 'ok', passed: true, evidence: 'src entry def' },
+          ],
+          0,
+        ),
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain('all pass');
+      expect(errors[0].message).toContain('score=0');
+    });
+
+    it('skips the cross-field check when assertions is absent (e.g. llm_score)', () => {
+      // Backward compat: existing rubrics that use llm_score don't
+      // populate assertions, so the validator should ignore the score
+      // entirely for those criteria.
+      const errors = validateTaskOutput('judge_pack', {
+        scores: [
+          {
+            criterionId: 'old-style',
+            score: 0.85,
+            rationale: 'mostly fine',
+          },
+        ],
+        composite: 0.85,
+        verdict: 'test',
+      });
+      expect(errors).toEqual([]);
+    });
+  });
 });

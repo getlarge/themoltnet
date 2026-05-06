@@ -107,3 +107,45 @@ export const JudgePackOutput = Type.Object(
   { $id: 'JudgePackOutput', additionalProperties: false },
 );
 export type JudgePackOutput = Static<typeof JudgePackOutput>;
+
+/**
+ * Cross-field validator for JudgePackOutput. Run after the TypeBox
+ * schema check passes. Enforces invariants the schema can't express:
+ *
+ * 1. If a `JudgePackScore` carries an `assertions` array (i.e. the
+ *    judge ran the criterion in `llm_checklist` mode), its numeric
+ *    `score` MUST equal `1` if every `assertions[i].passed` is true,
+ *    else `0`. The prompt instructs the judge to derive `score` from
+ *    the array, but the LLM can drift — without this check, the
+ *    runtime accepts inconsistent payloads and propagates them into
+ *    composite scores and judge attestations (#999 P1).
+ *
+ * 2. If `score` is exactly `1` AND `assertions` is present, every
+ *    assertion must have `passed: true`. Catches the failure mode in
+ *    the issue: "score: 1 with a failing assertion accepted."
+ *
+ * Cross-rubric checks (e.g. "did the judge populate `assertions` for
+ * every criterion the rubric marked `llm_checklist`?") require the
+ * input rubric and live in a separate, runtime-side validator. This
+ * one is rubric-agnostic on purpose — it catches within-score
+ * inconsistency without needing the original task input.
+ */
+export function validateJudgePackOutput(output: unknown): string | null {
+  // Schema validation already ran at this point — narrow safely.
+  const scores = (output as JudgePackOutput).scores;
+  for (let i = 0; i < scores.length; i++) {
+    const s = scores[i];
+    if (!s.assertions) continue;
+    const allPassed = s.assertions.every((a) => a.passed);
+    const expected = allPassed ? 1 : 0;
+    if (s.score !== expected) {
+      return (
+        `scores[${i}] (criterionId="${s.criterionId}"): ` +
+        `assertions ${allPassed ? 'all pass' : 'have at least one fail'} ` +
+        `but score=${s.score}. Score must be derived: 1 iff every ` +
+        `assertion passes, else 0 (#999 llm_checklist rule).`
+      );
+    }
+  }
+  return null;
+}

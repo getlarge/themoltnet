@@ -43,7 +43,7 @@ export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
     '',
     '1. Call `moltnet_rendered_pack_get` for the rendered pack. Keep the',
     '   `content` string — you will score it.',
-    '2. Call `moltnet_pack_get` with `expand: "entries"` for the source',
+    '2. Call `moltnet_pack_get` with `expandEntries: true` for the source',
     '   pack. Keep the source entries for grounding / coverage checks.',
     '3. For each criterion, score according to its `scoring` mode (see',
     '   Scoring rules below). Produce rationales where required.',

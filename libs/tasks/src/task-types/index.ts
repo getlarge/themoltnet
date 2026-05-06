@@ -21,6 +21,7 @@ import {
   JUDGE_PACK_TYPE,
   JudgePackInput,
   JudgePackOutput,
+  validateJudgePackOutput,
 } from './judge-pack.js';
 import {
   RENDER_PACK_TYPE,
@@ -48,6 +49,14 @@ interface TaskTypeEntry {
    * or an error message that surfaces to the task runner.
    */
   readonly validateInput?: (input: unknown) => string | null;
+  /**
+   * Optional cross-field validator run AFTER `Value.Check(outputSchema)`
+   * passes. Use for invariants a TypeBox schema can't express — e.g. for
+   * `judge_pack`, an `llm_checklist` criterion's `score` must equal
+   * `1` iff every `assertions[].passed` is true (#999). Returns null on
+   * success, or an error message that surfaces to the task runner.
+   */
+  readonly validateOutput?: (output: unknown) => string | null;
 }
 
 /**
@@ -104,6 +113,7 @@ export const BUILT_IN_TASK_TYPES = {
     requiresReferences: true,
     validateInput: (input: unknown) =>
       validateRubricWeights((input as { rubric: Rubric }).rubric),
+    validateOutput: validateJudgePackOutput,
   },
 } as const satisfies Record<string, TaskTypeEntry>;
 

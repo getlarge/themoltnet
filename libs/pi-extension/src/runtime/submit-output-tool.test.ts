@@ -125,7 +125,7 @@ describe('createSubmitOutputTool', () => {
     // Schema-error path must NOT terminate the session — the model
     // needs the chance to recover with a corrected call.
     expect(result.terminate).not.toBe(true);
-    expect(result.content[0].text).toMatch(/schema validation/i);
+    expect(result.content[0].text).toMatch(/validation/i);
     expect(handle.getCaptured()).toBeNull();
     expect(handle.getCallCount()).toBe(0);
   });
@@ -179,6 +179,40 @@ describe('createSubmitOutputTool', () => {
         `submit_${t}_output`,
       );
     }
+  });
+
+  it('rejects judge_pack output where score=1 contradicts a failing assertion (#999 P1)', async () => {
+    // Without the cross-field validator wired into validateTaskOutput,
+    // the LLM can call submit_judge_pack_output with `score: 1` while
+    // emitting an assertion that has `passed: false`. Schema-only
+    // validation lets that through and the bad payload propagates into
+    // composite scores and judge attestations. The submit tool MUST
+    // reject and let the agent recover.
+    const handle = createSubmitOutputTool('judge_pack');
+    const exec = callExecute(handle);
+    const result = await exec({
+      scores: [
+        {
+          criterionId: 'grounding',
+          score: 1,
+          assertions: [
+            { id: 'c1', text: 'ok', passed: true, evidence: 'src abc' },
+            {
+              id: 'c2',
+              text: 'fab',
+              passed: false,
+              evidence: 'no supporting span',
+            },
+          ],
+        },
+      ],
+      composite: 1,
+      verdict: 'inconsistent',
+    });
+    expect(result.isError).toBe(true);
+    expect(result.terminate).not.toBe(true);
+    expect(result.content[0].text).toMatch(/llm_checklist|score=1/i);
+    expect(handle.getCaptured()).toBeNull();
   });
 });
 

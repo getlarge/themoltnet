@@ -35,7 +35,7 @@ export function buildRenderPackPrompt(
     '',
     '## Workflow',
     '',
-    '1. Call `moltnet_pack_get` with `expand: "entries"` to inspect the',
+    '1. Call `moltnet_pack_get` with `expandEntries: true` to inspect the',
     '   source entries. Read it — you need the entry count for your output.',
     '2. Call `moltnet_pack_render` with:',
     `   - \`packId\`: \`${packId}\``,
