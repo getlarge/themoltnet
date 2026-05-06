@@ -10,9 +10,6 @@ export default defineConfig({
     },
   },
   test: {
-    // One vitest worker at a time — Nx schedules task-level
-    // parallelism across projects; we don't compound it.
-    fileParallelism: false,
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
