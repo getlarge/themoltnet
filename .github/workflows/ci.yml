@@ -227,12 +227,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run database migrations
         run: pnpm run db:migrate
-      # GitHub-hosted runners have 4 vCPUs. Run nx tasks sequentially
-      # (--parallel=1) and let each project's vitest pool use up to 2 threads.
-      # Higher nx parallelism × per-project vitest pools causes worker IPC
-      # timeouts under memory/CPU pressure. Vitest-only flags after `--`
-      # are dropped on non-vitest executors (nx-go:test, etc).
-      - run: pnpm exec nx affected -t test --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      # Nx schedules task-level parallelism across projects; each project's
+      # vitest.config.ts pins fileParallelism: false so files run serially
+      # inside a project (avoids N×M workers on 4-vCPU GHA runners).
+      - run: pnpm exec nx affected -t test
 
   code-analysis:
     name: Code Analysis (Knip)
