@@ -1,6 +1,6 @@
 # Composite GitHub Actions are consumed via `uses: getlarge/themoltnet/...@ref`,
-# so the bundled dispatcher must be checked in at every release tag. Override
-# the repo-wide `dist` ignore for this package only.
-!dist/
-!dist/*.js
-!dist/*.d.ts
+# so the bundled dispatcher (dist/main.js) must be checked in at every release
+# tag. The repo-wide `dist` ignore only fires for the *directory* `dist/`; we
+# explicitly un-ignore the single bundled artefact below. Sibling .d.ts /
+# .map / per-source .js files remain ignored.
+!dist/main.js
