@@ -53,6 +53,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
       return buildFulfillBriefPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+        correlationId: task.correlationId,
       });
     }
 

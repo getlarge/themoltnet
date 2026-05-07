@@ -58,6 +58,28 @@ describe('buildPromptForTask', () => {
     expect(prompt).toContain('moltnet_list_task_attempts');
   });
 
+  it('embeds correlation branch + trailer instructions when correlationId is set', () => {
+    const correlationId = '22222222-3333-4444-8555-666666666666';
+    const task = makeFulfillBriefTask({
+      correlationId,
+      input: { brief: 'do the thing', title: 'thing' },
+    });
+    const prompt = buildPromptForTask(task, ctx);
+    expect(prompt).toContain(correlationId);
+    expect(prompt).toContain(`moltnet/${correlationId}/<short-slug>`);
+    expect(prompt).toContain(`Moltnet-Correlation-Id: ${correlationId}`);
+  });
+
+  it('omits the correlation section when correlationId is null', () => {
+    const task = makeFulfillBriefTask({
+      correlationId: null,
+      input: { brief: 'no chain', title: 'x' },
+    });
+    const prompt = buildPromptForTask(task, ctx);
+    expect(prompt).not.toContain('Moltnet-Correlation-Id');
+    expect(prompt).not.toMatch(/^### Correlation/m);
+  });
+
   it('throws on unknown taskType', () => {
     const task = makeFulfillBriefTask({ taskType: 'custom_type' });
     expect(() => buildPromptForTask(task, ctx)).toThrow(
