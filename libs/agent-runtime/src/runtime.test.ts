@@ -128,4 +128,80 @@ describe('AgentRuntime', () => {
     await runtime.start();
     await expect(runtime.start()).rejects.toThrow(/cannot start/);
   });
+
+  describe('onTaskFinished hook', () => {
+    it('fires per task inside the loop, in claim order', async () => {
+      // Without this hook, long-polling sources never finalize tasks
+      // because `start()` doesn't return — every lease expires even when
+      // the executor produced a clean output. The hook MUST run inside
+      // the loop, not after, so each task's `/complete` POST happens
+      // before we claim the next one.
+      const a = makeFulfillBriefTask({
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      });
+      const b = makeFulfillBriefTask({
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      });
+      const events: string[] = [];
+      const runtime = new AgentRuntime({
+        source: new ArraySource([a, b]),
+        makeReporter: () => new RecordingReporter(),
+        executeTask: async ({ task }) => {
+          events.push(`exec:${task.id}`);
+          return makeOutput(task, 'completed');
+        },
+        onTaskFinished: async (output) => {
+          events.push(`finalize:${output.taskId}`);
+        },
+      });
+      await runtime.start();
+      // Each task's finalize must run before the next exec — that's the
+      // whole point. exec(a), finalize(a), exec(b), finalize(b).
+      expect(events).toEqual([
+        `exec:${a.id}`,
+        `finalize:${a.id}`,
+        `exec:${b.id}`,
+        `finalize:${b.id}`,
+      ]);
+    });
+
+    it('logs and continues when the hook throws', async () => {
+      // One task's wire-finalize failure must not poison the next
+      // claim. The runtime swallows the error after logging it.
+      const a = makeFulfillBriefTask({
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      });
+      const b = makeFulfillBriefTask({
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      });
+      const finalized: string[] = [];
+      const runtime = new AgentRuntime({
+        source: new ArraySource([a, b]),
+        makeReporter: () => new RecordingReporter(),
+        executeTask: async ({ task }) => makeOutput(task, 'completed'),
+        onTaskFinished: async (output) => {
+          finalized.push(output.taskId);
+          if (output.taskId === a.id) {
+            throw new Error('network fail');
+          }
+        },
+      });
+      const outputs = await runtime.start();
+      expect(finalized).toEqual([a.id, b.id]);
+      expect(outputs).toHaveLength(2);
+      expect(runtime.getStatus().state).toBe('stopped');
+    });
+
+    it('is optional — runtime works without the hook', async () => {
+      const task = makeFulfillBriefTask();
+      const runtime = new AgentRuntime({
+        source: new ArraySource([task]),
+        makeReporter: () => new RecordingReporter(),
+        executeTask: async () => makeOutput(task, 'completed'),
+      });
+      const outputs = await runtime.start();
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0].status).toBe('completed');
+    });
+  });
 });

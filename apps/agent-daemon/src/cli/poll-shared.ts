@@ -186,6 +186,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           maxBatchSize: common.maxBatchSize,
           flushIntervalMs: common.flushIntervalMs,
         }),
+      // Finalize each task as soon as the executor resolves — long-
+      // polling sources never terminate, so deferring `/complete` to
+      // after `runtime.start()` would let every lease expire even when
+      // the judge submitted a clean payload. The post-drain finalize
+      // loop that used to live below is gone: it would now double-
+      // call `/complete` on every task and the server returns 409
+      // "Task is already in terminal state" on the second call.
+      onTaskFinished: (output) => finalizeTask(ctx.agent, output),
       executeTask: async (claimedTask, reporter) => {
         // Belt-and-braces: refuse a task whose type isn't in the configured
         // whitelist (e.g. server filter race after config change). The
@@ -242,9 +250,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
     const drained = await runtime.start();
     outputs.push(...drained);
-    for (const output of drained) {
-      await finalizeTask(ctx.agent, output);
-    }
     rootLogger.info({ processed: drained.length }, 'agent-daemon.drained');
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
