@@ -1,0 +1,84 @@
+name: 'MoltNet Agent Daemon'
+description: 'Run a single MoltNet task via @moltnet/agent-daemon, or dispatch from a @moltnet-{fulfill,assess} mention.'
+inputs:
+  task-id:
+    description: >
+      Existing MoltNet task id to claim and execute. When empty (the
+      common path) the action runs the dispatcher: parses the
+      issue_comment for a @moltnet-* mention, resolves correlationId
+      across the four anchors, and creates a fulfill_brief task.
+    required: false
+    default: ''
+  mode:
+    description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
+    required: false
+    default: 'once'
+  daemon-version:
+    description: 'npm semver range for @moltnet/agent-daemon (passed to npx).'
+    required: false
+    default: 'latest'
+  node-version:
+    description: 'Node.js version for the runner.'
+    required: false
+    default: '22'
+outputs:
+  task-id:
+    description: 'MoltNet task id that was executed (or created+executed).'
+    value: ${{ steps.run.outputs.task-id }}
+  correlation-id:
+    description: 'correlationId of the executed task (only set when the dispatcher ran).'
+    value: ${{ steps.dispatch.outputs.correlation-id }}
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Materialize MoltNet agent credentials
+      shell: bash
+      env:
+        MOLTNET_AGENT_KEY: ${{ env.MOLTNET_AGENT_KEY }}
+        MOLTNET_AGENT_GITCONFIG: ${{ env.MOLTNET_AGENT_GITCONFIG }}
+      run: |
+        set -euo pipefail
+        if [ -z "${MOLTNET_AGENT_KEY:-}" ]; then
+          echo "::error::secret MOLTNET_AGENT_KEY is required" >&2
+          exit 1
+        fi
+        AGENT_DIR="$RUNNER_TEMP/.moltnet/agent"
+        mkdir -p "$AGENT_DIR"
+        printf '%s' "$MOLTNET_AGENT_KEY" > "$AGENT_DIR/moltnet.json"
+        chmod 600 "$AGENT_DIR/moltnet.json"
+        printf '%s' "${MOLTNET_AGENT_GITCONFIG:-}" > "$AGENT_DIR/gitconfig"
+        printf '' > "$AGENT_DIR/env"
+        echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig" >> "$GITHUB_ENV"
+        echo "MOLTNET_AGENT_DIR=$AGENT_DIR" >> "$GITHUB_ENV"
+
+    - id: dispatch
+      if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN || github.token }}
+        MOLTNET_API_URL: ${{ env.MOLTNET_API_URL }}
+        MOLTNET_AGENT_TOKEN: ${{ env.MOLTNET_AGENT_TOKEN }}
+        MOLTNET_TEAM_ID: ${{ env.MOLTNET_TEAM_ID }}
+        MOLTNET_DIARY_ID: ${{ env.MOLTNET_DIARY_ID }}
+      run: |
+        set -euo pipefail
+        node "${{ github.action_path }}/dist/main.js"
+
+    - id: run
+      shell: bash
+      env:
+        TASK_ID: ${{ inputs.task-id != '' && inputs.task-id || steps.dispatch.outputs.task-id }}
+      run: |
+        set -euo pipefail
+        if [ -z "${TASK_ID:-}" ]; then
+          echo "::warning::no task id resolved; nothing to run"
+          echo "task-id=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
+        npx -y @moltnet/agent-daemon@${{ inputs.daemon-version }} \
+          ${{ inputs.mode }} --task-id "$TASK_ID"
