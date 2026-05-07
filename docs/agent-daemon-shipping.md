@@ -34,7 +34,7 @@ sequenceDiagram
    gitconfig, and an agent token.
 2. **Create a `moltnet` GitHub Environment** in the target repo and
    populate the secrets / variables listed in the
-   [action README](../packages/agent-daemon-action/README.md).
+   [action README](https://github.com/getlarge/themoltnet/blob/main/packages/agent-daemon-action/README.md).
 3. **Copy** [`docs/examples/workflows/moltnet-mention.yml`](examples/workflows/moltnet-mention.yml)
    into `.github/workflows/` of the target repo.
 4. **Try it**: open an issue, comment `@moltnet-fulfill please ...`. The
