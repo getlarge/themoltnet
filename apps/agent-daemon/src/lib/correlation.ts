@@ -1,4 +1,9 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
 import type { WriteCorrelationAnchors } from './finalize.js';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * Correlation anchor helpers.
@@ -82,13 +87,33 @@ export function appendPrBodyMarker(
 }
 
 // ---------------------------------------------------------------------------
-// PR body writer — real implementation lives in a follow-up commit (Task 4).
-// The stub here keeps the daemon entry-points compiling once they thread the
-// writer through finalize. Replaced by a `gh` CLI-backed writer that GETs
-// the PR body, idempotently appends the marker, and PATCHes it back.
+// PR body writer — GETs the PR body via `gh api`, idempotently appends the
+// correlation marker if absent, and PATCHes it back. Failures are surfaced
+// to the caller; finalize swallows them so the task still completes.
 // ---------------------------------------------------------------------------
 
+export interface PrCoords {
+  owner: string;
+  repo: string;
+  number: number;
+}
+
+const PR_URL_RE =
+  /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)(?:[/?#].*)?$/;
+
+export function parsePrUrl(url: string): PrCoords | null {
+  const m = url.match(PR_URL_RE);
+  if (!m) return null;
+  return { owner: m[1], repo: m[2], number: Number(m[3]) };
+}
+
+export interface GhPrClient {
+  get(coords: PrCoords): Promise<{ body: string | null }>;
+  patch(coords: PrCoords, body: string): Promise<void>;
+}
+
 export interface AnchorWriterDeps {
+  gh: GhPrClient;
   logger: {
     warn: (obj: object, msg: string) => void;
     info: (obj: object, msg: string) => void;
@@ -96,9 +121,59 @@ export interface AnchorWriterDeps {
 }
 
 export function makePrBodyAnchorWriter(
-  _deps: AnchorWriterDeps,
+  deps: AnchorWriterDeps,
 ): WriteCorrelationAnchors {
-  return async () => {
-    // intentionally a no-op until Task 4
+  return async ({ correlationId, pullRequestUrl }) => {
+    const coords = parsePrUrl(pullRequestUrl);
+    if (!coords) {
+      deps.logger.warn(
+        { pullRequestUrl },
+        'correlation-anchor: pr url not parseable; skipping',
+      );
+      return;
+    }
+    const current = await deps.gh.get(coords);
+    const next = appendPrBodyMarker(current.body, correlationId);
+    if (next === current.body) {
+      deps.logger.info(
+        { ...coords, correlationId },
+        'correlation-anchor: marker already present',
+      );
+      return;
+    }
+    await deps.gh.patch(coords, next);
+    deps.logger.info(
+      { ...coords, correlationId },
+      'correlation-anchor: pr body marker written',
+    );
+  };
+}
+
+/** Default `GhPrClient` backed by the `gh` CLI on PATH. */
+export function createGhCliClient(): GhPrClient {
+  return {
+    async get({ owner, repo, number }) {
+      const { stdout } = await execFileAsync('gh', [
+        'api',
+        `repos/${owner}/${repo}/pulls/${number}`,
+        '--jq',
+        '{body: .body}',
+      ]);
+      return JSON.parse(stdout) as { body: string | null };
+    },
+    async patch({ owner, repo, number }, body) {
+      await execFileAsync(
+        'gh',
+        [
+          'api',
+          '-X',
+          'PATCH',
+          `repos/${owner}/${repo}/pulls/${number}`,
+          '-f',
+          `body=${body}`,
+        ],
+        { maxBuffer: 10 * 1024 * 1024 },
+      );
+    },
   };
 }

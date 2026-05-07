@@ -12,7 +12,10 @@ import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
-import { makePrBodyAnchorWriter } from '../lib/correlation.js';
+import {
+  createGhCliClient,
+  makePrBodyAnchorWriter,
+} from '../lib/correlation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
 import {
@@ -198,6 +201,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         finalizeTask(ctx.agent, output, {
           task: claimedTask.task,
           writeCorrelationAnchors: makePrBodyAnchorWriter({
+            gh: createGhCliClient(),
             logger: rootLogger,
           }),
           log: (msg, err) => rootLogger.warn({ err }, msg),

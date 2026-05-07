@@ -10,7 +10,10 @@ import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
-import { makePrBodyAnchorWriter } from '../lib/correlation.js';
+import {
+  createGhCliClient,
+  makePrBodyAnchorWriter,
+} from '../lib/correlation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import {
@@ -96,6 +99,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     });
 
     const writeCorrelationAnchors = makePrBodyAnchorWriter({
+      gh: createGhCliClient(),
       logger: rootLogger,
     });
 
