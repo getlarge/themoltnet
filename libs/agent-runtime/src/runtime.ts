@@ -54,6 +54,19 @@ export interface AgentRuntimeOptions {
    * package stays free of pi / Gondolin / SDK dependencies.
    */
   executeTask: TaskExecutor;
+  /**
+   * Called inside the loop, immediately after each task's executor
+   * resolves and the cancel-signal override has been applied. The
+   * callback owns translating the `TaskOutput` into the wire-side
+   * terminal call (`/complete`, `/fail`, …). Without this hook, sources
+   * that never terminate (e.g. long-polling) would never finalize a
+   * task, causing every claimed lease to expire even when the executor
+   * resolved cleanly. Errors thrown here are logged but do NOT abort
+   * the drain loop — one task's finalize failure must not poison the
+   * next claim. Run-once sources (file fixtures, `--stop-when-empty`)
+   * can omit this hook and finalize in bulk after `start()` resolves.
+   */
+  onTaskFinished?: (output: TaskOutput) => Promise<void>;
   /** Lifecycle logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
 }
@@ -184,6 +197,24 @@ export class AgentRuntime {
           taskLogger.info(finishedFields, 'agent-runtime.task_finished');
         } else {
           taskLogger.warn(finishedFields, 'agent-runtime.task_finished');
+        }
+
+        // Per-task finalize callback. Fires inside the loop so long-
+        // polling sources (daemon `poll` mode) can call `/complete` /
+        // `/fail` immediately — without this, the lease expires on
+        // every task because `start()` never returns. Errors are
+        // logged but do not abort the drain loop: one task's wire-
+        // finalize failure must not block the next claim.
+        if (this.opts.onTaskFinished) {
+          try {
+            await this.opts.onTaskFinished(output);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            taskLogger.error(
+              { err: message },
+              'agent-runtime.task_finalize_failed',
+            );
+          }
         }
 
         this.status.tasksProcessed += 1;
