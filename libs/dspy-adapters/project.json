@@ -9,6 +9,13 @@
         "linter": "golangci-lint"
       },
       "parallelism": false
+    },
+    "test-ci": {
+      "dependsOn": ["test"],
+      "executor": "nx:noop",
+      "metadata": {
+        "description": "Alias for `test` on projects without atomization."
+      }
     }
   }
 }
