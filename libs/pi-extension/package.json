@@ -80,6 +80,17 @@
       "type:runtime",
       "scope:agent",
       "platform:extension"
-    ]
+    ],
+    "targets": {
+      "test-ci": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "test"
+        ],
+        "metadata": {
+          "description": "Alias for `test` on projects without atomization."
+        }
+      }
+    }
   }
 }

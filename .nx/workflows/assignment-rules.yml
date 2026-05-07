@@ -11,8 +11,18 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
-  # test/build cap at 1 per agent — vitest worker IPC starts to time
-  # out under contention on 4-vCPU runners.
+  # Atomized per-file vitest tasks (test-ci--<file>). Each is a single
+  # vitest invocation on one file with bounded RPC pressure, so we can
+  # safely co-schedule a few per agent — one of the main reasons we
+  # atomized in the first place.
+  - targets: ['test-ci--*']
+    run-on:
+      - agent: linux-medium
+        parallelism: 3
+
+  # test/build (whole-suite vitest, vite builds) cap at 1 per agent —
+  # vitest worker IPC starts to time out under contention on 4-vCPU
+  # runners when multiple non-atomized suites compound their fork pools.
   - targets: [test, build]
     run-on:
       - agent: linux-medium

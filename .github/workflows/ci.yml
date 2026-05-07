@@ -253,9 +253,13 @@ jobs:
           echo "::error::nx-cloud start-ci-run failed after 3 attempts"
           exit 1
 
-      - name: Run affected lint, typecheck, test, build
+      - name: Run affected lint, typecheck, test-ci, build
         if: needs.affected.outputs.has-agents == 'true'
-        run: pnpm exec nx affected -t lint typecheck test build
+        # test-ci is the atomized variant of test (one task per file
+        # via @nx/vitest). Projects without per-file atomization (Go,
+        # vitest libs without a config) declare test-ci as a noop
+        # depending on test, so a single -t test-ci covers everything.
+        run: pnpm exec nx affected -t lint typecheck test-ci build
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'
