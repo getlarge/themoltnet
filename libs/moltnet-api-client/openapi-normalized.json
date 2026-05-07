@@ -384,6 +384,10 @@
           },
           "usage": {
             "$ref": "#/components/schemas/TaskUsage"
+          },
+          "verification": {
+            "additionalProperties": {},
+            "type": "object"
           }
         },
         "required": [
@@ -13127,6 +13131,10 @@
                   },
                   "usage": {
                     "$ref": "#/components/schemas/TaskUsage"
+                  },
+                  "verification": {
+                    "additionalProperties": {},
+                    "type": "object"
                   }
                 },
                 "required": [

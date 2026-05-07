@@ -19,6 +19,7 @@ export type TaskProgressEvent =
       outputCid?: string;
       completedExecutorFingerprint?: string;
       usage?: unknown;
+      verification?: unknown;
     }
   | { kind: 'failed'; error?: unknown }
   | { kind: 'cancelled'; error?: unknown };
@@ -64,6 +65,7 @@ export interface TaskWorkflowDeps {
         | 'completedExecutorFingerprint'
         | 'error'
         | 'usage'
+        | 'verification'
       >
     >,
   ): Promise<TaskAttempt | null>;
@@ -443,6 +445,8 @@ export function initTaskWorkflows(): void {
                     ? (evt.error ?? null)
                     : null,
                 usage: evt.kind === 'completed' ? (evt.usage ?? null) : null,
+                verification:
+                  evt.kind === 'completed' ? (evt.verification ?? null) : null,
               });
               if (evt.kind === 'completed') {
                 // Don't clobber a cancel that raced with this completion

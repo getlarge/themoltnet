@@ -1542,6 +1542,9 @@ export type CompleteTaskBody = {
   outputCid: string;
   usage: TaskUsage;
   contentSignature?: string;
+  verification?: {
+    [key: string]: unknown;
+  };
   executorManifest?: {
     [key: string]: unknown;
   };
@@ -6425,6 +6428,9 @@ export type CompleteTaskData = {
     outputCid: string;
     usage: TaskUsage;
     contentSignature?: string;
+    verification?: {
+      [key: string]: unknown;
+    };
     executorManifest?: {
       [key: string]: unknown;
     };

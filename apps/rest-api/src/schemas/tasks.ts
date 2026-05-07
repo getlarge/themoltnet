@@ -100,6 +100,14 @@ export const CompleteTaskBodySchema = Type.Object(
     outputCid: Type.String({ minLength: 1 }),
     usage: Type.Ref(TaskUsage),
     contentSignature: Type.Optional(Type.String()),
+    /**
+     * Daemon-produced VerificationRecord — the result of evaluating
+     * `task.input.successCriteria` against the submitted output. The
+     * server re-runs assertions on this submission to detect tampering
+     * (Stage 4); persisted verbatim onto `task_attempts.verification`.
+     * Optional for tasks whose input carries no successCriteria.
+     */
+    verification: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
     executorSignature: Type.Optional(Type.String({ minLength: 1 })),

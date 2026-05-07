@@ -704,6 +704,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         outputCid: string;
         usage: TaskUsage;
         contentSignature?: string;
+        verification?: Record<string, unknown>;
         executorManifest?: Record<string, unknown>;
         executorFingerprint?: string;
         executorSignature?: string;
@@ -798,6 +799,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           outputCid: body.outputCid,
           usage: body.usage,
           completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
+          verification: body.verification ?? null,
         },
         'progress',
       );

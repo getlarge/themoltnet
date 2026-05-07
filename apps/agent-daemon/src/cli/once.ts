@@ -109,6 +109,12 @@ export async function runOnce(argv: string[]): Promise<number> {
           maxBatchSize: opts.maxBatchSize,
           flushIntervalMs: opts.flushIntervalMs,
         }),
+      // Finalize per-task inside the loop so the criteria evaluator
+      // (in finalizeTask) can read the original task input. Without
+      // this, the post-drain finalize would only see TaskOutput and
+      // would have to re-fetch the task for its successCriteria.
+      onTaskFinished: (claimedTask, output) =>
+        finalizeTask(ctx.agent, claimedTask, output),
       executeTask,
     });
 
@@ -118,7 +124,6 @@ export async function runOnce(argv: string[]): Promise<number> {
       rootLogger.error({}, 'agent-daemon.no_output');
       return 1;
     }
-    await finalizeTask(ctx.agent, output);
     console.log('\n[done] TaskOutput:');
     console.log(JSON.stringify(output, null, 2));
     return output.status === 'completed' ? 0 : 1;

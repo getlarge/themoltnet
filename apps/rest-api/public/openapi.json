@@ -445,6 +445,10 @@
           },
           "usage": {
             "$ref": "#/components/schemas/TaskUsage"
+          },
+          "verification": {
+            "additionalProperties": {},
+            "type": "object"
           }
         },
         "required": ["output", "outputCid", "usage"],
@@ -15238,6 +15242,10 @@
                   },
                   "usage": {
                     "$ref": "#/components/schemas/TaskUsage"
+                  },
+                  "verification": {
+                    "additionalProperties": {},
+                    "type": "object"
                   }
                 },
                 "required": ["output", "outputCid", "usage"],

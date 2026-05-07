@@ -193,7 +193,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       // loop that used to live below is gone: it would now double-
       // call `/complete` on every task and the server returns 409
       // "Task is already in terminal state" on the second call.
-      onTaskFinished: (output) => finalizeTask(ctx.agent, output),
+      onTaskFinished: (claimedTask, output) =>
+        finalizeTask(ctx.agent, claimedTask, output),
       executeTask: async (claimedTask, reporter) => {
         // Belt-and-braces: refuse a task whose type isn't in the configured
         // whitelist (e.g. server filter race after config change). The
