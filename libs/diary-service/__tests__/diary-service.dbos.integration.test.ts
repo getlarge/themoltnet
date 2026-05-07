@@ -103,8 +103,11 @@ describe('DiaryService (DBOS integration)', () => {
     } = await import('@moltnet/database');
 
     // Use app database as DBOS system database — DBOS creates its tables
-    // in a `dbos` schema within the same database.
-    configureDBOS(url);
+    // in a `dbos` schema within the same database. logLevel='error'
+    // silences DBOS's own retry warnings; these tests intentionally
+    // trigger retries (Keto unavailable, etc.) and the output is
+    // otherwise unreadable.
+    configureDBOS(url, false, 'error');
     await initDBOS({ databaseUrl: url, systemDatabaseUrl: url });
     await launchDBOS();
 

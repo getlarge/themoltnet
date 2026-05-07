@@ -34,6 +34,9 @@ jobs:
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       landing: ${{ steps.compute.outputs.landing }}
+      agents-matrix: ${{ steps.matrix.outputs.matrix }}
+      has-agents: ${{ steps.matrix.outputs.has-agents }}
+      tier: ${{ steps.matrix.outputs.tier }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,15 +131,28 @@ jobs:
           else
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Compute Nx Cloud agent matrix
+        id: matrix
+        run: node .github/scripts/agents-changeset-matrix.cjs
 
-  lint:
-    name: Lint
+  # Nx Cloud DTE agents. Each matrix slot is a GitHub-hosted runner that
+  # calls `nx-cloud start-agent` and shuts down when the orchestrator
+  # marks the run complete. Tests use testcontainers internally for any
+  # Postgres they need — no GHA `services:` block required. Agents only
+  # need Docker (which `ubuntu-latest` ships with).
+  agents:
+    name: 'Agent #${{ matrix.agent }}'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       contents: read
     needs: [affected]
+    if: needs.affected.outputs.has-agents == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.affected.outputs.agents-matrix) }}
     env:
+      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
     steps:
@@ -151,28 +167,52 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      # Install golangci-lint onto PATH so the @nx-go/nx-go:lint executor
-      # (configured per Go project to use `golangci-lint`) finds it. The
-      # depguard rules in each Go module's .golangci.yml enforce the same
-      # cross-project boundary policy as @nx/enforce-module-boundaries does
-      # for TypeScript.
       - name: Install golangci-lint
+        # Pin via the published binary install (the official curl|sh
+        # installer hits GitHub API rate limits; `go install` is the
+        # documented fallback and uses GOPROXY caching, more reliable
+        # for high-frequency CI).
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b "$(go env GOPATH)/bin" v2.5.0
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx affected -t lint
-      - run: pnpm run check:quickstart
+      # Same flake guard as orchestrator: nx-cloud lazy-downloads its
+      # runner bundle; cloud.nx.app sometimes 5xx's with a 10s timeout.
+      # Retry the agent start (which blocks on tasks anyway, so a real
+      # mid-run failure won't loop — only initial bundle fetches).
+      - name: Start Nx Cloud agent
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm exec nx-cloud start-agent; then
+              exit 0
+            fi
+            elapsed=$SECONDS
+            # Only retry if we failed within the first 30s (bundle
+            # download window). After that, a failure means the agent
+            # is genuinely broken; don't loop.
+            if [ "$elapsed" -gt 30 ]; then
+              echo "::error::nx-cloud start-agent failed after $elapsed s — not retrying"
+              exit 1
+            fi
+            echo "::warning::nx-cloud start-agent attempt $attempt failed early ($elapsed s), retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+          done
+          echo "::error::nx-cloud start-agent failed after 3 attempts"
+          exit 1
 
-  typecheck:
-    name: Type Check
+  # Orchestrator: opens the Nx Cloud DTE run, fans tasks to the agents,
+  # waits for completion. Replaces the legacy lint / typecheck / test
+  # jobs. `build` is included so we have a real correctness gate on the
+  # SSR/lib build outputs (Docker image builds remain in build-and-push).
+  orchestrator:
+    name: Orchestrator (lint, typecheck, test, build)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       contents: read
     needs: [affected]
     env:
+      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
     steps:
@@ -185,54 +225,41 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx affected -t typecheck --exclude='tag:lang:go'
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    needs: [affected]
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: moltnet
-          POSTGRES_PASSWORD: moltnet_secret
-          POSTGRES_DB: moltnet
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U moltnet"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5432/moltnet
-      NX_BASE: ${{ needs.affected.outputs.base }}
-      NX_HEAD: ${{ needs.affected.outputs.head }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-      - run: pnpm install --frozen-lockfile
-      - name: Run database migrations
-        run: pnpm run db:migrate
-      # GitHub-hosted runners have 4 vCPUs. Run nx tasks sequentially
-      # (--parallel=1) and let each project's vitest pool use up to 2
-      # threads. Higher nx parallelism × per-project vitest pools causes
-      # worker IPC timeouts under memory/CPU pressure. Vitest-only flags
-      # after `--` are dropped on non-vitest executors (nx-go:test, etc).
-      - run: pnpm exec nx affected -t test --parallel=1 -- --pool=threads --poolOptions.threads.maxThreads=2 --poolOptions.threads.minThreads=1
+      # check:quickstart + nx format:check cover concerns not modeled in
+      # the affected graph (docs/skill drift, formatting). Run them on the
+      # orchestrator regardless of has-agents.
+      - name: Run check:quickstart
+        run: pnpm run check:quickstart
+      - name: Check formatting
+        run: pnpm exec nx format:check
+
+      # The Nx Cloud CLI lazy-downloads its runner bundle from
+      # cloud.nx.app on first invocation. The download is sometimes
+      # transiently unavailable; retry the start command itself.
+      - name: Start Nx Cloud CI run
+        if: needs.affected.outputs.has-agents == 'true'
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm exec nx-cloud start-ci-run \
+                --distribute-on=manual \
+                --assignment-rules=.nx/workflows/assignment-rules.yml \
+                --require-explicit-completion; then
+              exit 0
+            fi
+            echo "::warning::nx-cloud start-ci-run attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+          done
+          echo "::error::nx-cloud start-ci-run failed after 3 attempts"
+          exit 1
+
+      - name: Run affected lint, typecheck, test, build
+        if: needs.affected.outputs.has-agents == 'true'
+        run: pnpm exec nx affected -t lint typecheck test build
+
+      - name: Complete Nx Cloud CI run
+        if: always() && needs.affected.outputs.has-agents == 'true'
+        run: pnpm exec nx-cloud complete-ci-run
 
   code-analysis:
     name: Code Analysis (Knip)
@@ -572,10 +599,9 @@ jobs:
             exit 1
           fi
 
-  # E2E jobs intentionally do NOT depend on `test`. Unit/integration tests run
-  # in parallel; e2e is gated only by lint+typecheck (cheap correctness gates)
-  # and the docker images it consumes. This unblocks e2e by ~the duration of
-  # the `test` job on the critical path.
+  # E2E jobs gate on `orchestrator` (lint+typecheck+test+build via Nx
+  # Cloud DTE) and the docker images they consume. They manage their own
+  # docker compose stack and stay outside DTE per issue #985 scope.
   e2e-node:
     name: E2E Tests (Node)
     runs-on: ubuntu-latest
@@ -583,7 +609,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, lint, typecheck, build-and-push]
+    needs: [affected, orchestrator, build-and-push]
     if: needs.affected.outputs.e2e-node == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
@@ -631,7 +657,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, lint, typecheck, build-and-push]
+    needs: [affected, orchestrator, build-and-push]
     if: needs.affected.outputs.e2e-browser == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
@@ -695,7 +721,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, lint, typecheck, build-and-push]
+    needs: [affected, orchestrator, build-and-push]
     if: needs.affected.outputs.e2e-go-cli == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}

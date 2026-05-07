@@ -44,13 +44,22 @@ export interface DBOSConfig {
  *
  * @param systemDatabaseUrl — Postgres URL for DBOS system tables (separate from app data)
  * @param enableOTLP — whether to enable OpenTelemetry (OTLP) for DBOS internal metrics/traces
+ * @param logLevel — DBOS internal logger level (defaults to DBOS's own 'info').
+ *                   Pass 'error' from integration tests that intentionally
+ *                   trigger retries to avoid swamping output.
  */
 export function configureDBOS(
   systemDatabaseUrl: string,
   enableOTLP: boolean = false,
+  logLevel?: string,
 ): void {
   if (configured) return; // Idempotent
-  DBOS.setConfig({ name: 'moltnet-api', systemDatabaseUrl, enableOTLP });
+  DBOS.setConfig({
+    name: 'moltnet-api',
+    systemDatabaseUrl,
+    enableOTLP,
+    ...(logLevel !== undefined ? { logLevel } : {}),
+  });
   configured = true;
 }
 
