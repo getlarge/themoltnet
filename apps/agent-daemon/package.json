@@ -2,18 +2,37 @@
   "name": "@moltnet/agent-daemon",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "private": true,
   "type": "module",
+  "description": "MoltNet agent daemon — claims and executes tasks (fulfill_brief, assess_brief) from the MoltNet task-service via Pi-headless. CLI: moltnet-agent.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "apps/agent-daemon"
+  },
+  "homepage": "https://themolt.net",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
+  "bin": {
+    "moltnet-agent": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "cli": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
+    "build": "vite build",
+    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
-    "@moltnet/tasks": "workspace:*",
+    "@earendil-works/gondolin": "catalog:",
+    "@mariozechner/pi-ai": "catalog:",
+    "@mariozechner/pi-coding-agent": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "@opentelemetry/resources": "catalog:",
@@ -30,6 +49,7 @@
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

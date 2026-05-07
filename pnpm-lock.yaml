@@ -436,9 +436,15 @@ importers:
 
   apps/agent-daemon:
     dependencies:
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../../libs/tasks
+      '@earendil-works/gondolin':
+        specifier: 'catalog:'
+        version: 0.7.0
+      '@mariozechner/pi-ai':
+        specifier: 'catalog:'
+        version: 0.73.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)
+      '@mariozechner/pi-coding-agent':
+        specifier: 'catalog:'
+        version: 0.73.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -482,6 +488,9 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../../libs/database
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       tsx:
         specifier: 'catalog:'
         version: 4.21.0

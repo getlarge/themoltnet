@@ -5,6 +5,11 @@
   "include-component-in-tag": true,
   "include-v-in-tag": true,
   "packages": {
+    "apps/agent-daemon": {
+      "bump-minor-pre-major": true,
+      "component": "agent-daemon",
+      "release-type": "node"
+    },
     "apps/moltnet-cli": {
       "bump-minor-pre-major": true,
       "component": "cli",
