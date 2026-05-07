@@ -415,31 +415,38 @@ See [#947](https://github.com/getlarge/themoltnet/issues/947) for the pi-extensi
 
 ## Running the daemon
 
-`apps/agent-daemon` is the deployable that wires source + reporter + executor + signal handling + finalize. Same binary, three subcommands.
+`apps/agent-daemon` is the deployable that wires source + reporter + executor + signal handling + finalize. Published to npm as `@themoltnet/agent-daemon`; the binary is `moltnet-agent`.
+
+### Install
+
+```bash
+npm i -g @themoltnet/agent-daemon
+# or, ad-hoc:
+npx @themoltnet/agent-daemon --help
+```
+
+### Subcommands
 
 ```bash
 # Long-running worker — claim queued tasks until SIGINT/SIGTERM.
-agent-daemon poll --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
+moltnet-agent poll --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
 
-# Execute one specific queued task by id, then exit. Replaces the old
-# `task:work` script.
-agent-daemon once --task-id <uuid> --agent <name> --provider <p> --model <m>
+# Execute one specific queued task by id, then exit.
+moltnet-agent once --task-id <uuid> --agent <name> --provider <p> --model <m>
 
 # Poll until the queue has nothing claimable, then exit. Useful for
 # batch eval runs and demos.
-agent-daemon drain --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
+moltnet-agent drain --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
 ```
 
-Run `agent-daemon <command> --help` for full per-subcommand flag listings, defaults, and examples.
+Run `moltnet-agent <command> --help` for full per-subcommand flag listings, defaults, and examples.
 
-### Local invocation (before publishing the binary)
+### Local development invocation
 
-Two pnpm scripts:
+Two pnpm scripts inside this repo:
 
 - `pnpm --filter @themoltnet/agent-daemon cli <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
 - `pnpm --filter @themoltnet/agent-daemon dev <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
-
-The published `agent-daemon` binary (when shipped) is `node dist/main.js` — single-shot, exits naturally on subcommand completion. No watcher.
 
 ### Required flags (all subcommands)
 
