@@ -3470,7 +3470,6 @@ func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
 	CorrelationId              OptUUID               `json:"correlationId"`
-	CriteriaCid                OptString             `json:"criteriaCid"`
 	DiaryId                    uuid.UUID             `json:"diaryId"`
 	DispatchTimeoutSec         OptInt                `json:"dispatchTimeoutSec"`
 	ExpiresInSec               OptInt                `json:"expiresInSec"`
@@ -3486,11 +3485,6 @@ type CreateTaskReq struct {
 // GetCorrelationId returns the value of CorrelationId.
 func (s *CreateTaskReq) GetCorrelationId() OptUUID {
 	return s.CorrelationId
-}
-
-// GetCriteriaCid returns the value of CriteriaCid.
-func (s *CreateTaskReq) GetCriteriaCid() OptString {
-	return s.CriteriaCid
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -3546,11 +3540,6 @@ func (s *CreateTaskReq) GetTeamId() uuid.UUID {
 // SetCorrelationId sets the value of CorrelationId.
 func (s *CreateTaskReq) SetCorrelationId(val OptUUID) {
 	s.CorrelationId = val
-}
-
-// SetCriteriaCid sets the value of CriteriaCid.
-func (s *CreateTaskReq) SetCriteriaCid(val OptString) {
-	s.CriteriaCid = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -13467,6 +13456,51 @@ func (o NilTaskAttemptUsage) Or(d TaskAttemptUsage) TaskAttemptUsage {
 	return d
 }
 
+// NewNilTaskAttemptVerification returns new NilTaskAttemptVerification with value set to v.
+func NewNilTaskAttemptVerification(v TaskAttemptVerification) NilTaskAttemptVerification {
+	return NilTaskAttemptVerification{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptVerification is nullable TaskAttemptVerification.
+type NilTaskAttemptVerification struct {
+	Value TaskAttemptVerification
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptVerification) SetTo(v TaskAttemptVerification) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptVerification) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptVerification) SetToNull() {
+	o.Null = true
+	var v TaskAttemptVerification
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptVerification) Get() (v TaskAttemptVerification, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptVerification) Or(d TaskAttemptVerification) TaskAttemptVerification {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilUUID returns new NilUUID with value set to v.
 func NewNilUUID(v uuid.UUID) NilUUID {
 	return NilUUID{
@@ -19892,7 +19926,6 @@ type Task struct {
 	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
-	CriteriaCid                NilString                      `json:"criteriaCid"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
 	DispatchTimeoutSec         NilInt                         `json:"dispatchTimeoutSec"`
 	ExpiresAt                  NilDateTime                    `json:"expiresAt"`
@@ -19941,11 +19974,6 @@ func (s *Task) GetCompletedAt() NilDateTime {
 // GetCorrelationId returns the value of CorrelationId.
 func (s *Task) GetCorrelationId() NilUUID {
 	return s.CorrelationId
-}
-
-// GetCriteriaCid returns the value of CriteriaCid.
-func (s *Task) GetCriteriaCid() NilString {
-	return s.CriteriaCid
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -20068,11 +20096,6 @@ func (s *Task) SetCorrelationId(val NilUUID) {
 	s.CorrelationId = val
 }
 
-// SetCriteriaCid sets the value of CriteriaCid.
-func (s *Task) SetCriteriaCid(val NilString) {
-	s.CriteriaCid = val
-}
-
 // SetDiaryId sets the value of DiaryId.
 func (s *Task) SetDiaryId(val NilUUID) {
 	s.DiaryId = val
@@ -20189,6 +20212,7 @@ type TaskAttempt struct {
 	Status                       TaskAttemptStatus                       `json:"status"`
 	TaskId                       uuid.UUID                               `json:"taskId"`
 	Usage                        NilTaskAttemptUsage                     `json:"usage"`
+	Verification                 NilTaskAttemptVerification              `json:"verification"`
 }
 
 // GetAttemptN returns the value of AttemptN.
@@ -20281,6 +20305,11 @@ func (s *TaskAttempt) GetUsage() NilTaskAttemptUsage {
 	return s.Usage
 }
 
+// GetVerification returns the value of Verification.
+func (s *TaskAttempt) GetVerification() NilTaskAttemptVerification {
+	return s.Verification
+}
+
 // SetAttemptN sets the value of AttemptN.
 func (s *TaskAttempt) SetAttemptN(val float64) {
 	s.AttemptN = val
@@ -20369,6 +20398,11 @@ func (s *TaskAttempt) SetTaskId(val uuid.UUID) {
 // SetUsage sets the value of Usage.
 func (s *TaskAttempt) SetUsage(val NilTaskAttemptUsage) {
 	s.Usage = val
+}
+
+// SetVerification sets the value of Verification.
+func (s *TaskAttempt) SetVerification(val NilTaskAttemptVerification) {
+	s.Verification = val
 }
 
 type TaskAttemptClaimedExecutorManifest map[string]jx.Raw
@@ -20599,6 +20633,17 @@ func (s *TaskAttemptUsage) SetProvider(val OptString) {
 // SetToolCalls sets the value of ToolCalls.
 func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
+}
+
+type TaskAttemptVerification map[string]jx.Raw
+
+func (s *TaskAttemptVerification) init() TaskAttemptVerification {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
 }
 
 // Ref: #/components/schemas/TaskError

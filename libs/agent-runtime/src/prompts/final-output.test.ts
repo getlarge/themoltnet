@@ -49,9 +49,7 @@ const TASK_FIXTURES: Array<{
           taskType: ASSESS_BRIEF_TYPE,
           input: {
             targetTaskId: '11111111-1111-4111-8111-111111111111',
-            criteria: [
-              { id: 'c', description: 'd', weight: 1, scoring: 'llm_score' },
-            ],
+            successCriteria: { version: 1, rubric },
           },
         }),
         ctx,
@@ -97,7 +95,7 @@ const TASK_FIXTURES: Array<{
           input: {
             renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
             sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
-            rubric,
+            successCriteria: { version: 1, rubric },
           },
         }),
         ctx,

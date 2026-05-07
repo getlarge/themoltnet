@@ -278,6 +278,16 @@ export const TaskAttempt = Type.Object(
     usage: Type.Union([TaskUsage, Type.Null()]),
     contentSignature: Type.Union([Type.String(), Type.Null()]),
     signedAt: Type.Union([IsoTimestamp, Type.Null()]),
+    /**
+     * VerificationRecord produced by the daemon before /complete. Null
+     * for tasks whose input carries no `successCriteria`. The server
+     * re-runs assertions on submission to detect tampering — see
+     * `SuccessCriteria` in `@moltnet/tasks`.
+     */
+    verification: Type.Union([
+      Type.Record(Type.String(), Type.Unknown()),
+      Type.Null(),
+    ]),
   },
   { $id: 'TaskAttempt', additionalProperties: false },
 );

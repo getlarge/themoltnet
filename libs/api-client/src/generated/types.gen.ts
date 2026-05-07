@@ -1359,7 +1359,6 @@ export type Task = {
   };
   inputSchemaCid: string;
   inputCid: string;
-  criteriaCid: string | null;
   references: Array<{
     taskId: string | null;
     outputCid: string;
@@ -1447,6 +1446,9 @@ export type TaskAttempt = {
   } | null;
   contentSignature: string | null;
   signedAt: string | null;
+  verification: {
+    [key: string]: unknown;
+  } | null;
 };
 
 export type TaskAttemptStatus =
@@ -1497,7 +1499,6 @@ export type CreateTaskBody = {
   correlationId?: string;
   maxAttempts?: number;
   expiresInSec?: number;
-  criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
   dispatchTimeoutSec?: number;
   runningTimeoutSec?: number;
@@ -6257,7 +6258,6 @@ export type CreateTaskData = {
     correlationId?: string;
     maxAttempts?: number;
     expiresInSec?: number;
-    criteriaCid?: string;
     requiredExecutorTrustLevel?: ExecutorTrustLevel;
     dispatchTimeoutSec?: number;
     runningTimeoutSec?: number;

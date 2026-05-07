@@ -1164,10 +1164,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "criteriaCid": {
-            "minLength": 1,
-            "type": "string"
-          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -4838,17 +4834,6 @@
               }
             ]
           },
-          "criteriaCid": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "diaryId": {
             "anyOf": [
               {
@@ -5106,7 +5091,6 @@
           "input",
           "inputSchemaCid",
           "inputCid",
-          "criteriaCid",
           "references",
           "correlationId",
           "imposedByAgentId",
@@ -5358,6 +5342,17 @@
                 "type": "null"
               }
             ]
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "additionalProperties": {},
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5378,7 +5373,8 @@
           "error",
           "usage",
           "contentSignature",
-          "signedAt"
+          "signedAt",
+          "verification"
         ],
         "type": "object"
       },
@@ -14893,10 +14889,6 @@
                 "properties": {
                   "correlationId": {
                     "format": "uuid",
-                    "type": "string"
-                  },
-                  "criteriaCid": {
-                    "minLength": 1,
                     "type": "string"
                   },
                   "diaryId": {

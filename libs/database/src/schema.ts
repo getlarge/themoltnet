@@ -999,7 +999,6 @@ export const tasks = pgTable(
     input: jsonb('input').notNull(),
     inputSchemaCid: varchar('input_schema_cid', { length: 100 }).notNull(),
     inputCid: varchar('input_cid', { length: 100 }).notNull(),
-    criteriaCid: varchar('criteria_cid', { length: 100 }),
     // wire field is `references`; `references` is a SQL reserved word
     taskRefs: jsonb('task_refs')
       .notNull()
@@ -1171,6 +1170,12 @@ export const taskAttempts = pgTable(
     usage: jsonb('usage'),
     contentSignature: text('content_signature'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
+    // VerificationRecord — daemon evaluates input.successCriteria
+    // (gates/assertions/rubric/sideEffects) before /complete and posts
+    // the result here. Server re-runs assertions to detect tampering.
+    // Null for legacy attempts and for tasks whose input carries no
+    // successCriteria.
+    verification: jsonb('verification'),
   },
   (table) => [
     primaryKey({ columns: [table.taskId, table.attemptN] }),

@@ -168,6 +168,7 @@ function dbAttemptToWire(
     usage: (row.usage as TaskUsage) ?? null,
     contentSignature: row.contentSignature ?? null,
     signedAt: row.signedAt?.toISOString() ?? null,
+    verification: (row.verification as Record<string, unknown> | null) ?? null,
   };
 }
 

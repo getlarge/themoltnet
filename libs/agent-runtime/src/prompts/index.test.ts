@@ -33,9 +33,21 @@ describe('buildPromptForTask', () => {
       taskType: ASSESS_BRIEF_TYPE,
       input: {
         targetTaskId,
-        criteria: [
-          { id: 'c1', description: 'Works', weight: 1, scoring: 'llm_score' },
-        ],
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'r',
+            version: 'v1',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'Works',
+                weight: 1,
+                scoring: 'llm_score',
+              },
+            ],
+          },
+        },
       },
     });
     const prompt = buildPromptForTask(task, ctx);
