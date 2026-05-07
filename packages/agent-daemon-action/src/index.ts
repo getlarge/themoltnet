@@ -1,3 +1,2 @@
-// Public surface — populated as implementations land.
-// See parse-mention.ts, resolve-correlation.ts, create-task.ts, dispatch.ts.
-export {};
+export type { ParseInput, ParseResult, Verb } from './parse-mention.js';
+export { parseMention } from './parse-mention.js';
