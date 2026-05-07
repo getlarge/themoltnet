@@ -826,17 +826,17 @@ jobs:
 
       - run: pnpm --filter @themoltnet/pi-extension build
 
-      - run: pnpm --filter @moltnet/agent-daemon build
+      - run: pnpm --filter @themoltnet/agent-daemon build
 
-      - run: pnpm --filter @moltnet/agent-daemon run check:pack
+      - run: pnpm --filter @themoltnet/agent-daemon run check:pack
 
-      - name: Publish @moltnet/agent-daemon
+      - name: Publish @themoltnet/agent-daemon
         uses: nick-fields/retry@v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: pnpm --filter @moltnet/agent-daemon publish --no-git-checks --access public --provenance
+          command: pnpm --filter @themoltnet/agent-daemon publish --no-git-checks --access public --provenance
 
       - name: Publish Agent Daemon release
         run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" --draft=false

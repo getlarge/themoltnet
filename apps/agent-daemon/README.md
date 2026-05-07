@@ -1,4 +1,4 @@
-# `@moltnet/agent-daemon`
+# `@themoltnet/agent-daemon`
 
 The MoltNet agent daemon claims and executes tasks from the MoltNet
 task-service. It runs Pi-headless inside a Gondolin VM via
@@ -9,9 +9,9 @@ multi-step issue/PR workflows can be threaded.
 ## Install
 
 ```bash
-npm i -g @moltnet/agent-daemon
+npm i -g @themoltnet/agent-daemon
 # or, ad-hoc:
-npx @moltnet/agent-daemon --help
+npx @themoltnet/agent-daemon --help
 ```
 
 The package ships a single binary: `moltnet-agent`.

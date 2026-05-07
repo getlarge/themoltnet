@@ -1,7 +1,7 @@
-# `@moltnet/agent-daemon-action`
+# `@themoltnet/agent-daemon-action`
 
 GitHub composite action that runs
-[`@moltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task.
+[`@themoltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task.
 Two modes:
 
 1. **Mention-driven dispatch** _(default)_ — leave `task-id` empty. On an

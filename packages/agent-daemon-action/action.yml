@@ -1,5 +1,5 @@
 name: 'MoltNet Agent Daemon'
-description: 'Run a single MoltNet task via @moltnet/agent-daemon, or dispatch from a @moltnet-{fulfill,assess} mention.'
+description: 'Run a single MoltNet task via @themoltnet/agent-daemon, or dispatch from a @moltnet-{fulfill,assess} mention.'
 inputs:
   task-id:
     description: >
@@ -14,7 +14,7 @@ inputs:
     required: false
     default: 'once'
   daemon-version:
-    description: 'npm semver range for @moltnet/agent-daemon (passed to npx).'
+    description: 'npm semver range for @themoltnet/agent-daemon (passed to npx).'
     required: false
     default: 'latest'
   node-version:
@@ -80,5 +80,5 @@ runs:
           exit 0
         fi
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
-        npx -y @moltnet/agent-daemon@${{ inputs.daemon-version }} \
+        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
           ${{ inputs.mode }} --task-id "$TASK_ID"

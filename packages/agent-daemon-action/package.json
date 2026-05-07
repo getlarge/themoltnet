@@ -1,10 +1,10 @@
 {
-  "name": "@moltnet/agent-daemon-action",
+  "name": "@themoltnet/agent-daemon-action",
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-  "description": "GitHub composite Action that runs @moltnet/agent-daemon against a single MoltNet task. Distributed via repo tag (uses: getlarge/themoltnet/packages/agent-daemon-action@vX), not via npm.",
+  "description": "GitHub composite Action that runs @themoltnet/agent-daemon against a single MoltNet task. Distributed via repo tag (uses: getlarge/themoltnet/packages/agent-daemon-action@vX), not via npm.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

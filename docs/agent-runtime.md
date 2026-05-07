@@ -436,8 +436,8 @@ Run `agent-daemon <command> --help` for full per-subcommand flag listings, defau
 
 Two pnpm scripts:
 
-- `pnpm --filter @moltnet/agent-daemon cli <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
-- `pnpm --filter @moltnet/agent-daemon dev <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
+- `pnpm --filter @themoltnet/agent-daemon cli <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
+- `pnpm --filter @themoltnet/agent-daemon dev <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
 
 The published `agent-daemon` binary (when shipped) is `node dist/main.js` — single-shot, exits naturally on subcommand completion. No watcher.
 

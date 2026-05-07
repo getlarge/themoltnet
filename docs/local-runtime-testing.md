@@ -79,7 +79,7 @@ The daemon picks up the API URL from the agent's `moltnet.json`
 not a global CLI — invoke it via `pnpm --filter`:
 
 ```bash
-pnpm --filter @moltnet/agent-daemon dev poll \
+pnpm --filter @themoltnet/agent-daemon dev poll \
   --agent local-dev \
   --team "$MOLTNET_TEAM_ID" \
   --task-types fulfill_brief \

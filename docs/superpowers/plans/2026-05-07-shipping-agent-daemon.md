@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `@moltnet/agent-daemon` consumable by external repositories (npm + GitHub Action + mention-bot template) with multi-anchor correlationId propagation across issue → PR → assess flows.
+**Goal:** Make `@themoltnet/agent-daemon` consumable by external repositories (npm + GitHub Action + mention-bot template) with multi-anchor correlationId propagation across issue → PR → assess flows.
 
-**Architecture:** Publish the daemon to npm; loosen `pi-extension` to allow env-var-only Pi auth; add a finalize hook that writes `correlationId` to four anchors (MoltNet API, branch name, commit trailer, PR body) so the mention-bot can recover it from any one. Ship a composite GitHub Action wrapping `npx @moltnet/agent-daemon once` and a copy-paste workflow template.
+**Architecture:** Publish the daemon to npm; loosen `pi-extension` to allow env-var-only Pi auth; add a finalize hook that writes `correlationId` to four anchors (MoltNet API, branch name, commit trailer, PR body) so the mention-bot can recover it from any one. Ship a composite GitHub Action wrapping `npx @themoltnet/agent-daemon once` and a copy-paste workflow template.
 
 **Tech Stack:** TypeScript (Node 22), pnpm workspaces, Vitest, release-please, GitHub composite actions, gh CLI, octokit (via `@actions/github`).
 
@@ -319,7 +319,7 @@ describe('appendPrBodyMarker', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @moltnet/agent-daemon exec vitest run src/lib/correlation.test.ts`
+Run: `pnpm --filter @themoltnet/agent-daemon exec vitest run src/lib/correlation.test.ts`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement `correlation.ts`**
@@ -402,7 +402,7 @@ export function appendPrBodyMarker(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @moltnet/agent-daemon exec vitest run src/lib/correlation.test.ts`
+Run: `pnpm --filter @themoltnet/agent-daemon exec vitest run src/lib/correlation.test.ts`
 Expected: PASS — all eleven assertions green.
 
 - [ ] **Step 5: Commit**
@@ -549,7 +549,7 @@ describe('finalizeTask — fulfill_brief correlation hook', () => {
 
 - [ ] **Step 3: Run tests to verify they fail**
 
-Run: `pnpm --filter @moltnet/agent-daemon exec vitest run src/lib/finalize.test.ts`
+Run: `pnpm --filter @themoltnet/agent-daemon exec vitest run src/lib/finalize.test.ts`
 Expected: FAIL — `finalizeTask` does not accept a third argument yet.
 
 - [ ] **Step 4: Update `finalizeTask` signature and add the correlation hook**
@@ -640,7 +640,7 @@ async function maybeWriteAnchors(
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pnpm --filter @moltnet/agent-daemon exec vitest run src/lib/finalize.test.ts`
+Run: `pnpm --filter @themoltnet/agent-daemon exec vitest run src/lib/finalize.test.ts`
 Expected: PASS for all four cases.
 
 - [ ] **Step 6: Update finalize callers to pass the context**
@@ -677,8 +677,8 @@ Place the stub at the top of `apps/agent-daemon/src/lib/correlation.ts` (export 
 Run:
 
 ```bash
-pnpm --filter @moltnet/agent-daemon exec vitest run
-pnpm --filter @moltnet/agent-daemon typecheck
+pnpm --filter @themoltnet/agent-daemon exec vitest run
+pnpm --filter @themoltnet/agent-daemon typecheck
 ```
 
 Expected: PASS, clean.
@@ -763,7 +763,7 @@ describe('makePrBodyAnchorWriter', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @moltnet/agent-daemon exec vitest run src/lib/correlation.test.ts`
+Run: `pnpm --filter @themoltnet/agent-daemon exec vitest run src/lib/correlation.test.ts`
 Expected: FAIL — `parsePrUrl` and the real `makePrBodyAnchorWriter` aren't implemented.
 
 - [ ] **Step 3: Implement `parsePrUrl` and the real writer**
@@ -896,8 +896,8 @@ then pass it as `writeCorrelationAnchors` to `finalizeTask`.
 Run:
 
 ```bash
-pnpm --filter @moltnet/agent-daemon exec vitest run
-pnpm --filter @moltnet/agent-daemon typecheck
+pnpm --filter @themoltnet/agent-daemon exec vitest run
+pnpm --filter @themoltnet/agent-daemon typecheck
 ```
 
 Expected: PASS, clean.
@@ -1000,7 +1000,7 @@ non-null. Refs #1025."
 
 ---
 
-## Task 6: Publish `@moltnet/agent-daemon` to npm
+## Task 6: Publish `@themoltnet/agent-daemon` to npm
 
 **Files:**
 
@@ -1016,7 +1016,7 @@ Edit `apps/agent-daemon/package.json`:
 
 ```jsonc
 {
-  "name": "@moltnet/agent-daemon",
+  "name": "@themoltnet/agent-daemon",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -1102,7 +1102,7 @@ Edit `apps/agent-daemon/src/main.ts` first line — add:
 
 - [ ] **Step 3: Verify the build emits an executable `dist/main.js`**
 
-Run: `pnpm --filter @moltnet/agent-daemon build`
+Run: `pnpm --filter @themoltnet/agent-daemon build`
 Then: `head -1 apps/agent-daemon/dist/main.js`
 Expected: `#!/usr/bin/env node`
 
@@ -1119,7 +1119,7 @@ build: {
 
 - [ ] **Step 4: Validate the pack**
 
-Run: `pnpm --filter @moltnet/agent-daemon run check:pack`
+Run: `pnpm --filter @themoltnet/agent-daemon run check:pack`
 Expected: PASS — confirms `dist/main.js`, `dist/main.d.ts`, no `src/` leak.
 
 If the script complains about missing `dist/index.js`, add a tiny re-export (`apps/agent-daemon/src/index.ts` exporting the public types) or update the check-pack call to point at `main.js`. Inspect `tools/src/check-pack.ts` to decide.
@@ -1179,15 +1179,15 @@ publish-agent-daemon:
     - run: pnpm --filter @themoltnet/sdk build
     - run: pnpm --filter @themoltnet/agent-runtime build
     - run: pnpm --filter @themoltnet/pi-extension build
-    - run: pnpm --filter @moltnet/agent-daemon build
-    - run: pnpm --filter @moltnet/agent-daemon run check:pack
-    - name: Publish @moltnet/agent-daemon
+    - run: pnpm --filter @themoltnet/agent-daemon build
+    - run: pnpm --filter @themoltnet/agent-daemon run check:pack
+    - name: Publish @themoltnet/agent-daemon
       uses: nick-fields/retry@v4.0.0
       with:
         timeout_minutes: 10
         max_attempts: 3
         retry_wait_seconds: 30
-        command: pnpm --filter @moltnet/agent-daemon publish --no-git-checks --access public --provenance
+        command: pnpm --filter @themoltnet/agent-daemon publish --no-git-checks --access public --provenance
     - name: Publish agent-daemon release
       run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" --draft=false
       env:
@@ -1199,16 +1199,16 @@ publish-agent-daemon:
 Create `apps/agent-daemon/README.md`:
 
 ````markdown
-# `@moltnet/agent-daemon`
+# `@themoltnet/agent-daemon`
 
 The MoltNet agent daemon claims and executes tasks from the MoltNet task-service. It runs Pi-headless inside a Gondolin VM via [`@themoltnet/pi-extension`](../../libs/pi-extension), reports progress over OpenTelemetry, and writes correlation anchors so multi-step issue/PR workflows can be threaded.
 
 ## Install
 
 ```bash
-npm i -g @moltnet/agent-daemon
+npm i -g @themoltnet/agent-daemon
 # or, ad-hoc:
-npx @moltnet/agent-daemon --help
+npx @themoltnet/agent-daemon --help
 ```
 ````
 
@@ -1281,9 +1281,9 @@ AGPL-3.0-only.
 Run:
 ```bash
 pnpm install
-pnpm --filter @moltnet/agent-daemon build
-pnpm --filter @moltnet/agent-daemon run check:pack
-pnpm --filter @moltnet/agent-daemon typecheck
+pnpm --filter @themoltnet/agent-daemon build
+pnpm --filter @themoltnet/agent-daemon run check:pack
+pnpm --filter @themoltnet/agent-daemon typecheck
 ````
 
 Expected: clean. If `pnpm install` re-syncs the lockfile, commit those changes too.
@@ -1292,7 +1292,7 @@ Expected: clean. If `pnpm install` re-syncs the lockfile, commit those changes t
 
 ```bash
 git add apps/agent-daemon/package.json apps/agent-daemon/src/main.ts apps/agent-daemon/vite.config.ts apps/agent-daemon/README.md release-please-config.json .release-please-manifest.json .github/workflows/release.yml pnpm-lock.yaml
-git commit -m "feat(agent-daemon): publish to npm as @moltnet/agent-daemon
+git commit -m "feat(agent-daemon): publish to npm as @themoltnet/agent-daemon
 
 Flips the package public, adds a bin entry, registers with release-please,
 adds a publish job mirroring publish-sdk, and ships a README. First
@@ -1306,8 +1306,8 @@ Run on a developer machine:
 
 ```bash
 npm login
-pnpm --filter @moltnet/agent-daemon build
-pnpm --filter @moltnet/agent-daemon publish --access public --no-git-checks
+pnpm --filter @themoltnet/agent-daemon build
+pnpm --filter @themoltnet/agent-daemon publish --access public --no-git-checks
 ```
 
 Then on npmjs.com, open the package settings and enable OIDC provenance + select the `getlarge/themoltnet` GitHub repo. Subsequent releases run from CI.
@@ -1334,7 +1334,7 @@ Create `packages/agent-daemon-action/package.json`:
     "@actions/core": "catalog:",
     "@actions/github": "catalog:"
   },
-  "description": "GitHub Action that runs @moltnet/agent-daemon against a single task. Distributed via repo tag (uses: getlarge/themoltnet/packages/agent-daemon-action@vX).",
+  "description": "GitHub Action that runs @themoltnet/agent-daemon against a single task. Distributed via repo tag (uses: getlarge/themoltnet/packages/agent-daemon-action@vX).",
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
@@ -1349,7 +1349,7 @@ Create `packages/agent-daemon-action/package.json`:
   },
   "license": "AGPL-3.0-only",
   "main": "./dist/index.js",
-  "name": "@moltnet/agent-daemon-action",
+  "name": "@themoltnet/agent-daemon-action",
   "nx": {
     "tags": ["type:client", "scope:agent", "platform:gha"]
   },
@@ -1495,7 +1495,7 @@ describe('parseMention', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action test`
+Run: `pnpm --filter @themoltnet/agent-daemon-action test`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement `parseMention`**
@@ -1543,7 +1543,7 @@ export function parseMention({ body, isPullRequest }: ParseInput): ParseResult {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action test`
+Run: `pnpm --filter @themoltnet/agent-daemon-action test`
 Expected: PASS for all six cases.
 
 - [ ] **Step 5: Commit**
@@ -1672,7 +1672,7 @@ describe('resolveCorrelation', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action test`
+Run: `pnpm --filter @themoltnet/agent-daemon-action test`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement `resolveCorrelation`**
@@ -1784,7 +1784,7 @@ export async function resolveCorrelation(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action test`
+Run: `pnpm --filter @themoltnet/agent-daemon-action test`
 Expected: PASS for all six cases.
 
 - [ ] **Step 5: Commit**
@@ -1920,7 +1920,7 @@ describe('createTask', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action test`
+Run: `pnpm --filter @themoltnet/agent-daemon-action test`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement `createTask`**
@@ -2017,7 +2017,7 @@ function buildBody(input: CreateTaskInput): Record<string, unknown> {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action test`
+Run: `pnpm --filter @themoltnet/agent-daemon-action test`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -2282,7 +2282,7 @@ interface AssessCriterion {
 
 - [ ] **Step 2: Build the package**
 
-Run: `pnpm --filter @moltnet/agent-daemon-action build`
+Run: `pnpm --filter @themoltnet/agent-daemon-action build`
 Expected: clean — produces `dist/dispatch.js` and friends.
 
 - [ ] **Step 3: Create `action.yml`**
@@ -2291,7 +2291,7 @@ Create `packages/agent-daemon-action/action.yml`:
 
 ```yaml
 name: 'MoltNet Agent Daemon'
-description: 'Run a single MoltNet task (fulfill_brief or assess_brief) via @moltnet/agent-daemon.'
+description: 'Run a single MoltNet task (fulfill_brief or assess_brief) via @themoltnet/agent-daemon.'
 inputs:
   task-id:
     description: 'MoltNet task id to claim and execute. If empty, the action runs the dispatcher (parse mention -> create task -> use that id).'
@@ -2301,7 +2301,7 @@ inputs:
     required: false
     default: 'once'
   daemon-version:
-    description: 'npm version range for @moltnet/agent-daemon.'
+    description: 'npm version range for @themoltnet/agent-daemon.'
     required: false
     default: 'latest'
   node-version:
@@ -2362,7 +2362,7 @@ runs:
           exit 0
         fi
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
-        npx -y @moltnet/agent-daemon@${{ inputs.daemon-version }} ${{ inputs.mode }} --task-id "$TASK_ID"
+        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} ${{ inputs.mode }} --task-id "$TASK_ID"
 ```
 
 - [ ] **Step 4: Commit**
@@ -2372,7 +2372,7 @@ git add packages/agent-daemon-action/src/dispatch.ts packages/agent-daemon-actio
 git commit -m "feat(agent-daemon-action): composite action manifest + dispatch entry
 
 action.yml is composite: materialize creds -> optional dispatch (parse
-mention, resolve correlation, create task) -> npx @moltnet/agent-daemon
+mention, resolve correlation, create task) -> npx @themoltnet/agent-daemon
 once. Refs #1025."
 ```
 
@@ -2426,9 +2426,9 @@ jobs:
 Create `packages/agent-daemon-action/README.md`:
 
 ````markdown
-# `@moltnet/agent-daemon-action`
+# `@themoltnet/agent-daemon-action`
 
-GitHub composite action that runs [`@moltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task. Two modes:
+GitHub composite action that runs [`@themoltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task. Two modes:
 
 1. **Mention-driven dispatch** _(default)_ — leave `task-id` empty. The action parses the issue/PR comment for `@moltnet-fulfill` / `@moltnet-assess`, resolves the correlationId, creates the task, then executes it.
 2. **Explicit task** — supply `task-id`. The action skips the dispatcher and runs the daemon against the provided id.
@@ -2559,7 +2559,7 @@ Per the project's e2e contract, the Docker stack must already be running:
 
 ```bash
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
-pnpm --filter @moltnet/agent-daemon run test:e2e
+pnpm --filter @themoltnet/agent-daemon run test:e2e
 ```
 
 Expected: PASS, including the new assess_brief test. Tear down with:
@@ -2585,14 +2585,14 @@ sequenceDiagram
   participant GH as GitHub Issue/PR
   participant Bot as moltnet-mention.yml
   participant API as MoltNet REST
-  participant Daemon as @moltnet/agent-daemon
+  participant Daemon as @themoltnet/agent-daemon
   participant Pi as Pi VM
 
   Human->>GH: comment "@moltnet-fulfill ..."
   GH->>Bot: issue_comment event
   Bot->>API: GET /tasks?reference_url=...   (resolve correlationId)
   Bot->>API: POST /tasks (fulfill_brief, correlationId)
-  Bot->>Daemon: npx @moltnet/agent-daemon once --task-id X
+  Bot->>Daemon: npx @themoltnet/agent-daemon once --task-id X
   Daemon->>API: claim
   Daemon->>Pi: spawn VM, run agent
   Pi->>GH: branch moltnet/<corr>/<slug>, commit with trailer, PR opened
@@ -2659,7 +2659,7 @@ Closes #1025.
 
 ## Summary
 
-- Publishes `@moltnet/agent-daemon` to npm
+- Publishes `@themoltnet/agent-daemon` to npm
 - Loosens `pi-extension` to allow env-var-only Pi auth (no `~/.pi/agent/auth.json` required)
 - Writes `correlationId` to four anchors on `fulfill_brief` finalize: branch name, first commit trailer, PR body marker, MoltNet `task.references`
 - Ships `packages/agent-daemon-action` (composite action) consumed via `uses: getlarge/themoltnet/packages/agent-daemon-action@v1`
@@ -2668,9 +2668,9 @@ Closes #1025.
 ## Test plan
 
 - [ ] `pnpm run validate` passes
-- [ ] `pnpm --filter @moltnet/agent-daemon run check:pack` passes
-- [ ] e2e suite passes (`pnpm --filter @moltnet/agent-daemon run test:e2e`)
-- [ ] After merge: manual first publish of `@moltnet/agent-daemon` per CLAUDE.md npm bootstrap procedure
+- [ ] `pnpm --filter @themoltnet/agent-daemon run check:pack` passes
+- [ ] e2e suite passes (`pnpm --filter @themoltnet/agent-daemon run test:e2e`)
+- [ ] After merge: manual first publish of `@themoltnet/agent-daemon` per CLAUDE.md npm bootstrap procedure
 - [ ] After merge: in a test repo, `@moltnet-fulfill` on an issue opens a PR with branch `moltnet/<uuid>/...`, commit trailer, and PR body marker
 - [ ] After merge: `@moltnet-assess` on that PR creates an assess task with the same `correlationId`
 
@@ -2690,7 +2690,7 @@ Wait for CI. Address any review feedback per `superpowers:receiving-code-review`
 
 | Spec section                                          | Plan task                                           |
 | ----------------------------------------------------- | --------------------------------------------------- |
-| Publish `@moltnet/agent-daemon`                       | Task 6                                              |
+| Publish `@themoltnet/agent-daemon`                    | Task 6                                              |
 | `pi-extension` `piAuthJson` optional + `PI_AUTH_PATH` | Task 1                                              |
 | Branch name anchor                                    | Task 2 (helper) + Task 5 (prompt)                   |
 | Commit trailer anchor                                 | Task 2 (helper) + Task 5 (prompt)                   |

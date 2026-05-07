@@ -16,7 +16,7 @@
 #
 # v1 limitations:
 #   - @moltnet-fulfill (on issues) creates a fulfill_brief task and runs
-#     it via @moltnet/agent-daemon.
+#     it via @themoltnet/agent-daemon.
 #   - @moltnet-assess (on PRs) replies with a "deferred, blocked on #881"
 #     notice. Manual assess_brief creation + `moltnet-agent once` still works.
 name: MoltNet mention bot

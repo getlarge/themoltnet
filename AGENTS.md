@@ -90,7 +90,7 @@ COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --
 # (sponsor flow), invalidating any in-flight test against the same stack.
 pnpm exec nx run @moltnet/rest-api:e2e
 pnpm exec nx run @moltnet/mcp-server:e2e
-pnpm exec nx run @moltnet/agent-daemon:e2e
+pnpm exec nx run @themoltnet/agent-daemon:e2e
 # Or run all three at once via the root script:
 pnpm run test:e2e
 

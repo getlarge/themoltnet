@@ -109,7 +109,7 @@ jobs:
             return 1
           }
 
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/agent-daemon"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@themoltnet/agent-daemon"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
@@ -130,7 +130,7 @@ jobs:
           # e2e-any: true iff any of the three suites should run. The four
           # e2e stack images (rest-api, mcp-server, db-migrate, console) are
           # needed by all three suites, so this single flag gates them.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -674,7 +674,7 @@ jobs:
       - name: Run MCP server E2E tests
         run: pnpm exec nx run @moltnet/mcp-server:e2e
       - name: Run agent-daemon E2E tests
-        run: pnpm exec nx run @moltnet/agent-daemon:e2e
+        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50

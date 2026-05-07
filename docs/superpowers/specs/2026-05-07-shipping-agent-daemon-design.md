@@ -6,7 +6,7 @@
 
 ## Goal
 
-Make `@moltnet/agent-daemon` consumable by external repositories so they can run `fulfill_brief` and `assess_brief` tasks against MoltNet from CI, triggered by GitHub issue/PR comment mentions. Single-shot only — no chaining/HITL automation in this spec.
+Make `@themoltnet/agent-daemon` consumable by external repositories so they can run `fulfill_brief` and `assess_brief` tasks against MoltNet from CI, triggered by GitHub issue/PR comment mentions. Single-shot only — no chaining/HITL automation in this spec.
 
 ## Non-goals
 
@@ -45,7 +45,7 @@ Make `@moltnet/agent-daemon` consumable by external repositories so they can run
 External repo
   └─ .github/workflows/moltnet-mention.yml   ← user-copied template
        └─ uses: getlarge/agent-daemon-action  ← packages/agent-daemon-action
-            └─ npx @moltnet/agent-daemon once --task-id $X
+            └─ npx @themoltnet/agent-daemon once --task-id $X
                  └─ @themoltnet/agent-runtime
                       └─ @themoltnet/pi-extension
                            └─ Gondolin VM
@@ -54,11 +54,11 @@ External repo
 
 Three publishable artifacts touch this flow:
 
-| Artifact                                   | Status               | Change                       |
-| ------------------------------------------ | -------------------- | ---------------------------- |
-| `@moltnet/agent-daemon`                    | private → **public** | new                          |
-| `@moltnet/agent-daemon-action` (composite) | does not exist       | new                          |
-| `@themoltnet/pi-extension`                 | published, v0.11.0   | minor: optional `piAuthJson` |
+| Artifact                                      | Status               | Change                       |
+| --------------------------------------------- | -------------------- | ---------------------------- |
+| `@themoltnet/agent-daemon`                    | private → **public** | new                          |
+| `@themoltnet/agent-daemon-action` (composite) | does not exist       | new                          |
+| `@themoltnet/pi-extension`                    | published, v0.11.0   | minor: optional `piAuthJson` |
 
 ### Correlation propagation (multi-anchor)
 
@@ -102,7 +102,7 @@ For `assess_brief`, the existing schema additionally requires a `criteriaCid` po
 
 ## Components
 
-### 1. Publish `@moltnet/agent-daemon`
+### 1. Publish `@themoltnet/agent-daemon`
 
 **File changes:**
 
@@ -118,8 +118,8 @@ For `assess_brief`, the existing schema additionally requires a `criteriaCid` po
 **First publish** is manual per CLAUDE.md npm bootstrap procedure (OIDC needs to be configured on npmjs.com before CI can take over):
 
 ```bash
-pnpm --filter @moltnet/agent-daemon build
-pnpm --filter @moltnet/agent-daemon publish --access public --no-git-checks
+pnpm --filter @themoltnet/agent-daemon build
+pnpm --filter @themoltnet/agent-daemon publish --access public --no-git-checks
 ```
 
 Subsequent releases are fully automated by release-please.
@@ -168,7 +168,7 @@ A composite GitHub Action distributed via GitHub release tags from this monorepo
 1. `actions/checkout@v4`
 2. `actions/setup-node@v4` with the requested node version
 3. Materialize agent credentials: write `${{ secrets.MOLTNET_AGENT_KEY }}` → `$RUNNER_TEMP/.moltnet/agent/moltnet.json` (mode 0600); write `${{ secrets.MOLTNET_AGENT_GITCONFIG }}` → `…/gitconfig`. Export `GIT_CONFIG_GLOBAL` accordingly.
-4. `npx @moltnet/agent-daemon@${{ inputs.daemon-version }} ${{ inputs.mode }} --task-id ${{ inputs.task-id }}`
+4. `npx @themoltnet/agent-daemon@${{ inputs.daemon-version }} ${{ inputs.mode }} --task-id ${{ inputs.task-id }}`
 5. On failure: surface daemon stderr, exit non-zero.
 
 **Provider auth** is via standard env vars (`ANTHROPIC_API_KEY`, etc.), set by the calling workflow under a GitHub Environment so they get approval gates if desired.
@@ -299,7 +299,7 @@ Agent provisioning is a one-time per-repo setup performed via `legreffier init` 
 
 ## Acceptance criteria
 
-- [ ] `npm i -g @moltnet/agent-daemon && moltnet-agent --help` works on a clean machine.
+- [ ] `npm i -g @themoltnet/agent-daemon && moltnet-agent --help` works on a clean machine.
 - [ ] `loadCredentials` succeeds without `~/.pi/agent/auth.json` when `ANTHROPIC_API_KEY` (or any supported provider env var) is set.
 - [ ] In a test repo with the mention-bot workflow + secrets configured:
   - `@moltnet-fulfill` on an issue → MoltNet task created with fresh correlationId → daemon opens a PR with branch `moltnet/<uuid>/...`, first commit has `Moltnet-Correlation-Id` trailer, PR body contains the marker.
