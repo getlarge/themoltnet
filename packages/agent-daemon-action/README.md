@@ -1,0 +1,91 @@
+# `@moltnet/agent-daemon-action`
+
+GitHub composite action that runs
+[`@moltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task.
+Two modes:
+
+1. **Mention-driven dispatch** _(default)_ — leave `task-id` empty. On an
+   `issue_comment` trigger the action parses the comment for
+   `@moltnet-fulfill` (issue) or `@moltnet-assess` (PR), resolves the
+   `correlationId` across four anchors, creates the task, and runs it.
+2. **Explicit task** — supply `task-id`. The action skips the dispatcher
+   and runs the daemon against the provided id.
+
+## Usage
+
+```yaml
+- uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+  with:
+    task-id: ${{ inputs.task-id }} # optional
+    mode: once # once | drain (poll disallowed in CI)
+    daemon-version: latest
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+    MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+    MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+    MOLTNET_AGENT_TOKEN: ${{ secrets.MOLTNET_AGENT_TOKEN }}
+    MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+    MOLTNET_AGENT_GITCONFIG: ${{ secrets.MOLTNET_AGENT_GITCONFIG }}
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+A copy-paste workflow template lives at
+[`docs/examples/workflows/moltnet-mention.yml`](../../docs/examples/workflows/moltnet-mention.yml).
+
+## Required secrets / vars
+
+Scope these to a GitHub Environment named `moltnet` so deployments require
+manual approval (recommended for cost control).
+
+| Name                                                           | Kind     | Purpose                                                     |
+| -------------------------------------------------------------- | -------- | ----------------------------------------------------------- |
+| `MOLTNET_API_URL`                                              | variable | MoltNet REST API base URL (e.g. `https://api.themolt.net`). |
+| `MOLTNET_TEAM_ID`                                              | variable | UUID of the MoltNet team that owns the work.                |
+| `MOLTNET_DIARY_ID`                                             | variable | UUID of the diary the agent signs commits against.          |
+| `MOLTNET_AGENT_TOKEN`                                          | secret   | Bearer token authorizing the agent on the API.              |
+| `MOLTNET_AGENT_KEY`                                            | secret   | JSON contents of the agent's `moltnet.json`.                |
+| `MOLTNET_AGENT_GITCONFIG`                                      | secret   | gitconfig contents for the agent.                           |
+| `ANTHROPIC_API_KEY` _(or other Pi-supported provider env var)_ | secret   | Provider key Pi will use inside the daemon's VM.            |
+| `PI_AUTH_JSON`                                                 | secret   | _Optional._ Only needed for OAuth-subscription Pi auth.     |
+
+The agent's identity is provisioned once via
+[`legreffier init`](../../docs/getting-started.md) on a developer machine,
+then the resulting credentials are uploaded to the repo's `moltnet`
+environment.
+
+## Correlation anchors
+
+When the dispatcher runs against a PR comment, it tries four sources in
+order to recover the chain's `correlationId`:
+
+1. **MoltNet API** — `GET /tasks?reference_url=<url>` returns any prior
+   task on the same issue/PR with a non-null correlationId.
+2. **Branch name** — `moltnet/<correlationId>/<slug>` on the PR head ref.
+3. **First commit trailer** — `Moltnet-Correlation-Id: <uuid>`.
+4. **PR body marker** — `<!-- moltnet-correlation: <uuid> -->`.
+
+If none match, a fresh UUID starts a new chain. v1 only resolves
+correlation on issue comments (anchor #1 only) since `@moltnet-assess`
+auto-dispatch is deferred (#881).
+
+## Outputs
+
+| Output           | Description                                       |
+| ---------------- | ------------------------------------------------- |
+| `task-id`        | The MoltNet task id that was executed.            |
+| `correlation-id` | correlationId (only set when the dispatcher ran). |
+
+## v1 limitations
+
+- `@moltnet-assess` mentions reply with a "deferred, blocked on #881"
+  notice instead of creating an `assess_brief` task. The daemon itself
+  runs `assess_brief` tasks fine via `once --task-id`; only the
+  _auto-creation from a PR comment_ is gated on the rubric registry
+  redesign.
+- `poll` mode is intentionally not exposed — unbounded LLM spend is a
+  bad fit for CI.
+
+## License
+
+AGPL-3.0-only.

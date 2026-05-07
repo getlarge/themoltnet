@@ -1,0 +1,48 @@
+# MoltNet mention bot — copy this file into `.github/workflows/` in your
+# repo, configure the listed secrets + variables under
+# Settings → Environments → moltnet, and start commenting `@moltnet-fulfill`
+# on issues.
+#
+# Secrets (per-environment):
+#   MOLTNET_AGENT_KEY        JSON contents of the agent's moltnet.json
+#   MOLTNET_AGENT_GITCONFIG  gitconfig contents for the agent
+#   MOLTNET_AGENT_TOKEN      Bearer token authorizing the agent on the API
+#   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
+#
+# Variables (per-environment):
+#   MOLTNET_API_URL   e.g. https://api.themolt.net
+#   MOLTNET_TEAM_ID   uuid — team that owns the work
+#   MOLTNET_DIARY_ID  uuid — diary the agent signs commits against
+#
+# v1 limitations:
+#   - @moltnet-fulfill (on issues) creates a fulfill_brief task and runs
+#     it via @moltnet/agent-daemon.
+#   - @moltnet-assess (on PRs) replies with a "deferred, blocked on #881"
+#     notice. Manual assess_brief creation + `moltnet-agent once` still works.
+name: MoltNet mention bot
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    if: contains(github.event.comment.body, '@moltnet-')
+    runs-on: ubuntu-latest
+    environment: moltnet
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+          MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+          MOLTNET_AGENT_TOKEN: ${{ secrets.MOLTNET_AGENT_TOKEN }}
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_GITCONFIG: ${{ secrets.MOLTNET_AGENT_GITCONFIG }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
