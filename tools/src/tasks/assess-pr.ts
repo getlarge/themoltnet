@@ -56,8 +56,7 @@ import { parseArgs, parseEnv } from 'node:util';
 import {
   ASSESS_BRIEF_TYPE,
   type AssessBriefInput,
-  PR_COMPLEXITY_V1_CRITERIA,
-  PR_COMPLEXITY_V1_PREAMBLE,
+  PR_COMPLEXITY_V1,
 } from '@moltnet/tasks';
 import { connect } from '@themoltnet/sdk';
 
@@ -122,8 +121,10 @@ async function main() {
 
   const input: AssessBriefInput = {
     targetTaskId,
-    criteria: [...PR_COMPLEXITY_V1_CRITERIA],
-    rubricPreamble: PR_COMPLEXITY_V1_PREAMBLE,
+    successCriteria: {
+      version: 1,
+      rubric: PR_COMPLEXITY_V1,
+    },
   };
 
   const agent = await connect({ configDir: agentDir });

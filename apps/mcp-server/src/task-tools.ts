@@ -125,7 +125,6 @@ export async function handleTasksCreate(
   const validationErrors = validateTaskCreateRequest({
     taskType: args.task_type,
     input: args.input,
-    criteriaCid: args.criteria_cid,
     references: args.references,
   });
   if (validationErrors.length > 0) {

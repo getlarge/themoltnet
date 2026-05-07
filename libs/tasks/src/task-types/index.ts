@@ -1,6 +1,7 @@
 import type { TSchema } from '@sinclair/typebox';
 
-import { type Rubric, validateRubricWeights } from '../rubric.js';
+import { validateRubricWeights } from '../rubric.js';
+import type { SuccessCriteria } from '../success-criteria.js';
 import type { OutputKind } from '../wire.js';
 import {
   ASSESS_BRIEF_TYPE,
@@ -40,13 +41,13 @@ interface TaskTypeEntry {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
   readonly outputKind: OutputKind;
-  readonly requiresCriteria: boolean;
   readonly requiresReferences: boolean;
   /**
    * Optional cross-field validator run AFTER `Value.Check(inputSchema)`
    * passes. Use for invariants a TypeBox schema can't express — e.g. a
-   * rubric's criteria weights summing to 1.0. Returns null on success,
-   * or an error message that surfaces to the task runner.
+   * rubric's criteria weights summing to 1.0, or "judgment tasks must
+   * carry a rubric inside their successCriteria." Returns null on
+   * success, or an error message that surfaces to the task runner.
    */
   readonly validateInput?: (input: unknown) => string | null;
   /**
@@ -57,6 +58,22 @@ interface TaskTypeEntry {
    * success, or an error message that surfaces to the task runner.
    */
   readonly validateOutput?: (output: unknown) => string | null;
+}
+
+/**
+ * Validate that a judgment-task input carries a rubric inside its
+ * `successCriteria` envelope, and that the rubric's weights sum to 1.
+ * Used for `assess_brief` and `judge_pack`.
+ */
+function validateJudgmentInput(input: unknown): string | null {
+  const sc = (input as { successCriteria?: SuccessCriteria }).successCriteria;
+  if (!sc) {
+    return 'successCriteria is required for judgment tasks';
+  }
+  if (!sc.rubric) {
+    return 'successCriteria.rubric is required for judgment tasks';
+  }
+  return validateRubricWeights(sc.rubric);
 }
 
 /**
@@ -74,7 +91,6 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: FulfillBriefInput,
     outputSchema: FulfillBriefOutput,
     outputKind: 'artifact',
-    requiresCriteria: false,
     requiresReferences: false,
   },
   [ASSESS_BRIEF_TYPE]: {
@@ -82,15 +98,14 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: AssessBriefInput,
     outputSchema: AssessBriefOutput,
     outputKind: 'judgment',
-    requiresCriteria: true,
     requiresReferences: true,
+    validateInput: validateJudgmentInput,
   },
   [CURATE_PACK_TYPE]: {
     name: CURATE_PACK_TYPE,
     inputSchema: CuratePackInput,
     outputSchema: CuratePackOutput,
     outputKind: 'artifact',
-    requiresCriteria: false,
     requiresReferences: false,
   },
   [RENDER_PACK_TYPE]: {
@@ -98,7 +113,6 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: RenderPackInput,
     outputSchema: RenderPackOutput,
     outputKind: 'artifact',
-    requiresCriteria: false,
     requiresReferences: false,
   },
   [JUDGE_PACK_TYPE]: {
@@ -106,13 +120,8 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: JudgePackInput,
     outputSchema: JudgePackOutput,
     outputKind: 'judgment',
-    // Phase 1: rubric is inline in input, pinned via input_cid — no
-    // separate criteria_cid. Phase 2 (#881) flips this to true when the
-    // rubric becomes a first-class resource.
-    requiresCriteria: false,
     requiresReferences: true,
-    validateInput: (input: unknown) =>
-      validateRubricWeights((input as { rubric: Rubric }).rubric),
+    validateInput: validateJudgmentInput,
     validateOutput: validateJudgePackOutput,
   },
 } as const satisfies Record<string, TaskTypeEntry>;

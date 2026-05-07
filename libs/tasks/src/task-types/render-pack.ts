@@ -15,6 +15,8 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import { SuccessCriteria } from '../success-criteria.js';
+
 export const RENDER_PACK_TYPE = 'render_pack' as const;
 
 export const RenderPackInput = Type.Object(
@@ -34,6 +36,12 @@ export const RenderPackInput = Type.Object(
      * false (attribution loop is ephemeral by design).
      */
     pinned: Type.Optional(Type.Boolean()),
+
+    /**
+     * Imposer-stated, machine-verifiable success criteria. See
+     * `SuccessCriteria`. Pinned via `inputCid`. Optional.
+     */
+    successCriteria: Type.Optional(SuccessCriteria),
   },
   { $id: 'RenderPackInput', additionalProperties: false },
 );
@@ -45,10 +53,7 @@ export const RenderPackOutput = Type.Object(
      * UUID of the persisted rendered pack row. Null when `persist: false`
      * or when the renderer chose not to persist (e.g. validation failure).
      */
-    renderedPackId: Type.Union([
-      Type.String({ format: 'uuid' }),
-      Type.Null(),
-    ]),
+    renderedPackId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
 
     /** CIDv1 of the canonical rendered content. Always present. */
     renderedCid: Type.String({ minLength: 1 }),

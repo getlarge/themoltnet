@@ -43,7 +43,6 @@ interface TaskTypeEntry {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
   readonly outputKind: OutputKind;
-  readonly requiresCriteria: boolean;
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
 }
@@ -244,7 +243,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       const createErrors = validateTaskCreateRequest({
         taskType: input.taskType,
         input: input.inputPayload,
-        criteriaCid: input.criteriaCid,
         references: input.references as Task['references'] | undefined,
       });
       if (createErrors.length > 0) {

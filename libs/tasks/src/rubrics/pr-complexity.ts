@@ -14,11 +14,11 @@
  *   deterministic check that captures "is this PR easy to review."
  *
  * Future variants (`pr-complexity-v2`, `pr-security-v1`, `pr-a11y-v1`)
- * sit alongside this file. The imposer picks one and inlines its
- * criteria into the task input. This is the canonical "add a new
- * domain by adding a rubric, not a task type" pattern.
+ * sit alongside this file. The imposer picks one and inlines its rubric
+ * into `successCriteria.rubric` on the task input. This is the canonical
+ * "add a new domain by adding a rubric, not a task type" pattern.
  */
-import type { AssessBriefCriterion } from '../task-types/assess-brief.js';
+import type { Rubric, RubricCriterion } from '../rubric.js';
 
 export const PR_COMPLEXITY_V1_ID = 'pr-complexity-v1' as const;
 
@@ -39,7 +39,7 @@ unrelated subsystems and the test coverage on the auth path is
 unchanged" is.
 `.trim();
 
-export const PR_COMPLEXITY_V1_CRITERIA: ReadonlyArray<AssessBriefCriterion> = [
+export const PR_COMPLEXITY_V1_CRITERIA: ReadonlyArray<RubricCriterion> = [
   {
     id: 'cognitive_load',
     description:
@@ -78,15 +78,14 @@ export const PR_COMPLEXITY_V1_CRITERIA: ReadonlyArray<AssessBriefCriterion> = [
 ];
 
 /**
- * Convenience export — the imposer inlines this directly into
- * `AssessBriefInput.criteria` and the rubric preamble into
- * `rubricPreamble`. The runtime will pin everything via the task's
- * `inputCid`.
+ * Convenience export — full Rubric body the imposer inlines into
+ * `AssessBriefInput.successCriteria.rubric`. The runtime pins it via
+ * the task's `inputCid`.
  */
-export const PR_COMPLEXITY_V1 = {
+export const PR_COMPLEXITY_V1: Rubric = {
   rubricId: PR_COMPLEXITY_V1_ID,
   version: 'v1',
   preamble: PR_COMPLEXITY_V1_PREAMBLE,
-  criteria: PR_COMPLEXITY_V1_CRITERIA,
+  criteria: [...PR_COMPLEXITY_V1_CRITERIA],
   scope: 'pull_request',
-} as const;
+};

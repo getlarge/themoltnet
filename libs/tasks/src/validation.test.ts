@@ -23,19 +23,22 @@ describe('validateTaskCreateRequest', () => {
       input: {
         renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-        rubric: {
-          rubricId: 'pack-fidelity-v3',
-          version: 'v3',
-          scope: 'packs',
-          preamble: 'Judge the pack faithfully.',
-          criteria: [
-            {
-              id: 'grounding',
-              description: 'No unsupported claims.',
-              weight: 1,
-              scoring: 'llm_score',
-            },
-          ],
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'pack-fidelity-v3',
+            version: 'v3',
+            scope: 'packs',
+            preamble: 'Judge the pack faithfully.',
+            criteria: [
+              {
+                id: 'grounding',
+                description: 'No unsupported claims.',
+                weight: 1,
+                scoring: 'llm_score',
+              },
+            ],
+          },
         },
       },
       references: [],
@@ -45,6 +48,41 @@ describe('validateTaskCreateRequest', () => {
       {
         field: 'references',
         message: 'At least one reference is required for task type: judge_pack',
+      },
+    ]);
+  });
+
+  it('rejects judge_pack input missing successCriteria', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'judge_pack',
+      input: {
+        renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      references: [{} as never],
+    });
+    expect(errors.length).toBeGreaterThan(0);
+    // The schema-level error fires before our cross-field validator —
+    // the missing `successCriteria` is reported as an input shape miss.
+    expect(errors.some((e) => e.field.startsWith('input'))).toBe(true);
+  });
+
+  it('rejects judge_pack successCriteria without rubric', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'judge_pack',
+      input: {
+        renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        // Envelope present but rubric missing — the cross-field
+        // validator fires.
+        successCriteria: { version: 1 },
+      },
+      references: [{} as never],
+    });
+    expect(errors).toEqual([
+      {
+        field: 'input',
+        message: 'successCriteria.rubric is required for judgment tasks',
       },
     ]);
   });

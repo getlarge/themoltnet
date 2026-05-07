@@ -16,6 +16,8 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import { SuccessCriteria } from '../success-criteria.js';
+
 export const CURATE_PACK_TYPE = 'curate_pack' as const;
 
 export const EntryTypeFilter = Type.Union([
@@ -84,6 +86,12 @@ export const CuratePackInput = Type.Object(
         Type.Literal('scope-inventory-v1'),
       ]),
     ),
+
+    /**
+     * Imposer-stated, machine-verifiable success criteria. See
+     * `SuccessCriteria`. Pinned via `inputCid`. Optional.
+     */
+    successCriteria: Type.Optional(SuccessCriteria),
   },
   { $id: 'CuratePackInput', additionalProperties: false },
 );

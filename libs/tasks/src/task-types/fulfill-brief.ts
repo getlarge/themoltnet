@@ -7,6 +7,8 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import { SuccessCriteria } from '../success-criteria.js';
+
 export const FULFILL_BRIEF_TYPE = 'fulfill_brief' as const;
 
 export const FulfillBriefInput = Type.Object(
@@ -18,11 +20,21 @@ export const FulfillBriefInput = Type.Object(
     title: Type.Optional(Type.String()),
 
     /**
-     * Optional structured acceptance criteria. Free-form — interpreted by
-     * the claiming agent. Any formal rubric lives in a separate
-     * `assess_brief` task, not here.
+     * Free-form acceptance criteria, interpreted by the claiming agent
+     * during execution. Distinct from `successCriteria`, which is the
+     * machine-verifiable envelope evaluated by the daemon at completion.
+     * Plain prose — kept for backward compat and for hints the executor
+     * cannot machine-check (e.g. "match the existing module's tone").
      */
     acceptanceCriteria: Type.Optional(Type.Array(Type.String())),
+
+    /**
+     * Imposer-stated, machine-verifiable success criteria. Pinned via
+     * the task's `inputCid` (no separate hash needed — `successCriteria`
+     * is part of the input body). Optional: when omitted, completion is
+     * accepted on schema-valid output alone.
+     */
+    successCriteria: Type.Optional(SuccessCriteria),
 
     /**
      * Seed files the agent should read before starting. Paths relative

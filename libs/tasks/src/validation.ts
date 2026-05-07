@@ -14,7 +14,6 @@ export interface TaskValidationError {
 interface TaskTypeDefinition {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
-  readonly requiresCriteria: boolean;
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
   readonly validateOutput?: (output: unknown) => string | null;
@@ -114,7 +113,6 @@ export function getTaskOutputSchema(taskType: string): TSchema | null {
 export function validateTaskCreateRequest(args: {
   taskType: string;
   input: unknown;
-  criteriaCid?: string | null;
   references?: TaskRef[] | null;
 }): TaskValidationError[] {
   const entry = getTaskTypeEntry(args.taskType);
@@ -131,12 +129,6 @@ export function validateTaskCreateRequest(args: {
   if (inputErrors.length > 0) return inputErrors;
 
   const errors: TaskValidationError[] = [];
-  if (entry.requiresCriteria && !args.criteriaCid) {
-    errors.push({
-      field: 'criteriaCid',
-      message: `criteriaCid is required for task type: ${args.taskType}`,
-    });
-  }
   if (
     entry.requiresReferences &&
     (!args.references || args.references.length < 1)
