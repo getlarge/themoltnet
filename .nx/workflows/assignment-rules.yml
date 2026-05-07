@@ -11,6 +11,17 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
+  # @moltnet/rest-api:test is the heaviest single task: 33 vitest files
+  # producing ~440 tests with fastify-inject. It runs alone on its
+  # agent so the suite's vitest.config.ts can use the full 4 vCPUs
+  # (pool: threads, maxThreads: 4). Project-specific rules take
+  # precedence over the generic test/build rule below.
+  - targets: [test]
+    projects: ['@moltnet/rest-api']
+    run-on:
+      - agent: linux-medium
+        parallelism: 1
+
   # test/build cap at 1 per agent — vitest worker IPC starts to time
   # out under contention on 4-vCPU runners.
   - targets: [test, build]
