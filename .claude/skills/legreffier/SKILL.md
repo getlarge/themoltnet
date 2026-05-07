@@ -363,17 +363,12 @@ Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` 
   `gh issue view`, etc.), for `git push`, and for content API calls
   (`gh api repos/{owner}/{repo}/contents/...`). The human must have `gh auth login` configured.
 
-When using the agent token:
-
-```bash
-CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"
-GH_TOKEN=$($MOLTNET_CLI github token --credentials "$CREDS") gh <command>
-```
-
-The `cd`+`pwd` pattern is required because `GIT_CONFIG_GLOBAL` may be a **relative path**
-(e.g. `.moltnet/legreffier/gitconfig`). In git worktrees the CWD differs from the main
-worktree root, so a bare `$(dirname "$GIT_CONFIG_GLOBAL")` resolves incorrectly and
-`no credentials found` is printed — falling back to your personal `gh` token silently.
+When using the agent token, follow the credential-resolution snippet in
+[`.claude/rules/legreffier-gh.md`](../../rules/legreffier-gh.md). It is the
+single source of truth and covers the absolute-path requirement (works from
+any subdirectory or worktree), the `[ -f "$CREDS" ]` presence guard, and the
+`$MOLTNET_CLI` pitfall (always hardcode `moltnet` or `npx @themoltnet/cli`).
+**Do not duplicate the snippet here** — keep that file as the canonical rule.
 
 The token is cached locally (~1 hour lifetime, 5-min expiry buffer).
 
