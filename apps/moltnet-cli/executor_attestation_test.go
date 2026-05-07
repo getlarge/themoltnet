@@ -25,7 +25,7 @@ type executorAttestationVectorFile struct {
 }
 
 func TestExecutorAttestationVectors(t *testing.T) {
-	path := filepath.Join("..", "..", "test-vectors", "executor-attestation-v1.json")
+	path := filepath.Join("..", "..", "test-fixtures", "executor-attestation-v1.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

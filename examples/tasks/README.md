@@ -66,7 +66,7 @@ server-owned task id. Each work step prints a `[done] TaskOutput:` block.
 
    ```bash
    CURATE_TASK=$(pnpm exec tsx tools/src/tasks/create-task.ts \
-     --task-file demo/tasks/api/curate-pack.create.template.json \
+     --task-file examples/tasks/api/curate-pack.create.template.json \
      --set diaryId=$DIARY --set teamId=$TEAM \
      --set taskPrompt="incidents and workarounds related to CI pipelines" \
      2>&1 | tee /dev/tty | awk '/^\[done\] Task:/{flag=1; next} flag' | jq -r '.id')
@@ -80,7 +80,7 @@ server-owned task id. Each work step prints a `[done] TaskOutput:` block.
 
    ```bash
    RENDER_TASK=$(pnpm exec tsx tools/src/tasks/create-task.ts \
-     --task-file demo/tasks/api/render-pack.create.template.json \
+     --task-file examples/tasks/api/render-pack.create.template.json \
      --set diaryId=$DIARY --set teamId=$TEAM \
      --set packId=$PACK \
      2>&1 | tee /dev/tty | awk '/^\[done\] Task:/{flag=1; next} flag' | jq -r '.id')
@@ -95,7 +95,7 @@ server-owned task id. Each work step prints a `[done] TaskOutput:` block.
 
    ```bash
    JUDGE_TASK=$(pnpm exec tsx tools/src/tasks/create-task.ts \
-     --task-file demo/tasks/api/judge-pack.create.template.json \
+     --task-file examples/tasks/api/judge-pack.create.template.json \
      --set diaryId=$DIARY --set teamId=$TEAM \
      --set sourcePackId=$PACK \
      --set renderedPackId=$RPACK \
@@ -172,7 +172,7 @@ the next stage.
 
    ```bash
    pnpm exec tsx tools/src/tasks/run-task.ts \
-     --task-file demo/tasks/curate-pack.template.json \
+     --task-file examples/tasks/curate-pack.template.json \
      --set diaryId=$DIARY --set teamId=$TEAM \
      --set taskPrompt="incidents and workarounds related to CI pipelines"
    ```
@@ -187,7 +187,7 @@ the next stage.
 
    ```bash
    pnpm exec tsx tools/src/tasks/run-task.ts \
-     --task-file demo/tasks/render-pack.template.json \
+     --task-file examples/tasks/render-pack.template.json \
      --set diaryId=$DIARY --set teamId=$TEAM \
      --set packId=$PACK
    ```
@@ -203,7 +203,7 @@ the next stage.
 3. **Judge**
    ```bash
    pnpm exec tsx tools/src/tasks/run-task.ts \
-     --task-file demo/tasks/judge-pack.template.json \
+     --task-file examples/tasks/judge-pack.template.json \
      --set diaryId=$DIARY --set teamId=$TEAM \
      --set sourcePackId=$PACK \
      --set renderedPackId=$RPACK \
@@ -220,7 +220,7 @@ AND captured into a shell var in one shot:
 
 ```bash
 PACK=$(pnpm exec tsx tools/src/tasks/run-task.ts \
-  --task-file demo/tasks/curate-pack.template.json \
+  --task-file examples/tasks/curate-pack.template.json \
   --set diaryId=$DIARY --set teamId=$TEAM \
   --set taskPrompt="CI incidents" 2>&1 \
   | tee /dev/tty \

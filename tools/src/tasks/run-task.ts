@@ -2,8 +2,8 @@
  * run-task.ts — execute a Task from a JSON fixture via the agent-runtime.
  *
  * Usage:
- *   pnpm --filter @moltnet/tools task:run --task-file demo/tasks/hello-world.json
- *   pnpm exec tsx tools/src/tasks/run-task.ts --task-file demo/tasks/hello-world.json
+ *   pnpm --filter @moltnet/tools task:run --task-file examples/tasks/hello-world.json
+ *   pnpm exec tsx tools/src/tasks/run-task.ts --task-file examples/tasks/hello-world.json
  *   pnpm exec tsx tools/src/tasks/run-task.ts --task-file <path> --agent legreffier \
  *     --provider openai-codex --model gpt-5.3-codex
  *
@@ -12,7 +12,7 @@
  *   repeatable --set flags BEFORE JSON parsing and schema validation.
  *
  *   pnpm exec tsx tools/src/tasks/run-task.ts \
- *     --task-file demo/tasks/render-pack.template.json \
+ *     --task-file examples/tasks/render-pack.template.json \
  *     --set packId=26004a77-bc10-43ef-a79f-c8e62faf59b1
  *
  *   Any unsubstituted `{{…}}` token after --set processing is a fatal error.
@@ -21,8 +21,8 @@
  * -------
  *   tools/src/tasks/fulfill-brief.ts — GitHub-issue shim that synthesizes a
  *                                       fulfill_brief Task and runs it.
- *   demo/tasks/*.json                — minimal Task fixtures for smoke tests.
- *   demo/tasks/*.template.json       — fixtures with `{{placeholder}}` tokens.
+ *   examples/tasks/*.json                — minimal Task fixtures for smoke tests.
+ *   examples/tasks/*.template.json       — fixtures with `{{placeholder}}` tokens.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
