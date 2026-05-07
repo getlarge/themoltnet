@@ -29,7 +29,7 @@ interface VectorFile {
 const vectors = JSON.parse(
   readFileSync(
     new URL(
-      '../../../test-vectors/executor-attestation-v1.json',
+      '../../../test-fixtures/executor-attestation-v1.json',
       import.meta.url,
     ),
     'utf8',

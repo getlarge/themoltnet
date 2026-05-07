@@ -107,7 +107,7 @@ In another terminal, with `.moltnet/local-dev/env` sourced:
 ```bash
 pnpm exec tsx tools/src/tasks/create-task.ts \
   --agent local-dev \
-  --task-file demo/tasks/api/fulfill-brief.create.template.json \
+  --task-file examples/tasks/api/fulfill-brief.create.template.json \
   --set diaryId="$MOLTNET_DIARY_ID" \
   --set teamId="$MOLTNET_TEAM_ID" \
   --set title="Smoke: hello file in a feature branch" \

@@ -7,13 +7,13 @@ import { describe, expect, it } from 'vitest';
 import { buildPromptForTask } from './index.js';
 
 const ctx = { diaryId: 'd1', taskId: 't1' };
-const demoDir = resolve(__dirname, '../../../../demo/tasks');
+const examplesDir = resolve(__dirname, '../../../../examples/tasks');
 
 function load(name: string): Task {
-  return JSON.parse(readFileSync(resolve(demoDir, name), 'utf8')) as Task;
+  return JSON.parse(readFileSync(resolve(examplesDir, name), 'utf8')) as Task;
 }
 
-describe('demo/tasks pack-pipeline fixtures', () => {
+describe('examples/tasks pack-pipeline fixtures', () => {
   it('curate-ci-incidents.json validates and builds a prompt', () => {
     const task = load('curate-ci-incidents.json');
     expect(task.taskType).toBe('curate_pack');

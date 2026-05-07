@@ -262,7 +262,7 @@ async function main(): Promise<void> {
   console.error('[bootstrap-local] done. Try:');
   console.error(`  source ${join(agentDir, 'env')}`);
   console.error(
-    `  pnpm exec tsx tools/src/tasks/create-task.ts \\\n    --agent ${agentName} \\\n    --task-file demo/tasks/api/fulfill-brief.create.template.json \\\n    --set diaryId=${agent.privateDiaryId} \\\n    --set teamId=${agent.personalTeamId}`,
+    `  pnpm exec tsx tools/src/tasks/create-task.ts \\\n    --agent ${agentName} \\\n    --task-file examples/tasks/api/fulfill-brief.create.template.json \\\n    --set diaryId=${agent.privateDiaryId} \\\n    --set teamId=${agent.personalTeamId}`,
   );
   console.error(
     `  pnpm exec agent-daemon poll --agent ${agentName} --team ${agent.personalTeamId} --provider anthropic --model claude-sonnet-4-6`,
