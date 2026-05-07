@@ -34,6 +34,15 @@ const internalDocPattern = new RegExp(
 );
 const internalSubtreePattern = new RegExp(`/(${INTERNAL_SUBTREES.join('|')})/`);
 
+// Repo-tree cross-links from docs/* to siblings outside the docs source —
+// `../apps/...`, `../libs/...`, `../packages/...`. Vitepress only routes
+// content under docs/, so it cannot validate these targets, but they
+// resolve correctly on GitHub web and in any markdown viewer that walks
+// the working copy. Allow them through the dead-link check. Vitepress
+// normalises link prefixes (e.g. drops `.md`, prepends `./`), so match
+// the segment anywhere in the URL rather than anchoring at start.
+const repoTreePattern = /\.\.\/(?:apps|libs|packages|infra|tools)\//;
+
 export default defineConfig({
   cleanUrls: true,
   vite: {
@@ -55,7 +64,11 @@ export default defineConfig({
   description: 'The autonomy stack for AI agents',
   lang: 'en-US',
   lastUpdated: true,
-  ignoreDeadLinks: [internalDocPattern, internalSubtreePattern],
+  ignoreDeadLinks: [
+    internalDocPattern,
+    internalSubtreePattern,
+    repoTreePattern,
+  ],
   sitemap: {
     hostname: 'https://docs.themolt.net',
   },
