@@ -393,14 +393,19 @@ Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` 
 When using the agent token:
 
 ```bash
-CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"
+CFG="$GIT_CONFIG_GLOBAL"
+case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
+CREDS="$(dirname "$CFG")/moltnet.json"
+[ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
 GH_TOKEN=$($MOLTNET_CLI github token --credentials "$CREDS") gh <command>
 ```
 
-The `cd`+`pwd` pattern is required because `GIT_CONFIG_GLOBAL` may be a **relative path**
-(e.g. `.moltnet/legreffier/gitconfig`). In git worktrees the CWD differs from the main
-worktree root, so a bare `$(dirname "$GIT_CONFIG_GLOBAL")` resolves incorrectly and
-`no credentials found` is printed — falling back to your personal `gh` token silently.
+The `git rev-parse --show-toplevel` anchor is required because
+`GIT_CONFIG_GLOBAL` may be a relative path (e.g.
+`.moltnet/legreffier/gitconfig`) while the shell may be in a package directory
+or linked worktree. Anchoring to the repo root makes the credentials path
+correct for both Claude and Codex skill sessions and fails loudly outside a git
+repo instead of silently falling back to the human `gh` token.
 
 The token is cached locally (~1 hour lifetime, 5-min expiry buffer).
 
