@@ -11,27 +11,18 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
-  # @moltnet/rest-api atomizes its 33 vitest files into per-file tasks
-  # (test-ci--__tests__/<file>.test.ts). Each per-file task is small
-  # enough that we can let the agent run 2 in parallel — RPC pressure
-  # is bounded per-task, not compounded across files.
-  - targets: ['test-ci--*']
-    projects: ['@moltnet/rest-api']
-    run-on:
-      - agent: linux-medium
-        parallelism: 2
-
-  # Per-file atomized tasks for any other vitest project. Cap at 1 per
-  # agent: smaller suites don't benefit from multi-task parallelism on
-  # the same agent, and we want to avoid RPC saturation.
+  # Atomized per-file vitest tasks (test-ci--<file>). Each is a single
+  # vitest invocation on one file with bounded RPC pressure, so we can
+  # safely co-schedule a few per agent — one of the main reasons we
+  # atomized in the first place.
   - targets: ['test-ci--*']
     run-on:
       - agent: linux-medium
-        parallelism: 1
+        parallelism: 3
 
-  # test/build cap at 1 per agent — vitest worker IPC starts to time
-  # out under contention on 4-vCPU runners when multiple suites
-  # compound their fork pools.
+  # test/build (whole-suite vitest, vite builds) cap at 1 per agent —
+  # vitest worker IPC starts to time out under contention on 4-vCPU
+  # runners when multiple non-atomized suites compound their fork pools.
   - targets: [test, build]
     run-on:
       - agent: linux-medium
