@@ -307,6 +307,85 @@ describe('loadCredentials PEM reading', () => {
 });
 
 // ---------------------------------------------------------------------------
+// loadCredentials — Pi auth optionality (CI / env-var-only auth)
+// ---------------------------------------------------------------------------
+
+describe('loadCredentials Pi auth optionality', () => {
+  function makeMinimalAgentDir(): string {
+    const dir = mkdtempSync(path.join(tmpdir(), 'pi-noauth-'));
+    writeFileSync(
+      path.join(dir, 'moltnet.json'),
+      JSON.stringify({
+        identity_id: 'test',
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+    );
+    writeFileSync(path.join(dir, 'env'), 'MOLTNET_AGENT_NAME=test\n');
+    mkdirSync(path.join(dir, 'ssh'), { recursive: true });
+    return dir;
+  }
+
+  it('returns piAuthJson=null when ~/.pi/agent/auth.json is absent', () => {
+    const dir = makeMinimalAgentDir();
+    const fakeHome = mkdtempSync(path.join(tmpdir(), 'pi-home-noauth-'));
+    const oldHome = process.env.HOME;
+    const oldPath = process.env.PI_AUTH_PATH;
+    process.env.HOME = fakeHome;
+    delete process.env.PI_AUTH_PATH;
+    try {
+      const creds = loadCredentials(dir);
+      expect(creds.piAuthJson).toBeNull();
+    } finally {
+      process.env.HOME = oldHome;
+      if (oldPath !== undefined) process.env.PI_AUTH_PATH = oldPath;
+      rmSync(fakeHome, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('honors PI_AUTH_PATH override when set', () => {
+    const dir = makeMinimalAgentDir();
+    const altDir = mkdtempSync(path.join(tmpdir(), 'pi-altauth-'));
+    const altPath = path.join(altDir, 'custom-auth.json');
+    writeFileSync(altPath, '{"anthropic":{"type":"api_key","key":"sk-x"}}');
+    const oldPath = process.env.PI_AUTH_PATH;
+    process.env.PI_AUTH_PATH = altPath;
+    try {
+      const creds = loadCredentials(dir);
+      expect(creds.piAuthJson).toContain('sk-x');
+    } finally {
+      if (oldPath !== undefined) process.env.PI_AUTH_PATH = oldPath;
+      else delete process.env.PI_AUTH_PATH;
+      rmSync(altDir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('still loads default ~/.pi/agent/auth.json when present', () => {
+    const dir = makeMinimalAgentDir();
+    const fakeHome = mkdtempSync(path.join(tmpdir(), 'pi-home-default-'));
+    mkdirSync(path.join(fakeHome, '.pi', 'agent'), { recursive: true });
+    writeFileSync(
+      path.join(fakeHome, '.pi', 'agent', 'auth.json'),
+      '{"openai":{"type":"api_key","key":"sk-default"}}',
+    );
+    const oldHome = process.env.HOME;
+    const oldPath = process.env.PI_AUTH_PATH;
+    process.env.HOME = fakeHome;
+    delete process.env.PI_AUTH_PATH;
+    try {
+      const creds = loadCredentials(dir);
+      expect(creds.piAuthJson).toContain('sk-default');
+    } finally {
+      process.env.HOME = oldHome;
+      if (oldPath !== undefined) process.env.PI_AUTH_PATH = oldPath;
+      rmSync(fakeHome, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // ensureRelativeWorktreePaths (pre-existing helper, regression guard)
 // ---------------------------------------------------------------------------
 
