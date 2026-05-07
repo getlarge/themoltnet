@@ -1,0 +1,45 @@
+{
+  "name": "@moltnet/agent-daemon-action",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "GitHub composite Action that runs @moltnet/agent-daemon against a single MoltNet task. Distributed via repo tag (uses: getlarge/themoltnet/packages/agent-daemon-action@vX), not via npm.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "files": [
+    "action.yml",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:agent",
+      "platform:gha"
+    ]
+  }
+}
