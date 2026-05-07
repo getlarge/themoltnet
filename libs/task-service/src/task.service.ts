@@ -121,7 +121,6 @@ function dbTaskToWire(row: DbTask): Task {
     input: row.input as Record<string, unknown>,
     inputSchemaCid: row.inputSchemaCid,
     inputCid: row.inputCid,
-    criteriaCid: row.criteriaCid ?? null,
     references: row.taskRefs as unknown[] as Task['references'],
     correlationId: row.correlationId ?? null,
     imposedByAgentId: row.imposedByAgentId ?? null,
@@ -192,7 +191,6 @@ export interface CreateTaskInput {
   correlationId?: string;
   maxAttempts?: number;
   expiresInSec?: number;
-  criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
   // Imposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
@@ -327,7 +325,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         input: input.inputPayload,
         inputSchemaCid,
         inputCid,
-        criteriaCid: input.criteriaCid ?? null,
         taskRefs: (input.references ?? []) as NewTask['taskRefs'],
         correlationId: input.correlationId ?? null,
         imposedByAgentId: input.callerIsAgent ? input.callerId : null,

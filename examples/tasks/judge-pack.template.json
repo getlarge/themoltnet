@@ -5,7 +5,6 @@
   "cancelledByHumanId": null,
   "completedAt": null,
   "correlationId": null,
-  "criteriaCid": null,
   "diaryId": "{{diaryId}}",
   "dispatchTimeoutSec": null,
   "expiresAt": null,
@@ -14,33 +13,36 @@
   "imposedByHumanId": null,
   "input": {
     "renderedPackId": "{{renderedPackId}}",
-    "rubric": {
-      "criteria": [
-        {
-          "description": "Every source entry is referenced in the rendered content (by entryId or stable title+cid reference).",
-          "id": "coverage",
-          "scoring": "deterministic_coverage_check",
-          "weight": 0.4
-        },
-        {
-          "description": "Entries whose type REQUIRES signing carry a valid content_signature. Required: (a) entryType in ['identity','soul'] (always), (b) entryType='procedural' with a 'risk:high' tag. Optional (do NOT penalize when unsigned): entryType in ['episodic','reflection'], 'semantic' (signing recommended only for architecture/security decisions), 'procedural' with risk:low or risk:medium or missing risk tag. Score 1 if all required-signed entries are signed; score fractionally by (required_signed_ok / required_signed_total) when some required entries lack signatures. If there are zero required-signed entries in the source pack, score 1.",
-          "id": "signature_integrity",
-          "scoring": "deterministic_signature_check",
-          "weight": 0.2
-        },
-        {
-          "description": "No factual claims in the rendered content that cannot be traced to a source entry. Enumerate per-claim assertions: for each distinct factual claim in the rendered content, return {id, text, passed, evidence}. PASS requires citing a source entry id and quoting the supporting span; FAIL requires quoting the offending claim verbatim. The criterion score is 1 iff every assertion passes.",
-          "id": "grounding",
-          "scoring": "llm_checklist",
-          "weight": 0.4
-        }
-      ],
-      "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims. Grounding uses per-claim binary assertions with evidence — see #999.",
-      "rubricId": "pack-fidelity-v3",
-      "scope": "packs",
-      "version": "v3"
-    },
-    "sourcePackId": "{{sourcePackId}}"
+    "sourcePackId": "{{sourcePackId}}",
+    "successCriteria": {
+      "rubric": {
+        "criteria": [
+          {
+            "description": "Every source entry is referenced in the rendered content (by entryId or stable title+cid reference).",
+            "id": "coverage",
+            "scoring": "deterministic_coverage_check",
+            "weight": 0.4
+          },
+          {
+            "description": "Entries whose type REQUIRES signing carry a valid content_signature. Required: (a) entryType in ['identity','soul'] (always), (b) entryType='procedural' with a 'risk:high' tag. Optional (do NOT penalize when unsigned): entryType in ['episodic','reflection'], 'semantic' (signing recommended only for architecture/security decisions), 'procedural' with risk:low or risk:medium or missing risk tag. Score 1 if all required-signed entries are signed; score fractionally by (required_signed_ok / required_signed_total) when some required entries lack signatures. If there are zero required-signed entries in the source pack, score 1.",
+            "id": "signature_integrity",
+            "scoring": "deterministic_signature_check",
+            "weight": 0.2
+          },
+          {
+            "description": "No factual claims in the rendered content that cannot be traced to a source entry. Enumerate per-claim assertions: for each distinct factual claim in the rendered content, return {id, text, passed, evidence}. PASS requires citing a source entry id and quoting the supporting span; FAIL requires quoting the offending claim verbatim. The criterion score is 1 iff every assertion passes.",
+            "id": "grounding",
+            "scoring": "llm_checklist",
+            "weight": 0.4
+          }
+        ],
+        "preamble": "Evaluate whether the rendered markdown faithfully represents the source pack's entries, with complete coverage and no external claims. Grounding uses per-claim binary assertions with evidence — see #999.",
+        "rubricId": "pack-fidelity-v3",
+        "scope": "packs",
+        "version": "v3"
+      },
+      "version": 1
+    }
   },
   "inputCid": "cid-placeholder",
   "inputSchemaCid": "cid-placeholder",

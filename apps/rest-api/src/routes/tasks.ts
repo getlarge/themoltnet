@@ -60,12 +60,10 @@ function toTaskProblem(error: TaskServiceError) {
 }
 
 function getAuthContext(request: {
-  authContext:
-    | {
-        identityId: string;
-        subjectType: 'agent' | 'human';
-      }
-    | null;
+  authContext: {
+    identityId: string;
+    subjectType: 'agent' | 'human';
+  } | null;
 }) {
   const authContext = request.authContext;
   if (!authContext) {
@@ -141,7 +139,6 @@ export function taskRoutes(fastify: FastifyInstance) {
           correlationId: request.body.correlationId,
           maxAttempts: request.body.maxAttempts,
           expiresInSec: request.body.expiresInSec,
-          criteriaCid: request.body.criteriaCid,
           requiredExecutorTrustLevel: request.body.requiredExecutorTrustLevel,
           dispatchTimeoutSec: request.body.dispatchTimeoutSec,
           runningTimeoutSec: request.body.runningTimeoutSec,

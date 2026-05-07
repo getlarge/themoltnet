@@ -5,7 +5,6 @@
   "cancelledByHumanId": null,
   "completedAt": null,
   "correlationId": null,
-  "criteriaCid": null,
   "diaryId": "{{diaryId}}",
   "dispatchTimeoutSec": null,
   "expiresAt": null,

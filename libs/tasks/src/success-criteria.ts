@@ -1,11 +1,11 @@
 /**
  * SuccessCriteria — imposer-stated, machine-verifiable acceptance criteria.
  *
- * Today the criteria a task imposer states are scattered: `criteriaCid`
- * exists on the Task row but is only populated for `assess_brief`;
- * `fulfill_brief.input.acceptanceCriteria` is a free-form string array
- * "interpreted by the claiming agent." Both are below the bar for
- * delegation that scales beyond "trust the agent's word."
+ * Before this envelope existed, criteria were scattered: a vestigial
+ * `criteriaCid` column nobody resolved, an `acceptanceCriteria: string[]`
+ * field on `fulfill_brief.input` that was "interpreted by the claiming
+ * agent," and inline `rubric` / `criteria[]` fields on judgment-task
+ * inputs. None of those were machine-verifiable end-to-end.
  *
  * This module defines a single, content-addressable envelope an imposer
  * can attach to any task type. It has four orthogonal sections — pick
@@ -27,8 +27,8 @@
  *     until the imposer accepts (judgment, not blunt failure).
  *   - All passed → POST /complete with `verification.passed=true`.
  *
- * Storage: SuccessCriteria is content-addressed via the existing CID
- * infra. The `tasks.criteriaCid` column already accepts this. When
+ * Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
+ * pinned via the task's `inputCid`. No separate column or hash. When
  * #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
  * without changing this envelope.
  */
@@ -208,7 +208,13 @@ export type VerificationResult = Static<typeof VerificationResult>;
 
 export const VerificationRecord = Type.Object(
   {
-    criteriaCid: Type.String({ minLength: 1 }),
+    /**
+     * `inputCid` of the task whose criteria the daemon evaluated against.
+     * Pins the verification to a specific input document so the server
+     * can detect tampering by re-running assertions against the same
+     * input.successCriteria.
+     */
+    inputCid: Type.String({ minLength: 1 }),
     results: Type.Array(VerificationResult),
     /** True iff every required result passed. */
     passed: Type.Boolean(),

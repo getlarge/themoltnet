@@ -38,7 +38,6 @@ export const CreateTaskBodySchema = Type.Object(
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
-    criteriaCid: Type.Optional(Type.String({ minLength: 1 })),
     requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
     // Imposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up

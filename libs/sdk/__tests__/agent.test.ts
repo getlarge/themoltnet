@@ -178,7 +178,6 @@ const mockTask = {
   input: { brief: 'Hello' },
   inputSchemaCid: 'cid-schema',
   inputCid: 'cid-input',
-  criteriaCid: null,
   references: [],
   correlationId: null,
   imposedByAgentId: null,

@@ -79,12 +79,6 @@ export const TaskCreateSchema = Type.Object({
       description: 'Relative expiry in seconds.',
     }),
   ),
-  criteria_cid: Type.Optional(
-    Type.String({
-      minLength: 1,
-      description: 'Optional criteria CID for judgment task types.',
-    }),
-  ),
   required_executor_trust_level: Type.Optional(ExecutorTrustLevel),
   dispatch_timeout_sec: Type.Optional(
     Type.Integer({
@@ -111,7 +105,6 @@ export type TaskCreateInput = {
   correlation_id?: CreateTaskBody['correlationId'];
   max_attempts?: CreateTaskBody['maxAttempts'];
   expires_in_sec?: CreateTaskBody['expiresInSec'];
-  criteria_cid?: CreateTaskBody['criteriaCid'];
   required_executor_trust_level?: CreateTaskBody['requiredExecutorTrustLevel'];
   dispatch_timeout_sec?: CreateTaskBody['dispatchTimeoutSec'];
   running_timeout_sec?: CreateTaskBody['runningTimeoutSec'];

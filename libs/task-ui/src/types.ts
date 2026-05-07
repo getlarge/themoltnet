@@ -73,7 +73,6 @@ export interface TaskSummary {
   input: Record<string, unknown>;
   inputSchemaCid: string;
   inputCid: string;
-  criteriaCid: string | null;
   references: TaskRef[];
   correlationId: string | null;
   imposedByAgentId: string | null;

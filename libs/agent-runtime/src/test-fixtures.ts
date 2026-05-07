@@ -15,7 +15,6 @@ export function makeFulfillBriefTask(overrides: Partial<Task> = {}): Task {
     },
     inputSchemaCid: 'cid-placeholder-input-schema',
     inputCid: 'cid-placeholder-input',
-    criteriaCid: null,
     references: [],
     correlationId: null,
     imposedByAgentId: null,
