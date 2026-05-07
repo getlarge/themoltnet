@@ -1,3 +1,5 @@
+import type { WriteCorrelationAnchors } from './finalize.js';
+
 /**
  * Correlation anchor helpers.
  *
@@ -77,4 +79,26 @@ export function appendPrBodyMarker(
   if (!body) return marker;
   const sep = body.endsWith('\n') ? '\n' : '\n\n';
   return `${body}${sep}${marker}`;
+}
+
+// ---------------------------------------------------------------------------
+// PR body writer — real implementation lives in a follow-up commit (Task 4).
+// The stub here keeps the daemon entry-points compiling once they thread the
+// writer through finalize. Replaced by a `gh` CLI-backed writer that GETs
+// the PR body, idempotently appends the marker, and PATCHes it back.
+// ---------------------------------------------------------------------------
+
+export interface AnchorWriterDeps {
+  logger: {
+    warn: (obj: object, msg: string) => void;
+    info: (obj: object, msg: string) => void;
+  };
+}
+
+export function makePrBodyAnchorWriter(
+  _deps: AnchorWriterDeps,
+): WriteCorrelationAnchors {
+  return async () => {
+    // intentionally a no-op until Task 4
+  };
 }

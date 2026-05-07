@@ -10,6 +10,7 @@ import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
+import { makePrBodyAnchorWriter } from '../lib/correlation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import {
@@ -94,6 +95,10 @@ export async function runOnce(argv: string[]): Promise<number> {
       sandboxConfig: sandbox.config,
     });
 
+    const writeCorrelationAnchors = makePrBodyAnchorWriter({
+      logger: rootLogger,
+    });
+
     const runtime = new AgentRuntime({
       logger: rootLogger,
       source: new ApiTaskSource({
@@ -109,9 +114,15 @@ export async function runOnce(argv: string[]): Promise<number> {
           maxBatchSize: opts.maxBatchSize,
           flushIntervalMs: opts.flushIntervalMs,
         }),
-      // Finalize per-task inside the loop so the daemon (poll-shared
-      // and once) share one wire-finalize path.
-      onTaskFinished: (output) => finalizeTask(ctx.agent, output),
+      // Finalize inside the runtime loop so the correlation anchor writer
+      // sees the claimedTask alongside its output. once mode only ever
+      // claims one task, so this fires exactly once.
+      onTaskFinished: (output, claimedTask) =>
+        finalizeTask(ctx.agent, output, {
+          task: claimedTask.task,
+          writeCorrelationAnchors,
+          log: (msg, err) => rootLogger.warn({ err }, msg),
+        }),
       executeTask,
     });
 

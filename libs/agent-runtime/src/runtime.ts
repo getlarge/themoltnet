@@ -66,7 +66,10 @@ export interface AgentRuntimeOptions {
    * next claim. Run-once sources (file fixtures, `--stop-when-empty`)
    * can omit this hook and finalize in bulk after `start()` resolves.
    */
-  onTaskFinished?: (output: TaskOutput) => Promise<void>;
+  onTaskFinished?: (
+    output: TaskOutput,
+    claimedTask: ClaimedTask,
+  ) => Promise<void>;
   /** Lifecycle logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
 }
@@ -207,7 +210,7 @@ export class AgentRuntime {
         // finalize failure must not block the next claim.
         if (this.opts.onTaskFinished) {
           try {
-            await this.opts.onTaskFinished(output);
+            await this.opts.onTaskFinished(output, claimedTask);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             taskLogger.error(
