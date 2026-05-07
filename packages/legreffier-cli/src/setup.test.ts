@@ -172,9 +172,8 @@ describe('buildPermissions', () => {
 describe('buildGhTokenRule', () => {
   it('produces rule using absolute credentials path resolved from GIT_CONFIG_GLOBAL', () => {
     const rule = buildGhTokenRule();
-    expect(rule).toContain(
-      '$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json',
-    );
+    expect(rule).toContain('git rev-parse --show-toplevel');
+    expect(rule).toContain('CREDS="$(dirname "$CFG")/moltnet.json"');
     expect(rule).toContain('GH_TOKEN');
     expect(rule).toContain('moltnet github token');
     expect(rule).toContain('npx @themoltnet/cli github token');
@@ -218,9 +217,8 @@ describe('buildGhTokenRule', () => {
     expect(rule).toContain('STRICT RULE');
     expect(rule).toContain('absolute path');
     expect(rule).toContain('CREDS=');
-    expect(rule).toContain(
-      '$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)',
-    );
+    expect(rule).toContain('CFG="$GIT_CONFIG_GLOBAL"');
+    expect(rule).toContain('git rev-parse --show-toplevel');
     expect(rule).toContain('Forbidden patterns');
     expect(rule).toContain('Why absolute paths are mandatory');
     // Behavioral centerpiece: hard failure on missing credentials file
