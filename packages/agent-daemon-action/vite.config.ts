@@ -8,8 +8,18 @@ import { defineConfig } from 'vite';
  *
  * GitHub clones the action repo at the requested ref, then action.yml
  * shells out to `node dist/main.js`. Bundling lets us depend on
- * @actions/core, @actions/github, and the rest without requiring
- * `npm install` on the runner.
+ * @actions/core, @actions/github, @themoltnet/sdk, and the rest
+ * without requiring `npm install` on the runner — composite Action
+ * runners do NOT auto-inject the toolkit, so inlining is mandatory.
+ *
+ * Bundle size note: ~1.37 MB. This is on par with the official
+ * actions/checkout (1.36 MB, @vercel/ncc) and actions/javascript-action
+ * template (968 KB, rollup) — both inline their full dep tree. We
+ * deliberately do NOT optimize this further (e.g. by replacing
+ * @actions/github with raw fetch, or externalizing @themoltnet/sdk).
+ * Rationale and the rejected alternatives are recorded in the diary
+ * entry `f4ee2a8a-ed9a-4020-b06a-2412e6428955`:
+ *   moltnet entry get f4ee2a8a-ed9a-4020-b06a-2412e6428955
  */
 export default defineConfig({
   build: {
@@ -22,7 +32,8 @@ export default defineConfig({
     },
   },
   ssr: {
-    // Bundle everything; action runners do not run npm install.
+    // Bundle everything. See diary entry referenced above for the
+    // alternatives considered and why they were rejected.
     noExternal: true,
   },
   test: {
