@@ -21,6 +21,16 @@ permissions:
   pull-requests: write
   id-token: write
 
+# nx@22 unconditionally loads workspace-root .env at bin startup via plain
+# dotenv. Our .env is dotenvx-encrypted, so plain-dotenv pulls ciphertext
+# into every variable it defines, which then leaks into every process Nx
+# spawns. This flag is the documented opt-out (honored by per-task and
+# per-executor env loading); we set it workflow-wide as a defense even
+# though nx@22.7.0's bin-level load currently ignores it. When the bin
+# eventually honors it (or on a future major version), this guards us.
+env:
+  NX_LOAD_DOT_ENV_FILES: 'false'
+
 jobs:
   release-please:
     name: Release Please
