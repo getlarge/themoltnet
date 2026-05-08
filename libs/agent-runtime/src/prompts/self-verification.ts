@@ -1,5 +1,5 @@
 // Self-verification prompt block for producer task types — see
-// libs/agent-runtime/README.md for the producer/judge model.
+// docs/agent-runtime.md for the producer/judge model.
 export function buildSelfVerificationBlock(taskId: string): string {
   return [
     '## Self-verification',

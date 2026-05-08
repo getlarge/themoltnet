@@ -32,7 +32,7 @@
  * (server-side schema check). Self-assessment is a truthful self-rating,
  * NOT enforcement — `verification.passed=false` does not block /complete
  * and does not affect `acceptedAttemptN`. See
- * `libs/agent-runtime/README.md` for the full producer/judge flow.
+ * `docs/agent-runtime.md` for the full producer/judge flow.
  *
  * **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
  * A separate task whose IS the application of `successCriteria` to
