@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.2.2...agent-daemon-v0.3.0) (2026-05-08)
+
+
+### Features
+
+* **agent-daemon:** add --debug flag for poll-source verbose logging ([cca6057](https://github.com/getlarge/themoltnet/commit/cca6057e66e572f81066e464bb2880a59a0236f9))
+* **agent-daemon:** correlation anchor helpers (branch / trailer / PR body) ([7f56def](https://github.com/getlarge/themoltnet/commit/7f56deff7ab4d775ac091af81bde42d893aa7d88))
+* **agent-daemon:** evaluate input.successCriteria before /complete ([912f2f1](https://github.com/getlarge/themoltnet/commit/912f2f1546e601ad53121d1e1cb522c0f790b721))
+* **agent-daemon:** new app + polling source + GET /tasks/schemas ([317c399](https://github.com/getlarge/themoltnet/commit/317c39967c5bf27054bdb91df05c9465a46e0a45))
+* **agent-daemon:** new app with poll/once/drain modes ([209c5b8](https://github.com/getlarge/themoltnet/commit/209c5b848f4869c5f3f5229fe76215af32ff4dd8))
+* **agent-daemon:** plumb correlation anchor hook through finalize ([6b91944](https://github.com/getlarge/themoltnet/commit/6b9194454dcfd7a1b2bdf04c6e575e4dbd076d52))
+* **agent-daemon:** publish to npm as @moltnet/agent-daemon ([03fa781](https://github.com/getlarge/themoltnet/commit/03fa7815d7461a33ed6c3830cb9fee023d63fe5c))
+* **agent-daemon:** real --help, required identity flags, validate --task-types ([7c3abf4](https://github.com/getlarge/themoltnet/commit/7c3abf494c8fbed13232631c62665c9c9203bca9))
+* **agent-daemon:** real --help, required identity flags, validate --task-types ([84a5290](https://github.com/getlarge/themoltnet/commit/84a5290cc4f0bbee98eb605f310a03be85d37150))
+* **agent-daemon:** wire imposer-side cancellation through the daemon ([c7ef131](https://github.com/getlarge/themoltnet/commit/c7ef131cf7ff38efe74112b83727841570ace791))
+* **agent-daemon:** wire pino root logger; replace console.error ([ca4bf33](https://github.com/getlarge/themoltnet/commit/ca4bf3395dedd9b781756313b67da9387e5621d1))
+* **agent-daemon:** write moltnet-correlation marker to PR body on fulfill ([4faecd8](https://github.com/getlarge/themoltnet/commit/4faecd8be3bca54d3e1d3299370a6f9e1459d66c))
+* **agent-runtime:** pino-based lifecycle logging for daemon ([3ee0305](https://github.com/getlarge/themoltnet/commit/3ee03053dbe62b7d4e9b1a1a76ef89cc59247d04))
+* **build:** make SSR vite configs inferable via rolldownOptions.input ([9b71d6e](https://github.com/getlarge/themoltnet/commit/9b71d6e31c5ea60a4b1c54dc55466d6fdcdcb27f)), closes [#1029](https://github.com/getlarge/themoltnet/issues/1029)
+* **build:** unify e2e target across vitest and playwright suites ([9963cd6](https://github.com/getlarge/themoltnet/commit/9963cd6a70c2cbd77b01dda6c0ac41f8d9b78bfb)), closes [#1029](https://github.com/getlarge/themoltnet/issues/1029)
+* ship agent-daemon (npm + GH Action) with correlationId anchors ([a0b8f98](https://github.com/getlarge/themoltnet/commit/a0b8f98ef5dd14aaf5c3e4e6fb9e723b5cb570e2))
+* **tasks:** make assess_brief actually run end-to-end via the daemon ([#951](https://github.com/getlarge/themoltnet/issues/951)) ([ebfcaeb](https://github.com/getlarge/themoltnet/commit/ebfcaeb97f8e6d78b3612c1516582dfd4f88cc7c))
+* **tasks:** SuccessCriteria envelope, hard-cut criteria into input ([4448934](https://github.com/getlarge/themoltnet/commit/4448934e6598e4909c924799ed69f3bca5236b2d))
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** require provider+model; migrate Pi packages to [@earendil-works](https://github.com/earendil-works) ([369d137](https://github.com/getlarge/themoltnet/commit/369d137cbc25100b3614d0c73eb174d306894a7d))
+* **agent-daemon-action:** use correlationId, drop URL→correlation lookup ([a3b3291](https://github.com/getlarge/themoltnet/commit/a3b329149ea3fded5c57fd3986534b72acada09c))
+* **agent-daemon-e2e:** stub output must satisfy CuratePackOutput schema ([47cb2a2](https://github.com/getlarge/themoltnet/commit/47cb2a2578efcafac497556304f4fdfe9df82829))
+* **agent-daemon-e2e:** tighten cleanup, scope cancel test to robust assertions, retry initial heartbeat ([8a2f950](https://github.com/getlarge/themoltnet/commit/8a2f95025a0890adf26ada4c5fe248099d82a79d))
+* **agent-daemon:** add non-watch cli script so --help and once exit cleanly ([a5d0407](https://github.com/getlarge/themoltnet/commit/a5d04070936cb7760c55e40beb777c8bfe1fccdd))
+* **agent-daemon:** add non-watch cli script so --help and once exit cleanly ([b33beb0](https://github.com/getlarge/themoltnet/commit/b33beb060fadc4f99d534b558a8750e3f119f334))
+* **agent-daemon:** apply [#958](https://github.com/getlarge/themoltnet/issues/958) review — typed locals, hasOwnProperty.call, tests ([c655f59](https://github.com/getlarge/themoltnet/commit/c655f59b2b3b0c7641d5ef021c223e746516f43f))
+* **agent-daemon:** exclude e2e from unit test run; stub executors must call reporter.open ([16fce63](https://github.com/getlarge/themoltnet/commit/16fce632385ab611e0a9257fa91f609b0169583d))
+* **agent-daemon:** resolve sandbox.json by searching up from cwd, accept --sandbox override ([55445d8](https://github.com/getlarge/themoltnet/commit/55445d83f9fc5391409c30626c6eea01f7f2d19b))
+* **agent-runtime:** add per-task onTaskFinished hook so poll-mode finalizes tasks ([1bb1d04](https://github.com/getlarge/themoltnet/commit/1bb1d048ffe7bbdd069db7846bf89a4f25ddd716))
+* **agent-runtime:** per-task onTaskFinished hook so poll-mode finalizes tasks ([49103db](https://github.com/getlarge/themoltnet/commit/49103dbc1d8bd4a611f0d6d971bc6b4b7d4a1311))
+* **auth:** enrich logs with identityId; stop silent Keto error swallow ([95abd66](https://github.com/getlarge/themoltnet/commit/95abd66ef5d9554079992b1b6a90475a1256970a))
+* **ci:** bypass nx in rest-api Dockerfile, drop agent-daemon build inference ([a248e0e](https://github.com/getlarge/themoltnet/commit/a248e0ebd1a46864d7856ccdd61aab677fd89111))
+* **tasks:** address PR [#957](https://github.com/getlarge/themoltnet/issues/957) review — assess-pr targets a real task; cleaner errors ([34d6ca6](https://github.com/getlarge/themoltnet/commit/34d6ca6f76418eb8ecbb5456f974fb0ebc2a0ed7))
+* **tasks:** correct stale cancel comments and tighten daemon cancel e2e after [#949](https://github.com/getlarge/themoltnet/issues/949) closed ([97b8027](https://github.com/getlarge/themoltnet/commit/97b802731606aff72b9cb9a36fc195ec88880fea))
+* **tasks:** correct stale cancel comments and tighten daemon cancel e2e after [#949](https://github.com/getlarge/themoltnet/issues/949) closed ([9e2c00b](https://github.com/getlarge/themoltnet/commit/9e2c00b0b866211713298682fb917bfdeb660650))
+
 ## [0.2.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.2.1...agent-daemon-v0.2.2) (2026-05-08)
 
 
