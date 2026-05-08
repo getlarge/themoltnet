@@ -39,6 +39,12 @@ on:
   issue_comment:
     types: [created]
 
+# Default to no permissions on the workflow's GITHUB_TOKEN. Each job
+# below declares only what it needs; jobs without a `permissions:`
+# block inherit this empty default rather than the historical broad
+# default-write set.
+permissions: {}
+
 jobs:
   parse:
     # Skip:
@@ -49,6 +55,8 @@ jobs:
       contains(github.event.comment.body, '@moltnet-') &&
       !endsWith(github.event.comment.user.login, '[bot]')
     runs-on: ubuntu-latest
+    # Pure body parsing — no GH API access needed.
+    permissions: {}
     outputs:
       agent: ${{ steps.extract.outputs.agent }}
     steps:
@@ -75,9 +83,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.parse.outputs.agent }}
     permissions:
-      contents: read
-      issues: write
-      pull-requests: write
+      contents: read # actions/checkout
+      issues: write # post diagnostic comments on issues / PRs
+      pull-requests:
+        read # read PR head ref / commits / body for
+        # correlationId resolution. The agent
+        # inside Pi opens PRs with its own
+        # GitHub App token, not GITHUB_TOKEN.
     steps:
       - uses: actions/checkout@v4
       - uses: ./packages/agent-daemon-action

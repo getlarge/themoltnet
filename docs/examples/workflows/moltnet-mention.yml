@@ -56,6 +56,9 @@ on:
   issue_comment:
     types: [created]
 
+# Empty default — each job opts into the minimum it needs.
+permissions: {}
+
 env:
   DEFAULT_AGENT: legreffier # change to your default bot agent name
 
@@ -65,6 +68,8 @@ jobs:
       contains(github.event.comment.body, '@moltnet-') &&
       !endsWith(github.event.comment.user.login, '[bot]')
     runs-on: ubuntu-latest
+    # Pure body parsing — no GH API access needed.
+    permissions: {}
     outputs:
       agent: ${{ steps.extract.outputs.agent }}
     steps:
@@ -87,9 +92,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.parse.outputs.agent }}
     permissions:
-      contents: read
-      issues: write
-      pull-requests: write
+      contents: read # actions/checkout
+      issues: write # post diagnostic comments on issues / PRs
+      pull-requests:
+        read # read PR head ref / commits / body for
+        # correlationId resolution. The agent
+        # inside Pi opens PRs with its own
+        # GitHub App token, not GITHUB_TOKEN.
     steps:
       - uses: actions/checkout@v4
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
