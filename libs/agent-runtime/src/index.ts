@@ -7,6 +7,7 @@
  * executors (pi + Gondolin, Codex, direct Anthropic SDK, …) live in their
  * own packages.
  */
+export * from './context-bindings.js';
 export * from './output-tools.js';
 export * from './prompts/index.js';
 export * from './reporters/index.js';
