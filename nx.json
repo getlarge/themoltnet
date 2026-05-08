@@ -77,7 +77,7 @@
   "targetDefaults": {
     "build": {
       "cache": true,
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "^typecheck"],
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist", "{projectRoot}/out-tsc"]
     },
@@ -99,7 +99,7 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["default", "^production"],
-      "outputs": []
+      "outputs": ["{projectRoot}/out-tsc"]
     }
   }
 }
