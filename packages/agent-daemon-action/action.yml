@@ -229,12 +229,26 @@ runs:
         # the secret. See:
         # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
         if [ -n "${PI_AUTH_JSON:-}" ]; then
-          PI_AUTH_PATH="$RUNNER_TEMP/.pi/agent/auth.json"
-          mkdir -p "$(dirname "$PI_AUTH_PATH")"
+          # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or, when
+          # that env is unset, $HOME/.pi/agent/auth.json (see
+          # @earendil-works/pi-coding-agent's config.ts:getAgentDir()).
+          # We write to a runner-local dir and point pi at it via
+          # PI_CODING_AGENT_DIR — keeps the secret out of the home
+          # tree (so it doesn't leak into action caches that include
+          # `~`) while staying inside what pi can read directly.
+          # `PI_AUTH_PATH` is also exported for vm-manager.ts's
+          # loadCredentials, which uses it on the daemon-host side to
+          # inject the auth blob INTO the gondolin VM at boot.
+          PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
+          PI_AUTH_PATH="$PI_AGENT_DIR/auth.json"
+          mkdir -p "$PI_AGENT_DIR"
           printf '%s' "$PI_AUTH_JSON" > "$PI_AUTH_PATH"
           chmod 600 "$PI_AUTH_PATH"
-          echo "PI_AUTH_PATH=$PI_AUTH_PATH" >> "$GITHUB_ENV"
-          echo "::notice::Pi auth.json materialized at \$PI_AUTH_PATH"
+          {
+            echo "PI_AUTH_PATH=$PI_AUTH_PATH"
+            echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
+          } >> "$GITHUB_ENV"
+          echo "::notice::Pi auth.json materialized at $PI_AUTH_PATH (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
 
           # Best-effort staleness check (#1040). Pi writes per-provider
           # entries with shape:
@@ -273,6 +287,29 @@ runs:
         else
           echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
         fi
+
+    # Cache the gondolin snapshot (the alpine guest qcow2 + cli/gh
+    # binaries baked in). The daemon's snapshot.ts content-addresses
+    # the build into ~/.cache/moltnet/gondolin/v2-<hash>/snapshot.qcow2;
+    # the cache key here is coarser (per `daemon-version`) since the
+    # action can't see the internal hash, but the on-disk `v2-<hash>`
+    # naming naturally namespaces multiple bundles. Same explicit
+    # restore + save pattern as the apt cache (#1054).
+    # Bump the `-v<N>-` suffix if the on-disk cache layout changes.
+    - name: Compute gondolin snapshot cache key
+      if: runner.os == 'Linux'
+      id: gondolin-cache-key
+      shell: bash
+      run: |
+        echo "value=${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-daemon-${{ inputs.daemon-version }}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore gondolin snapshot cache
+      if: runner.os == 'Linux'
+      id: restore-gondolin-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/moltnet/gondolin
+        key: ${{ steps.gondolin-cache-key.outputs.value }}
 
     - id: dispatch
       if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
@@ -320,3 +357,17 @@ runs:
           --agent "$MOLTNET_AGENT_NAME" \
           --provider "$PROVIDER" \
           --model "$MODEL"
+
+    # Save the gondolin snapshot built by the daemon. `if: always()`
+    # so we still upload the snapshot when the LLM call fails post-
+    # snapshot-build (the snapshot itself was the expensive part).
+    # Skip on cache hit to avoid re-uploading an unchanged blob.
+    - name: Save gondolin snapshot cache
+      if: |
+        always()
+        && runner.os == 'Linux'
+        && steps.restore-gondolin-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/moltnet/gondolin
+        key: ${{ steps.gondolin-cache-key.outputs.value }}
