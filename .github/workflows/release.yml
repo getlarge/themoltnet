@@ -234,10 +234,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm exec nx run @moltnet/api-client:build
-
-      - run: pnpm exec nx run @moltnet/crypto-service:build
-
+      # Nx walks the dep graph (build dependsOn ^build in nx.json), builds
+      # @moltnet/api-client + @moltnet/crypto-service first, then the SDK,
+      # all with remote-cache hits when unchanged.
       - run: pnpm exec nx run @themoltnet/sdk:build
 
       - run: pnpm exec nx run @themoltnet/sdk:test
@@ -673,14 +672,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm exec nx run @moltnet/api-client:build
-
-      - run: pnpm exec nx run @moltnet/crypto-service:build
-
-      - run: pnpm exec nx run @themoltnet/sdk:build
-
-      - run: pnpm exec nx run @themoltnet/design-system:build
-
       - run: pnpm exec nx run @themoltnet/legreffier:build
 
       - run: pnpm exec nx run @themoltnet/legreffier:test
@@ -721,8 +712,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm exec nx run @moltnet/tasks:build
-
       - run: pnpm exec nx run @themoltnet/agent-runtime:build
 
       - run: pnpm exec nx run @themoltnet/agent-runtime:test
@@ -762,16 +751,6 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @moltnet/api-client:build
-
-      - run: pnpm exec nx run @moltnet/crypto-service:build
-
-      - run: pnpm exec nx run @moltnet/tasks:build
-
-      - run: pnpm exec nx run @themoltnet/agent-runtime:build
-
-      - run: pnpm exec nx run @themoltnet/sdk:build
 
       - run: pnpm exec nx run @themoltnet/pi-extension:build
 
@@ -816,19 +795,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Build the published workspace deps the daemon imports at runtime
-      # so its dist/ resolves them via dist/index.js (their `import`
-      # condition still points at src/, but published deps need the
-      # dist artefacts because the daemon was built against them).
-      - run: pnpm --filter @themoltnet/sdk build
+      # Nx walks the dep graph (build dependsOn ^build in nx.json) and
+      # builds @themoltnet/{sdk,agent-runtime,pi-extension} before the
+      # daemon, all with remote-cache hits when unchanged.
+      - run: pnpm exec nx run @themoltnet/agent-daemon:build
 
-      - run: pnpm --filter @themoltnet/agent-runtime build
-
-      - run: pnpm --filter @themoltnet/pi-extension build
-
-      - run: pnpm --filter @themoltnet/agent-daemon build
-
-      - run: pnpm --filter @themoltnet/agent-daemon run check:pack
+      - run: pnpm exec nx run @themoltnet/agent-daemon:check:pack
 
       - name: Publish @themoltnet/agent-daemon
         uses: nick-fields/retry@v4.0.0
