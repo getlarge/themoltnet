@@ -1,0 +1,63 @@
+# Validate that packages/agent-daemon-action/dist/main.js is in sync with
+# its src/. Composite GitHub Actions are consumed via
+# `uses: getlarge/themoltnet/packages/agent-daemon-action@<ref>` — the
+# bundle at <ref> is what runs, so a stale or missing dist/main.js is a
+# functional regression.
+#
+# Pattern adapted from actions/javascript-action's check-dist.yml. We
+# rebuild from src and `git diff --exit-code` against the committed
+# bundle; mismatch fails the PR with the expected dist/ uploaded as an
+# artifact for diagnosis.
+name: check-dist (agent-daemon-action)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/agent-daemon-action/**'
+      - 'libs/**'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    paths:
+      - 'packages/agent-daemon-action/**'
+      - 'libs/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+jobs:
+  check-dist:
+    name: Rebuild + diff dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Rebuild bundle
+        run: |
+          rm -rf packages/agent-daemon-action/dist
+          pnpm --filter @themoltnet/agent-daemon-action run build
+
+      - name: Diff against committed dist
+        id: diff
+        run: |
+          if ! git diff --ignore-space-at-eol --text \
+                --exit-code packages/agent-daemon-action/dist/main.js; then
+            echo "::error::packages/agent-daemon-action/dist/main.js is out of sync with src/."
+            echo "::error::Run \`pnpm --filter @themoltnet/agent-daemon-action run build\` and commit the result."
+            exit 1
+          fi
+
+      - name: Upload expected dist on mismatch
+        if: ${{ failure() && steps.diff.conclusion == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-daemon-action-dist
+          path: packages/agent-daemon-action/dist/

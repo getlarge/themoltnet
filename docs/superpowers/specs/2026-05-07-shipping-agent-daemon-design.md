@@ -317,6 +317,7 @@ Agent provisioning is a one-time per-repo setup performed via `legreffier init` 
 ## Follow-ups (separate issues)
 
 - **`@moltnet-assess` auto-dispatch** — once #881 lands, dispatcher can resolve a rubric CID and create `assess_brief` tasks from PR comments. Gates on rubric registry shape.
+- **GitHub Marketplace listing for `agent-daemon-action`** — Marketplace requires `action.yml` at the _repository root_ and a repository with no workflow files. The current monorepo path-based layout (`uses: getlarge/themoltnet/packages/agent-daemon-action@<ref>`) works for `uses:` resolution but is ineligible for Marketplace. A follow-up extracts the action to a dedicated `getlarge/agent-daemon-action` repo whose contents (action.yml, dist/main.js, README.md, LICENSE) are pushed by a release workflow on every release-please tag.
 - Auto-chaining: `assess_brief.finalize` creates next `fulfill_brief` on `verdict=needs_changes`, reusing correlationId.
 - HITL gate: `awaiting_human` task state surfaced in console.
 - Docker image for non-npm CI environments.

@@ -85,6 +85,37 @@ auto-dispatch is deferred (#881).
   redesign.
 - `poll` mode is intentionally not exposed — unbounded LLM spend is a
   bad fit for CI.
+- **Not on GitHub Marketplace yet.** Marketplace requires `action.yml`
+  at the _repository root_ and a repository with no workflow files.
+  Since this action lives in the MoltNet monorepo, it is currently
+  consumed via the path-based
+  `uses: getlarge/themoltnet/packages/agent-daemon-action@<ref>`
+  syntax. Marketplace publication needs a dedicated mirror repo and is
+  tracked as a follow-up to
+  [#1025](https://github.com/getlarge/themoltnet/issues/1025).
+
+## Releasing this action
+
+`packages/agent-daemon-action/dist/main.js` is the bundled entrypoint
+that `action.yml` executes. It is **committed to git** (the standard
+pattern used by `actions/checkout`, `actions/setup-node`, and the
+`actions/javascript-action` template) because composite actions are
+resolved by checking out the repo at the requested `ref` — there is no
+build step on the consumer's runner.
+
+[`.github/workflows/check-dist-agent-daemon-action.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/check-dist-agent-daemon-action.yml)
+rebuilds the bundle from source on every PR touching this package and
+fails if the result differs from the committed `dist/main.js`. To
+update the action:
+
+```bash
+pnpm --filter @themoltnet/agent-daemon-action run build
+git add packages/agent-daemon-action/dist/main.js
+git commit -m "..."
+```
+
+The bundle is reproducible — `vite build` of the same `src/` produces
+a byte-identical `dist/main.js`.
 
 ## License
 
