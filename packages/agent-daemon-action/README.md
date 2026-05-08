@@ -103,10 +103,11 @@ pattern used by `actions/checkout`, `actions/setup-node`, and the
 resolved by checking out the repo at the requested `ref` — there is no
 build step on the consumer's runner.
 
-[`.github/workflows/check-dist-agent-daemon-action.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/check-dist-agent-daemon-action.yml)
-rebuilds the bundle from source on every PR touching this package and
-fails if the result differs from the committed `dist/main.js`. To
-update the action:
+The repo's CI workflow has a `check-dist-agent-daemon-action` job
+(see [`.github/workflows/ci.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/ci.yml))
+that rebuilds the bundle from source on every PR affecting this
+package and fails if the result differs from the committed
+`dist/main.js`. To update the action:
 
 ```bash
 pnpm --filter @themoltnet/agent-daemon-action run build
