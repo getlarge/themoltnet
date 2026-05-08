@@ -37,7 +37,10 @@ describe('FileTaskSource', () => {
   it('yields a single Task then null', async () => {
     const task = makeFulfillBriefTask();
     const src = new FileTaskSource(write(task));
-    expect(await src.claim()).toMatchObject({ task: { id: task.id }, attemptN: 1 });
+    expect(await src.claim()).toMatchObject({
+      task: { id: task.id },
+      attemptN: 1,
+    });
     expect(await src.claim()).toBeNull();
     await src.close();
   });

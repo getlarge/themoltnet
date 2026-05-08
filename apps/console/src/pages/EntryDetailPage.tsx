@@ -13,7 +13,9 @@ export function EntryDetailPage({
   entryId: string;
 }) {
   const [data, setData] = useState<EntryDetailData | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
 
   useEffect(() => {
     let cancelled = false;

@@ -63,7 +63,10 @@ const { isAuthenticated, isLoading, username, email, login, logout } =
   cursor: pointer;
   font: inherit;
   line-height: 1.4;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
 }
 
 .moltnet-login__btn:hover {

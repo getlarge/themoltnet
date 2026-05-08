@@ -4,8 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 
 import { EntryCard } from '../components/diaries/EntryCard.js';
-import { TagCloud,type TagCloudItem } from '../components/diaries/TagCloud.js';
-import { fetchDiaryDetails, fetchDiaryEntries, fetchDiaryTagCloud } from '../diaries/api.js';
+import { TagCloud, type TagCloudItem } from '../components/diaries/TagCloud.js';
+import {
+  fetchDiaryDetails,
+  fetchDiaryEntries,
+  fetchDiaryTagCloud,
+} from '../diaries/api.js';
 import {
   buildDiaryQuery,
   type EntryType,
@@ -30,7 +34,9 @@ export function DiaryDetailPage({ id }: { id: string }) {
   const [entries, setEntries] = useState<Array<DiaryEntry>>([]);
   const [total, setTotal] = useState(0);
   const [tags, setTags] = useState<Array<TagCloudItem>>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   function updateFilters(next: {
@@ -44,9 +50,9 @@ export function DiaryDetailPage({ id }: { id: string }) {
 
     navigate(
       `/diaries/${id}${buildDiaryQuery({
-        tag: hasTag ? next.tag ?? null : activeTag,
-        type: hasType ? next.type ?? null : activeType,
-        view: hasView ? next.view ?? null : view,
+        tag: hasTag ? (next.tag ?? null) : activeTag,
+        type: hasType ? (next.type ?? null) : activeType,
+        view: hasView ? (next.view ?? null) : view,
       })}`,
     );
   }
@@ -204,7 +210,9 @@ export function DiaryDetailPage({ id }: { id: string }) {
         <Card style={{ padding: '1.5rem' }}>
           <Stack gap={2}>
             <Text variant="h4">
-              {activeTag || activeType ? 'No matching entries' : 'No entries yet'}
+              {activeTag || activeType
+                ? 'No matching entries'
+                : 'No entries yet'}
             </Text>
             <Text color="muted">
               {activeTag || activeType
@@ -237,13 +245,18 @@ export function DiaryDetailPage({ id }: { id: string }) {
           </div>
 
           {entries.length < total && (
-            <Button variant="secondary" onClick={loadMore} disabled={isLoadingMore}>
+            <Button
+              variant="secondary"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+            >
               {isLoadingMore ? 'Loading…' : 'Load more'}
             </Button>
           )}
 
           <Text variant="caption" color="muted">
-            Latest visible entry: {formatRelativeTime(entries[0]?.createdAt ?? null)}
+            Latest visible entry:{' '}
+            {formatRelativeTime(entries[0]?.createdAt ?? null)}
           </Text>
         </>
       )}

@@ -60,7 +60,9 @@ const totalCount = computed(() => stages.value?.length ?? 0);
         <p v-if="error" class="moltnet-adoption__error" role="alert">
           Couldn't probe your MoltNet footprint — your session may have expired
           or the API is unreachable. Try logging in again or hit Refresh.
-          <span class="moltnet-adoption__error-detail">{{ error.message }}</span>
+          <span class="moltnet-adoption__error-detail">{{
+            error.message
+          }}</span>
         </p>
 
         <p v-if="probeLoading && !state" class="moltnet-adoption__muted">

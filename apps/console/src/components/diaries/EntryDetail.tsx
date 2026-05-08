@@ -1,4 +1,10 @@
-import { Card, Divider, Stack, Text, useTheme } from '@themoltnet/design-system';
+import {
+  Card,
+  Divider,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import type { EntryDetailData } from '../../diaries/utils.js';
@@ -150,11 +156,7 @@ function MetadataRow({
       <Text variant="caption" color="muted">
         {label}
       </Text>
-      <Text
-        variant="caption"
-        mono={mono}
-        color={accent ? 'accent' : 'default'}
-      >
+      <Text variant="caption" mono={mono} color={accent ? 'accent' : 'default'}>
         {value}
       </Text>
     </Stack>

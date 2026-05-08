@@ -45,10 +45,7 @@ export const RenderPackOutput = Type.Object(
      * UUID of the persisted rendered pack row. Null when `persist: false`
      * or when the renderer chose not to persist (e.g. validation failure).
      */
-    renderedPackId: Type.Union([
-      Type.String({ format: 'uuid' }),
-      Type.Null(),
-    ]),
+    renderedPackId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
 
     /** CIDv1 of the canonical rendered content. Always present. */
     renderedCid: Type.String({ minLength: 1 }),
