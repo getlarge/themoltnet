@@ -160,6 +160,27 @@ from the runner-local copy. (This relies on
 `libs/pi-extension/src/vm-manager.ts:loadCredentials`'s
 `PI_AUTH_PATH` override — added in [#1027](https://github.com/getlarge/themoltnet/pull/1027).)
 
+#### Staleness check
+
+The materialize step parses each provider's `expires` field and emits
+a job annotation when it has fallen into the past:
+
+- **`::warning::`** — at least one provider's access token expired
+  before the workflow ran. Pi will try to refresh on its first call;
+  if that refresh fails, expect a 401 from the daemon. (Routine: Pi
+  rotates access tokens every few minutes/hours; this only fires if
+  the secret has been frozen long enough that nothing rotated it in
+  the meantime.)
+- **`::error::`** — at least one provider's access token expired
+  more than 30 days ago. The opaque refresh window has almost
+  certainly elapsed. The action still proceeds — the daemon will
+  surface the real 401 — but the annotation tells you to re-seed
+  before the run.
+
+The check is silent when `jq` is unavailable or the JSON shape
+doesn't match what Pi writes today. It cannot detect actual refresh
+failures; that's the daemon's job at runtime.
+
 #### Manual rotation when refresh stops working
 
 Pi rotates the OAuth tokens on each run, but **this action does not
