@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.12.0...pi-extension-v0.13.0) (2026-05-08)
+
+
+### Features
+
+* **pi-extension:** make pi auth.json optional, support PI_AUTH_PATH override ([43b53bc](https://github.com/getlarge/themoltnet/commit/43b53bc026203ebfa61c6fbe7b4ae52de2d718f3))
+* ship agent-daemon (npm + GH Action) with correlationId anchors ([a0b8f98](https://github.com/getlarge/themoltnet/commit/a0b8f98ef5dd14aaf5c3e4e6fb9e723b5cb570e2))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.11.0...pi-extension-v0.12.0) (2026-05-08)
 
 
