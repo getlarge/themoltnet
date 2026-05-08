@@ -28590,7 +28590,9 @@ var reflectDiary = (options) => (options.client ?? client).get({
 	...options
 });
 /**
-* Cluster semantically similar entries and return consolidation suggestions.
+* [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.
+*
+* @deprecated
 */
 var consolidateDiary = (options) => (options.client ?? client).post({
 	security: [
@@ -28616,7 +28618,9 @@ var consolidateDiary = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Compile a token-budget-fitted context pack from diary entries.
+* [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.
+*
+* @deprecated
 */
 var compileDiary = (options) => (options.client ?? client).post({
 	security: [
