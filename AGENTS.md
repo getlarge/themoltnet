@@ -86,8 +86,13 @@ E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
 
 # Run e2e tests (each suite polls health endpoints before starting)
-pnpm --filter @moltnet/rest-api run test:e2e
-pnpm --filter @moltnet/mcp-server run test:e2e
+# rest-api MUST run first — its setup restarts the rest-api container
+# (sponsor flow), invalidating any in-flight test against the same stack.
+pnpm exec nx run @moltnet/rest-api:e2e
+pnpm exec nx run @moltnet/mcp-server:e2e
+pnpm exec nx run @moltnet/agent-daemon:e2e
+# Or run all three at once via the root script:
+pnpm run test:e2e
 
 # Tear down when done
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v

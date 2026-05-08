@@ -56,7 +56,7 @@
     "docker:logs": "docker compose logs -f",
     "e2e:up": "COMPOSE_DISABLE_ENV_FILE=1 docker compose -f docker-compose.e2e.yaml up -d --build",
     "e2e:down": "COMPOSE_DISABLE_ENV_FILE=1 docker compose -f docker-compose.e2e.yaml down -v",
-    "test:e2e": "pnpm -r --if-present run test:e2e",
+    "test:e2e": "nx run-many -t e2e --exclude=@moltnet/console",
     "bootstrap": "pnpm --filter @moltnet/tools bootstrap",
     "publish:skill": "packages/openclaw-skill/scripts/publish-clawhub.sh",
     "publish:skill:dry-run": "packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run",

@@ -13,6 +13,9 @@ export default tseslint.config(
       '**/node_modules/**',
       'libs/api-client/src/generated/**',
       'infra/ory/permissions.ts',
+      // Standalone node script invoked from a Dockerfile; not part of the
+      // typed source graph and lacks the Node globals declared for src/.
+      'tools/download-embedding-model.mjs',
     ],
   },
 
@@ -97,11 +100,7 @@ export default tseslint.config(
             // surfaces consumed by interactive CLIs).
             {
               sourceTag: 'type:client',
-              onlyDependOnLibsWithTags: [
-                'type:client',
-                'type:ui',
-                'type:util',
-              ],
+              onlyDependOnLibsWithTags: ['type:client', 'type:ui', 'type:util'],
             },
             // Utils are leaves — they depend only on other utils.
             {

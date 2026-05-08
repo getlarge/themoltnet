@@ -37,6 +37,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  # See ci.yml for rationale — opt out of Nx auto-loading our
+  # dotenvx-encrypted .env at bin startup.
+  NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
   # CI's nx-affected gating may skip building an image when the project

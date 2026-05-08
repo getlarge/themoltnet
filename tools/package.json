@@ -24,8 +24,7 @@
     "resolve-issue": "tsx src/tasks/fulfill-brief.ts",
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
-    "smtp:test": "tsx src/test-smtp.ts",
-    "lint": "eslint src/"
+    "smtp:test": "tsx src/test-smtp.ts"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",

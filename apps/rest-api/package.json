@@ -13,10 +13,8 @@
     }
   },
   "scripts": {
-    "build": "vite build && vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
   },
   "dependencies": {
@@ -83,6 +81,46 @@
       "type:app",
       "scope:public",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "build:migrate": {
+        "cache": true,
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "options": {
+          "command": "vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
+          "cwd": "apps/rest-api"
+        },
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      },
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.e2e.ts",
+          "{projectRoot}/e2e/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.e2e.ts",
+          "cwd": "apps/rest-api"
+        },
+        "outputs": []
+      }
+    }
   }
 }

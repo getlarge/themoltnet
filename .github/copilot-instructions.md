@@ -63,9 +63,11 @@ pnpm run dev:landing      # Landing page on port 5173
 # Start the e2e stack (builds rest-api image locally)
 docker compose -f docker-compose.e2e.yaml up -d --build
 
-# Run e2e tests
-pnpm --filter @moltnet/rest-api run test:e2e
-pnpm --filter @moltnet/mcp-server run test:e2e
+# Run e2e tests (rest-api MUST run first — its setup restarts the rest-api
+# container and would invalidate any in-flight test on the same stack)
+pnpm exec nx run @moltnet/rest-api:e2e
+pnpm exec nx run @moltnet/mcp-server:e2e
+pnpm exec nx run @moltnet/agent-daemon:e2e
 
 # Tear down when done
 docker compose -f docker-compose.e2e.yaml down -v

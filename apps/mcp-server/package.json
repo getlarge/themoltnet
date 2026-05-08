@@ -16,7 +16,6 @@
     "dev": "tsx watch src/main.ts",
     "seed:task-app": "tsx e2e/seed-task-app.ts",
     "start": "node dist/main.js",
-    "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
   },
   "dependencies": {
@@ -68,6 +67,28 @@
       "type:app",
       "scope:public",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.e2e.ts",
+          "{projectRoot}/e2e/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.e2e.ts",
+          "cwd": "apps/mcp-server"
+        },
+        "outputs": []
+      }
+    }
   }
 }

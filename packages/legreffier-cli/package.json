@@ -16,10 +16,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
-    "lint": "eslint src/",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
-    "build": "vite build",
-    "test": "vitest run --passWithNoTests"
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "files": [
     "dist/index.js"

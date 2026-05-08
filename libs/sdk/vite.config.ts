@@ -27,6 +27,15 @@ export default defineConfig({
     ssr: 'src/index.ts',
     outDir: 'dist',
     emptyOutDir: true,
+    // Mirror the SSR entry as rolldownOptions.input so @nx/vite/plugin
+    // recognizes this as buildable (its isBuildable check reads
+    // build.lib || builder.buildApp || rollupOptions.input ||
+    // rolldownOptions.input — but NOT build.ssr). Vite's actual build
+    // is still driven by build.ssr; this field is a hint to the Nx
+    // inference layer.
+    rolldownOptions: {
+      input: 'src/index.ts',
+    },
   },
   ssr: {
     // Bundle private workspace packages into the SDK JS output.

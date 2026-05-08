@@ -12,12 +12,7 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {
-    "build": "vite build",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
-  },
+  "scripts": {},
   "dependencies": {
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:"
