@@ -100,11 +100,7 @@ export default tseslint.config(
             // surfaces consumed by interactive CLIs).
             {
               sourceTag: 'type:client',
-              onlyDependOnLibsWithTags: [
-                'type:client',
-                'type:ui',
-                'type:util',
-              ],
+              onlyDependOnLibsWithTags: ['type:client', 'type:ui', 'type:util'],
             },
             // Utils are leaves — they depend only on other utils.
             {

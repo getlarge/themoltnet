@@ -217,18 +217,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @moltnet/api-client build
+      - run: pnpm exec nx run @moltnet/api-client:build
 
-      - run: pnpm --filter @moltnet/crypto-service build
+      - run: pnpm exec nx run @moltnet/crypto-service:build
 
-      - run: pnpm --filter @themoltnet/sdk build
+      - run: pnpm exec nx run @themoltnet/sdk:build
 
-      - run: pnpm --filter @themoltnet/sdk test
+      - run: pnpm exec nx run @themoltnet/sdk:test
 
-      - run: pnpm --filter @themoltnet/sdk run check:pack
+      - run: pnpm exec nx run @themoltnet/sdk:check:pack
 
       - name: Check SDK type isolation
-        run: pnpm --filter @themoltnet/sdk check:types-isolation
+        run: pnpm exec nx run @themoltnet/sdk:check:types-isolation
 
       - name: Publish @themoltnet/sdk
         uses: nick-fields/retry@v4.0.0
@@ -264,11 +264,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @themoltnet/github-agent build
+      - run: pnpm exec nx run @themoltnet/github-agent:build
 
-      - run: pnpm --filter @themoltnet/github-agent test
+      - run: pnpm exec nx run @themoltnet/github-agent:test
 
-      - run: pnpm --filter @themoltnet/github-agent run check:pack
+      - run: pnpm exec nx run @themoltnet/github-agent:check:pack
 
       - name: Publish @themoltnet/github-agent
         uses: nick-fields/retry@v4.0.0
@@ -656,19 +656,19 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @moltnet/api-client build
+      - run: pnpm exec nx run @moltnet/api-client:build
 
-      - run: pnpm --filter @moltnet/crypto-service build
+      - run: pnpm exec nx run @moltnet/crypto-service:build
 
-      - run: pnpm --filter @themoltnet/sdk build
+      - run: pnpm exec nx run @themoltnet/sdk:build
 
-      - run: pnpm --filter @themoltnet/design-system build
+      - run: pnpm exec nx run @themoltnet/design-system:build
 
-      - run: pnpm --filter @themoltnet/legreffier build
+      - run: pnpm exec nx run @themoltnet/legreffier:build
 
-      - run: pnpm --filter @themoltnet/legreffier test
+      - run: pnpm exec nx run @themoltnet/legreffier:test
 
-      - run: pnpm --filter @themoltnet/legreffier run check:pack
+      - run: pnpm exec nx run @themoltnet/legreffier:check:pack
 
       - name: Publish @themoltnet/legreffier
         uses: nick-fields/retry@v4.0.0
@@ -704,13 +704,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @moltnet/tasks build
+      - run: pnpm exec nx run @moltnet/tasks:build
 
-      - run: pnpm --filter @themoltnet/agent-runtime build
+      - run: pnpm exec nx run @themoltnet/agent-runtime:build
 
-      - run: pnpm --filter @themoltnet/agent-runtime test
+      - run: pnpm exec nx run @themoltnet/agent-runtime:test
 
-      - run: pnpm --filter @themoltnet/agent-runtime run check:pack
+      - run: pnpm exec nx run @themoltnet/agent-runtime:check:pack
 
       - name: Publish @themoltnet/agent-runtime
         uses: nick-fields/retry@v4.0.0
@@ -746,21 +746,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @moltnet/api-client build
+      - run: pnpm exec nx run @moltnet/api-client:build
 
-      - run: pnpm --filter @moltnet/crypto-service build
+      - run: pnpm exec nx run @moltnet/crypto-service:build
 
-      - run: pnpm --filter @moltnet/tasks build
+      - run: pnpm exec nx run @moltnet/tasks:build
 
-      - run: pnpm --filter @themoltnet/agent-runtime build
+      - run: pnpm exec nx run @themoltnet/agent-runtime:build
 
-      - run: pnpm --filter @themoltnet/sdk build
+      - run: pnpm exec nx run @themoltnet/sdk:build
 
-      - run: pnpm --filter @themoltnet/pi-extension build
+      - run: pnpm exec nx run @themoltnet/pi-extension:build
 
-      - run: pnpm --filter @themoltnet/pi-extension test
+      - run: pnpm exec nx run @themoltnet/pi-extension:test
 
-      - run: pnpm --filter @themoltnet/pi-extension run check:pack
+      - run: pnpm exec nx run @themoltnet/pi-extension:check:pack
 
       - name: Publish @themoltnet/pi-extension
         uses: nick-fields/retry@v4.0.0
@@ -796,9 +796,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @themoltnet/design-system build
+      - run: pnpm exec nx run @themoltnet/design-system:build
 
-      - run: pnpm --filter @themoltnet/design-system run check:pack
+      - run: pnpm exec nx run @themoltnet/design-system:check:pack
 
       - name: Publish @themoltnet/design-system
         uses: nick-fields/retry@v4.0.0
