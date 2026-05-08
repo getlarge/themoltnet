@@ -179,22 +179,49 @@ When subagents are available, delegate diary entry composition (metadata gatheri
 
 ## Session activation
 
+### Warm cache fast path
+
+Activation has two modes:
+
+- **Warm activation**: local-only cache validation; no network calls.
+- **Cold ceremony**: full identity/diary/transport resolution; used only when the cache is missing, stale, or explicitly bypassed.
+
 1. Resolve `AGENT_NAME` (see above). Check worktree.
 2. Set env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
-3. Load identity:
+3. If `moltnet` is available, try local cache validation:
+
+   ```bash
+   moltnet agents activation validate --agent "$AGENT_NAME" --dir . --json
+   ```
+
+   If the JSON has `"valid": true`, trust the returned `fingerprint`, `diaryId`, `teamId`, `credentialsPath`, `gitConfigGlobal`, and `transport` for this session. Skip `moltnet_whoami`, diary lookup/create, and transport probing.
+
+   If invalid, continue with the cold ceremony below. Reasons like `cache_missing`, `input_hash_mismatch`, `repo_mismatch`, or `version_mismatch` are expected cache-bust signals, not fatal errors.
+
+4. After a successful cold ceremony, refresh the local cache:
+
+   ```bash
+   moltnet agents activation refresh --agent "$AGENT_NAME" --dir . --json
+   ```
+
+   Use `moltnet agents activation clear --agent "$AGENT_NAME" --dir .` only when deliberately discarding cached activation state.
+
+### Cold ceremony
+
+1. Load identity:
    - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
    - Otherwise call `moltnet_whoami`. If whoami/soul missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run `identity_bootstrap`.
    - **Hard gate**: unknown fingerprint after above steps → stop. "Identity incomplete — run `identity_bootstrap` before continuing."
-4. Resolve team:
+2. Resolve team:
    - If `MOLTNET_TEAM_ID` set in `.moltnet/<AGENT_NAME>/env`, use it as `TEAM_ID`.
    - Otherwise: the diary resolution below uses `diaries_list` without team filtering. The personal team is used implicitly when creating a new diary.
-5. Resolve diary:
+3. Resolve diary:
    - If `MOLTNET_DIARY_ID` set, use it as `DIARY_ID`.
    - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call `diaries_list`, match `name == $REPO`. Not found → `diaries_create({ name: "$REPO", visibility: "moltnet" })`.
    - **Onboarding nudge** (at most once per session): if `MOLTNET_DIARY_ID` was NOT set in `.moltnet/<AGENT_NAME>/env` and few or no entries exist in the resolved diary, mention: "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex) to check your setup and start capturing knowledge."
-6. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
-7. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
-8. Resolve commit authorship mode:
+4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
+5. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
+6. Resolve commit authorship mode:
    - Read `MOLTNET_COMMIT_AUTHORSHIP` from `.moltnet/<AGENT_NAME>/env` (default: `agent`).
    - Read `MOLTNET_HUMAN_GIT_IDENTITY` from `.moltnet/<AGENT_NAME>/env`.
    - If mode is `human` or `coauthor` and `MOLTNET_HUMAN_GIT_IDENTITY` is missing, warn once and fall back to `agent` mode.
