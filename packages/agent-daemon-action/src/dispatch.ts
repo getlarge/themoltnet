@@ -79,19 +79,16 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   }
 
   // From here: parsed.verb === 'fulfill', isPullRequest === false.
-  // The composite action materialised moltnet.json into MOLTNET_AGENT_DIR
-  // before us. SDK's connect() reads oauth2.client_id /
-  // oauth2.client_secret from that file and runs the
-  // client_credentials flow with auto-refresh on 401 — no bearer
+  // The composite action's materialize step extracted oauth2.client_id /
+  // oauth2.client_secret / endpoints.api from moltnet.json and exported
+  // them as MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET / MOLTNET_API_URL.
+  // connect() with no args reads those env vars itself and runs the
+  // OAuth client_credentials flow with auto-refresh on 401 — no bearer
   // token plumbing on our side.
   const teamId = required(env, 'MOLTNET_TEAM_ID');
   const diaryId = required(env, 'MOLTNET_DIARY_ID');
-  const configDir = required(env, 'MOLTNET_AGENT_DIR');
 
-  const moltnet = await connect({
-    apiUrl: env.MOLTNET_API_URL,
-    configDir,
-  });
+  const moltnet = await connect();
 
   const correlationId = await resolveCorrelation(
     {

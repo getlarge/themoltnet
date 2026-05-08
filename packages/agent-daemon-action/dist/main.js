@@ -34648,11 +34648,7 @@ async function dispatch(ctx) {
 	}
 	const teamId = required(env, "MOLTNET_TEAM_ID");
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
-	const configDir = required(env, "MOLTNET_AGENT_DIR");
-	const moltnet = await connect({
-		apiUrl: env.MOLTNET_API_URL,
-		configDir
-	});
+	const moltnet = await connect();
 	const correlationId = await resolveCorrelation({
 		contextType: "issue",
 		referenceUrl

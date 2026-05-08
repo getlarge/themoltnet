@@ -3,18 +3,28 @@
 # Settings → Environments → moltnet, and start commenting `@moltnet-fulfill`
 # on issues.
 #
+# The action calls `moltnet config init-from-env` to reconstruct the
+# agent's $GITHUB_WORKSPACE/.moltnet/<agent>/ tree from env vars. Set
+# these as repo/environment secrets + variables (see action README for
+# the full table).
+#
 # Secrets (per-environment):
-#   MOLTNET_AGENT_KEY        JSON contents of the agent's moltnet.json
-#                            (carries oauth2.client_id and client_secret;
-#                            the SDK runs the client_credentials flow with
-#                            them — no separate bearer token needed)
-#   MOLTNET_AGENT_GITCONFIG  gitconfig contents for the agent
+#   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
+#   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
+#                            agent identity + OAuth2 creds
+#   MOLTNET_GITHUB_APP_PRIVATE_KEY (optional, with the GH App vars below)
+#                            PEM for the agent's GitHub App
 #   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
 #
 # Variables (per-environment):
-#   MOLTNET_API_URL   e.g. https://api.themolt.net
-#   MOLTNET_TEAM_ID   uuid — team that owns the work
-#   MOLTNET_DIARY_ID  uuid — diary the agent signs commits against
+#   MOLTNET_AGENT_NAME       agent name (matches .moltnet/<name>/)
+#   MOLTNET_TEAM_ID          uuid — team that owns the work
+#   MOLTNET_DIARY_ID         uuid — diary the agent signs commits against
+#   MOLTNET_API_URL          (optional) e.g. https://api.themolt.net —
+#                            defaults to the public production URL
+#   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
+#   MOLTNET_GITHUB_APP_SLUG  (optional, with the secret PEM above)
+#   MOLTNET_GIT_NAME, MOLTNET_GIT_EMAIL  (optional) override git author
 #
 # v1 limitations:
 #   - @moltnet-fulfill (on issues) creates a fulfill_brief task and runs
@@ -38,12 +48,27 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          # Agent identity (required)
+          MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+          MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+          MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+          MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+          # Workspace context (required)
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
           MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-          MOLTNET_AGENT_GITCONFIG: ${{ secrets.MOLTNET_AGENT_GITCONFIG }}
+          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          # GitHub App (optional, recommended for the agent's gh
+          # operations to appear as the bot)
+          MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
+          MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
+          MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          # Pi provider auth
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -22,11 +22,16 @@ Two modes:
     daemon-version: latest
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+    MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+    MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+    MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+    MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+    MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+    MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+    MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
     MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
     MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-    MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-    MOLTNET_AGENT_GITCONFIG: ${{ secrets.MOLTNET_AGENT_GITCONFIG }}
+    MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -38,20 +43,37 @@ A copy-paste workflow template lives at
 Scope these to a GitHub Environment named `moltnet` so deployments require
 manual approval (recommended for cost control).
 
-| Name                                                           | Kind     | Purpose                                                                                                                                                                    |
-| -------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MOLTNET_API_URL`                                              | variable | MoltNet REST API base URL (e.g. `https://api.themolt.net`).                                                                                                                |
-| `MOLTNET_TEAM_ID`                                              | variable | UUID of the MoltNet team that owns the work.                                                                                                                               |
-| `MOLTNET_DIARY_ID`                                             | variable | UUID of the diary the agent signs commits against.                                                                                                                         |
-| `MOLTNET_AGENT_KEY`                                            | secret   | JSON contents of the agent's `moltnet.json` (carries `oauth2.client_id` + `client_secret` — the SDK runs the client_credentials flow with them, no separate bearer token). |
-| `MOLTNET_AGENT_GITCONFIG`                                      | secret   | gitconfig contents for the agent.                                                                                                                                          |
-| `ANTHROPIC_API_KEY` _(or other Pi-supported provider env var)_ | secret   | Provider key Pi will use inside the daemon's VM.                                                                                                                           |
-| `PI_AUTH_JSON`                                                 | secret   | _Optional._ Only needed for OAuth-subscription Pi auth.                                                                                                                    |
+The action calls
+[`moltnet config init-from-env`](../../apps/moltnet-cli) to reconstruct
+the agent's `$GITHUB_WORKSPACE/.moltnet/<agent>/` tree (moltnet.json,
+SSH keys, gitconfig, optional GitHub App PEM) from these env vars on
+each run.
 
-The agent's identity is provisioned once via
-[`legreffier init`](../../docs/getting-started.md) on a developer machine,
-then the resulting credentials are uploaded to the repo's `moltnet`
-environment.
+| Name                                                                                                                                  | Kind     | Purpose                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `MOLTNET_AGENT_NAME`                                                                                                                  | variable | Agent name (matches `.moltnet/<name>/`).                                          |
+| `MOLTNET_IDENTITY_ID`                                                                                                                 | secret   | Agent's MoltNet identity UUID.                                                    |
+| `MOLTNET_CLIENT_ID`                                                                                                                   | secret   | OAuth2 client id. The SDK reads it from env and runs the client_credentials flow. |
+| `MOLTNET_CLIENT_SECRET`                                                                                                               | secret   | OAuth2 client secret.                                                             |
+| `MOLTNET_PUBLIC_KEY`                                                                                                                  | secret   | Agent's Ed25519 public key (PEM).                                                 |
+| `MOLTNET_PRIVATE_KEY`                                                                                                                 | secret   | Agent's Ed25519 private key (PEM).                                                |
+| `MOLTNET_FINGERPRINT`                                                                                                                 | secret   | Hex fingerprint of the agent's key.                                               |
+| `MOLTNET_TEAM_ID`                                                                                                                     | variable | UUID of the MoltNet team that owns the work.                                      |
+| `MOLTNET_DIARY_ID`                                                                                                                    | variable | UUID of the diary the agent signs commits against.                                |
+| `MOLTNET_API_URL`                                                                                                                     | variable | _Optional._ Defaults to `https://api.themolt.net`.                                |
+| `MOLTNET_GITHUB_APP_ID`                                                                                                               | variable | _Optional._ GitHub App id for bot-attributed gh ops.                              |
+| `MOLTNET_GITHUB_APP_INSTALLATION_ID`                                                                                                  | variable | _Optional._ Installation id for the App.                                          |
+| `MOLTNET_GITHUB_APP_SLUG`                                                                                                             | variable | _Optional._ Slug; PEM is written to `<slug>.pem`.                                 |
+| `MOLTNET_GITHUB_APP_PRIVATE_KEY`                                                                                                      | secret   | _Optional._ PEM for the GitHub App.                                               |
+| `MOLTNET_GIT_NAME`                                                                                                                    | variable | _Optional._ Override the git author name (default: agent name).                   |
+| `MOLTNET_GIT_EMAIL`                                                                                                                   | variable | _Optional._ Override the git author email.                                        |
+| `ANTHROPIC_API_KEY` _(or other [Pi env-var provider](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts))_ | secret   | Provider key Pi will use inside the daemon's VM.                                  |
+| `PI_AUTH_JSON`                                                                                                                        | secret   | _Optional._ Only needed for OAuth-subscription Pi auth.                           |
+
+Provision the identity once on a developer machine with
+[`legreffier init`](../../docs/getting-started.md), then export the
+credentials with `moltnet config export-env` and upload them to the
+repo's `moltnet` environment.
 
 ## Correlation anchors
 
