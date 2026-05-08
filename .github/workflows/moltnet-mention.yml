@@ -117,7 +117,7 @@ jobs:
       issues: write
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./packages/agent-daemon-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
