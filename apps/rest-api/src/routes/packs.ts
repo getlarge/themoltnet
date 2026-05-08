@@ -55,7 +55,6 @@ interface ResolvedSelection {
     contentHash: string | null;
     importance: number;
     createdAt: Date;
-    injectionRisk: boolean;
   };
 }
 
@@ -179,25 +178,33 @@ async function loadSelectedEntries(
         contentHash: row.contentHash,
         importance: row.importance,
         createdAt: row.createdAt,
-        injectionRisk: row.injectionRisk,
       },
     };
   });
 }
 
 function assertNoInjectionRisk(selectedEntries: ResolvedSelection[]): void {
-  const flagged = selectedEntries.filter(({ row }) => row.injectionRisk);
-  if (flagged.length === 0) return;
+  // Live scan is authoritative. The stored `injection_risk` flag is a hint
+  // (and not always fresh — a scanner update doesn't retroactively re-flag
+  // entries), so the gate runs the current scanner over each candidate and
+  // bases the 409 on its result. This guarantees the `threats` payload in
+  // the error body always reflects what made the entry dangerous right now,
+  // and avoids the confusing case where the body says "flagged" but lists
+  // no specific threats.
+  const flagged = selectedEntries
+    .map(({ row }) => ({
+      id: row.id,
+      scan: scanForInjection(row.content, row.title),
+    }))
+    .filter(({ scan }) => scan.injectionRisk)
+    .map(({ id, scan }) => ({ id, threats: scan.threats }));
 
-  const flaggedDetail = flagged.map(({ row }) => {
-    const { threats } = scanForInjection(row.content, row.title);
-    return { id: row.id, threats };
-  });
+  if (flagged.length === 0) return;
 
   throw createProblem(
     'conflict',
     `Pack contains ${flagged.length} entry(ies) flagged as prompt-injection risk; pass force: true to override.`,
-    { flagged: flaggedDetail },
+    { flagged },
   );
 }
 
