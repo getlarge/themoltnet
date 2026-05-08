@@ -27569,18 +27569,15 @@ var require_github = /* @__PURE__ */ __commonJSMin(((exports) => {
 var import_core = /* @__PURE__ */ __toESM(require_core(), 1);
 var import_github = require_github();
 async function createTask(input, deps) {
+	const briefWithSource = input.brief.includes(input.referenceUrl) ? input.brief : `${input.brief}\n\nSource: ${input.referenceUrl}`;
 	const body = {
 		taskType: "fulfill_brief",
 		teamId: input.teamId,
 		diaryId: input.diaryId,
 		input: {
-			brief: input.brief,
+			brief: briefWithSource,
 			...input.title ? { title: input.title } : {}
 		},
-		references: [{
-			url: input.referenceUrl,
-			role: "source"
-		}],
 		correlationId: input.correlationId
 	};
 	const res = await deps.fetch(`${input.apiUrl}/tasks`, {
@@ -27636,34 +27633,29 @@ function parseMention({ body, isPullRequest }) {
 //#endregion
 //#region src/resolve-correlation.ts
 /**
-* Recover the chain's `correlationId` from any of four anchors written
-* by the daemon during a previous fulfill on the same issue/PR.
+* Recover the chain's `correlationId` from anchors written by the
+* daemon during a previous fulfill on the same PR.
 *
-* Resolution order:
-*   1. MoltNet API   — list tasks by reference URL, take any non-null id
-*   2. Branch name   — `moltnet/<id>/<slug>` on the PR head ref
-*   3. Commit trailer — `Moltnet-Correlation-Id: <id>` in any of the
+* Resolution order (PR-context only — issue-context has no prior chain
+* by definition and just generates a fresh UUID):
+*   1. Branch name    — `moltnet/<id>/<slug>` on the PR head ref
+*   2. Commit trailer — `Moltnet-Correlation-Id: <id>` in any of the
 *                       PR's commits (signed → tamper-evident)
-*   4. PR body marker — `<!-- moltnet-correlation: <id> -->`
+*   3. PR body marker — `<!-- moltnet-correlation: <id> -->`
+*
+* Once recovered, the caller can hit `GET /tasks?correlationId=<id>`
+* to fetch the rest of the chain — that filter exists in
+* ListTasksQuerySchema. There is no URL→correlation lookup; we never
+* need one because anchor sources 1–3 carry the id directly on the
+* GitHub-side artefacts the bot can already see.
 *
 * If none match, generates a fresh UUID — caller should treat that as
 * "start of a new chain".
-*
-* Issue-context calls (no PR yet) only consult anchor #1.
 */
 var BRANCH_RE = /^moltnet\/([0-9a-f-]{36})\//i;
 var TRAILER_RE = /^Moltnet-Correlation-Id:\s*([0-9a-f-]{36})\s*$/im;
 var MARKER_RE = /<!--\s*moltnet-correlation:\s*([0-9a-f-]{36})\s*-->/i;
 async function resolveCorrelation(input, deps) {
-	try {
-		const fromApi = await deps.moltnet.findCorrelationByReference(input.referenceUrl);
-		if (fromApi) {
-			deps.logger.info("resolveCorrelation: api hit", { source: "api" });
-			return fromApi;
-		}
-	} catch (err) {
-		deps.logger.warn("resolveCorrelation: api lookup failed", { err: String(err) });
-	}
 	if (input.contextType === "pr" && input.pr) {
 		const m1 = (await deps.gh.getPrHeadRef(input.pr).catch(() => null))?.match(BRANCH_RE);
 		if (m1) {
@@ -27678,10 +27670,10 @@ async function resolveCorrelation(input, deps) {
 				return m[1];
 			}
 		}
-		const m4 = (await deps.gh.getPrBody(input.pr).catch(() => null))?.match(MARKER_RE);
-		if (m4) {
+		const m3 = (await deps.gh.getPrBody(input.pr).catch(() => null))?.match(MARKER_RE);
+		if (m3) {
 			deps.logger.info("resolveCorrelation: body hit", { source: "body" });
-			return m4[1];
+			return m3[1];
 		}
 	}
 	const fresh = deps.randomUUID();
@@ -27696,10 +27688,10 @@ async function resolveCorrelation(input, deps) {
 /**
 * Dispatch entry — invoked by `actions/github-script` inside the
 * composite action. Reads the issue_comment payload, parses the mention,
-* resolves the correlationId across the four anchors, creates the task
-* (fulfill_brief only in v1), and emits the resulting task-id as an
-* action output. Assess mentions reply with a "deferred, blocked on
-* #881" comment instead of creating a task.
+* resolves the correlationId from PR-side anchors when applicable,
+* creates the task (fulfill_brief only in v1), and emits the resulting
+* task-id as an action output. Assess mentions reply with a "deferred,
+* blocked on #881" comment instead of creating a task.
 */
 var ASSESS_DEFERRED_NOTICE = "👋 `@moltnet-assess` is recognised but auto-dispatch is **deferred** until the rubric registry lands ([#881](https://github.com/getlarge/themoltnet/issues/881)). For now, create an `assess_brief` task manually via the REST API or MCP and run `moltnet-agent once --task-id <id>` against it.";
 async function dispatch(ctx) {
@@ -27731,13 +27723,6 @@ async function dispatch(ctx) {
 		contextType: "issue",
 		referenceUrl
 	}, {
-		moltnet: { async findCorrelationByReference(url) {
-			return findCorrelationByRefViaApi({
-				apiUrl,
-				agentToken,
-				url
-			});
-		} },
 		gh: {
 			async getPrHeadRef() {
 				return null;
@@ -27787,13 +27772,6 @@ function required(env, key) {
 	const v = env[key];
 	if (!v || v.trim() === "") throw new Error(`missing required env: ${key}`);
 	return v;
-}
-async function findCorrelationByRefViaApi(args) {
-	const res = await fetch(`${args.apiUrl}/tasks?reference_url=${encodeURIComponent(args.url)}&limit=10`, { headers: { authorization: `Bearer ${args.agentToken}` } });
-	if (!res.ok) return null;
-	const json = await res.json();
-	for (const item of json.items ?? []) if (item.correlationId) return item.correlationId;
-	return null;
 }
 //#endregion
 //#region src/main.ts

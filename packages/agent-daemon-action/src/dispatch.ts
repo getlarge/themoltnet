@@ -1,10 +1,10 @@
 /**
  * Dispatch entry — invoked by `actions/github-script` inside the
  * composite action. Reads the issue_comment payload, parses the mention,
- * resolves the correlationId across the four anchors, creates the task
- * (fulfill_brief only in v1), and emits the resulting task-id as an
- * action output. Assess mentions reply with a "deferred, blocked on
- * #881" comment instead of creating a task.
+ * resolves the correlationId from PR-side anchors when applicable,
+ * creates the task (fulfill_brief only in v1), and emits the resulting
+ * task-id as an action output. Assess mentions reply with a "deferred,
+ * blocked on #881" comment instead of creating a task.
  */
 
 import * as core from '@actions/core';
@@ -89,11 +89,6 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
       referenceUrl,
     },
     {
-      moltnet: {
-        async findCorrelationByReference(url) {
-          return findCorrelationByRefViaApi({ apiUrl, agentToken, url });
-        },
-      },
       gh: {
         // PR-only sources are unused for issue context; provide stubs.
         async getPrHeadRef() {
@@ -165,23 +160,4 @@ function required(env: NodeJS.ProcessEnv, key: string): string {
     throw new Error(`missing required env: ${key}`);
   }
   return v;
-}
-
-async function findCorrelationByRefViaApi(args: {
-  apiUrl: string;
-  agentToken: string;
-  url: string;
-}): Promise<string | null> {
-  const res = await fetch(
-    `${args.apiUrl}/tasks?reference_url=${encodeURIComponent(args.url)}&limit=10`,
-    { headers: { authorization: `Bearer ${args.agentToken}` } },
-  );
-  if (!res.ok) return null;
-  const json = (await res.json()) as {
-    items?: { correlationId: string | null }[];
-  };
-  for (const item of json.items ?? []) {
-    if (item.correlationId) return item.correlationId;
-  }
-  return null;
 }

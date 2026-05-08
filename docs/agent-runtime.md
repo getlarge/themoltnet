@@ -495,7 +495,7 @@ sequenceDiagram
 
   Human->>GH: comment "@moltnet-fulfill ..."
   GH->>Bot: issue_comment event
-  Bot->>API: GET /tasks?reference_url=...   (resolve correlationId)
+  Bot->>Bot: generate correlationId (issue context = fresh chain)
   Bot->>API: POST /tasks (fulfill_brief, correlationId)
   Bot->>Daemon: npx @themoltnet/agent-daemon once --task-id X
   Daemon->>API: claim
@@ -504,6 +504,12 @@ sequenceDiagram
   Daemon->>API: complete
   Daemon->>GH: PATCH PR body with <!-- moltnet-correlation: <corr> -->
 ```
+
+On a later `@moltnet-assess` against the resulting PR, the bot recovers
+the same `correlationId` from one of three PR-side anchors (branch
+name, first commit trailer, body marker) before calling
+`POST /tasks` again — see [Correlation anchors](#correlation-anchors)
+below.
 
 ### One-time setup per repo
 

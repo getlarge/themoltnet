@@ -2,7 +2,14 @@
  * Thin wrapper around `POST /tasks`. Body shape matches
  * `CreateTaskBodySchema` in apps/rest-api/src/schemas/tasks.ts:
  *
- *   { taskType, teamId, diaryId, input, references?, correlationId? }
+ *   { taskType, teamId, diaryId, input, correlationId? }
+ *
+ * The originating GitHub issue URL is embedded in the brief text the
+ * agent receives; the chain id (correlationId) is the durable link for
+ * downstream lookups. We do NOT populate `references[]` — that field
+ * is for typed task-to-task pointers (e.g. assess_brief→fulfill_brief,
+ * each ref carries the producer task's id + outputCid + a role enum)
+ * and an issue URL has no producer task.
  *
  * v1 only knows how to create `fulfill_brief` from this side. Auto-creating
  * `assess_brief` is deferred until the rubric registry (#881) gives the
@@ -15,6 +22,11 @@ export interface FulfillTaskInput {
   teamId: string;
   diaryId: string;
   correlationId: string;
+  /**
+   * GitHub issue URL the @moltnet-fulfill mention came from. Inlined
+   * into the brief so the agent has it as context; not stored in
+   * task.references.
+   */
   referenceUrl: string;
   title?: string;
   brief: string;
@@ -33,15 +45,18 @@ export async function createTask(
   input: FulfillTaskInput,
   deps: CreateTaskDeps,
 ): Promise<CreatedTask> {
+  const briefWithSource = input.brief.includes(input.referenceUrl)
+    ? input.brief
+    : `${input.brief}\n\nSource: ${input.referenceUrl}`;
+
   const body = {
     taskType: 'fulfill_brief',
     teamId: input.teamId,
     diaryId: input.diaryId,
     input: {
-      brief: input.brief,
+      brief: briefWithSource,
       ...(input.title ? { title: input.title } : {}),
     },
-    references: [{ url: input.referenceUrl, role: 'source' }],
     correlationId: input.correlationId,
   };
 

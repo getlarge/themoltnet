@@ -6,7 +6,7 @@ inputs:
       Existing MoltNet task id to claim and execute. When empty (the
       common path) the action runs the dispatcher: parses the
       issue_comment for a @moltnet-* mention, resolves correlationId
-      across the four anchors, and creates a fulfill_brief task.
+      from PR-side anchors, and creates a fulfill_brief task.
     required: false
     default: ''
   mode:

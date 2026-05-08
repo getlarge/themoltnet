@@ -69,22 +69,22 @@ To use an alternate auth-file path: `PI_AUTH_PATH=/abs/path/to/auth.json`.
 ## Correlation anchors
 
 When a `fulfill_brief` task carries a non-null `correlationId`, the daemon
-ensures that id ends up in four places so downstream consumers (the
-`@moltnet-*` mention bot, future auto-chaining) can recover it from at
-least one source:
+ensures that id ends up in three places on the PR so downstream consumers
+(the `@moltnet-*` mention bot, future auto-chaining) can recover it from
+at least one source:
 
-1. **MoltNet API** — `task.references` already links the issue/PR url.
-2. **Branch name** — `moltnet/<correlationId>/<slug>`.
-3. **First commit trailer** — `Moltnet-Correlation-Id: <uuid>`.
-4. **PR body marker** — `<!-- moltnet-correlation: <uuid> -->`.
+1. **Branch name** — `moltnet/<correlationId>/<slug>`.
+2. **First commit trailer** — `Moltnet-Correlation-Id: <uuid>`.
+3. **PR body marker** — `<!-- moltnet-correlation: <uuid> -->`.
 
-Anchors 2–3 are produced by the agent inside Pi (the system prompt
-mandates the format). Anchor 4 is appended by the daemon's finalize hook
-via the `gh` CLI. Anchor 1 is implicit in the task row.
+Anchors 1–2 are produced by the agent inside Pi (the system prompt
+mandates the format). Anchor 3 is appended by the daemon's finalize hook
+via the `gh` CLI. Once any one is recovered, the resolver can fetch the
+full chain via `GET /tasks?correlationId=<uuid>`.
 
 If any of the GitHub-side writes fails (rate limit, missing `gh`, network
-blip, …) the daemon logs and continues — the API anchor is the primary
-source of truth and does not depend on the others.
+blip, …) the daemon logs and continues — the other anchors are
+independent and at least one usually survives.
 
 ## License
 

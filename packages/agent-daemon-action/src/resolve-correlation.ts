@@ -1,18 +1,22 @@
 /**
- * Recover the chain's `correlationId` from any of four anchors written
- * by the daemon during a previous fulfill on the same issue/PR.
+ * Recover the chain's `correlationId` from anchors written by the
+ * daemon during a previous fulfill on the same PR.
  *
- * Resolution order:
- *   1. MoltNet API   — list tasks by reference URL, take any non-null id
- *   2. Branch name   — `moltnet/<id>/<slug>` on the PR head ref
- *   3. Commit trailer — `Moltnet-Correlation-Id: <id>` in any of the
+ * Resolution order (PR-context only — issue-context has no prior chain
+ * by definition and just generates a fresh UUID):
+ *   1. Branch name    — `moltnet/<id>/<slug>` on the PR head ref
+ *   2. Commit trailer — `Moltnet-Correlation-Id: <id>` in any of the
  *                       PR's commits (signed → tamper-evident)
- *   4. PR body marker — `<!-- moltnet-correlation: <id> -->`
+ *   3. PR body marker — `<!-- moltnet-correlation: <id> -->`
+ *
+ * Once recovered, the caller can hit `GET /tasks?correlationId=<id>`
+ * to fetch the rest of the chain — that filter exists in
+ * ListTasksQuerySchema. There is no URL→correlation lookup; we never
+ * need one because anchor sources 1–3 carry the id directly on the
+ * GitHub-side artefacts the bot can already see.
  *
  * If none match, generates a fresh UUID — caller should treat that as
  * "start of a new chain".
- *
- * Issue-context calls (no PR yet) only consult anchor #1.
  */
 
 const BRANCH_RE = /^moltnet\/([0-9a-f-]{36})\//i;
@@ -33,9 +37,6 @@ export interface ResolveInput {
 }
 
 export interface ResolveDeps {
-  moltnet: {
-    findCorrelationByReference(url: string): Promise<string | null>;
-  };
   gh: {
     getPrHeadRef(pr: PrCoords): Promise<string | null>;
     getPrCommitMessages(pr: PrCoords): Promise<string[]>;
@@ -52,23 +53,8 @@ export async function resolveCorrelation(
   input: ResolveInput,
   deps: ResolveDeps,
 ): Promise<string> {
-  // 1. MoltNet API
-  try {
-    const fromApi = await deps.moltnet.findCorrelationByReference(
-      input.referenceUrl,
-    );
-    if (fromApi) {
-      deps.logger.info('resolveCorrelation: api hit', { source: 'api' });
-      return fromApi;
-    }
-  } catch (err) {
-    deps.logger.warn('resolveCorrelation: api lookup failed', {
-      err: String(err),
-    });
-  }
-
   if (input.contextType === 'pr' && input.pr) {
-    // 2. Branch name
+    // 1. Branch name
     const headRef = await deps.gh.getPrHeadRef(input.pr).catch(() => null);
     const m1 = headRef?.match(BRANCH_RE);
     if (m1) {
@@ -76,7 +62,7 @@ export async function resolveCorrelation(
       return m1[1];
     }
 
-    // 3. Commit trailer
+    // 2. Commit trailer
     const commits = await deps.gh
       .getPrCommitMessages(input.pr)
       .catch(() => [] as string[]);
@@ -90,12 +76,12 @@ export async function resolveCorrelation(
       }
     }
 
-    // 4. PR body marker
+    // 3. PR body marker
     const body = await deps.gh.getPrBody(input.pr).catch(() => null);
-    const m4 = body?.match(MARKER_RE);
-    if (m4) {
+    const m3 = body?.match(MARKER_RE);
+    if (m3) {
       deps.logger.info('resolveCorrelation: body hit', { source: 'body' });
-      return m4[1];
+      return m3[1];
     }
   }
 

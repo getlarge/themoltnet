@@ -7,7 +7,8 @@ Two modes:
 1. **Mention-driven dispatch** _(default)_ — leave `task-id` empty. On an
    `issue_comment` trigger the action parses the comment for
    `@moltnet-fulfill` (issue) or `@moltnet-assess` (PR), resolves the
-   `correlationId` across four anchors, creates the task, and runs it.
+   `correlationId` from anchors on the PR (when applicable), creates the
+   task, and runs it.
 2. **Explicit task** — supply `task-id`. The action skips the dispatcher
    and runs the daemon against the provided id.
 
@@ -56,17 +57,20 @@ environment.
 
 ## Correlation anchors
 
-When the dispatcher runs against a PR comment, it tries four sources in
-order to recover the chain's `correlationId`:
+When the dispatcher runs against a PR comment, it tries three sources on
+the PR (in order) to recover the chain's `correlationId`:
 
-1. **MoltNet API** — `GET /tasks?reference_url=<url>` returns any prior
-   task on the same issue/PR with a non-null correlationId.
-2. **Branch name** — `moltnet/<correlationId>/<slug>` on the PR head ref.
-3. **First commit trailer** — `Moltnet-Correlation-Id: <uuid>`.
-4. **PR body marker** — `<!-- moltnet-correlation: <uuid> -->`.
+1. **Branch name** — `moltnet/<correlationId>/<slug>` on the PR head ref.
+2. **First commit trailer** — `Moltnet-Correlation-Id: <uuid>`.
+3. **PR body marker** — `<!-- moltnet-correlation: <uuid> -->`.
 
-If none match, a fresh UUID starts a new chain. v1 only resolves
-correlation on issue comments (anchor #1 only) since `@moltnet-assess`
+If none match, a fresh UUID starts a new chain. Once the id is
+recovered, downstream consumers can fetch the rest of the chain via
+`GET /tasks?correlationId=<uuid>` (the `correlationId` filter exists in
+`ListTasksQuerySchema`).
+
+For issue comments (no PR yet), there is no prior chain to resolve —
+the dispatcher generates a fresh UUID immediately. `@moltnet-assess`
 auto-dispatch is deferred (#881).
 
 ## Outputs

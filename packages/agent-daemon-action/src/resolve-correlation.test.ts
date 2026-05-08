@@ -6,7 +6,6 @@ const FRESH = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
 function makeDeps(overrides: Partial<ResolveDeps> = {}): ResolveDeps {
   return {
-    moltnet: { findCorrelationByReference: vi.fn().mockResolvedValue(null) },
     gh: {
       getPrHeadRef: vi.fn().mockResolvedValue(null),
       getPrCommitMessages: vi.fn().mockResolvedValue([]),
@@ -21,27 +20,7 @@ function makeDeps(overrides: Partial<ResolveDeps> = {}): ResolveDeps {
 describe('resolveCorrelation', () => {
   const PR = { owner: 'o', repo: 'r', number: 1 };
 
-  it('1. returns MoltNet API id when present', async () => {
-    const deps = makeDeps({
-      moltnet: {
-        findCorrelationByReference: vi
-          .fn()
-          .mockResolvedValue('11111111-2222-4333-8444-555555555555'),
-      },
-    });
-    const id = await resolveCorrelation(
-      {
-        contextType: 'pr',
-        referenceUrl: 'https://github.com/o/r/pull/1',
-        pr: PR,
-      },
-      deps,
-    );
-    expect(id).toBe('11111111-2222-4333-8444-555555555555');
-    expect(deps.gh.getPrHeadRef).not.toHaveBeenCalled();
-  });
-
-  it('2. falls back to branch-name when API misses', async () => {
+  it('1. resolves from branch name when set', async () => {
     const deps = makeDeps({
       gh: {
         getPrHeadRef: vi
@@ -62,7 +41,7 @@ describe('resolveCorrelation', () => {
     expect(id).toBe('22222222-3333-4444-8555-666666666666');
   });
 
-  it('3. falls back to commit trailer when API + branch miss', async () => {
+  it('2. falls back to commit trailer when branch miss', async () => {
     const deps = makeDeps({
       gh: {
         getPrHeadRef: vi.fn().mockResolvedValue('feature/x'),
@@ -85,7 +64,7 @@ describe('resolveCorrelation', () => {
     expect(id).toBe('33333333-4444-4555-8666-777777777777');
   });
 
-  it('4. falls back to PR body marker when commits miss', async () => {
+  it('3. falls back to PR body marker when commits miss', async () => {
     const deps = makeDeps({
       gh: {
         getPrHeadRef: vi.fn().mockResolvedValue('feature/x'),
@@ -120,41 +99,18 @@ describe('resolveCorrelation', () => {
     expect(id).toBe(FRESH);
   });
 
-  it('issue context only consults MoltNet API (skips PR-only anchors)', async () => {
+  it('issue context generates a fresh UUID without consulting any anchor', async () => {
     const deps = makeDeps();
-    await resolveCorrelation(
+    const id = await resolveCorrelation(
       {
         contextType: 'issue',
         referenceUrl: 'https://github.com/o/r/issues/9',
       },
       deps,
     );
+    expect(id).toBe(FRESH);
     expect(deps.gh.getPrHeadRef).not.toHaveBeenCalled();
     expect(deps.gh.getPrCommitMessages).not.toHaveBeenCalled();
     expect(deps.gh.getPrBody).not.toHaveBeenCalled();
-  });
-
-  it('survives MoltNet API errors and tries other anchors', async () => {
-    const deps = makeDeps({
-      moltnet: {
-        findCorrelationByReference: vi.fn().mockRejectedValue(new Error('500')),
-      },
-      gh: {
-        getPrHeadRef: vi
-          .fn()
-          .mockResolvedValue('moltnet/55555555-6666-4777-8888-999999999999/x'),
-        getPrCommitMessages: vi.fn().mockResolvedValue([]),
-        getPrBody: vi.fn().mockResolvedValue(null),
-      },
-    });
-    const id = await resolveCorrelation(
-      {
-        contextType: 'pr',
-        referenceUrl: 'https://github.com/o/r/pull/1',
-        pr: PR,
-      },
-      deps,
-    );
-    expect(id).toBe('55555555-6666-4777-8888-999999999999');
   });
 });

@@ -8,21 +8,26 @@ const execFileAsync = promisify(execFile);
 /**
  * Correlation anchor helpers.
  *
- * The daemon writes the task's correlationId in four places when finalizing
- * a fulfill_brief, so the mention-bot (or any external resolver) can recover
- * it from at least one source even if others are stripped: squash merges
- * lose trailers; PR bodies can be edited; comments can vanish.
+ * The daemon writes the task's correlationId in three places on the PR
+ * when finalizing a fulfill_brief, so the mention-bot (or any external
+ * resolver) can recover it from at least one source even if others are
+ * stripped: squash merges lose trailers; PR bodies can be edited;
+ * comments can vanish.
  *
- * Anchors:
- *   1. MoltNet API (task.references) — populated upstream, not here.
- *   2. Branch name      — `moltnet/<correlationId>/<slug>`
- *   3. Commit trailer   — `Moltnet-Correlation-Id: <uuid>` in the first commit
- *   4. PR body marker   — `<!-- moltnet-correlation: <uuid> -->`
+ * Anchors (PR-side):
+ *   1. Branch name    — `moltnet/<correlationId>/<slug>`
+ *   2. Commit trailer — `Moltnet-Correlation-Id: <uuid>` in the first commit
+ *   3. PR body marker — `<!-- moltnet-correlation: <uuid> -->`
  *
- * Anchors 2 and 3 are produced by the agent during the fulfill run (the
+ * Once any one is recovered, downstream consumers can hit
+ * `GET /tasks?correlationId=<id>` to fetch the full chain. The MoltNet
+ * API is NOT itself an anchor — it has no URL→correlation lookup —
+ * it is the consumer of the anchors.
+ *
+ * Anchors 1 and 2 are produced by the agent during the fulfill run (the
  * system prompt mandates the format); the helpers here build / validate
- * those strings. Anchor 4 is appended by the daemon's finalize hook after
- * the PR is opened.
+ * those strings. Anchor 3 is appended by the daemon's finalize hook
+ * after the PR is opened.
  */
 
 const MAX_SLUG_LEN = 60;

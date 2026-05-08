@@ -43,10 +43,38 @@ describe('createTask', () => {
       taskType: 'fulfill_brief',
       teamId: BASE_INPUT.teamId,
       diaryId: BASE_INPUT.diaryId,
-      input: { brief: 'Issue body...', title: 'Fix flaky test' },
-      references: [{ url: BASE_INPUT.referenceUrl, role: 'source' }],
+      input: {
+        brief: `Issue body...\n\nSource: ${BASE_INPUT.referenceUrl}`,
+        title: 'Fix flaky test',
+      },
       correlationId: BASE_INPUT.correlationId,
     });
+    // references is not populated — TaskRef requires a producer taskId +
+    // outputCid; an issue URL doesn't fit, and the brief carries the URL
+    // as prose for the agent.
+    expect((body as { references?: unknown }).references).toBeUndefined();
+  });
+
+  it('does not duplicate the source URL when brief already mentions it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 't' }),
+    });
+    await createTask(
+      {
+        ...BASE_INPUT,
+        brief: `Please fix ${BASE_INPUT.referenceUrl}`,
+      },
+      { fetch: fetchMock as unknown as typeof fetch },
+    );
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(init.body as string) as {
+      input: { brief: string };
+    };
+    // Exactly one occurrence
+    const occurrences =
+      body.input.brief.split(BASE_INPUT.referenceUrl).length - 1;
+    expect(occurrences).toBe(1);
   });
 
   it('omits title when not provided', async () => {
