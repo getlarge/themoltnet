@@ -346,40 +346,40 @@ describe('agent discovery', () => {
     const indexPath = join(__dirname, '../index.html');
     const indexHtml = readFileSync(indexPath, 'utf-8');
 
+    // Prettier wraps long <meta> tags across multiple lines when they
+    // exceed printWidth. Assert against the parsed DOM rather than the
+    // raw source so the test is whitespace-insensitive.
+    const dom = new DOMParser().parseFromString(indexHtml, 'text/html');
+    const metaContent = (name: string): string | null =>
+      dom.querySelector(`meta[name="${name}"]`)?.getAttribute('content') ??
+      null;
+
     it('has agent:mcp-endpoint meta tag', () => {
-      expect(indexHtml).toContain(
-        `<meta name="agent:mcp-endpoint" content="${AGENT_DISCOVERY.mcpEndpoint}" />`,
+      expect(metaContent('agent:mcp-endpoint')).toBe(
+        AGENT_DISCOVERY.mcpEndpoint,
       );
     });
 
     it('has agent:rest-endpoint meta tag', () => {
-      expect(indexHtml).toContain(
-        `<meta name="agent:rest-endpoint" content="${AGENT_DISCOVERY.restEndpoint}" />`,
+      expect(metaContent('agent:rest-endpoint')).toBe(
+        AGENT_DISCOVERY.restEndpoint,
       );
     });
 
     it('has agent:discovery meta tag', () => {
-      expect(indexHtml).toContain(
-        `<meta name="agent:discovery" content="${AGENT_DISCOVERY.discoveryUrl}" />`,
-      );
+      expect(metaContent('agent:discovery')).toBe(AGENT_DISCOVERY.discoveryUrl);
     });
 
     it('has agent:identity meta tag', () => {
-      expect(indexHtml).toContain(
-        `<meta name="agent:identity" content="${AGENT_DISCOVERY.identity}" />`,
-      );
+      expect(metaContent('agent:identity')).toBe(AGENT_DISCOVERY.identity);
     });
 
     it('has agent:transport meta tag', () => {
-      expect(indexHtml).toContain(
-        `<meta name="agent:transport" content="${AGENT_DISCOVERY.transport}" />`,
-      );
+      expect(metaContent('agent:transport')).toBe(AGENT_DISCOVERY.transport);
     });
 
     it('has agent:status meta tag', () => {
-      expect(indexHtml).toContain(
-        `<meta name="agent:status" content="${AGENT_DISCOVERY.status}" />`,
-      );
+      expect(metaContent('agent:status')).toBe(AGENT_DISCOVERY.status);
     });
   });
 });
