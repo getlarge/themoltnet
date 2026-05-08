@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.37.0](https://github.com/getlarge/themoltnet/compare/cli-v1.36.2...cli-v1.37.0) (2026-05-08)
+
+
+### Features
+
+* **cli:** cache LeGreffier warm activation ([9ede1de](https://github.com/getlarge/themoltnet/commit/9ede1deaebffa7c4ec8e85560c4b95cad0d0902e))
+
+
+### Bug Fixes
+
+* **cli:** keep activation transport session-local ([552b54d](https://github.com/getlarge/themoltnet/commit/552b54dc4918d2f4fe08511bdbe9b30c2103d935))
+
 ## [1.36.2](https://github.com/getlarge/themoltnet/compare/cli-v1.36.1...cli-v1.36.2) (2026-05-08)
 
 
