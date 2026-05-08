@@ -64,6 +64,11 @@ jobs:
         id: extract
         env:
           BODY: ${{ github.event.comment.body }}
+          # Comma-separated list of agent names allowed to receive
+          # mentions. Without this, anyone who can comment could route
+          # the workflow into any GitHub Environment that exists on the
+          # repo (#1039). Empty/unset = no agents allowed (fail-closed).
+          ALLOWLIST: ${{ vars.MOLTNET_AGENT_ALLOWLIST }}
         run: |
           set -euo pipefail
           # Match @moltnet-{fulfill,assess}[<agent>] — capture <agent>.
@@ -74,6 +79,26 @@ jobs:
             AGENT="${BASH_REMATCH[2]}"
           else
             AGENT=legreffier
+          fi
+          # Allowlist gate: reject before emitting `agent` so the
+          # dispatch job (which routes via `environment:` on the parse
+          # output) never enters an unintended env. Comma-separated,
+          # optional whitespace tolerated.
+          if [ -z "${ALLOWLIST:-}" ]; then
+            echo "::error::MOLTNET_AGENT_ALLOWLIST repo variable is not set; refusing to route. Add it under repo Settings → Variables (e.g. 'legreffier' or 'legreffier,assessor')." >&2
+            exit 1
+          fi
+          ok=0
+          IFS=',' read -ra ALLOWED <<< "$ALLOWLIST"
+          for a in "${ALLOWED[@]}"; do
+            # Strip surrounding whitespace.
+            a="${a#"${a%%[![:space:]]*}"}"
+            a="${a%"${a##*[![:space:]]}"}"
+            if [ "$a" = "$AGENT" ]; then ok=1; break; fi
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::Agent '$AGENT' is not in MOLTNET_AGENT_ALLOWLIST ('$ALLOWLIST'). Update the repo variable to authorize this agent." >&2
+            exit 1
           fi
           echo "agent=$AGENT" >> "$GITHUB_OUTPUT"
           echo "::notice::Routing to environment '$AGENT'"
