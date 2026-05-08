@@ -58,10 +58,7 @@ export interface AgentRuntimeOptions {
    * Called inside the loop, immediately after each task's executor
    * resolves and the cancel-signal override has been applied. The
    * callback owns translating the `TaskOutput` into the wire-side
-   * terminal call (`/complete`, `/fail`, …). Receives the original
-   * `ClaimedTask` so finalize-time logic (e.g. evaluating
-   * `task.input.successCriteria` before /complete) can read fields on
-   * the task input without re-fetching. Without this hook, sources
+   * terminal call (`/complete`, `/fail`, …). Without this hook, sources
    * that never terminate (e.g. long-polling) would never finalize a
    * task, causing every claimed lease to expire even when the executor
    * resolved cleanly. Errors thrown here are logged but do NOT abort
@@ -69,10 +66,7 @@ export interface AgentRuntimeOptions {
    * next claim. Run-once sources (file fixtures, `--stop-when-empty`)
    * can omit this hook and finalize in bulk after `start()` resolves.
    */
-  onTaskFinished?: (
-    claimedTask: ClaimedTask,
-    output: TaskOutput,
-  ) => Promise<void>;
+  onTaskFinished?: (output: TaskOutput) => Promise<void>;
   /** Lifecycle logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
 }
@@ -213,7 +207,7 @@ export class AgentRuntime {
         // finalize failure must not block the next claim.
         if (this.opts.onTaskFinished) {
           try {
-            await this.opts.onTaskFinished(claimedTask, output);
+            await this.opts.onTaskFinished(output);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             taskLogger.error(

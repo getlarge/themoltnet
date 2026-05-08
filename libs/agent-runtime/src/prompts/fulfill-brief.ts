@@ -1,6 +1,7 @@
 import type { FulfillBriefInput } from '@moltnet/tasks';
 
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -72,6 +73,7 @@ export function buildFulfillBriefPrompt(
     '   `MoltNet-Diary: <id>` (per the runtime instructor).',
     '6. Push the branch and open a PR.',
     '',
+    buildSelfVerificationBlock(ctx.taskId),
     buildFinalOutputBlock({
       taskType: 'fulfill_brief',
       outputSchemaName: 'FulfillBriefOutput',
@@ -81,7 +83,8 @@ export function buildFulfillBriefPrompt(
         '  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],',
         '  "pullRequestUrl": "<url-or-null>",',
         '  "diaryEntryIds": ["..."],',
-        '  "summary": "<1-3 sentence recap>"',
+        '  "summary": "<1-3 sentence recap>",',
+        '  "verification": <required iff input.successCriteria; see Self-verification>',
         '}',
       ].join('\n'),
     }),

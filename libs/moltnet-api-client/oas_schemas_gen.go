@@ -1464,7 +1464,6 @@ type CompleteTaskReq struct {
 	Output              CompleteTaskReqOutput              `json:"output"`
 	OutputCid           string                             `json:"outputCid"`
 	Usage               TaskUsage                          `json:"usage"`
-	Verification        OptCompleteTaskReqVerification     `json:"verification"`
 }
 
 // GetContentSignature returns the value of ContentSignature.
@@ -1502,11 +1501,6 @@ func (s *CompleteTaskReq) GetUsage() TaskUsage {
 	return s.Usage
 }
 
-// GetVerification returns the value of Verification.
-func (s *CompleteTaskReq) GetVerification() OptCompleteTaskReqVerification {
-	return s.Verification
-}
-
 // SetContentSignature sets the value of ContentSignature.
 func (s *CompleteTaskReq) SetContentSignature(val OptString) {
 	s.ContentSignature = val
@@ -1542,11 +1536,6 @@ func (s *CompleteTaskReq) SetUsage(val TaskUsage) {
 	s.Usage = val
 }
 
-// SetVerification sets the value of Verification.
-func (s *CompleteTaskReq) SetVerification(val OptCompleteTaskReqVerification) {
-	s.Verification = val
-}
-
 type CompleteTaskReqExecutorManifest map[string]jx.Raw
 
 func (s *CompleteTaskReqExecutorManifest) init() CompleteTaskReqExecutorManifest {
@@ -1561,17 +1550,6 @@ func (s *CompleteTaskReqExecutorManifest) init() CompleteTaskReqExecutorManifest
 type CompleteTaskReqOutput map[string]jx.Raw
 
 func (s *CompleteTaskReqOutput) init() CompleteTaskReqOutput {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-type CompleteTaskReqVerification map[string]jx.Raw
-
-func (s *CompleteTaskReqVerification) init() CompleteTaskReqVerification {
 	m := *s
 	if m == nil {
 		m = map[string]jx.Raw{}
@@ -13478,51 +13456,6 @@ func (o NilTaskAttemptUsage) Or(d TaskAttemptUsage) TaskAttemptUsage {
 	return d
 }
 
-// NewNilTaskAttemptVerification returns new NilTaskAttemptVerification with value set to v.
-func NewNilTaskAttemptVerification(v TaskAttemptVerification) NilTaskAttemptVerification {
-	return NilTaskAttemptVerification{
-		Value: v,
-	}
-}
-
-// NilTaskAttemptVerification is nullable TaskAttemptVerification.
-type NilTaskAttemptVerification struct {
-	Value TaskAttemptVerification
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilTaskAttemptVerification) SetTo(v TaskAttemptVerification) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilTaskAttemptVerification) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilTaskAttemptVerification) SetToNull() {
-	o.Null = true
-	var v TaskAttemptVerification
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilTaskAttemptVerification) Get() (v TaskAttemptVerification, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilTaskAttemptVerification) Or(d TaskAttemptVerification) TaskAttemptVerification {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewNilUUID returns new NilUUID with value set to v.
 func NewNilUUID(v uuid.UUID) NilUUID {
 	return NilUUID{
@@ -13792,52 +13725,6 @@ func (o OptCompleteTaskReqExecutorManifest) Get() (v CompleteTaskReqExecutorMani
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCompleteTaskReqExecutorManifest) Or(d CompleteTaskReqExecutorManifest) CompleteTaskReqExecutorManifest {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCompleteTaskReqVerification returns new OptCompleteTaskReqVerification with value set to v.
-func NewOptCompleteTaskReqVerification(v CompleteTaskReqVerification) OptCompleteTaskReqVerification {
-	return OptCompleteTaskReqVerification{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCompleteTaskReqVerification is optional CompleteTaskReqVerification.
-type OptCompleteTaskReqVerification struct {
-	Value CompleteTaskReqVerification
-	Set   bool
-}
-
-// IsSet returns true if OptCompleteTaskReqVerification was set.
-func (o OptCompleteTaskReqVerification) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCompleteTaskReqVerification) Reset() {
-	var v CompleteTaskReqVerification
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCompleteTaskReqVerification) SetTo(v CompleteTaskReqVerification) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCompleteTaskReqVerification) Get() (v CompleteTaskReqVerification, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCompleteTaskReqVerification) Or(d CompleteTaskReqVerification) CompleteTaskReqVerification {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -20280,7 +20167,6 @@ type TaskAttempt struct {
 	Status                       TaskAttemptStatus                       `json:"status"`
 	TaskId                       uuid.UUID                               `json:"taskId"`
 	Usage                        NilTaskAttemptUsage                     `json:"usage"`
-	Verification                 NilTaskAttemptVerification              `json:"verification"`
 }
 
 // GetAttemptN returns the value of AttemptN.
@@ -20373,11 +20259,6 @@ func (s *TaskAttempt) GetUsage() NilTaskAttemptUsage {
 	return s.Usage
 }
 
-// GetVerification returns the value of Verification.
-func (s *TaskAttempt) GetVerification() NilTaskAttemptVerification {
-	return s.Verification
-}
-
 // SetAttemptN sets the value of AttemptN.
 func (s *TaskAttempt) SetAttemptN(val float64) {
 	s.AttemptN = val
@@ -20466,11 +20347,6 @@ func (s *TaskAttempt) SetTaskId(val uuid.UUID) {
 // SetUsage sets the value of Usage.
 func (s *TaskAttempt) SetUsage(val NilTaskAttemptUsage) {
 	s.Usage = val
-}
-
-// SetVerification sets the value of Verification.
-func (s *TaskAttempt) SetVerification(val NilTaskAttemptVerification) {
-	s.Verification = val
 }
 
 type TaskAttemptClaimedExecutorManifest map[string]jx.Raw
@@ -20701,17 +20577,6 @@ func (s *TaskAttemptUsage) SetProvider(val OptString) {
 // SetToolCalls sets the value of ToolCalls.
 func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
-}
-
-type TaskAttemptVerification map[string]jx.Raw
-
-func (s *TaskAttemptVerification) init() TaskAttemptVerification {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
 }
 
 // Ref: #/components/schemas/TaskError

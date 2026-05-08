@@ -211,7 +211,7 @@ describe('Agent daemon (e2e)', () => {
 
     // The runtime hands the output off; the daemon is responsible for
     // reporting it. Use the daemon's actual finalize helper.
-    await finalizeTask(agent, { task: created, attemptN: 1 }, output);
+    await finalizeTask(agent, output);
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
@@ -307,7 +307,7 @@ describe('Agent daemon (e2e)', () => {
     // finalizeTask is a no-op for cancelled outputs — calling /complete
     // or /fail after cancel returns 409 because the row is already
     // terminal.
-    await finalizeTask(agent, { task: created, attemptN: 1 }, output);
+    await finalizeTask(agent, output);
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('cancelled');

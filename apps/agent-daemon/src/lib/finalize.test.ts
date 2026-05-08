@@ -1,9 +1,4 @@
-import type {
-  Task,
-  TaskOutput,
-  VerificationRecord,
-  VerificationResult,
-} from '@moltnet/tasks';
+import type { TaskOutput } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,40 +7,11 @@ import { finalizeTask } from './finalize.js';
 interface CompleteBody {
   output: Record<string, unknown>;
   outputCid: string;
-  verification?: VerificationRecord;
+  contentSignature?: string;
 }
 
 interface FailBody {
   error: { code: string; message: string; retryable?: boolean };
-}
-
-function makeTask(input: Record<string, unknown>): Task {
-  return {
-    id: 't1',
-    taskType: 'fulfill_brief',
-    teamId: '11111111-1111-4111-8111-111111111111',
-    diaryId: null,
-    outputKind: 'artifact',
-    input,
-    inputSchemaCid: 'bafy-schema',
-    inputCid: 'bafy-input',
-    references: [],
-    correlationId: null,
-    imposedByAgentId: null,
-    imposedByHumanId: null,
-    acceptedAttemptN: null,
-    requiredExecutorTrustLevel: 'selfDeclared',
-    status: 'running',
-    queuedAt: '2026-05-07T00:00:00.000Z',
-    completedAt: null,
-    expiresAt: null,
-    cancelledByAgentId: null,
-    cancelledByHumanId: null,
-    cancelReason: null,
-    maxAttempts: 1,
-    dispatchTimeoutSec: null,
-    runningTimeoutSec: null,
-  } as unknown as Task;
 }
 
 function makeOutput(
@@ -91,123 +57,58 @@ describe('finalizeTask', () => {
     stub = makeAgent();
   });
 
-  it('calls /complete with no verification when input has no successCriteria', async () => {
-    const task = makeTask({ brief: 'do the thing' });
-    const output = makeOutput('completed', { branch: 'feat/x' });
-    await finalizeTask(stub.agent, { task, attemptN: 1 }, output);
+  it('passes the LLM output through unchanged on /complete', async () => {
+    // The LLM is the sole author of any `verification` block; the daemon
+    // does not evaluate input.successCriteria. If the LLM put a
+    // verification block inside its output, it travels to the server
+    // verbatim — the daemon does not inspect it.
+    const output = makeOutput('completed', {
+      branch: 'feat/x',
+      verification: {
+        inputCid: 'bafy-input',
+        results: [{ id: 'has-pr', kind: 'assertion', status: 'fail' }],
+        passed: false,
+      },
+    });
+    await finalizeTask(stub.agent, output);
 
     expect(stub.complete).toHaveBeenCalledTimes(1);
     expect(stub.fail).not.toHaveBeenCalled();
-    expect(stub.complete.mock.calls[0][2].verification).toBeUndefined();
+    const body = stub.complete.mock.calls[0][2];
+    expect(body.output).toEqual(output.output);
+    expect(body.outputCid).toBe('bafy-out');
   });
 
-  it('attaches verification.passed=true when all assertions pass', async () => {
-    const task = makeTask({
-      brief: 'do',
-      successCriteria: {
-        version: 1,
-        assertions: [
-          { id: 'has-branch', path: 'branch', op: 'exists' },
-          {
-            id: 'branch-prefix',
-            path: 'branch',
-            op: 'matches',
-            value: '^feat/',
-          },
-        ],
-      },
-    });
+  it('omits verification when the LLM did not include one', async () => {
     const output = makeOutput('completed', { branch: 'feat/x' });
-    await finalizeTask(stub.agent, { task, attemptN: 1 }, output);
+    await finalizeTask(stub.agent, output);
 
     expect(stub.complete).toHaveBeenCalledTimes(1);
-    const verification = stub.complete.mock.calls[0][2].verification!;
-    expect(verification).toMatchObject({
-      inputCid: 'bafy-input',
-      passed: true,
-    });
-    expect(verification.results).toHaveLength(2);
-    expect(verification.results.every((r) => r.status === 'pass')).toBe(true);
+    const body = stub.complete.mock.calls[0][2];
+    expect(body.output).toEqual({ branch: 'feat/x' });
   });
 
-  it('hard-fails the attempt when a required assertion fails', async () => {
-    const task = makeTask({
-      brief: 'do',
-      successCriteria: {
-        version: 1,
-        assertions: [{ id: 'has-pr', path: 'pullRequestUrl', op: 'exists' }],
-      },
-    });
+  it('forwards contentSignature when present', async () => {
     const output = makeOutput('completed', { branch: 'feat/x' });
-    await finalizeTask(stub.agent, { task, attemptN: 1 }, output);
+    output.contentSignature = 'sig-abc';
+    await finalizeTask(stub.agent, output);
 
-    expect(stub.complete).not.toHaveBeenCalled();
-    expect(stub.fail).toHaveBeenCalledTimes(1);
-    const error = stub.fail.mock.calls[0][2].error;
-    expect(error.code).toBe('criteria_unmet');
-    expect(error.retryable).toBe(true);
-    expect(error.message).toContain('has-pr');
-  });
-
-  it('reports gate/rubric/sideEffect criteria as informational skips', async () => {
-    const task = makeTask({
-      brief: 'do',
-      successCriteria: {
-        version: 1,
-        gates: [
-          {
-            id: 'shape',
-            kind: 'schema-check',
-            spec: { schemaCid: 'bafy-schema' },
-            required: true,
-          },
-        ],
-        rubric: {
-          rubricId: 'r',
-          version: 'v1',
-          criteria: [
-            { id: 'c', description: 'd', weight: 1, scoring: 'llm_score' },
-          ],
-        },
-        minComposite: 0.5,
-        sideEffects: { diaryEntryRequired: true },
-        assertions: [{ id: 'ok', path: 'branch', op: 'exists' }],
-      },
-    });
-    const output = makeOutput('completed', { branch: 'feat/x' });
-    await finalizeTask(stub.agent, { task, attemptN: 1 }, output);
-
-    // Assertions pass, the rest are skipped (Stage 3 v1) — overall pass.
     expect(stub.complete).toHaveBeenCalledTimes(1);
-    expect(stub.fail).not.toHaveBeenCalled();
-    const verification = stub.complete.mock.calls[0][2].verification!;
-    const skipped = verification.results.filter(
-      (r: VerificationResult) => r.status === 'skip',
-    );
-    expect(skipped.map((r) => r.id).sort()).toEqual([
-      'rubric-composite',
-      'shape',
-      'sideEffect-diaryEntryRequired',
-    ]);
-    expect(verification.passed).toBe(true);
+    expect(stub.complete.mock.calls[0][2].contentSignature).toBe('sig-abc');
   });
 
-  it('passes through failed and cancelled outputs unchanged', async () => {
-    const task = makeTask({ brief: 'do' });
+  it('calls /fail with the executor-provided error', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'oops', message: 'broke' };
-    await finalizeTask(stub.agent, { task, attemptN: 1 }, failed);
+    await finalizeTask(stub.agent, failed);
+
     expect(stub.fail).toHaveBeenCalledTimes(1);
     const error = stub.fail.mock.calls[0][2].error;
     expect(error.code).toBe('oops');
+  });
 
-    stub.fail.mockClear();
-    stub.complete.mockClear();
-    await finalizeTask(
-      stub.agent,
-      { task, attemptN: 1 },
-      makeOutput('cancelled', null),
-    );
+  it('is a no-op for cancelled outputs', async () => {
+    await finalizeTask(stub.agent, makeOutput('cancelled', null));
     expect(stub.fail).not.toHaveBeenCalled();
     expect(stub.complete).not.toHaveBeenCalled();
   });

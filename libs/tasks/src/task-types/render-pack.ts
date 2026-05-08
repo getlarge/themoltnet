@@ -15,7 +15,7 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
-import { SuccessCriteria } from '../success-criteria.js';
+import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const RENDER_PACK_TYPE = 'render_pack' as const;
 
@@ -73,6 +73,13 @@ export const RenderPackOutput = Type.Object(
 
     /** 1–3 sentence summary. */
     summary: Type.String({ minLength: 1 }),
+
+    /**
+     * Producer self-assessment against `input.successCriteria`. REQUIRED
+     * when `input.successCriteria` is set; MUST be omitted otherwise.
+     * See `SuccessCriteria` for the producer/judge model.
+     */
+    verification: Type.Optional(VerificationRecord),
   },
   { $id: 'RenderPackOutput', additionalProperties: false },
 );

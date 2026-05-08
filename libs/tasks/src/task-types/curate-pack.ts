@@ -16,7 +16,7 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
-import { SuccessCriteria } from '../success-criteria.js';
+import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const CURATE_PACK_TYPE = 'curate_pack' as const;
 
@@ -153,6 +153,13 @@ export const CuratePackOutput = Type.Object(
 
     /** 2–4 sentence narrative of the curation reasoning. */
     summary: Type.String({ minLength: 1 }),
+
+    /**
+     * Producer self-assessment against `input.successCriteria`. REQUIRED
+     * when `input.successCriteria` is set; MUST be omitted otherwise.
+     * See `SuccessCriteria` for the producer/judge model.
+     */
+    verification: Type.Optional(VerificationRecord),
   },
   { $id: 'CuratePackOutput', additionalProperties: false },
 );

@@ -1,5 +1,6 @@
 /**
- * SuccessCriteria — imposer-stated, machine-verifiable acceptance criteria.
+ * SuccessCriteria — imposer-stated acceptance criteria, evaluated in two
+ * complementary places.
  *
  * Before this envelope existed, criteria were scattered: a vestigial
  * `criteriaCid` column nobody resolved, an `acceptanceCriteria: string[]`
@@ -8,29 +9,45 @@
  * inputs. None of those were machine-verifiable end-to-end.
  *
  * This module defines a single, content-addressable envelope an imposer
- * can attach to any task type. It has four orthogonal sections — pick
+ * attaches to any task type. It has four orthogonal sections — pick
  * whichever apply per task type:
  *
  *   - `gates`        Deterministic structural checks (CID/schema match)
  *   - `assertions`   Declarative claims about output JSON
- *   - `rubric`       Existing weighted-criteria scoring instrument,
- *                    reused verbatim from `./rubric.ts`. Dual-use:
- *                    the *acceptance threshold* on fulfillment tasks
- *                    AND the *job spec* on judgment tasks (#1025).
+ *   - `rubric`       Weighted-criteria scoring instrument, reused
+ *                    verbatim from `./rubric.ts`.
  *   - `sideEffects`  Required process side-effects (e.g. diary entry)
  *
- * Failure semantics (executor-side):
- *   - Required gate or assertion fails → POST /fail
- *     (deterministic — output objectively does not match the spec).
- *   - Only rubric `minComposite` or sideEffects unmet → POST /complete
- *     with `verification.passed=false`. `acceptedAttemptN` stays null
- *     until the imposer accepts (judgment, not blunt failure).
- *   - All passed → POST /complete with `verification.passed=true`.
+ * ## Two roles, two task types
+ *
+ * **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
+ * `curate_pack`, `render_pack`). The producer's daemon evaluates the
+ * deterministic parts (`assertions` today; gates/sideEffects later) over
+ * its own output and reports the result as a `VerificationRecord`
+ * attached to /complete. This is a truthful self-rating, NOT enforcement
+ * — `verification.passed=false` does not block /complete and does not
+ * affect `acceptedAttemptN`. The REST API is dumb storage; it never
+ * re-runs assertions and never runs LLMs. Self-assessment exists so
+ * imposers (and analytics) can see what the producer thinks of its own
+ * work without waiting for a binding judgment.
+ *
+ * **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
+ * A separate task whose IS the application of `successCriteria` to
+ * someone else's output. Different agent (enforced at claim time), same
+ * envelope. The judge's verdict is binding: this is the *gate* in the
+ * MoltNet model. The rubric inside `successCriteria.rubric` IS the job
+ * spec for the judge.
+ *
+ * The clean chain: producer task with `successCriteria` → producer
+ * self-assesses honestly → imposer (or automation) creates a downstream
+ * judgment task that references the same `successCriteria` (or a
+ * stricter rubric) → judgment task delivers the binding verdict.
  *
  * Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
  * pinned via the task's `inputCid`. No separate column or hash. When
  * #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
- * without changing this envelope.
+ * without changing this envelope, and producer + judge tasks can pin
+ * the SAME rubric across the chain for end-to-end auditability.
  */
 import { type Static, Type } from '@sinclair/typebox';
 
@@ -174,8 +191,11 @@ export const SuccessCriteria = Type.Object(
 export type SuccessCriteria = Static<typeof SuccessCriteria>;
 
 // ---------------------------------------------------------------------------
-// Verification record — what the daemon attaches to /complete and the
-// server re-runs (assertions only) to detect tampering.
+// Verification record — the producer daemon's truthful self-assessment,
+// attached to /complete and persisted onto `task_attempts.verification`.
+// NOT a binding evaluation: the REST API does not re-run assertions and
+// `verification.passed=false` does not block /complete. The binding gate
+// is a downstream judgment task. See the file header for the full model.
 // ---------------------------------------------------------------------------
 
 export const VerificationResultStatus = Type.Union(
@@ -209,14 +229,19 @@ export type VerificationResult = Static<typeof VerificationResult>;
 export const VerificationRecord = Type.Object(
   {
     /**
-     * `inputCid` of the task whose criteria the daemon evaluated against.
-     * Pins the verification to a specific input document so the server
-     * can detect tampering by re-running assertions against the same
-     * input.successCriteria.
+     * `inputCid` of the task this self-assessment was evaluated against.
+     * Pins the record to a specific input version so audit can confirm
+     * "this self-assessment was produced against this exact criteria
+     * document" (e.g. when comparing against a later judgment task that
+     * applied the same criteria).
      */
     inputCid: Type.String({ minLength: 1 }),
     results: Type.Array(VerificationResult),
-    /** True iff every required result passed. */
+    /**
+     * True iff every result either passed or was skipped (no fail).
+     * Advisory only — does NOT gate /complete or affect
+     * `acceptedAttemptN`. Binding evaluation is the judge's role.
+     */
     passed: Type.Boolean(),
   },
   { $id: 'VerificationRecord', additionalProperties: false },
@@ -224,8 +249,10 @@ export const VerificationRecord = Type.Object(
 export type VerificationRecord = Static<typeof VerificationRecord>;
 
 // ---------------------------------------------------------------------------
-// Pure evaluators. Used identically by the daemon (pre-completion) and
-// the REST server (re-verification on /complete to detect tampering).
+// Pure evaluators. Used by the producer daemon (for self-assessment
+// before /complete) and by judgment-task executors (which apply the
+// same criteria neutrally to someone else's output). Pure functions —
+// no I/O, no LLM calls, no side effects.
 // ---------------------------------------------------------------------------
 
 /**

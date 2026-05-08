@@ -121,6 +121,79 @@ describe('validateTaskOutput', () => {
     );
   });
 
+  describe('verification cross-field rule (fulfillment task types)', () => {
+    const goodOutput = {
+      branch: 'feat/x',
+      commits: [
+        {
+          sha: 'abc1234',
+          message: 'feat: do',
+          diaryEntryId: '00000000-0000-4000-8000-000000000001',
+        },
+      ],
+      pullRequestUrl: null,
+      diaryEntryIds: ['00000000-0000-4000-8000-000000000001'],
+      summary: 'did the thing',
+    };
+
+    const verification = {
+      inputCid: 'bafy-input',
+      results: [
+        {
+          id: 'has-branch',
+          kind: 'assertion' as const,
+          status: 'pass' as const,
+        },
+      ],
+      passed: true,
+    };
+
+    it('rejects output without verification when input has successCriteria', () => {
+      const errors = validateTaskOutput('fulfill_brief', goodOutput, {
+        brief: 'do',
+        successCriteria: { version: 1 },
+      });
+      expect(errors).toHaveLength(1);
+      expect(errors[0].field).toBe('output');
+      expect(errors[0].message).toMatch(/verification is required/i);
+    });
+
+    it('rejects output with verification when input has no successCriteria', () => {
+      const errors = validateTaskOutput(
+        'fulfill_brief',
+        { ...goodOutput, verification },
+        { brief: 'do' },
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].field).toBe('output');
+      expect(errors[0].message).toMatch(/omit verification/i);
+    });
+
+    it('accepts the consistent pair (criteria + verification)', () => {
+      const errors = validateTaskOutput(
+        'fulfill_brief',
+        { ...goodOutput, verification },
+        { brief: 'do', successCriteria: { version: 1 } },
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it('accepts the consistent pair (no criteria, no verification)', () => {
+      const errors = validateTaskOutput('fulfill_brief', goodOutput, {
+        brief: 'do',
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('skips the cross-field check when input is omitted (back-compat)', () => {
+      // Callers that don't have the input on hand (ad-hoc tooling)
+      // get only the schema check; the cross-field rule is silently
+      // skipped rather than failing closed.
+      const errors = validateTaskOutput('fulfill_brief', goodOutput);
+      expect(errors).toEqual([]);
+    });
+  });
+
   describe('judge_pack llm_checklist score↔assertions consistency (#999)', () => {
     function buildOutput(
       assertions: Array<{

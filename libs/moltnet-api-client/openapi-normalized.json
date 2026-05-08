@@ -384,10 +384,6 @@
           },
           "usage": {
             "$ref": "#/components/schemas/TaskUsage"
-          },
-          "verification": {
-            "additionalProperties": {},
-            "type": "object"
           }
         },
         "required": [
@@ -4127,11 +4123,6 @@
               "outputTokens"
             ],
             "type": "object"
-          },
-          "verification": {
-            "additionalProperties": {},
-            "nullable": true,
-            "type": "object"
           }
         },
         "required": [
@@ -4152,8 +4143,7 @@
           "error",
           "usage",
           "contentSignature",
-          "signedAt",
-          "verification"
+          "signedAt"
         ],
         "type": "object"
       },
@@ -13131,10 +13121,6 @@
                   },
                   "usage": {
                     "$ref": "#/components/schemas/TaskUsage"
-                  },
-                  "verification": {
-                    "additionalProperties": {},
-                    "type": "object"
                   }
                 },
                 "required": [

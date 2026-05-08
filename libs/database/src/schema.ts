@@ -1170,12 +1170,6 @@ export const taskAttempts = pgTable(
     usage: jsonb('usage'),
     contentSignature: text('content_signature'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
-    // VerificationRecord — daemon evaluates input.successCriteria
-    // (gates/assertions/rubric/sideEffects) before /complete and posts
-    // the result here. Server re-runs assertions to detect tampering.
-    // Null for legacy attempts and for tasks whose input carries no
-    // successCriteria.
-    verification: jsonb('verification'),
   },
   (table) => [
     primaryKey({ columns: [table.taskId, table.attemptN] }),

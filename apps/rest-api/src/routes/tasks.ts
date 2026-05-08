@@ -379,7 +379,6 @@ export function taskRoutes(fastify: FastifyInstance) {
             outputCid: request.body.outputCid,
             usage: request.body.usage,
             contentSignature: request.body.contentSignature,
-            verification: request.body.verification,
             executorManifest: request.body.executorManifest,
             executorFingerprint: request.body.executorFingerprint,
             executorSignature: request.body.executorSignature,

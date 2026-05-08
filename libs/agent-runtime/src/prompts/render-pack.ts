@@ -1,6 +1,7 @@
 import type { RenderPackInput } from '@moltnet/tasks';
 
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -50,6 +51,7 @@ export function buildRenderPackPrompt(
     '- Do NOT write diary entries unless a genuine incident occurs',
     '  (rendering failure, invariant violation).',
     '',
+    buildSelfVerificationBlock(ctx.taskId),
     buildFinalOutputBlock({
       taskType: 'render_pack',
       outputSchemaName: 'RenderPackOutput',
@@ -60,7 +62,8 @@ export function buildRenderPackPrompt(
         '  "renderMethod": "<label>",',
         '  "byteSize": <int>,',
         '  "entriesRendered": <int>,',
-        '  "summary": "<1-3 sentence recap>"',
+        '  "summary": "<1-3 sentence recap>",',
+        '  "verification": <required iff input.successCriteria; see Self-verification>',
         '}',
       ].join('\n'),
     }),

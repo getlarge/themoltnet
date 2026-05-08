@@ -150,7 +150,7 @@ describe('AgentRuntime', () => {
           events.push(`exec:${task.id}`);
           return makeOutput(task, 'completed');
         },
-        onTaskFinished: async (_claimed, output) => {
+        onTaskFinished: async (output) => {
           events.push(`finalize:${output.taskId}`);
         },
       });
@@ -179,7 +179,7 @@ describe('AgentRuntime', () => {
         source: new ArraySource([a, b]),
         makeReporter: () => new RecordingReporter(),
         executeTask: async ({ task }) => makeOutput(task, 'completed'),
-        onTaskFinished: async (_claimed, output) => {
+        onTaskFinished: async (output) => {
           finalized.push(output.taskId);
           if (output.taskId === a.id) {
             throw new Error('network fail');

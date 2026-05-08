@@ -7,7 +7,7 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
-import { SuccessCriteria } from '../success-criteria.js';
+import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const FULFILL_BRIEF_TYPE = 'fulfill_brief' as const;
 
@@ -81,6 +81,15 @@ export const FulfillBriefOutput = Type.Object(
 
     /** 2–5 sentence summary the agent writes on completion. */
     summary: Type.String({ minLength: 1 }),
+
+    /**
+     * Producer self-assessment against `input.successCriteria`. The LLM
+     * is the sole author. REQUIRED when `input.successCriteria` is set
+     * (the per-type `validateOutput` enforces this); MUST be omitted
+     * otherwise. The daemon does not generate this — see
+     * `SuccessCriteria` for the producer/judge model.
+     */
+    verification: Type.Optional(VerificationRecord),
   },
   { $id: 'FulfillBriefOutput', additionalProperties: false },
 );

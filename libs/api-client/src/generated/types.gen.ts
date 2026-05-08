@@ -1446,9 +1446,6 @@ export type TaskAttempt = {
   } | null;
   contentSignature: string | null;
   signedAt: string | null;
-  verification: {
-    [key: string]: unknown;
-  } | null;
 };
 
 export type TaskAttemptStatus =
@@ -1542,9 +1539,6 @@ export type CompleteTaskBody = {
   outputCid: string;
   usage: TaskUsage;
   contentSignature?: string;
-  verification?: {
-    [key: string]: unknown;
-  };
   executorManifest?: {
     [key: string]: unknown;
   };
@@ -6428,9 +6422,6 @@ export type CompleteTaskData = {
     outputCid: string;
     usage: TaskUsage;
     contentSignature?: string;
-    verification?: {
-      [key: string]: unknown;
-    };
     executorManifest?: {
       [key: string]: unknown;
     };

@@ -445,10 +445,6 @@
           },
           "usage": {
             "$ref": "#/components/schemas/TaskUsage"
-          },
-          "verification": {
-            "additionalProperties": {},
-            "type": "object"
           }
         },
         "required": ["output", "outputCid", "usage"],
@@ -5346,17 +5342,6 @@
                 "type": "null"
               }
             ]
-          },
-          "verification": {
-            "anyOf": [
-              {
-                "additionalProperties": {},
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
         "required": [
@@ -5377,8 +5362,7 @@
           "error",
           "usage",
           "contentSignature",
-          "signedAt",
-          "verification"
+          "signedAt"
         ],
         "type": "object"
       },
@@ -15242,10 +15226,6 @@
                   },
                   "usage": {
                     "$ref": "#/components/schemas/TaskUsage"
-                  },
-                  "verification": {
-                    "additionalProperties": {},
-                    "type": "object"
                   }
                 },
                 "required": ["output", "outputCid", "usage"],

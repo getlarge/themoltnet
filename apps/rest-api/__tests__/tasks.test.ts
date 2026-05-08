@@ -60,7 +60,6 @@ const MOCK_ATTEMPT = {
   usage: null,
   contentSignature: null,
   signedAt: null,
-  verification: null,
 };
 
 describe('POST /tasks', () => {

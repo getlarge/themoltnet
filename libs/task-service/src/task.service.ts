@@ -168,7 +168,6 @@ function dbAttemptToWire(
     usage: (row.usage as TaskUsage) ?? null,
     contentSignature: row.contentSignature ?? null,
     signedAt: row.signedAt?.toISOString() ?? null,
-    verification: (row.verification as Record<string, unknown> | null) ?? null,
   };
 }
 
@@ -704,7 +703,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         outputCid: string;
         usage: TaskUsage;
         contentSignature?: string;
-        verification?: Record<string, unknown>;
         executorManifest?: Record<string, unknown>;
         executorFingerprint?: string;
         executorSignature?: string;
@@ -755,7 +753,14 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const outputErrors = validateTaskOutput(task.taskType, body.output);
+      // Pass `task.input` so per-type validators can run cross-field
+      // rules (e.g. "verification is required when input.successCriteria
+      // is set" on fulfillment task types).
+      const outputErrors = validateTaskOutput(
+        task.taskType,
+        body.output,
+        task.input,
+      );
       if (outputErrors.length > 0) {
         throw new TaskServiceError(
           'invalid',
@@ -799,7 +804,6 @@ export function createTaskService(deps: TaskServiceDeps) {
           outputCid: body.outputCid,
           usage: body.usage,
           completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
-          verification: body.verification ?? null,
         },
         'progress',
       );

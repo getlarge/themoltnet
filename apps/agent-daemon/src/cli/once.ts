@@ -109,12 +109,9 @@ export async function runOnce(argv: string[]): Promise<number> {
           maxBatchSize: opts.maxBatchSize,
           flushIntervalMs: opts.flushIntervalMs,
         }),
-      // Finalize per-task inside the loop so the criteria evaluator
-      // (in finalizeTask) can read the original task input. Without
-      // this, the post-drain finalize would only see TaskOutput and
-      // would have to re-fetch the task for its successCriteria.
-      onTaskFinished: (claimedTask, output) =>
-        finalizeTask(ctx.agent, claimedTask, output),
+      // Finalize per-task inside the loop so the daemon (poll-shared
+      // and once) share one wire-finalize path.
+      onTaskFinished: (output) => finalizeTask(ctx.agent, output),
       executeTask,
     });
 

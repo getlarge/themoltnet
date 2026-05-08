@@ -4531,15 +4531,9 @@ func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 		e.FieldStart("usage")
 		s.Usage.Encode(e)
 	}
-	{
-		if s.Verification.Set {
-			e.FieldStart("verification")
-			s.Verification.Encode(e)
-		}
-	}
 }
 
-var jsonFieldsNameOfCompleteTaskReq = [8]string{
+var jsonFieldsNameOfCompleteTaskReq = [7]string{
 	0: "contentSignature",
 	1: "executorFingerprint",
 	2: "executorManifest",
@@ -4547,7 +4541,6 @@ var jsonFieldsNameOfCompleteTaskReq = [8]string{
 	4: "output",
 	5: "outputCid",
 	6: "usage",
-	7: "verification",
 }
 
 // Decode decodes CompleteTaskReq from json.
@@ -4630,16 +4623,6 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"usage\"")
-			}
-		case "verification":
-			if err := func() error {
-				s.Verification.Reset()
-				if err := s.Verification.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"verification\"")
 			}
 		default:
 			return d.Skip()
@@ -4809,64 +4792,6 @@ func (s CompleteTaskReqOutput) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CompleteTaskReqOutput) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s CompleteTaskReqVerification) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields implements json.Marshaler.
-func (s CompleteTaskReqVerification) encodeFields(e *jx.Encoder) {
-	for k, elem := range s {
-		e.FieldStart(k)
-
-		if len(elem) != 0 {
-			e.Raw(elem)
-		}
-	}
-}
-
-// Decode decodes CompleteTaskReqVerification from json.
-func (s *CompleteTaskReqVerification) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CompleteTaskReqVerification to nil")
-	}
-	m := s.init()
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		var elem jx.Raw
-		if err := func() error {
-			v, err := d.RawAppend(nil)
-			elem = jx.Raw(v)
-			if err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return errors.Wrapf(err, "decode field %q", k)
-		}
-		m[string(k)] = elem
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode CompleteTaskReqVerification")
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s CompleteTaskReqVerification) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CompleteTaskReqVerification) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -38279,51 +38204,6 @@ func (s *NilTaskAttemptUsage) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes TaskAttemptVerification as json.
-func (o NilTaskAttemptVerification) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes TaskAttemptVerification from json.
-func (o *NilTaskAttemptVerification) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilTaskAttemptVerification to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v TaskAttemptVerification
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	o.Value = make(TaskAttemptVerification)
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilTaskAttemptVerification) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilTaskAttemptVerification) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes uuid.UUID as json.
 func (o NilUUID) Encode(e *jx.Encoder) {
 	if o.Null {
@@ -38535,40 +38415,6 @@ func (s OptCompleteTaskReqExecutorManifest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptCompleteTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CompleteTaskReqVerification as json.
-func (o OptCompleteTaskReqVerification) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes CompleteTaskReqVerification from json.
-func (o *OptCompleteTaskReqVerification) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptCompleteTaskReqVerification to nil")
-	}
-	o.Set = true
-	o.Value = make(CompleteTaskReqVerification)
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptCompleteTaskReqVerification) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptCompleteTaskReqVerification) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -51016,13 +50862,9 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 		e.FieldStart("usage")
 		s.Usage.Encode(e)
 	}
-	{
-		e.FieldStart("verification")
-		s.Verification.Encode(e)
-	}
 }
 
-var jsonFieldsNameOfTaskAttempt = [19]string{
+var jsonFieldsNameOfTaskAttempt = [18]string{
 	0:  "attemptN",
 	1:  "claimedAt",
 	2:  "claimedByAgentId",
@@ -51041,7 +50883,6 @@ var jsonFieldsNameOfTaskAttempt = [19]string{
 	15: "status",
 	16: "taskId",
 	17: "usage",
-	18: "verification",
 }
 
 // Decode decodes TaskAttempt from json.
@@ -51241,16 +51082,6 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"usage\"")
 			}
-		case "verification":
-			requiredBitSet[2] |= 1 << 2
-			if err := func() error {
-				if err := s.Verification.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"verification\"")
-			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -51263,7 +51094,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b00000111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -51872,64 +51703,6 @@ func (s *TaskAttemptUsage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskAttemptUsage) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s TaskAttemptVerification) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields implements json.Marshaler.
-func (s TaskAttemptVerification) encodeFields(e *jx.Encoder) {
-	for k, elem := range s {
-		e.FieldStart(k)
-
-		if len(elem) != 0 {
-			e.Raw(elem)
-		}
-	}
-}
-
-// Decode decodes TaskAttemptVerification from json.
-func (s *TaskAttemptVerification) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode TaskAttemptVerification to nil")
-	}
-	m := s.init()
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		var elem jx.Raw
-		if err := func() error {
-			v, err := d.RawAppend(nil)
-			elem = jx.Raw(v)
-			if err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return errors.Wrapf(err, "decode field %q", k)
-		}
-		m[string(k)] = elem
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode TaskAttemptVerification")
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s TaskAttemptVerification) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *TaskAttemptVerification) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

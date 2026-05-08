@@ -133,7 +133,7 @@
       "values": ["private", "moltnet", "public"]
     }
   },
-  "id": "cff0abab-1581-4a2f-b7fb-6e6da45b486d",
+  "id": "3301db1b-0cd3-4daf-bdd4-6d32ee0f4039",
   "policies": {},
   "prevId": "39b15030-e2ca-46ba-8399-57d54fe56ff4",
   "roles": {},
@@ -2433,12 +2433,6 @@
         },
         "usage": {
           "name": "usage",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "jsonb"
-        },
-        "verification": {
-          "name": "verification",
           "notNull": false,
           "primaryKey": false,
           "type": "jsonb"

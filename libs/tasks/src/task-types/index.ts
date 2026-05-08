@@ -54,10 +54,12 @@ interface TaskTypeEntry {
    * Optional cross-field validator run AFTER `Value.Check(outputSchema)`
    * passes. Use for invariants a TypeBox schema can't express — e.g. for
    * `judge_pack`, an `llm_checklist` criterion's `score` must equal
-   * `1` iff every `assertions[].passed` is true (#999). Returns null on
-   * success, or an error message that surfaces to the task runner.
+   * `1` iff every `assertions[].passed` is true (#999), or
+   * "verification is required when input declared successCriteria"
+   * (cross-field rule that needs both sides). Returns null on success,
+   * or an error message that surfaces to the task runner.
    */
-  readonly validateOutput?: (output: unknown) => string | null;
+  readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
 }
 
 /**
@@ -77,6 +79,41 @@ function validateJudgmentInput(input: unknown): string | null {
 }
 
 /**
+ * Cross-field rule: when `input.successCriteria` is set, the producer's
+ * output MUST carry a `verification` block (the LLM's self-assessment).
+ * When it is unset, the output MUST NOT carry one (avoid garbage data).
+ *
+ * Used by all three fulfillment task types. Judgment task outputs do
+ * NOT use this — their entire output IS a structured judgment, so a
+ * separate self-assessment field would be circular.
+ */
+function requireVerificationWhenCriteriaPresent(
+  output: unknown,
+  input?: unknown,
+): string | null {
+  const hasCriteria =
+    input !== undefined &&
+    input !== null &&
+    (input as { successCriteria?: SuccessCriteria }).successCriteria !==
+      undefined;
+  const hasVerification =
+    (output as { verification?: unknown }).verification !== undefined;
+  if (hasCriteria && !hasVerification) {
+    return (
+      'output.verification is required because input.successCriteria is set; ' +
+      'the producer LLM must self-assess against the criteria'
+    );
+  }
+  if (!hasCriteria && hasVerification) {
+    return (
+      'output.verification was supplied but input.successCriteria is unset; ' +
+      'omit verification when there are no criteria to assess against'
+    );
+  }
+  return null;
+}
+
+/**
  * Client-side task-type registry. Mirrors the server-owned DB registry
  * (PR 2). PR 0 shipped the two brief types; this PR adds the three
  * pack-pipeline types for the three-session attribution loop (#875).
@@ -92,6 +129,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputSchema: FulfillBriefOutput,
     outputKind: 'artifact',
     requiresReferences: false,
+    validateOutput: requireVerificationWhenCriteriaPresent,
   },
   [ASSESS_BRIEF_TYPE]: {
     name: ASSESS_BRIEF_TYPE,
@@ -107,6 +145,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputSchema: CuratePackOutput,
     outputKind: 'artifact',
     requiresReferences: false,
+    validateOutput: requireVerificationWhenCriteriaPresent,
   },
   [RENDER_PACK_TYPE]: {
     name: RENDER_PACK_TYPE,
@@ -114,6 +153,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputSchema: RenderPackOutput,
     outputKind: 'artifact',
     requiresReferences: false,
+    validateOutput: requireVerificationWhenCriteriaPresent,
   },
   [JUDGE_PACK_TYPE]: {
     name: JUDGE_PACK_TYPE,

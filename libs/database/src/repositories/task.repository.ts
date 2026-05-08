@@ -367,7 +367,6 @@ export function createTaskRepository(db: Database) {
           | 'usage'
           | 'contentSignature'
           | 'signedAt'
-          | 'verification'
         >
       >,
     ): Promise<TaskAttempt | null> {

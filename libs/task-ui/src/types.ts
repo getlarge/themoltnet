@@ -111,7 +111,6 @@ export interface TaskAttemptSummary {
   usage: TaskUsage | null;
   contentSignature: string | null;
   signedAt: string | null;
-  verification: Record<string, unknown> | null;
 }
 
 export interface TaskMessage {

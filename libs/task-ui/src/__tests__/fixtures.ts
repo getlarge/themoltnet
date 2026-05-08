@@ -63,7 +63,6 @@ export const attemptFixture: TaskAttemptSummary = {
   },
   contentSignature: null,
   signedAt: null,
-  verification: null,
 };
 
 export const messagesFixture: TaskMessage[] = [
