@@ -250,6 +250,7 @@ export const OnboardingStatusResponseSchema = Type.Object({
   identityId: Type.Optional(Type.String()),
   clientId: Type.Optional(Type.String()),
   clientSecret: Type.Optional(Type.String()),
+  installationId: Type.Optional(Type.String()),
 });
 
 export const InstalledCallbackQuerySchema = Type.Object({

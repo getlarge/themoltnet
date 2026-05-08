@@ -232,6 +232,7 @@ describe('LeGreffier onboarding', () => {
       expect(final.identityId).toBeTruthy();
       expect(final.clientId).toBeTruthy();
       expect(final.clientSecret).toBeTruthy();
+      expect(final.installationId).toBe('99999');
     });
   });
 });

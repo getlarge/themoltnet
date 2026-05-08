@@ -39,7 +39,7 @@ export async function runInstallationPhase(opts: {
 
   dispatch({ type: 'step', key: 'installation', status: 'done' });
   return {
-    installationId: '',
+    installationId: result.installationId ?? '',
     identityId: result.identityId ?? '',
     clientId: result.clientId ?? '',
     clientSecret: result.clientSecret ?? '',

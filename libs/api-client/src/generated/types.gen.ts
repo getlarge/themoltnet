@@ -6165,6 +6165,7 @@ export type GetLegreffierOnboardingStatusResponses = {
     identityId?: string;
     clientId?: string;
     clientSecret?: string;
+    installationId?: string;
   };
 };
 
