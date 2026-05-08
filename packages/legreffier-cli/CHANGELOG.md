@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.33.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.5...legreffier-v0.33.0) (2026-05-08)
+
+
+### Features
+
+* **cli:** cache LeGreffier warm activation ([9ede1de](https://github.com/getlarge/themoltnet/commit/9ede1deaebffa7c4ec8e85560c4b95cad0d0902e))
+
+
+### Bug Fixes
+
+* **cli:** keep activation transport session-local ([552b54d](https://github.com/getlarge/themoltnet/commit/552b54dc4918d2f4fe08511bdbe9b30c2103d935))
+
 ## [0.32.5](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.4...legreffier-v0.32.5) (2026-05-08)
 
 
