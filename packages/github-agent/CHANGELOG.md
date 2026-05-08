@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.4](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.3...github-agent-v0.23.4) (2026-05-08)
+
+
+### Bug Fixes
+
+* **github-agent:** restore explicit build script ([7a920b6](https://github.com/getlarge/themoltnet/commit/7a920b6089618056288b497e49e46a22ea2edca3))
+* **github-agent:** restore explicit build script broken by [#1031](https://github.com/getlarge/themoltnet/issues/1031) ([774f34d](https://github.com/getlarge/themoltnet/commit/774f34d37e39e01c70f0f497cb254078d89c94de))
+
 ## [0.23.3](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.2...github-agent-v0.23.3) (2026-05-08)
 
 

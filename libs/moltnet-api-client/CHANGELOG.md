@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.25.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.24.1...moltnet-api-client-v1.25.0) (2026-05-08)
+
+
+### Features
+
+* **agent-daemon:** evaluate input.successCriteria before /complete ([912f2f1](https://github.com/getlarge/themoltnet/commit/912f2f1546e601ad53121d1e1cb522c0f790b721))
+* **database:** add task_attempts.verification, drop tasks.criteria_cid ([17a087d](https://github.com/getlarge/themoltnet/commit/17a087d4d55089788070e3e02b07865381e67f4d))
+* **tasks:** SuccessCriteria envelope, hard-cut criteria into input ([4448934](https://github.com/getlarge/themoltnet/commit/4448934e6598e4909c924799ed69f3bca5236b2d))
+
 ## [1.24.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.24.0...moltnet-api-client-v1.24.1) (2026-05-06)
 
 

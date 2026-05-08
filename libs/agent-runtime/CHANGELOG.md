@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.9.0...agent-runtime-v0.10.0) (2026-05-08)
+
+
+### Features
+
+* **agent-daemon:** plumb correlation anchor hook through finalize ([6b91944](https://github.com/getlarge/themoltnet/commit/6b9194454dcfd7a1b2bdf04c6e575e4dbd076d52))
+* **agent-runtime:** instruct fulfill_brief agent to embed correlationId ([a228689](https://github.com/getlarge/themoltnet/commit/a2286899e98aa3b6d984b1a8ede2b20f4f17afa8))
+* ship agent-daemon (npm + GH Action) with correlationId anchors ([a0b8f98](https://github.com/getlarge/themoltnet/commit/a0b8f98ef5dd14aaf5c3e4e6fb9e723b5cb570e2))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.8.0...agent-runtime-v0.9.0) (2026-05-08)
 
 
