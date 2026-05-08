@@ -40,22 +40,18 @@ Strong attribution is what makes the next three stages honest. Without it you ca
 
 ## Stage 3 — Condense
 
-Raw entries are dense and numerous. A single agent session can't read a whole year of a team's diary. The factory compresses entries into runtime-loadable artifacts: **context packs** and **rendered packs**.
+Raw entries are dense and numerous. A single agent session can't read a whole year of a team's diary. The factory condenses entries into runtime-loadable artifacts: **context packs** and **rendered packs**.
 
-The split matters. A knowledge base would have one artifact ("the doc"); a knowledge factory has two, because compression has a structural job and a surface job.
+The split matters. A knowledge base would have one artifact ("the doc"); a knowledge factory has two, because condensation has a structural job and a surface job.
 
-- **Context packs** are the _selected and ranked_ set of entries — the structural decision "these entries, in this order, at these compression levels, cover this topic within this token budget." Packs are content-addressed (pack CID); the same diary + the same compile parameters produce the same pack.
+- **Context packs** are the _selected and ranked_ set of entries — the structural decision "these entries, in this order, at these compression levels, cover this topic." Packs are content-addressed (pack CID); the same entries in the same order produce the same pack.
 - **Rendered packs** are the _Markdown_ an agent actually injects. Rendering is immutable — re-rendering a pack produces a _new_ rendered pack with a new CID, not an update. The rendered CID covers the bytes the model will see.
 
-Both have a `pack_type`:
-
-- `compile` — server's MMR-based selection from the diary
-- `optimized` — a GEPA-refined version of a `compile` pack
-- `custom` — agent-composed, "I already know the five entries that matter"
+The primary path is **agent-curated**: an agent runs discovery against the diary (tag inventory, coverage analysis, recipe recommendations via the explore skill), decides which entries are load-bearing for a task, and bundles them as a `custom` pack. Packs carry a `pack_type` so the lineage is honest about how the selection was made — `custom` for agent-curated bundles, `optimized` for downstream refinements of an existing pack.
 
 Supersession chains work at pack level too: a new pack can point at the prior one via `supersedes_pack_id`, which lets you track "the architecture pack evolved as we re-scanned the codebase" as first-class lineage.
 
-Compile levers, scenarios, and how to actually build a good pack by hand are in [Getting Started § Stage 3](./getting-started#stage-3-compilation-into-context-packs). This page stays on the _why_; that one is the _how_.
+How to discover candidate entries and assemble a good pack by hand is in [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-curation). This page stays on the _why_; that one is the _how_.
 
 ## Stage 4 — Surface
 
@@ -63,11 +59,11 @@ A pack is only useful if it shows up at the moment an agent needs it.
 
 Three surfacing modes:
 
-- **At session start**, the LeGreffier skill can compile and load a pack matching the task (the first user message, the branch name, an explicit prompt). The agent opens its session already oriented.
-- **On demand mid-session**, an agent whose task has drifted — "oh, this actually needs crypto knowledge" — can compile a new pack without leaving the conversation.
-- **From a curated catalog**, pinned packs stay available for reuse. A team that has figured out what their "good onboarding pack" looks like shouldn't recompile it every time.
+- **As an installed skill**, a rendered pack is converted to an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and dropped into the runtime's skills directory. The runtime activates it automatically when a prompt matches its description — no per-session injection, no manual loading. This is the primary path for durable, reusable packs.
+- **On demand mid-session**, an agent whose task has drifted — "oh, this actually needs crypto knowledge" — can curate a new pack from diary discovery without leaving the conversation.
+- **From a curated catalog**, pinned packs stay available for reuse. A team that has figured out what their "good onboarding pack" looks like shouldn't rebuild it every time.
 
-For a durable team, catalog-driven surfacing matters more than ad-hoc compilation. See the [pack catalog](#pack-catalog) section below.
+For a durable team, catalog-driven surfacing matters more than ad-hoc curation. See the [pack catalog](#pack-catalog) section below.
 
 ## Stage 5 — Test
 
@@ -83,7 +79,7 @@ The `verified_task_id` on a rendered pack points at the task that verified it. T
 
 No eternal rules. Every pack has `expires_at` and `pinned`. Unpinned packs GC automatically after 7 days. Pinning is an explicit act — a decision that this pack is worth keeping accessible — not a default.
 
-The counterpart for entries is supersession via `entry_relations`. When a decision is revisited, the new entry supersedes the old one; pack compilation automatically excludes superseded entries. You don't have to delete the old entry — history is preserved — but the runtime stops injecting it.
+The counterpart for entries is supersession via `entry_relations`. When a decision is revisited, the new entry supersedes the old one; superseded entries are flagged so curated packs can drop them. You don't have to delete the old entry — history is preserved — but the runtime stops injecting it.
 
 Decay is important for the same reason verification is. A knowledge factory that can only accumulate becomes a knowledge base again.
 
@@ -120,15 +116,15 @@ Entry relations are _not_ included as DAG edges because the entry-relation graph
 
 ## Pack catalog
 
-A team using MoltNet seriously will accumulate dozens of compilable packs. Most are throwaway — "context for PR #842" — but a small set are repeatedly useful. Formalize that set as a catalog:
+A team using MoltNet seriously will accumulate dozens of curated packs. Most are throwaway — "context for PR #842" — but a small set are repeatedly useful. Formalize that set as a catalog:
 
 **Tier 1 — Always useful, pinned.** Orientation packs that a fresh agent should almost always load:
 
-- Codebase orientation (scan-backed, generous budget)
+- Codebase orientation (scan-backed entries)
 - Architecture decisions (`decision` tag, semantic)
 - Incident log (`incident` tag, episodic)
 
-**Tier 2 — On demand, auto-expire.** Compiled when the situation calls for it:
+**Tier 2 — On demand, auto-expire.** Curated when the situation calls for it:
 
 - Subsystem packs (`scope:database`, `scope:api`, …)
 - Scan category packs (`scan-category:architecture`, `scan-category:security`, …)
@@ -144,25 +140,26 @@ The tier structure is the point. Without it, either everything is pinned (and th
 
 Pulled from practice on this repo:
 
-- **Focused task prompt** — specific question, not vague topic. The prompt is what the retrieval runs against; vague prompts pull vague entries.
-- **The right candidate pool** — tag filters narrow _before_ ranking. `include_tags: ["source:scan"]` is sharper than any weight.
-- **One primary tag dimension** — don't cross two high-cardinality prefixes in `include_tags`; that's AND semantics, easy to produce zero matches.
-- **Budget follows content** — if a focused subsystem pack wants 8000 tokens to include dense scan entries at full resolution, use 8000. The anti-pattern is padding with low-signal tail entries to hit an arbitrary ceiling.
-- **Inspect before pinning** — a pack that looks right by parameters can still miss important entries due to tag coverage gaps. Every pinned pack was once evaluated.
+- **Discovery first.** Walk the diary's tag inventory and entry distribution before selecting. A pack assembled from a diary you haven't mapped misses the entries that matter.
+- **One primary topic.** A pack that tries to cover three subsystems at once dilutes itself. Split it.
+- **The entries that actually moved the needle.** When in doubt, prefer the episodic incident over the polished decision — incidents capture the friction that the decision was a response to.
+- **Budget follows content.** If a focused subsystem pack wants 8000 tokens to include dense scan entries at full resolution, use 8000. The anti-pattern is padding with low-signal tail entries to hit an arbitrary ceiling.
+- **Inspect before pinning.** A pack that looks right by tag composition can still miss important entries. Every pinned pack was once evaluated.
 
-See [Getting Started § Stage 3](./getting-started#stage-3-compilation-into-context-packs) for the hands-on version with scenario recipes.
+See [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-curation) for the hands-on discovery and curation flow.
 
 ## Anti-patterns
 
-- **No task prompt.** Compile without a prompt falls back to "most important" entries by importance/recency — not the most relevant.
-- **Lambda 1.0.** Pure relevance includes near-duplicates; three entries about the same thing with near-identical embeddings add bytes, not signal.
+- **Skipping discovery.** Picking entries from memory without checking the tag inventory; misses the entries you didn't know were there.
+- **Mixing topics.** A "general onboarding" pack that crosses architecture, ops, and crypto activates on everything and pulls weight on nothing.
 - **Arbitrary budget ceiling.** Capping at 4000 "because" forces compression that drops signal. Match budget to content.
-- **No filter when the source is known.** If you want "how we do REST APIs," filter to `source:scan`; mixing in procedural commits adds "what was done" when you need "how to do it."
-- **Pack without a catalog.** One-offs are fine; never pinning any pack means re-paying the compile cost every session, forever.
+- **Over-broad selection.** Twenty entries when five would do. Token weight without signal weight.
+- **Pack without a catalog.** One-offs are fine; never pinning any pack means re-paying the curation cost every session, forever.
 
 ## Related
 
 - [Diary Entry State Model](./diary-entry-state-model) — entry types, signing, immutability rules, CID envelope for entries
-- [Getting Started § Stage 3](./getting-started#stage-3-compilation-into-context-packs) — compile levers, scenarios, discovery method, loading
+- [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-curation) — discovery, custom-pack curation, rendering
+- [Getting Started § Stage 6](./getting-started#stage-6-loading-rendered-packs) — loading rendered packs as installed AgentSkills
 - [Agent Runtime](./agent-runtime) — the task queue that powers the Test stage (`judge_pack`, `fulfill_brief`, …)
 - [LeGreffier Diary Flows](./legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed Stage 1

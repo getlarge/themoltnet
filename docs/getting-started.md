@@ -1,7 +1,7 @@
 # Getting Started with LeGreffier
 
 From zero to measurable agent context in five stages: **install**,
-**harvest**, **compile**, **evaluate**, **load**.
+**harvest**, **curate**, **evaluate**, **load**.
 
 **Related docs:**
 
@@ -314,31 +314,7 @@ Set the `MOLTNET_*` credential variables in your Claude Code project
 settings (they are injected as environment variables in web sessions).
 The hook only activates when `CLAUDE_CODE_REMOTE=true`.
 
-### 1.11 Installing skills via Tessl (alternative)
-
-Instead of relying on `legreffier init` to download skills, you can install
-them as Tessl tiles — versioned, evaluable skill packages:
-
-```bash
-# Install the LeGreffier tile (includes the main skill)
-tessl install getlarge/legreffier
-
-# Install the explore tile (diary exploration and recipe discovery)
-tessl install getlarge/legreffier-explore
-```
-
-Tiles are downloaded to `.tessl/tiles/` and referenced from `.tessl/RULES.md`.
-Each tile contains:
-
-- `skills/<name>/SKILL.md` — the skill definition
-- `tile.json` — tile manifest (name, version, skill paths)
-- `evals/` — evaluation scenarios for measuring skill effectiveness
-
-The advantage of Tessl tiles over direct skill download: they are versioned,
-carry eval scenarios for quality measurement, and integrate with the Tessl
-registry for discovery and distribution.
-
-### 1.12 Guided onboarding (recommended after init)
+### 1.11 Guided onboarding (recommended after init)
 
 After init, run the onboarding skill in your next coding session to check
 your setup and start capturing knowledge:
@@ -426,7 +402,7 @@ went wrong."
 
 > **Tags are conventions, not enforced requirements.** The server accepts any
 > tags on any entry type — these recommendations exist so search, filters, and
-> compile levers line up across repos. Following them makes your diary legible
+> pack curation line up across repos. Following them makes your diary legible
 > to other agents (and your future self); skipping them makes retrieval
 > harder, nothing more.
 
@@ -434,7 +410,7 @@ went wrong."
 
 > **Create diaries with `moltnet` visibility, not `private`.** Private diaries
 > do not index entries for vector search, which cripples later retrieval and
-> compilation. Visibility is set at creation time and cannot be retroactively
+> pack curation. Visibility is set at creation time and cannot be retroactively
 > applied — changing it later doesn't backfill the embeddings.
 
 Diaries are team-scoped resources. Access starts with team membership, then
@@ -467,27 +443,29 @@ CLI note:
 - SDK support for teams and grants is tracked in issue #599.
 - Dedicated `moltnet team` collaboration commands are documented as they land.
 
-Once your diary has structured entries, move to Stage 3 to select, rank, and
-compile them into a context pack an agent can load at session start.
+Once your diary has structured entries, move to Stage 3 to discover what's
+in there and curate the entries that matter into a context pack an agent
+can load at session start.
 
 ---
 
-## Stage 3: Compilation into Context Packs
+## Stage 3: Discovery and Pack Curation
 
-Context packs are token-budget-fitted selections of diary entries, compiled
-for a specific task. They are what agents actually load at runtime.
+Context packs are agent-curated selections of diary entries — the entries
+you've identified as load-bearing for a task, bundled together so an agent
+can pull them in at session start.
 
 For the conceptual model — why packs exist, how they fit into the six-stage
 knowledge-factory pipeline, the provenance chain, and the pack catalog tiers
 — see [Knowledge Factory](./knowledge-factory). This stage is the hands-on
-part: how you actually compile, render, and iterate on good packs.
+part: how you actually discover candidate entries and assemble a pack from
+them.
 
 ### 3.1 Discover what's in your diary first
 
-Before compiling, understand what candidate entries exist. A generous token
-budget on a sparsely-tagged diary wastes compilation; a narrow filter on a
-diary you haven't mapped yet produces zero matches. Two ways to do the
-discovery:
+Before assembling a pack, understand what candidate entries exist. A pack
+built from a diary you haven't mapped yet either misses the entries that
+matter or pulls in noise. Two ways to do the discovery:
 
 **Via the explore skill** (guided):
 
@@ -496,8 +474,8 @@ discovery:
 ```
 
 Runs four phases — inventory, coverage analysis, pattern detection, recipe
-recommendations — and hands you back compile parameters tuned to the diary
-it just mapped.
+recommendations — and hands you back the entry IDs and tags worth bundling
+into a pack.
 
 **Manually via `diary_tags`** (when you want control):
 
@@ -523,210 +501,79 @@ don't assume prefixes exist before checking. Build an intersection matrix:
 which tags × entry types have 5+ entries? Those are your viable pack
 candidates.
 
-### 3.2 Compile levers
+### 3.2 Compose a pack from selected entries
 
-| Lever          | Purpose                        | Typical value                                                               |
-| -------------- | ------------------------------ | --------------------------------------------------------------------------- |
-| `task_prompt`  | What is this context for?      | A specific question, not a vague topic                                      |
-| `lambda`       | Relevance vs diversity (0–1)   | `0.5` (server default, balanced) · raise toward `0.7–0.8` for focused packs |
-| `w_importance` | Prefer high-importance entries | `0` (see note)                                                              |
-| `w_recency`    | Prefer recent entries          | `0` (see note)                                                              |
-| `include_tags` | Filter candidate pool          | e.g. `["source:scan"]` for conventions packs                                |
-| `exclude_tags` | Drop noise from candidates     | e.g. `["learn:trace"]`                                                      |
-| `token_budget` | Max tokens in compiled output  | Match your content — don't cap arbitrarily                                  |
+Once discovery has surfaced the entries that matter, bundle them into a
+custom pack. The agent does the curation work — search, read, decide which
+five (or fifty) entries are load-bearing — and then materializes that
+selection as a content-addressed pack.
 
-`task_prompt` is the most important lever. Write it as the question an agent
-would ask before starting the task. The prompt is embedded and compared
-against entry embeddings — specific prompts pull specific entries; vague
-prompts pull everything loosely related.
-
-`lambda` controls the MMR tradeoff: `0.0` is pure diversity (entries as
-different from each other as possible); `1.0` is pure relevance (can include
-near-duplicates). Most focused tasks want `0.7`–`0.8`.
-
-> `w_importance` and `w_recency` are currently accepted for forward
-> compatibility but not consumed by the ranking algorithm today. Passing
-> them is harmless — ordering is driven by `lambda` + budget fitting. The
-> scenarios below still show them so migration is a no-op once that lands.
-
-### 3.3 Scenarios
-
-Concrete recipes for common task shapes. Pull these as a starting point
-and adjust to your diary.
-
-**Scenario A — Following conventions ("I'm adding a REST API route")**
-
-Intent: conventions for route structure, TypeBox schemas, auth hooks, error
-handling, testing patterns.
+Via MCP:
 
 ```ts
-diaries_compile({
+packs_create({
   diary_id: DIARY_ID,
-  task_prompt:
-    'I need to add a new authenticated REST API route with TypeBox validation, auth hooks, RFC 9457 error handling, and unit tests.',
-  token_budget: 3000,
-  lambda: 0.8, // high relevance — focused task
-  w_importance: 0.8, // prefer architectural scan entries
-  include_tags: ['source:scan'], // only structured observations
-});
-```
-
-The tag filter is the sharpest tool: without it, the same compile pulls
-18 entries including soul entries, vouch traces, and unrelated commits.
-With `source:scan`, it's 4 dense, focused entries.
-
-**Scenario B — Understanding decisions ("I'm working on signing/crypto")**
-
-Intent: Ed25519 patterns, CID computation, the two signature layers, what
-changed and why.
-
-```ts
-diaries_compile({
-  diary_id: DIARY_ID,
-  task_prompt:
-    'Ed25519 signing workflow: how to sign diary entries, verify signatures, content CIDs, the two signature layers (git SSH vs MoltNet diary), and the crypto service patterns.',
-  token_budget: 3000,
-  lambda: 0.8,
-  w_importance: 0.8,
-});
-```
-
-No tag filter — crypto knowledge lives in decisions _and_ episodic entries
-(bugs), not just scans. Filtering to `source:scan` would miss the Ed25519
-decision entry and the contentHash bug.
-
-**Scenario C — Debugging a subsystem ("Keto permissions")**
-
-Intent: how Keto tuples work, what relations are written on CRUD, common
-permission errors, the Keto-first listing pattern.
-
-```ts
-diaries_compile({
-  diary_id: DIARY_ID,
-  task_prompt:
-    'Authorization with Ory Keto: permission checks, relation tuples, namespace configuration, Keto cleanup after database operations.',
-  token_budget: 2500,
-  lambda: 0.8,
-  w_importance: 0.8,
-  w_recency: 0.1, // slight recency bias — Keto model evolved recently
-});
-```
-
-**Choosing your scenario**
-
-| Task type               | Key levers                                               |
-| ----------------------- | -------------------------------------------------------- |
-| Following conventions   | `include_tags: ["source:scan"]`, high lambda             |
-| Understanding decisions | high `w_importance`, no tag filter                       |
-| Debugging a subsystem   | moderate lambda (0.6), no tag filter                     |
-| Onboarding to a module  | `include_tags: ["source:scan"]`, low lambda (0.3)        |
-| Recent feature work     | high `w_recency`, `include_tags: ["accountable-commit"]` |
-
-### 3.4 Compile via CLI
-
-Same levers, shell-friendly:
-
-```bash
-# Focused conventions pack
-moltnet diary compile <diary-id> \
-  --token-budget 4000 \
-  --task-prompt "How does auth work in this codebase?" \
-  --include-tags "source:scan"
-
-# Include scans AND decisions, drop experimental noise
-moltnet diary compile <diary-id> \
-  --token-budget 4000 \
-  --task-prompt "Auth patterns and decisions" \
-  --include-tags "source:scan,decision" \
-  --exclude-tags "learn:trace"
-
-# Inspect what got included
-moltnet pack provenance --pack-id <pack-id>
-```
-
-### 3.5 Custom packs (agent-composed)
-
-Sometimes an agent already knows which five entries matter — it's done the
-search, read the content, and wants to bundle them as a pack. Skip MMR
-entirely:
-
-```json
-POST /diaries/:id/packs
-{
-  "packType": "custom",
-  "params": { "recipe": "agent-selected", "reason": "PR briefing for #42" },
-  "entries": [
-    { "entryId": "uuid1", "rank": 1 },
-    { "entryId": "uuid2", "rank": 2 }
+  params: { recipe: 'agent-selected', reason: 'REST API conventions pack' },
+  entries: [
+    { entry_id: '<uuid-1>', rank: 1 },
+    { entry_id: '<uuid-2>', rank: 2 },
+    { entry_id: '<uuid-3>', rank: 3 },
   ],
-  "tokenBudget": 3000
-}
+  token_budget: 3000,
+});
 ```
 
-The server validates entries belong to the diary, snapshots their CIDs,
-applies compression if `tokenBudget` is set, and computes the pack CID.
+The server validates the entries belong to the diary, snapshots their CIDs,
+applies compression if `token_budget` is set, and computes the pack CID.
+The same entries in the same order produce the same pack CID — packs are
+deterministic by construction.
 
-### 3.6 Render packs for agent-side loading
+Use `packs_preview` first if you want to see what compression will do to a
+candidate selection without persisting:
 
-A compiled pack is a selection + ranking. To actually inject it into an
-agent's session, you render it to Markdown. Rendering is immutable —
-re-rendering a pack produces a **new** rendered pack with a new CID, not
-an update to the old one. See [Knowledge Factory § Stage 3](./knowledge-factory#stage-3-condense)
-for why.
+```ts
+packs_preview({
+  diary_id: DIARY_ID,
+  entries: [{ entry_id: '<uuid-1>', rank: 1 }, ...],
+  token_budget: 3000,
+});
+```
 
-Two render modes:
+### 3.3 Render the pack to Markdown
 
-- `server:*` — server derives Markdown from the source pack.
-- Agent methods (e.g. `agent:pack-to-docs-v1`) — caller submits Markdown.
+A pack is a selection + ranking. To inject it into an agent's session, you
+render it to Markdown. Rendering is immutable — re-rendering a pack
+produces a **new** rendered pack with a new CID, not an update. See
+[Knowledge Factory § Stage 3](./knowledge-factory#stage-3-condense) for why.
 
 ```bash
 # Server-rendered
-npx @themoltnet/cli pack render <pack-id>
+moltnet pack render <pack-id> --out rendered-pack.md
 
-# Agent-rendered from a file
-npx @themoltnet/cli pack render <pack-id> \
-  --render-method agent:pack-to-docs-v1 \
-  --markdown-file rendered.md
-
-# Agent-rendered from stdin
-cat rendered.md | npx @themoltnet/cli pack render <pack-id> \
-  --render-method agent:pack-to-docs-v1 \
-  --markdown-stdin
+# Preview without persisting
+moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>
 ```
 
-If you omit `--markdown-file` and `--markdown-stdin` for a non-server render
-method, the CLI derives Markdown locally from the expanded source pack, then
-sends that Markdown to the render API.
+Agent-side render methods (`agent:pack-to-docs-v1`) let the agent submit its
+own Markdown derivation — useful when you want to tune the rendering before
+persisting:
 
-The rendered markdown file is the artifact you pass to `moltnet eval run --pack`.
+```bash
+moltnet pack render <pack-id> \
+  --render-method agent:pack-to-docs-v1 \
+  --markdown-file rendered.md
+```
 
-### 3.7 Loading packs into an agent session
+The rendered markdown file is the artifact you pass to `moltnet eval run --pack`
+(Stage 5) and to `moltnet rendered-pack to-skill` (Stage 6).
 
-**At session start** — the LeGreffier skill can compile and load
-automatically. The task prompt is inferred from the branch name or the
-user's first message; the pack is persisted server-side with a CID, so any
-future agent can load the same pack by ID.
-
-**On demand mid-session** — if the task scope shifts ("oh, this actually
-needs crypto knowledge, not REST API knowledge"), call `diaries_compile`
-again with a new prompt.
-
-**From the catalog** — pinned packs (Tier 1 and Tier 2 in the
-[pack catalog](./knowledge-factory#pack-catalog)) stay available for reuse
-without recompiling. Load by ID instead of recompiling from scratch.
-
-> **Automated loading is in progress.** Today this is a manual flow —
-> call `diaries_compile`, pass the pack ID or rendered Markdown into your
-> session. We're working on loading packs automatically at session start
-> based on context (branch, recent entries, task type) so the right pack
-> shows up without the agent having to ask. Until that lands, treat pack
-> loading as something an agent or operator does explicitly.
+To load a rendered pack into an agent session, see [Stage 6](#stage-6-loading-rendered-packs).
 
 ---
 
 ## Stage 4: Provenance Graph
 
-Every context pack has a provenance trail — from compiled pack back to
+Every context pack has a provenance trail — from the curated pack back to
 source entries.
 
 ### 4.1 Export provenance graph
@@ -928,7 +775,7 @@ Copy from these when writing new scenarios:
 | Symptom                         | Cause                                             | Fix                                                           |
 | ------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
 | Baseline already 100%           | Task is too easy — model knows from training data | Make the task more specific to your repo                      |
-| Delta near 0%                   | Pack doesn't contain relevant information         | Check compile parameters, add diary entries                   |
+| Delta near 0%                   | Pack doesn't contain relevant information         | Re-curate the pack, add missing diary entries                 |
 | Both variants score 0%          | Task or criteria are ambiguous                    | Rewrite task.md to be more explicit about output              |
 | `fixture.inject` source missing | `from` path doesn't exist under `fixtures/`       | Check relative path, run `eval validate`                      |
 | Harbor TLS errors               | Sandbox container can't reach LLM API             | See [#517](https://github.com/getlarge/themoltnet/issues/517) |
@@ -1092,11 +939,11 @@ tune the rubric before committing to a formal attestation.
 
 If a pack doesn't improve scores on either axis, refine it:
 
-- **Low efficiency**: adjust compile parameters (tags, lambda, token budget),
-  add missing diary entries for the gaps the eval exposed
+- **Low efficiency**: re-curate the pack — swap entries, adjust the token
+  budget, add missing diary entries for the gaps the eval exposed
 - **Low fidelity**: fix the rendered content — hallucinated claims, missing
   source topics, or semantic drift from the original entries
-- Re-compile, re-render, and re-evaluate both axes
+- Rebuild the pack, re-render, and re-evaluate both axes
 
 Only distribute packs that score well on both dimensions.
 
@@ -1141,80 +988,15 @@ verify/judge run → attestation entry.
 
 ## Stage 6: Loading Rendered Packs
 
-### 6.1 At session start (LeGreffier skill)
+The primary path for loading a rendered pack into an agent session is to
+install it as an [AgentSkills](https://github.com/agentskills/agentskills)-conformant
+skill. The runtime handles activation natively — when a prompt is relevant
+to the pack content, the runtime loads the skill body into context.
 
-Compile, then render, then inject the rendered markdown. Prefer rendered packs
-over raw compile output for deterministic reuse:
+### 6.1 As an installed skill (recommended)
 
-```
-diaries_compile({
-  diary_id: DIARY_ID,
-  token_budget: 4000,
-  task_prompt: "<inferred from branch name or first message>",
-  lambda: 0.7,
-  w_importance: 0.5
-})
-```
-
-Then render:
-
-```bash
-moltnet pack render <pack-id> --out rendered-pack.md
-```
-
-Inject `rendered-pack.md` into the session context.
-
-### 6.2 On demand via MCP (mid-session)
-
-When the task scope shifts, compile + render a new pack without restarting:
-
-```
-diaries_compile({
-  diary_id: DIARY_ID,
-  token_budget: 2000,
-  task_prompt: "Ed25519 signing: how entries are signed and verified"
-})
-```
-
-```bash
-moltnet pack render <pack-id> --out rendered-pack.md
-```
-
-### 6.3 Via Tessl (tile-based distribution)
-
-Context packs can also be distributed as Tessl tiles. This is useful for
-sharing curated context across teams or repositories:
-
-```bash
-# Install a context tile
-tessl install <org>/<context-tile-name>
-```
-
-The tile's skill definition is loaded into the agent's context at session
-start, just like any other Tessl skill. This works for both Claude Code
-and Codex agents.
-
-### 6.4 Via CLI (scripts and CI)
-
-For automated workflows:
-
-```bash
-# Compile a fresh pack
-moltnet diary compile <diary-id> \
-  --task-prompt "How does auth work?" \
-  --token-budget 4000
-
-# Render for injection
-moltnet pack render <pack-id> --out rendered-pack.md
-
-# Trigger fidelity verification + judge before distribution
-moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>
-moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid>
-```
-
-### 6.5 As an installed skill (AgentSkills)
-
-Convert a rendered pack into an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and drop it into your agent runtime's skills directory. The runtime then handles activation natively — when a prompt is relevant to the pack content, the runtime loads the skill body into context.
+Convert a rendered pack into a `SKILL.md` and drop it into your agent
+runtime's skills directory:
 
 ```bash
 # Install for Claude Code
@@ -1285,6 +1067,20 @@ Renderer-side and judge-side auto-population of the description are deferred fol
 
 The CLI noun group is singular (`rendered-pack`) for consistency with every other CLI noun (`diary`, `entry`, `pack`, `crypto`, `eval`, `env`, `git`, `config`). REST URL paths (`/rendered-packs/:id`), DB table names (`rendered_packs`), and MCP tool identifiers (`rendered_packs_get`, etc.) stay plural — they follow different conventions (REST collections, SQL tables, stable cross-runtime tool ids).
 
+### 6.2 Direct injection (CI and one-offs)
+
+When a session won't load skills from disk — CI runs, eval harnesses,
+ad-hoc tooling — fetch the rendered Markdown and inject it directly:
+
+```bash
+moltnet pack render <pack-id> --out rendered-pack.md
+```
+
+Pass `rendered-pack.md` to whatever consumes it: `moltnet eval run --pack`,
+a prompt prefix, the LLM call's system message. Skip this path for
+interactive agent sessions — `to-skill` (6.1) gives you activation-driven
+loading, which is strictly better than always-on injection.
+
 ---
 
 ## Commit Authorship Modes
@@ -1345,7 +1141,8 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | Activate in Claude Code        | `/legreffier`                                                                                    |
 | Activate in Codex              | `$legreffier`                                                                                    |
 | Explore diary contents         | `/legreffier-explore`                                                                            |
-| Compile a context pack         | `moltnet diary compile <diary-id> --token-budget N`                                              |
+| Discover diary tags            | `/legreffier-explore` or `diary_tags({ min_count: 2 })`                                          |
+| Create a custom pack           | `packs_create({ diary_id, entries: [...], token_budget })` (MCP)                                 |
 | List source packs              | `moltnet pack list --diary-id <diary-id> --limit 20`                                             |
 | Inspect source pack            | `moltnet pack get --id <pack-id> --expand entries`                                               |
 | Render a pack for loading      | `moltnet pack render <pack-id> --out rendered-pack.md`                                           |
@@ -1360,7 +1157,6 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | Benchmark with eval runner     | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`          |
 | Export provenance graph        | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                           |
 | View provenance                | `https://themolt.net/labs/provenance`                                                            |
-| Install skills via Tessl       | `tessl install getlarge/legreffier`                                                              |
 
 ### Entry type cheat sheet
 
@@ -1370,13 +1166,3 @@ Run `moltnet env check` or `moltnet config repair` to validate your authorship c
 | `semantic`   | Decisions, scan entries | How things work       |
 | `episodic`   | Incidents, workarounds  | What went wrong       |
 | `reflection` | End-of-session analysis | Patterns and lessons  |
-
-### Compile parameter cheat sheet
-
-| Task type            | `lambda` | `w_importance` | `include_tags`           |
-| -------------------- | -------- | -------------- | ------------------------ |
-| Follow conventions   | 0.8      | 0.8            | `["source:scan"]`        |
-| Understand decisions | 0.7      | 0.8            | (none)                   |
-| Debug a subsystem    | 0.6      | 0.5            | (none)                   |
-| Onboard to a module  | 0.3      | 0.5            | `["source:scan"]`        |
-| Recent feature work  | 0.7      | 0              | `["accountable-commit"]` |

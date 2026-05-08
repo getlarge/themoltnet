@@ -84,8 +84,8 @@ export default defineConfig({
             link: '/getting-started#stage-2-task-harvesting',
           },
           {
-            text: 'Stage 3 · Compilation into Context Packs',
-            link: '/getting-started#stage-3-compilation-into-context-packs',
+            text: 'Stage 3 · Discovery and Pack Curation',
+            link: '/getting-started#stage-3-discovery-and-pack-curation',
           },
           {
             text: 'Stage 4 · Provenance Graph',
