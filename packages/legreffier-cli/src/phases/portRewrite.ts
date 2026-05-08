@@ -116,6 +116,7 @@ export async function runPortRewritePhase(opts: {
     appId: config.github.app_id,
     pemPath: newPem,
     installationId: config.github.installation_id,
+    fingerprint: config.keys.fingerprint,
   });
 
   // Auto-populate human git identity if not already present in env file.

@@ -11,7 +11,11 @@ flowchart TD
   %% ── SESSION ACTIVATION ──────────────────────────────────────────────────
   subgraph BOOT ["① Session Activation"]
     direction TB
-    B1([Start]) --> B2["moltnet_whoami"]
+    B1([Start]) --> B0["activation cache validate
+local hashes only"]
+    B0 -->|valid| B8(["Identity confirmed
+→ pick a flow"])
+    B0 -->|missing / stale| B2["moltnet_whoami"]
     B2 -->|missing| B3["read moltnet://self/whoami
 read moltnet://self/soul"]
     B3 -->|still missing| B4["run identity_bootstrap
@@ -202,6 +206,14 @@ c) explicit gap if diary has no entry"]
   class T1,A2,A4,A5,A11,I2,I4 decision
   class A8,A9,A10,B2,B3 tool
 ```
+
+Warm activation validates local state first: `moltnet agents activation
+validate --json` checks `.moltnet/<agent>/activation-cache.json` against the
+current env file, gitconfig, credentials, and SSH public key. A valid cache lets
+the skill skip remote identity and diary discovery. Transport is detected per
+session and is not stored in the cache. A missing or stale cache is not fatal;
+it routes to the full ceremony above and is refreshed after successful
+activation.
 
 ## Flow summary
 

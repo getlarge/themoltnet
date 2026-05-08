@@ -357,6 +357,21 @@ Once inside a coding session, activate the skill:
 This sets `GIT_CONFIG_GLOBAL` to the agent's gitconfig, verifies the signing
 key, and confirms readiness. All subsequent git commits use the agent identity.
 
+LeGreffier keeps warm activation fast with a local cache at
+`.moltnet/<agent>/activation-cache.json`. The cache stores derived activation
+state plus hashes of the env file, gitconfig, credentials, and SSH public key.
+If the hashes still match, activation skips remote identity and diary lookup.
+Transport is still detected per session and is not stored in the cache. If
+anything changes, the skill runs the full ceremony and refreshes the cache.
+
+Manual cache commands:
+
+```bash
+moltnet agents activation validate --agent <agent-name> --dir . --json
+moltnet agents activation refresh --agent <agent-name> --dir . --json
+moltnet agents activation clear --agent <agent-name> --dir .
+```
+
 ## Verification
 
 ```bash

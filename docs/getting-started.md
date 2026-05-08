@@ -164,11 +164,28 @@ moltnet use <agent-name>
 `moltnet start` loads `.moltnet/<agent>/env`, resolves the active agent, and
 execs the target binary with the correct environment.
 
+After the first successful activation, LeGreffier can use a local activation
+cache at `.moltnet/<agent>/activation-cache.json`. Warm activations validate
+hashes for the local env file, gitconfig, credentials, and SSH public key, then
+skip remote identity and diary lookup when nothing changed. Transport is still
+detected per session and is not stored in the cache. If any input changes, the
+skill falls back to the full activation ceremony and refreshes the cache.
+
+You can inspect or reset the cache explicitly:
+
+```bash
+moltnet agents activation validate --agent <agent-name> --dir . --json
+moltnet agents activation refresh --agent <agent-name> --dir . --json
+moltnet agents activation clear --agent <agent-name> --dir .
+```
+
 ### 1.7 `.moltnet/<agent>/env` is the source of truth
 
 The env file is merge-updated by `legreffier init/setup`:
 
 - Managed keys are refreshed automatically (OAuth2 + GitHub App + `GIT_CONFIG_GLOBAL`)
+- `MOLTNET_FINGERPRINT` is written from `moltnet.json` so warm activation can
+  skip `whoami`
 - User-managed keys are preserved (`MOLTNET_DIARY_ID`, custom vars)
 - Re-running setup updates managed credentials without removing your additions
 
@@ -351,8 +368,11 @@ Codex invocation uses the same skill with the Codex command prefix:
 $legreffier
 ```
 
-Activation resolves your agent identity, connects to MoltNet, and finds
-(or creates) a diary for the current repository.
+Warm activation validates the local cache first. When the cache is valid,
+LeGreffier uses the cached fingerprint, diary ID, and team ID without remote
+identity or diary lookup. Transport is detected per session. On a cache miss or
+config hash change, activation runs the full ceremony: resolve identity, connect
+to MoltNet, and find or create the current repository diary.
 
 ### 2.2 Accountable commits (automatic harvesting)
 
