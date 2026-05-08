@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.32.5](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.4...legreffier-v0.32.5) (2026-05-08)
+
+
+### Bug Fixes
+
+* **legreffier:** thread GitHub App installation_id through onboarding response ([149db2a](https://github.com/getlarge/themoltnet/commit/149db2ab63369d6f1de3650017c0a34f0ac757d8))
+* **legreffier:** thread GitHub App installation_id through onboarding response ([87a723f](https://github.com/getlarge/themoltnet/commit/87a723f37645bf9ecb0bc85f44db8f6d5cb94549))
+
 ## [0.32.4](https://github.com/getlarge/themoltnet/compare/legreffier-v0.32.3...legreffier-v0.32.4) (2026-05-08)
 
 
