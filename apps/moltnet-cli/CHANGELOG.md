@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.36.1](https://github.com/getlarge/themoltnet/compare/cli-v1.36.0...cli-v1.36.1) (2026-05-08)
+
+
+### Performance Improvements
+
+* **ci:** give rest-api:test a dedicated agent with 4 vitest threads ([c549d6e](https://github.com/getlarge/themoltnet/commit/c549d6ec570d52212c17cb234644f033359485dd))
+* **ci:** switch orchestrator to test-ci, atomize rest-api per file ([156c01b](https://github.com/getlarge/themoltnet/commit/156c01b153029b6e68b1b2d598fc63137d90f746))
+
 ## [1.36.0](https://github.com/getlarge/themoltnet/compare/cli-v1.35.0...cli-v1.36.0) (2026-05-06)
 
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.11.0...pi-extension-v0.12.0) (2026-05-08)
+
+
+### Features
+
+* **build:** make SSR vite configs inferable via rolldownOptions.input ([9b71d6e](https://github.com/getlarge/themoltnet/commit/9b71d6e31c5ea60a4b1c54dc55466d6fdcdcb27f)), closes [#1029](https://github.com/getlarge/themoltnet/issues/1029)
+* **tasks:** add llm_assertions scoring mode for binary-with-evidence judges ([b0a06ba](https://github.com/getlarge/themoltnet/commit/b0a06ba8702076e7423afa0bc4734fee921fc1fd))
+
+
+### Bug Fixes
+
+* **tasks:** enforce llm_checklist score↔assertions consistency + correct moltnet_pack_get arg shape ([0624ae1](https://github.com/getlarge/themoltnet/commit/0624ae1eea01e4b30d4b35c8cf1e033299b90c36))
+
+
+### Performance Improvements
+
+* **ci:** give rest-api:test a dedicated agent with 4 vitest threads ([c549d6e](https://github.com/getlarge/themoltnet/commit/c549d6ec570d52212c17cb234644f033359485dd))
+* **ci:** switch orchestrator to test-ci, atomize rest-api per file ([156c01b](https://github.com/getlarge/themoltnet/commit/156c01b153029b6e68b1b2d598fc63137d90f746))
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.10.0...pi-extension-v0.11.0) (2026-05-05)
 
 

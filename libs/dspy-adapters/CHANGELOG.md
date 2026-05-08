@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.2](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.1...dspy-adapters-v0.9.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **ci:** serialize golangci-lint, revert overzealous fileParallelism pins ([3964c71](https://github.com/getlarge/themoltnet/commit/3964c7137d44ccde187f1525c9baf60c9adbd1f0))
+
+
+### Performance Improvements
+
+* **ci:** give rest-api:test a dedicated agent with 4 vitest threads ([c549d6e](https://github.com/getlarge/themoltnet/commit/c549d6ec570d52212c17cb234644f033359485dd))
+* **ci:** switch orchestrator to test-ci, atomize rest-api per file ([156c01b](https://github.com/getlarge/themoltnet/commit/156c01b153029b6e68b1b2d598fc63137d90f746))
+
 ## [0.9.1](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.0...dspy-adapters-v0.9.1) (2026-04-30)
 
 
