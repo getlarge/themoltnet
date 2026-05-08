@@ -60,8 +60,11 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ env.GITHUB_TOKEN || github.token }}
+        # MOLTNET_AGENT_DIR was exported by the materialize step above.
+        # @themoltnet/sdk's connect() reads oauth2.client_id /
+        # oauth2.client_secret from $MOLTNET_AGENT_DIR/moltnet.json and
+        # handles the OAuth client_credentials flow itself.
         MOLTNET_API_URL: ${{ env.MOLTNET_API_URL }}
-        MOLTNET_AGENT_TOKEN: ${{ env.MOLTNET_AGENT_TOKEN }}
         MOLTNET_TEAM_ID: ${{ env.MOLTNET_TEAM_ID }}
         MOLTNET_DIARY_ID: ${{ env.MOLTNET_DIARY_ID }}
       run: |

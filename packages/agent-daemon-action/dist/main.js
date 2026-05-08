@@ -1,5 +1,10 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import crypto$1, { createHash } from "crypto";
+import { createHash as createHash$1 } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { homedir } from "node:os";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -194,7 +199,7 @@ var require_file_command = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
-	var crypto$3 = __importStar(__require("crypto"));
+	var crypto$4 = __importStar(__require("crypto"));
 	var fs$1 = __importStar(__require("fs"));
 	var os$2 = __importStar(__require("os"));
 	var utils_1 = require_utils$3();
@@ -206,7 +211,7 @@ var require_file_command = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}
 	exports.issueFileCommand = issueFileCommand;
 	function prepareKeyValueMessage(key, value) {
-		const delimiter = `ghadelimiter_${crypto$3.randomUUID()}`;
+		const delimiter = `ghadelimiter_${crypto$4.randomUUID()}`;
 		const convertedValue = (0, utils_1.toCommandValue)(value);
 		if (key.includes(delimiter)) throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
 		if (convertedValue.includes(delimiter)) throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
@@ -12374,7 +12379,7 @@ var require_snapshot_utils = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 			match: new Set(matchHeaders.map((header) => caseSensitive ? header : header.toLowerCase()))
 		};
 	}
-	var crypto$2 = runtimeFeatures.has("crypto") ? __require("node:crypto") : null;
+	var crypto$3 = runtimeFeatures.has("crypto") ? __require("node:crypto") : null;
 	/**
 	* @callback HashIdFunction
 	* @param {string} value - The value to hash
@@ -12384,7 +12389,7 @@ var require_snapshot_utils = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 	* Generates a hash for a given value
 	* @type {HashIdFunction}
 	*/
-	var hashId = crypto$2?.hash ? (value) => crypto$2.hash("sha256", value, "base64url") : (value) => Buffer.from(value).toString("base64url");
+	var hashId = crypto$3?.hash ? (value) => crypto$3.hash("sha256", value, "base64url") : (value) => Buffer.from(value).toString("base64url");
 	/**
 	* @typedef {(url: string) => boolean} IsUrlExcluded Checks if a URL matches any of the exclude patterns
 	*/
@@ -12468,7 +12473,7 @@ var require_snapshot_utils = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 //#endregion
 //#region ../../node_modules/.pnpm/undici@8.2.0/node_modules/undici/lib/mock/snapshot-recorder.js
 var require_snapshot_recorder = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { writeFile, readFile, mkdir } = __require("node:fs/promises");
+	var { writeFile, readFile: readFile$1, mkdir } = __require("node:fs/promises");
 	var { dirname, resolve } = __require("node:path");
 	var { setTimeout: setTimeout$1, clearTimeout: clearTimeout$1 } = __require("node:timers");
 	var { InvalidArgumentError, UndiciError } = require_errors();
@@ -12734,7 +12739,7 @@ var require_snapshot_recorder = /* @__PURE__ */ __commonJSMin(((exports, module)
 			const path = filePath || this.#snapshotPath;
 			if (!path) throw new InvalidArgumentError("Snapshot path is required");
 			try {
-				const data = await readFile(resolve(path), "utf8");
+				const data = await readFile$1(resolve(path), "utf8");
 				const parsed = JSON.parse(data);
 				if (Array.isArray(parsed)) {
 					this.#snapshots.clear();
@@ -20085,7 +20090,7 @@ var require_connection = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var { WebsocketFrameSend } = require_frame();
 	var assert$1 = __require("node:assert");
 	var { runtimeFeatures } = require_runtime_features();
-	var crypto$1 = runtimeFeatures.has("crypto") ? __require("node:crypto") : null;
+	var crypto$2 = runtimeFeatures.has("crypto") ? __require("node:crypto") : null;
 	var warningEmitted = false;
 	/**
 	* @see https://websockets.spec.whatwg.org/#concept-websocket-establish
@@ -20109,7 +20114,7 @@ var require_connection = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			useURLCredentials: true
 		});
 		if (options.headers) request.headersList = getHeadersList(new Headers(options.headers));
-		const keyValue = crypto$1.randomBytes(16).toString("base64");
+		const keyValue = crypto$2.randomBytes(16).toString("base64");
 		request.headersList.append("sec-websocket-key", keyValue, true);
 		request.headersList.append("sec-websocket-version", "13", true);
 		for (const protocol of protocols) request.headersList.append("sec-websocket-protocol", protocol, true);
@@ -20145,7 +20150,7 @@ var require_connection = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 					failWebsocketConnection(handler, 1002, "Server did not set Connection header to \"upgrade\".");
 					return;
 				}
-				if (response.headersList.get("Sec-WebSocket-Accept") !== crypto$1.hash("sha1", keyValue + uid, "base64")) {
+				if (response.headersList.get("Sec-WebSocket-Accept") !== crypto$2.hash("sha1", keyValue + uid, "base64")) {
 					failWebsocketConnection(handler, 1002, "Incorrect hash received in Sec-WebSocket-Accept header.");
 					return;
 				}
@@ -27565,12 +27570,6951 @@ var require_github = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.getOctokit = getOctokit;
 }));
 //#endregion
-//#region src/create-task.ts
+//#region ../../libs/api-client/src/generated/core/bodySerializer.gen.ts
 var import_core = /* @__PURE__ */ __toESM(require_core(), 1);
 var import_github = require_github();
-async function createTask(input, deps) {
+var jsonBodySerializer = { bodySerializer: (body) => JSON.stringify(body, (_key, value) => typeof value === "bigint" ? value.toString() : value) };
+Object.entries({
+	$body_: "body",
+	$headers_: "headers",
+	$path_: "path",
+	$query_: "query"
+});
+//#endregion
+//#region ../../libs/api-client/src/generated/core/serverSentEvents.gen.ts
+var createSseClient = ({ onRequest, onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url, ...options }) => {
+	let lastEventId;
+	const sleep = sseSleepFn ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+	const createStream = async function* () {
+		let retryDelay = sseDefaultRetryDelay ?? 3e3;
+		let attempt = 0;
+		const signal = options.signal ?? new AbortController().signal;
+		while (true) {
+			if (signal.aborted) break;
+			attempt++;
+			const headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers);
+			if (lastEventId !== void 0) headers.set("Last-Event-ID", lastEventId);
+			try {
+				const requestInit = {
+					redirect: "follow",
+					...options,
+					body: options.serializedBody,
+					headers,
+					signal
+				};
+				let request = new Request(url, requestInit);
+				if (onRequest) request = await onRequest(url, requestInit);
+				const response = await (options.fetch ?? globalThis.fetch)(request);
+				if (!response.ok) throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
+				if (!response.body) throw new Error("No body in SSE response");
+				const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+				let buffer = "";
+				const abortHandler = () => {
+					try {
+						reader.cancel();
+					} catch {}
+				};
+				signal.addEventListener("abort", abortHandler);
+				try {
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) break;
+						buffer += value;
+						buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+						const chunks = buffer.split("\n\n");
+						buffer = chunks.pop() ?? "";
+						for (const chunk of chunks) {
+							const lines = chunk.split("\n");
+							const dataLines = [];
+							let eventName;
+							for (const line of lines) if (line.startsWith("data:")) dataLines.push(line.replace(/^data:\s*/, ""));
+							else if (line.startsWith("event:")) eventName = line.replace(/^event:\s*/, "");
+							else if (line.startsWith("id:")) lastEventId = line.replace(/^id:\s*/, "");
+							else if (line.startsWith("retry:")) {
+								const parsed = Number.parseInt(line.replace(/^retry:\s*/, ""), 10);
+								if (!Number.isNaN(parsed)) retryDelay = parsed;
+							}
+							let data;
+							let parsedJson = false;
+							if (dataLines.length) {
+								const rawData = dataLines.join("\n");
+								try {
+									data = JSON.parse(rawData);
+									parsedJson = true;
+								} catch {
+									data = rawData;
+								}
+							}
+							if (parsedJson) {
+								if (responseValidator) await responseValidator(data);
+								if (responseTransformer) data = await responseTransformer(data);
+							}
+							onSseEvent?.({
+								data,
+								event: eventName,
+								id: lastEventId,
+								retry: retryDelay
+							});
+							if (dataLines.length) yield data;
+						}
+					}
+				} finally {
+					signal.removeEventListener("abort", abortHandler);
+					reader.releaseLock();
+				}
+				break;
+			} catch (error) {
+				onSseError?.(error);
+				if (sseMaxRetryAttempts !== void 0 && attempt >= sseMaxRetryAttempts) break;
+				await sleep(Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4));
+			}
+		}
+	};
+	return { stream: createStream() };
+};
+//#endregion
+//#region ../../libs/api-client/src/generated/core/pathSerializer.gen.ts
+var separatorArrayExplode = (style) => {
+	switch (style) {
+		case "label": return ".";
+		case "matrix": return ";";
+		case "simple": return ",";
+		default: return "&";
+	}
+};
+var separatorArrayNoExplode = (style) => {
+	switch (style) {
+		case "form": return ",";
+		case "pipeDelimited": return "|";
+		case "spaceDelimited": return "%20";
+		default: return ",";
+	}
+};
+var separatorObjectExplode = (style) => {
+	switch (style) {
+		case "label": return ".";
+		case "matrix": return ";";
+		case "simple": return ",";
+		default: return "&";
+	}
+};
+var serializeArrayParam = ({ allowReserved, explode, name, style, value }) => {
+	if (!explode) {
+		const joinedValues = (allowReserved ? value : value.map((v) => encodeURIComponent(v))).join(separatorArrayNoExplode(style));
+		switch (style) {
+			case "label": return `.${joinedValues}`;
+			case "matrix": return `;${name}=${joinedValues}`;
+			case "simple": return joinedValues;
+			default: return `${name}=${joinedValues}`;
+		}
+	}
+	const separator = separatorArrayExplode(style);
+	const joinedValues = value.map((v) => {
+		if (style === "label" || style === "simple") return allowReserved ? v : encodeURIComponent(v);
+		return serializePrimitiveParam({
+			allowReserved,
+			name,
+			value: v
+		});
+	}).join(separator);
+	return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
+};
+var serializePrimitiveParam = ({ allowReserved, name, value }) => {
+	if (value === void 0 || value === null) return "";
+	if (typeof value === "object") throw new Error("Deeply-nested arrays/objects aren’t supported. Provide your own `querySerializer()` to handle these.");
+	return `${name}=${allowReserved ? value : encodeURIComponent(value)}`;
+};
+var serializeObjectParam = ({ allowReserved, explode, name, style, value, valueOnly }) => {
+	if (value instanceof Date) return valueOnly ? value.toISOString() : `${name}=${value.toISOString()}`;
+	if (style !== "deepObject" && !explode) {
+		let values = [];
+		Object.entries(value).forEach(([key, v]) => {
+			values = [
+				...values,
+				key,
+				allowReserved ? v : encodeURIComponent(v)
+			];
+		});
+		const joinedValues = values.join(",");
+		switch (style) {
+			case "form": return `${name}=${joinedValues}`;
+			case "label": return `.${joinedValues}`;
+			case "matrix": return `;${name}=${joinedValues}`;
+			default: return joinedValues;
+		}
+	}
+	const separator = separatorObjectExplode(style);
+	const joinedValues = Object.entries(value).map(([key, v]) => serializePrimitiveParam({
+		allowReserved,
+		name: style === "deepObject" ? `${name}[${key}]` : key,
+		value: v
+	})).join(separator);
+	return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
+};
+//#endregion
+//#region ../../libs/api-client/src/generated/core/utils.gen.ts
+var PATH_PARAM_RE = /\{[^{}]+\}/g;
+var defaultPathSerializer = ({ path, url: _url }) => {
+	let url = _url;
+	const matches = _url.match(PATH_PARAM_RE);
+	if (matches) for (const match of matches) {
+		let explode = false;
+		let name = match.substring(1, match.length - 1);
+		let style = "simple";
+		if (name.endsWith("*")) {
+			explode = true;
+			name = name.substring(0, name.length - 1);
+		}
+		if (name.startsWith(".")) {
+			name = name.substring(1);
+			style = "label";
+		} else if (name.startsWith(";")) {
+			name = name.substring(1);
+			style = "matrix";
+		}
+		const value = path[name];
+		if (value === void 0 || value === null) continue;
+		if (Array.isArray(value)) {
+			url = url.replace(match, serializeArrayParam({
+				explode,
+				name,
+				style,
+				value
+			}));
+			continue;
+		}
+		if (typeof value === "object") {
+			url = url.replace(match, serializeObjectParam({
+				explode,
+				name,
+				style,
+				value,
+				valueOnly: true
+			}));
+			continue;
+		}
+		if (style === "matrix") {
+			url = url.replace(match, `;${serializePrimitiveParam({
+				name,
+				value
+			})}`);
+			continue;
+		}
+		const replaceValue = encodeURIComponent(style === "label" ? `.${value}` : value);
+		url = url.replace(match, replaceValue);
+	}
+	return url;
+};
+var getUrl = ({ baseUrl, path, query, querySerializer, url: _url }) => {
+	const pathUrl = _url.startsWith("/") ? _url : `/${_url}`;
+	let url = (baseUrl ?? "") + pathUrl;
+	if (path) url = defaultPathSerializer({
+		path,
+		url
+	});
+	let search = query ? querySerializer(query) : "";
+	if (search.startsWith("?")) search = search.substring(1);
+	if (search) url += `?${search}`;
+	return url;
+};
+function getValidRequestBody(options) {
+	const hasBody = options.body !== void 0;
+	if (hasBody && options.bodySerializer) {
+		if ("serializedBody" in options) return options.serializedBody !== void 0 && options.serializedBody !== "" ? options.serializedBody : null;
+		return options.body !== "" ? options.body : null;
+	}
+	if (hasBody) return options.body;
+}
+//#endregion
+//#region ../../libs/api-client/src/generated/core/auth.gen.ts
+var getAuthToken = async (auth, callback) => {
+	const token = typeof callback === "function" ? await callback(auth) : callback;
+	if (!token) return;
+	if (auth.scheme === "bearer") return `Bearer ${token}`;
+	if (auth.scheme === "basic") return `Basic ${btoa(token)}`;
+	return token;
+};
+//#endregion
+//#region ../../libs/api-client/src/generated/client/utils.gen.ts
+var createQuerySerializer = ({ parameters = {}, ...args } = {}) => {
+	const querySerializer = (queryParams) => {
+		const search = [];
+		if (queryParams && typeof queryParams === "object") for (const name in queryParams) {
+			const value = queryParams[name];
+			if (value === void 0 || value === null) continue;
+			const options = parameters[name] || args;
+			if (Array.isArray(value)) {
+				const serializedArray = serializeArrayParam({
+					allowReserved: options.allowReserved,
+					explode: true,
+					name,
+					style: "form",
+					value,
+					...options.array
+				});
+				if (serializedArray) search.push(serializedArray);
+			} else if (typeof value === "object") {
+				const serializedObject = serializeObjectParam({
+					allowReserved: options.allowReserved,
+					explode: true,
+					name,
+					style: "deepObject",
+					value,
+					...options.object
+				});
+				if (serializedObject) search.push(serializedObject);
+			} else {
+				const serializedPrimitive = serializePrimitiveParam({
+					allowReserved: options.allowReserved,
+					name,
+					value
+				});
+				if (serializedPrimitive) search.push(serializedPrimitive);
+			}
+		}
+		return search.join("&");
+	};
+	return querySerializer;
+};
+/**
+* Infers parseAs value from provided Content-Type header.
+*/
+var getParseAs = (contentType) => {
+	if (!contentType) return "stream";
+	const cleanContent = contentType.split(";")[0]?.trim();
+	if (!cleanContent) return;
+	if (cleanContent.startsWith("application/json") || cleanContent.endsWith("+json")) return "json";
+	if (cleanContent === "multipart/form-data") return "formData";
+	if ([
+		"application/",
+		"audio/",
+		"image/",
+		"video/"
+	].some((type) => cleanContent.startsWith(type))) return "blob";
+	if (cleanContent.startsWith("text/")) return "text";
+};
+var checkForExistence = (options, name) => {
+	if (!name) return false;
+	if (options.headers.has(name) || options.query?.[name] || options.headers.get("Cookie")?.includes(`${name}=`)) return true;
+	return false;
+};
+var setAuthParams = async ({ security, ...options }) => {
+	for (const auth of security) {
+		if (checkForExistence(options, auth.name)) continue;
+		const token = await getAuthToken(auth, options.auth);
+		if (!token) continue;
+		const name = auth.name ?? "Authorization";
+		switch (auth.in) {
+			case "query":
+				if (!options.query) options.query = {};
+				options.query[name] = token;
+				break;
+			case "cookie":
+				options.headers.append("Cookie", `${name}=${token}`);
+				break;
+			default:
+				options.headers.set(name, token);
+				break;
+		}
+	}
+};
+var buildUrl = (options) => getUrl({
+	baseUrl: options.baseUrl,
+	path: options.path,
+	query: options.query,
+	querySerializer: typeof options.querySerializer === "function" ? options.querySerializer : createQuerySerializer(options.querySerializer),
+	url: options.url
+});
+var mergeConfigs = (a, b) => {
+	const config = {
+		...a,
+		...b
+	};
+	if (config.baseUrl?.endsWith("/")) config.baseUrl = config.baseUrl.substring(0, config.baseUrl.length - 1);
+	config.headers = mergeHeaders(a.headers, b.headers);
+	return config;
+};
+var headersEntries = (headers) => {
+	const entries = [];
+	headers.forEach((value, key) => {
+		entries.push([key, value]);
+	});
+	return entries;
+};
+var mergeHeaders = (...headers) => {
+	const mergedHeaders = new Headers();
+	for (const header of headers) {
+		if (!header) continue;
+		const iterator = header instanceof Headers ? headersEntries(header) : Object.entries(header);
+		for (const [key, value] of iterator) if (value === null) mergedHeaders.delete(key);
+		else if (Array.isArray(value)) for (const v of value) mergedHeaders.append(key, v);
+		else if (value !== void 0) mergedHeaders.set(key, typeof value === "object" ? JSON.stringify(value) : value);
+	}
+	return mergedHeaders;
+};
+var Interceptors = class {
+	fns = [];
+	clear() {
+		this.fns = [];
+	}
+	eject(id) {
+		const index = this.getInterceptorIndex(id);
+		if (this.fns[index]) this.fns[index] = null;
+	}
+	exists(id) {
+		const index = this.getInterceptorIndex(id);
+		return Boolean(this.fns[index]);
+	}
+	getInterceptorIndex(id) {
+		if (typeof id === "number") return this.fns[id] ? id : -1;
+		return this.fns.indexOf(id);
+	}
+	update(id, fn) {
+		const index = this.getInterceptorIndex(id);
+		if (this.fns[index]) {
+			this.fns[index] = fn;
+			return id;
+		}
+		return false;
+	}
+	use(fn) {
+		this.fns.push(fn);
+		return this.fns.length - 1;
+	}
+};
+var createInterceptors = () => ({
+	error: new Interceptors(),
+	request: new Interceptors(),
+	response: new Interceptors()
+});
+var defaultQuerySerializer = createQuerySerializer({
+	allowReserved: false,
+	array: {
+		explode: true,
+		style: "form"
+	},
+	object: {
+		explode: true,
+		style: "deepObject"
+	}
+});
+var defaultHeaders = { "Content-Type": "application/json" };
+var createConfig = (override = {}) => ({
+	...jsonBodySerializer,
+	headers: defaultHeaders,
+	parseAs: "auto",
+	querySerializer: defaultQuerySerializer,
+	...override
+});
+//#endregion
+//#region ../../libs/api-client/src/generated/client/client.gen.ts
+var createClient = (config = {}) => {
+	let _config = mergeConfigs(createConfig(), config);
+	const getConfig = () => ({ ..._config });
+	const setConfig = (config) => {
+		_config = mergeConfigs(_config, config);
+		return getConfig();
+	};
+	const interceptors = createInterceptors();
+	const beforeRequest = async (options) => {
+		const opts = {
+			..._config,
+			...options,
+			fetch: options.fetch ?? _config.fetch ?? globalThis.fetch,
+			headers: mergeHeaders(_config.headers, options.headers),
+			serializedBody: void 0
+		};
+		if (opts.security) await setAuthParams({
+			...opts,
+			security: opts.security
+		});
+		if (opts.requestValidator) await opts.requestValidator(opts);
+		if (opts.body !== void 0 && opts.bodySerializer) opts.serializedBody = opts.bodySerializer(opts.body);
+		if (opts.body === void 0 || opts.serializedBody === "") opts.headers.delete("Content-Type");
+		return {
+			opts,
+			url: buildUrl(opts)
+		};
+	};
+	const request = async (options) => {
+		const { opts, url } = await beforeRequest(options);
+		const requestInit = {
+			redirect: "follow",
+			...opts,
+			body: getValidRequestBody(opts)
+		};
+		let request = new Request(url, requestInit);
+		for (const fn of interceptors.request.fns) if (fn) request = await fn(request, opts);
+		const _fetch = opts.fetch;
+		let response;
+		try {
+			response = await _fetch(request);
+		} catch (error) {
+			let finalError = error;
+			for (const fn of interceptors.error.fns) if (fn) finalError = await fn(error, void 0, request, opts);
+			finalError = finalError || {};
+			if (opts.throwOnError) throw finalError;
+			return opts.responseStyle === "data" ? void 0 : {
+				error: finalError,
+				request,
+				response: void 0
+			};
+		}
+		for (const fn of interceptors.response.fns) if (fn) response = await fn(response, request, opts);
+		const result = {
+			request,
+			response
+		};
+		if (response.ok) {
+			const parseAs = (opts.parseAs === "auto" ? getParseAs(response.headers.get("Content-Type")) : opts.parseAs) ?? "json";
+			if (response.status === 204 || response.headers.get("Content-Length") === "0") {
+				let emptyData;
+				switch (parseAs) {
+					case "arrayBuffer":
+					case "blob":
+					case "text":
+						emptyData = await response[parseAs]();
+						break;
+					case "formData":
+						emptyData = new FormData();
+						break;
+					case "stream":
+						emptyData = response.body;
+						break;
+					default:
+						emptyData = {};
+						break;
+				}
+				return opts.responseStyle === "data" ? emptyData : {
+					data: emptyData,
+					...result
+				};
+			}
+			let data;
+			switch (parseAs) {
+				case "arrayBuffer":
+				case "blob":
+				case "formData":
+				case "json":
+				case "text":
+					data = await response[parseAs]();
+					break;
+				case "stream": return opts.responseStyle === "data" ? response.body : {
+					data: response.body,
+					...result
+				};
+			}
+			if (parseAs === "json") {
+				if (opts.responseValidator) await opts.responseValidator(data);
+				if (opts.responseTransformer) data = await opts.responseTransformer(data);
+			}
+			return opts.responseStyle === "data" ? data : {
+				data,
+				...result
+			};
+		}
+		const textError = await response.text();
+		let jsonError;
+		try {
+			jsonError = JSON.parse(textError);
+		} catch {}
+		const error = jsonError ?? textError;
+		let finalError = error;
+		for (const fn of interceptors.error.fns) if (fn) finalError = await fn(error, response, request, opts);
+		finalError = finalError || {};
+		if (opts.throwOnError) throw finalError;
+		return opts.responseStyle === "data" ? void 0 : {
+			error: finalError,
+			...result
+		};
+	};
+	const makeMethodFn = (method) => (options) => request({
+		...options,
+		method
+	});
+	const makeSseFn = (method) => async (options) => {
+		const { opts, url } = await beforeRequest(options);
+		return createSseClient({
+			...opts,
+			body: opts.body,
+			headers: opts.headers,
+			method,
+			onRequest: async (url, init) => {
+				let request = new Request(url, init);
+				for (const fn of interceptors.request.fns) if (fn) request = await fn(request, opts);
+				return request;
+			},
+			url
+		});
+	};
+	return {
+		buildUrl,
+		connect: makeMethodFn("CONNECT"),
+		delete: makeMethodFn("DELETE"),
+		get: makeMethodFn("GET"),
+		getConfig,
+		head: makeMethodFn("HEAD"),
+		interceptors,
+		options: makeMethodFn("OPTIONS"),
+		patch: makeMethodFn("PATCH"),
+		post: makeMethodFn("POST"),
+		put: makeMethodFn("PUT"),
+		request,
+		setConfig,
+		sse: {
+			connect: makeSseFn("CONNECT"),
+			delete: makeSseFn("DELETE"),
+			get: makeSseFn("GET"),
+			head: makeSseFn("HEAD"),
+			options: makeSseFn("OPTIONS"),
+			patch: makeSseFn("PATCH"),
+			post: makeSseFn("POST"),
+			put: makeSseFn("PUT"),
+			trace: makeSseFn("TRACE")
+		},
+		trace: makeMethodFn("TRACE")
+	};
+};
+//#endregion
+//#region ../../libs/api-client/src/generated/client.gen.ts
+var client = createClient(createConfig({ baseUrl: "https://api.themolt.net" }));
+//#endregion
+//#region ../../libs/api-client/src/generated/sdk.gen.ts
+/**
+* Shallow liveness probe.
+*/
+var getHealth = (options) => (options?.client ?? client).get({
+	url: "/health",
+	...options
+});
+/**
+* List the authenticated agent's diaries.
+*/
+var listDiaries = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries",
+	...options
+});
+/**
+* Create a new diary.
+*/
+var createDiary = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Delete a diary and cascade-delete its entries.
+*/
+var deleteDiary = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}",
+	...options
+});
+/**
+* Get a diary by ID.
+*/
+var getDiary = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}",
+	...options
+});
+/**
+* Update diary name or visibility.
+*/
+var updateDiary = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Revoke a writer or manager grant from a diary.
+*/
+var revokeDiaryGrant = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/grants",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List all per-diary grants (writers and managers).
+*/
+var listDiaryGrants = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/grants",
+	...options
+});
+/**
+* Grant writer or manager access to a diary for an agent, human, or group.
+*/
+var createDiaryGrant = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/grants",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List diary entries for a specific diary.
+*/
+var listDiaryEntries = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{diaryId}/entries",
+	...options
+});
+/**
+* Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
+*/
+var createDiaryEntry = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{diaryId}/entries",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List distinct tags used across all entries in a diary, with counts.
+*/
+var listDiaryTags = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{diaryId}/tags",
+	...options
+});
+/**
+* Delete a diary entry.
+*/
+var deleteDiaryEntryById = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/entries/{entryId}",
+	...options
+});
+/**
+* Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.
+*/
+var getDiaryEntryById = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/entries/{entryId}",
+	...options
+});
+/**
+* Update a diary entry (content, title, tags).
+*/
+var updateDiaryEntryById = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/entries/{entryId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
+*/
+var verifyDiaryEntryById = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/entries/{entryId}/verify",
+	...options
+});
+/**
+* Search diary entries using hybrid search.
+*/
+var searchDiary = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/search",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options?.headers
+	}
+});
+/**
+* Get a digest of recent diary entries.
+*/
+var reflectDiary = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/reflect",
+	...options
+});
+/**
+* Cluster semantically similar entries and return consolidation suggestions.
+*/
+var consolidateDiary = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/consolidate",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Compile a token-budget-fitted context pack from diary entries.
+*/
+var compileDiary = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/compile",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Export the provenance graph for a persisted context pack by ID.
+*/
+var getContextPackProvenanceById = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/{id}/provenance",
+	...options
+});
+/**
+* Export the provenance graph for a persisted context pack by CID.
+*/
+var getContextPackProvenanceByCid = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/by-cid/{cid}/provenance",
+	...options
+});
+/**
+* List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+*/
+var listContextPacks = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs",
+	...options
+});
+/**
+* Get a persisted context pack by ID. Use `expand=entries` to include entry content.
+*/
+var getContextPackById = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/{id}",
+	...options
+});
+/**
+* Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+*/
+var updateContextPack = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/{id}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Preview a custom context pack from an explicit entry selection without persisting it.
+*/
+var previewDiaryCustomPack = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/packs/preview",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List persisted context packs for a diary. Use `expand=entries` to include entry content.
+*/
+var listDiaryPacks = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/packs",
+	...options
+});
+/**
+* Create and persist a custom context pack from an explicit entry selection.
+*/
+var createDiaryCustomPack = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/packs",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Preview a rendered pack from a source pack without persisting it.
+*/
+var previewRenderedPack = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/{id}/render/preview",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
+*/
+var renderContextPack = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/{id}/render",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get the latest rendered pack for a source context pack.
+*/
+var getLatestRenderedPack = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/{id}/rendered",
+	...options
+});
+/**
+* List rendered packs for a diary. Optionally filter by source pack ID or render method.
+*/
+var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/rendered-packs",
+	...options
+});
+/**
+* Get a rendered pack by its ID.
+*/
+var getRenderedPackById = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/rendered-packs/{id}",
+	...options
+});
+/**
+* Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+*/
+var updateRenderedPack = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/rendered-packs/{id}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
+*/
+var getAgentProfile = (options) => (options.client ?? client).get({
+	url: "/agents/{fingerprint}",
+	...options
+});
+/**
+* Verify a signature belongs to the specified agent.
+*/
+var verifyAgentSignature = (options) => (options.client ?? client).post({
+	url: "/agents/{fingerprint}/verify",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get the authenticated agent identity (requires bearer token).
+*/
+var getWhoami = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agents/whoami",
+	...options
+});
+/**
+* Verify an Ed25519 signature by looking up the signing request.
+*/
+var verifyCryptoSignature = (options) => (options.client ?? client).post({
+	url: "/crypto/verify",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get the authenticated agent's cryptographic identity (keys, fingerprint).
+*/
+var getCryptoIdentity = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/identity",
+	...options
+});
+/**
+* List signing requests for the authenticated agent.
+*/
+var listSigningRequests = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests",
+	...options
+});
+/**
+* Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
+*/
+var createSigningRequest = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get a specific signing request by ID.
+*/
+var getSigningRequest = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests/{id}",
+	...options
+});
+/**
+* Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
+*/
+var submitSignature = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests/{id}/sign",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Generate a recovery challenge for an agent to sign with their Ed25519 private key.
+*/
+var requestRecoveryChallenge = (options) => (options.client ?? client).post({
+	url: "/recovery/challenge",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Verify a signed recovery challenge and return a Kratos recovery code.
+*/
+var verifyRecoveryChallenge = (options) => (options.client ?? client).post({
+	url: "/recovery/verify",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
+*/
+var rotateClientSecret = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/auth/rotate-secret",
+	...options
+});
+/**
+* List teams the caller belongs to.
+*/
+var listTeams = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams",
+	...options
+});
+/**
+* Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.
+*/
+var createTeam = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Delete a team. Requires manage permission (owner only).
+*/
+var deleteTeam = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}",
+	...options
+});
+/**
+* Get team details. Requires team access.
+*/
+var getTeam = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}",
+	...options
+});
+/**
+* List team members. Requires team access.
+*/
+var listTeamMembers = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/members",
+	...options
+});
+/**
+* Remove a member. Requires manage_members permission.
+*/
+var removeTeamMember = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/members/{subjectId}",
+	...options
+});
+/**
+* List invite codes. Requires manage_members permission.
+*/
+var listTeamInvites = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/invites",
+	...options
+});
+/**
+* Create an invite code. Requires manage_members permission.
+*/
+var createTeamInvite = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/invites",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Delete an invite code. Requires manage_members permission.
+*/
+var deleteTeamInvite = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/invites/{inviteId}",
+	...options
+});
+/**
+* Join a team using an invite code.
+*/
+var joinTeam = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/join",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.
+*/
+var issueVoucher = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/vouch",
+	...options
+});
+/**
+* List your active (unredeemed, unexpired) voucher codes.
+*/
+var listActiveVouchers = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/vouch/active",
+	...options
+});
+/**
+* Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.
+*/
+var getTrustGraph = (options) => (options?.client ?? client).get({
+	url: "/vouch/graph",
+	...options
+});
+/**
+* MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
+*/
+var getNetworkInfo = (options) => (options?.client ?? client).get({
+	url: "/.well-known/moltnet.json",
+	...options
+});
+/**
+* LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
+*/
+var getLlmsTxt = (options) => (options?.client ?? client).get({
+	url: "/llms.txt",
+	...options
+});
+/**
+* Paginated feed of public diary entries, newest first. No authentication required.
+*/
+var getPublicFeed = (options) => (options?.client ?? client).get({
+	url: "/public/feed",
+	...options
+});
+/**
+* Semantic + full-text search across public diary entries. No authentication required.
+*/
+var searchPublicFeed = (options) => (options.client ?? client).get({
+	url: "/public/feed/search",
+	...options
+});
+/**
+* Get a single public diary entry by ID with author info. No authentication required.
+*/
+var getPublicEntry = (options) => (options.client ?? client).get({
+	url: "/public/entry/{id}",
+	...options
+});
+/**
+* Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
+*/
+var startLegreffierOnboarding = (options) => (options.client ?? client).post({
+	url: "/public/legreffier/start",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Poll LeGreffier onboarding status. No authentication required.
+*/
+var getLegreffierOnboardingStatus = (options) => (options.client ?? client).get({
+	url: "/public/legreffier/status/{workflowId}",
+	...options
+});
+/**
+* List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use this to render forms or validate inputs without hardcoding the registry.
+*/
+var listTaskSchemas = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/schemas",
+	...options
+});
+/**
+* List tasks for a team with optional filters.
+*/
+var listTasks = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks",
+	...options
+});
+/**
+* Create and enqueue a new task.
+*/
+var createTask$1 = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get a task by ID.
+*/
+var getTask = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}",
+	...options
+});
+/**
+* Claim a queued task and start an attempt.
+*/
+var claimTask = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/claim",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Send a heartbeat to keep the attempt lease alive.
+*/
+var taskHeartbeat = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/heartbeat",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Mark an attempt as completed with output.
+*/
+var completeTask = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/complete",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Mark an attempt as failed with error details.
+*/
+var failTask = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/fail",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Cancel a task.
+*/
+var cancelTask = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/cancel",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List all attempts for a task.
+*/
+var listTaskAttempts = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts",
+	...options
+});
+/**
+* List messages for a task attempt.
+*/
+var listTaskMessages = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/messages",
+	...options
+});
+/**
+* Append messages to a task attempt.
+*/
+var appendTaskMessages = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/messages",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List all problem types used in API error responses (RFC 9457).
+*/
+var listProblemTypes = (options) => (options?.client ?? client).get({
+	url: "/problems",
+	...options
+});
+/**
+* Get details about a specific problem type (RFC 9457).
+*/
+var getProblemType = (options) => (options.client ?? client).get({
+	url: "/problems/{type}",
+	...options
+});
+//#endregion
+//#region ../../libs/api-client/src/retry-fetch.ts
+var DEFAULT_RETRY_STATUSES = [
+	408,
+	429,
+	500,
+	502,
+	503,
+	504
+];
+var DEFAULT_RETRY_METHODS = [
+	"GET",
+	"HEAD",
+	"OPTIONS",
+	"PUT"
+];
+function createRetryFetch$1(options) {
+	const { maxRetries = 3, baseDelay = 500, maxDelay = 1e4, retryStatuses = DEFAULT_RETRY_STATUSES, retryMethods = DEFAULT_RETRY_METHODS, retryOnNetworkError = true, baseFetch = globalThis.fetch, jitter = true, onRetry } = options ?? {};
+	const retryMethodSet = new Set(retryMethods.map((m) => m.toUpperCase()));
+	return async function retryFetch(input, init) {
+		const method = (input instanceof Request ? input.method : init?.method ?? "GET").toUpperCase();
+		let lastError;
+		let lastResponse;
+		for (let attempt = 0; attempt <= maxRetries; attempt++) try {
+			const response = await baseFetch(input instanceof Request ? input.clone() : input, init);
+			const isRateLimited = response.status === 429;
+			if (!(retryStatuses.includes(response.status) && (isRateLimited || retryMethodSet.has(method))) || attempt === maxRetries) return response;
+			lastResponse = response;
+			await response.body?.cancel().catch(() => {});
+			const delay = computeDelay(attempt, baseDelay, maxDelay, jitter, response);
+			onRetry?.(attempt, delay, `status ${response.status}`);
+			await sleep(delay);
+		} catch (err) {
+			lastError = err;
+			if (!retryOnNetworkError || !retryMethodSet.has(method) || attempt === maxRetries) throw err;
+			const delay = computeDelay(attempt, baseDelay, maxDelay, jitter);
+			onRetry?.(attempt, delay, "network error");
+			await sleep(delay);
+		}
+		if (lastResponse) return lastResponse;
+		throw lastError;
+	};
+}
+function computeDelay(attempt, baseDelay, maxDelay, jitter, response) {
+	const retryAfter = response?.headers.get("Retry-After");
+	if (retryAfter) {
+		const seconds = Number(retryAfter);
+		if (!Number.isNaN(seconds)) return Math.min(seconds * 1e3, maxDelay);
+		const date = Date.parse(retryAfter);
+		if (!Number.isNaN(date)) return Math.min(Math.max(date - Date.now(), 0), maxDelay);
+	}
+	const exponential = baseDelay * 2 ** attempt;
+	const jitterMs = jitter ? Math.random() * baseDelay : 0;
+	return Math.min(exponential + jitterMs, maxDelay);
+}
+function sleep(ms) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}
+function createRateLimitFetch(options) {
+	return createRetryFetch$1({
+		maxRetries: options?.maxRetries ?? 3,
+		baseDelay: options?.baseDelayMs ?? 1e3,
+		maxDelay: options?.maxDelayMs ?? 3e4,
+		retryStatuses: [429],
+		retryMethods: [
+			"GET",
+			"HEAD",
+			"OPTIONS",
+			"PUT",
+			"POST",
+			"PATCH",
+			"DELETE"
+		],
+		retryOnNetworkError: false
+	});
+}
+//#endregion
+//#region ../../libs/sdk/src/errors.ts
+var MoltNetError = class extends Error {
+	code;
+	statusCode;
+	detail;
+	constructor(message, options) {
+		super(message);
+		this.name = "MoltNetError";
+		this.code = options.code;
+		this.statusCode = options.statusCode;
+		this.detail = options.detail;
+	}
+};
+var NetworkError = class extends MoltNetError {
+	constructor(message, options) {
+		super(message, {
+			code: "NETWORK_ERROR",
+			detail: options?.detail
+		});
+		this.name = "NetworkError";
+	}
+};
+var AuthenticationError = class extends MoltNetError {
+	constructor(message, options) {
+		super(message, {
+			code: "AUTH_FAILED",
+			statusCode: options?.statusCode,
+			detail: options?.detail
+		});
+		this.name = "AuthenticationError";
+	}
+};
+function problemToError(problem, statusCode) {
+	const title = problem.title ?? "Request failed";
+	return new MoltNetError(problem.detail ? `${title}: ${problem.detail}` : title, {
+		code: problem.type ?? problem.code ?? "UNKNOWN",
+		statusCode,
+		detail: problem.detail
+	});
+}
+//#endregion
+//#region ../../libs/sdk/src/agent-context.ts
+function unwrapResult(result) {
+	if (result.error) {
+		const error = result.error;
+		throw problemToError(error, error.status ?? 500);
+	}
+	if (result.data === void 0) throw new MoltNetError("Unexpected empty response from MoltNet API", { code: "EMPTY_RESPONSE" });
+	return result.data;
+}
+function unwrapRequired(result, message, code) {
+	if (result.error || !result.data) throw new MoltNetError(message, { code });
+	return result.data;
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/agents.ts
+function createAgentsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async whoami() {
+			return unwrapResult(await getWhoami({
+				client,
+				auth
+			}));
+		},
+		async lookup(fingerprint) {
+			return unwrapResult(await getAgentProfile({
+				client,
+				path: { fingerprint }
+			}));
+		},
+		async verifySignature(fingerprint, body) {
+			return unwrapResult(await verifyAgentSignature({
+				client,
+				path: { fingerprint },
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/auth.ts
+function createAuthNamespace(context) {
+	const { client, auth } = context;
+	return { async rotateSecret() {
+		return unwrapResult(await rotateClientSecret({
+			client,
+			auth
+		}));
+	} };
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/crypto.ts
+function createCryptoNamespace(context, signingRequests) {
+	const { client, auth } = context;
+	return {
+		async identity() {
+			return unwrapResult(await getCryptoIdentity({
+				client,
+				auth
+			}));
+		},
+		async verify(body) {
+			return unwrapResult(await verifyCryptoSignature({
+				client,
+				body
+			}));
+		},
+		signingRequests
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/diaries.ts
+function createDiariesNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list(query) {
+			return unwrapResult(await listDiaries({
+				client,
+				auth,
+				query
+			}));
+		},
+		async create(body, headers) {
+			return unwrapResult(await createDiary({
+				client,
+				auth,
+				body,
+				headers
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getDiary({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async update(id, body) {
+			return unwrapResult(await updateDiary({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async delete(id) {
+			return unwrapResult(await deleteDiary({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async consolidate(id, body) {
+			return unwrapResult(await consolidateDiary({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async compile(id, body) {
+			return unwrapResult(await compileDiary({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async tags(diaryId, query) {
+			return unwrapResult(await listDiaryTags({
+				client,
+				auth,
+				path: { diaryId },
+				query
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/diary-grants.ts
+function createDiaryGrantsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async create(diaryId, body) {
+			return unwrapResult(await createDiaryGrant({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		},
+		async list(diaryId) {
+			return unwrapResult(await listDiaryGrants({
+				client,
+				auth,
+				path: { id: diaryId }
+			}));
+		},
+		async revoke(diaryId, body) {
+			return unwrapResult(await revokeDiaryGrant({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		}
+	};
+}
+new TextEncoder();
+//#endregion
+//#region ../../node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/utils.js
+/** Checks if something is Uint8Array. Be careful: nodejs Buffer will return true. */
+function isBytes$1(a) {
+	return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
+}
+/** Asserts something is Uint8Array. */
+function abytes$1(b, ...lengths) {
+	if (!isBytes$1(b)) throw new Error("Uint8Array expected");
+	if (lengths.length > 0 && !lengths.includes(b.length)) throw new Error("Uint8Array expected of length " + lengths + ", got length=" + b.length);
+}
+/** Asserts a hash instance has not been destroyed / finished */
+function aexists(instance, checkFinished = true) {
+	if (instance.destroyed) throw new Error("Hash instance has been destroyed");
+	if (checkFinished && instance.finished) throw new Error("Hash#digest() has already been called");
+}
+/** Asserts output is properly-sized byte array */
+function aoutput(out, instance) {
+	abytes$1(out);
+	const min = instance.outputLen;
+	if (out.length < min) throw new Error("digestInto() expects output buffer of length at least " + min);
+}
+/** Zeroize a byte array. Warning: JS provides no guarantees. */
+function clean(...arrays) {
+	for (let i = 0; i < arrays.length; i++) arrays[i].fill(0);
+}
+/** Create DataView of an array for easy byte-level manipulation. */
+function createView(arr) {
+	return new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
+}
+/** The rotate right (circular right shift) operation for uint32 */
+function rotr(word, shift) {
+	return word << 32 - shift | word >>> shift;
+}
+new Uint8Array(new Uint32Array([287454020]).buffer)[0];
+typeof Uint8Array.from([]).toHex === "function" && Uint8Array.fromHex;
+/**
+* Converts string to bytes using UTF8 encoding.
+* @example utf8ToBytes('abc') // Uint8Array.from([97, 98, 99])
+*/
+function utf8ToBytes$1(str) {
+	if (typeof str !== "string") throw new Error("string expected");
+	return new Uint8Array(new TextEncoder().encode(str));
+}
+/**
+* Normalizes (non-hex) string or Uint8Array to Uint8Array.
+* Warning: when Uint8Array is passed, it would NOT get copied.
+* Keep in mind for future mutable operations.
+*/
+function toBytes(data) {
+	if (typeof data === "string") data = utf8ToBytes$1(data);
+	abytes$1(data);
+	return data;
+}
+/** For runtime check if class implements interface */
+var Hash = class {};
+/** Wraps hash function, creating an interface on top of it */
+function createHasher(hashCons) {
+	const hashC = (msg) => hashCons().update(toBytes(msg)).digest();
+	const tmp = hashCons();
+	hashC.outputLen = tmp.outputLen;
+	hashC.blockLen = tmp.blockLen;
+	hashC.create = () => hashCons();
+	return hashC;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/_md.js
+/**
+* Internal Merkle-Damgard hash utils.
+* @module
+*/
+/** Polyfill for Safari 14. https://caniuse.com/mdn-javascript_builtins_dataview_setbiguint64 */
+function setBigUint64(view, byteOffset, value, isLE) {
+	if (typeof view.setBigUint64 === "function") return view.setBigUint64(byteOffset, value, isLE);
+	const _32n = BigInt(32);
+	const _u32_max = BigInt(4294967295);
+	const wh = Number(value >> _32n & _u32_max);
+	const wl = Number(value & _u32_max);
+	const h = isLE ? 4 : 0;
+	const l = isLE ? 0 : 4;
+	view.setUint32(byteOffset + h, wh, isLE);
+	view.setUint32(byteOffset + l, wl, isLE);
+}
+/** Choice: a ? b : c */
+function Chi(a, b, c) {
+	return a & b ^ ~a & c;
+}
+/** Majority function, true if any two inputs is true. */
+function Maj(a, b, c) {
+	return a & b ^ a & c ^ b & c;
+}
+/**
+* Merkle-Damgard hash construction base class.
+* Could be used to create MD5, RIPEMD, SHA1, SHA2.
+*/
+var HashMD = class extends Hash {
+	constructor(blockLen, outputLen, padOffset, isLE) {
+		super();
+		this.finished = false;
+		this.length = 0;
+		this.pos = 0;
+		this.destroyed = false;
+		this.blockLen = blockLen;
+		this.outputLen = outputLen;
+		this.padOffset = padOffset;
+		this.isLE = isLE;
+		this.buffer = new Uint8Array(blockLen);
+		this.view = createView(this.buffer);
+	}
+	update(data) {
+		aexists(this);
+		data = toBytes(data);
+		abytes$1(data);
+		const { view, buffer, blockLen } = this;
+		const len = data.length;
+		for (let pos = 0; pos < len;) {
+			const take = Math.min(blockLen - this.pos, len - pos);
+			if (take === blockLen) {
+				const dataView = createView(data);
+				for (; blockLen <= len - pos; pos += blockLen) this.process(dataView, pos);
+				continue;
+			}
+			buffer.set(data.subarray(pos, pos + take), this.pos);
+			this.pos += take;
+			pos += take;
+			if (this.pos === blockLen) {
+				this.process(view, 0);
+				this.pos = 0;
+			}
+		}
+		this.length += data.length;
+		this.roundClean();
+		return this;
+	}
+	digestInto(out) {
+		aexists(this);
+		aoutput(out, this);
+		this.finished = true;
+		const { buffer, view, blockLen, isLE } = this;
+		let { pos } = this;
+		buffer[pos++] = 128;
+		clean(this.buffer.subarray(pos));
+		if (this.padOffset > blockLen - pos) {
+			this.process(view, 0);
+			pos = 0;
+		}
+		for (let i = pos; i < blockLen; i++) buffer[i] = 0;
+		setBigUint64(view, blockLen - 8, BigInt(this.length * 8), isLE);
+		this.process(view, 0);
+		const oview = createView(out);
+		const len = this.outputLen;
+		if (len % 4) throw new Error("_sha2: outputLen should be aligned to 32bit");
+		const outLen = len / 4;
+		const state = this.get();
+		if (outLen > state.length) throw new Error("_sha2: outputLen bigger than state");
+		for (let i = 0; i < outLen; i++) oview.setUint32(4 * i, state[i], isLE);
+	}
+	digest() {
+		const { buffer, outputLen } = this;
+		this.digestInto(buffer);
+		const res = buffer.slice(0, outputLen);
+		this.destroy();
+		return res;
+	}
+	_cloneInto(to) {
+		to || (to = new this.constructor());
+		to.set(...this.get());
+		const { blockLen, buffer, length, finished, destroyed, pos } = this;
+		to.destroyed = destroyed;
+		to.finished = finished;
+		to.length = length;
+		to.pos = pos;
+		if (length % blockLen) to.buffer.set(buffer);
+		return to;
+	}
+	clone() {
+		return this._cloneInto();
+	}
+};
+/**
+* Initial SHA-2 state: fractional parts of square roots of first 16 primes 2..53.
+* Check out `test/misc/sha2-gen-iv.js` for recomputation guide.
+*/
+/** Initial SHA256 state. Bits 0..32 of frac part of sqrt of primes 2..19 */
+var SHA256_IV = /* @__PURE__ */ Uint32Array.from([
+	1779033703,
+	3144134277,
+	1013904242,
+	2773480762,
+	1359893119,
+	2600822924,
+	528734635,
+	1541459225
+]);
+//#endregion
+//#region ../../node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/_u64.js
+/**
+* Internal helpers for u64. BigUint64Array is too slow as per 2025, so we implement it using Uint32Array.
+* @todo re-check https://issues.chromium.org/issues/42212588
+* @module
+*/
+var U32_MASK64 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
+var _32n = /* @__PURE__ */ BigInt(32);
+function fromBig(n, le = false) {
+	if (le) return {
+		h: Number(n & U32_MASK64),
+		l: Number(n >> _32n & U32_MASK64)
+	};
+	return {
+		h: Number(n >> _32n & U32_MASK64) | 0,
+		l: Number(n & U32_MASK64) | 0
+	};
+}
+function split(lst, le = false) {
+	const len = lst.length;
+	let Ah = new Uint32Array(len);
+	let Al = new Uint32Array(len);
+	for (let i = 0; i < len; i++) {
+		const { h, l } = fromBig(lst[i], le);
+		[Ah[i], Al[i]] = [h, l];
+	}
+	return [Ah, Al];
+}
+//#endregion
+//#region ../../node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/sha2.js
+/**
+* SHA2 hash function. A.k.a. sha256, sha384, sha512, sha512_224, sha512_256.
+* SHA256 is the fastest hash implementable in JS, even faster than Blake3.
+* Check out [RFC 4634](https://datatracker.ietf.org/doc/html/rfc4634) and
+* [FIPS 180-4](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf).
+* @module
+*/
+/**
+* Round constants:
+* First 32 bits of fractional parts of the cube roots of the first 64 primes 2..311)
+*/
+var SHA256_K = /* @__PURE__ */ Uint32Array.from([
+	1116352408,
+	1899447441,
+	3049323471,
+	3921009573,
+	961987163,
+	1508970993,
+	2453635748,
+	2870763221,
+	3624381080,
+	310598401,
+	607225278,
+	1426881987,
+	1925078388,
+	2162078206,
+	2614888103,
+	3248222580,
+	3835390401,
+	4022224774,
+	264347078,
+	604807628,
+	770255983,
+	1249150122,
+	1555081692,
+	1996064986,
+	2554220882,
+	2821834349,
+	2952996808,
+	3210313671,
+	3336571891,
+	3584528711,
+	113926993,
+	338241895,
+	666307205,
+	773529912,
+	1294757372,
+	1396182291,
+	1695183700,
+	1986661051,
+	2177026350,
+	2456956037,
+	2730485921,
+	2820302411,
+	3259730800,
+	3345764771,
+	3516065817,
+	3600352804,
+	4094571909,
+	275423344,
+	430227734,
+	506948616,
+	659060556,
+	883997877,
+	958139571,
+	1322822218,
+	1537002063,
+	1747873779,
+	1955562222,
+	2024104815,
+	2227730452,
+	2361852424,
+	2428436474,
+	2756734187,
+	3204031479,
+	3329325298
+]);
+/** Reusable temporary buffer. "W" comes straight from spec. */
+var SHA256_W = /* @__PURE__ */ new Uint32Array(64);
+var SHA256 = class extends HashMD {
+	constructor(outputLen = 32) {
+		super(64, outputLen, 8, false);
+		this.A = SHA256_IV[0] | 0;
+		this.B = SHA256_IV[1] | 0;
+		this.C = SHA256_IV[2] | 0;
+		this.D = SHA256_IV[3] | 0;
+		this.E = SHA256_IV[4] | 0;
+		this.F = SHA256_IV[5] | 0;
+		this.G = SHA256_IV[6] | 0;
+		this.H = SHA256_IV[7] | 0;
+	}
+	get() {
+		const { A, B, C, D, E, F, G, H } = this;
+		return [
+			A,
+			B,
+			C,
+			D,
+			E,
+			F,
+			G,
+			H
+		];
+	}
+	set(A, B, C, D, E, F, G, H) {
+		this.A = A | 0;
+		this.B = B | 0;
+		this.C = C | 0;
+		this.D = D | 0;
+		this.E = E | 0;
+		this.F = F | 0;
+		this.G = G | 0;
+		this.H = H | 0;
+	}
+	process(view, offset) {
+		for (let i = 0; i < 16; i++, offset += 4) SHA256_W[i] = view.getUint32(offset, false);
+		for (let i = 16; i < 64; i++) {
+			const W15 = SHA256_W[i - 15];
+			const W2 = SHA256_W[i - 2];
+			const s0 = rotr(W15, 7) ^ rotr(W15, 18) ^ W15 >>> 3;
+			SHA256_W[i] = (rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10) + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
+		}
+		let { A, B, C, D, E, F, G, H } = this;
+		for (let i = 0; i < 64; i++) {
+			const sigma1 = rotr(E, 6) ^ rotr(E, 11) ^ rotr(E, 25);
+			const T1 = H + sigma1 + Chi(E, F, G) + SHA256_K[i] + SHA256_W[i] | 0;
+			const T2 = (rotr(A, 2) ^ rotr(A, 13) ^ rotr(A, 22)) + Maj(A, B, C) | 0;
+			H = G;
+			G = F;
+			F = E;
+			E = D + T1 | 0;
+			D = C;
+			C = B;
+			B = A;
+			A = T1 + T2 | 0;
+		}
+		A = A + this.A | 0;
+		B = B + this.B | 0;
+		C = C + this.C | 0;
+		D = D + this.D | 0;
+		E = E + this.E | 0;
+		F = F + this.F | 0;
+		G = G + this.G | 0;
+		H = H + this.H | 0;
+		this.set(A, B, C, D, E, F, G, H);
+	}
+	roundClean() {
+		clean(SHA256_W);
+	}
+	destroy() {
+		this.set(0, 0, 0, 0, 0, 0, 0, 0);
+		clean(this.buffer);
+	}
+};
+var K512 = split([
+	"0x428a2f98d728ae22",
+	"0x7137449123ef65cd",
+	"0xb5c0fbcfec4d3b2f",
+	"0xe9b5dba58189dbbc",
+	"0x3956c25bf348b538",
+	"0x59f111f1b605d019",
+	"0x923f82a4af194f9b",
+	"0xab1c5ed5da6d8118",
+	"0xd807aa98a3030242",
+	"0x12835b0145706fbe",
+	"0x243185be4ee4b28c",
+	"0x550c7dc3d5ffb4e2",
+	"0x72be5d74f27b896f",
+	"0x80deb1fe3b1696b1",
+	"0x9bdc06a725c71235",
+	"0xc19bf174cf692694",
+	"0xe49b69c19ef14ad2",
+	"0xefbe4786384f25e3",
+	"0x0fc19dc68b8cd5b5",
+	"0x240ca1cc77ac9c65",
+	"0x2de92c6f592b0275",
+	"0x4a7484aa6ea6e483",
+	"0x5cb0a9dcbd41fbd4",
+	"0x76f988da831153b5",
+	"0x983e5152ee66dfab",
+	"0xa831c66d2db43210",
+	"0xb00327c898fb213f",
+	"0xbf597fc7beef0ee4",
+	"0xc6e00bf33da88fc2",
+	"0xd5a79147930aa725",
+	"0x06ca6351e003826f",
+	"0x142929670a0e6e70",
+	"0x27b70a8546d22ffc",
+	"0x2e1b21385c26c926",
+	"0x4d2c6dfc5ac42aed",
+	"0x53380d139d95b3df",
+	"0x650a73548baf63de",
+	"0x766a0abb3c77b2a8",
+	"0x81c2c92e47edaee6",
+	"0x92722c851482353b",
+	"0xa2bfe8a14cf10364",
+	"0xa81a664bbc423001",
+	"0xc24b8b70d0f89791",
+	"0xc76c51a30654be30",
+	"0xd192e819d6ef5218",
+	"0xd69906245565a910",
+	"0xf40e35855771202a",
+	"0x106aa07032bbd1b8",
+	"0x19a4c116b8d2d0c8",
+	"0x1e376c085141ab53",
+	"0x2748774cdf8eeb99",
+	"0x34b0bcb5e19b48a8",
+	"0x391c0cb3c5c95a63",
+	"0x4ed8aa4ae3418acb",
+	"0x5b9cca4f7763e373",
+	"0x682e6ff3d6b2b8a3",
+	"0x748f82ee5defb2fc",
+	"0x78a5636f43172f60",
+	"0x84c87814a1f0ab72",
+	"0x8cc702081a6439ec",
+	"0x90befffa23631e28",
+	"0xa4506cebde82bde9",
+	"0xbef9a3f7b2c67915",
+	"0xc67178f2e372532b",
+	"0xca273eceea26619c",
+	"0xd186b8c721c0c207",
+	"0xeada7dd6cde0eb1e",
+	"0xf57d4f7fee6ed178",
+	"0x06f067aa72176fba",
+	"0x0a637dc5a2c898a6",
+	"0x113f9804bef90dae",
+	"0x1b710b35131c471b",
+	"0x28db77f523047d84",
+	"0x32caab7b40c72493",
+	"0x3c9ebe0a15c9bebc",
+	"0x431d67c49c100d4c",
+	"0x4cc5d4becb3e42b6",
+	"0x597f299cfc657e2a",
+	"0x5fcb6fab3ad6faec",
+	"0x6c44198c4a475817"
+].map((n) => BigInt(n)));
+K512[0];
+K512[1];
+/**
+* SHA2-256 hash function from RFC 4634.
+*
+* It is the fastest JS hash, even faster than Blake3.
+* To break sha256 using birthday attack, attackers need to try 2^128 hashes.
+* BTC network is doing 2^70 hashes/sec (2^95 hashes/year) as per 2025.
+*/
+var sha256$1 = /* @__PURE__ */ createHasher(() => new SHA256());
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bytes.js
+function equals$1(aa, bb) {
+	if (aa === bb) return true;
+	if (aa.byteLength !== bb.byteLength) return false;
+	for (let ii = 0; ii < aa.byteLength; ii++) if (aa[ii] !== bb[ii]) return false;
+	return true;
+}
+function coerce(o) {
+	if (o instanceof Uint8Array && o.constructor.name === "Uint8Array") return o;
+	if (o instanceof ArrayBuffer) return new Uint8Array(o);
+	if (ArrayBuffer.isView(o)) return new Uint8Array(o.buffer, o.byteOffset, o.byteLength);
+	throw new Error("Unknown type, must be binary type");
+}
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/base-x.js
+/**
+* @param {string} ALPHABET
+* @param {any} name
+*/
+function base(ALPHABET, name) {
+	if (ALPHABET.length >= 255) throw new TypeError("Alphabet too long");
+	var BASE_MAP = new Uint8Array(256);
+	for (var j = 0; j < BASE_MAP.length; j++) BASE_MAP[j] = 255;
+	for (var i = 0; i < ALPHABET.length; i++) {
+		var x = ALPHABET.charAt(i);
+		var xc = x.charCodeAt(0);
+		if (BASE_MAP[xc] !== 255) throw new TypeError(x + " is ambiguous");
+		BASE_MAP[xc] = i;
+	}
+	var BASE = ALPHABET.length;
+	var LEADER = ALPHABET.charAt(0);
+	var FACTOR = Math.log(BASE) / Math.log(256);
+	var iFACTOR = Math.log(256) / Math.log(BASE);
+	/**
+	* @param {any[] | Iterable<number>} source
+	*/
+	function encode(source) {
+		if (source instanceof Uint8Array);
+		else if (ArrayBuffer.isView(source)) source = new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
+		else if (Array.isArray(source)) source = Uint8Array.from(source);
+		if (!(source instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
+		if (source.length === 0) return "";
+		var zeroes = 0;
+		var length = 0;
+		var pbegin = 0;
+		var pend = source.length;
+		while (pbegin !== pend && source[pbegin] === 0) {
+			pbegin++;
+			zeroes++;
+		}
+		var size = (pend - pbegin) * iFACTOR + 1 >>> 0;
+		var b58 = new Uint8Array(size);
+		while (pbegin !== pend) {
+			var carry = source[pbegin];
+			var i = 0;
+			for (var it1 = size - 1; (carry !== 0 || i < length) && it1 !== -1; it1--, i++) {
+				carry += 256 * b58[it1] >>> 0;
+				b58[it1] = carry % BASE >>> 0;
+				carry = carry / BASE >>> 0;
+			}
+			if (carry !== 0) throw new Error("Non-zero carry");
+			length = i;
+			pbegin++;
+		}
+		var it2 = size - length;
+		while (it2 !== size && b58[it2] === 0) it2++;
+		var str = LEADER.repeat(zeroes);
+		for (; it2 < size; ++it2) str += ALPHABET.charAt(b58[it2]);
+		return str;
+	}
+	/**
+	* @param {string | string[]} source
+	*/
+	function decodeUnsafe(source) {
+		if (typeof source !== "string") throw new TypeError("Expected String");
+		if (source.length === 0) return new Uint8Array();
+		var psz = 0;
+		if (source[psz] === " ") return;
+		var zeroes = 0;
+		var length = 0;
+		while (source[psz] === LEADER) {
+			zeroes++;
+			psz++;
+		}
+		var size = (source.length - psz) * FACTOR + 1 >>> 0;
+		var b256 = new Uint8Array(size);
+		while (source[psz]) {
+			var carry = BASE_MAP[source.charCodeAt(psz)];
+			if (carry === 255) return;
+			var i = 0;
+			for (var it3 = size - 1; (carry !== 0 || i < length) && it3 !== -1; it3--, i++) {
+				carry += BASE * b256[it3] >>> 0;
+				b256[it3] = carry % 256 >>> 0;
+				carry = carry / 256 >>> 0;
+			}
+			if (carry !== 0) throw new Error("Non-zero carry");
+			length = i;
+			psz++;
+		}
+		if (source[psz] === " ") return;
+		var it4 = size - length;
+		while (it4 !== size && b256[it4] === 0) it4++;
+		var vch = new Uint8Array(zeroes + (size - it4));
+		var j = zeroes;
+		while (it4 !== size) vch[j++] = b256[it4++];
+		return vch;
+	}
+	/**
+	* @param {string | string[]} string
+	*/
+	function decode(string) {
+		var buffer = decodeUnsafe(string);
+		if (buffer) return buffer;
+		throw new Error(`Non-${name} character`);
+	}
+	return {
+		encode,
+		decodeUnsafe,
+		decode
+	};
+}
+var _brrp__multiformats_scope_baseX = base;
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base.js
+/**
+* Class represents both BaseEncoder and MultibaseEncoder meaning it
+* can be used to encode to multibase or base encode without multibase
+* prefix.
+*/
+var Encoder = class {
+	name;
+	prefix;
+	baseEncode;
+	constructor(name, prefix, baseEncode) {
+		this.name = name;
+		this.prefix = prefix;
+		this.baseEncode = baseEncode;
+	}
+	encode(bytes) {
+		if (bytes instanceof Uint8Array) return `${this.prefix}${this.baseEncode(bytes)}`;
+		else throw Error("Unknown type, must be binary type");
+	}
+};
+/**
+* Class represents both BaseDecoder and MultibaseDecoder so it could be used
+* to decode multibases (with matching prefix) or just base decode strings
+* with corresponding base encoding.
+*/
+var Decoder = class {
+	name;
+	prefix;
+	baseDecode;
+	prefixCodePoint;
+	constructor(name, prefix, baseDecode) {
+		this.name = name;
+		this.prefix = prefix;
+		const prefixCodePoint = prefix.codePointAt(0);
+		/* c8 ignore next 3 */
+		if (prefixCodePoint === void 0) throw new Error("Invalid prefix character");
+		this.prefixCodePoint = prefixCodePoint;
+		this.baseDecode = baseDecode;
+	}
+	decode(text) {
+		if (typeof text === "string") {
+			if (text.codePointAt(0) !== this.prefixCodePoint) throw Error(`Unable to decode multibase string ${JSON.stringify(text)}, ${this.name} decoder only supports inputs prefixed with ${this.prefix}`);
+			return this.baseDecode(text.slice(this.prefix.length));
+		} else throw Error("Can only multibase decode strings");
+	}
+	or(decoder) {
+		return or(this, decoder);
+	}
+};
+var ComposedDecoder = class {
+	decoders;
+	constructor(decoders) {
+		this.decoders = decoders;
+	}
+	or(decoder) {
+		return or(this, decoder);
+	}
+	decode(input) {
+		const prefix = input[0];
+		const decoder = this.decoders[prefix];
+		if (decoder != null) return decoder.decode(input);
+		else throw RangeError(`Unable to decode multibase string ${JSON.stringify(input)}, only inputs prefixed with ${Object.keys(this.decoders)} are supported`);
+	}
+};
+function or(left, right) {
+	return new ComposedDecoder({
+		...left.decoders ?? { [left.prefix]: left },
+		...right.decoders ?? { [right.prefix]: right }
+	});
+}
+var Codec = class {
+	name;
+	prefix;
+	baseEncode;
+	baseDecode;
+	encoder;
+	decoder;
+	constructor(name, prefix, baseEncode, baseDecode) {
+		this.name = name;
+		this.prefix = prefix;
+		this.baseEncode = baseEncode;
+		this.baseDecode = baseDecode;
+		this.encoder = new Encoder(name, prefix, baseEncode);
+		this.decoder = new Decoder(name, prefix, baseDecode);
+	}
+	encode(input) {
+		return this.encoder.encode(input);
+	}
+	decode(input) {
+		return this.decoder.decode(input);
+	}
+};
+function from$1({ name, prefix, encode, decode }) {
+	return new Codec(name, prefix, encode, decode);
+}
+function baseX({ name, prefix, alphabet }) {
+	const { encode, decode } = _brrp__multiformats_scope_baseX(alphabet, name);
+	return from$1({
+		prefix,
+		name,
+		encode,
+		decode: (text) => coerce(decode(text))
+	});
+}
+function decode$3(string, alphabetIdx, bitsPerChar, name) {
+	let end = string.length;
+	while (string[end - 1] === "=") --end;
+	const out = new Uint8Array(end * bitsPerChar / 8 | 0);
+	let bits = 0;
+	let buffer = 0;
+	let written = 0;
+	for (let i = 0; i < end; ++i) {
+		const value = alphabetIdx[string[i]];
+		if (value === void 0) throw new SyntaxError(`Non-${name} character`);
+		buffer = buffer << bitsPerChar | value;
+		bits += bitsPerChar;
+		if (bits >= 8) {
+			bits -= 8;
+			out[written++] = 255 & buffer >> bits;
+		}
+	}
+	if (bits >= bitsPerChar || (255 & buffer << 8 - bits) !== 0) throw new SyntaxError("Unexpected end of data");
+	return out;
+}
+function encode$1(data, alphabet, bitsPerChar) {
+	const pad = alphabet[alphabet.length - 1] === "=";
+	const mask = (1 << bitsPerChar) - 1;
+	let out = "";
+	let bits = 0;
+	let buffer = 0;
+	for (let i = 0; i < data.length; ++i) {
+		buffer = buffer << 8 | data[i];
+		bits += 8;
+		while (bits > bitsPerChar) {
+			bits -= bitsPerChar;
+			out += alphabet[mask & buffer >> bits];
+		}
+	}
+	if (bits !== 0) out += alphabet[mask & buffer << bitsPerChar - bits];
+	if (pad) while ((out.length * bitsPerChar & 7) !== 0) out += "=";
+	return out;
+}
+function createAlphabetIdx(alphabet) {
+	const alphabetIdx = {};
+	for (let i = 0; i < alphabet.length; ++i) alphabetIdx[alphabet[i]] = i;
+	return alphabetIdx;
+}
+/**
+* RFC4648 Factory
+*/
+function rfc4648({ name, prefix, bitsPerChar, alphabet }) {
+	const alphabetIdx = createAlphabetIdx(alphabet);
+	return from$1({
+		prefix,
+		name,
+		encode(input) {
+			return encode$1(input, alphabet, bitsPerChar);
+		},
+		decode(input) {
+			return decode$3(input, alphabetIdx, bitsPerChar, name);
+		}
+	});
+}
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base32.js
+var base32 = rfc4648({
+	prefix: "b",
+	name: "base32",
+	alphabet: "abcdefghijklmnopqrstuvwxyz234567",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "B",
+	name: "base32upper",
+	alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "c",
+	name: "base32pad",
+	alphabet: "abcdefghijklmnopqrstuvwxyz234567=",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "C",
+	name: "base32padupper",
+	alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "v",
+	name: "base32hex",
+	alphabet: "0123456789abcdefghijklmnopqrstuv",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "V",
+	name: "base32hexupper",
+	alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUV",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "t",
+	name: "base32hexpad",
+	alphabet: "0123456789abcdefghijklmnopqrstuv=",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "T",
+	name: "base32hexpadupper",
+	alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUV=",
+	bitsPerChar: 5
+});
+rfc4648({
+	prefix: "h",
+	name: "base32z",
+	alphabet: "ybndrfg8ejkmcpqxot1uwisza345h769",
+	bitsPerChar: 5
+});
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base36.js
+var base36 = baseX({
+	prefix: "k",
+	name: "base36",
+	alphabet: "0123456789abcdefghijklmnopqrstuvwxyz"
+});
+baseX({
+	prefix: "K",
+	name: "base36upper",
+	alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+});
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base58.js
+var base58btc = baseX({
+	name: "base58btc",
+	prefix: "z",
+	alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+});
+baseX({
+	name: "base58flickr",
+	prefix: "Z",
+	alphabet: "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+});
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js
+var encode_1 = encode;
+var MSB = 128, MSBALL = -128, INT = Math.pow(2, 31);
+/**
+* @param {number} num
+* @param {number[]} out
+* @param {number} offset
+*/
+function encode(num, out, offset) {
+	out = out || [];
+	offset = offset || 0;
+	var oldOffset = offset;
+	while (num >= INT) {
+		out[offset++] = num & 255 | MSB;
+		num /= 128;
+	}
+	while (num & MSBALL) {
+		out[offset++] = num & 255 | MSB;
+		num >>>= 7;
+	}
+	out[offset] = num | 0;
+	encode.bytes = offset - oldOffset + 1;
+	return out;
+}
+var decode$2 = read;
+var MSB$1 = 128, REST$1 = 127;
+/**
+* @param {string | any[]} buf
+* @param {number} offset
+*/
+function read(buf, offset) {
+	var res = 0, offset = offset || 0, shift = 0, counter = offset, b, l = buf.length;
+	do {
+		if (counter >= l) {
+			read.bytes = 0;
+			throw new RangeError("Could not decode varint");
+		}
+		b = buf[counter++];
+		res += shift < 28 ? (b & REST$1) << shift : (b & REST$1) * Math.pow(2, shift);
+		shift += 7;
+	} while (b >= MSB$1);
+	read.bytes = counter - offset;
+	return res;
+}
+var N1 = Math.pow(2, 7);
+var N2 = Math.pow(2, 14);
+var N3 = Math.pow(2, 21);
+var N4 = Math.pow(2, 28);
+var N5 = Math.pow(2, 35);
+var N6 = Math.pow(2, 42);
+var N7 = Math.pow(2, 49);
+var N8 = Math.pow(2, 56);
+var N9 = Math.pow(2, 63);
+var length = function(value) {
+	return value < N1 ? 1 : value < N2 ? 2 : value < N3 ? 3 : value < N4 ? 4 : value < N5 ? 5 : value < N6 ? 6 : value < N7 ? 7 : value < N8 ? 8 : value < N9 ? 9 : 10;
+};
+var _brrp_varint = {
+	encode: encode_1,
+	decode: decode$2,
+	encodingLength: length
+};
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/varint.js
+function decode$1(data, offset = 0) {
+	return [_brrp_varint.decode(data, offset), _brrp_varint.decode.bytes];
+}
+function encodeTo(int, target, offset = 0) {
+	_brrp_varint.encode(int, target, offset);
+	return target;
+}
+function encodingLength(int) {
+	return _brrp_varint.encodingLength(int);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/digest.js
+/**
+* Creates a multihash digest.
+*/
+function create(code, digest) {
+	const size = digest.byteLength;
+	const sizeOffset = encodingLength(code);
+	const digestOffset = sizeOffset + encodingLength(size);
+	const bytes = new Uint8Array(digestOffset + size);
+	encodeTo(code, bytes, 0);
+	encodeTo(size, bytes, sizeOffset);
+	bytes.set(digest, digestOffset);
+	return new Digest(code, size, digest, bytes);
+}
+/**
+* Turns bytes representation of multihash digest into an instance.
+*/
+function decode(multihash) {
+	const bytes = coerce(multihash);
+	const [code, sizeOffset] = decode$1(bytes);
+	const [size, digestOffset] = decode$1(bytes.subarray(sizeOffset));
+	const digest = bytes.subarray(sizeOffset + digestOffset);
+	if (digest.byteLength !== size) throw new Error("Incorrect length");
+	return new Digest(code, size, digest, bytes);
+}
+function equals(a, b) {
+	if (a === b) return true;
+	else {
+		const data = b;
+		return a.code === data.code && a.size === data.size && data.bytes instanceof Uint8Array && equals$1(a.bytes, data.bytes);
+	}
+}
+/**
+* Represents a multihash digest which carries information about the
+* hashing algorithm and an actual hash digest.
+*/
+var Digest = class {
+	code;
+	size;
+	digest;
+	bytes;
+	/**
+	* Creates a multihash digest.
+	*/
+	constructor(code, size, digest, bytes) {
+		this.code = code;
+		this.size = size;
+		this.digest = digest;
+		this.bytes = bytes;
+	}
+};
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/cid.js
+function format(link, base) {
+	const { bytes, version } = link;
+	switch (version) {
+		case 0: return toStringV0(bytes, baseCache(link), base ?? base58btc.encoder);
+		default: return toStringV1(bytes, baseCache(link), base ?? base32.encoder);
+	}
+}
+var cache = /* @__PURE__ */ new WeakMap();
+function baseCache(cid) {
+	const baseCache = cache.get(cid);
+	if (baseCache == null) {
+		const baseCache = /* @__PURE__ */ new Map();
+		cache.set(cid, baseCache);
+		return baseCache;
+	}
+	return baseCache;
+}
+var CID = class CID {
+	code;
+	version;
+	multihash;
+	bytes;
+	"/";
+	/**
+	* @param version - Version of the CID
+	* @param code - Code of the codec content is encoded in, see https://github.com/multiformats/multicodec/blob/master/table.csv
+	* @param multihash - (Multi)hash of the of the content.
+	*/
+	constructor(version, code, multihash, bytes) {
+		this.code = code;
+		this.version = version;
+		this.multihash = multihash;
+		this.bytes = bytes;
+		this["/"] = bytes;
+	}
+	/**
+	* Signalling `cid.asCID === cid` has been replaced with `cid['/'] === cid.bytes`
+	* please either use `CID.asCID(cid)` or switch to new signalling mechanism
+	*
+	* @deprecated
+	*/
+	get asCID() {
+		return this;
+	}
+	get byteOffset() {
+		return this.bytes.byteOffset;
+	}
+	get byteLength() {
+		return this.bytes.byteLength;
+	}
+	toV0() {
+		switch (this.version) {
+			case 0: return this;
+			case 1: {
+				const { code, multihash } = this;
+				if (code !== DAG_PB_CODE) throw new Error("Cannot convert a non dag-pb CID to CIDv0");
+				if (multihash.code !== SHA_256_CODE) throw new Error("Cannot convert non sha2-256 multihash CID to CIDv0");
+				return CID.createV0(multihash);
+			}
+			default: throw Error(`Can not convert CID version ${this.version} to version 0. This is a bug please report`);
+		}
+	}
+	toV1() {
+		switch (this.version) {
+			case 0: {
+				const { code, digest } = this.multihash;
+				const multihash = create(code, digest);
+				return CID.createV1(this.code, multihash);
+			}
+			case 1: return this;
+			default: throw Error(`Can not convert CID version ${this.version} to version 1. This is a bug please report`);
+		}
+	}
+	equals(other) {
+		return CID.equals(this, other);
+	}
+	static equals(self, other) {
+		const unknown = other;
+		return unknown != null && self.code === unknown.code && self.version === unknown.version && equals(self.multihash, unknown.multihash);
+	}
+	toString(base) {
+		return format(this, base);
+	}
+	toJSON() {
+		return { "/": format(this) };
+	}
+	link() {
+		return this;
+	}
+	[Symbol.toStringTag] = "CID";
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return `CID(${this.toString()})`;
+	}
+	/**
+	* Takes any input `value` and returns a `CID` instance if it was
+	* a `CID` otherwise returns `null`. If `value` is instanceof `CID`
+	* it will return value back. If `value` is not instance of this CID
+	* class, but is compatible CID it will return new instance of this
+	* `CID` class. Otherwise returns null.
+	*
+	* This allows two different incompatible versions of CID library to
+	* co-exist and interop as long as binary interface is compatible.
+	*/
+	static asCID(input) {
+		if (input == null) return null;
+		const value = input;
+		if (value instanceof CID) return value;
+		else if (value["/"] != null && value["/"] === value.bytes || value.asCID === value) {
+			const { version, code, multihash, bytes } = value;
+			return new CID(version, code, multihash, bytes ?? encodeCID(version, code, multihash.bytes));
+		} else if (value[cidSymbol] === true) {
+			const { version, multihash, code } = value;
+			const digest = decode(multihash);
+			return CID.create(version, code, digest);
+		} else return null;
+	}
+	/**
+	* @param version - Version of the CID
+	* @param code - Code of the codec content is encoded in, see https://github.com/multiformats/multicodec/blob/master/table.csv
+	* @param digest - (Multi)hash of the of the content.
+	*/
+	static create(version, code, digest) {
+		if (typeof code !== "number") throw new Error("String codecs are no longer supported");
+		if (!(digest.bytes instanceof Uint8Array)) throw new Error("Invalid digest");
+		switch (version) {
+			case 0: if (code !== DAG_PB_CODE) throw new Error(`Version 0 CID must use dag-pb (code: ${DAG_PB_CODE}) block encoding`);
+			else return new CID(version, code, digest, digest.bytes);
+			case 1: return new CID(version, code, digest, encodeCID(version, code, digest.bytes));
+			default: throw new Error("Invalid version");
+		}
+	}
+	/**
+	* Simplified version of `create` for CIDv0.
+	*/
+	static createV0(digest) {
+		return CID.create(0, DAG_PB_CODE, digest);
+	}
+	/**
+	* Simplified version of `create` for CIDv1.
+	*
+	* @param code - Content encoding format code.
+	* @param digest - Multihash of the content.
+	*/
+	static createV1(code, digest) {
+		return CID.create(1, code, digest);
+	}
+	/**
+	* Decoded a CID from its binary representation. The byte array must contain
+	* only the CID with no additional bytes.
+	*
+	* An error will be thrown if the bytes provided do not contain a valid
+	* binary representation of a CID.
+	*/
+	static decode(bytes) {
+		const [cid, remainder] = CID.decodeFirst(bytes);
+		if (remainder.length !== 0) throw new Error("Incorrect length");
+		return cid;
+	}
+	/**
+	* Decoded a CID from its binary representation at the beginning of a byte
+	* array.
+	*
+	* Returns an array with the first element containing the CID and the second
+	* element containing the remainder of the original byte array. The remainder
+	* will be a zero-length byte array if the provided bytes only contained a
+	* binary CID representation.
+	*/
+	static decodeFirst(bytes) {
+		const specs = CID.inspectBytes(bytes);
+		const prefixSize = specs.size - specs.multihashSize;
+		const multihashBytes = coerce(bytes.subarray(prefixSize, prefixSize + specs.multihashSize));
+		if (multihashBytes.byteLength !== specs.multihashSize) throw new Error("Incorrect length");
+		const digestBytes = multihashBytes.subarray(specs.multihashSize - specs.digestSize);
+		const digest = new Digest(specs.multihashCode, specs.digestSize, digestBytes, multihashBytes);
+		return [specs.version === 0 ? CID.createV0(digest) : CID.createV1(specs.codec, digest), bytes.subarray(specs.size)];
+	}
+	/**
+	* Inspect the initial bytes of a CID to determine its properties.
+	*
+	* Involves decoding up to 4 varints. Typically this will require only 4 to 6
+	* bytes but for larger multicodec code values and larger multihash digest
+	* lengths these varints can be quite large. It is recommended that at least
+	* 10 bytes be made available in the `initialBytes` argument for a complete
+	* inspection.
+	*/
+	static inspectBytes(initialBytes) {
+		let offset = 0;
+		const next = () => {
+			const [i, length] = decode$1(initialBytes.subarray(offset));
+			offset += length;
+			return i;
+		};
+		let version = next();
+		let codec = DAG_PB_CODE;
+		if (version === 18) {
+			version = 0;
+			offset = 0;
+		} else codec = next();
+		if (version !== 0 && version !== 1) throw new RangeError(`Invalid CID version ${version}`);
+		const prefixSize = offset;
+		const multihashCode = next();
+		const digestSize = next();
+		const size = offset + digestSize;
+		const multihashSize = size - prefixSize;
+		return {
+			version,
+			codec,
+			multihashCode,
+			digestSize,
+			multihashSize,
+			size
+		};
+	}
+	/**
+	* Takes cid in a string representation and creates an instance. If `base`
+	* decoder is not provided will use a default from the configuration. It will
+	* throw an error if encoding of the CID is not compatible with supplied (or
+	* a default decoder).
+	*/
+	static parse(source, base) {
+		const [prefix, bytes] = parseCIDtoBytes(source, base);
+		const cid = CID.decode(bytes);
+		if (cid.version === 0 && source[0] !== "Q") throw Error("Version 0 CID string must not include multibase prefix");
+		baseCache(cid).set(prefix, source);
+		return cid;
+	}
+};
+function parseCIDtoBytes(source, base) {
+	switch (source[0]) {
+		case "Q": {
+			const decoder = base ?? base58btc;
+			return [base58btc.prefix, decoder.decode(`${base58btc.prefix}${source}`)];
+		}
+		case base58btc.prefix: {
+			const decoder = base ?? base58btc;
+			return [base58btc.prefix, decoder.decode(source)];
+		}
+		case base32.prefix: {
+			const decoder = base ?? base32;
+			return [base32.prefix, decoder.decode(source)];
+		}
+		case base36.prefix: {
+			const decoder = base ?? base36;
+			return [base36.prefix, decoder.decode(source)];
+		}
+		default:
+			if (base == null) throw Error("To parse non base32, base36 or base58btc encoded CID multibase decoder must be provided");
+			return [source[0], base.decode(source)];
+	}
+}
+function toStringV0(bytes, cache, base) {
+	const { prefix } = base;
+	if (prefix !== base58btc.prefix) throw Error(`Cannot string encode V0 in ${base.name} encoding`);
+	const cid = cache.get(prefix);
+	if (cid == null) {
+		const cid = base.encode(bytes).slice(1);
+		cache.set(prefix, cid);
+		return cid;
+	} else return cid;
+}
+function toStringV1(bytes, cache, base) {
+	const { prefix } = base;
+	const cid = cache.get(prefix);
+	if (cid == null) {
+		const cid = base.encode(bytes);
+		cache.set(prefix, cid);
+		return cid;
+	} else return cid;
+}
+var DAG_PB_CODE = 112;
+var SHA_256_CODE = 18;
+function encodeCID(version, code, multihash) {
+	const codeOffset = encodingLength(version);
+	const hashOffset = codeOffset + encodingLength(code);
+	const bytes = new Uint8Array(hashOffset + multihash.byteLength);
+	encodeTo(version, bytes, 0);
+	encodeTo(code, bytes, codeOffset);
+	bytes.set(multihash, hashOffset);
+	return bytes;
+}
+var cidSymbol = Symbol.for("@ipld/js-cid/CID");
+//#endregion
+//#region ../../libs/crypto-service/src/content-cid.ts
+/**
+* Content CID — Canonical content hashing for diary entries
+*
+* Produces CIDv1 content identifiers (sha2-256, raw codec, base32lower)
+* for immutable diary entry signing.
+*
+* Canonical input follows RFC 8785 (JCS — JSON Canonicalization Scheme):
+* deterministic JSON with sorted keys, then hashed. JSON string escaping
+* naturally prevents field delimiter collision.
+*/
+/** SHA-256 multicodec code per multihash table */
+var SHA2_256_CODE = 18;
+/**
+* Build the canonical JSON input for content hashing.
+*
+* Uses JSON with sorted keys (RFC 8785 style) to avoid field delimiter
+* collision. Nulls are normalized: null title → empty string, null tags → [].
+* Tags are sorted for determinism.
+*/
+function buildCanonicalInput(entryType, title, content, tags) {
+	const canonical = {
+		c: content,
+		t: title ?? "",
+		tags: tags ? [...tags].sort() : [],
+		type: entryType,
+		v: "moltnet:diary:v1"
+	};
+	return JSON.stringify(canonical);
+}
+/**
+* Compute the raw SHA-256 hash of canonical diary entry content.
+*/
+function computeCanonicalHash(entryType, title, content, tags) {
+	const input = buildCanonicalInput(entryType, title, content, tags);
+	return sha256$1(new TextEncoder().encode(input));
+}
+/**
+* Compute a CIDv1 content identifier for a diary entry.
+*
+* Format: CIDv1 with sha2-256 hash, raw codec, base32lower multibase.
+* Example output: "bafkreig..."
+*/
+function computeContentCid(entryType, title, content, tags) {
+	const digest = create(SHA2_256_CODE, computeCanonicalHash(entryType, title, content, tags));
+	return CID.createV1(85, digest).toString(base32);
+}
+var { p: P, n: N, Gx, Gy, a: _a, d: _d } = {
+	p: 57896044618658097711785492504343953926634992332820282019728792003956564819949n,
+	n: 7237005577332262213973186563042994240857116359379907606001950938285454250989n,
+	h: 8n,
+	a: 57896044618658097711785492504343953926634992332820282019728792003956564819948n,
+	d: 37095705934669439343138083508754565189542113879843219016388785533085940283555n,
+	Gx: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,
+	Gy: 46316835694926478169428394003475163141307993866256225615783033603165251855960n
+};
+var h = 8n;
+var L = 32;
+var L2 = 64;
+var err = (m = "") => {
+	throw new Error(m);
+};
+var isBig = (n) => typeof n === "bigint";
+var isStr = (s) => typeof s === "string";
+var isBytes = (a) => a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
+/** assert is Uint8Array (of specific length) */
+var abytes = (a, l) => !isBytes(a) || typeof l === "number" && l > 0 && a.length !== l ? err("Uint8Array expected") : a;
+/** create Uint8Array */
+var u8n = (len) => new Uint8Array(len);
+var u8fr = (buf) => Uint8Array.from(buf);
+var padh = (n, pad) => n.toString(16).padStart(pad, "0");
+var bytesToHex = (b) => Array.from(abytes(b)).map((e) => padh(e, 2)).join("");
+var C = {
+	_0: 48,
+	_9: 57,
+	A: 65,
+	F: 70,
+	a: 97,
+	f: 102
+};
+var _ch = (ch) => {
+	if (ch >= C._0 && ch <= C._9) return ch - C._0;
+	if (ch >= C.A && ch <= C.F) return ch - (C.A - 10);
+	if (ch >= C.a && ch <= C.f) return ch - (C.a - 10);
+};
+var hexToBytes = (hex) => {
+	const e = "hex invalid";
+	if (!isStr(hex)) return err(e);
+	const hl = hex.length;
+	const al = hl / 2;
+	if (hl % 2) return err(e);
+	const array = u8n(al);
+	for (let ai = 0, hi = 0; ai < al; ai++, hi += 2) {
+		const n1 = _ch(hex.charCodeAt(hi));
+		const n2 = _ch(hex.charCodeAt(hi + 1));
+		if (n1 === void 0 || n2 === void 0) return err(e);
+		array[ai] = n1 * 16 + n2;
+	}
+	return array;
+};
+/** normalize hex or ui8a to ui8a */
+var toU8 = (a, len) => abytes(isStr(a) ? hexToBytes(a) : u8fr(abytes(a)), len);
+var cr = () => globalThis?.crypto;
+var subtle = () => cr()?.subtle ?? err("crypto.subtle must be defined");
+var concatBytes = (...arrs) => {
+	const r = u8n(arrs.reduce((sum, a) => sum + abytes(a).length, 0));
+	let pad = 0;
+	arrs.forEach((a) => {
+		r.set(a, pad);
+		pad += a.length;
+	});
+	return r;
+};
+/** WebCrypto OS-level CSPRNG (random number generator). Will throw when not available. */
+var randomBytes = (len = L) => {
+	return cr().getRandomValues(u8n(len));
+};
+var big = BigInt;
+var arange = (n, min, max, msg = "bad number: out of range") => isBig(n) && min <= n && n < max ? n : err(msg);
+/** modular division */
+var M = (a, b = P) => {
+	const r = a % b;
+	return r >= 0n ? r : b + r;
+};
+var modN = (a) => M(a, N);
+/** Modular inversion using eucledian GCD (non-CT). No negative exponent for now. */
+var invert = (num, md) => {
+	if (num === 0n || md <= 0n) err("no inverse n=" + num + " mod=" + md);
+	let a = M(num, md), b = md, x = 0n, y = 1n, u = 1n, v = 0n;
+	while (a !== 0n) {
+		const q = b / a, r = b % a;
+		const m = x - u * q, n = y - v * q;
+		b = a, a = r, x = u, y = v, u = m, v = n;
+	}
+	return b === 1n ? M(x, md) : err("no inverse");
+};
+var apoint = (p) => p instanceof Point ? p : err("Point expected");
+var B256 = 2n ** 256n;
+/** Point in XYZT extended coordinates. */
+var Point = class Point {
+	static BASE;
+	static ZERO;
+	ex;
+	ey;
+	ez;
+	et;
+	constructor(ex, ey, ez, et) {
+		const max = B256;
+		this.ex = arange(ex, 0n, max);
+		this.ey = arange(ey, 0n, max);
+		this.ez = arange(ez, 1n, max);
+		this.et = arange(et, 0n, max);
+		Object.freeze(this);
+	}
+	static fromAffine(p) {
+		return new Point(p.x, p.y, 1n, M(p.x * p.y));
+	}
+	/** RFC8032 5.1.3: Uint8Array to Point. */
+	static fromBytes(hex, zip215 = false) {
+		const d = _d;
+		const normed = u8fr(abytes(hex, L));
+		const lastByte = hex[31];
+		normed[31] = lastByte & -129;
+		const y = bytesToNumLE(normed);
+		arange(y, 0n, zip215 ? B256 : P);
+		const y2 = M(y * y);
+		let { isValid, value: x } = uvRatio(M(y2 - 1n), M(d * y2 + 1n));
+		if (!isValid) err("bad point: y not sqrt");
+		const isXOdd = (x & 1n) === 1n;
+		const isLastByteOdd = (lastByte & 128) !== 0;
+		if (!zip215 && x === 0n && isLastByteOdd) err("bad point: x==0, isLastByteOdd");
+		if (isLastByteOdd !== isXOdd) x = M(-x);
+		return new Point(x, y, 1n, M(x * y));
+	}
+	/** Checks if the point is valid and on-curve. */
+	assertValidity() {
+		const a = _a;
+		const d = _d;
+		const p = this;
+		if (p.is0()) throw new Error("bad point: ZERO");
+		const { ex: X, ey: Y, ez: Z, et: T } = p;
+		const X2 = M(X * X);
+		const Y2 = M(Y * Y);
+		const Z2 = M(Z * Z);
+		const Z4 = M(Z2 * Z2);
+		if (M(Z2 * M(M(X2 * a) + Y2)) !== M(Z4 + M(d * M(X2 * Y2)))) throw new Error("bad point: equation left != right (1)");
+		if (M(X * Y) !== M(Z * T)) throw new Error("bad point: equation left != right (2)");
+		return this;
+	}
+	/** Equality check: compare points P&Q. */
+	equals(other) {
+		const { ex: X1, ey: Y1, ez: Z1 } = this;
+		const { ex: X2, ey: Y2, ez: Z2 } = apoint(other);
+		const X1Z2 = M(X1 * Z2);
+		const X2Z1 = M(X2 * Z1);
+		const Y1Z2 = M(Y1 * Z2);
+		const Y2Z1 = M(Y2 * Z1);
+		return X1Z2 === X2Z1 && Y1Z2 === Y2Z1;
+	}
+	is0() {
+		return this.equals(I);
+	}
+	/** Flip point over y coordinate. */
+	negate() {
+		return new Point(M(-this.ex), this.ey, this.ez, M(-this.et));
+	}
+	/** Point doubling. Complete formula. Cost: `4M + 4S + 1*a + 6add + 1*2`. */
+	double() {
+		const { ex: X1, ey: Y1, ez: Z1 } = this;
+		const a = _a;
+		const A = M(X1 * X1);
+		const B = M(Y1 * Y1);
+		const C = M(2n * M(Z1 * Z1));
+		const D = M(a * A);
+		const x1y1 = X1 + Y1;
+		const E = M(M(x1y1 * x1y1) - A - B);
+		const G = D + B;
+		const F = G - C;
+		const H = D - B;
+		const X3 = M(E * F);
+		const Y3 = M(G * H);
+		const T3 = M(E * H);
+		return new Point(X3, Y3, M(F * G), T3);
+	}
+	/** Point addition. Complete formula. Cost: `8M + 1*k + 8add + 1*2`. */
+	add(other) {
+		const { ex: X1, ey: Y1, ez: Z1, et: T1 } = this;
+		const { ex: X2, ey: Y2, ez: Z2, et: T2 } = apoint(other);
+		const a = _a;
+		const d = _d;
+		const A = M(X1 * X2);
+		const B = M(Y1 * Y2);
+		const C = M(T1 * d * T2);
+		const D = M(Z1 * Z2);
+		const E = M((X1 + Y1) * (X2 + Y2) - A - B);
+		const F = M(D - C);
+		const G = M(D + C);
+		const H = M(B - a * A);
+		const X3 = M(E * F);
+		const Y3 = M(G * H);
+		const T3 = M(E * H);
+		return new Point(X3, Y3, M(F * G), T3);
+	}
+	/**
+	* Point-by-scalar multiplication. Scalar must be in range 1 <= n < CURVE.n.
+	* Uses {@link wNAF} for base point.
+	* Uses fake point to mitigate side-channel leakage.
+	* @param n scalar by which point is multiplied
+	* @param safe safe mode guards against timing attacks; unsafe mode is faster
+	*/
+	multiply(n, safe = true) {
+		if (!safe && (n === 0n || this.is0())) return I;
+		arange(n, 1n, N);
+		if (n === 1n) return this;
+		if (this.equals(G)) return wNAF(n).p;
+		let p = I;
+		let f = G;
+		for (let d = this; n > 0n; d = d.double(), n >>= 1n) if (n & 1n) p = p.add(d);
+		else if (safe) f = f.add(d);
+		return p;
+	}
+	/** Convert point to 2d xy affine point. (X, Y, Z) ∋ (x=X/Z, y=Y/Z) */
+	toAffine() {
+		const { ex: x, ey: y, ez: z } = this;
+		if (this.equals(I)) return {
+			x: 0n,
+			y: 1n
+		};
+		const iz = invert(z, P);
+		if (M(z * iz) !== 1n) err("invalid inverse");
+		return {
+			x: M(x * iz),
+			y: M(y * iz)
+		};
+	}
+	toBytes() {
+		const { x, y } = this.assertValidity().toAffine();
+		const b = numTo32bLE(y);
+		b[31] |= x & 1n ? 128 : 0;
+		return b;
+	}
+	toHex() {
+		return bytesToHex(this.toBytes());
+	}
+	clearCofactor() {
+		return this.multiply(big(h), false);
+	}
+	isSmallOrder() {
+		return this.clearCofactor().is0();
+	}
+	isTorsionFree() {
+		let p = this.multiply(N / 2n, false).double();
+		if (N % 2n) p = p.add(this);
+		return p.is0();
+	}
+	static fromHex(hex, zip215) {
+		return Point.fromBytes(toU8(hex), zip215);
+	}
+	get x() {
+		return this.toAffine().x;
+	}
+	get y() {
+		return this.toAffine().y;
+	}
+	toRawBytes() {
+		return this.toBytes();
+	}
+};
+/** Generator / base point */
+var G = new Point(Gx, Gy, 1n, M(Gx * Gy));
+/** Identity / zero point */
+var I = new Point(0n, 1n, 1n, 0n);
+Point.BASE = G;
+Point.ZERO = I;
+var numTo32bLE = (num) => hexToBytes(padh(arange(num, 0n, B256), L2)).reverse();
+var bytesToNumLE = (b) => big("0x" + bytesToHex(u8fr(abytes(b)).reverse()));
+var pow2 = (x, power) => {
+	let r = x;
+	while (power-- > 0n) {
+		r *= r;
+		r %= P;
+	}
+	return r;
+};
+var pow_2_252_3 = (x) => {
+	const b2 = x * x % P * x % P;
+	const b5 = pow2(pow2(b2, 2n) * b2 % P, 1n) * x % P;
+	const b10 = pow2(b5, 5n) * b5 % P;
+	const b20 = pow2(b10, 10n) * b10 % P;
+	const b40 = pow2(b20, 20n) * b20 % P;
+	const b80 = pow2(b40, 40n) * b40 % P;
+	return {
+		pow_p_5_8: pow2(pow2(pow2(pow2(b80, 80n) * b80 % P, 80n) * b80 % P, 10n) * b10 % P, 2n) * x % P,
+		b2
+	};
+};
+var RM1 = 19681161376707505956807079304988542015446066515923890162744021073123829784752n;
+var uvRatio = (u, v) => {
+	const v3 = M(v * v * v);
+	const pow = pow_2_252_3(u * M(v3 * v3 * v)).pow_p_5_8;
+	let x = M(u * v3 * pow);
+	const vx2 = M(v * x * x);
+	const root1 = x;
+	const root2 = M(x * RM1);
+	const useRoot1 = vx2 === u;
+	const useRoot2 = vx2 === M(-u);
+	const noRoot = vx2 === M(-u * RM1);
+	if (useRoot1) x = root1;
+	if (useRoot2 || noRoot) x = root2;
+	if ((M(x) & 1n) === 1n) x = M(-x);
+	return {
+		isValid: useRoot1 || useRoot2,
+		value: x
+	};
+};
+var modL_LE = (hash) => modN(bytesToNumLE(hash));
+var sha512a = (...m) => etc.sha512Async(...m);
+var hash2extK = (hashed) => {
+	const head = hashed.slice(0, L);
+	head[0] &= 248;
+	head[31] &= 127;
+	head[31] |= 64;
+	const prefix = hashed.slice(L, L2);
+	const scalar = modL_LE(head);
+	const point = G.multiply(scalar);
+	return {
+		head,
+		prefix,
+		scalar,
+		point,
+		pointBytes: point.toBytes()
+	};
+};
+var getExtendedPublicKeyAsync = (priv) => sha512a(toU8(priv, L)).then(hash2extK);
+var hashFinishA = (res) => sha512a(res.hashable).then(res.finish);
+var _sign = (e, rBytes, msg) => {
+	const { pointBytes: P, scalar: s } = e;
+	const r = modL_LE(rBytes);
+	const R = G.multiply(r).toBytes();
+	const hashable = concatBytes(R, P, msg);
+	const finish = (hashed) => {
+		return abytes(concatBytes(R, numTo32bLE(modN(r + modL_LE(hashed) * s))), L2);
+	};
+	return {
+		hashable,
+		finish
+	};
+};
+/**
+* Signs message (NOT message hash) using private key. Async.
+* Follows RFC8032 5.1.6.
+*/
+var signAsync = async (msg, privKey) => {
+	const m = toU8(msg);
+	const e = await getExtendedPublicKeyAsync(privKey);
+	return hashFinishA(_sign(e, await sha512a(e.prefix, m), m));
+};
+/** Math, hex, byte helpers. Not in `utils` because utils share API with noble-curves. */
+var etc = {
+	sha512Async: async (...messages) => {
+		const s = subtle();
+		const m = concatBytes(...messages);
+		return u8n(await s.digest("SHA-512", m.buffer));
+	},
+	sha512Sync: void 0,
+	bytesToHex,
+	hexToBytes,
+	concatBytes,
+	mod: M,
+	invert,
+	randomBytes
+};
+var W = 8;
+var pwindows = Math.ceil(256 / W) + 1;
+var pwindowSize = 2 ** (W - 1);
+var precompute = () => {
+	const points = [];
+	let p = G;
+	let b = p;
+	for (let w = 0; w < pwindows; w++) {
+		b = p;
+		points.push(b);
+		for (let i = 1; i < pwindowSize; i++) {
+			b = b.add(p);
+			points.push(b);
+		}
+		p = b.double();
+	}
+	return points;
+};
+var Gpows = void 0;
+var ctneg = (cnd, p) => {
+	const n = p.negate();
+	return cnd ? n : p;
+};
+/**
+* Precomputes give 12x faster getPublicKey(), 10x sign(), 2x verify() by
+* caching multiples of G (base point). Cache is stored in 32MB of RAM.
+* Any time `G.multiply` is done, precomputes are used.
+* Not used for getSharedSecret, which instead multiplies random pubkey `P.multiply`.
+*
+* w-ary non-adjacent form (wNAF) precomputation method is 10% slower than windowed method,
+* but takes 2x less RAM. RAM reduction is possible by utilizing `.subtract`.
+*
+* !! Precomputes can be disabled by commenting-out call of the wNAF() inside Point#multiply().
+*/
+var wNAF = (n) => {
+	const comp = Gpows || (Gpows = precompute());
+	let p = I;
+	let f = G;
+	const pow_2_w = 2 ** W;
+	const maxNum = pow_2_w;
+	const mask = big(pow_2_w - 1);
+	const shiftBy = big(W);
+	for (let w = 0; w < pwindows; w++) {
+		let wbits = Number(n & mask);
+		n >>= shiftBy;
+		if (wbits > pwindowSize) {
+			wbits -= maxNum;
+			n += 1n;
+		}
+		const off = w * pwindowSize;
+		const offF = off;
+		const offP = off + Math.abs(wbits) - 1;
+		const isEven = w % 2 !== 0;
+		const isNeg = wbits < 0;
+		if (wbits === 0) f = f.add(ctneg(isEven, comp[offF]));
+		else p = p.add(ctneg(isNeg, comp[offP]));
+	}
+	return {
+		p,
+		f
+	};
+};
+//#endregion
+//#region ../../libs/crypto-service/src/crypto.service.ts
+etc.sha512Sync = (...m) => {
+	const hash = createHash("sha512");
+	m.forEach((msg) => hash.update(msg));
+	return hash.digest();
+};
+//#endregion
+//#region ../../libs/crypto-service/src/executor-attestation.ts
+etc.sha512Sync = (...m) => {
+	const hash = createHash$1("sha512");
+	m.forEach((msg) => hash.update(msg));
+	return hash.digest();
+};
+new TextEncoder();
+new TextDecoder();
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
+var DEFAULT_MIN_DIGEST_LENGTH = 20;
+function from({ name, code, encode, minDigestLength, maxDigestLength }) {
+	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
+}
+/**
+* Hasher represents a hashing algorithm implementation that produces as
+* `MultihashDigest`.
+*/
+var Hasher = class {
+	name;
+	code;
+	encode;
+	minDigestLength;
+	maxDigestLength;
+	constructor(name, code, encode, minDigestLength, maxDigestLength) {
+		this.name = name;
+		this.code = code;
+		this.encode = encode;
+		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
+		this.maxDigestLength = maxDigestLength;
+	}
+	digest(input, options) {
+		if (options?.truncate != null) {
+			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
+			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
+		}
+		if (input instanceof Uint8Array) {
+			const result = this.encode(input);
+			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
+			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
+		} else throw Error("Unknown type, must be binary type");
+	}
+};
+/**
+* Create a Digest from the passed uint8array and code, optionally truncating it
+* first.
+*/
+function createDigest(digest, code, truncate) {
+	if (truncate != null && truncate !== digest.byteLength) {
+		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
+		digest = digest.subarray(0, truncate);
+	}
+	return create(code, digest);
+}
+from({
+	name: "sha2-256",
+	code: 18,
+	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
+});
+from({
+	name: "sha2-512",
+	code: 19,
+	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
+});
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/is.js
+var objectTypeNames = [
+	"Object",
+	"RegExp",
+	"Date",
+	"Error",
+	"Map",
+	"Set",
+	"WeakMap",
+	"WeakSet",
+	"ArrayBuffer",
+	"SharedArrayBuffer",
+	"DataView",
+	"Promise",
+	"URL",
+	"HTMLElement",
+	"Int8Array",
+	"Uint8ClampedArray",
+	"Int16Array",
+	"Uint16Array",
+	"Int32Array",
+	"Uint32Array",
+	"Float32Array",
+	"Float64Array",
+	"BigInt64Array",
+	"BigUint64Array"
+];
+/**
+* @param {any} value
+* @returns {string}
+*/
+function is(value) {
+	if (value === null) return "null";
+	if (value === void 0) return "undefined";
+	if (value === true || value === false) return "boolean";
+	const typeOf = typeof value;
+	if (typeOf === "string" || typeOf === "number" || typeOf === "bigint" || typeOf === "symbol") return typeOf;
+	/* c8 ignore next 3 */
+	if (typeOf === "function") return "Function";
+	if (Array.isArray(value)) return "Array";
+	if (value instanceof Uint8Array) return "Uint8Array";
+	if (value.constructor === Object) return "Object";
+	const objectType = getObjectType(value);
+	if (objectType) return objectType;
+	/* c8 ignore next */
+	return "Object";
+}
+/**
+* @param {any} value
+* @returns {string|undefined}
+*/
+function getObjectType(value) {
+	const objectTypeName = Object.prototype.toString.call(value).slice(8, -1);
+	if (objectTypeNames.includes(objectTypeName)) return objectTypeName;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/token.js
+var Type = class {
+	/**
+	* @param {number} major
+	* @param {string} name
+	* @param {boolean} terminal
+	*/
+	constructor(major, name, terminal) {
+		this.major = major;
+		this.majorEncoded = major << 5;
+		this.name = name;
+		this.terminal = terminal;
+	}
+	/* c8 ignore next 3 */
+	toString() {
+		return `Type[${this.major}].${this.name}`;
+	}
+	/**
+	* @param {Type} typ
+	* @returns {number}
+	*/
+	compare(typ) {
+		/* c8 ignore next 1 */
+		return this.major < typ.major ? -1 : this.major > typ.major ? 1 : 0;
+	}
+	/**
+	* Check equality between two Type instances. Safe to use across different
+	* copies of the Type class (e.g., when bundlers duplicate the module).
+	* (major, name) uniquely identifies a Type; terminal is implied by these.
+	* @param {Type} a
+	* @param {Type} b
+	* @returns {boolean}
+	*/
+	static equals(a, b) {
+		return a === b || a.major === b.major && a.name === b.name;
+	}
+};
+Type.uint = new Type(0, "uint", true);
+Type.negint = new Type(1, "negint", true);
+Type.bytes = new Type(2, "bytes", true);
+Type.string = new Type(3, "string", true);
+Type.array = new Type(4, "array", false);
+Type.map = new Type(5, "map", false);
+Type.tag = new Type(6, "tag", false);
+Type.float = new Type(7, "float", true);
+Type.false = new Type(7, "false", true);
+Type.true = new Type(7, "true", true);
+Type.null = new Type(7, "null", true);
+Type.undefined = new Type(7, "undefined", true);
+Type.break = new Type(7, "break", true);
+var Token = class {
+	/**
+	* @param {Type} type
+	* @param {any} [value]
+	* @param {number} [encodedLength]
+	*/
+	constructor(type, value, encodedLength) {
+		this.type = type;
+		this.value = value;
+		this.encodedLength = encodedLength;
+		/** @type {Uint8Array|undefined} */
+		this.encodedBytes = void 0;
+		/** @type {Uint8Array|undefined} */
+		this.byteValue = void 0;
+	}
+	/* c8 ignore next 3 */
+	toString() {
+		return `Token[${this.type}].${this.value}`;
+	}
+};
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/byte-utils.js
+var useBuffer = globalThis.process && !globalThis.process.browser && globalThis.Buffer && typeof globalThis.Buffer.isBuffer === "function";
+var textEncoder = new TextEncoder();
+/**
+* @param {Uint8Array} buf
+* @returns {boolean}
+*/
+function isBuffer(buf) {
+	return useBuffer && globalThis.Buffer.isBuffer(buf);
+}
+/**
+* @param {Uint8Array|number[]} buf
+* @returns {Uint8Array}
+*/
+function asU8A(buf) {
+	/* c8 ignore next */
+	if (!(buf instanceof Uint8Array)) return Uint8Array.from(buf);
+	return isBuffer(buf) ? new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength) : buf;
+}
+var FROM_STRING_THRESHOLD_BUFFER = 24;
+var FROM_STRING_THRESHOLD_TEXTENCODER = 200;
+var fromString = useBuffer ? (string) => {
+	return string.length >= FROM_STRING_THRESHOLD_BUFFER ? globalThis.Buffer.from(string) : utf8ToBytes(string);
+} : (string) => {
+	return string.length >= FROM_STRING_THRESHOLD_TEXTENCODER ? textEncoder.encode(string) : utf8ToBytes(string);
+};
+/**
+* Buffer variant not fast enough for what we need
+* @param {number[]} arr
+* @returns {Uint8Array}
+*/
+var fromArray = (arr) => {
+	return Uint8Array.from(arr);
+};
+var slice = useBuffer ? (bytes, start, end) => {
+	if (isBuffer(bytes)) return new Uint8Array(bytes.subarray(start, end));
+	return bytes.slice(start, end);
+} : (bytes, start, end) => {
+	return bytes.slice(start, end);
+};
+var concat = useBuffer ? (chunks, length) => {
+	/* c8 ignore next 1 */
+	chunks = chunks.map((c) => c instanceof Uint8Array ? c : globalThis.Buffer.from(c));
+	return asU8A(globalThis.Buffer.concat(chunks, length));
+} : (chunks, length) => {
+	const out = new Uint8Array(length);
+	let off = 0;
+	for (let b of chunks) {
+		if (off + b.length > out.length) b = b.subarray(0, out.length - off);
+		out.set(b, off);
+		off += b.length;
+	}
+	return out;
+};
+var alloc = useBuffer ? (size) => {
+	return globalThis.Buffer.allocUnsafe(size);
+} : (size) => {
+	return new Uint8Array(size);
+};
+/**
+* @param {Uint8Array} b1
+* @param {Uint8Array} b2
+* @returns {number}
+*/
+function compare(b1, b2) {
+	/* c8 ignore next 5 */
+	if (isBuffer(b1) && isBuffer(b2)) return b1.compare(b2);
+	for (let i = 0; i < b1.length; i++) {
+		if (b1[i] === b2[i]) continue;
+		return b1[i] < b2[i] ? -1 : 1;
+	}
+	return 0;
+}
+/**
+* @param {string} str
+* @returns {number[]}
+*/
+function utf8ToBytes(str) {
+	const out = [];
+	let p = 0;
+	for (let i = 0; i < str.length; i++) {
+		let c = str.charCodeAt(i);
+		if (c < 128) out[p++] = c;
+		else if (c < 2048) {
+			out[p++] = c >> 6 | 192;
+			out[p++] = c & 63 | 128;
+		} else if ((c & 64512) === 55296 && i + 1 < str.length && (str.charCodeAt(i + 1) & 64512) === 56320) {
+			c = 65536 + ((c & 1023) << 10) + (str.charCodeAt(++i) & 1023);
+			out[p++] = c >> 18 | 240;
+			out[p++] = c >> 12 & 63 | 128;
+			out[p++] = c >> 6 & 63 | 128;
+			out[p++] = c & 63 | 128;
+		} else {
+			if (c >= 55296 && c <= 57343) c = 65533;
+			out[p++] = c >> 12 | 224;
+			out[p++] = c >> 6 & 63 | 128;
+			out[p++] = c & 63 | 128;
+		}
+	}
+	return out;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/bl.js
+/**
+* Bl is a list of byte chunks, similar to https://github.com/rvagg/bl but for
+* writing rather than reading.
+* A Bl object accepts set() operations for individual bytes and copyTo() for
+* inserting byte arrays. These write operations don't automatically increment
+* the internal cursor so its "length" won't be changed. Instead, increment()
+* must be called to extend its length to cover the inserted data.
+* The toBytes() call will convert all internal memory to a single Uint8Array of
+* the correct length, truncating any data that is stored but hasn't been
+* included by an increment().
+* get() can retrieve a single byte.
+* All operations (except toBytes()) take an "offset" argument that will perform
+* the write at the offset _from the current cursor_. For most operations this
+* will be `0` to write at the current cursor position but it can be ahead of
+* the current cursor. Negative offsets probably work but are untested.
+*/
+var defaultChunkSize = 256;
+var Bl = class {
+	/**
+	* @param {number} [chunkSize]
+	*/
+	constructor(chunkSize = defaultChunkSize) {
+		this.chunkSize = chunkSize;
+		/** @type {number} */
+		this.cursor = 0;
+		/** @type {number} */
+		this.maxCursor = -1;
+		/** @type {(Uint8Array|number[])[]} */
+		this.chunks = [];
+		/** @type {Uint8Array|number[]|null} */
+		this._initReuseChunk = null;
+	}
+	reset() {
+		this.cursor = 0;
+		this.maxCursor = -1;
+		if (this.chunks.length) this.chunks = [];
+		if (this._initReuseChunk !== null) {
+			this.chunks.push(this._initReuseChunk);
+			this.maxCursor = this._initReuseChunk.length - 1;
+		}
+	}
+	/**
+	* @param {Uint8Array|number[]} bytes
+	*/
+	push(bytes) {
+		let topChunk = this.chunks[this.chunks.length - 1];
+		if (this.cursor + bytes.length <= this.maxCursor + 1) {
+			const chunkPos = topChunk.length - (this.maxCursor - this.cursor) - 1;
+			topChunk.set(bytes, chunkPos);
+		} else {
+			if (topChunk) {
+				const chunkPos = topChunk.length - (this.maxCursor - this.cursor) - 1;
+				if (chunkPos < topChunk.length) {
+					this.chunks[this.chunks.length - 1] = topChunk.subarray(0, chunkPos);
+					this.maxCursor = this.cursor - 1;
+				}
+			}
+			if (bytes.length < 64 && bytes.length < this.chunkSize) {
+				topChunk = alloc(this.chunkSize);
+				this.chunks.push(topChunk);
+				this.maxCursor += topChunk.length;
+				if (this._initReuseChunk === null) this._initReuseChunk = topChunk;
+				topChunk.set(bytes, 0);
+			} else {
+				this.chunks.push(bytes);
+				this.maxCursor += bytes.length;
+			}
+		}
+		this.cursor += bytes.length;
+	}
+	/**
+	* @param {boolean} [reset]
+	* @returns {Uint8Array}
+	*/
+	toBytes(reset = false) {
+		let byts;
+		if (this.chunks.length === 1) {
+			const chunk = this.chunks[0];
+			if (reset && this.cursor > chunk.length / 2) {
+				/* c8 ignore next 2 */
+				byts = this.cursor === chunk.length ? chunk : chunk.subarray(0, this.cursor);
+				this._initReuseChunk = null;
+				this.chunks = [];
+			} else byts = slice(chunk, 0, this.cursor);
+		} else byts = concat(this.chunks, this.cursor);
+		if (reset) this.reset();
+		return byts;
+	}
+};
+/**
+* U8Bl is a buffer list that writes directly to a user-provided Uint8Array.
+* It provides the same interface as Bl but writes to a fixed destination.
+*/
+var U8Bl = class {
+	/**
+	* @param {Uint8Array} dest
+	*/
+	constructor(dest) {
+		this.dest = dest;
+		/** @type {number} */
+		this.cursor = 0;
+		/** @type {Uint8Array[]} */
+		this.chunks = [dest];
+	}
+	reset() {
+		this.cursor = 0;
+	}
+	/**
+	* @param {Uint8Array|number[]} bytes
+	*/
+	push(bytes) {
+		if (this.cursor + bytes.length > this.dest.length) throw new Error("write out of bounds, destination buffer is too small");
+		this.dest.set(bytes, this.cursor);
+		this.cursor += bytes.length;
+	}
+	/**
+	* @param {boolean} [reset]
+	* @returns {Uint8Array}
+	*/
+	toBytes(reset = false) {
+		const byts = this.dest.subarray(0, this.cursor);
+		if (reset) this.reset();
+		return byts;
+	}
+};
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/common.js
+var decodeErrPrefix = "CBOR decode error:";
+var encodeErrPrefix = "CBOR encode error:";
+var uintMinorPrefixBytes = [];
+uintMinorPrefixBytes[23] = 1;
+uintMinorPrefixBytes[24] = 2;
+uintMinorPrefixBytes[25] = 3;
+uintMinorPrefixBytes[26] = 5;
+uintMinorPrefixBytes[27] = 9;
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} need
+*/
+function assertEnoughData(data, pos, need) {
+	if (data.length - pos < need) throw new Error(`${decodeErrPrefix} not enough data for type`);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/0uint.js
+var uintBoundaries = [
+	24,
+	256,
+	65536,
+	4294967296,
+	BigInt("18446744073709551616")
+];
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} data
+* @param {number} offset
+* @param {DecodeOptions} options
+* @returns {number}
+*/
+function readUint8(data, offset, options) {
+	assertEnoughData(data, offset, 1);
+	const value = data[offset];
+	if (options.strict === true && value < uintBoundaries[0]) throw new Error(`${decodeErrPrefix} integer encoded in more bytes than necessary (strict decode)`);
+	return value;
+}
+/**
+* @param {Uint8Array} data
+* @param {number} offset
+* @param {DecodeOptions} options
+* @returns {number}
+*/
+function readUint16(data, offset, options) {
+	assertEnoughData(data, offset, 2);
+	const value = data[offset] << 8 | data[offset + 1];
+	if (options.strict === true && value < uintBoundaries[1]) throw new Error(`${decodeErrPrefix} integer encoded in more bytes than necessary (strict decode)`);
+	return value;
+}
+/**
+* @param {Uint8Array} data
+* @param {number} offset
+* @param {DecodeOptions} options
+* @returns {number}
+*/
+function readUint32(data, offset, options) {
+	assertEnoughData(data, offset, 4);
+	const value = data[offset] * 16777216 + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
+	if (options.strict === true && value < uintBoundaries[2]) throw new Error(`${decodeErrPrefix} integer encoded in more bytes than necessary (strict decode)`);
+	return value;
+}
+/**
+* @param {Uint8Array} data
+* @param {number} offset
+* @param {DecodeOptions} options
+* @returns {number|bigint}
+*/
+function readUint64(data, offset, options) {
+	assertEnoughData(data, offset, 8);
+	const hi = data[offset] * 16777216 + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
+	const lo = data[offset + 4] * 16777216 + (data[offset + 5] << 16) + (data[offset + 6] << 8) + data[offset + 7];
+	const value = (BigInt(hi) << BigInt(32)) + BigInt(lo);
+	if (options.strict === true && value < uintBoundaries[3]) throw new Error(`${decodeErrPrefix} integer encoded in more bytes than necessary (strict decode)`);
+	if (value <= Number.MAX_SAFE_INTEGER) return Number(value);
+	if (options.allowBigInt === true) return value;
+	throw new Error(`${decodeErrPrefix} integers outside of the safe integer range are not supported`);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeUint8(data, pos, _minor, options) {
+	return new Token(Type.uint, readUint8(data, pos + 1, options), 2);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeUint16(data, pos, _minor, options) {
+	return new Token(Type.uint, readUint16(data, pos + 1, options), 3);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeUint32(data, pos, _minor, options) {
+	return new Token(Type.uint, readUint32(data, pos + 1, options), 5);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeUint64(data, pos, _minor, options) {
+	return new Token(Type.uint, readUint64(data, pos + 1, options), 9);
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+*/
+function encodeUint(writer, token) {
+	return encodeUintValue(writer, 0, token.value);
+}
+/**
+* @param {ByteWriter} writer
+* @param {number} major
+* @param {number|bigint} uint
+*/
+function encodeUintValue(writer, major, uint) {
+	if (uint < uintBoundaries[0]) {
+		const nuint = Number(uint);
+		writer.push([major | nuint]);
+	} else if (uint < uintBoundaries[1]) {
+		const nuint = Number(uint);
+		writer.push([major | 24, nuint]);
+	} else if (uint < uintBoundaries[2]) {
+		const nuint = Number(uint);
+		writer.push([
+			major | 25,
+			nuint >>> 8,
+			nuint & 255
+		]);
+	} else if (uint < uintBoundaries[3]) {
+		const nuint = Number(uint);
+		writer.push([
+			major | 26,
+			nuint >>> 24 & 255,
+			nuint >>> 16 & 255,
+			nuint >>> 8 & 255,
+			nuint & 255
+		]);
+	} else {
+		const buint = BigInt(uint);
+		if (buint < uintBoundaries[4]) {
+			const set = [
+				major | 27,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0
+			];
+			let lo = Number(buint & BigInt(4294967295));
+			let hi = Number(buint >> BigInt(32) & BigInt(4294967295));
+			set[8] = lo & 255;
+			lo = lo >> 8;
+			set[7] = lo & 255;
+			lo = lo >> 8;
+			set[6] = lo & 255;
+			lo = lo >> 8;
+			set[5] = lo & 255;
+			set[4] = hi & 255;
+			hi = hi >> 8;
+			set[3] = hi & 255;
+			hi = hi >> 8;
+			set[2] = hi & 255;
+			hi = hi >> 8;
+			set[1] = hi & 255;
+			writer.push(set);
+		} else throw new Error(`${decodeErrPrefix} encountered BigInt larger than allowable range`);
+	}
+}
+/**
+* @param {Token} token
+* @returns {number}
+*/
+encodeUint.encodedSize = function encodedSize(token) {
+	return encodeUintValue.encodedSize(token.value);
+};
+/**
+* @param {number} uint
+* @returns {number}
+*/
+encodeUintValue.encodedSize = function encodedSize(uint) {
+	if (uint < uintBoundaries[0]) return 1;
+	if (uint < uintBoundaries[1]) return 2;
+	if (uint < uintBoundaries[2]) return 3;
+	if (uint < uintBoundaries[3]) return 5;
+	return 9;
+};
+/**
+* @param {Token} tok1
+* @param {Token} tok2
+* @returns {number}
+*/
+encodeUint.compareTokens = function compareTokens(tok1, tok2) {
+	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : 0;
+};
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/1negint.js
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeNegint8(data, pos, _minor, options) {
+	return new Token(Type.negint, -1 - readUint8(data, pos + 1, options), 2);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeNegint16(data, pos, _minor, options) {
+	return new Token(Type.negint, -1 - readUint16(data, pos + 1, options), 3);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeNegint32(data, pos, _minor, options) {
+	return new Token(Type.negint, -1 - readUint32(data, pos + 1, options), 5);
+}
+var neg1b = BigInt(-1);
+var pos1b = BigInt(1);
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeNegint64(data, pos, _minor, options) {
+	const int = readUint64(data, pos + 1, options);
+	if (typeof int !== "bigint") {
+		const value = -1 - int;
+		if (value >= Number.MIN_SAFE_INTEGER) return new Token(Type.negint, value, 9);
+	}
+	if (options.allowBigInt !== true) throw new Error(`${decodeErrPrefix} integers outside of the safe integer range are not supported`);
+	return new Token(Type.negint, neg1b - BigInt(int), 9);
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+*/
+function encodeNegint(writer, token) {
+	const negint = token.value;
+	const unsigned = typeof negint === "bigint" ? negint * neg1b - pos1b : negint * -1 - 1;
+	encodeUintValue(writer, token.type.majorEncoded, unsigned);
+}
+/**
+* @param {Token} token
+* @returns {number}
+*/
+encodeNegint.encodedSize = function encodedSize(token) {
+	const negint = token.value;
+	const unsigned = typeof negint === "bigint" ? negint * neg1b - pos1b : negint * -1 - 1;
+	/* c8 ignore next 4 */
+	if (unsigned < uintBoundaries[0]) return 1;
+	if (unsigned < uintBoundaries[1]) return 2;
+	if (unsigned < uintBoundaries[2]) return 3;
+	if (unsigned < uintBoundaries[3]) return 5;
+	return 9;
+};
+/**
+* @param {Token} tok1
+* @param {Token} tok2
+* @returns {number}
+*/
+encodeNegint.compareTokens = function compareTokens(tok1, tok2) {
+	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : 0;
+};
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/2bytes.js
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} prefix
+* @param {number} length
+* @returns {Token}
+*/
+function toToken$3(data, pos, prefix, length) {
+	assertEnoughData(data, pos, prefix + length);
+	const buf = data.slice(pos + prefix, pos + prefix + length);
+	return new Token(Type.bytes, buf, prefix + length);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} minor
+* @param {DecodeOptions} _options
+* @returns {Token}
+*/
+function decodeBytesCompact(data, pos, minor, _options) {
+	return toToken$3(data, pos, 1, minor);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeBytes8(data, pos, _minor, options) {
+	return toToken$3(data, pos, 2, readUint8(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeBytes16(data, pos, _minor, options) {
+	return toToken$3(data, pos, 3, readUint16(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeBytes32(data, pos, _minor, options) {
+	return toToken$3(data, pos, 5, readUint32(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeBytes64(data, pos, _minor, options) {
+	const l = readUint64(data, pos + 1, options);
+	if (typeof l === "bigint") throw new Error(`${decodeErrPrefix} 64-bit integer bytes lengths not supported`);
+	return toToken$3(data, pos, 9, l);
+}
+/**
+* `encodedBytes` allows for caching when we do a byte version of a string
+* for key sorting purposes
+* @param {Token} token
+* @returns {Uint8Array}
+*/
+function tokenBytes(token) {
+	if (token.encodedBytes === void 0) token.encodedBytes = Type.equals(token.type, Type.string) ? fromString(token.value) : token.value;
+	return token.encodedBytes;
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+*/
+function encodeBytes(writer, token) {
+	const bytes = tokenBytes(token);
+	encodeUintValue(writer, token.type.majorEncoded, bytes.length);
+	writer.push(bytes);
+}
+/**
+* @param {Token} token
+* @returns {number}
+*/
+encodeBytes.encodedSize = function encodedSize(token) {
+	const bytes = tokenBytes(token);
+	return encodeUintValue.encodedSize(bytes.length) + bytes.length;
+};
+/**
+* @param {Token} tok1
+* @param {Token} tok2
+* @returns {number}
+*/
+encodeBytes.compareTokens = function compareTokens(tok1, tok2) {
+	return compareBytes(tokenBytes(tok1), tokenBytes(tok2));
+};
+/**
+* @param {Uint8Array} b1
+* @param {Uint8Array} b2
+* @returns {number}
+*/
+function compareBytes(b1, b2) {
+	return b1.length < b2.length ? -1 : b1.length > b2.length ? 1 : compare(b1, b2);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/3string.js
+var textDecoder = new TextDecoder();
+var ASCII_THRESHOLD = 32;
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* Decode UTF-8 bytes to string. For short ASCII strings (common case for map keys),
+* a simple loop is faster than TextDecoder.
+* @param {Uint8Array} bytes
+* @param {number} start
+* @param {number} end
+* @returns {string}
+*/
+function toStr(bytes, start, end) {
+	if (end - start < ASCII_THRESHOLD) {
+		let str = "";
+		for (let i = start; i < end; i++) {
+			const c = bytes[i];
+			if (c & 128) return textDecoder.decode(bytes.subarray(start, end));
+			str += String.fromCharCode(c);
+		}
+		return str;
+	}
+	return textDecoder.decode(bytes.subarray(start, end));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} prefix
+* @param {number} length
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function toToken$2(data, pos, prefix, length, options) {
+	const totLength = prefix + length;
+	assertEnoughData(data, pos, totLength);
+	const tok = new Token(Type.string, toStr(data, pos + prefix, pos + totLength), totLength);
+	if (options.retainStringBytes === true) tok.byteValue = data.slice(pos + prefix, pos + totLength);
+	return tok;
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeStringCompact(data, pos, minor, options) {
+	return toToken$2(data, pos, 1, minor, options);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeString8(data, pos, _minor, options) {
+	return toToken$2(data, pos, 2, readUint8(data, pos + 1, options), options);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeString16(data, pos, _minor, options) {
+	return toToken$2(data, pos, 3, readUint16(data, pos + 1, options), options);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeString32(data, pos, _minor, options) {
+	return toToken$2(data, pos, 5, readUint32(data, pos + 1, options), options);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeString64(data, pos, _minor, options) {
+	const l = readUint64(data, pos + 1, options);
+	if (typeof l === "bigint") throw new Error(`${decodeErrPrefix} 64-bit integer string lengths not supported`);
+	return toToken$2(data, pos, 9, l, options);
+}
+var encodeString = encodeBytes;
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/4array.js
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} _data
+* @param {number} _pos
+* @param {number} prefix
+* @param {number} length
+* @returns {Token}
+*/
+function toToken$1(_data, _pos, prefix, length) {
+	return new Token(Type.array, length, prefix);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} minor
+* @param {DecodeOptions} _options
+* @returns {Token}
+*/
+function decodeArrayCompact(data, pos, minor, _options) {
+	return toToken$1(data, pos, 1, minor);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeArray8(data, pos, _minor, options) {
+	return toToken$1(data, pos, 2, readUint8(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeArray16(data, pos, _minor, options) {
+	return toToken$1(data, pos, 3, readUint16(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeArray32(data, pos, _minor, options) {
+	return toToken$1(data, pos, 5, readUint32(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeArray64(data, pos, _minor, options) {
+	const l = readUint64(data, pos + 1, options);
+	if (typeof l === "bigint") throw new Error(`${decodeErrPrefix} 64-bit integer array lengths not supported`);
+	return toToken$1(data, pos, 9, l);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeArrayIndefinite(data, pos, _minor, options) {
+	if (options.allowIndefinite === false) throw new Error(`${decodeErrPrefix} indefinite length items not allowed`);
+	return toToken$1(data, pos, 1, Infinity);
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+*/
+function encodeArray(writer, token) {
+	encodeUintValue(writer, Type.array.majorEncoded, token.value);
+}
+encodeArray.compareTokens = encodeUint.compareTokens;
+/**
+* @param {Token} token
+* @returns {number}
+*/
+encodeArray.encodedSize = function encodedSize(token) {
+	return encodeUintValue.encodedSize(token.value);
+};
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/5map.js
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} _data
+* @param {number} _pos
+* @param {number} prefix
+* @param {number} length
+* @returns {Token}
+*/
+function toToken(_data, _pos, prefix, length) {
+	return new Token(Type.map, length, prefix);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} minor
+* @param {DecodeOptions} _options
+* @returns {Token}
+*/
+function decodeMapCompact(data, pos, minor, _options) {
+	return toToken(data, pos, 1, minor);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeMap8(data, pos, _minor, options) {
+	return toToken(data, pos, 2, readUint8(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeMap16(data, pos, _minor, options) {
+	return toToken(data, pos, 3, readUint16(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeMap32(data, pos, _minor, options) {
+	return toToken(data, pos, 5, readUint32(data, pos + 1, options));
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeMap64(data, pos, _minor, options) {
+	const l = readUint64(data, pos + 1, options);
+	if (typeof l === "bigint") throw new Error(`${decodeErrPrefix} 64-bit integer map lengths not supported`);
+	return toToken(data, pos, 9, l);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeMapIndefinite(data, pos, _minor, options) {
+	if (options.allowIndefinite === false) throw new Error(`${decodeErrPrefix} indefinite length items not allowed`);
+	return toToken(data, pos, 1, Infinity);
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+*/
+function encodeMap(writer, token) {
+	encodeUintValue(writer, Type.map.majorEncoded, token.value);
+}
+encodeMap.compareTokens = encodeUint.compareTokens;
+/**
+* @param {Token} token
+* @returns {number}
+*/
+encodeMap.encodedSize = function encodedSize(token) {
+	return encodeUintValue.encodedSize(token.value);
+};
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/6tag.js
+/**
+* @typedef {import('../interface').ByteWriter} ByteWriter
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} _data
+* @param {number} _pos
+* @param {number} minor
+* @param {DecodeOptions} _options
+* @returns {Token}
+*/
+function decodeTagCompact(_data, _pos, minor, _options) {
+	return new Token(Type.tag, minor, 1);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeTag8(data, pos, _minor, options) {
+	return new Token(Type.tag, readUint8(data, pos + 1, options), 2);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeTag16(data, pos, _minor, options) {
+	return new Token(Type.tag, readUint16(data, pos + 1, options), 3);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeTag32(data, pos, _minor, options) {
+	return new Token(Type.tag, readUint32(data, pos + 1, options), 5);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeTag64(data, pos, _minor, options) {
+	return new Token(Type.tag, readUint64(data, pos + 1, options), 9);
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+*/
+function encodeTag(writer, token) {
+	encodeUintValue(writer, Type.tag.majorEncoded, token.value);
+}
+encodeTag.compareTokens = encodeUint.compareTokens;
+/**
+* @param {Token} token
+* @returns {number}
+*/
+encodeTag.encodedSize = function encodedSize(token) {
+	return encodeUintValue.encodedSize(token.value);
+};
+/**
+* @param {Uint8Array} _data
+* @param {number} _pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeUndefined(_data, _pos, _minor, options) {
+	if (options.allowUndefined === false) throw new Error(`${decodeErrPrefix} undefined values are not supported`);
+	else if (options.coerceUndefinedToNull === true) return new Token(Type.null, null, 1);
+	return new Token(Type.undefined, void 0, 1);
+}
+/**
+* @param {Uint8Array} _data
+* @param {number} _pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeBreak(_data, _pos, _minor, options) {
+	if (options.allowIndefinite === false) throw new Error(`${decodeErrPrefix} indefinite length items not allowed`);
+	return new Token(Type.break, void 0, 1);
+}
+/**
+* @param {number} value
+* @param {number} bytes
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function createToken(value, bytes, options) {
+	if (options) {
+		if (options.allowNaN === false && Number.isNaN(value)) throw new Error(`${decodeErrPrefix} NaN values are not supported`);
+		if (options.allowInfinity === false && (value === Infinity || value === -Infinity)) throw new Error(`${decodeErrPrefix} Infinity values are not supported`);
+	}
+	return new Token(Type.float, value, bytes);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeFloat16(data, pos, _minor, options) {
+	return createToken(readFloat16(data, pos + 1), 3, options);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeFloat32(data, pos, _minor, options) {
+	return createToken(readFloat32(data, pos + 1), 5, options);
+}
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} _minor
+* @param {DecodeOptions} options
+* @returns {Token}
+*/
+function decodeFloat64(data, pos, _minor, options) {
+	return createToken(readFloat64(data, pos + 1), 9, options);
+}
+/**
+* @param {ByteWriter} writer
+* @param {Token} token
+* @param {EncodeOptions} options
+*/
+function encodeFloat(writer, token, options) {
+	const float = token.value;
+	if (float === false) writer.push([Type.float.majorEncoded | 20]);
+	else if (float === true) writer.push([Type.float.majorEncoded | 21]);
+	else if (float === null) writer.push([Type.float.majorEncoded | 22]);
+	else if (float === void 0) writer.push([Type.float.majorEncoded | 23]);
+	else {
+		let decoded;
+		let success = false;
+		if (!options || options.float64 !== true) {
+			encodeFloat16(float);
+			decoded = readFloat16(ui8a, 1);
+			if (float === decoded || Number.isNaN(float)) {
+				ui8a[0] = 249;
+				writer.push(ui8a.slice(0, 3));
+				success = true;
+			} else {
+				encodeFloat32(float);
+				decoded = readFloat32(ui8a, 1);
+				if (float === decoded) {
+					ui8a[0] = 250;
+					writer.push(ui8a.slice(0, 5));
+					success = true;
+				}
+			}
+		}
+		if (!success) {
+			encodeFloat64(float);
+			decoded = readFloat64(ui8a, 1);
+			ui8a[0] = 251;
+			writer.push(ui8a.slice(0, 9));
+		}
+	}
+}
+/**
+* @param {Token} token
+* @param {EncodeOptions} options
+* @returns {number}
+*/
+encodeFloat.encodedSize = function encodedSize(token, options) {
+	const float = token.value;
+	if (float === false || float === true || float === null || float === void 0) return 1;
+	if (!options || options.float64 !== true) {
+		encodeFloat16(float);
+		let decoded = readFloat16(ui8a, 1);
+		if (float === decoded || Number.isNaN(float)) return 3;
+		encodeFloat32(float);
+		decoded = readFloat32(ui8a, 1);
+		if (float === decoded) return 5;
+	}
+	return 9;
+};
+var buffer = /* @__PURE__ */ new ArrayBuffer(9);
+var dataView = new DataView(buffer, 1);
+var ui8a = new Uint8Array(buffer, 0);
+/**
+* @param {number} inp
+*/
+function encodeFloat16(inp) {
+	if (inp === Infinity) dataView.setUint16(0, 31744, false);
+	else if (inp === -Infinity) dataView.setUint16(0, 64512, false);
+	else if (Number.isNaN(inp)) dataView.setUint16(0, 32256, false);
+	else {
+		dataView.setFloat32(0, inp);
+		const valu32 = dataView.getUint32(0);
+		const exponent = (valu32 & 2139095040) >> 23;
+		const mantissa = valu32 & 8388607;
+		/* c8 ignore next 6 */
+		if (exponent === 255) dataView.setUint16(0, 31744, false);
+		else if (exponent === 0) dataView.setUint16(0, (inp & 2147483648) >> 16 | mantissa >> 13, false);
+		else {
+			const logicalExponent = exponent - 127;
+			/* c8 ignore next 6 */
+			if (logicalExponent < -24) dataView.setUint16(0, 0);
+			else if (logicalExponent < -14) dataView.setUint16(0, (valu32 & 2147483648) >> 16 | 1 << 24 + logicalExponent, false);
+			else dataView.setUint16(0, (valu32 & 2147483648) >> 16 | logicalExponent + 15 << 10 | mantissa >> 13, false);
+		}
+	}
+}
+/**
+* @param {Uint8Array} ui8a
+* @param {number} pos
+* @returns {number}
+*/
+function readFloat16(ui8a, pos) {
+	if (ui8a.length - pos < 2) throw new Error(`${decodeErrPrefix} not enough data for float16`);
+	const half = (ui8a[pos] << 8) + ui8a[pos + 1];
+	if (half === 31744) return Infinity;
+	if (half === 64512) return -Infinity;
+	if (half === 32256) return NaN;
+	const exp = half >> 10 & 31;
+	const mant = half & 1023;
+	let val;
+	if (exp === 0) val = mant * 2 ** -24;
+	else if (exp !== 31) val = (mant + 1024) * 2 ** (exp - 25);
+	else val = mant === 0 ? Infinity : NaN;
+	return half & 32768 ? -val : val;
+}
+/**
+* @param {number} inp
+*/
+function encodeFloat32(inp) {
+	dataView.setFloat32(0, inp, false);
+}
+/**
+* @param {Uint8Array} ui8a
+* @param {number} pos
+* @returns {number}
+*/
+function readFloat32(ui8a, pos) {
+	if (ui8a.length - pos < 4) throw new Error(`${decodeErrPrefix} not enough data for float32`);
+	const offset = (ui8a.byteOffset || 0) + pos;
+	return new DataView(ui8a.buffer, offset, 4).getFloat32(0, false);
+}
+/**
+* @param {number} inp
+*/
+function encodeFloat64(inp) {
+	dataView.setFloat64(0, inp, false);
+}
+/**
+* @param {Uint8Array} ui8a
+* @param {number} pos
+* @returns {number}
+*/
+function readFloat64(ui8a, pos) {
+	if (ui8a.length - pos < 8) throw new Error(`${decodeErrPrefix} not enough data for float64`);
+	const offset = (ui8a.byteOffset || 0) + pos;
+	return new DataView(ui8a.buffer, offset, 8).getFloat64(0, false);
+}
+/**
+* @param {Token} _tok1
+* @param {Token} _tok2
+* @returns {number}
+*/
+encodeFloat.compareTokens = encodeUint.compareTokens;
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/jump.js
+/**
+* @typedef {import('../interface').DecodeOptions} DecodeOptions
+*/
+/**
+* @param {Uint8Array} data
+* @param {number} pos
+* @param {number} minor
+*/
+function invalidMinor(data, pos, minor) {
+	throw new Error(`${decodeErrPrefix} encountered invalid minor (${minor}) for major ${data[pos] >>> 5}`);
+}
+/**
+* @param {string} msg
+* @returns {()=>any}
+*/
+function errorer(msg) {
+	return () => {
+		throw new Error(`${decodeErrPrefix} ${msg}`);
+	};
+}
+/** @type {((data:Uint8Array, pos:number, minor:number, options?:DecodeOptions) => any)[]} */
+var jump = [];
+for (let i = 0; i <= 23; i++) jump[i] = invalidMinor;
+jump[24] = decodeUint8;
+jump[25] = decodeUint16;
+jump[26] = decodeUint32;
+jump[27] = decodeUint64;
+jump[28] = invalidMinor;
+jump[29] = invalidMinor;
+jump[30] = invalidMinor;
+jump[31] = invalidMinor;
+for (let i = 32; i <= 55; i++) jump[i] = invalidMinor;
+jump[56] = decodeNegint8;
+jump[57] = decodeNegint16;
+jump[58] = decodeNegint32;
+jump[59] = decodeNegint64;
+jump[60] = invalidMinor;
+jump[61] = invalidMinor;
+jump[62] = invalidMinor;
+jump[63] = invalidMinor;
+for (let i = 64; i <= 87; i++) jump[i] = decodeBytesCompact;
+jump[88] = decodeBytes8;
+jump[89] = decodeBytes16;
+jump[90] = decodeBytes32;
+jump[91] = decodeBytes64;
+jump[92] = invalidMinor;
+jump[93] = invalidMinor;
+jump[94] = invalidMinor;
+jump[95] = errorer("indefinite length bytes/strings are not supported");
+for (let i = 96; i <= 119; i++) jump[i] = decodeStringCompact;
+jump[120] = decodeString8;
+jump[121] = decodeString16;
+jump[122] = decodeString32;
+jump[123] = decodeString64;
+jump[124] = invalidMinor;
+jump[125] = invalidMinor;
+jump[126] = invalidMinor;
+jump[127] = errorer("indefinite length bytes/strings are not supported");
+for (let i = 128; i <= 151; i++) jump[i] = decodeArrayCompact;
+jump[152] = decodeArray8;
+jump[153] = decodeArray16;
+jump[154] = decodeArray32;
+jump[155] = decodeArray64;
+jump[156] = invalidMinor;
+jump[157] = invalidMinor;
+jump[158] = invalidMinor;
+jump[159] = decodeArrayIndefinite;
+for (let i = 160; i <= 183; i++) jump[i] = decodeMapCompact;
+jump[184] = decodeMap8;
+jump[185] = decodeMap16;
+jump[186] = decodeMap32;
+jump[187] = decodeMap64;
+jump[188] = invalidMinor;
+jump[189] = invalidMinor;
+jump[190] = invalidMinor;
+jump[191] = decodeMapIndefinite;
+for (let i = 192; i <= 215; i++) jump[i] = decodeTagCompact;
+jump[216] = decodeTag8;
+jump[217] = decodeTag16;
+jump[218] = decodeTag32;
+jump[219] = decodeTag64;
+jump[220] = invalidMinor;
+jump[221] = invalidMinor;
+jump[222] = invalidMinor;
+jump[223] = invalidMinor;
+for (let i = 224; i <= 243; i++) jump[i] = errorer("simple values are not supported");
+jump[244] = invalidMinor;
+jump[245] = invalidMinor;
+jump[246] = invalidMinor;
+jump[247] = decodeUndefined;
+jump[248] = errorer("simple values are not supported");
+jump[249] = decodeFloat16;
+jump[250] = decodeFloat32;
+jump[251] = decodeFloat64;
+jump[252] = invalidMinor;
+jump[253] = invalidMinor;
+jump[254] = invalidMinor;
+jump[255] = decodeBreak;
+/** @type {Token[]} */
+var quick = [];
+for (let i = 0; i < 24; i++) quick[i] = new Token(Type.uint, i, 1);
+for (let i = -1; i >= -24; i--) quick[31 - i] = new Token(Type.negint, i, 1);
+quick[64] = new Token(Type.bytes, new Uint8Array(0), 1);
+quick[96] = new Token(Type.string, "", 1);
+quick[128] = new Token(Type.array, 0, 1);
+quick[160] = new Token(Type.map, 0, 1);
+quick[244] = new Token(Type.false, false, 1);
+quick[245] = new Token(Type.true, true, 1);
+quick[246] = new Token(Type.null, null, 1);
+/**
+* @param {Token} token
+* @returns {Uint8Array|undefined}
+*/
+function quickEncodeToken(token) {
+	switch (token.type) {
+		case Type.false: return fromArray([244]);
+		case Type.true: return fromArray([245]);
+		case Type.null: return fromArray([246]);
+		case Type.bytes:
+			if (!token.value.length) return fromArray([64]);
+			return;
+		case Type.string:
+			if (token.value === "") return fromArray([96]);
+			return;
+		case Type.array:
+			if (token.value === 0) return fromArray([128]);
+			/* c8 ignore next 2 */
+			return;
+		case Type.map:
+			if (token.value === 0) return fromArray([160]);
+			/* c8 ignore next 2 */
+			return;
+		case Type.uint:
+			if (token.value < 24) return fromArray([Number(token.value)]);
+			return;
+		case Type.negint: if (token.value >= -24) return fromArray([31 - Number(token.value)]);
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/encode.js
+/** @type {EncodeOptions} */
+var rfc8949EncodeOptions = Object.freeze({
+	float64: true,
+	mapSorter: rfc8949MapSorter,
+	quickEncodeToken
+});
+/** @returns {TokenTypeEncoder[]} */
+function makeCborEncoders() {
+	const encoders = [];
+	encoders[Type.uint.major] = encodeUint;
+	encoders[Type.negint.major] = encodeNegint;
+	encoders[Type.bytes.major] = encodeBytes;
+	encoders[Type.string.major] = encodeString;
+	encoders[Type.array.major] = encodeArray;
+	encoders[Type.map.major] = encodeMap;
+	encoders[Type.tag.major] = encodeTag;
+	encoders[Type.float.major] = encodeFloat;
+	return encoders;
+}
+var cborEncoders = makeCborEncoders();
+var defaultWriter = new Bl();
+/** @implements {Reference} */
+var Ref = class Ref {
+	/**
+	* @param {object|any[]} obj
+	* @param {Reference|undefined} parent
+	*/
+	constructor(obj, parent) {
+		this.obj = obj;
+		this.parent = parent;
+	}
+	/**
+	* @param {object|any[]} obj
+	* @returns {boolean}
+	*/
+	includes(obj) {
+		/** @type {Reference|undefined} */
+		let p = this;
+		do
+			if (p.obj === obj) return true;
+		while (p = p.parent);
+		return false;
+	}
+	/**
+	* @param {Reference|undefined} stack
+	* @param {object|any[]} obj
+	* @returns {Reference}
+	*/
+	static createCheck(stack, obj) {
+		if (stack && stack.includes(obj)) throw new Error(`${encodeErrPrefix} object contains circular references`);
+		return new Ref(obj, stack);
+	}
+};
+var simpleTokens = {
+	null: new Token(Type.null, null),
+	undefined: new Token(Type.undefined, void 0),
+	true: new Token(Type.true, true),
+	false: new Token(Type.false, false),
+	emptyArray: new Token(Type.array, 0),
+	emptyMap: new Token(Type.map, 0)
+};
+/** @type {{[typeName: string]: StrictTypeEncoder}} */
+var typeEncoders = {
+	number(obj, _typ, _options, _refStack) {
+		if (!Number.isInteger(obj) || !Number.isSafeInteger(obj)) return new Token(Type.float, obj);
+		else if (obj >= 0) return new Token(Type.uint, obj);
+		else return new Token(Type.negint, obj);
+	},
+	bigint(obj, _typ, _options, _refStack) {
+		if (obj >= BigInt(0)) return new Token(Type.uint, obj);
+		else return new Token(Type.negint, obj);
+	},
+	Uint8Array(obj, _typ, _options, _refStack) {
+		return new Token(Type.bytes, obj);
+	},
+	string(obj, _typ, _options, _refStack) {
+		return new Token(Type.string, obj);
+	},
+	boolean(obj, _typ, _options, _refStack) {
+		return obj ? simpleTokens.true : simpleTokens.false;
+	},
+	null(_obj, _typ, _options, _refStack) {
+		return simpleTokens.null;
+	},
+	undefined(_obj, _typ, _options, _refStack) {
+		return simpleTokens.undefined;
+	},
+	ArrayBuffer(obj, _typ, _options, _refStack) {
+		return new Token(Type.bytes, new Uint8Array(obj));
+	},
+	DataView(obj, _typ, _options, _refStack) {
+		return new Token(Type.bytes, new Uint8Array(obj.buffer, obj.byteOffset, obj.byteLength));
+	},
+	Array(obj, _typ, options, refStack) {
+		if (!obj.length) {
+			if (options.addBreakTokens === true) return [simpleTokens.emptyArray, new Token(Type.break)];
+			return simpleTokens.emptyArray;
+		}
+		refStack = Ref.createCheck(refStack, obj);
+		const entries = [];
+		let i = 0;
+		for (const e of obj) entries[i++] = objectToTokens(e, options, refStack);
+		if (options.addBreakTokens) return [
+			new Token(Type.array, obj.length),
+			entries,
+			new Token(Type.break)
+		];
+		return [new Token(Type.array, obj.length), entries];
+	},
+	Object(obj, typ, options, refStack) {
+		const isMap = typ !== "Object";
+		const keys = isMap ? obj.keys() : Object.keys(obj);
+		const maxLength = isMap ? obj.size : keys.length;
+		/** @type {undefined | [TokenOrNestedTokens, TokenOrNestedTokens][]} */
+		let entries;
+		if (maxLength) {
+			entries = new Array(maxLength);
+			refStack = Ref.createCheck(refStack, obj);
+			const skipUndefined = !isMap && options.ignoreUndefinedProperties;
+			let i = 0;
+			for (const key of keys) {
+				const value = isMap ? obj.get(key) : obj[key];
+				if (skipUndefined && value === void 0) continue;
+				entries[i++] = [objectToTokens(key, options, refStack), objectToTokens(value, options, refStack)];
+			}
+			if (i < maxLength) entries.length = i;
+		}
+		if (!entries?.length) {
+			if (options.addBreakTokens === true) return [simpleTokens.emptyMap, new Token(Type.break)];
+			return simpleTokens.emptyMap;
+		}
+		sortMapEntries(entries, options);
+		if (options.addBreakTokens) return [
+			new Token(Type.map, entries.length),
+			entries,
+			new Token(Type.break)
+		];
+		return [new Token(Type.map, entries.length), entries];
+	}
+};
+typeEncoders.Map = typeEncoders.Object;
+typeEncoders.Buffer = typeEncoders.Uint8Array;
+for (const typ of "Uint8Clamped Uint16 Uint32 Int8 Int16 Int32 BigUint64 BigInt64 Float32 Float64".split(" ")) typeEncoders[`${typ}Array`] = typeEncoders.DataView;
+/**
+* @param {any} obj
+* @param {EncodeOptions} [options]
+* @param {Reference} [refStack]
+* @returns {TokenOrNestedTokens}
+*/
+function objectToTokens(obj, options = {}, refStack) {
+	const typ = is(obj);
+	const customTypeEncoder = options && options.typeEncoders && options.typeEncoders[typ] || typeEncoders[typ];
+	if (typeof customTypeEncoder === "function") {
+		const tokens = customTypeEncoder(obj, typ, options, refStack);
+		if (tokens != null) return tokens;
+	}
+	const typeEncoder = typeEncoders[typ];
+	if (!typeEncoder) throw new Error(`${encodeErrPrefix} unsupported type: ${typ}`);
+	return typeEncoder(obj, typ, options, refStack);
+}
+/**
+* @param {TokenOrNestedTokens[]} entries
+* @param {EncodeOptions} options
+*/
+function sortMapEntries(entries, options) {
+	if (options.mapSorter) entries.sort(options.mapSorter);
+}
+/**
+* @typedef {Token & { _keyBytes?: Uint8Array }} TokenEx
+*
+* @param {(Token|Token[])[]} e1
+* @param {(Token|Token[])[]} e2
+* @returns {number}
+*/
+function rfc8949MapSorter(e1, e2) {
+	if (e1[0] instanceof Token && e2[0] instanceof Token) {
+		const t1 = e1[0];
+		const t2 = e2[0];
+		if (!t1._keyBytes) t1._keyBytes = encodeRfc8949(t1.value);
+		if (!t2._keyBytes) t2._keyBytes = encodeRfc8949(t2.value);
+		return compare(t1._keyBytes, t2._keyBytes);
+	}
+	throw new Error("rfc8949MapSorter: complex key types are not supported yet");
+}
+/**
+* @param {any} data
+* @returns {Uint8Array}
+*/
+function encodeRfc8949(data) {
+	return encodeCustom(data, cborEncoders, rfc8949EncodeOptions);
+}
+/**
+* @param {ByteWriter} writer
+* @param {TokenOrNestedTokens} tokens
+* @param {TokenTypeEncoder[]} encoders
+* @param {EncodeOptions} options
+*/
+function tokensToEncoded(writer, tokens, encoders, options) {
+	if (Array.isArray(tokens)) for (const token of tokens) tokensToEncoded(writer, token, encoders, options);
+	else encoders[tokens.type.major](writer, tokens, options);
+}
+Type.uint.majorEncoded;
+Type.negint.majorEncoded;
+Type.bytes.majorEncoded;
+Type.string.majorEncoded;
+Type.array.majorEncoded;
+Type.float.majorEncoded | 20;
+Type.float.majorEncoded | 21;
+Type.float.majorEncoded | 22;
+Type.float.majorEncoded | 23;
+/**
+* @param {any} data
+* @param {TokenTypeEncoder[]} encoders
+* @param {EncodeOptions} options
+* @param {Uint8Array} [destination]
+* @returns {Uint8Array}
+*/
+function encodeCustom(data, encoders, options, destination) {
+	const hasDest = destination instanceof Uint8Array;
+	let writeTo = hasDest ? new U8Bl(destination) : defaultWriter;
+	const tokens = objectToTokens(data, options);
+	if (!Array.isArray(tokens) && options.quickEncodeToken) {
+		const quickBytes = options.quickEncodeToken(tokens);
+		if (quickBytes) {
+			if (hasDest) {
+				writeTo.push(quickBytes);
+				return writeTo.toBytes();
+			}
+			return quickBytes;
+		}
+		const encoder = encoders[tokens.type.major];
+		if (encoder.encodedSize) {
+			const size = encoder.encodedSize(tokens, options);
+			if (!hasDest) writeTo = new Bl(size);
+			encoder(writeTo, tokens, options);
+			/* c8 ignore next 4 */
+			if (writeTo.chunks.length !== 1) throw new Error(`Unexpected error: pre-calculated length for ${tokens} was wrong`);
+			return hasDest ? writeTo.toBytes() : asU8A(writeTo.chunks[0]);
+		}
+	}
+	writeTo.reset();
+	tokensToEncoded(writeTo, tokens, encoders, options);
+	return writeTo.toBytes(true);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/@ipld+dag-cbor@9.2.5/node_modules/@ipld/dag-cbor/src/index.js
+var CID_CBOR_TAG = 42;
+/**
+* cidEncoder will receive all Objects during encode, it needs to filter out
+* anything that's not a CID and return `null` for that so it's encoded as
+* normal.
+*
+* @param {any} obj
+* @returns {cborg.Token[]|null}
+*/
+function cidEncoder(obj) {
+	if (obj.asCID !== obj && obj["/"] !== obj.bytes) return null;
+	const cid = CID.asCID(obj);
+	/* c8 ignore next 4 */
+	if (!cid) return null;
+	const bytes = new Uint8Array(cid.bytes.byteLength + 1);
+	bytes.set(cid.bytes, 1);
+	return [new Token(Type.tag, CID_CBOR_TAG), new Token(Type.bytes, bytes)];
+}
+/**
+* Intercept all `undefined` values from an object walk and reject the entire
+* object if we find one.
+*
+* @returns {null}
+*/
+function undefinedEncoder() {
+	throw new Error("`undefined` is not supported by the IPLD Data Model and cannot be encoded");
+}
+/**
+* Intercept all `number` values from an object walk and reject the entire
+* object if we find something that doesn't fit the IPLD data model (NaN &
+* Infinity).
+*
+* @param {number} num
+* @returns {null}
+*/
+function numberEncoder(num) {
+	if (Number.isNaN(num)) throw new Error("`NaN` is not supported by the IPLD Data Model and cannot be encoded");
+	if (num === Infinity || num === -Infinity) throw new Error("`Infinity` and `-Infinity` is not supported by the IPLD Data Model and cannot be encoded");
+	return null;
+}
+/**
+* @param {Map<any, any>} map
+* @returns {null}
+*/
+function mapEncoder(map) {
+	for (const key of map.keys()) if (typeof key !== "string" || key.length === 0) throw new Error("Non-string Map keys are not supported by the IPLD Data Model and cannot be encoded");
+	return null;
+}
+var _encodeOptions = {
+	float64: true,
+	typeEncoders: {
+		Map: mapEncoder,
+		Object: cidEncoder,
+		undefined: undefinedEncoder,
+		number: numberEncoder
+	}
+};
+({ ..._encodeOptions }), { ..._encodeOptions.typeEncoders };
+/**
+* @param {Uint8Array} bytes
+* @returns {CID}
+*/
+function cidDecoder(bytes) {
+	if (bytes[0] !== 0) throw new Error("Invalid CID for CBOR tag 42; expected leading 0x00");
+	return CID.decode(bytes.subarray(1));
+}
+var _decodeOptions = {
+	allowIndefinite: false,
+	coerceUndefinedToNull: true,
+	allowNaN: false,
+	allowInfinity: false,
+	allowBigInt: true,
+	strict: true,
+	useMaps: false,
+	rejectDuplicateMapKeys: true,
+	tags: []
+};
+_decodeOptions.tags[CID_CBOR_TAG] = cidDecoder;
+({ ..._decodeOptions }), _decodeOptions.tags.slice();
+//#endregion
+//#region ../../libs/crypto-service/src/ssh.ts
+/**
+* SSH key format conversion for MoltNet Ed25519 keys
+*
+* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
+* for use with git commit signing and SSH authentication.
+*/
+if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
+	const hash = createHash("sha512");
+	m.forEach((msg) => hash.update(msg));
+	return hash.digest();
+};
+//#endregion
+//#region ../../libs/sdk/src/namespaces/entries.ts
+function createEntriesNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async create(diaryId, body) {
+			return unwrapResult(await createDiaryEntry({
+				client,
+				auth,
+				body,
+				path: { diaryId }
+			}));
+		},
+		async list(diaryId, query) {
+			return unwrapResult(await listDiaryEntries({
+				client,
+				auth,
+				query,
+				path: { diaryId }
+			}));
+		},
+		async get(entryId) {
+			return unwrapResult(await getDiaryEntryById({
+				client,
+				auth,
+				path: { entryId }
+			}));
+		},
+		async update(entryId, body) {
+			return unwrapResult(await updateDiaryEntryById({
+				client,
+				auth,
+				path: { entryId },
+				body
+			}));
+		},
+		async delete(entryId) {
+			return unwrapResult(await deleteDiaryEntryById({
+				client,
+				auth,
+				path: { entryId }
+			}));
+		},
+		async search(body) {
+			return unwrapResult(await searchDiary({
+				client,
+				auth,
+				body
+			}));
+		},
+		async reflect(query) {
+			return unwrapResult(await reflectDiary({
+				client,
+				auth,
+				query
+			}));
+		},
+		async verify(entryId) {
+			return unwrapResult(await verifyDiaryEntryById({
+				client,
+				auth,
+				path: { entryId }
+			}));
+		},
+		async createSigned(diaryId, body, privateKey) {
+			const signingRequest = unwrapResult(await createSigningRequest({
+				client,
+				auth,
+				body: { message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null) }
+			}));
+			const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, "base64"));
+			const signature = await signAsync(new Uint8Array(Buffer.from(signingRequest.signingInput, "base64")), privateKeyBytes);
+			const signatureB64 = Buffer.from(signature).toString("base64");
+			unwrapResult(await submitSignature({
+				client,
+				auth,
+				path: { id: signingRequest.id },
+				body: { signature: signatureB64 }
+			}));
+			return unwrapResult(await createDiaryEntry({
+				client,
+				auth,
+				path: { diaryId },
+				body: {
+					...body,
+					signingRequestId: signingRequest.id
+				}
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/legreffier.ts
+function createLegreffierNamespace(context) {
+	const { client } = context;
+	return {
+		async startOnboarding(body) {
+			return unwrapResult(await startLegreffierOnboarding({
+				client,
+				body
+			}));
+		},
+		async getOnboardingStatus(workflowId) {
+			return unwrapResult(await getLegreffierOnboardingStatus({
+				client,
+				path: { workflowId }
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/packs.ts
+function createPacksNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async get(id, query) {
+			return unwrapResult(await getContextPackById({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async list(selector) {
+			if ("diaryId" in selector) {
+				const { diaryId, ...query } = selector;
+				return unwrapResult(await listDiaryPacks({
+					client,
+					auth,
+					path: { id: diaryId },
+					query
+				}));
+			}
+			const { containsEntry, ...query } = selector;
+			return unwrapResult(await listContextPacks({
+				client,
+				auth,
+				query: {
+					...query,
+					containsEntry
+				}
+			}));
+		},
+		async getProvenance(id, query) {
+			return unwrapResult(await getContextPackProvenanceById({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async getProvenanceByCid(cid, query) {
+			return unwrapResult(await getContextPackProvenanceByCid({
+				client,
+				auth,
+				path: { cid },
+				query
+			}));
+		},
+		async previewRendered(id, body) {
+			return unwrapResult(await previewRenderedPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async render(id, body) {
+			return unwrapResult(await renderContextPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async getLatestRendered(id, query) {
+			return unwrapResult(await getLatestRenderedPack({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async listRendered(diaryId, query) {
+			return unwrapResult(await listDiaryRenderedPacks({
+				client,
+				auth,
+				path: { id: diaryId },
+				query
+			}));
+		},
+		async getRendered(id, query) {
+			return unwrapResult(await getRenderedPackById({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async update(id, body) {
+			return unwrapResult(await updateContextPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async updateRendered(id, body) {
+			return unwrapResult(await updateRenderedPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async create(diaryId, body) {
+			return unwrapResult(await createDiaryCustomPack({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		},
+		async preview(diaryId, body) {
+			return unwrapResult(await previewDiaryCustomPack({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/problems.ts
+function createProblemsNamespace(context) {
+	const { client } = context;
+	return {
+		async list() {
+			return unwrapRequired(await listProblemTypes({ client }), "Failed to list problem types", "PROBLEMS_FAILED");
+		},
+		async get(type) {
+			return unwrapRequired(await getProblemType({
+				client,
+				path: { type }
+			}), `Failed to get problem type: ${type}`, "PROBLEM_TYPE_FAILED");
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/public.ts
+function createPublicNamespace(context) {
+	const { client } = context;
+	return {
+		async feed(query) {
+			return unwrapResult(await getPublicFeed({
+				client,
+				query
+			}));
+		},
+		async searchFeed(query) {
+			return unwrapResult(await searchPublicFeed({
+				client,
+				query
+			}));
+		},
+		async entry(id) {
+			return unwrapResult(await getPublicEntry({
+				client,
+				path: { id }
+			}));
+		},
+		async networkInfo() {
+			return unwrapRequired(await getNetworkInfo({ client }), "Failed to fetch network info", "NETWORK_INFO_FAILED");
+		},
+		async llmsTxt() {
+			return unwrapRequired(await getLlmsTxt({ client }), "Failed to fetch llms.txt", "LLMS_TXT_FAILED");
+		},
+		async health() {
+			return unwrapRequired(await getHealth({ client }), "Failed to fetch health", "HEALTH_FAILED");
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/recovery.ts
+function createRecoveryNamespace(context) {
+	const { client } = context;
+	return {
+		async requestChallenge(body) {
+			return unwrapResult(await requestRecoveryChallenge({
+				client,
+				body
+			}));
+		},
+		async verifyChallenge(body) {
+			return unwrapResult(await verifyRecoveryChallenge({
+				client,
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/signing-requests.ts
+function createSigningRequestsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list(query) {
+			return unwrapResult(await listSigningRequests({
+				client,
+				auth,
+				query
+			}));
+		},
+		async create(body) {
+			return unwrapResult(await createSigningRequest({
+				client,
+				auth,
+				body
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getSigningRequest({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async submit(id, body) {
+			return unwrapResult(await submitSignature({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/tasks.ts
+function createTasksNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async schemas() {
+			return unwrapResult(await listTaskSchemas({
+				client,
+				auth
+			}));
+		},
+		async list(query) {
+			return unwrapResult(await listTasks({
+				client,
+				auth,
+				query
+			}));
+		},
+		async create(body) {
+			return unwrapResult(await createTask$1({
+				client,
+				auth,
+				body
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getTask({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async claim(id, body) {
+			const result = await claimTask({
+				client,
+				auth,
+				path: { id },
+				body
+			});
+			const data = unwrapResult(result);
+			const traceHeaders = {};
+			const traceparent = result.response.headers.get("traceparent");
+			if (traceparent) {
+				traceHeaders["traceparent"] = traceparent;
+				const tracestate = result.response.headers.get("tracestate");
+				if (tracestate) traceHeaders["tracestate"] = tracestate;
+			}
+			return {
+				...data,
+				traceHeaders
+			};
+		},
+		async heartbeat(id, n, body) {
+			return unwrapResult(await taskHeartbeat({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async complete(id, n, body) {
+			return unwrapResult(await completeTask({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async fail(id, n, body) {
+			return unwrapResult(await failTask({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async cancel(id, body) {
+			return unwrapResult(await cancelTask({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async listAttempts(id) {
+			return unwrapResult(await listTaskAttempts({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async listMessages(id, n, query) {
+			return unwrapResult(await listTaskMessages({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				query
+			}));
+		},
+		async appendMessages(id, n, body) {
+			return unwrapResult(await appendTaskMessages({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/teams.ts
+function createTeamsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list() {
+			return unwrapResult(await listTeams({
+				client,
+				auth
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getTeam({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async listMembers(id) {
+			return unwrapResult(await listTeamMembers({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async create(body) {
+			return unwrapResult(await createTeam({
+				client,
+				auth,
+				body
+			}));
+		},
+		async join(code) {
+			return unwrapResult(await joinTeam({
+				client,
+				auth,
+				body: { code }
+			}));
+		},
+		async delete(id) {
+			return unwrapResult(await deleteTeam({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async removeMember(teamId, subjectId) {
+			return unwrapResult(await removeTeamMember({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					subjectId
+				}
+			}));
+		},
+		invites: {
+			async create(teamId, body) {
+				return unwrapResult(await createTeamInvite({
+					client,
+					auth,
+					path: { id: teamId },
+					body
+				}));
+			},
+			async list(teamId) {
+				return unwrapResult(await listTeamInvites({
+					client,
+					auth,
+					path: { id: teamId }
+				}));
+			},
+			async delete(teamId, inviteId) {
+				return unwrapResult(await deleteTeamInvite({
+					client,
+					auth,
+					path: {
+						id: teamId,
+						inviteId
+					}
+				}));
+			}
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/vouch.ts
+function createVouchNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async issue() {
+			return unwrapResult(await issueVoucher({
+				client,
+				auth
+			}));
+		},
+		async listActive() {
+			return unwrapResult(await listActiveVouchers({
+				client,
+				auth
+			}));
+		},
+		async trustGraph(query) {
+			return unwrapResult(await getTrustGraph({
+				client,
+				query
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/agent.ts
+function createAgent(options) {
+	const { client, tokenManager, auth } = options;
+	const context = {
+		client,
+		auth
+	};
+	return {
+		diaries: createDiariesNamespace(context),
+		diaryGrants: createDiaryGrantsNamespace(context),
+		packs: createPacksNamespace(context),
+		entries: createEntriesNamespace(context),
+		agents: createAgentsNamespace(context),
+		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context)),
+		vouch: createVouchNamespace(context),
+		auth: createAuthNamespace(context),
+		recovery: createRecoveryNamespace(context),
+		public: createPublicNamespace(context),
+		legreffier: createLegreffierNamespace(context),
+		problems: createProblemsNamespace(context),
+		teams: createTeamsNamespace(context),
+		tasks: createTasksNamespace(context),
+		client,
+		getToken: () => tokenManager.getToken()
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/config.ts
+/**
+* Read MoltNet credentials from environment variables.
+* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, and MOLTNET_API_URL.
+*/
+function readEnvCredentials() {
+	return {
+		clientId: process.env.MOLTNET_CLIENT_ID,
+		clientSecret: process.env.MOLTNET_CLIENT_SECRET,
+		apiUrl: process.env.MOLTNET_API_URL
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/credentials.ts
+function getConfigDir() {
+	return join(homedir(), ".config", "moltnet");
+}
+/**
+* Read the MoltNet config file.
+* Tries `moltnet.json` first; falls back to `credentials.json` with a
+* deprecation warning printed to stderr.
+*/
+async function readConfig(configDir) {
+	const dir = configDir ?? getConfigDir();
+	try {
+		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
+		return JSON.parse(content);
+	} catch {}
+	try {
+		const content = await readFile(join(dir, "credentials.json"), "utf-8");
+		console.warn("Warning: credentials.json is deprecated. New writes use moltnet.json. Support will be removed in 3 minor versions.");
+		return JSON.parse(content);
+	} catch {
+		return null;
+	}
+}
+//#endregion
+//#region ../../libs/sdk/src/retry.ts
+var AUTH_RETRY_DEFAULT = 1;
+/**
+* Create a fetch wrapper that retries on 401 and 429.
+*
+* - **401**: Invalidates the cached token, re-authenticates, replays once.
+* - **429**: Delegates to `createRateLimitFetch` from `@moltnet/api-client/retry`.
+*
+* 5xx and network errors are not retried — non-idempotent methods (POST, PATCH)
+* could cause duplicate side effects.
+*/
+function createRetryFetch(tokenManager, options) {
+	const maxAuthRetries = options?.maxAuthRetries ?? AUTH_RETRY_DEFAULT;
+	const rateLimitFetch = createRateLimitFetch({
+		maxRetries: options?.maxRateLimitRetries,
+		baseDelayMs: options?.baseDelayMs,
+		maxDelayMs: options?.maxDelayMs
+	});
+	return async (input, init) => {
+		let authRetries = 0;
+		const doFetch = async (fetchInit) => {
+			const response = await rateLimitFetch(input, fetchInit);
+			if (response.status === 401 && authRetries < maxAuthRetries) {
+				authRetries++;
+				tokenManager.invalidate();
+				const freshToken = await tokenManager.authenticate();
+				const headers = new Headers(fetchInit?.headers);
+				headers.set("Authorization", `Bearer ${freshToken}`);
+				return doFetch({
+					...fetchInit,
+					headers
+				});
+			}
+			return response;
+		};
+		return doFetch(init);
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/token.ts
+var TokenManager = class {
+	clientId;
+	clientSecret;
+	tokenUrl;
+	expiryBufferMs;
+	cached = null;
+	constructor(options) {
+		const apiUrl = options.apiUrl.replace(/\/$/, "");
+		this.clientId = options.clientId;
+		this.clientSecret = options.clientSecret;
+		this.tokenUrl = `${apiUrl}/oauth2/token`;
+		this.expiryBufferMs = options.expiryBufferMs ?? 3e4;
+	}
+	/** Return a valid access token, obtaining or refreshing as needed. */
+	async getToken() {
+		if (this.cached && Date.now() < this.cached.expiresAt) return this.cached.accessToken;
+		return this.authenticate();
+	}
+	/** Force-obtain a new token, replacing any cached value. */
+	async authenticate() {
+		const body = new URLSearchParams({
+			grant_type: "client_credentials",
+			client_id: this.clientId,
+			client_secret: this.clientSecret
+		});
+		let response;
+		try {
+			response = await fetch(this.tokenUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString()
+			});
+		} catch (error) {
+			throw new NetworkError(error instanceof Error ? error.message : "Token request failed", { detail: error instanceof Error ? error.cause?.toString() : String(error) });
+		}
+		const json = await response.json();
+		if (!response.ok || "error" in json) {
+			const errBody = json;
+			throw new AuthenticationError(errBody.error_description ?? errBody.error, {
+				statusCode: response.status,
+				detail: errBody.error
+			});
+		}
+		const tokenBody = json;
+		this.cached = {
+			accessToken: tokenBody.access_token,
+			expiresAt: Date.now() + tokenBody.expires_in * 1e3 - this.expiryBufferMs
+		};
+		return this.cached.accessToken;
+	}
+	/** Clear the cached token. Next getToken() call will re-authenticate. */
+	invalidate() {
+		this.cached = null;
+	}
+};
+//#endregion
+//#region ../../libs/sdk/src/connect.ts
+var DEFAULT_API_URL = "https://api.themolt.net";
+async function resolveCredentials(options) {
+	if (options.clientId && options.clientSecret) return {
+		clientId: options.clientId,
+		clientSecret: options.clientSecret,
+		apiUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
+	};
+	const env = readEnvCredentials();
+	if (env.clientId && env.clientSecret) return {
+		clientId: env.clientId,
+		clientSecret: env.clientSecret,
+		apiUrl: (env.apiUrl ?? options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
+	};
+	const config = await readConfig(options.configDir);
+	if (config?.oauth2?.client_id && config?.oauth2?.client_secret) return {
+		clientId: config.oauth2.client_id,
+		clientSecret: config.oauth2.client_secret,
+		apiUrl: (options.apiUrl ?? config.endpoints?.api ?? DEFAULT_API_URL).replace(/\/$/, "")
+	};
+	throw new MoltNetError("No credentials found. Provide clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET env vars, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
+}
+/**
+* Connect to MoltNet and return an authenticated Agent facade.
+*
+* Credential resolution order:
+* 1. Explicit `clientId` / `clientSecret` in options
+* 2. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` environment variables
+* 3. Config file (`~/.config/moltnet/moltnet.json`)
+*/
+async function connect(options = {}) {
+	const creds = await resolveCredentials(options);
+	const autoToken = options.autoToken ?? true;
+	const tokenManager = new TokenManager({
+		clientId: creds.clientId,
+		clientSecret: creds.clientSecret,
+		apiUrl: creds.apiUrl
+	});
+	const retryFetch = autoToken && options.retry !== false ? createRetryFetch(tokenManager, options.retry === void 0 ? void 0 : options.retry) : void 0;
+	const customFetch = retryFetch ?? (autoToken && !retryFetch ? async (input, init) => {
+		const response = await fetch(input, init);
+		if (response.status === 401) tokenManager.invalidate();
+		return response;
+	} : void 0);
+	return createAgent({
+		client: createClient({
+			baseUrl: creds.apiUrl,
+			...customFetch && { fetch: customFetch }
+		}),
+		tokenManager,
+		auth: autoToken ? () => tokenManager.getToken() : void 0
+	});
+}
+//#endregion
+//#region src/create-task.ts
+async function createTask(input) {
 	const briefWithSource = input.brief.includes(input.referenceUrl) ? input.brief : `${input.brief}\n\nSource: ${input.referenceUrl}`;
-	const body = {
+	return input.agent.tasks.create({
 		taskType: "fulfill_brief",
 		teamId: input.teamId,
 		diaryId: input.diaryId,
@@ -27579,20 +34523,7 @@ async function createTask(input, deps) {
 			...input.title ? { title: input.title } : {}
 		},
 		correlationId: input.correlationId
-	};
-	const res = await deps.fetch(`${input.apiUrl}/tasks`, {
-		method: "POST",
-		headers: {
-			authorization: `Bearer ${input.agentToken}`,
-			"content-type": "application/json"
-		},
-		body: JSON.stringify(body)
 	});
-	if (!res.ok) {
-		const text = await res.text().catch(() => "<unreadable body>");
-		throw new Error(`tasks.create failed: ${res.status} ${text}`);
-	}
-	return await res.json();
 }
 //#endregion
 //#region src/parse-mention.ts
@@ -27715,10 +34646,13 @@ async function dispatch(ctx) {
 		});
 		return;
 	}
-	const apiUrl = required(env, "MOLTNET_API_URL");
-	const agentToken = required(env, "MOLTNET_AGENT_TOKEN");
 	const teamId = required(env, "MOLTNET_TEAM_ID");
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
+	const configDir = required(env, "MOLTNET_AGENT_DIR");
+	const moltnet = await connect({
+		apiUrl: env.MOLTNET_API_URL,
+		configDir
+	});
 	const correlationId = await resolveCorrelation({
 		contextType: "issue",
 		referenceUrl
@@ -27741,15 +34675,14 @@ async function dispatch(ctx) {
 		}
 	});
 	const created = await createTask({
-		apiUrl,
-		agentToken,
+		agent: moltnet,
 		teamId,
 		diaryId,
 		correlationId,
 		referenceUrl,
 		title: issueTitle ?? `Issue #${issueNumber}`,
 		brief: issueBody ?? ""
-	}, { fetch });
+	});
 	import_core.setOutput("task-id", created.id);
 	import_core.setOutput("correlation-id", correlationId);
 	import_core.info(`created fulfill_brief ${created.id} correlationId=${correlationId}`);

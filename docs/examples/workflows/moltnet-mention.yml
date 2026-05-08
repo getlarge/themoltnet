@@ -5,8 +5,10 @@
 #
 # Secrets (per-environment):
 #   MOLTNET_AGENT_KEY        JSON contents of the agent's moltnet.json
+#                            (carries oauth2.client_id and client_secret;
+#                            the SDK runs the client_credentials flow with
+#                            them — no separate bearer token needed)
 #   MOLTNET_AGENT_GITCONFIG  gitconfig contents for the agent
-#   MOLTNET_AGENT_TOKEN      Bearer token authorizing the agent on the API
 #   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
 #
 # Variables (per-environment):
@@ -42,7 +44,6 @@ jobs:
           MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
           MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-          MOLTNET_AGENT_TOKEN: ${{ secrets.MOLTNET_AGENT_TOKEN }}
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_GITCONFIG: ${{ secrets.MOLTNET_AGENT_GITCONFIG }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

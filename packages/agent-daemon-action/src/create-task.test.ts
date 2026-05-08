@@ -1,10 +1,9 @@
+import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createTask } from './create-task.js';
 
 const BASE_INPUT = {
-  apiUrl: 'https://api.moltnet.test',
-  agentToken: 'tk',
   teamId: '11111111-1111-4111-8111-111111111111',
   diaryId: '22222222-2222-4222-8222-222222222222',
   correlationId: '33333333-3333-4333-8333-333333333333',
@@ -13,33 +12,27 @@ const BASE_INPUT = {
   brief: 'Issue body...',
 };
 
-describe('createTask', () => {
-  it('POSTs the schema-correct body and returns the created task', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 201,
-      json: async () => ({
-        id: 'task-1',
-        correlationId: BASE_INPUT.correlationId,
-      }),
+function makeAgent() {
+  const create = vi
+    .fn()
+    .mockResolvedValue({
+      id: 'task-1',
+      correlationId: BASE_INPUT.correlationId,
     });
+  return {
+    agent: { tasks: { create } } as unknown as Agent,
+    create,
+  };
+}
 
-    const out = await createTask(BASE_INPUT, {
-      fetch: fetchMock as unknown as typeof fetch,
-    });
+describe('createTask', () => {
+  it('calls agent.tasks.create with the schema-correct body', async () => {
+    const m = makeAgent();
+    const out = await createTask({ agent: m.agent, ...BASE_INPUT });
 
     expect(out.id).toBe('task-1');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://api.moltnet.test/tasks');
-    expect(init.method).toBe('POST');
-    expect(init.headers).toMatchObject({
-      authorization: 'Bearer tk',
-      'content-type': 'application/json',
-    });
-
-    const body = JSON.parse(init.body as string) as Record<string, unknown>;
-    expect(body).toEqual({
+    expect(m.create).toHaveBeenCalledTimes(1);
+    expect(m.create).toHaveBeenCalledWith({
       taskType: 'fulfill_brief',
       teamId: BASE_INPUT.teamId,
       diaryId: BASE_INPUT.diaryId,
@@ -49,59 +42,41 @@ describe('createTask', () => {
       },
       correlationId: BASE_INPUT.correlationId,
     });
-    // references is not populated — TaskRef requires a producer taskId +
-    // outputCid; an issue URL doesn't fit, and the brief carries the URL
-    // as prose for the agent.
-    expect((body as { references?: unknown }).references).toBeUndefined();
+
+    // Caller never has to think about references[] — the SDK enforces
+    // the schema, and we deliberately don't pass that field for the
+    // issue-mention path.
+    const body = m.create.mock.calls[0][0] as Record<string, unknown>;
+    expect(body.references).toBeUndefined();
   });
 
   it('does not duplicate the source URL when brief already mentions it', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 't' }),
+    const m = makeAgent();
+    await createTask({
+      agent: m.agent,
+      ...BASE_INPUT,
+      brief: `Please fix ${BASE_INPUT.referenceUrl}`,
     });
-    await createTask(
-      {
-        ...BASE_INPUT,
-        brief: `Please fix ${BASE_INPUT.referenceUrl}`,
-      },
-      { fetch: fetchMock as unknown as typeof fetch },
-    );
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    const body = JSON.parse(init.body as string) as {
-      input: { brief: string };
-    };
-    // Exactly one occurrence
+    const body = m.create.mock.calls[0][0] as { input: { brief: string } };
     const occurrences =
       body.input.brief.split(BASE_INPUT.referenceUrl).length - 1;
     expect(occurrences).toBe(1);
   });
 
   it('omits title when not provided', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 't' }),
-    });
+    const m = makeAgent();
     const { title: _omit, ...noTitle } = BASE_INPUT;
     void _omit;
-    await createTask(noTitle, {
-      fetch: fetchMock as unknown as typeof fetch,
-    });
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    const body = JSON.parse(init.body as string) as {
-      input: { title?: string };
-    };
+    await createTask({ agent: m.agent, ...noTitle });
+    const body = m.create.mock.calls[0][0] as { input: { title?: string } };
     expect(body.input.title).toBeUndefined();
   });
 
-  it('throws on non-2xx with the response body for diagnostics', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-      text: async () => '{"error":"bad teamId"}',
-    });
-    await expect(
-      createTask(BASE_INPUT, { fetch: fetchMock as unknown as typeof fetch }),
-    ).rejects.toThrow(/400.*bad teamId/);
+  it('propagates SDK errors verbatim', async () => {
+    const create = vi.fn().mockRejectedValue(new Error('400 invalid teamId'));
+    const agent = { tasks: { create } } as unknown as Agent;
+    await expect(createTask({ agent, ...BASE_INPUT })).rejects.toThrow(
+      /400.*invalid teamId/,
+    );
   });
 });

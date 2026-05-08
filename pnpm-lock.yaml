@@ -1537,7 +1537,13 @@ importers:
       '@actions/github':
         specifier: ^6.0.0
         version: 6.0.1
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
     devDependencies:
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30

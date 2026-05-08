@@ -9,5 +9,13 @@
   },
   "exclude": ["src/**/*.test.ts"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../../libs/tasks"
+    }
+  ]
 }

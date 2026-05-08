@@ -9,6 +9,7 @@
 
 import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils.js';
+import { connect } from '@themoltnet/sdk';
 
 import { createTask } from './create-task.js';
 import { parseMention } from './parse-mention.js';
@@ -78,10 +79,19 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   }
 
   // From here: parsed.verb === 'fulfill', isPullRequest === false.
-  const apiUrl = required(env, 'MOLTNET_API_URL');
-  const agentToken = required(env, 'MOLTNET_AGENT_TOKEN');
+  // The composite action materialised moltnet.json into MOLTNET_AGENT_DIR
+  // before us. SDK's connect() reads oauth2.client_id /
+  // oauth2.client_secret from that file and runs the
+  // client_credentials flow with auto-refresh on 401 — no bearer
+  // token plumbing on our side.
   const teamId = required(env, 'MOLTNET_TEAM_ID');
   const diaryId = required(env, 'MOLTNET_DIARY_ID');
+  const configDir = required(env, 'MOLTNET_AGENT_DIR');
+
+  const moltnet = await connect({
+    apiUrl: env.MOLTNET_API_URL,
+    configDir,
+  });
 
   const correlationId = await resolveCorrelation(
     {
@@ -110,19 +120,15 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
     },
   );
 
-  const created = await createTask(
-    {
-      apiUrl,
-      agentToken,
-      teamId,
-      diaryId,
-      correlationId,
-      referenceUrl,
-      title: issueTitle ?? `Issue #${issueNumber}`,
-      brief: issueBody ?? '',
-    },
-    { fetch },
-  );
+  const created = await createTask({
+    agent: moltnet,
+    teamId,
+    diaryId,
+    correlationId,
+    referenceUrl,
+    title: issueTitle ?? `Issue #${issueNumber}`,
+    brief: issueBody ?? '',
+  });
 
   core.setOutput('task-id', created.id);
   core.setOutput('correlation-id', correlationId);

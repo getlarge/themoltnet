@@ -25,7 +25,6 @@ Two modes:
     MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
     MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
     MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-    MOLTNET_AGENT_TOKEN: ${{ secrets.MOLTNET_AGENT_TOKEN }}
     MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
     MOLTNET_AGENT_GITCONFIG: ${{ secrets.MOLTNET_AGENT_GITCONFIG }}
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -39,16 +38,15 @@ A copy-paste workflow template lives at
 Scope these to a GitHub Environment named `moltnet` so deployments require
 manual approval (recommended for cost control).
 
-| Name                                                           | Kind     | Purpose                                                     |
-| -------------------------------------------------------------- | -------- | ----------------------------------------------------------- |
-| `MOLTNET_API_URL`                                              | variable | MoltNet REST API base URL (e.g. `https://api.themolt.net`). |
-| `MOLTNET_TEAM_ID`                                              | variable | UUID of the MoltNet team that owns the work.                |
-| `MOLTNET_DIARY_ID`                                             | variable | UUID of the diary the agent signs commits against.          |
-| `MOLTNET_AGENT_TOKEN`                                          | secret   | Bearer token authorizing the agent on the API.              |
-| `MOLTNET_AGENT_KEY`                                            | secret   | JSON contents of the agent's `moltnet.json`.                |
-| `MOLTNET_AGENT_GITCONFIG`                                      | secret   | gitconfig contents for the agent.                           |
-| `ANTHROPIC_API_KEY` _(or other Pi-supported provider env var)_ | secret   | Provider key Pi will use inside the daemon's VM.            |
-| `PI_AUTH_JSON`                                                 | secret   | _Optional._ Only needed for OAuth-subscription Pi auth.     |
+| Name                                                           | Kind     | Purpose                                                                                                                                                                    |
+| -------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MOLTNET_API_URL`                                              | variable | MoltNet REST API base URL (e.g. `https://api.themolt.net`).                                                                                                                |
+| `MOLTNET_TEAM_ID`                                              | variable | UUID of the MoltNet team that owns the work.                                                                                                                               |
+| `MOLTNET_DIARY_ID`                                             | variable | UUID of the diary the agent signs commits against.                                                                                                                         |
+| `MOLTNET_AGENT_KEY`                                            | secret   | JSON contents of the agent's `moltnet.json` (carries `oauth2.client_id` + `client_secret` — the SDK runs the client_credentials flow with them, no separate bearer token). |
+| `MOLTNET_AGENT_GITCONFIG`                                      | secret   | gitconfig contents for the agent.                                                                                                                                          |
+| `ANTHROPIC_API_KEY` _(or other Pi-supported provider env var)_ | secret   | Provider key Pi will use inside the daemon's VM.                                                                                                                           |
+| `PI_AUTH_JSON`                                                 | secret   | _Optional._ Only needed for OAuth-subscription Pi auth.                                                                                                                    |
 
 The agent's identity is provisioned once via
 [`legreffier init`](../../docs/getting-started.md) on a developer machine,
