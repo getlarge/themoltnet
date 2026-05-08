@@ -274,6 +274,29 @@ runs:
           echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
         fi
 
+    # Cache the gondolin snapshot (the alpine guest qcow2 + cli/gh
+    # binaries baked in). The daemon's snapshot.ts content-addresses
+    # the build into ~/.cache/moltnet/gondolin/v2-<hash>/snapshot.qcow2;
+    # the cache key here is coarser (per `daemon-version`) since the
+    # action can't see the internal hash, but the on-disk `v2-<hash>`
+    # naming naturally namespaces multiple bundles. Same explicit
+    # restore + save pattern as the apt cache (#1054).
+    # Bump the `-v<N>-` suffix if the on-disk cache layout changes.
+    - name: Compute gondolin snapshot cache key
+      if: runner.os == 'Linux'
+      id: gondolin-cache-key
+      shell: bash
+      run: |
+        echo "value=${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-daemon-${{ inputs.daemon-version }}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore gondolin snapshot cache
+      if: runner.os == 'Linux'
+      id: restore-gondolin-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/moltnet/gondolin
+        key: ${{ steps.gondolin-cache-key.outputs.value }}
+
     - id: dispatch
       if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
       shell: bash
@@ -320,3 +343,17 @@ runs:
           --agent "$MOLTNET_AGENT_NAME" \
           --provider "$PROVIDER" \
           --model "$MODEL"
+
+    # Save the gondolin snapshot built by the daemon. `if: always()`
+    # so we still upload the snapshot when the LLM call fails post-
+    # snapshot-build (the snapshot itself was the expensive part).
+    # Skip on cache hit to avoid re-uploading an unchanged blob.
+    - name: Save gondolin snapshot cache
+      if: |
+        always()
+        && runner.os == 'Linux'
+        && steps.restore-gondolin-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/moltnet/gondolin
+        key: ${{ steps.gondolin-cache-key.outputs.value }}
