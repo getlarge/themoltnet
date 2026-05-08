@@ -90,6 +90,7 @@ export function createMockEntry(
     embedding: null,
     tags: null,
     injectionRisk: false,
+    injectionThreats: [],
     importance: 5,
     accessCount: 0,
     lastAccessedAt: null,

@@ -8,7 +8,7 @@ import {
 } from '@moltnet/context-distill';
 import { PackServiceError } from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
-import { DiaryServiceError, scanForInjection } from '@moltnet/diary-service';
+import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryParamsSchema,
   ProblemDetailsSchema,
@@ -50,11 +50,12 @@ interface ResolvedSelection {
   rank: number;
   row: {
     id: string;
-    title: string | null;
     content: string;
     contentHash: string | null;
     importance: number;
     createdAt: Date;
+    injectionRisk: boolean;
+    injectionThreats: { type: string; severity: number; match: string }[];
   };
 }
 
@@ -173,31 +174,24 @@ async function loadSelectedEntries(
       rank: entry.rank,
       row: {
         id: row.id,
-        title: row.title,
         content: row.content,
         contentHash: row.contentHash,
         importance: row.importance,
         createdAt: row.createdAt,
+        injectionRisk: row.injectionRisk,
+        injectionThreats: row.injectionThreats,
       },
     };
   });
 }
 
 function assertNoInjectionRisk(selectedEntries: ResolvedSelection[]): void {
-  // Live scan is authoritative. The stored `injection_risk` flag is a hint
-  // (and not always fresh — a scanner update doesn't retroactively re-flag
-  // entries), so the gate runs the current scanner over each candidate and
-  // bases the 409 on its result. This guarantees the `threats` payload in
-  // the error body always reflects what made the entry dangerous right now,
-  // and avoids the confusing case where the body says "flagged" but lists
-  // no specific threats.
+  // Entries are scanned at create/update time by the diary workflow; both the
+  // boolean flag and the threat list are stored on diary_entries. The gate
+  // reads them — no re-scan needed.
   const flagged = selectedEntries
-    .map(({ row }) => ({
-      id: row.id,
-      scan: scanForInjection(row.content, row.title),
-    }))
-    .filter(({ scan }) => scan.injectionRisk)
-    .map(({ id, scan }) => ({ id, threats: scan.threats }));
+    .filter(({ row }) => row.injectionRisk)
+    .map(({ row }) => ({ id: row.id, threats: row.injectionThreats }));
 
   if (flagged.length === 0) return;
 

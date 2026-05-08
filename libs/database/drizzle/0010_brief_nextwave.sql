@@ -1,0 +1,1 @@
+ALTER TABLE "diary_entries" ADD COLUMN "injection_threats" jsonb DEFAULT '[]'::jsonb NOT NULL;

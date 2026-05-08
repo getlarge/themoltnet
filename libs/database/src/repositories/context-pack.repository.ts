@@ -75,6 +75,7 @@ const expandedEntrySelection = {
   entryContent: diaryEntries.content,
   entryTags: diaryEntries.tags,
   entryInjectionRisk: diaryEntries.injectionRisk,
+  entryInjectionThreats: diaryEntries.injectionThreats,
   entryImportance: diaryEntries.importance,
   entryAccessCount: diaryEntries.accessCount,
   entryLastAccessedAt: diaryEntries.lastAccessedAt,
@@ -122,6 +123,7 @@ interface ExpandedPackEntryRow extends InferSelectModel<
   entryContent: string;
   entryTags: string[] | null;
   entryInjectionRisk: boolean;
+  entryInjectionThreats: { type: string; severity: number; match: string }[];
   entryImportance: number;
   entryAccessCount: number;
   entryLastAccessedAt: Date | null;
@@ -155,6 +157,7 @@ function normalizeExpandedEntry(row: ExpandedPackEntryRow): ExpandedPackEntry {
       content: row.entryContent,
       tags: row.entryTags,
       injectionRisk: row.entryInjectionRisk,
+      injectionThreats: row.entryInjectionThreats,
       importance: row.entryImportance,
       accessCount: row.entryAccessCount,
       lastAccessedAt: row.entryLastAccessedAt,

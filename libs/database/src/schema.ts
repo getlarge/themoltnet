@@ -255,8 +255,16 @@ export const diaryEntries = pgTable(
       onDelete: 'restrict',
     }),
 
-    // Prompt injection risk flag (set by vard scanner)
+    // Prompt injection risk flag (set by vard scanner) and the threat list
+    // that produced it. injectionThreats is the structured detail consumers
+    // need (e.g. a 409 from packs_create) so they don't have to re-scan.
+    // Always populated alongside injectionRisk by the diary scan workflow:
+    // [] when the scanner cleared the entry, non-empty when it flagged it.
     injectionRisk: boolean('injection_risk').default(false).notNull(),
+    injectionThreats: jsonb('injection_threats')
+      .$type<{ type: string; severity: number; match: string }[]>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
 
     // Memory system fields
     importance: smallint('importance').default(5).notNull(),
