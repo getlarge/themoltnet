@@ -374,6 +374,12 @@ export async function executePiTask(
     }
 
     let llmAbort = false;
+    // The diagnostic pi attaches to the final assistant message when
+    // stopReason === 'error'. Captured below in the `turn_end` handler;
+    // forwarded to the task's `error.message` so operators see things
+    // like "Model 'gpt-5.4-codex' not found in registry" instead of
+    // the generic 'LLM API error during turn'.
+    let llmErrorMessage: string | null = null;
     let assistantText = '';
     let reporterError: { code: string; message: string } | null = null;
     const usage: TaskUsage = finalUsage;
@@ -417,6 +423,14 @@ export async function executePiTask(
         const msg = event.message as {
           role?: string;
           stopReason?: string;
+          // pi-coding-agent attaches a human-readable diagnostic to the
+          // final assistant message when stopReason === 'error'. See
+          // @earendil-works/pi-coding-agent's `AssistantMessage`.
+          // Capturing it here is the only way to propagate the
+          // underlying provider error (model-not-registered, 401, rate
+          // limit, …) up to the task's `error.message` instead of the
+          // generic 'LLM API error during turn'.
+          errorMessage?: string;
           usage?: {
             input?: number;
             output?: number;
@@ -439,6 +453,17 @@ export async function executePiTask(
         // session.prompt() resolves after the final turn, so by the time we
         // read llmAbort below it holds the terminal state.
         llmAbort = msg?.stopReason === 'error';
+        // Mirror the same "last-turn wins" rule for the error message:
+        // overwrite on each error turn, clear on a recovered turn so a
+        // transient earlier failure doesn't bleed into the final result.
+        if (msg?.stopReason === 'error') {
+          llmErrorMessage =
+            typeof msg.errorMessage === 'string' && msg.errorMessage.length > 0
+              ? msg.errorMessage
+              : null;
+        } else {
+          llmErrorMessage = null;
+        }
       }
     });
 
@@ -549,7 +574,15 @@ export async function executePiTask(
       runError?.message ??
       parseError?.message ??
       (reporterError as { message: string } | null)?.message ??
-      (llmAbort ? 'LLM API error during turn' : undefined);
+      (llmAbort
+        ? // Prefer the diagnostic pi captured on the assistant message
+          // over the generic fallback. Most provider failures (model
+          // not in registry, auth errors, rate limits, …) surface here
+          // with the exact reason; without it operators have no way
+          // to distinguish "wrong model id" from "expired token" from
+          // "rate limited" without re-running locally.
+          (llmErrorMessage ?? 'LLM API error during turn')
+        : undefined);
 
     return {
       taskId: task.id,
