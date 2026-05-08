@@ -40,6 +40,28 @@
       "type:app",
       "scope:agent",
       "platform:cli"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.e2e.ts",
+          "{projectRoot}/e2e/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.e2e.ts",
+          "cwd": "apps/agent-daemon"
+        },
+        "outputs": []
+      }
+    }
   }
 }
