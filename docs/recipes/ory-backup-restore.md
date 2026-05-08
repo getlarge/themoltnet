@@ -25,15 +25,15 @@ rollback mechanism.
 
 ## Backup Matrix
 
-| Asset | Ory Network backup method | Restore method | Limitations |
-| --- | --- | --- | --- |
-| Project config | `ory get project`, `identity-config`, `oauth2-config`, `permission-config` | `ory update project`, `ory update opl` | Full-config updates overwrite existing config |
-| OPL permissions | Repo source: `infra/ory/permissions.ts` | `ory update opl --file infra/ory/permissions.ts` | Restore must use the repo version paired with the target deploy |
-| Identities | `ory list identities` plus `ory get identity ...` export bundle | `ory import identities restore/identities.import.json` | Identity UUID portability should not be assumed; app code must rely on `external_id` for stable cross-import references |
-| OAuth2 clients | `ory list oauth2-clients` plus `ory get oauth2-client ...` export bundle | `ory import oauth2-client restore/oauth2-clients.import.json`, then rotate secrets | Existing client secrets are not recoverable from Ory export |
-| JWK sets | `ory get jwk <set-id>` for each declared set ID | `ory import jwk <set-id> <file>` | Requires knowing each set ID ahead of time |
-| Keto tuples | `ory list relationships` | `ory create relationships < restore/relationship-tuples.json` | Replays authorization state, not transaction history |
-| Sessions / consent / active tokens | Not supported by this runbook | Not supported | Treat as transient runtime state |
+| Asset                              | Ory Network backup method                                                  | Restore method                                                                     | Limitations                                                                                                             |
+| ---------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Project config                     | `ory get project`, `identity-config`, `oauth2-config`, `permission-config` | `ory update project`, `ory update opl`                                             | Full-config updates overwrite existing config                                                                           |
+| OPL permissions                    | Repo source: `infra/ory/permissions.ts`                                    | `ory update opl --file infra/ory/permissions.ts`                                   | Restore must use the repo version paired with the target deploy                                                         |
+| Identities                         | `ory list identities` plus `ory get identity ...` export bundle            | `ory import identities restore/identities.import.json`                             | Identity UUID portability should not be assumed; app code must rely on `external_id` for stable cross-import references |
+| OAuth2 clients                     | `ory list oauth2-clients` plus `ory get oauth2-client ...` export bundle   | `ory import oauth2-client restore/oauth2-clients.import.json`, then rotate secrets | Existing client secrets are not recoverable from Ory export                                                             |
+| JWK sets                           | `ory get jwk <set-id>` for each declared set ID                            | `ory import jwk <set-id> <file>`                                                   | Requires knowing each set ID ahead of time                                                                              |
+| Keto tuples                        | `ory list relationships`                                                   | `ory create relationships < restore/relationship-tuples.json`                      | Replays authorization state, not transaction history                                                                    |
+| Sessions / consent / active tokens | Not supported by this runbook                                              | Not supported                                                                      | Treat as transient runtime state                                                                                        |
 
 ## Ory Network Export Procedure
 

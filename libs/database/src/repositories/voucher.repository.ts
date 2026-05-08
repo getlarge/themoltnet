@@ -152,9 +152,7 @@ export function createVoucherRepository(db: Database) {
       }[]
     > {
       // Self-join: vouchers → issuer agents + redeemer agents
-      const issuerKeys = db
-        .$with('issuer_keys')
-        .as(db.select().from(agents));
+      const issuerKeys = db.$with('issuer_keys').as(db.select().from(agents));
       const redeemerKeys = db
         .$with('redeemer_keys')
         .as(db.select().from(agents));

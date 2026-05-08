@@ -1,4 +1,9 @@
-import { context, metrics as metricsApi, propagation, trace } from '@opentelemetry/api';
+import {
+  context,
+  metrics as metricsApi,
+  propagation,
+  trace,
+} from '@opentelemetry/api';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 

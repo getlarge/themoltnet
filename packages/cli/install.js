@@ -54,7 +54,7 @@ function tryPlatformPackage() {
   if (resolvedPackage.isWorkspacePackage) {
     console.log(
       `Skipping moltnet binary download for workspace package ${getPlatformPackageName()} ` +
-        `(${resolvedPackage.pkgDir})`
+        `(${resolvedPackage.pkgDir})`,
     );
     return resolvedPackage.binaryPath;
   }
@@ -115,7 +115,12 @@ async function downloadFromNpm() {
   try {
     execFileSync('tar', ['xf', tmpTar, '-C', tmpDir], { stdio: 'pipe' });
 
-    const extractedBinary = path.join(tmpDir, 'package', 'bin', getBinaryName());
+    const extractedBinary = path.join(
+      tmpDir,
+      'package',
+      'bin',
+      getBinaryName(),
+    );
     if (!fs.existsSync(extractedBinary)) {
       throw new Error(`Binary not found in tarball: ${extractedBinary}`);
     }
@@ -145,7 +150,7 @@ async function main() {
     console.warn(`Warning: Failed to install moltnet binary: ${err.message}`);
     console.warn(
       `You can install the platform package manually:\n` +
-        `  npm install ${getPlatformPackageName()}@${VERSION}`
+        `  npm install ${getPlatformPackageName()}@${VERSION}`,
     );
     // Exit 0 so postinstall doesn't break install for the whole project
   }

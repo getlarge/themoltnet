@@ -199,8 +199,7 @@ log('Project config applied.\n');
 // ---------------------------------------------------------------------------
 
 const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
-const tokenHook =
-  projectForPatch.services?.oauth2?.config?.oauth2?.token_hook;
+const tokenHook = projectForPatch.services?.oauth2?.config?.oauth2?.token_hook;
 
 if (!tokenHook?.url) {
   fatal(
@@ -215,8 +214,7 @@ if (!tokenHook?.url) {
 log('Patching OAuth2 token_hook (workaround for `update project` strip) ...');
 log(`  URL:    ${tokenHook.url}`);
 log(`  Auth:   ${tokenHook.auth?.type ?? 'api_key'}`);
-if (tokenHook.auth?.config?.in)
-  log(`  In:     ${tokenHook.auth.config.in}`);
+if (tokenHook.auth?.config?.in) log(`  In:     ${tokenHook.auth.config.in}`);
 if (tokenHook.auth?.config?.name)
   log(`  Header: ${tokenHook.auth.config.name}`);
 if (tokenHook.auth?.config?.value) {

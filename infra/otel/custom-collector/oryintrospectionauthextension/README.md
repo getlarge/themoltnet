@@ -68,7 +68,7 @@ Mirrors the `IntrospectionAuthConfig` tagged union used by
    `client.FromContext(ctx).Auth` (readable via
    `AuthData.GetAttribute("sub" | "client_id" | "scope" | "aud" | "iss")`)
    and under `client.FromContext(ctx).Metadata.Get("auth.subject" |
-   "auth.client_id" | "auth.scope")`.
+"auth.client_id" | "auth.scope")`.
 
 ## Dev
 

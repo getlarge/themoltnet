@@ -29,11 +29,7 @@ const schemaId = computed(() => identity.value?.schema_id ?? null);
         <p class="moltnet-user-card__muted">
           You're not signed in. Log in to see your MoltNet identity here.
         </p>
-        <button
-          type="button"
-          class="moltnet-user-card__btn"
-          @click="login"
-        >
+        <button type="button" class="moltnet-user-card__btn" @click="login">
           Log in
         </button>
       </template>
@@ -52,11 +48,15 @@ const schemaId = computed(() => identity.value?.schema_id ?? null);
           </template>
           <template v-if="identityId">
             <dt>Identity ID</dt>
-            <dd><code>{{ identityId }}</code></dd>
+            <dd>
+              <code>{{ identityId }}</code>
+            </dd>
           </template>
           <template v-if="schemaId">
             <dt>Schema</dt>
-            <dd><code>{{ schemaId }}</code></dd>
+            <dd>
+              <code>{{ schemaId }}</code>
+            </dd>
           </template>
           <template v-if="createdAt">
             <dt>Created</dt>

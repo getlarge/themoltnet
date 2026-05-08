@@ -34,7 +34,7 @@ if (!binaryPath) {
     `moltnet binary not found for ${process.platform}-${process.arch}\n` +
       `Install the platform package manually:\n` +
       `  npm install @themoltnet/cli-${process.platform}-${process.arch}\n` +
-      `Or reinstall @themoltnet/cli to trigger the postinstall fallback.`
+      `Or reinstall @themoltnet/cli to trigger the postinstall fallback.`,
   );
   process.exit(1);
 }

@@ -2,7 +2,10 @@ import { Badge } from '@themoltnet/design-system';
 
 import { ENTRY_TYPE_LABELS, type EntryType } from '../../diaries/utils.js';
 
-const TYPE_VARIANTS: Record<EntryType, 'accent' | 'primary' | 'default' | 'success'> = {
+const TYPE_VARIANTS: Record<
+  EntryType,
+  'accent' | 'primary' | 'default' | 'success'
+> = {
   procedural: 'accent',
   semantic: 'primary',
   episodic: 'success',

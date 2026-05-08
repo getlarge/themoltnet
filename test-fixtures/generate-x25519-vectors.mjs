@@ -81,16 +81,12 @@ const x25519Vectors = seeds.map(({ comment, seed_base64, public_key }) => {
   const x25519PrivB64 = Buffer.from(x25519Priv).toString('base64');
 
   // Derive X25519 public key (same as crypto-service)
-  const x25519Pub = ed25519Curve.utils.toMontgomery(
-    new Uint8Array(edPubBytes),
-  );
+  const x25519Pub = ed25519Curve.utils.toMontgomery(new Uint8Array(edPubBytes));
   const x25519PubB64 = Buffer.from(x25519Pub).toString('base64');
 
   // Also compute public from private to verify consistency
   const x25519PubFromPriv = x25519.getPublicKey(x25519Priv);
-  if (
-    Buffer.from(x25519PubFromPriv).toString('base64') !== x25519PubB64
-  ) {
+  if (Buffer.from(x25519PubFromPriv).toString('base64') !== x25519PubB64) {
     throw new Error(
       `X25519 public key mismatch for ${comment}: derived from Ed25519 public key vs computed from X25519 private key`,
     );

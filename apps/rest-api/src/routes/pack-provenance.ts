@@ -86,9 +86,8 @@ export async function buildPackProvenanceGraph({
     await fastify.contextPackRepository.listEntriesExpandedByPackIds(
       visiblePackIds,
     );
-  const renderedPacks = await fastify.renderedPackRepository.listBySourcePackIds(
-    visiblePackIds,
-  );
+  const renderedPacks =
+    await fastify.renderedPackRepository.listBySourcePackIds(visiblePackIds);
 
   const nodes: ProvenanceGraph['nodes'] = [];
   const edges: ProvenanceGraph['edges'] = [];

@@ -274,7 +274,13 @@ function listAllPages({ label, command, mode, pageSize, outputDir }) {
   let pageIndex = 1;
 
   while (true) {
-    const args = [...command, '--page-size', String(pageSize), '--format', 'json'];
+    const args = [
+      ...command,
+      '--page-size',
+      String(pageSize),
+      '--format',
+      'json',
+    ];
     if (pageToken) args.push('--page-token', pageToken);
 
     const stdout = runOry(args, { mode });
@@ -289,7 +295,10 @@ function listAllPages({ label, command, mode, pageSize, outputDir }) {
     });
     items.push(...pageItems);
 
-    writeJson(join(pageDir, `${String(pageIndex).padStart(4, '0')}.json`), parsed);
+    writeJson(
+      join(pageDir, `${String(pageIndex).padStart(4, '0')}.json`),
+      parsed,
+    );
 
     if (!nextPageToken) break;
     if (nextPageToken === pageToken) {
@@ -376,7 +385,12 @@ function createArchive({ outputDir, archivePath }) {
   );
 }
 
-async function encryptArchive({ archivePath, encryptedPath, metadataPath, passphrase }) {
+async function encryptArchive({
+  archivePath,
+  encryptedPath,
+  metadataPath,
+  passphrase,
+}) {
   const salt = randomBytes(16);
   const iv = randomBytes(12);
   const key = scryptSync(passphrase, salt, 32);
@@ -592,4 +606,6 @@ async function main() {
   }
 }
 
-main().catch((error) => fatal(error instanceof Error ? error.message : String(error)));
+main().catch((error) =>
+  fatal(error instanceof Error ? error.message : String(error)),
+);
