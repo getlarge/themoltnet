@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.99.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.98.0...sdk-v0.99.0) (2026-05-08)
+
+
+### Features
+
+* **packs:** gate prompt-injection at packs_create; deprecate compile/consolidate ([422234d](https://github.com/getlarge/themoltnet/commit/422234d704bfd2aee8726990cf26e35f46065ec7))
+* **packs:** gate prompt-injection at packs_create; deprecate compile/consolidate ([d8e65b4](https://github.com/getlarge/themoltnet/commit/d8e65b44788c19ba7f0c7d5752f8f73bcd869a88))
+
 ## [0.98.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.97.0...sdk-v0.98.0) (2026-05-08)
 
 

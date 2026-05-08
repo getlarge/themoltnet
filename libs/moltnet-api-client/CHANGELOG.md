@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.25.1...moltnet-api-client-v1.26.0) (2026-05-08)
+
+
+### Features
+
+* **packs:** gate prompt-injection at packs_create; deprecate compile/consolidate ([422234d](https://github.com/getlarge/themoltnet/commit/422234d704bfd2aee8726990cf26e35f46065ec7))
+
 ## [1.25.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.25.0...moltnet-api-client-v1.25.1) (2026-05-08)
 
 
