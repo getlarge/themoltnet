@@ -50,10 +50,14 @@ is documented in
 
 ## Required secrets / vars
 
-Scope these to a GitHub Environment named `moltnet` so deployments
-require manual approval (recommended for cost control). The action
+Most of these are scoped to a GitHub Environment named after the agent
+(e.g. `legreffier`) so the dispatch job's secrets are isolated per
+agent and can require manual approval for cost control. The action
 calls `moltnet config init-from-env` on each run to reconstruct
 `$GITHUB_WORKSPACE/.moltnet/<agent>/` from these env vars.
+
+The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
+routing](#multi-agent-routing) below.
 
 | Name                                                                                                                                  | Kind     | Purpose                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -67,6 +71,7 @@ calls `moltnet config init-from-env` on each run to reconstruct
 | `MOLTNET_TEAM_ID`                                                                                                                     | variable | UUID of the MoltNet team that owns the work.                                                                                                                                                                                                      |
 | `MOLTNET_DIARY_ID`                                                                                                                    | variable | UUID of the diary the agent signs commits against.                                                                                                                                                                                                |
 | `MOLTNET_API_URL`                                                                                                                     | variable | _Optional._ Defaults to `https://api.themolt.net`.                                                                                                                                                                                                |
+| `MOLTNET_AGENT_ALLOWLIST`                                                                                                             | variable | **Required, repo-level (not per-environment).** Comma-separated agent names allowed to receive `@moltnet-*` mentions. See [Multi-agent routing](#multi-agent-routing).                                                                            |
 | `MOLTNET_AGENT_PROVIDER`                                                                                                              | variable | **Required.** Pi provider key (`anthropic`, `openai`, `bedrock`, …). Equivalent to the `provider` action input — set whichever is more convenient. The daemon refuses to start without one.                                                       |
 | `MOLTNET_AGENT_MODEL`                                                                                                                 | variable | **Required.** Model id understood by the chosen provider (e.g. `claude-sonnet-4-5`, `gpt-4o-mini`). Equivalent to the `model` action input.                                                                                                       |
 | `MOLTNET_GITHUB_APP_ID`                                                                                                               | variable | _Optional._ GitHub App id for bot-attributed gh ops.                                                                                                                                                                                              |
@@ -77,6 +82,41 @@ calls `moltnet config init-from-env` on each run to reconstruct
 | `MOLTNET_GIT_EMAIL`                                                                                                                   | variable | _Optional._ Override the git author email.                                                                                                                                                                                                        |
 | `ANTHROPIC_API_KEY` _(or other [Pi env-var provider](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts))_ | secret   | Provider API key. Cheapest, stateless. Pi reads it natively from env.                                                                                                                                                                             |
 | `PI_AUTH_JSON`                                                                                                                        | secret   | _Alternative to API keys._ Contents of `~/.pi/agent/auth.json` produced by `pi /login` on a developer machine. Use when you want subscription-billed runs (Claude Pro/Max, ChatGPT Plus/Pro Codex, GitHub Copilot). See "Pi provider auth" below. |
+
+## Multi-agent routing
+
+The dispatch job uses
+`environment: ${{ needs.parse.outputs.agent }}` so each agent's secrets
+live in its own GitHub Environment. The agent name comes from the
+mention syntax `@moltnet-{fulfill,assess}[<agent>]` (or the default
+when no `[...]` qualifier is present).
+
+Without a guard, anyone who can post a comment could route the workflow
+into **any GitHub Environment that exists on the repo** — including
+ones that share the agent-name charset (`production`, `staging`,
+`prod-deploy`, …) and load whatever secrets that environment carries
+into the dispatch job's process env.
+
+`MOLTNET_AGENT_ALLOWLIST` (a **repo-level** variable, not
+per-environment) closes that gap. The parse job reads it and rejects
+any extracted agent name that's not in the comma-separated list with
+an `::error::` and exit 1, before the dispatch job runs and before the
+target environment is loaded.
+
+```bash
+# Single bot
+gh variable set MOLTNET_AGENT_ALLOWLIST --body "legreffier"
+
+# Multiple bots
+gh variable set MOLTNET_AGENT_ALLOWLIST --body "legreffier,assessor,reviewer"
+```
+
+The variable lives at repo level (not inside an environment) by design:
+if it lived inside an env, the dispatch job would have already entered
+that env (loading its secrets) before the allowlist check ran.
+
+If `MOLTNET_AGENT_ALLOWLIST` is unset or empty, the parse job exits
+with an error explaining what to set. The workflow fails closed.
 
 ## Pi provider auth
 
@@ -119,6 +159,27 @@ The action's materialize step writes `$PI_AUTH_JSON` to
 from the runner-local copy. (This relies on
 `libs/pi-extension/src/vm-manager.ts:loadCredentials`'s
 `PI_AUTH_PATH` override — added in [#1027](https://github.com/getlarge/themoltnet/pull/1027).)
+
+#### Staleness check
+
+The materialize step parses each provider's `expires` field and emits
+a job annotation when it has fallen into the past:
+
+- **`::warning::`** — at least one provider's access token expired
+  before the workflow ran. Pi will try to refresh on its first call;
+  if that refresh fails, expect a 401 from the daemon. (Routine: Pi
+  rotates access tokens every few minutes/hours; this only fires if
+  the secret has been frozen long enough that nothing rotated it in
+  the meantime.)
+- **`::error::`** — at least one provider's access token expired
+  more than 30 days ago. The opaque refresh window has almost
+  certainly elapsed. The action still proceeds — the daemon will
+  surface the real 401 — but the annotation tells you to re-seed
+  before the run.
+
+The check is silent when `jq` is unavailable or the JSON shape
+doesn't match what Pi writes today. It cannot detect actual refresh
+failures; that's the daemon's job at runtime.
 
 #### Manual rotation when refresh stops working
 

@@ -33,6 +33,16 @@
 #                            PEM for the agent's GitHub App
 #   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
 #
+# Variables (repo-level — NOT per-environment):
+#   MOLTNET_AGENT_ALLOWLIST  required, comma-separated. Agent names
+#                            permitted to receive @moltnet-* mentions.
+#                            Without it the parse step fails closed.
+#                            Example: "legreffier" or "legreffier,assessor".
+#                            Why repo-level: if it lived inside an env,
+#                            the dispatch job would have already entered
+#                            that env (loading its secrets) before the
+#                            check ran — defeating the gate.
+#
 # Variables (per-environment):
 #   MOLTNET_AGENT_NAME       agent name (matches .moltnet/<name>/)
 #   MOLTNET_TEAM_ID          uuid — team that owns the work
@@ -80,12 +90,38 @@ jobs:
         id: extract
         env:
           BODY: ${{ github.event.comment.body }}
+          # Comma-separated list of agent names allowed to receive
+          # mentions on this repo. Without this allowlist, anyone who
+          # can comment could route the workflow into any GitHub
+          # Environment that happens to exist (e.g. `production`,
+          # `staging`) and exfiltrate that environment's secrets via
+          # the dispatch job's process env. Empty/unset = no agents
+          # allowed (fail-closed). Set under repo Settings → Variables.
+          ALLOWLIST: ${{ vars.MOLTNET_AGENT_ALLOWLIST }}
         run: |
           set -euo pipefail
           if [[ "$BODY" =~ @moltnet-(fulfill|assess)\[([a-zA-Z0-9_-]{1,64})\] ]]; then
             AGENT="${BASH_REMATCH[2]}"
           else
             AGENT="$DEFAULT_AGENT"
+          fi
+          # Allowlist gate: reject before emitting `agent` so the
+          # dispatch job (which routes via `environment:` on the parse
+          # output) never enters an unintended env.
+          if [ -z "${ALLOWLIST:-}" ]; then
+            echo "::error::MOLTNET_AGENT_ALLOWLIST repo variable is not set; refusing to route. Add it under repo Settings → Variables (e.g. 'legreffier' or 'legreffier,assessor')." >&2
+            exit 1
+          fi
+          ok=0
+          IFS=',' read -ra ALLOWED <<< "$ALLOWLIST"
+          for a in "${ALLOWED[@]}"; do
+            a="${a#"${a%%[![:space:]]*}"}"
+            a="${a%"${a##*[![:space:]]}"}"
+            if [ "$a" = "$AGENT" ]; then ok=1; break; fi
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::Agent '$AGENT' is not in MOLTNET_AGENT_ALLOWLIST ('$ALLOWLIST'). Update the repo variable to authorize this agent." >&2
+            exit 1
           fi
           echo "agent=$AGENT" >> "$GITHUB_OUTPUT"
           echo "::notice::Routing to environment '$AGENT'"

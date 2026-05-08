@@ -129,6 +129,41 @@ runs:
           chmod 600 "$PI_AUTH_PATH"
           echo "PI_AUTH_PATH=$PI_AUTH_PATH" >> "$GITHUB_ENV"
           echo "::notice::Pi auth.json materialized at \$PI_AUTH_PATH"
+
+          # Best-effort staleness check (#1040). Pi writes per-provider
+          # entries with shape:
+          #   { "<provider>": { "type": "oauth", "expires": <ms-epoch>, ... } }
+          # `expires` is the *access* token TTL (Pi rotates it on each
+          # run), so its absolute value isn't the refresh-window edge —
+          # but because this action does NOT write rotated tokens back
+          # to the secret, `expires` falling into the past is a strong
+          # signal that the secret has been frozen long enough that the
+          # opaque ~30-day refresh window is at risk. Treated as:
+          #   - any provider expires < now      → ::warning::
+          #   - any provider expires < now-30d  → ::error:: (still
+          #     proceed; the daemon will surface the real 401 if the
+          #     refresh genuinely failed, and we don't want this check
+          #     to block recovery flows that happen to pass a fresh
+          #     bundle inline)
+          # If jq isn't available or the JSON shape doesn't match,
+          # silently skip — never fail the workflow on this heuristic.
+          if command -v jq >/dev/null 2>&1; then
+            now_ms=$(($(date +%s) * 1000))
+            grace_ms=$(( 30 * 86400 * 1000 ))
+            min_expires=$(jq -r '
+              [.[] | select(type == "object" and .expires != null) | .expires]
+              | if length == 0 then empty else min end
+            ' "$PI_AUTH_PATH" 2>/dev/null || true)
+            if [ -n "${min_expires:-}" ] && [ "$min_expires" -gt 0 ] 2>/dev/null; then
+              if [ "$min_expires" -lt $(( now_ms - grace_ms )) ]; then
+                days_past=$(( (now_ms - min_expires) / 86400000 ))
+                echo "::error::PI_AUTH_JSON access token expired ${days_past} days ago — Pi's refresh window has almost certainly elapsed. Re-run \`pi /login\` and re-upload the secret. See https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working"
+              elif [ "$min_expires" -lt "$now_ms" ]; then
+                hours_past=$(( (now_ms - min_expires) / 3600000 ))
+                echo "::warning::PI_AUTH_JSON access token expired ${hours_past}h ago. Pi will try to refresh, but if you see a 401, re-run \`pi /login\` and re-upload the secret."
+              fi
+            fi
+          fi
         else
           echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
         fi
