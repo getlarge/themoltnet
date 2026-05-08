@@ -30,6 +30,7 @@
     "dist"
   ],
   "scripts": {
+    "build": "tsc -b",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
