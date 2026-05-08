@@ -229,12 +229,26 @@ runs:
         # the secret. See:
         # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
         if [ -n "${PI_AUTH_JSON:-}" ]; then
-          PI_AUTH_PATH="$RUNNER_TEMP/.pi/agent/auth.json"
-          mkdir -p "$(dirname "$PI_AUTH_PATH")"
+          # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or, when
+          # that env is unset, $HOME/.pi/agent/auth.json (see
+          # @earendil-works/pi-coding-agent's config.ts:getAgentDir()).
+          # We write to a runner-local dir and point pi at it via
+          # PI_CODING_AGENT_DIR — keeps the secret out of the home
+          # tree (so it doesn't leak into action caches that include
+          # `~`) while staying inside what pi can read directly.
+          # `PI_AUTH_PATH` is also exported for vm-manager.ts's
+          # loadCredentials, which uses it on the daemon-host side to
+          # inject the auth blob INTO the gondolin VM at boot.
+          PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
+          PI_AUTH_PATH="$PI_AGENT_DIR/auth.json"
+          mkdir -p "$PI_AGENT_DIR"
           printf '%s' "$PI_AUTH_JSON" > "$PI_AUTH_PATH"
           chmod 600 "$PI_AUTH_PATH"
-          echo "PI_AUTH_PATH=$PI_AUTH_PATH" >> "$GITHUB_ENV"
-          echo "::notice::Pi auth.json materialized at \$PI_AUTH_PATH"
+          {
+            echo "PI_AUTH_PATH=$PI_AUTH_PATH"
+            echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
+          } >> "$GITHUB_ENV"
+          echo "::notice::Pi auth.json materialized at $PI_AUTH_PATH (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
 
           # Best-effort staleness check (#1040). Pi writes per-provider
           # entries with shape:
