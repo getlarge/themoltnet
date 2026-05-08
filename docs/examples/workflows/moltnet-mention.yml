@@ -1,26 +1,35 @@
-# MoltNet mention bot — copy this file into `.github/workflows/` in your
-# repo, configure the listed secrets + variables under
-# Settings → Environments → moltnet, and start commenting `@moltnet-fulfill`
-# on issues.
+# MoltNet mention bot — copy this file into `.github/workflows/` in
+# your repo, then configure one GitHub Environment per bot agent.
 #
-# Provisioning loop (provision a NEW agent for the bot — not your
-# personal session agent):
-#   1. moltnet register --name <bot-name>     # one-time, e.g. <repo>-bot
-#      (or `legreffier init --name <bot-name>` for the full flow)
+# Multi-agent routing: each bot agent has its own GitHub Environment
+# named after the agent. The mention routes to a specific environment
+# via:
+#
+#   @moltnet-fulfill[<agent>] <brief...>
+#   @moltnet-assess[<agent>]
+#
+# When no `[<agent>]` qualifier is present the workflow defaults to
+# `legreffier` — change `DEFAULT_AGENT` below if you prefer another
+# name. Single-bot adopters can ignore the qualifier; multi-bot
+# adopters add the qualifier on each comment to pick the runner.
+#
+# Provisioning each agent (one-time, per bot):
+#   1. moltnet register --name <agent>          # e.g. <repo>-bot
+#      (or `legreffier init --name <agent>` for the full identity flow)
 #   2. moltnet config export-env \
-#        --credentials .moltnet/<bot-name>/moltnet.json \
-#        --include-github-pem \
-#        -o .env.moltnet                      # dump as MOLTNET_* dotenv
-#   3. Upload each line as a repo secret or variable scoped to the
-#      `moltnet` GitHub Environment (table in the action README).
-#   4. The action runs `moltnet config init-from-env` on every
-#      invocation and reconstructs the agent dir from those env vars.
+#        --credentials .moltnet/<agent>/moltnet.json \
+#        --include-github-pem -o .env.<agent>   # MOLTNET_* dotenv
+#   3. Create a GitHub Environment named exactly `<agent>` and upload
+#      each MOLTNET_* line as a secret/variable. Add ANTHROPIC_API_KEY
+#      (or another Pi-supported provider key) as a secret on the same
+#      environment.
+#   4. (Optional) Add reviewers on the Environment for approval gating.
 #
 # Secrets (per-environment):
 #   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
 #   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
 #                            agent identity + OAuth2 creds
-#   MOLTNET_GITHUB_APP_PRIVATE_KEY (optional, with the GH App vars below)
+#   MOLTNET_GITHUB_APP_PRIVATE_KEY  (optional, with the GH App vars below)
 #                            PEM for the agent's GitHub App
 #   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
 #
@@ -28,36 +37,55 @@
 #   MOLTNET_AGENT_NAME       agent name (matches .moltnet/<name>/)
 #   MOLTNET_TEAM_ID          uuid — team that owns the work
 #   MOLTNET_DIARY_ID         uuid — diary the agent signs commits against
-#   MOLTNET_API_URL          (optional) e.g. https://api.themolt.net —
-#                            defaults to the public production URL
+#   MOLTNET_API_URL          e.g. https://api.themolt.net (optional)
 #   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
 #   MOLTNET_GITHUB_APP_SLUG  (optional, with the secret PEM above)
 #   MOLTNET_GIT_NAME, MOLTNET_GIT_EMAIL  (optional) override git author
 #
 # What runs:
-#   - @moltnet-fulfill (on issues) creates a fulfill_brief task and runs
-#     it via @themoltnet/agent-daemon.
-#   - @moltnet-assess (on PRs) inherits the originating fulfill task's
-#     input.successCriteria, creates an assess_brief task, and runs the
-#     judge agent. If the fulfill carried no successCriteria, the bot
-#     posts a diagnostic comment instead.
+#   - @moltnet-fulfill[<agent>] (on issues) creates a fulfill_brief task
+#     and runs it via @themoltnet/agent-daemon.
+#   - @moltnet-assess[<agent>] (on PRs) inherits the originating fulfill
+#     task's input.successCriteria, creates an assess_brief task, and
+#     runs the judge agent. If the fulfill carried no successCriteria,
+#     the bot posts a diagnostic comment instead.
+
 name: MoltNet mention bot
 
 on:
   issue_comment:
     types: [created]
 
+env:
+  DEFAULT_AGENT: legreffier # change to your default bot agent name
+
 jobs:
-  dispatch:
-    # Skip:
-    #   - non-mention comments
-    #   - comments authored by a bot (the assess flow posts diagnostic
-    #     comments that would otherwise re-trigger the workflow)
+  parse:
     if: |
       contains(github.event.comment.body, '@moltnet-') &&
       !endsWith(github.event.comment.user.login, '[bot]')
     runs-on: ubuntu-latest
-    environment: moltnet
+    outputs:
+      agent: ${{ steps.extract.outputs.agent }}
+    steps:
+      - name: Extract target agent from mention
+        id: extract
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          if [[ "$BODY" =~ @moltnet-(fulfill|assess)\[([a-zA-Z0-9_-]{1,64})\] ]]; then
+            AGENT="${BASH_REMATCH[2]}"
+          else
+            AGENT="$DEFAULT_AGENT"
+          fi
+          echo "agent=$AGENT" >> "$GITHUB_OUTPUT"
+          echo "::notice::Routing to environment '$AGENT'"
+
+  dispatch:
+    needs: [parse]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.parse.outputs.agent }}
     permissions:
       contents: read
       issues: write

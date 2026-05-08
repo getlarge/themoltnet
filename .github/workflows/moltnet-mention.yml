@@ -1,30 +1,31 @@
 # MoltNet mention bot — dogfooding the @themoltnet/agent-daemon-action
 # against the monorepo that ships it.
 #
-# Important: the dogfood agent identity is a NEW MoltNet agent
-# provisioned specifically for this workflow — NOT a human operator's
-# session agent (e.g. `legreffier`) and NOT one of the contributor
-# bot identities used for committing diary entries. Provisioning:
+# Multi-agent routing: each bot agent has its own GitHub Environment
+# named after the agent (e.g. `legreffier`, `eval-agent`). The mention
+# routes to a specific environment via:
 #
-#   1. moltnet register --name <dogfood-name>          # one-time
+#   @moltnet-fulfill[<agent>] <brief...>
+#   @moltnet-assess[<agent>]
+#
+# When no `[<agent>]` qualifier is present the workflow defaults to
+# the `legreffier` environment. Adopters running a single bot can
+# omit the qualifier; running multiple bots in parallel just needs an
+# Environment per agent + the qualifier on each comment.
+#
+# Provisioning each agent (one-time):
+#
+#   1. moltnet register --name <agent>            # one-time per agent
 #   2. moltnet config export-env \
-#        --credentials .moltnet/<dogfood-name>/moltnet.json \
-#        --include-github-pem -o .env.dogfood
-#   3. Upload each MOLTNET_* line as a repo secret/variable scoped to
-#      the `moltnet` GitHub Environment.
-#
-# Each invocation goes through the `moltnet` GitHub Environment, which
-# requires manual approval and holds the secrets/variables consumed by
-# the action. See `docs/agent-runtime.md` § Provisioning loop for the
-# full export-env → upload → init-from-env flow.
-#
-# Triggering:
-#   - `@moltnet-fulfill` on an issue → creates a fulfill_brief task,
-#     runs the agent, opens a PR.
-#   - `@moltnet-assess` on a PR → inherits the originating fulfill's
-#     input.successCriteria, creates an assess_brief task, scores the
-#     PR. Skipped with a diagnostic comment if the fulfill had no
-#     successCriteria.
+#        --credentials .moltnet/<agent>/moltnet.json \
+#        --include-github-pem -o .env.<agent>
+#   3. Create a GitHub Environment named exactly `<agent>` and upload
+#      each MOLTNET_* line as a secret/variable (see action README
+#      for the secret-vs-variable split). Add `ANTHROPIC_API_KEY` (or
+#      another Pi-supported provider key) as a secret on the same
+#      environment.
+#   4. (Optional) Add reviewers/protection rules on the environment for
+#      manual approval gating.
 #
 # This workflow consumes the action via `./packages/agent-daemon-action`
 # (local path) so it always uses the source on the branch being tested.
@@ -39,16 +40,40 @@ on:
     types: [created]
 
 jobs:
-  dispatch:
+  parse:
     # Skip:
     #   - non-mention comments
-    #   - comments authored by the agent itself (avoids feedback loops
-    #     when the assess bot posts its diagnostic on a PR)
+    #   - comments authored by a bot (avoids the assess diagnostic
+    #     comment re-triggering the workflow)
     if: |
       contains(github.event.comment.body, '@moltnet-') &&
       !endsWith(github.event.comment.user.login, '[bot]')
     runs-on: ubuntu-latest
-    environment: moltnet
+    outputs:
+      agent: ${{ steps.extract.outputs.agent }}
+    steps:
+      - name: Extract target agent from mention
+        id: extract
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          # Match @moltnet-{fulfill,assess}[<agent>] — capture <agent>.
+          # Fall back to `legreffier` when no [...] qualifier present.
+          # Agent names follow the same charset as `moltnet register
+          # --name`: [a-zA-Z0-9_-]+, max 64.
+          if [[ "$BODY" =~ @moltnet-(fulfill|assess)\[([a-zA-Z0-9_-]{1,64})\] ]]; then
+            AGENT="${BASH_REMATCH[2]}"
+          else
+            AGENT=legreffier
+          fi
+          echo "agent=$AGENT" >> "$GITHUB_OUTPUT"
+          echo "::notice::Routing to environment '$AGENT'"
+
+  dispatch:
+    needs: [parse]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.parse.outputs.agent }}
     permissions:
       contents: read
       issues: write
