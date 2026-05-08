@@ -41,9 +41,7 @@
   "scripts": {
     "dev": "tsc --watch",
     "demo": "vite demo",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
-    "build": "vite build",
-    "test": "vitest run --passWithNoTests"
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "peerDependencies": {
     "ink": ">=5.0.0",

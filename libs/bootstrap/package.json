@@ -11,9 +11,7 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {
-    "lint": "eslint src/"
-  },
+  "scripts": {},
   "dependencies": {
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",

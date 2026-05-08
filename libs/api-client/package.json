@@ -24,8 +24,8 @@
     "@tanstack/react-query": "^5.0.0"
   },
   "scripts": {
-    "generate": "openapi-ts",
     "build": "tsc -b",
+    "generate": "openapi-ts",
     "dev": "tsc --watch"
   },
   "devDependencies": {

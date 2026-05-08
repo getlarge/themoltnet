@@ -36,10 +36,9 @@
     ]
   },
   "scripts": {
-    "lint": "eslint src/",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
     "build": "vite build",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",

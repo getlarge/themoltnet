@@ -30,10 +30,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -b",
-    "lint": "eslint src/",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
-    "test": "vitest run"
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
     "@themoltnet/sdk": "workspace:*"
