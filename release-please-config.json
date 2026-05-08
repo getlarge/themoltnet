@@ -112,6 +112,9 @@
   },
   "plugins": [
     {
+      "type": "node-workspace"
+    },
+    {
       "components": [
         "cli",
         "cli-wrapper",
