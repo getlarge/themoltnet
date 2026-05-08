@@ -91,14 +91,15 @@ jobs:
     needs: [parse]
     runs-on: ubuntu-latest
     environment: ${{ needs.parse.outputs.agent }}
+    # contents: read       — actions/checkout
+    # issues: write        — post diagnostic comments on issues / PRs
+    # pull-requests: read  — read PR head ref / commits / body for
+    #   correlationId resolution. The agent inside Pi opens PRs with
+    #   its own GitHub App token, not GITHUB_TOKEN.
     permissions:
-      contents: read # actions/checkout
-      issues: write # post diagnostic comments on issues / PRs
-      pull-requests:
-        read # read PR head ref / commits / body for
-        # correlationId resolution. The agent
-        # inside Pi opens PRs with its own
-        # GitHub App token, not GITHUB_TOKEN.
+      contents: read
+      issues: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
