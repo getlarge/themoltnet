@@ -12,6 +12,10 @@ import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
+import {
+  createGhCliClient,
+  makePrBodyAnchorWriter,
+} from '../lib/correlation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
 import {
@@ -193,7 +197,15 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       // loop that used to live below is gone: it would now double-
       // call `/complete` on every task and the server returns 409
       // "Task is already in terminal state" on the second call.
-      onTaskFinished: (output) => finalizeTask(ctx.agent, output),
+      onTaskFinished: (output, claimedTask) =>
+        finalizeTask(ctx.agent, output, {
+          task: claimedTask.task,
+          writeCorrelationAnchors: makePrBodyAnchorWriter({
+            gh: createGhCliClient(),
+            logger: rootLogger,
+          }),
+          log: (msg, err) => rootLogger.warn({ err }, msg),
+        }),
       executeTask: async (claimedTask, reporter) => {
         // Belt-and-braces: refuse a task whose type isn't in the configured
         // whitelist (e.g. server filter race after config change). The

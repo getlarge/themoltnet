@@ -7,6 +7,14 @@ interface Ctx {
   diaryId: string;
   /** Task id — the agent must report it in its final structured output. */
   taskId: string;
+  /**
+   * Optional MoltNet correlationId. When present, the prompt mandates a
+   * `moltnet/<correlationId>/<slug>` branch name and a
+   * `Moltnet-Correlation-Id: <id>` trailer on the first commit so external
+   * resolvers (the @moltnet-* mention bot) can recover the chain id from
+   * the resulting PR even if the MoltNet API is unreachable.
+   */
+  correlationId?: string | null;
 }
 
 /**
@@ -41,7 +49,28 @@ export function buildFulfillBriefPrompt(
       ].join('\n')
     : '';
 
-  const branchSlug = scopeHint ? `feat/${scopeHint}-` : 'feat/';
+  const branchSlug = ctx.correlationId
+    ? `moltnet/${ctx.correlationId}/`
+    : scopeHint
+      ? `feat/${scopeHint}-`
+      : 'feat/';
+
+  const correlationSection = ctx.correlationId
+    ? [
+        '### Correlation',
+        '',
+        `This task carries correlationId \`${ctx.correlationId}\`. You MUST:`,
+        '',
+        `1. Name your branch \`moltnet/${ctx.correlationId}/<short-slug>\` — use a`,
+        '   slug derived from the brief title (lowercase-kebab, ≤60 chars).',
+        `2. Include the trailer \`Moltnet-Correlation-Id: ${ctx.correlationId}\` on`,
+        '   your **first** commit on that branch (subsequent commits do not need it).',
+        '',
+        'These are recovery anchors for the MoltNet mention-bot. Do not deviate',
+        'from this branch naming scheme when correlationId is set.',
+        '',
+      ].join('\n')
+    : '';
 
   const lines = [
     '# Fulfill Brief Agent',
@@ -62,6 +91,7 @@ export function buildFulfillBriefPrompt(
     '',
     criteriaSection,
     seedSection,
+    correlationSection,
     '### Workflow',
     '',
     `1. Create a feature branch (starting prefix suggestion: \`${branchSlug}<short-slug>\`).`,

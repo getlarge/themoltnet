@@ -1,8 +1,8 @@
-import type { TaskOutput } from '@moltnet/tasks';
+import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { finalizeTask } from './finalize.js';
+import { finalizeTask, type WriteCorrelationAnchors } from './finalize.js';
 
 interface CompleteBody {
   output: Record<string, unknown>;
@@ -111,5 +111,149 @@ describe('finalizeTask', () => {
     await finalizeTask(stub.agent, makeOutput('cancelled', null));
     expect(stub.fail).not.toHaveBeenCalled();
     expect(stub.complete).not.toHaveBeenCalled();
+  });
+});
+
+const FULFILL_TASK = {
+  id: '11111111-2222-4333-8444-555555555550',
+  taskType: 'fulfill_brief',
+  correlationId: '11111111-2222-4333-8444-555555555555',
+} as unknown as Task;
+
+const COMPLETED_BASE = {
+  taskId: '11111111-2222-4333-8444-555555555550',
+  attemptN: 1,
+  status: 'completed' as const,
+  outputCid: 'cid:abc',
+  usage: { inputTokens: 0, outputTokens: 0 },
+  durationMs: 0,
+};
+
+describe('finalizeTask — fulfill_brief correlation hook', () => {
+  it('invokes the writer when output is completed and PR url present', async () => {
+    const writer = vi
+      .fn<WriteCorrelationAnchors>()
+      .mockResolvedValue(undefined);
+    const m = makeAgent();
+    const output: TaskOutput = {
+      ...COMPLETED_BASE,
+      output: {
+        branch: 'moltnet/11111111-2222-4333-8444-555555555555/x',
+        commits: [],
+        pullRequestUrl: 'https://github.com/o/r/pull/3',
+        diaryEntryIds: [],
+        summary: 's',
+      },
+    };
+
+    await finalizeTask(m.agent, output, {
+      task: FULFILL_TASK,
+      writeCorrelationAnchors: writer,
+    });
+
+    expect(writer).toHaveBeenCalledWith({
+      correlationId: '11111111-2222-4333-8444-555555555555',
+      pullRequestUrl: 'https://github.com/o/r/pull/3',
+    });
+    expect(m.complete).toHaveBeenCalled();
+  });
+
+  it('skips the writer when task is not fulfill_brief', async () => {
+    const writer = vi
+      .fn<WriteCorrelationAnchors>()
+      .mockResolvedValue(undefined);
+    const m = makeAgent();
+    const assessTask = { ...FULFILL_TASK, taskType: 'assess_brief' } as Task;
+
+    await finalizeTask(
+      m.agent,
+      {
+        ...COMPLETED_BASE,
+        output: { scores: [] },
+      },
+      { task: assessTask, writeCorrelationAnchors: writer },
+    );
+    expect(writer).not.toHaveBeenCalled();
+  });
+
+  it('skips the writer when correlationId is null', async () => {
+    const writer = vi
+      .fn<WriteCorrelationAnchors>()
+      .mockResolvedValue(undefined);
+    const m = makeAgent();
+    const noCorr = { ...FULFILL_TASK, correlationId: null } as Task;
+
+    await finalizeTask(
+      m.agent,
+      {
+        ...COMPLETED_BASE,
+        output: { pullRequestUrl: 'https://github.com/o/r/pull/3' },
+      },
+      { task: noCorr, writeCorrelationAnchors: writer },
+    );
+    expect(writer).not.toHaveBeenCalled();
+  });
+
+  it('skips the writer when output has no pullRequestUrl', async () => {
+    const writer = vi
+      .fn<WriteCorrelationAnchors>()
+      .mockResolvedValue(undefined);
+    const m = makeAgent();
+
+    await finalizeTask(
+      m.agent,
+      {
+        ...COMPLETED_BASE,
+        output: { pullRequestUrl: null },
+      },
+      { task: FULFILL_TASK, writeCorrelationAnchors: writer },
+    );
+    expect(writer).not.toHaveBeenCalled();
+  });
+
+  it('logs but does not throw when the writer fails', async () => {
+    const writer = vi
+      .fn<WriteCorrelationAnchors>()
+      .mockRejectedValue(new Error('gh down'));
+    const m = makeAgent();
+    const log = vi.fn();
+
+    await expect(
+      finalizeTask(
+        m.agent,
+        {
+          ...COMPLETED_BASE,
+          output: { pullRequestUrl: 'https://x/y/pull/1' },
+        },
+        { task: FULFILL_TASK, writeCorrelationAnchors: writer, log },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(m.complete).toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      'correlation-anchor-write-failed',
+      expect.any(Error),
+    );
+  });
+
+  it('cancelled output short-circuits before complete/fail/writer', async () => {
+    const writer = vi
+      .fn<WriteCorrelationAnchors>()
+      .mockResolvedValue(undefined);
+    const m = makeAgent();
+
+    await finalizeTask(
+      m.agent,
+      {
+        ...COMPLETED_BASE,
+        status: 'cancelled' as const,
+        output: null,
+        outputCid: null,
+      },
+      { task: FULFILL_TASK, writeCorrelationAnchors: writer },
+    );
+    expect(m.complete).not.toHaveBeenCalled();
+    expect(m.fail).not.toHaveBeenCalled();
+    expect(writer).not.toHaveBeenCalled();
   });
 });

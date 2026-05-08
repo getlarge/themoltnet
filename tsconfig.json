@@ -96,6 +96,9 @@
       "path": "tools"
     },
     {
+      "path": "packages/agent-daemon-action"
+    },
+    {
       "path": "packages/github-agent"
     },
     {

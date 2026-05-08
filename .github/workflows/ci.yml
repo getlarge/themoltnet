@@ -44,6 +44,7 @@ jobs:
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       landing: ${{ steps.compute.outputs.landing }}
+      agent-daemon-action: ${{ steps.compute.outputs.agent-daemon-action }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
@@ -109,7 +110,7 @@ jobs:
             return 1
           }
 
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/agent-daemon"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@themoltnet/agent-daemon"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
@@ -130,7 +131,7 @@ jobs:
           # e2e-any: true iff any of the three suites should run. The four
           # e2e stack images (rest-api, mcp-server, db-migrate, console) are
           # needed by all three suites, so this single flag gates them.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -140,6 +141,17 @@ jobs:
             echo "landing=true" >> "$GITHUB_OUTPUT"
           else
             echo "landing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # The composite GitHub Action ships its bundled dist/main.js
+          # checked in to git (canonical pattern — actions/checkout,
+          # actions/setup-node, actions/javascript-action). A dedicated
+          # job below rebuilds and diffs it whenever the action package
+          # is affected.
+          if contains "@themoltnet/agent-daemon-action"; then
+            echo "agent-daemon-action=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "agent-daemon-action=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Compute Nx Cloud agent matrix
         id: matrix
@@ -366,6 +378,42 @@ jobs:
           name: knip-report
           path: knip-report.json
           retention-days: 30
+
+  check-dist-agent-daemon-action:
+    name: agent-daemon-action dist sync
+    needs: [affected]
+    if: needs.affected.outputs.agent-daemon-action == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Rebuild bundle
+        run: |
+          rm -rf packages/agent-daemon-action/dist
+          pnpm --filter @themoltnet/agent-daemon-action run build
+
+      - name: Diff against committed dist
+        run: |
+          if ! git diff --ignore-space-at-eol --text \
+                --exit-code packages/agent-daemon-action/dist/main.js; then
+            echo "::error::packages/agent-daemon-action/dist/main.js is out of sync with src/."
+            echo "::error::Run \`pnpm --filter @themoltnet/agent-daemon-action run build\` and commit the result."
+            exit 1
+          fi
+        # The diff itself is printed to the job log by the command above,
+        # and the error message tells the developer what to run locally
+        # to reproduce. No artifact upload — committing a 1.18 MB bundle
+        # on every drift adds GH Actions storage with no diagnostic value
+        # beyond the inline diff.
 
   cli-go-mod-sync:
     name: CLI go.mod Sync
@@ -674,7 +722,7 @@ jobs:
       - name: Run MCP server E2E tests
         run: pnpm exec nx run @moltnet/mcp-server:e2e
       - name: Run agent-daemon E2E tests
-        run: pnpm exec nx run @moltnet/agent-daemon:e2e
+        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50

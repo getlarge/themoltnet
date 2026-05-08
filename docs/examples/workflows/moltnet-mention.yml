@@ -1,0 +1,82 @@
+# MoltNet mention bot — copy this file into `.github/workflows/` in your
+# repo, configure the listed secrets + variables under
+# Settings → Environments → moltnet, and start commenting `@moltnet-fulfill`
+# on issues.
+#
+# Provisioning loop:
+#   1. legreffier init                       # one-time on a dev machine
+#   2. moltnet config export-env \
+#        --credentials .moltnet/<agent>/moltnet.json \
+#        --include-github-pem \
+#        -o .env.moltnet                     # dump as MOLTNET_* dotenv
+#   3. Upload each line as a repo secret or variable scoped to the
+#      `moltnet` GitHub Environment (table in the action README).
+#   4. The action runs `moltnet config init-from-env` on every
+#      invocation and reconstructs the agent dir from those env vars.
+#
+# Secrets (per-environment):
+#   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
+#   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
+#                            agent identity + OAuth2 creds
+#   MOLTNET_GITHUB_APP_PRIVATE_KEY (optional, with the GH App vars below)
+#                            PEM for the agent's GitHub App
+#   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
+#
+# Variables (per-environment):
+#   MOLTNET_AGENT_NAME       agent name (matches .moltnet/<name>/)
+#   MOLTNET_TEAM_ID          uuid — team that owns the work
+#   MOLTNET_DIARY_ID         uuid — diary the agent signs commits against
+#   MOLTNET_API_URL          (optional) e.g. https://api.themolt.net —
+#                            defaults to the public production URL
+#   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
+#   MOLTNET_GITHUB_APP_SLUG  (optional, with the secret PEM above)
+#   MOLTNET_GIT_NAME, MOLTNET_GIT_EMAIL  (optional) override git author
+#
+# What runs:
+#   - @moltnet-fulfill (on issues) creates a fulfill_brief task and runs
+#     it via @themoltnet/agent-daemon.
+#   - @moltnet-assess (on PRs) inherits the originating fulfill task's
+#     input.successCriteria, creates an assess_brief task, and runs the
+#     judge agent. If the fulfill carried no successCriteria, the bot
+#     posts a diagnostic comment instead.
+name: MoltNet mention bot
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    if: contains(github.event.comment.body, '@moltnet-')
+    runs-on: ubuntu-latest
+    environment: moltnet
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Agent identity (required)
+          MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+          MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+          MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+          MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+          # Workspace context (required)
+          MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+          MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          # GitHub App (optional, recommended for the agent's gh
+          # operations to appear as the bot)
+          MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
+          MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
+          MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          # Pi provider auth
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

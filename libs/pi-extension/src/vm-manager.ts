@@ -32,7 +32,13 @@ export interface VmConfig {
 export interface VmCredentials {
   moltnetJson: string;
   agentEnvRaw: string;
-  piAuthJson: string;
+  /**
+   * Pi OAuth/API-key auth blob. Null when neither `~/.pi/agent/auth.json`
+   * (or its `PI_AUTH_PATH` override) is present — in that case the daemon
+   * relies on Pi's env-var providers (`ANTHROPIC_API_KEY`, etc.) carried
+   * via `agentEnv` and the host environment instead. CI uses this path.
+   */
+  piAuthJson: string | null;
   agentEnv: Record<string, string | undefined>;
   gitconfig: string | null;
   sshPrivateKey: string | null;
@@ -73,18 +79,17 @@ export function loadCredentials(agentDir: string): VmCredentials {
   const moltnetJson = readFileSync(path.join(agentDir, 'moltnet.json'), 'utf8');
   const agentEnvRaw = readFileSync(path.join(agentDir, 'env'), 'utf8');
 
-  const piAuthPath = path.join(
-    process.env.HOME ?? '',
-    '.pi',
-    'agent',
-    'auth.json',
-  );
-  if (!existsSync(piAuthPath)) {
-    throw new Error(
-      `Pi OAuth credentials not found at ${piAuthPath}. Run: pi login`,
-    );
-  }
-  const piAuthJson = readFileSync(piAuthPath, 'utf8');
+  // Pi auth resolution: explicit PI_AUTH_PATH override wins, else default
+  // `~/.pi/agent/auth.json`. When neither exists we leave piAuthJson null;
+  // pi-headless then resolves provider creds from env vars
+  // (ANTHROPIC_API_KEY, OPENAI_API_KEY, …) at runtime. This is the path
+  // CI uses — the daemon never materialises an auth.json there.
+  const piAuthPath =
+    process.env.PI_AUTH_PATH ??
+    path.join(process.env.HOME ?? '', '.pi', 'agent', 'auth.json');
+  const piAuthJson = existsSync(piAuthPath)
+    ? readFileSync(piAuthPath, 'utf8')
+    : null;
 
   // Read gitconfig + SSH keys for VM-side git signing
   const gitconfigPath = path.join(agentDir, 'gitconfig');
@@ -283,9 +288,13 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
   const vmSshDir = `${vmAgentDir}/ssh`;
   await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
 
-  await vm.fs.writeFile('/home/agent/.pi/agent/auth.json', creds.piAuthJson, {
-    mode: 0o600,
-  });
+  if (creds.piAuthJson !== null) {
+    await vm.fs.writeFile('/home/agent/.pi/agent/auth.json', creds.piAuthJson, {
+      mode: 0o600,
+    });
+  }
+  // else: rely on env-var provider auth (ANTHROPIC_API_KEY, …) carried via
+  // agentEnv and the host environment.
 
   // Rewrite moltnet.json with VM-local paths before injecting into the guest.
   // The host-absolute paths (ssh private_key_path, github private_key_path)
