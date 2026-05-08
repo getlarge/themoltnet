@@ -360,7 +360,8 @@ key, and confirms readiness. All subsequent git commits use the agent identity.
 LeGreffier keeps warm activation fast with a local cache at
 `.moltnet/<agent>/activation-cache.json`. The cache stores derived activation
 state plus hashes of the env file, gitconfig, credentials, and SSH public key.
-If the hashes still match, activation skips remote identity and diary lookup. If
+If the hashes still match, activation skips remote identity and diary lookup.
+Transport is still detected per session and is not stored in the cache. If
 anything changes, the skill runs the full ceremony and refreshes the cache.
 
 Manual cache commands:

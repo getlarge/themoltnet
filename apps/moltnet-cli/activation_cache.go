@@ -31,10 +31,8 @@ type activationCache struct {
 	CredentialsPath string                          `json:"credentialsPath"`
 	AuthorshipMode  string                          `json:"authorshipMode"`
 	AgentEmail      string                          `json:"agentEmail"`
-	Transport       string                          `json:"transport"`
 	Inputs          map[string]activationCacheInput `json:"inputs"`
 	CreatedAt       string                          `json:"createdAt"`
-	ValidatedAt     string                          `json:"validatedAt"`
 }
 
 type activationCacheInput struct {
@@ -52,7 +50,6 @@ type activationValidationResult struct {
 	TeamID          string   `json:"teamId,omitempty"`
 	CredentialsPath string   `json:"credentialsPath,omitempty"`
 	GitConfigGlobal string   `json:"gitConfigGlobal,omitempty"`
-	Transport       string   `json:"transport,omitempty"`
 }
 
 type activationContext struct {
@@ -98,7 +95,6 @@ func runAgentsActivationRefreshCmd(w io.Writer, dir, agent string, jsonOut bool)
 		TeamID:          cache.TeamID,
 		CredentialsPath: cache.CredentialsPath,
 		GitConfigGlobal: cache.GitConfigGlobal,
-		Transport:       cache.Transport,
 	}
 	return printActivationValidationResult(w, &result, jsonOut)
 }
@@ -219,10 +215,8 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		CredentialsPath: relativeToRepo(ctx.RepoRoot, credentialsPath),
 		AuthorshipMode:  authorshipMode,
 		AgentEmail:      gitIdentity.Email,
-		Transport:       "cli",
 		Inputs:          inputs,
 		CreatedAt:       now,
-		ValidatedAt:     now,
 	}, nil
 }
 
@@ -250,16 +244,13 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 			changed = append(changed, name)
 		}
 	}
-	for name, cached := range cache.Inputs {
+	for _, cached := range cache.Inputs {
 		current, err := hashActivationInput(ctx.RepoRoot, cached.Path)
 		if err != nil {
 			changed = append(changed, cached.Path)
 			continue
 		}
 		if current.SHA256 != cached.SHA256 {
-			changed = append(changed, cached.Path)
-		}
-		if name == "" {
 			changed = append(changed, cached.Path)
 		}
 	}
@@ -289,7 +280,6 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 		TeamID:          cache.TeamID,
 		CredentialsPath: cache.CredentialsPath,
 		GitConfigGlobal: cache.GitConfigGlobal,
-		Transport:       cache.Transport,
 	}, nil
 }
 

@@ -183,8 +183,8 @@ When subagents are available, delegate diary entry composition (metadata gatheri
 
 Activation has two modes:
 
-- **Warm activation**: local-only cache validation; no network calls.
-- **Cold ceremony**: full identity/diary/transport resolution; used only when the cache is missing, stale, or explicitly bypassed.
+- **Warm activation**: local cache validation for identity and diary state, followed by normal transport detection.
+- **Cold ceremony**: full identity and diary resolution; used only when the cache is missing, stale, or explicitly bypassed.
 
 1. Resolve `AGENT_NAME` (see above). Check worktree.
 2. Set env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
@@ -194,7 +194,7 @@ Activation has two modes:
    moltnet agents activation validate --agent "$AGENT_NAME" --dir . --json
    ```
 
-   If the JSON has `"valid": true`, trust the returned `fingerprint`, `diaryId`, `teamId`, `credentialsPath`, `gitConfigGlobal`, and `transport` for this session. Skip `moltnet_whoami`, diary lookup/create, and transport probing.
+   If the JSON has `"valid": true`, trust the returned `fingerprint`, `diaryId`, `teamId`, `credentialsPath`, and `gitConfigGlobal` for this session. Skip remote identity and diary lookup/create. Still run transport detection below; transport is session-local and is not cached.
 
    If invalid, continue with the cold ceremony below. Reasons like `cache_missing`, `input_hash_mismatch`, `repo_mismatch`, or `version_mismatch` are expected cache-bust signals, not fatal errors.
 

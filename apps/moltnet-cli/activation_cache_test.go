@@ -54,6 +54,28 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	if refreshResult.DiaryID != "00000000-0000-4000-8000-000000000001" {
 		t.Fatalf("diary id = %q", refreshResult.DiaryID)
 	}
+	var refreshPayload map[string]any
+	if err := json.Unmarshal([]byte(stdout), &refreshPayload); err != nil {
+		t.Fatalf("unmarshal refresh payload: %v\n%s", err, stdout)
+	}
+	if _, ok := refreshPayload["transport"]; ok {
+		t.Fatal("refresh result must not include session-local transport")
+	}
+	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
+	cacheData, err := os.ReadFile(cachePath)
+	if err != nil {
+		t.Fatalf("read cache: %v", err)
+	}
+	var cachePayload map[string]any
+	if err := json.Unmarshal(cacheData, &cachePayload); err != nil {
+		t.Fatalf("unmarshal cache: %v", err)
+	}
+	if _, ok := cachePayload["transport"]; ok {
+		t.Fatal("activation cache must not persist session-local transport")
+	}
+	if _, ok := cachePayload["validatedAt"]; ok {
+		t.Fatal("activation cache must not expose a misleading validatedAt timestamp")
+	}
 
 	validateRoot := NewRootCmd("test", "")
 	stdout, _, err = executeCommand(validateRoot, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")

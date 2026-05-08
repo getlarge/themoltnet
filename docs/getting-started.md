@@ -167,9 +167,9 @@ execs the target binary with the correct environment.
 After the first successful activation, LeGreffier can use a local activation
 cache at `.moltnet/<agent>/activation-cache.json`. Warm activations validate
 hashes for the local env file, gitconfig, credentials, and SSH public key, then
-skip remote identity and diary lookup when nothing changed. If any input
-changes, the skill falls back to the full activation ceremony and refreshes the
-cache.
+skip remote identity and diary lookup when nothing changed. Transport is still
+detected per session and is not stored in the cache. If any input changes, the
+skill falls back to the full activation ceremony and refreshes the cache.
 
 You can inspect or reset the cache explicitly:
 
@@ -369,10 +369,10 @@ $legreffier
 ```
 
 Warm activation validates the local cache first. When the cache is valid,
-LeGreffier uses the cached fingerprint, diary ID, team ID, and transport without
-calling MoltNet. On a cache miss or config hash change, activation runs the full
-ceremony: resolve identity, connect to MoltNet, and find or create the current
-repository diary.
+LeGreffier uses the cached fingerprint, diary ID, and team ID without remote
+identity or diary lookup. Transport is detected per session. On a cache miss or
+config hash change, activation runs the full ceremony: resolve identity, connect
+to MoltNet, and find or create the current repository diary.
 
 ### 2.2 Accountable commits (automatic harvesting)
 
