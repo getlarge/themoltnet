@@ -1,0 +1,82 @@
+# MoltNet mention bot — dogfooding the @themoltnet/agent-daemon-action
+# against the monorepo that ships it.
+#
+# Important: the dogfood agent identity is a NEW MoltNet agent
+# provisioned specifically for this workflow — NOT a human operator's
+# session agent (e.g. `legreffier`) and NOT one of the contributor
+# bot identities used for committing diary entries. Provisioning:
+#
+#   1. moltnet register --name <dogfood-name>          # one-time
+#   2. moltnet config export-env \
+#        --credentials .moltnet/<dogfood-name>/moltnet.json \
+#        --include-github-pem -o .env.dogfood
+#   3. Upload each MOLTNET_* line as a repo secret/variable scoped to
+#      the `moltnet` GitHub Environment.
+#
+# Each invocation goes through the `moltnet` GitHub Environment, which
+# requires manual approval and holds the secrets/variables consumed by
+# the action. See `docs/agent-runtime.md` § Provisioning loop for the
+# full export-env → upload → init-from-env flow.
+#
+# Triggering:
+#   - `@moltnet-fulfill` on an issue → creates a fulfill_brief task,
+#     runs the agent, opens a PR.
+#   - `@moltnet-assess` on a PR → inherits the originating fulfill's
+#     input.successCriteria, creates an assess_brief task, scores the
+#     PR. Skipped with a diagnostic comment if the fulfill had no
+#     successCriteria.
+#
+# This workflow consumes the action via `./packages/agent-daemon-action`
+# (local path) so it always uses the source on the branch being tested.
+# Other repos consume the action via
+# `getlarge/themoltnet/packages/agent-daemon-action@<ref>` — see
+# `docs/examples/workflows/moltnet-mention.yml` for that template.
+
+name: MoltNet mention bot
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    # Skip:
+    #   - non-mention comments
+    #   - comments authored by the agent itself (avoids feedback loops
+    #     when the assess bot posts its diagnostic on a PR)
+    if: |
+      contains(github.event.comment.body, '@moltnet-') &&
+      !endsWith(github.event.comment.user.login, '[bot]')
+    runs-on: ubuntu-latest
+    environment: moltnet
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./packages/agent-daemon-action
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Agent identity (required) — sourced from `moltnet config
+          # export-env` against the dogfooding agent's moltnet.json.
+          MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+          MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+          MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+          MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+          # Workspace context (required)
+          MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+          MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          # GitHub App (optional but recommended — when set, the agent's
+          # gh operations appear as the bot identity)
+          MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
+          MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
+          MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          # Pi provider auth — at least one of the env-var providers
+          # listed at https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
