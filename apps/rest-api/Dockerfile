@@ -55,7 +55,12 @@ FROM deps AS build
 
 COPY . .
 
-RUN pnpm exec nx run @moltnet/rest-api:build:migrate
+# Build the main bundle and the migrate bundle (mirrors the
+# `build:migrate` Nx target in apps/rest-api/project.json). Calling
+# vite directly avoids invoking nx inside the container, which would
+# need every devDependency just to enumerate the project graph.
+RUN pnpm --filter @moltnet/rest-api exec vite build && \
+    pnpm --filter @moltnet/rest-api exec vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false
 
 # Extract rest-api with production-only dependencies
 RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
