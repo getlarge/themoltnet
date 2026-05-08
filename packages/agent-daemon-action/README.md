@@ -20,6 +20,11 @@ Two modes:
     task-id: ${{ inputs.task-id }} # optional
     mode: once # once | drain (poll disallowed in CI)
     daemon-version: latest
+    # Required — pick a provider/model the daemon is configured for.
+    # Equivalently set MOLTNET_AGENT_PROVIDER / MOLTNET_AGENT_MODEL on
+    # `env:` below; either form works.
+    provider: anthropic
+    model: claude-sonnet-4-5
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
@@ -62,6 +67,8 @@ calls `moltnet config init-from-env` on each run to reconstruct
 | `MOLTNET_TEAM_ID`                                                                                                                     | variable | UUID of the MoltNet team that owns the work.                                                                                                                                                                                                      |
 | `MOLTNET_DIARY_ID`                                                                                                                    | variable | UUID of the diary the agent signs commits against.                                                                                                                                                                                                |
 | `MOLTNET_API_URL`                                                                                                                     | variable | _Optional._ Defaults to `https://api.themolt.net`.                                                                                                                                                                                                |
+| `MOLTNET_AGENT_PROVIDER`                                                                                                              | variable | **Required.** Pi provider key (`anthropic`, `openai`, `bedrock`, …). Equivalent to the `provider` action input — set whichever is more convenient. The daemon refuses to start without one.                                                       |
+| `MOLTNET_AGENT_MODEL`                                                                                                                 | variable | **Required.** Model id understood by the chosen provider (e.g. `claude-sonnet-4-5`, `gpt-4o-mini`). Equivalent to the `model` action input.                                                                                                       |
 | `MOLTNET_GITHUB_APP_ID`                                                                                                               | variable | _Optional._ GitHub App id for bot-attributed gh ops.                                                                                                                                                                                              |
 | `MOLTNET_GITHUB_APP_INSTALLATION_ID`                                                                                                  | variable | _Optional._ Installation id for the App.                                                                                                                                                                                                          |
 | `MOLTNET_GITHUB_APP_SLUG`                                                                                                             | variable | _Optional._ Slug; PEM is written to `<slug>.pem`.                                                                                                                                                                                                 |
