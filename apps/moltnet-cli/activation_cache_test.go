@@ -31,6 +31,32 @@ func TestAgentsActivationValidateMissingCache(t *testing.T) {
 	}
 }
 
+func TestAgentsActivationValidateCorruptedCache(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
+	if err := os.WriteFile(cachePath, []byte("{not valid json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	if err != nil {
+		t.Fatalf("validate: %v", err)
+	}
+
+	var result activationValidationResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("unmarshal result: %v\n%s", err, stdout)
+	}
+	if result.Valid {
+		t.Fatal("expected corrupted cache to be invalid")
+	}
+	if result.Reason != "cache_corrupted" {
+		t.Fatalf("reason = %q, want cache_corrupted", result.Reason)
+	}
+}
+
 func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	t.Parallel()
 	dir := setupActivationCacheFixture(t)
@@ -222,7 +248,7 @@ func setupActivationCacheFixture(t *testing.T) string {
 		t.Fatal(err)
 	}
 	env := "MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'\nMOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"
-	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	creds := CredentialsFile{
