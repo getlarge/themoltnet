@@ -643,6 +643,11 @@ jobs:
       ORY_KRATOS_ADMIN_URL: http://localhost:4434
       ORY_KRATOS_PUBLIC_URL: http://localhost:4433
       SERVER_BASE_URL: http://localhost:8080
+      # Must match the value injected into the rest-api container in
+      # docker-compose.e2e.yaml. The test reads it from process.env to sign
+      # webhook calls; if the encrypted .env gets loaded first, the test
+      # uses ciphertext and the server returns 403.
+      ORY_ACTION_API_KEY: local-dev-webhook-key
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
