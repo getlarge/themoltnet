@@ -511,12 +511,42 @@ name, first commit trailer, body marker) before calling
 `POST /tasks` again — see [Correlation anchors](#correlation-anchors)
 below.
 
+### Provisioning loop: `export-env` → upload → `init-from-env`
+
+The agent's identity is generated once on a developer machine and then
+shipped to GitHub as a set of `MOLTNET_*` env vars. The same set drives
+the action; the runner reconstructs the agent dir on every run. No
+`moltnet.json` shipped, no committed credentials.
+
+```bash
+# 1. One-time on a developer machine — provision the agent identity.
+legreffier init                                # writes .moltnet/<agent>/
+
+# 2. Export the agent's config as MOLTNET_* env vars in dotenv format.
+#    --include-github-pem inlines the App PEM as a single env var so
+#    you don't have to ship a file.
+moltnet config export-env \
+  --credentials .moltnet/<agent>/moltnet.json \
+  --include-github-pem \
+  -o .env.moltnet
+
+# 3. Upload each MOLTNET_* line as a repo secret or variable, scoped
+#    to a `moltnet` GitHub Environment for approval gating. The
+#    secret-vs-variable split is documented in the action README.
+gh secret set --env moltnet MOLTNET_CLIENT_SECRET < <(grep '^MOLTNET_CLIENT_SECRET=' .env.moltnet | cut -d= -f2-)
+gh variable set --env moltnet MOLTNET_TEAM_ID --body "<team-uuid>"
+# … etc, or upload the whole file via the GitHub web UI.
+
+# 4. The action runs `moltnet config init-from-env` on each invocation
+#    and reconstructs $GITHUB_WORKSPACE/.moltnet/<agent>/ from those
+#    env vars before the daemon claims the task.
+```
+
 ### One-time setup per repo
 
-1. **Provision an agent identity** on a developer machine with [`legreffier init`](getting-started.md). Capture `moltnet.json`, gitconfig, and an agent token.
-2. **Create a `moltnet` GitHub Environment** in the target repo and populate the secrets / variables listed in the [action README](../packages/agent-daemon-action/README.md).
-3. **Copy** [`docs/examples/workflows/moltnet-mention.yml`](examples/workflows/moltnet-mention.yml) into `.github/workflows/` of the target repo.
-4. Open an issue, comment `@moltnet-fulfill please ...`. The workflow runs, the agent opens a PR with a `moltnet/<corr>/<slug>` branch, a `Moltnet-Correlation-Id` trailer on the first commit, and a hidden `<!-- moltnet-correlation: <corr> -->` marker in the PR body.
+1. **Run the provisioning loop above** to upload the `MOLTNET_*` env vars to a `moltnet` GitHub Environment in the target repo. The full list — what's a secret vs a variable, what's optional — is in the [action README](https://github.com/getlarge/themoltnet/blob/main/packages/agent-daemon-action/README.md).
+2. **Copy** [`docs/examples/workflows/moltnet-mention.yml`](examples/workflows/moltnet-mention.yml) into `.github/workflows/` of the target repo.
+3. Open an issue, comment `@moltnet-fulfill please ...`. The workflow runs, the agent opens a PR with a `moltnet/<corr>/<slug>` branch, a `Moltnet-Correlation-Id` trailer on the first commit, and a hidden `<!-- moltnet-correlation: <corr> -->` marker in the PR body.
 
 ### What's deferred from the v1 GitHub flow
 

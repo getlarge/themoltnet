@@ -3,10 +3,16 @@
 # Settings → Environments → moltnet, and start commenting `@moltnet-fulfill`
 # on issues.
 #
-# The action calls `moltnet config init-from-env` to reconstruct the
-# agent's $GITHUB_WORKSPACE/.moltnet/<agent>/ tree from env vars. Set
-# these as repo/environment secrets + variables (see action README for
-# the full table).
+# Provisioning loop:
+#   1. legreffier init                       # one-time on a dev machine
+#   2. moltnet config export-env \
+#        --credentials .moltnet/<agent>/moltnet.json \
+#        --include-github-pem \
+#        -o .env.moltnet                     # dump as MOLTNET_* dotenv
+#   3. Upload each line as a repo secret or variable scoped to the
+#      `moltnet` GitHub Environment (table in the action README).
+#   4. The action runs `moltnet config init-from-env` on every
+#      invocation and reconstructs the agent dir from those env vars.
 #
 # Secrets (per-environment):
 #   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,

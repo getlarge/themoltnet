@@ -38,16 +38,17 @@ Two modes:
 A copy-paste workflow template lives at
 [`docs/examples/workflows/moltnet-mention.yml`](../../docs/examples/workflows/moltnet-mention.yml).
 
+The full provisioning walkthrough (`legreffier init` → `moltnet config
+export-env` → upload → `moltnet config init-from-env` on the runner)
+is documented in
+[`docs/agent-runtime.md` § Provisioning loop](https://github.com/getlarge/themoltnet/blob/main/docs/agent-runtime.md#provisioning-loop-export-env--upload--init-from-env).
+
 ## Required secrets / vars
 
-Scope these to a GitHub Environment named `moltnet` so deployments require
-manual approval (recommended for cost control).
-
-The action calls
-[`moltnet config init-from-env`](../../apps/moltnet-cli) to reconstruct
-the agent's `$GITHUB_WORKSPACE/.moltnet/<agent>/` tree (moltnet.json,
-SSH keys, gitconfig, optional GitHub App PEM) from these env vars on
-each run.
+Scope these to a GitHub Environment named `moltnet` so deployments
+require manual approval (recommended for cost control). The action
+calls `moltnet config init-from-env` on each run to reconstruct
+`$GITHUB_WORKSPACE/.moltnet/<agent>/` from these env vars.
 
 | Name                                                                                                                                  | Kind     | Purpose                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
@@ -69,11 +70,6 @@ each run.
 | `MOLTNET_GIT_EMAIL`                                                                                                                   | variable | _Optional._ Override the git author email.                                        |
 | `ANTHROPIC_API_KEY` _(or other [Pi env-var provider](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts))_ | secret   | Provider key Pi will use inside the daemon's VM.                                  |
 | `PI_AUTH_JSON`                                                                                                                        | secret   | _Optional._ Only needed for OAuth-subscription Pi auth.                           |
-
-Provision the identity once on a developer machine with
-[`legreffier init`](../../docs/getting-started.md), then export the
-credentials with `moltnet config export-env` and upload them to the
-repo's `moltnet` environment.
 
 ## Correlation anchors
 
