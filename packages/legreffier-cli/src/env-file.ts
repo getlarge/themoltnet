@@ -12,6 +12,7 @@ export interface WriteEnvFileOptions {
   appId: string;
   pemPath: string;
   installationId: string;
+  fingerprint?: string;
 }
 
 /**
@@ -45,6 +46,9 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
     [`${opts.prefix}_GITHUB_APP_INSTALLATION_ID`, q(opts.installationId)],
     ['GIT_CONFIG_GLOBAL', q(`.moltnet/${opts.agentName}/gitconfig`)],
     ['MOLTNET_AGENT_NAME', q(opts.agentName)],
+    ...(opts.fingerprint
+      ? ([['MOLTNET_FINGERPRINT', q(opts.fingerprint)]] as [string, string][])
+      : []),
   ];
   const managedKeys = new Set(managedEntries.map(([k]) => k));
 

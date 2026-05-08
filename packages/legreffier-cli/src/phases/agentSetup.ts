@@ -120,6 +120,7 @@ export async function runAgentSetupPhase(opts: {
     appId,
     pemPath,
     installationId,
+    fingerprint,
   });
 
   // Auto-populate human git identity for co-authorship support.

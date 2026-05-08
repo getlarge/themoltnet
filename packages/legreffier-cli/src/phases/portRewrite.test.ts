@@ -112,5 +112,6 @@ describe('runPortRewritePhase', () => {
     );
     expect(envContent).toContain(`LEGREFFIER_GITHUB_APP_ID='2878569'`);
     expect(envContent).toContain(`MOLTNET_AGENT_NAME='legreffier'`);
+    expect(envContent).toContain(`MOLTNET_FINGERPRINT='ed25519:fp'`);
   });
 });

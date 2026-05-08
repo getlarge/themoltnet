@@ -265,6 +265,7 @@ describe('buildCodexRules', () => {
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "diary", "verify"]',
     );
+    expect(rules).toContain('pattern = ["moltnet", "agents", "activation"]');
     expect(rules).toContain('pattern = ["moltnet", "diary", "commit"]');
     expect(rules).toContain('pattern = ["moltnet", "diary", "create-signed"]');
     expect(rules).toContain('pattern = ["moltnet", "diary", "verify"]');
@@ -410,6 +411,7 @@ describe('writeEnvFile', () => {
       appId: '2878569',
       pemPath: '/tmp/my-app.pem',
       installationId: '12345',
+      fingerprint: 'SHA256:testfingerprint',
     });
 
     const content = await readFile(join(envDir, 'env'), 'utf-8');
@@ -424,6 +426,7 @@ describe('writeEnvFile', () => {
       "GIT_CONFIG_GLOBAL='.moltnet/my-agent/gitconfig'",
     );
     expect(content).toContain("MOLTNET_AGENT_NAME='my-agent'");
+    expect(content).toContain("MOLTNET_FINGERPRINT='SHA256:testfingerprint'");
   });
 
   it('preserves user-added vars on re-run', async () => {
