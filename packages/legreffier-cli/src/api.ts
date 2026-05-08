@@ -72,6 +72,7 @@ export interface OnboardingStatusResult {
   identityId?: string;
   clientId?: string;
   clientSecret?: string;
+  installationId?: string;
 }
 
 export function makeClient(baseUrl: string) {

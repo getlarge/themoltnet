@@ -653,6 +653,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
             identityId: result.identityId,
             clientId: result.clientId,
             clientSecret: result.clientSecret,
+            installationId: result.installationId,
           };
         } catch (err) {
           request.log.warn(

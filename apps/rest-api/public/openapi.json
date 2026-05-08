@@ -14077,6 +14077,9 @@
                     "identityId": {
                       "type": "string"
                     },
+                    "installationId": {
+                      "type": "string"
+                    },
                     "status": {
                       "anyOf": [
                         {
