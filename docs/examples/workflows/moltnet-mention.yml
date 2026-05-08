@@ -123,5 +123,10 @@ jobs:
           MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
           MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
           MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-          # Pi provider auth
+          # Pi provider auth — pick one or both:
+          #   - ANTHROPIC_API_KEY / OPENAI_API_KEY / etc. (stateless)
+          #   - PI_AUTH_JSON (subscription OAuth — contents of
+          #     `~/.pi/agent/auth.json` produced by `pi /login`;
+          #     re-seed manually when the refresh window elapses)
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}

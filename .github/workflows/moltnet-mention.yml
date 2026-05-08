@@ -115,6 +115,16 @@ jobs:
           MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
           MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
           MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-          # Pi provider auth — at least one of the env-var providers
-          # listed at https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts
+          # Pi provider auth. Two mutually-compatible options:
+          #   - Env-var providers (cheapest, stateless): set
+          #     ANTHROPIC_API_KEY / OPENAI_API_KEY / etc. Pi reads
+          #     these natively.
+          #   - Subscription OAuth (covered by ChatGPT Plus/Pro,
+          #     Claude Pro/Max, GitHub Copilot): set PI_AUTH_JSON to
+          #     the contents of `~/.pi/agent/auth.json` produced by
+          #     `pi /login` on a developer machine. The action writes
+          #     it to $RUNNER_TEMP and points Pi at it via
+          #     PI_AUTH_PATH. Re-seed manually when the refresh window
+          #     elapses (~30 days for Codex).
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}

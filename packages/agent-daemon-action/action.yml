@@ -86,6 +86,37 @@ runs:
           echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
         } >> "$GITHUB_ENV"
 
+    - name: Materialize Pi auth.json (when PI_AUTH_JSON is set)
+      shell: bash
+      run: |
+        set -euo pipefail
+        # When the caller exports PI_AUTH_JSON (the contents of an
+        # `~/.pi/agent/auth.json` produced by `pi /login` against
+        # subscription providers — Anthropic Pro/Max, ChatGPT
+        # Plus/Pro Codex, GitHub Copilot), write it to a runner-local
+        # path and point pi-extension at it via PI_AUTH_PATH.
+        #
+        # If PI_AUTH_JSON is absent the daemon falls back to env-var
+        # providers (ANTHROPIC_API_KEY etc.) which Pi reads natively.
+        #
+        # Refresh / re-seed: Pi rotates the OAuth tokens on each run
+        # but this action does not write the rotated file back.
+        # Subscription tokens age out within Pi's refresh window
+        # (~30 days for ChatGPT Codex per the OpenAI CI/CD doc).
+        # When that happens, re-run `pi /login` locally and re-upload
+        # the secret. See:
+        # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
+        if [ -n "${PI_AUTH_JSON:-}" ]; then
+          PI_AUTH_PATH="$RUNNER_TEMP/.pi/agent/auth.json"
+          mkdir -p "$(dirname "$PI_AUTH_PATH")"
+          printf '%s' "$PI_AUTH_JSON" > "$PI_AUTH_PATH"
+          chmod 600 "$PI_AUTH_PATH"
+          echo "PI_AUTH_PATH=$PI_AUTH_PATH" >> "$GITHUB_ENV"
+          echo "::notice::Pi auth.json materialized at \$PI_AUTH_PATH"
+        else
+          echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
+        fi
+
     - id: dispatch
       if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
       shell: bash
