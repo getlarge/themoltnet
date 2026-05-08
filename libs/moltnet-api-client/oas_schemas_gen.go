@@ -9221,11 +9221,12 @@ type GetLatestRenderedPackUnauthorized ProblemDetails
 func (*GetLatestRenderedPackUnauthorized) getLatestRenderedPackRes() {}
 
 type GetLegreffierOnboardingStatusOK struct {
-	ClientId     OptString                             `json:"clientId"`
-	ClientSecret OptString                             `json:"clientSecret"`
-	GithubCode   OptString                             `json:"githubCode"`
-	IdentityId   OptString                             `json:"identityId"`
-	Status       GetLegreffierOnboardingStatusOKStatus `json:"status"`
+	ClientId       OptString                             `json:"clientId"`
+	ClientSecret   OptString                             `json:"clientSecret"`
+	GithubCode     OptString                             `json:"githubCode"`
+	IdentityId     OptString                             `json:"identityId"`
+	InstallationId OptString                             `json:"installationId"`
+	Status         GetLegreffierOnboardingStatusOKStatus `json:"status"`
 }
 
 // GetClientId returns the value of ClientId.
@@ -9246,6 +9247,11 @@ func (s *GetLegreffierOnboardingStatusOK) GetGithubCode() OptString {
 // GetIdentityId returns the value of IdentityId.
 func (s *GetLegreffierOnboardingStatusOK) GetIdentityId() OptString {
 	return s.IdentityId
+}
+
+// GetInstallationId returns the value of InstallationId.
+func (s *GetLegreffierOnboardingStatusOK) GetInstallationId() OptString {
+	return s.InstallationId
 }
 
 // GetStatus returns the value of Status.
@@ -9271,6 +9277,11 @@ func (s *GetLegreffierOnboardingStatusOK) SetGithubCode(val OptString) {
 // SetIdentityId sets the value of IdentityId.
 func (s *GetLegreffierOnboardingStatusOK) SetIdentityId(val OptString) {
 	s.IdentityId = val
+}
+
+// SetInstallationId sets the value of InstallationId.
+func (s *GetLegreffierOnboardingStatusOK) SetInstallationId(val OptString) {
+	s.InstallationId = val
 }
 
 // SetStatus sets the value of Status.

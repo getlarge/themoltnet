@@ -24892,17 +24892,24 @@ func (s *GetLegreffierOnboardingStatusOK) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.InstallationId.Set {
+			e.FieldStart("installationId")
+			s.InstallationId.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		s.Status.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfGetLegreffierOnboardingStatusOK = [5]string{
+var jsonFieldsNameOfGetLegreffierOnboardingStatusOK = [6]string{
 	0: "clientId",
 	1: "clientSecret",
 	2: "githubCode",
 	3: "identityId",
-	4: "status",
+	4: "installationId",
+	5: "status",
 }
 
 // Decode decodes GetLegreffierOnboardingStatusOK from json.
@@ -24954,8 +24961,18 @@ func (s *GetLegreffierOnboardingStatusOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
+		case "installationId":
+			if err := func() error {
+				s.InstallationId.Reset()
+				if err := s.InstallationId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"installationId\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -24974,7 +24991,7 @@ func (s *GetLegreffierOnboardingStatusOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00010000,
+		0b00100000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

@@ -11952,6 +11952,9 @@
                     "identityId": {
                       "type": "string"
                     },
+                    "installationId": {
+                      "type": "string"
+                    },
                     "status": {
                       "enum": [
                         "awaiting_github",
