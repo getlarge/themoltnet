@@ -34,8 +34,8 @@ export default defineConfig({
       'cpu-features',
       // pi-extension declares these as peerDeps so the daemon must list
       // them as runtime deps; consumers must `npm install` them too.
-      '@mariozechner/pi-coding-agent',
-      '@mariozechner/pi-ai',
+      '@earendil-works/pi-coding-agent',
+      '@earendil-works/pi-ai',
     ],
   },
   test: {

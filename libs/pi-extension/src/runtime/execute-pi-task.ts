@@ -18,8 +18,8 @@ import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { type Api, getModel, type Model } from '@mariozechner/pi-ai';
-import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
+import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
+import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import {
   createAgentSession,
   createBashToolDefinition,
@@ -28,7 +28,7 @@ import {
   createWriteToolDefinition,
   DefaultResourceLoader,
   SessionManager,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   buildPromptForTask,

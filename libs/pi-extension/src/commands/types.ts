@@ -2,7 +2,7 @@ import type { VM } from '@earendil-works/gondolin';
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
 export interface SessionMeta {

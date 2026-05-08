@@ -13,7 +13,7 @@ import type {
   EditOperations,
   ReadOperations,
   WriteOperations,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 
 export type { BashOperations, EditOperations, ReadOperations, WriteOperations };
 

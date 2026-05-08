@@ -7,9 +7,9 @@
  */
 import { execFileSync } from 'node:child_process';
 
-import { Type } from '@mariozechner/pi-ai';
-import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
-import { defineTool } from '@mariozechner/pi-coding-agent';
+import { Type } from '@earendil-works/pi-ai';
+import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
 import type { TrackedError } from '../commands/types.js';

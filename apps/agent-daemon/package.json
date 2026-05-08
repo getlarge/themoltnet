@@ -30,8 +30,8 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
-    "@mariozechner/pi-ai": "catalog:",
-    "@mariozechner/pi-coding-agent": "catalog:",
+    "@earendil-works/pi-ai": "catalog:",
+    "@earendil-works/pi-coding-agent": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "@opentelemetry/resources": "catalog:",
