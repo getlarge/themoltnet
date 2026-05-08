@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.5](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.4...github-agent-v0.23.5) (2026-05-08)
+
+
+### Bug Fixes
+
+* **nx:** restore three-group build/typecheck cache contract ([07b2afe](https://github.com/getlarge/themoltnet/commit/07b2afea6e627619100b5f871819001f22bc8266))
+* **nx:** restore three-group build/typecheck cache contract ([0373e9d](https://github.com/getlarge/themoltnet/commit/0373e9dc63f016e312e3a860e9772277baf0f0f6))
+
 ## [0.23.4](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.3...github-agent-v0.23.4) (2026-05-08)
 
 

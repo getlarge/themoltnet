@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.36.2](https://github.com/getlarge/themoltnet/compare/cli-v1.36.1...cli-v1.36.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **nx:** restore three-group build/typecheck cache contract ([07b2afe](https://github.com/getlarge/themoltnet/commit/07b2afea6e627619100b5f871819001f22bc8266))
+
 ## [1.36.1](https://github.com/getlarge/themoltnet/compare/cli-v1.36.0...cli-v1.36.1) (2026-05-08)
 
 

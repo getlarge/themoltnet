@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.25.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.25.0...moltnet-api-client-v1.25.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **legreffier:** thread GitHub App installation_id through onboarding response ([149db2a](https://github.com/getlarge/themoltnet/commit/149db2ab63369d6f1de3650017c0a34f0ac757d8))
+
+
+### Codegen
+
+* **api-client:** regenerate Go client for installationId field ([f674596](https://github.com/getlarge/themoltnet/commit/f67459660f50b7cd2d44fa011057ee343a1ff685))
+
 ## [1.25.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.24.1...moltnet-api-client-v1.25.0) (2026-05-08)
 
 

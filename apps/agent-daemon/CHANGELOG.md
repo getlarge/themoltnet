@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.2.0...agent-daemon-v0.2.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** require provider+model; migrate Pi packages to [@earendil-works](https://github.com/earendil-works) ([369d137](https://github.com/getlarge/themoltnet/commit/369d137cbc25100b3614d0c73eb174d306894a7d))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.1.0...agent-daemon-v0.2.0) (2026-05-08)
 
 

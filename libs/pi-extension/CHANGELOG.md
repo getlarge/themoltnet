@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.0...pi-extension-v0.13.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** require provider+model; migrate Pi packages to [@earendil-works](https://github.com/earendil-works) ([369d137](https://github.com/getlarge/themoltnet/commit/369d137cbc25100b3614d0c73eb174d306894a7d))
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.12.0...pi-extension-v0.13.0) (2026-05-08)
 
 
