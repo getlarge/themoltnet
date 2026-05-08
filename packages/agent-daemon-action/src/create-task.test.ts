@@ -13,12 +13,10 @@ const BASE_INPUT = {
 };
 
 function makeAgent() {
-  const create = vi
-    .fn()
-    .mockResolvedValue({
-      id: 'task-1',
-      correlationId: BASE_INPUT.correlationId,
-    });
+  const create = vi.fn().mockResolvedValue({
+    id: 'task-1',
+    correlationId: BASE_INPUT.correlationId,
+  });
   return {
     agent: { tasks: { create } } as unknown as Agent,
     create,
