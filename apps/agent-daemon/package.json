@@ -26,7 +26,6 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {

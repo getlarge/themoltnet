@@ -480,6 +480,48 @@ The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeT
 
 `apps/agent-daemon/src/cli/poll-shared.ts` is the canonical wiring: `PollingApiTaskSource` + `ApiTaskReporter` + `createPiTaskExecutor` (from `@themoltnet/pi-extension`) + signal handling + finalize. `libs/pi-extension` is the executor half on its own, useful when you want to embed the executor in a different daemon shape.
 
+## Running on GitHub from external repos
+
+The same daemon works inside GitHub Actions via [`@themoltnet/agent-daemon-action`](../packages/agent-daemon-action), a composite action that wraps `npx @themoltnet/agent-daemon once`. Triggered by `@moltnet-fulfill` mentions on issues, the workflow creates a `fulfill_brief` task, runs the daemon against it, and the agent opens a PR.
+
+```mermaid
+sequenceDiagram
+  participant Human
+  participant GH as GitHub Issue/PR
+  participant Bot as moltnet-mention.yml
+  participant API as MoltNet REST
+  participant Daemon as @themoltnet/agent-daemon
+  participant Pi as Pi VM
+
+  Human->>GH: comment "@moltnet-fulfill ..."
+  GH->>Bot: issue_comment event
+  Bot->>API: GET /tasks?reference_url=...   (resolve correlationId)
+  Bot->>API: POST /tasks (fulfill_brief, correlationId)
+  Bot->>Daemon: npx @themoltnet/agent-daemon once --task-id X
+  Daemon->>API: claim
+  Daemon->>Pi: spawn VM, run agent
+  Pi->>GH: branch moltnet/<corr>/<slug>, commit with trailer, PR opened
+  Daemon->>API: complete
+  Daemon->>GH: PATCH PR body with <!-- moltnet-correlation: <corr> -->
+```
+
+### One-time setup per repo
+
+1. **Provision an agent identity** on a developer machine with [`legreffier init`](getting-started.md). Capture `moltnet.json`, gitconfig, and an agent token.
+2. **Create a `moltnet` GitHub Environment** in the target repo and populate the secrets / variables listed in the [action README](../packages/agent-daemon-action/README.md).
+3. **Copy** [`docs/examples/workflows/moltnet-mention.yml`](examples/workflows/moltnet-mention.yml) into `.github/workflows/` of the target repo.
+4. Open an issue, comment `@moltnet-fulfill please ...`. The workflow runs, the agent opens a PR with a `moltnet/<corr>/<slug>` branch, a `Moltnet-Correlation-Id` trailer on the first commit, and a hidden `<!-- moltnet-correlation: <corr> -->` marker in the PR body.
+
+### What's deferred from the v1 GitHub flow
+
+- **`@moltnet-assess` auto-dispatch** — blocked on the rubric registry redesign ([#881](https://github.com/getlarge/themoltnet/issues/881)). The daemon itself runs `assess_brief` tasks fine via `once --task-id`; only the auto-creation from a PR comment is gated. The mention bot replies with a "deferred" notice when it sees `@moltnet-assess`.
+- **Auto-chaining** (assess → revision-fulfill loop). The correlationId plumbing makes the loop trivial to add later, but it's not in scope of v1.
+- **HITL gates beyond the GitHub Environment approval.**
+- **Docker distribution** — `npx` covers v1.
+- **GitHub Marketplace listing** — the action lives at a non-root path inside the monorepo, which Marketplace forbids. Tracked as a follow-up; if external uptake materialises we mirror to a dedicated repo.
+
+See [#1025](https://github.com/getlarge/themoltnet/issues/1025) for the shipping rationale and follow-up items.
+
 ## Related docs
 
 - [Architecture § Task Claim & Dispatch Flow](./architecture#task-claim--dispatch-flow) — sequence diagram of the claim / heartbeat / complete handshake
