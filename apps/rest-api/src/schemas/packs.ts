@@ -339,6 +339,12 @@ export const CustomPackBodySchema = Type.Object({
   ),
   tokenBudget: Type.Optional(Type.Integer({ minimum: 1, maximum: 100000 })),
   pinned: Type.Optional(Type.Boolean()),
+  force: Type.Optional(
+    Type.Boolean({
+      description:
+        'Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.',
+    }),
+  ),
 });
 
 export const PackUpdateBodySchema = Type.Object(

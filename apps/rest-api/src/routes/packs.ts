@@ -8,7 +8,7 @@ import {
 } from '@moltnet/context-distill';
 import { PackServiceError } from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
-import { DiaryServiceError } from '@moltnet/diary-service';
+import { DiaryServiceError, scanForInjection } from '@moltnet/diary-service';
 import {
   DiaryParamsSchema,
   ProblemDetailsSchema,
@@ -50,10 +50,12 @@ interface ResolvedSelection {
   rank: number;
   row: {
     id: string;
+    title: string | null;
     content: string;
     contentHash: string | null;
     importance: number;
     createdAt: Date;
+    injectionRisk: boolean;
   };
 }
 
@@ -170,9 +172,33 @@ async function loadSelectedEntries(
     }
     return {
       rank: entry.rank,
-      row,
+      row: {
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        contentHash: row.contentHash,
+        importance: row.importance,
+        createdAt: row.createdAt,
+        injectionRisk: row.injectionRisk,
+      },
     };
   });
+}
+
+function assertNoInjectionRisk(selectedEntries: ResolvedSelection[]): void {
+  const flagged = selectedEntries.filter(({ row }) => row.injectionRisk);
+  if (flagged.length === 0) return;
+
+  const flaggedDetail = flagged.map(({ row }) => {
+    const { threats } = scanForInjection(row.content, row.title);
+    return { id: row.id, threats };
+  });
+
+  throw createProblem(
+    'conflict',
+    `Pack contains ${flagged.length} entry(ies) flagged as prompt-injection risk; pass force: true to override.`,
+    { flagged: flaggedDetail },
+  );
 }
 
 function fitCustomPackEntries(
@@ -310,6 +336,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         entries: SelectedEntry[];
         tokenBudget?: number;
         pinned?: boolean;
+        force?: boolean;
       };
       authContext:
         | { identityId: string; subjectType: 'agent' }
@@ -339,6 +366,11 @@ export async function packRoutes(fastify: FastifyInstance) {
       diary.id,
       request.body.entries,
     );
+
+    if (!request.body.force) {
+      assertNoInjectionRisk(selectedEntries);
+    }
+
     const { entries, stats } = fitCustomPackEntries(
       selectedEntries,
       request.body.tokenBudget,
@@ -830,6 +862,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -862,6 +895,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },

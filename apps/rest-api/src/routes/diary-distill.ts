@@ -113,8 +113,9 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'consolidateDiary',
         tags: ['diary'],
+        deprecated: true,
         description:
-          'Cluster semantically similar entries and return consolidation suggestions.',
+          '[DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: Type.Object({
@@ -188,8 +189,9 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'compileDiary',
         tags: ['diary'],
+        deprecated: true,
         description:
-          'Compile a token-budget-fitted context pack from diary entries.',
+          '[DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: Type.Object({
