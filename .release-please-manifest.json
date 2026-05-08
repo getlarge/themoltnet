@@ -1,5 +1,5 @@
 {
-  "apps/agent-daemon": "0.2.1",
+  "apps/agent-daemon": "0.2.2",
   "apps/moltnet-cli": "1.37.0",
   "libs/agent-runtime": "0.10.0",
   "libs/design-system": "0.7.2",
