@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.37.1](https://github.com/getlarge/themoltnet/compare/cli-v1.37.0...cli-v1.37.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **moltnet-cli,legreffier-cli:** address PR [#1052](https://github.com/getlarge/themoltnet/issues/1052) activation cache review ([2a42850](https://github.com/getlarge/themoltnet/commit/2a42850567b412130735dd57d16b69f2d4fbcf03))
+* **moltnet-cli,legreffier-cli:** address PR [#1052](https://github.com/getlarge/themoltnet/issues/1052) activation cache review ([aa1a748](https://github.com/getlarge/themoltnet/commit/aa1a748f28f4b7531b51183ac356f641e3dbec59))
+
 ## [1.37.0](https://github.com/getlarge/themoltnet/compare/cli-v1.36.2...cli-v1.37.0) (2026-05-08)
 
 

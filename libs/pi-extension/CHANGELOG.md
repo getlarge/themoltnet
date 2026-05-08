@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.3](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.2...pi-extension-v0.13.3) (2026-05-08)
+
+
+### Bug Fixes
+
+* **pi-extension:** surface pi's underlying error on llm_api_error ([6ec3cfa](https://github.com/getlarge/themoltnet/commit/6ec3cfaf6e4118c360ed16fd8a46e84fa48941f6))
+* surface pi LLM errors, fix PI auth resolution on host runner, cache gondolin snapshot ([fe05ad7](https://github.com/getlarge/themoltnet/commit/fe05ad7fc8df393c3b4784ffe2a2927dd3d38c6a))
+
 ## [0.13.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.1...pi-extension-v0.13.2) (2026-05-08)
 
 
