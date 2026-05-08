@@ -31,8 +31,6 @@
     "!dist/.dts"
   ],
   "scripts": {
-    "build": "vite build",
-    "test": "vitest run --passWithNoTests",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {

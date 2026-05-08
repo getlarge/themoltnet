@@ -2,6 +2,17 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@moltnet/rest-api",
   "targets": {
+    "build:migrate": {
+      "cache": true,
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "inputs": ["production", "^production"],
+      "options": {
+        "command": "vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
+        "cwd": "apps/rest-api"
+      },
+      "outputs": ["{projectRoot}/dist"]
+    },
     "e2e": {
       "cache": true,
       "executor": "nx:run-commands",

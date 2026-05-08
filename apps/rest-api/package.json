@@ -13,7 +13,6 @@
     }
   },
   "scripts": {
-    "build": "vite build && vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"

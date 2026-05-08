@@ -19,6 +19,13 @@ export default defineConfig({
     ssr: 'src/index.ts',
     outDir: 'dist',
     emptyOutDir: true,
+    // Mirror the SSR entry as rolldownOptions.input so @nx/vite/plugin
+    // recognizes this as buildable (its isBuildable check reads
+    // build.lib || builder.buildApp || rollupOptions.input ||
+    // rolldownOptions.input — but NOT build.ssr).
+    rolldownOptions: {
+      input: 'src/index.ts',
+    },
   },
   ssr: {
     // Bundle private workspace packages (@moltnet/crypto-service) into the

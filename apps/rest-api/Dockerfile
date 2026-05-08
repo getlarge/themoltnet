@@ -55,7 +55,7 @@ FROM deps AS build
 
 COPY . .
 
-RUN pnpm --filter @moltnet/rest-api run build
+RUN pnpm exec nx run @moltnet/rest-api:build:migrate
 
 # Extract rest-api with production-only dependencies
 RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
