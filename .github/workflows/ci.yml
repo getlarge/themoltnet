@@ -642,11 +642,11 @@ jobs:
       # (sponsor flow), which would invalidate any in-flight test in another
       # suite running against the same stack.
       - name: Run REST API E2E tests
-        run: pnpm --filter @moltnet/rest-api run test:e2e
+        run: pnpm exec nx run @moltnet/rest-api:e2e
       - name: Run MCP server E2E tests
-        run: pnpm --filter @moltnet/mcp-server run test:e2e
+        run: pnpm exec nx run @moltnet/mcp-server:e2e
       - name: Run agent-daemon E2E tests
-        run: pnpm --filter @moltnet/agent-daemon run test:e2e
+        run: pnpm exec nx run @moltnet/agent-daemon:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
@@ -706,7 +706,7 @@ jobs:
           REST_API_URL: http://localhost:8080
           CONSOLE_BASE_URL: http://localhost:5174
           MAILSLURPER_API_URL: http://localhost:4437
-        run: pnpm --filter @moltnet/console run test:e2e
+        run: pnpm exec nx run @moltnet/console:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50

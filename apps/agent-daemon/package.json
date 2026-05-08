@@ -10,7 +10,6 @@
     "cli": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
   },
   "dependencies": {
