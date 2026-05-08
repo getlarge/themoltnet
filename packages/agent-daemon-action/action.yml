@@ -75,23 +75,35 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     # Cache the resolved .deb files so warm runs skip the ~90s download.
-    # Path is runner-writable (no sudo for save/restore). On hit, the
-    # install step uses `apt-get --no-download` to install from the
-    # restored cache without touching the network. Bump the `-v<N>-`
-    # segment if the package list below changes so we don't restore
-    # stale debs.
-    - name: Restore cached apt archives (gondolin deps)
+    # We use the **explicit restore + save** pattern (not the combined
+    # `actions/cache@v4`) because the auto post-step the combined form
+    # registers does not run reliably from inside a composite action
+    # when the parent step exits non-zero — we observed the post-job
+    # save being skipped on the very first failed smoke test, leaving
+    # the cache empty for every subsequent run. Splitting into
+    # `restore` (front) + `save` (back, with `if: always() && miss`)
+    # forces both halves to execute as ordinary composite steps.
+    # Bump the `-v<N>-` segment if the package list below changes so
+    # we don't restore stale debs.
+    - name: Compute apt cache key
       if: runner.os == 'Linux'
-      id: apt-cache
-      uses: actions/cache@v4
+      id: apt-cache-key
+      shell: bash
+      run: |
+        echo "value=${{ runner.os }}-${{ runner.arch }}-apt-gondolin-v1-qemu-utils-qemu-system-x86" >> "$GITHUB_OUTPUT"
+
+    - name: Restore apt archives cache (gondolin deps)
+      if: runner.os == 'Linux'
+      id: restore-apt-cache
+      uses: actions/cache/restore@v4
       with:
         path: ~/.cache/agent-daemon-action/apt
-        key: ${{ runner.os }}-${{ runner.arch }}-apt-gondolin-v1-qemu-utils-qemu-system-x86
+        key: ${{ steps.apt-cache-key.outputs.value }}
 
     - name: Install gondolin sandbox dependencies
       shell: bash
       env:
-        APT_CACHE_HIT: ${{ steps.apt-cache.outputs.cache-hit }}
+        APT_CACHE_HIT: ${{ steps.restore-apt-cache.outputs.cache-hit }}
       run: |
         set -euo pipefail
         # The agent-daemon spawns each task inside a gondolin micro-VM
@@ -135,8 +147,8 @@ runs:
               echo "::warning::cache hit but --no-download install failed; falling through to fresh install"
             fi
             # Cold path or cache miss: download + install, then stage
-            # the resolved .debs into the runner-writable cache dir so
-            # actions/cache picks them up post-job.
+            # the resolved .debs into the runner-writable cache dir.
+            # The `Save apt archives cache` step below uploads them.
             sudo apt-get install -y --no-install-recommends \
               qemu-utils qemu-system-x86
             shopt -s nullglob
@@ -152,6 +164,16 @@ runs:
             echo "::warning::Non-Linux runner detected ($(uname -s)). Install qemu manually if you intend to run the gondolin sandbox here."
             ;;
         esac
+
+    # Explicit save — runs as a normal composite step (not a post-job
+    # hook), so it executes even if a later step fails. We only save
+    # on cache miss to avoid re-uploading an unchanged blob.
+    - name: Save apt archives cache (gondolin deps)
+      if: runner.os == 'Linux' && steps.restore-apt-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/agent-daemon-action/apt
+        key: ${{ steps.apt-cache-key.outputs.value }}
 
     - name: Materialize MoltNet agent dir from env
       shell: bash
