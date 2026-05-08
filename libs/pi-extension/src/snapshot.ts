@@ -83,13 +83,23 @@ const BASE_ALPINE_PACKAGES = [
 const GH_VERSION = '2.74.0';
 
 /** MoltNet CLI version — downloaded as a binary, no Node needed. */
-const MOLTNET_CLI_VERSION = '1.28.0';
+const MOLTNET_CLI_VERSION = '1.37.0';
 
-/** Resolve guest architecture from host (Gondolin VMs match host arch). */
+/**
+ * Resolve guest architecture from host (Gondolin VMs match host arch).
+ *
+ * The two naming conventions are NOT interchangeable:
+ *   - `gh`  — GitHub release-asset suffix (gh CLI ships `linux_amd64.tar.gz`,
+ *             `linux_arm64.tar.gz`).
+ *   - `npm` — npm optionalDependencies naming, which mirrors Node's
+ *             `process.arch` values (`x64`, `arm64`). The MoltNet CLI is
+ *             published as `@themoltnet/cli-linux-x64` and
+ *             `@themoltnet/cli-linux-arm64`, NOT `cli-linux-amd64`.
+ */
 function getGuestArch(): { gh: string; npm: string } {
   const hostArch = process.arch; // 'arm64' | 'x64' | ...
   if (hostArch === 'arm64') return { gh: 'linux_arm64', npm: 'linux-arm64' };
-  return { gh: 'linux_amd64', npm: 'linux-amd64' };
+  return { gh: 'linux_amd64', npm: 'linux-x64' };
 }
 
 /** Hosts reachable during snapshot build. */
