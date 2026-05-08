@@ -160,8 +160,10 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(git rev-parse *)');
     expect(perms).toContain('Bash(moltnet sign *)');
     expect(perms).toContain('Bash(moltnet github token *)');
+    expect(perms).toContain('Bash(moltnet agents activation *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli sign *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli github token *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli agents activation *)');
     expect(perms).toContain('Bash(ln -s *)');
     expect(perms).toContain('Bash(echo "GIT_CONFIG_GLOBAL=*")');
   });

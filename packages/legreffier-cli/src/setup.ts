@@ -323,12 +323,14 @@ export function buildPermissions(agentName: string): string[] {
     'Bash(moltnet diary create-signed *)',
     'Bash(moltnet diary verify *)',
     'Bash(moltnet github token *)',
+    'Bash(moltnet agents activation *)',
     // Signing CLI (npm package — equivalent commands)
     'Bash(npx @themoltnet/cli sign *)',
     'Bash(npx @themoltnet/cli diary commit *)',
     'Bash(npx @themoltnet/cli diary create-signed *)',
     'Bash(npx @themoltnet/cli diary verify *)',
     'Bash(npx @themoltnet/cli github token *)',
+    'Bash(npx @themoltnet/cli agents activation *)',
     // Worktree symlink creation
     'Bash(ln -s *)',
     // Session activation env export

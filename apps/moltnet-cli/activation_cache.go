@@ -128,7 +128,11 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 	envPath := filepath.Join(agentDir, "env")
 	envVars, err := parseEnvFile(envPath)
 	if err != nil {
-		return nil, fmt.Errorf("read env file: %w", err)
+		if errors.Is(err, os.ErrNotExist) {
+			envVars = map[string]string{}
+		} else {
+			return nil, fmt.Errorf("read env file: %w", err)
+		}
 	}
 	repoRoot, err := resolveRepoRoot(absDir)
 	if err != nil {
@@ -226,6 +230,11 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 		if errors.Is(err, os.ErrNotExist) {
 			return &activationValidationResult{Valid: false, Reason: "cache_missing"}, nil
 		}
+		var jsonSyntaxErr *json.SyntaxError
+		var jsonTypeErr *json.UnmarshalTypeError
+		if errors.As(err, &jsonSyntaxErr) || errors.As(err, &jsonTypeErr) {
+			return invalidActivation("cache_corrupted", nil), nil
+		}
 		return nil, err
 	}
 	if cache.Version != activationCacheVersion {
@@ -264,7 +273,7 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 		{"MOLTNET_TEAM_ID", cache.TeamID},
 	} {
 		if v := ctx.EnvVars[envKey.key]; v != "" && v != envKey.value {
-			changed = append(changed, ctx.EnvPath)
+			changed = append(changed, relativeToRepo(ctx.RepoRoot, ctx.EnvPath))
 		}
 	}
 	if len(changed) > 0 {
