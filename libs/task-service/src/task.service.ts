@@ -43,7 +43,6 @@ interface TaskTypeEntry {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
   readonly outputKind: OutputKind;
-  readonly requiresCriteria: boolean;
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
 }
@@ -122,7 +121,6 @@ function dbTaskToWire(row: DbTask): Task {
     input: row.input as Record<string, unknown>,
     inputSchemaCid: row.inputSchemaCid,
     inputCid: row.inputCid,
-    criteriaCid: row.criteriaCid ?? null,
     references: row.taskRefs as unknown[] as Task['references'],
     correlationId: row.correlationId ?? null,
     imposedByAgentId: row.imposedByAgentId ?? null,
@@ -193,7 +191,6 @@ export interface CreateTaskInput {
   correlationId?: string;
   maxAttempts?: number;
   expiresInSec?: number;
-  criteriaCid?: string;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
   // Imposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
@@ -244,7 +241,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       const createErrors = validateTaskCreateRequest({
         taskType: input.taskType,
         input: input.inputPayload,
-        criteriaCid: input.criteriaCid,
         references: input.references as Task['references'] | undefined,
       });
       if (createErrors.length > 0) {
@@ -329,7 +325,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         input: input.inputPayload,
         inputSchemaCid,
         inputCid,
-        criteriaCid: input.criteriaCid ?? null,
         taskRefs: (input.references ?? []) as NewTask['taskRefs'],
         correlationId: input.correlationId ?? null,
         imposedByAgentId: input.callerIsAgent ? input.callerId : null,
@@ -758,7 +753,14 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const outputErrors = validateTaskOutput(task.taskType, body.output);
+      // Pass `task.input` so per-type validators can run cross-field
+      // rules (e.g. "verification is required when input.successCriteria
+      // is set" on fulfillment task types).
+      const outputErrors = validateTaskOutput(
+        task.taskType,
+        body.output,
+        task.input,
+      );
       if (outputErrors.length > 0) {
         throw new TaskServiceError(
           'invalid',

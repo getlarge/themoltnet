@@ -109,6 +109,9 @@ export async function runOnce(argv: string[]): Promise<number> {
           maxBatchSize: opts.maxBatchSize,
           flushIntervalMs: opts.flushIntervalMs,
         }),
+      // Finalize per-task inside the loop so the daemon (poll-shared
+      // and once) share one wire-finalize path.
+      onTaskFinished: (output) => finalizeTask(ctx.agent, output),
       executeTask,
     });
 
@@ -118,7 +121,6 @@ export async function runOnce(argv: string[]): Promise<number> {
       rootLogger.error({}, 'agent-daemon.no_output');
       return 1;
     }
-    await finalizeTask(ctx.agent, output);
     console.log('\n[done] TaskOutput:');
     console.log(JSON.stringify(output, null, 2));
     return output.status === 'completed' ? 0 : 1;

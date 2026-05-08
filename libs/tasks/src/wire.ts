@@ -198,7 +198,6 @@ export const Task = Type.Object(
     input: Type.Record(Type.String(), Type.Unknown()),
     inputSchemaCid: Cid,
     inputCid: Cid,
-    criteriaCid: Type.Union([Cid, Type.Null()]),
     references: Type.Array(TaskRef),
 
     // Grouping (type-neutral)

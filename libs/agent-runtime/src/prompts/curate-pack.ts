@@ -1,6 +1,7 @@
 import type { CuratePackInput } from '@moltnet/tasks';
 
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -186,6 +187,7 @@ export function buildCuratePackPrompt(
     '  output, not in the diary.',
     '- Respect hard include/exclude filters literally.',
     '',
+    buildSelfVerificationBlock(ctx.taskId),
     buildFinalOutputBlock({
       taskType: 'curate_pack',
       outputSchemaName: 'CuratePackOutput',
@@ -200,7 +202,8 @@ export function buildCuratePackPrompt(
         '  "checkpoints": [',
         '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
         '  ],',
-        '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>"',
+        '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>",',
+        '  "verification": <required iff input.successCriteria; see Self-verification>',
         '}',
       ].join('\n'),
     }),

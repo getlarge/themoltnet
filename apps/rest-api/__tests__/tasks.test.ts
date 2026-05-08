@@ -23,7 +23,6 @@ const MOCK_TASK = {
   input: { brief: 'Ship a task worker.' },
   inputSchemaCid: 'bafy1',
   inputCid: 'bafy2',
-  criteriaCid: null,
   references: [],
   correlationId: null,
   imposedByAgentId: OWNER_ID,

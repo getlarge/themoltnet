@@ -3470,7 +3470,6 @@ func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
 	CorrelationId              OptUUID               `json:"correlationId"`
-	CriteriaCid                OptString             `json:"criteriaCid"`
 	DiaryId                    uuid.UUID             `json:"diaryId"`
 	DispatchTimeoutSec         OptInt                `json:"dispatchTimeoutSec"`
 	ExpiresInSec               OptInt                `json:"expiresInSec"`
@@ -3486,11 +3485,6 @@ type CreateTaskReq struct {
 // GetCorrelationId returns the value of CorrelationId.
 func (s *CreateTaskReq) GetCorrelationId() OptUUID {
 	return s.CorrelationId
-}
-
-// GetCriteriaCid returns the value of CriteriaCid.
-func (s *CreateTaskReq) GetCriteriaCid() OptString {
-	return s.CriteriaCid
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -3546,11 +3540,6 @@ func (s *CreateTaskReq) GetTeamId() uuid.UUID {
 // SetCorrelationId sets the value of CorrelationId.
 func (s *CreateTaskReq) SetCorrelationId(val OptUUID) {
 	s.CorrelationId = val
-}
-
-// SetCriteriaCid sets the value of CriteriaCid.
-func (s *CreateTaskReq) SetCriteriaCid(val OptString) {
-	s.CriteriaCid = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -19892,7 +19881,6 @@ type Task struct {
 	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
-	CriteriaCid                NilString                      `json:"criteriaCid"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
 	DispatchTimeoutSec         NilInt                         `json:"dispatchTimeoutSec"`
 	ExpiresAt                  NilDateTime                    `json:"expiresAt"`
@@ -19941,11 +19929,6 @@ func (s *Task) GetCompletedAt() NilDateTime {
 // GetCorrelationId returns the value of CorrelationId.
 func (s *Task) GetCorrelationId() NilUUID {
 	return s.CorrelationId
-}
-
-// GetCriteriaCid returns the value of CriteriaCid.
-func (s *Task) GetCriteriaCid() NilString {
-	return s.CriteriaCid
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -20066,11 +20049,6 @@ func (s *Task) SetCompletedAt(val NilDateTime) {
 // SetCorrelationId sets the value of CorrelationId.
 func (s *Task) SetCorrelationId(val NilUUID) {
 	s.CorrelationId = val
-}
-
-// SetCriteriaCid sets the value of CriteriaCid.
-func (s *Task) SetCriteriaCid(val NilString) {
-	s.CriteriaCid = val
 }
 
 // SetDiaryId sets the value of DiaryId.

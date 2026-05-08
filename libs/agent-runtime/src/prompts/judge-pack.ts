@@ -8,7 +8,10 @@ interface Ctx {
 }
 
 export function buildJudgePackPrompt(input: JudgePackInput, ctx: Ctx): string {
-  const { renderedPackId, sourcePackId, rubric } = input;
+  const { renderedPackId, sourcePackId, successCriteria } = input;
+  // Per-type validateInput already ensured rubric is present for
+  // judgment tasks — narrow safely.
+  const rubric = successCriteria.rubric!;
 
   const criteriaList = rubric.criteria
     .map(

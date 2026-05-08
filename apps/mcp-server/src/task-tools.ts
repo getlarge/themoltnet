@@ -125,7 +125,6 @@ export async function handleTasksCreate(
   const validationErrors = validateTaskCreateRequest({
     taskType: args.task_type,
     input: args.input,
-    criteriaCid: args.criteria_cid,
     references: args.references,
   });
   if (validationErrors.length > 0) {
@@ -144,7 +143,6 @@ export async function handleTasksCreate(
       correlationId: args.correlation_id,
       maxAttempts: args.max_attempts,
       expiresInSec: args.expires_in_sec,
-      criteriaCid: args.criteria_cid,
       requiredExecutorTrustLevel: args.required_executor_trust_level,
       dispatchTimeoutSec: args.dispatch_timeout_sec,
       runningTimeoutSec: args.running_timeout_sec,

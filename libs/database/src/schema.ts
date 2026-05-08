@@ -999,7 +999,6 @@ export const tasks = pgTable(
     input: jsonb('input').notNull(),
     inputSchemaCid: varchar('input_schema_cid', { length: 100 }).notNull(),
     inputCid: varchar('input_cid', { length: 100 }).notNull(),
-    criteriaCid: varchar('criteria_cid', { length: 100 }),
     // wire field is `references`; `references` is a SQL reserved word
     taskRefs: jsonb('task_refs')
       .notNull()

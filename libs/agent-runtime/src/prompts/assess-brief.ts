@@ -33,15 +33,19 @@ export function buildAssessBriefPrompt(
   input: AssessBriefInput,
   ctx: Ctx,
 ): string {
-  const criteriaList = input.criteria
+  // Per-type validateInput already ensured rubric is present for
+  // judgment tasks — narrow safely.
+  const rubric = input.successCriteria.rubric!;
+
+  const criteriaList = rubric.criteria
     .map(
       (c, i) =>
         `${i + 1}. **${c.id}** (weight ${c.weight}, scoring: \`${c.scoring}\`) — ${c.description}`,
     )
     .join('\n');
 
-  const preambleSection = input.rubricPreamble
-    ? ['### Rubric preamble', '', input.rubricPreamble, ''].join('\n')
+  const preambleSection = rubric.preamble
+    ? ['### Rubric preamble', '', rubric.preamble, ''].join('\n')
     : '';
 
   const lines = [

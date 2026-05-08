@@ -56,7 +56,6 @@ const mockTask = {
   input: taskInput,
   inputSchemaCid: 'bafy-schema',
   inputCid: 'bafy-input',
-  criteriaCid: null,
   references: [],
   correlationId: null,
   imposedByAgentId: '330e8400-e29b-41d4-a716-446655440091',

@@ -23,19 +23,22 @@ describe('validateTaskCreateRequest', () => {
       input: {
         renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-        rubric: {
-          rubricId: 'pack-fidelity-v3',
-          version: 'v3',
-          scope: 'packs',
-          preamble: 'Judge the pack faithfully.',
-          criteria: [
-            {
-              id: 'grounding',
-              description: 'No unsupported claims.',
-              weight: 1,
-              scoring: 'llm_score',
-            },
-          ],
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'pack-fidelity-v3',
+            version: 'v3',
+            scope: 'packs',
+            preamble: 'Judge the pack faithfully.',
+            criteria: [
+              {
+                id: 'grounding',
+                description: 'No unsupported claims.',
+                weight: 1,
+                scoring: 'llm_score',
+              },
+            ],
+          },
         },
       },
       references: [],
@@ -45,6 +48,41 @@ describe('validateTaskCreateRequest', () => {
       {
         field: 'references',
         message: 'At least one reference is required for task type: judge_pack',
+      },
+    ]);
+  });
+
+  it('rejects judge_pack input missing successCriteria', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'judge_pack',
+      input: {
+        renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      references: [{} as never],
+    });
+    expect(errors.length).toBeGreaterThan(0);
+    // The schema-level error fires before our cross-field validator —
+    // the missing `successCriteria` is reported as an input shape miss.
+    expect(errors.some((e) => e.field.startsWith('input'))).toBe(true);
+  });
+
+  it('rejects judge_pack successCriteria without rubric', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'judge_pack',
+      input: {
+        renderedPackId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        sourcePackId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        // Envelope present but rubric missing — the cross-field
+        // validator fires.
+        successCriteria: { version: 1 },
+      },
+      references: [{} as never],
+    });
+    expect(errors).toEqual([
+      {
+        field: 'input',
+        message: 'successCriteria.rubric is required for judgment tasks',
       },
     ]);
   });
@@ -81,6 +119,79 @@ describe('validateTaskOutput', () => {
         },
       ]),
     );
+  });
+
+  describe('verification cross-field rule (fulfillment task types)', () => {
+    const goodOutput = {
+      branch: 'feat/x',
+      commits: [
+        {
+          sha: 'abc1234',
+          message: 'feat: do',
+          diaryEntryId: '00000000-0000-4000-8000-000000000001',
+        },
+      ],
+      pullRequestUrl: null,
+      diaryEntryIds: ['00000000-0000-4000-8000-000000000001'],
+      summary: 'did the thing',
+    };
+
+    const verification = {
+      inputCid: 'bafy-input',
+      results: [
+        {
+          id: 'has-branch',
+          kind: 'assertion' as const,
+          status: 'pass' as const,
+        },
+      ],
+      passed: true,
+    };
+
+    it('rejects output without verification when input has successCriteria', () => {
+      const errors = validateTaskOutput('fulfill_brief', goodOutput, {
+        brief: 'do',
+        successCriteria: { version: 1 },
+      });
+      expect(errors).toHaveLength(1);
+      expect(errors[0].field).toBe('output');
+      expect(errors[0].message).toMatch(/verification is required/i);
+    });
+
+    it('rejects output with verification when input has no successCriteria', () => {
+      const errors = validateTaskOutput(
+        'fulfill_brief',
+        { ...goodOutput, verification },
+        { brief: 'do' },
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].field).toBe('output');
+      expect(errors[0].message).toMatch(/omit verification/i);
+    });
+
+    it('accepts the consistent pair (criteria + verification)', () => {
+      const errors = validateTaskOutput(
+        'fulfill_brief',
+        { ...goodOutput, verification },
+        { brief: 'do', successCriteria: { version: 1 } },
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it('accepts the consistent pair (no criteria, no verification)', () => {
+      const errors = validateTaskOutput('fulfill_brief', goodOutput, {
+        brief: 'do',
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('skips the cross-field check when input is omitted (back-compat)', () => {
+      // Callers that don't have the input on hand (ad-hoc tooling)
+      // get only the schema check; the cross-field rule is silently
+      // skipped rather than failing closed.
+      const errors = validateTaskOutput('fulfill_brief', goodOutput);
+      expect(errors).toEqual([]);
+    });
   });
 
   describe('judge_pack llm_checklist score↔assertions consistency (#999)', () => {

@@ -2,26 +2,26 @@
  * `judge_pack` — independently score a rendered pack against a rubric.
  *
  * output_kind: judgment
- * criteria: required (embedded `rubric` — see Phase 1 design in #852
- *   amendment and Phase 2 issue #881)
+ * criteria: required (`successCriteria.rubric` — see #852 amendment and
+ *   Phase 2 issue #881)
  * references: required (must reference the `render_pack` task it judges,
  *   role='judged_work')
  *
  * Step 3 of the three-session attribution loop (#875). Mirrors
  * `assess_brief` in shape, but over a rendered context pack.
  *
- * Phase 1 rubric storage: the rubric body is inlined in `input.rubric`.
- * Integrity is pinned via the task's `input_cid`. Phase 2 (#881) will
- * replace the inline body with a `rubric_cid` referencing a `rubrics`
- * table row; the denormalized `criteria[]` projection stays for prompt
- * building without a fetch.
+ * Phase 1 rubric storage: the rubric body lives at
+ * `input.successCriteria.rubric` and is pinned via the task's `inputCid`.
+ * Phase 2 (#881) will replace the inline body with a `rubricCid`
+ * referencing a stored `rubrics` row; the envelope stays the same.
  *
  * The judge MUST be a different agent from the renderer. Enforced at
  * claim time by the runtime, not in the wire schema.
  */
 import { type Static, Type } from '@sinclair/typebox';
 
-import { AssertionResult, Rubric } from '../rubric.js';
+import { AssertionResult } from '../rubric.js';
+import { SuccessCriteria } from '../success-criteria.js';
 
 export const JUDGE_PACK_TYPE = 'judge_pack' as const;
 
@@ -37,11 +37,13 @@ export const JudgePackInput = Type.Object(
     sourcePackId: Type.String({ format: 'uuid' }),
 
     /**
-     * Full rubric body, inlined. See #852 amendment for rationale.
-     * In Phase 2 (#881) this is replaced by `rubric_cid` pointing to a
-     * stored row; the criteria projection will remain denormalized.
+     * Required SuccessCriteria envelope. Must contain a `rubric` — that
+     * rubric IS the job spec for this judgment task (the judge applies
+     * it). Other sections (`assertions`, `gates`, `sideEffects`) MAY be
+     * present and are evaluated against the *judge's output* — e.g. an
+     * imposer can require the judge produce evidence-bearing assertions.
      */
-    rubric: Rubric,
+    successCriteria: SuccessCriteria,
   },
   { $id: 'JudgePackInput', additionalProperties: false },
 );
@@ -83,7 +85,10 @@ export type JudgePackScore = Static<typeof JudgePackScore>;
 
 export const JudgePackOutput = Type.Object(
   {
-    /** Per-criterion scores, same order/length as input.rubric.criteria. */
+    /**
+     * Per-criterion scores, same order/length as
+     * `input.successCriteria.rubric.criteria`.
+     */
     scores: Type.Array(JudgePackScore, { minItems: 1 }),
 
     /** Σ(weight_i × score_i). Server rejects mismatches against the rubric. */

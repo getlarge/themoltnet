@@ -99,7 +99,7 @@ describe('judge_pack prompt', () => {
       input: {
         renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
         sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
-        rubric: testRubric,
+        successCriteria: { version: 1, rubric: testRubric },
       },
     });
     const prompt = buildPromptForTask(task, ctx);
@@ -122,10 +122,13 @@ describe('judge_pack prompt', () => {
       input: {
         renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
         sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
-        rubric: {
-          rubricId: 'empty',
-          version: 'v1',
-          criteria: [],
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'empty',
+            version: 'v1',
+            criteria: [],
+          },
         },
       },
     });

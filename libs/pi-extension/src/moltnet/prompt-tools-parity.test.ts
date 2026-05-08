@@ -42,7 +42,6 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
         cancelledByHumanId: null,
         completedAt: null,
         correlationId: null,
-        criteriaCid: null,
         expiresAt: null,
         imposedByAgentId: null,
         imposedByHumanId: null,
@@ -73,7 +72,6 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
         cancelledByHumanId: null,
         completedAt: null,
         correlationId: null,
-        criteriaCid: null,
         expiresAt: null,
         imposedByAgentId: null,
         imposedByHumanId: null,
@@ -101,7 +99,6 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
         cancelledByHumanId: null,
         completedAt: null,
         correlationId: null,
-        criteriaCid: null,
         expiresAt: null,
         imposedByAgentId: null,
         imposedByHumanId: null,
@@ -112,14 +109,21 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
         teamId: 't',
         input: {
           targetTaskId: '00000000-0000-4000-8000-00000000000b',
-          criteria: [
-            {
-              id: 'cognitive_load',
-              description: 'Reviewability',
-              weight: 1,
-              scoring: 'llm_score',
+          successCriteria: {
+            version: 1,
+            rubric: {
+              rubricId: 'r',
+              version: 'v1',
+              criteria: [
+                {
+                  id: 'cognitive_load',
+                  description: 'Reviewability',
+                  weight: 1,
+                  scoring: 'llm_score',
+                },
+              ],
             },
-          ],
+          },
         },
       } as unknown as Task,
     ],
@@ -139,7 +143,6 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
         cancelledByHumanId: null,
         completedAt: null,
         correlationId: null,
-        criteriaCid: null,
         expiresAt: null,
         imposedByAgentId: null,
         imposedByHumanId: null,
@@ -151,19 +154,22 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
         input: {
           sourcePackId: '00000000-0000-4000-8000-000000000000',
           renderedPackId: '00000000-0000-4000-8000-000000000001',
-          rubric: {
-            rubricId: 'r',
-            scope: 'packs',
-            version: 'v1',
-            preamble: 'p',
-            criteria: [
-              {
-                id: 'coverage',
-                description: 'd',
-                weight: 1,
-                scoring: 'deterministic_coverage_check',
-              },
-            ],
+          successCriteria: {
+            version: 1,
+            rubric: {
+              rubricId: 'r',
+              scope: 'packs',
+              version: 'v1',
+              preamble: 'p',
+              criteria: [
+                {
+                  id: 'coverage',
+                  description: 'd',
+                  weight: 1,
+                  scoring: 'deterministic_coverage_check',
+                },
+              ],
+            },
           },
         },
       } as unknown as Task,

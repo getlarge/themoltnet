@@ -63,6 +63,13 @@
       "tag": "0008_rendered_packs_description",
       "version": "7",
       "when": 1778055002574
+    },
+    {
+      "breakpoints": true,
+      "idx": 9,
+      "tag": "0009_thin_nightcrawler",
+      "version": "7",
+      "when": 1778224325925
     }
   ],
   "version": "7"

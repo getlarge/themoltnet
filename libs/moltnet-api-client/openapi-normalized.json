@@ -923,10 +923,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "criteriaCid": {
-            "minLength": 1,
-            "type": "string"
-          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -3816,11 +3812,6 @@
             "nullable": true,
             "type": "string"
           },
-          "criteriaCid": {
-            "minLength": 1,
-            "nullable": true,
-            "type": "string"
-          },
           "diaryId": {
             "format": "uuid",
             "nullable": true,
@@ -3978,7 +3969,6 @@
           "input",
           "inputSchemaCid",
           "inputCid",
-          "criteriaCid",
           "references",
           "correlationId",
           "imposedByAgentId",
@@ -12769,10 +12759,6 @@
                 "properties": {
                   "correlationId": {
                     "format": "uuid",
-                    "type": "string"
-                  },
-                  "criteriaCid": {
-                    "minLength": 1,
                     "type": "string"
                   },
                   "diaryId": {

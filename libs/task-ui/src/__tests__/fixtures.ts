@@ -12,7 +12,6 @@ export const taskFixture: TaskSummary = {
   },
   inputSchemaCid: 'bafy-schema',
   inputCid: 'bafy-input',
-  criteriaCid: null,
   references: [
     {
       taskId: '44444444-4444-4444-8444-444444444444',

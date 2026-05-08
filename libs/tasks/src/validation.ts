@@ -14,10 +14,9 @@ export interface TaskValidationError {
 interface TaskTypeDefinition {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
-  readonly requiresCriteria: boolean;
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
-  readonly validateOutput?: (output: unknown) => string | null;
+  readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
 }
 
 function getTaskTypeEntry(taskType: string) {
@@ -78,6 +77,16 @@ export function validateTaskInput(
 export function validateTaskOutput(
   taskType: string,
   output: unknown,
+  /**
+   * The task input. Optional for backward-compat with callers that have
+   * no input on hand (e.g. ad-hoc tooling), but required for the
+   * cross-field rules enforced by some `validateOutput` hooks (e.g.
+   * "verification is required when input.successCriteria is set" on
+   * fulfillment task types). When omitted, those cross-field checks are
+   * skipped — the server passes input from the row, so missing it is a
+   * caller bug, not a normal flow.
+   */
+  input?: unknown,
 ): TaskValidationError[] {
   const entry = getTaskTypeEntry(taskType);
   if (!entry) {
@@ -93,7 +102,7 @@ export function validateTaskOutput(
   if (errors.length > 0) return errors;
 
   if (entry.validateOutput) {
-    const validationError = entry.validateOutput(output);
+    const validationError = entry.validateOutput(output, input);
     if (validationError) {
       return [{ field: 'output', message: validationError }];
     }
@@ -114,7 +123,6 @@ export function getTaskOutputSchema(taskType: string): TSchema | null {
 export function validateTaskCreateRequest(args: {
   taskType: string;
   input: unknown;
-  criteriaCid?: string | null;
   references?: TaskRef[] | null;
 }): TaskValidationError[] {
   const entry = getTaskTypeEntry(args.taskType);
@@ -131,12 +139,6 @@ export function validateTaskCreateRequest(args: {
   if (inputErrors.length > 0) return inputErrors;
 
   const errors: TaskValidationError[] = [];
-  if (entry.requiresCriteria && !args.criteriaCid) {
-    errors.push({
-      field: 'criteriaCid',
-      message: `criteriaCid is required for task type: ${args.taskType}`,
-    });
-  }
   if (
     entry.requiresReferences &&
     (!args.references || args.references.length < 1)

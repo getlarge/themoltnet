@@ -123,7 +123,8 @@ export function createTaskRepository(db: Database) {
         `);
       }
       if (opts.queuedAfter) filters.push(gte(tasks.queuedAt, opts.queuedAfter));
-      if (opts.queuedBefore) filters.push(lt(tasks.queuedAt, opts.queuedBefore));
+      if (opts.queuedBefore)
+        filters.push(lt(tasks.queuedAt, opts.queuedBefore));
       if (opts.completedAfter) {
         filters.push(gte(tasks.completedAt, opts.completedAfter));
       }
