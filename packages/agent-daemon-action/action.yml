@@ -22,6 +22,22 @@ inputs:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
     default: 'once'
+  provider:
+    description: >
+      LLM provider key (e.g. `anthropic`, `openai`, `bedrock`).
+      Forwarded to `agent-daemon --provider`. No default — operator-specific
+      and silently misconfigures on any other machine, so the daemon refuses
+      to start without it. Falls back to the MOLTNET_AGENT_PROVIDER env var
+      when this input is empty.
+    required: false
+    default: ''
+  model:
+    description: >
+      Model id understood by the chosen provider (e.g. `claude-sonnet-4-5`,
+      `gpt-4o-mini`). Forwarded to `agent-daemon --model`. Falls back to the
+      MOLTNET_AGENT_MODEL env var when this input is empty.
+    required: false
+    default: ''
   daemon-version:
     description: 'npm semver range for @themoltnet/agent-daemon (passed to npx).'
     required: false
@@ -133,6 +149,8 @@ runs:
       shell: bash
       env:
         TASK_ID: ${{ inputs.task-id != '' && inputs.task-id || steps.dispatch.outputs.task-id }}
+        PROVIDER_OVERRIDE: ${{ inputs.provider }}
+        MODEL_OVERRIDE: ${{ inputs.model }}
       run: |
         set -euo pipefail
         if [ -z "${TASK_ID:-}" ]; then
@@ -140,7 +158,24 @@ runs:
           echo "task-id=" >> "$GITHUB_OUTPUT"
           exit 0
         fi
+        # Resolve provider/model: prefer explicit input, fall back to
+        # MOLTNET_AGENT_PROVIDER / MOLTNET_AGENT_MODEL inherited from
+        # the caller step's env. The daemon refuses to start when either
+        # is missing — fail fast here with a clear error instead of
+        # letting it surface through npx.
+        PROVIDER="${PROVIDER_OVERRIDE:-${MOLTNET_AGENT_PROVIDER:-}}"
+        MODEL="${MODEL_OVERRIDE:-${MOLTNET_AGENT_MODEL:-}}"
+        if [ -z "$PROVIDER" ]; then
+          echo "::error::provider is required (set the action's \`provider\` input or MOLTNET_AGENT_PROVIDER env)" >&2
+          exit 1
+        fi
+        if [ -z "$MODEL" ]; then
+          echo "::error::model is required (set the action's \`model\` input or MOLTNET_AGENT_MODEL env)" >&2
+          exit 1
+        fi
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
         npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
           ${{ inputs.mode }} --task-id "$TASK_ID" \
-          --agent "$MOLTNET_AGENT_NAME"
+          --agent "$MOLTNET_AGENT_NAME" \
+          --provider "$PROVIDER" \
+          --model "$MODEL"

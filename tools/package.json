@@ -29,8 +29,8 @@
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
     "@huggingface/transformers": "catalog:",
-    "@mariozechner/pi-ai": "catalog:",
-    "@mariozechner/pi-coding-agent": "catalog:",
+    "@earendil-works/pi-ai": "catalog:",
+    "@earendil-works/pi-coding-agent": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
     "@moltnet/auth": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",

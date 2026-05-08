@@ -269,7 +269,7 @@ The submit-tool path was added in [#986](https://github.com/getlarge/themoltnet/
 
 The counter resolves off the global `MeterProvider`, so the existing OTLP→Axiom pipeline picks it up without per-call wiring. Use it to monitor the prompt-tightening + submit-tool rollout: a healthy task type should be dominated by `captured_via_tool` with a long tail of `success` (parser fallback) and near-zero `output_missing`.
 
-**Session termination on capture:** the submit tool returns `terminate: true` on a valid call, which pi-coding-agent's agent-loop reads to end the session immediately — no follow-up LLM turn, no extra tokens spent narrating "ok, done." Available in `@mariozechner/pi-coding-agent >= 0.69.0` (we use `^0.73.0`).
+**Session termination on capture:** the submit tool returns `terminate: true` on a valid call, which pi-coding-agent's agent-loop reads to end the session immediately — no follow-up LLM turn, no extra tokens spent narrating "ok, done." Available in `@earendil-works/pi-coding-agent >= 0.69.0` (we use `^0.73.0`).
 
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description, parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in `libs/agent-runtime/src/output-tools.ts`. The prompt builder reads `submitOutputToolName(taskType)` from the same module so the model and the executor see one source of truth for the tool name. Any executor — pi-extension today, a Codex-SDK adapter or local-MCP bridge tomorrow — wires the same contract into its native tool API: read the schema as `parameters`, the description verbatim, the toolName as the registration name, and supply a `terminate-on-valid-capture` callback. No string templates duplicated across packages.
 
@@ -545,6 +545,12 @@ moltnet config export-env \
 gh secret set --env moltnet MOLTNET_CLIENT_SECRET < <(grep '^MOLTNET_CLIENT_SECRET=' .env.moltnet | cut -d= -f2-)
 gh variable set --env moltnet MOLTNET_TEAM_ID --body "<team-uuid>"
 # … etc, or upload the whole file via the GitHub web UI.
+
+# 3b. Set the LLM provider/model the daemon should use. These are not
+#     part of the agent's identity; they're operator policy and live as
+#     plain repo variables.
+gh variable set --env moltnet MOLTNET_AGENT_PROVIDER --body "anthropic"
+gh variable set --env moltnet MOLTNET_AGENT_MODEL --body "claude-sonnet-4-5"
 
 # 4. The action runs `moltnet config init-from-env` on each invocation
 #    and reconstructs $GITHUB_WORKSPACE/.moltnet/<agent>/ from those

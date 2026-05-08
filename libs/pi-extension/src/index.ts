@@ -15,13 +15,13 @@ import type { VM } from '@earendil-works/gondolin';
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 import {
   createBashTool,
   createEditTool,
   createReadTool,
   createWriteTool,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 import { connect } from '@themoltnet/sdk';
 
 import type { ExtensionState, TrackedError } from './commands/index.js';

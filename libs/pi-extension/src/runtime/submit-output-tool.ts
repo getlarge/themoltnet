@@ -14,7 +14,7 @@
  *   2. On a valid call, the validated args are stored in the captured
  *      reference exposed via `getCaptured()` and the tool result returns
  *      `terminate: true`. pi-coding-agent's agent-loop reads that flag
- *      (see `@mariozechner/pi-agent-core` `agent-loop.ts:208,512`) and
+ *      (see `@earendil-works/pi-agent-core` `agent-loop.ts:208,512`) and
  *      ends the session immediately — no follow-up LLM turn, no extra
  *      tokens spent narrating "ok, done."
  *
@@ -28,8 +28,8 @@
  * call. The strict closing block in the system prompt (commit 1 of this
  * PR) carries that weight.
  */
-import type { ToolDefinition } from '@mariozechner/pi-coding-agent';
-import { defineTool } from '@mariozechner/pi-coding-agent';
+import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { TObject } from '@sinclair/typebox';
 import {
   getSubmitOutputContract,
