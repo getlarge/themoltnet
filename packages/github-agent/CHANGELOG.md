@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.3](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.2...github-agent-v0.23.3) (2026-05-08)
+
+
+### Bug Fixes
+
+* **ci:** serialize golangci-lint, revert overzealous fileParallelism pins ([3964c71](https://github.com/getlarge/themoltnet/commit/3964c7137d44ccde187f1525c9baf60c9adbd1f0))
+
 ## [0.23.2](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.1...github-agent-v0.23.2) (2026-04-17)
 
 

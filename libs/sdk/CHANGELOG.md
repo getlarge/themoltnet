@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.98.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.97.0...sdk-v0.98.0) (2026-05-08)
+
+
+### Features
+
+* **build:** make SSR vite configs inferable via rolldownOptions.input ([9b71d6e](https://github.com/getlarge/themoltnet/commit/9b71d6e31c5ea60a4b1c54dc55466d6fdcdcb27f)), closes [#1029](https://github.com/getlarge/themoltnet/issues/1029)
+
+
+### Bug Fixes
+
+* **ci:** serialize golangci-lint, revert overzealous fileParallelism pins ([3964c71](https://github.com/getlarge/themoltnet/commit/3964c7137d44ccde187f1525c9baf60c9adbd1f0))
+
 ## [0.97.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.96.0...sdk-v0.97.0) (2026-04-27)
 
 
