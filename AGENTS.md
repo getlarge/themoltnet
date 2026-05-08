@@ -162,8 +162,29 @@ See `libs/database/drizzle/README.md` for the full workflow, rollback strategy, 
 - **Source exports**: All workspace packages export source directly via `"import": "./src/index.ts"` and `"types": "./src/index.ts"` in conditional exports. The `main` and `types` top-level fields point to `./dist/` as fallback. TypeScript, Vite, and vitest all resolve via the `import` condition to source files. No custom conditions needed.
 - **Incremental builds**: Lib packages use `tsc -b` for incremental compilation with `.tsbuildinfo` caching. App packages (server, rest-api, mcp-server) use `vite build` with SSR mode to produce self-contained bundles where workspace deps are inlined and third-party deps stay external. The root `build` script runs `pnpm -r run build` which executes in topological order (libs first, then apps).
 - **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). Each workspace tsconfig has `composite: true`. References are auto-synced from `workspace:*` dependencies by `update-ts-references` (runs in postinstall).
-- **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits only `.d.ts` + `.tsbuildinfo` to gitignored `dist/`, which is required because `composite: true` and project references don't support `--noEmit`.
+- **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits `.d.ts` + `.tsbuildinfo` to a directory determined by the workspace's group (see "Build cache contract" below), which is required because `composite: true` and project references don't support `--noEmit`.
 - **Workspace linking**: `inject-workspace-packages=false` in `.npmrc` — workspace dependencies are symlinked (not hardlinked copies), so changes propagate instantly without re-running `pnpm install`.
+
+### Build cache contract (three groups)
+
+Nx Cloud DTE caches `build` and `typecheck` artifacts independently. For caching to be coherent, the directory tsc actually writes to must match what `nx.json` declares as the target's outputs. Every workspace belongs to exactly one of these groups; **`dist/` and `out-tsc/` must never overlap within a workspace**.
+
+| Group                                                                    | Has `build` script? | Has `typecheck` target?                                             | `tsconfig.outDir` | `tsconfig.tsBuildInfoFile`       | Examples                                                                                                                                                                                        |
+| ------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------- | ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1 — private libs** (no published `dist/`)                              | no                  | yes (auto, via `@nx/js/typescript`)                                 | `./out-tsc`       | `./out-tsc/tsconfig.tsbuildinfo` | `libs/auth`, `libs/bootstrap`, `libs/database`, `tools`                                                                                                                                         |
+| **2 — libs whose `dist/` is published or consumed by `vite-plugin-dts`** | yes (`tsc -b`)      | no — overridden to `nx:noop` in `package.json#nx.targets.typecheck` | `./dist`          | `./dist/tsconfig.tsbuildinfo`    | `libs/api-client`, `libs/crypto-service`, `libs/tasks`, `packages/github-agent`                                                                                                                 |
+| **3 — apps + vite-built packages**                                       | yes (`vite build`)  | yes (separate `tsc -b --emitDeclarationOnly`)                       | `./out-tsc`       | `./out-tsc/tsconfig.tsbuildinfo` | `apps/rest-api`, `apps/mcp-server`, `apps/console`, `apps/landing`, `libs/sdk`, `libs/design-system`, `libs/pi-extension`, `libs/task-ui`, `libs/agent-runtime`, `packages/agent-daemon-action` |
+
+`nx.json` `targetDefaults`:
+
+```jsonc
+"build":     { "outputs": ["{projectRoot}/dist"] }
+"typecheck": { "outputs": ["{projectRoot}/out-tsc"] }
+```
+
+Group 2 keeps a `typecheck` target only as a graph placeholder (`nx:noop` depending on `build`) so `nx run-many -t typecheck` covers them transitively without re-running `tsc -b`. Their `build` already emits `.d.ts` to `dist/`, which is the cache-restored artifact downstream consumers depend on via project references.
+
+When adding a new workspace: pick a group, set `outDir` and `tsBuildInfoFile` to the same directory per the table, and (group 2 only) add the `nx:noop` typecheck override. Verify with `pnpm exec nx show project <name> --json` that `build.outputs` and `typecheck.outputs` are disjoint.
 
 ## Adding a New Workspace
 

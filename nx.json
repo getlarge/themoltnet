@@ -79,7 +79,7 @@
       "cache": true,
       "dependsOn": ["^build", "^typecheck"],
       "inputs": ["production", "^production"],
-      "outputs": ["{projectRoot}/dist", "{projectRoot}/out-tsc"]
+      "outputs": ["{projectRoot}/dist"]
     },
     "lint": {
       "cache": true,
@@ -97,7 +97,6 @@
     },
     "typecheck": {
       "cache": true,
-      "dependsOn": ["^build"],
       "inputs": ["default", "^production"],
       "outputs": ["{projectRoot}/out-tsc"]
     }
