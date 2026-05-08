@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.2.1...agent-daemon-v0.2.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* re-bundle to pick up `@themoltnet/pi-extension@0.13.2` snapshot fix (`linux-amd64` → `linux-x64` npm package naming, see [#1052](https://github.com/getlarge/themoltnet/pull/1052)). No source changes in `apps/agent-daemon`. Manually published — release-please does not propagate workspace dep bumps to the daemon.
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.2.0...agent-daemon-v0.2.1) (2026-05-08)
 
 
