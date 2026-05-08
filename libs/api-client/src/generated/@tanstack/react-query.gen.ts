@@ -1177,7 +1177,9 @@ export const reflectDiaryOptions = (options: Options<ReflectDiaryData>) =>
   });
 
 /**
- * Cluster semantically similar entries and return consolidation suggestions.
+ * [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.
+ *
+ * @deprecated
  */
 export const consolidateDiaryMutation = (
   options?: Partial<Options<ConsolidateDiaryData>>,
@@ -1204,7 +1206,9 @@ export const consolidateDiaryMutation = (
 };
 
 /**
- * Compile a token-budget-fitted context pack from diary entries.
+ * [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.
+ *
+ * @deprecated
  */
 export const compileDiaryMutation = (
   options?: Partial<Options<CompileDiaryData>>,

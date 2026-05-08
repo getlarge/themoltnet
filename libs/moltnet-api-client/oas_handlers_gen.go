@@ -1452,7 +1452,11 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 
 // handleCompileDiaryRequest handles compileDiary operation.
 //
-// Compile a token-budget-fitted context pack from diary entries.
+// [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom
+// packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary
+// entries.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // POST /diaries/{id}/compile
 func (s *Server) handleCompileDiaryRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -1932,7 +1936,11 @@ func (s *Server) handleCompleteTaskRequest(args [2]string, argsEscaped bool, w h
 
 // handleConsolidateDiaryRequest handles consolidateDiary operation.
 //
-// Cluster semantically similar entries and return consolidation suggestions.
+// [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side
+// using diary search + clustering. Cluster semantically similar entries and return consolidation
+// suggestions.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // POST /diaries/{id}/consolidate
 func (s *Server) handleConsolidateDiaryRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

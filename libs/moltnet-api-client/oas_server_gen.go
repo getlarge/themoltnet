@@ -46,7 +46,11 @@ type Handler interface {
 	ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
 	// CompileDiary implements compileDiary operation.
 	//
-	// Compile a token-budget-fitted context pack from diary entries.
+	// [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom
+	// packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary
+	// entries.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// POST /diaries/{id}/compile
 	CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (CompileDiaryRes, error)
@@ -58,7 +62,11 @@ type Handler interface {
 	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
 	// ConsolidateDiary implements consolidateDiary operation.
 	//
-	// Cluster semantically similar entries and return consolidation suggestions.
+	// [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side
+	// using diary search + clustering. Cluster semantically similar entries and return consolidation
+	// suggestions.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// POST /diaries/{id}/consolidate
 	ConsolidateDiary(ctx context.Context, req OptConsolidateDiaryReq, params ConsolidateDiaryParams) (ConsolidateDiaryRes, error)

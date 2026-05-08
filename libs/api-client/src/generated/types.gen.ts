@@ -48,6 +48,38 @@ export type ProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  [key: string]:
+    | unknown
+    | string
+    | number
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+    | undefined;
 };
 
 export type ValidationProblemDetails = {
@@ -84,6 +116,38 @@ export type ValidationProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  [key: string]:
+    | unknown
+    | string
+    | number
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+    | undefined;
 } & {
   errors: Array<{
     field: string;
@@ -3677,6 +3741,10 @@ export type PreviewDiaryCustomPackData = {
     }>;
     tokenBudget?: number;
     pinned?: boolean;
+    /**
+     * Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.
+     */
+    force?: boolean;
   };
   path: {
     /**
@@ -3705,6 +3773,10 @@ export type PreviewDiaryCustomPackErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */
@@ -3788,6 +3860,10 @@ export type CreateDiaryCustomPackData = {
     }>;
     tokenBudget?: number;
     pinned?: boolean;
+    /**
+     * Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.
+     */
+    force?: boolean;
   };
   path: {
     /**
@@ -3816,6 +3892,10 @@ export type CreateDiaryCustomPackErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */

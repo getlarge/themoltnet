@@ -2587,6 +2587,10 @@ type CreateDiaryCustomPackBadRequest ProblemDetails
 
 func (*CreateDiaryCustomPackBadRequest) createDiaryCustomPackRes() {}
 
+type CreateDiaryCustomPackConflict ProblemDetails
+
+func (*CreateDiaryCustomPackConflict) createDiaryCustomPackRes() {}
+
 type CreateDiaryCustomPackForbidden ProblemDetails
 
 func (*CreateDiaryCustomPackForbidden) createDiaryCustomPackRes() {}
@@ -2600,16 +2604,24 @@ type CreateDiaryCustomPackNotFound ProblemDetails
 func (*CreateDiaryCustomPackNotFound) createDiaryCustomPackRes() {}
 
 type CreateDiaryCustomPackReq struct {
-	Entries     []CreateDiaryCustomPackReqEntriesItem `json:"entries"`
-	PackType    CreateDiaryCustomPackReqPackType      `json:"packType"`
-	Params      CreateDiaryCustomPackReqParams        `json:"params"`
-	Pinned      OptBool                               `json:"pinned"`
-	TokenBudget OptInt                                `json:"tokenBudget"`
+	Entries []CreateDiaryCustomPackReqEntriesItem `json:"entries"`
+	// Bypass the prompt-injection gate. When omitted/false, packs containing entries with
+	// injection_risk=true are rejected with 409 and the flagged entries listed.
+	Force       OptBool                          `json:"force"`
+	PackType    CreateDiaryCustomPackReqPackType `json:"packType"`
+	Params      CreateDiaryCustomPackReqParams   `json:"params"`
+	Pinned      OptBool                          `json:"pinned"`
+	TokenBudget OptInt                           `json:"tokenBudget"`
 }
 
 // GetEntries returns the value of Entries.
 func (s *CreateDiaryCustomPackReq) GetEntries() []CreateDiaryCustomPackReqEntriesItem {
 	return s.Entries
+}
+
+// GetForce returns the value of Force.
+func (s *CreateDiaryCustomPackReq) GetForce() OptBool {
+	return s.Force
 }
 
 // GetPackType returns the value of PackType.
@@ -2635,6 +2647,11 @@ func (s *CreateDiaryCustomPackReq) GetTokenBudget() OptInt {
 // SetEntries sets the value of Entries.
 func (s *CreateDiaryCustomPackReq) SetEntries(val []CreateDiaryCustomPackReqEntriesItem) {
 	s.Entries = val
+}
+
+// SetForce sets the value of Force.
+func (s *CreateDiaryCustomPackReq) SetForce(val OptBool) {
+	s.Force = val
 }
 
 // SetPackType sets the value of PackType.
@@ -15609,6 +15626,10 @@ type PreviewDiaryCustomPackBadRequest ProblemDetails
 
 func (*PreviewDiaryCustomPackBadRequest) previewDiaryCustomPackRes() {}
 
+type PreviewDiaryCustomPackConflict ProblemDetails
+
+func (*PreviewDiaryCustomPackConflict) previewDiaryCustomPackRes() {}
+
 type PreviewDiaryCustomPackForbidden ProblemDetails
 
 func (*PreviewDiaryCustomPackForbidden) previewDiaryCustomPackRes() {}
@@ -15622,16 +15643,24 @@ type PreviewDiaryCustomPackNotFound ProblemDetails
 func (*PreviewDiaryCustomPackNotFound) previewDiaryCustomPackRes() {}
 
 type PreviewDiaryCustomPackReq struct {
-	Entries     []PreviewDiaryCustomPackReqEntriesItem `json:"entries"`
-	PackType    PreviewDiaryCustomPackReqPackType      `json:"packType"`
-	Params      PreviewDiaryCustomPackReqParams        `json:"params"`
-	Pinned      OptBool                                `json:"pinned"`
-	TokenBudget OptInt                                 `json:"tokenBudget"`
+	Entries []PreviewDiaryCustomPackReqEntriesItem `json:"entries"`
+	// Bypass the prompt-injection gate. When omitted/false, packs containing entries with
+	// injection_risk=true are rejected with 409 and the flagged entries listed.
+	Force       OptBool                           `json:"force"`
+	PackType    PreviewDiaryCustomPackReqPackType `json:"packType"`
+	Params      PreviewDiaryCustomPackReqParams   `json:"params"`
+	Pinned      OptBool                           `json:"pinned"`
+	TokenBudget OptInt                            `json:"tokenBudget"`
 }
 
 // GetEntries returns the value of Entries.
 func (s *PreviewDiaryCustomPackReq) GetEntries() []PreviewDiaryCustomPackReqEntriesItem {
 	return s.Entries
+}
+
+// GetForce returns the value of Force.
+func (s *PreviewDiaryCustomPackReq) GetForce() OptBool {
+	return s.Force
 }
 
 // GetPackType returns the value of PackType.
@@ -15657,6 +15686,11 @@ func (s *PreviewDiaryCustomPackReq) GetTokenBudget() OptInt {
 // SetEntries sets the value of Entries.
 func (s *PreviewDiaryCustomPackReq) SetEntries(val []PreviewDiaryCustomPackReqEntriesItem) {
 	s.Entries = val
+}
+
+// SetForce sets the value of Force.
+func (s *PreviewDiaryCustomPackReq) SetForce(val OptBool) {
+	s.Force = val
 }
 
 // SetPackType sets the value of PackType.
@@ -15805,12 +15839,13 @@ func (*PreviewRenderedPackUnauthorized) previewRenderedPackRes() {}
 
 // Ref: #/components/schemas/ProblemDetails
 type ProblemDetails struct {
-	Code     ProblemDetailsCode `json:"code"`
-	Detail   OptString          `json:"detail"`
-	Instance OptString          `json:"instance"`
-	Status   int                `json:"status"`
-	Title    string             `json:"title"`
-	Type     url.URL            `json:"type"`
+	Code            ProblemDetailsCode `json:"code"`
+	Detail          OptString          `json:"detail"`
+	Instance        OptString          `json:"instance"`
+	Status          int                `json:"status"`
+	Title           string             `json:"title"`
+	Type            url.URL            `json:"type"`
+	AdditionalProps ProblemDetailsAdditional
 }
 
 // GetCode returns the value of Code.
@@ -15843,6 +15878,11 @@ func (s *ProblemDetails) GetType() url.URL {
 	return s.Type
 }
 
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ProblemDetails) GetAdditionalProps() ProblemDetailsAdditional {
+	return s.AdditionalProps
+}
+
 // SetCode sets the value of Code.
 func (s *ProblemDetails) SetCode(val ProblemDetailsCode) {
 	s.Code = val
@@ -15873,9 +15913,25 @@ func (s *ProblemDetails) SetType(val url.URL) {
 	s.Type = val
 }
 
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ProblemDetails) SetAdditionalProps(val ProblemDetailsAdditional) {
+	s.AdditionalProps = val
+}
+
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
 func (*ProblemDetails) listTaskSchemasRes()               {}
+
+type ProblemDetailsAdditional map[string]jx.Raw
+
+func (s *ProblemDetailsAdditional) init() ProblemDetailsAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
 
 type ProblemDetailsCode string
 
@@ -22058,13 +22114,14 @@ func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
 // Merged schema.
 // Ref: #/components/schemas/ValidationProblemDetails
 type ValidationProblemDetails struct {
-	Code     ValidationProblemDetailsCode         `json:"code"`
-	Detail   OptString                            `json:"detail"`
-	Instance OptString                            `json:"instance"`
-	Status   int                                  `json:"status"`
-	Title    string                               `json:"title"`
-	Type     url.URL                              `json:"type"`
-	Errors   []ValidationProblemDetailsErrorsItem `json:"errors"`
+	Code            ValidationProblemDetailsCode         `json:"code"`
+	Detail          OptString                            `json:"detail"`
+	Instance        OptString                            `json:"instance"`
+	Status          int                                  `json:"status"`
+	Title           string                               `json:"title"`
+	Type            url.URL                              `json:"type"`
+	Errors          []ValidationProblemDetailsErrorsItem `json:"errors"`
+	AdditionalProps ValidationProblemDetailsAdditional
 }
 
 // GetCode returns the value of Code.
@@ -22102,6 +22159,11 @@ func (s *ValidationProblemDetails) GetErrors() []ValidationProblemDetailsErrorsI
 	return s.Errors
 }
 
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ValidationProblemDetails) GetAdditionalProps() ValidationProblemDetailsAdditional {
+	return s.AdditionalProps
+}
+
 // SetCode sets the value of Code.
 func (s *ValidationProblemDetails) SetCode(val ValidationProblemDetailsCode) {
 	s.Code = val
@@ -22137,8 +22199,24 @@ func (s *ValidationProblemDetails) SetErrors(val []ValidationProblemDetailsError
 	s.Errors = val
 }
 
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetailsAdditional) {
+	s.AdditionalProps = val
+}
+
 func (*ValidationProblemDetails) completeTaskRes() {}
 func (*ValidationProblemDetails) createTaskRes()   {}
+
+type ValidationProblemDetailsAdditional map[string]jx.Raw
+
+func (s *ValidationProblemDetailsAdditional) init() ValidationProblemDetailsAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
 
 type ValidationProblemDetailsCode string
 

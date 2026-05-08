@@ -2697,6 +2697,7 @@
         ]
       },
       "ProblemDetails": {
+        "additionalProperties": true,
         "properties": {
           "code": {
             "enum": [
@@ -4435,6 +4436,7 @@
       "ValidationProblemDetails": {
         "allOf": [
           {
+            "additionalProperties": true,
             "properties": {
               "code": {
                 "enum": [
@@ -6730,7 +6732,8 @@
     },
     "/diaries/{id}/compile": {
       "post": {
-        "description": "Compile a token-budget-fitted context pack from diary entries.",
+        "deprecated": true,
+        "description": "[DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.",
         "operationId": "compileDiary",
         "parameters": [
           {
@@ -6903,7 +6906,8 @@
     },
     "/diaries/{id}/consolidate": {
       "post": {
-        "description": "Cluster semantically similar entries and return consolidation suggestions.",
+        "deprecated": true,
+        "description": "[DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.",
         "operationId": "consolidateDiary",
         "parameters": [
           {
@@ -7613,6 +7617,10 @@
                     "minItems": 1,
                     "type": "array"
                   },
+                  "force": {
+                    "description": "Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.",
+                    "type": "boolean"
+                  },
                   "packType": {
                     "enum": [
                       "custom"
@@ -7694,6 +7702,16 @@
             },
             "description": "Default Response"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -7763,6 +7781,10 @@
                     "maxItems": 500,
                     "minItems": 1,
                     "type": "array"
+                  },
+                  "force": {
+                    "description": "Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.",
+                    "type": "boolean"
                   },
                   "packType": {
                     "enum": [
@@ -7836,6 +7858,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {
