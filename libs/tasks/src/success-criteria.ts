@@ -21,15 +21,18 @@
  * ## Two roles, two task types
  *
  * **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
- * `curate_pack`, `render_pack`). The producer's daemon evaluates the
- * deterministic parts (`assertions` today; gates/sideEffects later) over
- * its own output and reports the result as a `VerificationRecord`
- * attached to /complete. This is a truthful self-rating, NOT enforcement
- * — `verification.passed=false` does not block /complete and does not
- * affect `acceptedAttemptN`. The REST API is dumb storage; it never
- * re-runs assertions and never runs LLMs. Self-assessment exists so
- * imposers (and analytics) can see what the producer thinks of its own
- * work without waiting for a binding judgment.
+ * `curate_pack`, `render_pack`). The producer **LLM** evaluates the
+ * criteria against its own output and emits a `VerificationRecord`
+ * inside `output.verification`. The daemon is pure passthrough — it
+ * does not run `evaluateAssertions`, does not inspect the verification
+ * record. The REST API is dumb storage; it never re-runs assertions and
+ * never runs LLMs. The cross-field rule
+ * `requireVerificationWhenCriteriaPresent` enforces "verification
+ * required iff successCriteria present" at task-output validation time
+ * (server-side schema check). Self-assessment is a truthful self-rating,
+ * NOT enforcement — `verification.passed=false` does not block /complete
+ * and does not affect `acceptedAttemptN`. See
+ * `libs/agent-runtime/README.md` for the full producer/judge flow.
  *
  * **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
  * A separate task whose IS the application of `successCriteria` to
@@ -63,9 +66,9 @@ import { Rubric } from './rubric.js';
 const SchemaCheckSpec = Type.Object(
   {
     /**
-     * CIDv1 of a stored TypeBox/JSON-schema document. The daemon (and
-     * server, on re-verification) resolves this against the existing
-     * content store and runs `Value.Check` against the attempt's output.
+     * CIDv1 of a stored TypeBox/JSON-schema document the producer LLM
+     * resolves and runs `Value.Check` against its own output as part of
+     * self-assessment.
      */
     schemaCid: Type.String({ minLength: 1 }),
   },
@@ -191,11 +194,10 @@ export const SuccessCriteria = Type.Object(
 export type SuccessCriteria = Static<typeof SuccessCriteria>;
 
 // ---------------------------------------------------------------------------
-// Verification record — the producer daemon's truthful self-assessment,
-// attached to /complete and persisted onto `task_attempts.verification`.
-// NOT a binding evaluation: the REST API does not re-run assertions and
-// `verification.passed=false` does not block /complete. The binding gate
-// is a downstream judgment task. See the file header for the full model.
+// Verification record — the producer LLM's truthful self-assessment,
+// emitted inside `output.verification` and persisted on the attempt row.
+// NOT a binding evaluation: the binding gate is a downstream judgment
+// task. See the file header for the full model.
 // ---------------------------------------------------------------------------
 
 export const VerificationResultStatus = Type.Union(
@@ -249,15 +251,21 @@ export const VerificationRecord = Type.Object(
 export type VerificationRecord = Static<typeof VerificationRecord>;
 
 // ---------------------------------------------------------------------------
-// Pure evaluators. Used by the producer daemon (for self-assessment
-// before /complete) and by judgment-task executors (which apply the
-// same criteria neutrally to someone else's output). Pure functions —
-// no I/O, no LLM calls, no side effects.
+// Pure evaluators. Available to LLM-driven executors that want a
+// deterministic helper when applying the criteria — judgment-task
+// executors (binding) and producer LLMs doing self-assessment
+// (advisory). NOT called by the daemon or the REST API; both are
+// pass-through on this axis. Pure functions — no I/O, no LLM calls,
+// no side effects.
 // ---------------------------------------------------------------------------
 
 /**
  * Resolve a dotted path against `root`. Returns the list of values
- * found — empty when the path doesn't exist or any segment is null.
+ * found — empty when the path doesn't exist OR any segment is null.
+ * (Caller cannot distinguish "absent" from "null"; the assertion-fail
+ * detail message says "path not found" in both cases. Acceptable for v1
+ * since assertions over genuinely-null values are rare; a future
+ * enhancement could split the two states.)
  *
  * Path syntax:
  *   - `a.b.c`         object descent
@@ -316,8 +324,7 @@ function checkOne(value: unknown, op: AssertionOp, arg: unknown): boolean {
       return value === arg;
     case 'matches': {
       if (typeof value !== 'string' || typeof arg !== 'string') return false;
-      // Surface a malformed regex as a fail rather than letting it throw
-      // out of the evaluator and crash the daemon's finalize step.
+      // Surface a malformed regex as a fail rather than throwing.
       try {
         return new RegExp(arg).test(value);
       } catch {
@@ -343,8 +350,9 @@ function checkOne(value: unknown, op: AssertionOp, arg: unknown): boolean {
 
 /**
  * Evaluate every assertion against `output`, returning per-assertion
- * results in input order. Pure and deterministic — both daemon and
- * server run this and any disagreement is a tampering signal.
+ * results in input order. Pure and deterministic — meant for LLM-driven
+ * executors that want a deterministic helper. The daemon and REST API
+ * never call this; both are pass-through on the verification axis.
  *
  * Multi-value semantics: when the path uses `*`, every resolved value
  * must satisfy the assertion (all-must-pass). An imposer who writes

@@ -1,22 +1,5 @@
-/**
- * Render the "Self-verification" section appended to producer prompts
- * (fulfill_brief, curate_pack, render_pack).
- *
- * The producer LLM is the sole author of `output.verification`. The
- * daemon does not evaluate `input.successCriteria`. Binding evaluation
- * is the role of a separate judgment task — but this self-assessment
- * is non-skippable when the imposer set criteria, regardless of whether
- * a downstream judge ever runs.
- *
- * Per the per-type `validateOutput` cross-field rule:
- *   - `input.successCriteria` set → `output.verification` REQUIRED.
- *   - `input.successCriteria` unset → `output.verification` MUST be omitted.
- *
- * Producers cannot see the judge model from inside their session and
- * should not try to optimize for it. Self-verification is just an
- * honest receipt of "here is how my output measures against the
- * criteria you handed me."
- */
+// Self-verification prompt block for producer task types — see
+// libs/agent-runtime/README.md for the producer/judge model.
 export function buildSelfVerificationBlock(taskId: string): string {
   return [
     '## Self-verification',

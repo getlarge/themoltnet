@@ -12,8 +12,9 @@ client. The daemon (`@moltnet/agent-daemon`) wires it up.
 ## Concepts
 
 - **`AgentRuntime`** — drives the loop: claim → execute → report.
-- **`TaskSource`** — pull-based queue. `ApiTaskSource` (long-poll HTTP)
-  and `ApiTaskSource` (single-task) live in `./sources`.
+- **`TaskSource`** — pull-based queue. `PollingApiTaskSource`
+  (long-poll HTTP) and `ApiTaskSource` (single-task) live in
+  `./sources`.
 - **`TaskExecutor`** — runs one task attempt. The Pi extension provides
   the production executor; tests inject mocks.
 - **`TaskReporter`** — heartbeats, streams messages, observes server-side
