@@ -512,7 +512,7 @@ export function registerDiaryTools(
     {
       name: 'diaries_consolidate',
       description:
-        'Cluster semantically similar entries and return consolidation suggestions.',
+        '[DEPRECATED] Server-side consolidation is obsolete; compose consolidation suggestions client-side. Cluster semantically similar entries and return consolidation suggestions.',
       inputSchema: DiariesConsolidateSchema,
       outputSchema: DiariesConsolidateOutputSchema,
     },
@@ -523,7 +523,7 @@ export function registerDiaryTools(
     {
       name: 'diaries_compile',
       description:
-        'Compile a token-budget-fitted context pack from diary entries.',
+        '[DEPRECATED] Server-side compilation is obsolete; use packs_create with agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.',
       inputSchema: DiariesCompileSchema,
       outputSchema: DiariesCompileOutputSchema,
     },

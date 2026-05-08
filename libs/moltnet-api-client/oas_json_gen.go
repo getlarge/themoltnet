@@ -7264,6 +7264,44 @@ func (s *CreateDiaryCustomPackBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateDiaryCustomPackConflict as json.
+func (s *CreateDiaryCustomPackConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDiaryCustomPackConflict from json.
+func (s *CreateDiaryCustomPackConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDiaryCustomPackConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDiaryCustomPackConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDiaryCustomPackConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDiaryCustomPackConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateDiaryCustomPackForbidden as json.
 func (s *CreateDiaryCustomPackForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -7396,6 +7434,12 @@ func (s *CreateDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		if s.Force.Set {
+			e.FieldStart("force")
+			s.Force.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("packType")
 		s.PackType.Encode(e)
 	}
@@ -7417,12 +7461,13 @@ func (s *CreateDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateDiaryCustomPackReq = [5]string{
+var jsonFieldsNameOfCreateDiaryCustomPackReq = [6]string{
 	0: "entries",
-	1: "packType",
-	2: "params",
-	3: "pinned",
-	4: "tokenBudget",
+	1: "force",
+	2: "packType",
+	3: "params",
+	4: "pinned",
+	5: "tokenBudget",
 }
 
 // Decode decodes CreateDiaryCustomPackReq from json.
@@ -7452,8 +7497,18 @@ func (s *CreateDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entries\"")
 			}
+		case "force":
+			if err := func() error {
+				s.Force.Reset()
+				if err := s.Force.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"force\"")
+			}
 		case "packType":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.PackType.Decode(d); err != nil {
 					return err
@@ -7463,7 +7518,7 @@ func (s *CreateDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packType\"")
 			}
 		case "params":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Params.Decode(d); err != nil {
 					return err
@@ -7502,7 +7557,7 @@ func (s *CreateDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001101,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -39646,6 +39701,44 @@ func (s *PreviewDiaryCustomPackBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes PreviewDiaryCustomPackConflict as json.
+func (s *PreviewDiaryCustomPackConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes PreviewDiaryCustomPackConflict from json.
+func (s *PreviewDiaryCustomPackConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewDiaryCustomPackConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewDiaryCustomPackConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *PreviewDiaryCustomPackConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewDiaryCustomPackConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes PreviewDiaryCustomPackForbidden as json.
 func (s *PreviewDiaryCustomPackForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -39778,6 +39871,12 @@ func (s *PreviewDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		if s.Force.Set {
+			e.FieldStart("force")
+			s.Force.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("packType")
 		s.PackType.Encode(e)
 	}
@@ -39799,12 +39898,13 @@ func (s *PreviewDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfPreviewDiaryCustomPackReq = [5]string{
+var jsonFieldsNameOfPreviewDiaryCustomPackReq = [6]string{
 	0: "entries",
-	1: "packType",
-	2: "params",
-	3: "pinned",
-	4: "tokenBudget",
+	1: "force",
+	2: "packType",
+	3: "params",
+	4: "pinned",
+	5: "tokenBudget",
 }
 
 // Decode decodes PreviewDiaryCustomPackReq from json.
@@ -39834,8 +39934,18 @@ func (s *PreviewDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entries\"")
 			}
+		case "force":
+			if err := func() error {
+				s.Force.Reset()
+				if err := s.Force.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"force\"")
+			}
 		case "packType":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.PackType.Decode(d); err != nil {
 					return err
@@ -39845,7 +39955,7 @@ func (s *PreviewDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packType\"")
 			}
 		case "params":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Params.Decode(d); err != nil {
 					return err
@@ -39884,7 +39994,7 @@ func (s *PreviewDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001101,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -40517,6 +40627,13 @@ func (s *ProblemDetails) encodeFields(e *jx.Encoder) {
 		e.FieldStart("type")
 		json.EncodeURI(e, s.Type)
 	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
 }
 
 var jsonFieldsNameOfProblemDetails = [6]string{
@@ -40534,6 +40651,7 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 		return errors.New("invalid: unable to decode ProblemDetails to nil")
 	}
 	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -40604,7 +40722,18 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		default:
-			return d.Skip()
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
 		}
 		return nil
 	}); err != nil {
@@ -40655,6 +40784,64 @@ func (s *ProblemDetails) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ProblemDetails) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s ProblemDetailsAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s ProblemDetailsAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes ProblemDetailsAdditional from json.
+func (s *ProblemDetailsAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProblemDetailsAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ProblemDetailsAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ProblemDetailsAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProblemDetailsAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -55673,6 +55860,13 @@ func (s *ValidationProblemDetails) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
 }
 
 var jsonFieldsNameOfValidationProblemDetails = [7]string{
@@ -55691,6 +55885,7 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 		return errors.New("invalid: unable to decode ValidationProblemDetails to nil")
 	}
 	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -55779,7 +55974,18 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"errors\"")
 			}
 		default:
-			return d.Skip()
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
 		}
 		return nil
 	}); err != nil {
@@ -55830,6 +56036,64 @@ func (s *ValidationProblemDetails) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ValidationProblemDetails) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s ValidationProblemDetailsAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s ValidationProblemDetailsAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes ValidationProblemDetailsAdditional from json.
+func (s *ValidationProblemDetailsAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidationProblemDetailsAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ValidationProblemDetailsAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ValidationProblemDetailsAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidationProblemDetailsAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

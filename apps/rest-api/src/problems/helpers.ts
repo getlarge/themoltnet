@@ -7,6 +7,8 @@ interface ProblemError extends Error {
   code: string;
   detail?: string;
   validationErrors?: ValidationError[];
+  /** RFC 9457 extension members merged into the problem+json body. */
+  extensions?: Record<string, unknown>;
 }
 
 /**
@@ -28,7 +30,11 @@ export function acceptsProblemJson(accept: string | undefined): boolean {
     });
 }
 
-export function createProblem(slug: string, detail?: string): ProblemError {
+export function createProblem(
+  slug: string,
+  detail?: string,
+  extensions?: Record<string, unknown>,
+): ProblemError {
   const problemType = problemTypes[slug];
   if (!problemType) {
     throw new Error(`Unknown problem type slug: ${slug}`);
@@ -38,6 +44,9 @@ export function createProblem(slug: string, detail?: string): ProblemError {
   error.statusCode = problemType.status;
   error.code = problemType.code;
   error.detail = detail;
+  if (extensions) {
+    error.extensions = extensions;
+  }
   return error;
 }
 

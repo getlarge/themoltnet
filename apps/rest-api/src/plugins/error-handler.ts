@@ -17,6 +17,8 @@ interface ProblemError extends FastifyError {
   detail?: string;
   validationErrors?: { field: string; message: string }[];
   retryAfter?: number;
+  /** RFC 9457 extension members merged into the problem+json body. */
+  extensions?: Record<string, unknown>;
 }
 
 /**
@@ -174,6 +176,12 @@ async function errorHandler(fastify: FastifyInstance) {
 
       if (error.retryAfter !== undefined) {
         body.retryAfter = error.retryAfter;
+      }
+
+      if (error.extensions && !isServerError) {
+        for (const [key, value] of Object.entries(error.extensions)) {
+          if (!(key in body)) body[key] = value;
+        }
       }
 
       // RFC 9457 recommends application/problem+json, but many HTTP clients

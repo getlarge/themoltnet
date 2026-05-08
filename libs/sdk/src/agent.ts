@@ -143,11 +143,13 @@ export interface DiariesNamespace {
 
   delete(id: string): Promise<Success>;
 
+  /** @deprecated Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. */
   consolidate(
     id: string,
     body?: ConsolidateDiaryData['body'],
   ): Promise<ConsolidateResult>;
 
+  /** @deprecated Server-side compilation is obsolete. Use {@link DiariesNamespace.packs.create} (POST /diaries/:id/packs) with agent-side entry selection. */
   compile(
     id: string,
     body: NonNullable<CompileDiaryData['body']>,

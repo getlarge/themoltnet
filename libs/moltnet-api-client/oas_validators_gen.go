@@ -2383,6 +2383,14 @@ func (s *CreateDiaryCustomPackBadRequest) Validate() error {
 	return nil
 }
 
+func (s *CreateDiaryCustomPackConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *CreateDiaryCustomPackForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -8878,6 +8886,14 @@ func (s *NetworkInfoRulesVouchers) Validate() error {
 }
 
 func (s *PreviewDiaryCustomPackBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *PreviewDiaryCustomPackConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

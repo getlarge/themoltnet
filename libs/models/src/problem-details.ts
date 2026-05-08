@@ -42,7 +42,11 @@ export const ProblemDetailsSchema = Type.Object(
     detail: Type.Optional(Type.String()),
     instance: Type.Optional(Type.String()),
   },
-  { $id: 'ProblemDetails' },
+  // RFC 9457 §3 — problem details MAY contain extension members beyond the
+  // standard fields. Routes that need structured detail (e.g. listing
+  // injection-flagged entries on a 409) attach them via createProblem's
+  // `extensions` arg; the error handler merges them into the body.
+  { $id: 'ProblemDetails', additionalProperties: true },
 );
 
 export type ProblemDetails = Static<typeof ProblemDetailsSchema>;

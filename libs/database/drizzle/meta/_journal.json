@@ -70,6 +70,13 @@
       "tag": "0009_thin_nightcrawler",
       "version": "7",
       "when": 1778224325925
+    },
+    {
+      "breakpoints": true,
+      "idx": 10,
+      "tag": "0010_brief_nextwave",
+      "version": "7",
+      "when": 1778258818951
     }
   ],
   "version": "7"

@@ -54,6 +54,8 @@ interface ResolvedSelection {
     contentHash: string | null;
     importance: number;
     createdAt: Date;
+    injectionRisk: boolean;
+    injectionThreats: { type: string; severity: number; match: string }[];
   };
 }
 
@@ -170,9 +172,34 @@ async function loadSelectedEntries(
     }
     return {
       rank: entry.rank,
-      row,
+      row: {
+        id: row.id,
+        content: row.content,
+        contentHash: row.contentHash,
+        importance: row.importance,
+        createdAt: row.createdAt,
+        injectionRisk: row.injectionRisk,
+        injectionThreats: row.injectionThreats,
+      },
     };
   });
+}
+
+function assertNoInjectionRisk(selectedEntries: ResolvedSelection[]): void {
+  // Entries are scanned at create/update time by the diary workflow; both the
+  // boolean flag and the threat list are stored on diary_entries. The gate
+  // reads them — no re-scan needed.
+  const flagged = selectedEntries
+    .filter(({ row }) => row.injectionRisk)
+    .map(({ row }) => ({ id: row.id, threats: row.injectionThreats }));
+
+  if (flagged.length === 0) return;
+
+  throw createProblem(
+    'conflict',
+    `Pack contains ${flagged.length} entry(ies) flagged as prompt-injection risk; pass force: true to override.`,
+    { flagged },
+  );
 }
 
 function fitCustomPackEntries(
@@ -310,6 +337,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         entries: SelectedEntry[];
         tokenBudget?: number;
         pinned?: boolean;
+        force?: boolean;
       };
       authContext:
         | { identityId: string; subjectType: 'agent' }
@@ -339,6 +367,11 @@ export async function packRoutes(fastify: FastifyInstance) {
       diary.id,
       request.body.entries,
     );
+
+    if (!request.body.force) {
+      assertNoInjectionRisk(selectedEntries);
+    }
+
     const { entries, stats } = fitCustomPackEntries(
       selectedEntries,
       request.body.tokenBudget,
@@ -830,6 +863,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -862,6 +896,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },

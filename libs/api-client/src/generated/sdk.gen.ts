@@ -892,7 +892,9 @@ export const reflectDiary = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Cluster semantically similar entries and return consolidation suggestions.
+ * [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.
+ *
+ * @deprecated
  */
 export const consolidateDiary = <ThrowOnError extends boolean = false>(
   options: Options<ConsolidateDiaryData, ThrowOnError>,
@@ -920,7 +922,9 @@ export const consolidateDiary = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Compile a token-budget-fitted context pack from diary entries.
+ * [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.
+ *
+ * @deprecated
  */
 export const compileDiary = <ThrowOnError extends boolean = false>(
   options: Options<CompileDiaryData, ThrowOnError>,

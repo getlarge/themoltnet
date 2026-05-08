@@ -66,7 +66,11 @@ type Invoker interface {
 	ClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
 	// CompileDiary invokes compileDiary operation.
 	//
-	// Compile a token-budget-fitted context pack from diary entries.
+	// [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom
+	// packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary
+	// entries.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// POST /diaries/{id}/compile
 	CompileDiary(ctx context.Context, request *CompileDiaryReq, params CompileDiaryParams) (CompileDiaryRes, error)
@@ -78,7 +82,11 @@ type Invoker interface {
 	CompleteTask(ctx context.Context, request *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
 	// ConsolidateDiary invokes consolidateDiary operation.
 	//
-	// Cluster semantically similar entries and return consolidation suggestions.
+	// [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side
+	// using diary search + clustering. Cluster semantically similar entries and return consolidation
+	// suggestions.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// POST /diaries/{id}/consolidate
 	ConsolidateDiary(ctx context.Context, request OptConsolidateDiaryReq, params ConsolidateDiaryParams) (ConsolidateDiaryRes, error)
@@ -1633,7 +1641,11 @@ func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskReq, par
 
 // CompileDiary invokes compileDiary operation.
 //
-// Compile a token-budget-fitted context pack from diary entries.
+// [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom
+// packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary
+// entries.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // POST /diaries/{id}/compile
 func (c *Client) CompileDiary(ctx context.Context, request *CompileDiaryReq, params CompileDiaryParams) (CompileDiaryRes, error) {
@@ -1958,7 +1970,11 @@ func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskReq,
 
 // ConsolidateDiary invokes consolidateDiary operation.
 //
-// Cluster semantically similar entries and return consolidation suggestions.
+// [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side
+// using diary search + clustering. Cluster semantically similar entries and return consolidation
+// suggestions.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // POST /diaries/{id}/consolidate
 func (c *Client) ConsolidateDiary(ctx context.Context, request OptConsolidateDiaryReq, params ConsolidateDiaryParams) (ConsolidateDiaryRes, error) {

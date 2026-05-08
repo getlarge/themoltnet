@@ -200,6 +200,8 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     embedding: null, // hybrid_search omits embedding for performance
     tags: (row.tags as string[]) ?? null,
     injectionRisk: (row.injection_risk as boolean) ?? false,
+    injectionThreats:
+      (row.injection_threats as DiaryEntry['injectionThreats']) ?? [],
     importance: (row.importance as number) ?? 5,
     accessCount: (row.access_count as number) ?? 0,
     lastAccessedAt: row.last_accessed_at

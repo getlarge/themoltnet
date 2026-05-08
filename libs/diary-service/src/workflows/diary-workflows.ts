@@ -23,7 +23,7 @@ import {
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 
-import { scanForInjection } from '../injection-scanner.js';
+import { scanForInjection, type ScanResult } from '../injection-scanner.js';
 import type {
   DiaryEntry,
   UpdateEntryInput,
@@ -135,10 +135,7 @@ export function initDiaryWorkflows(): void {
   );
 
   const scanInjectionStep = DBOS.registerStep(
-    async (
-      content: string,
-      title?: string | null,
-    ): Promise<{ injectionRisk: boolean }> => {
+    async (content: string, title?: string | null): Promise<ScanResult> => {
       return Promise.resolve(scanForInjection(content, title));
     },
     { name: 'diary.step.scanInjection' },
@@ -175,11 +172,8 @@ export function initDiaryWorkflows(): void {
           input.title,
         );
         const embedding = await embedPassageStep(embedText);
-        const scanResult: { injectionRisk: boolean } = await scanInjectionStep(
-          input.content,
-          input.title,
-        );
-        const { injectionRisk } = scanResult;
+        const { injectionRisk, threats: injectionThreats } =
+          await scanInjectionStep(input.content, input.title);
 
         const entry = await dataSource.runTransaction(
           async () => {
@@ -197,6 +191,7 @@ export function initDiaryWorkflows(): void {
               entryType: resolvedEntryType,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
+              injectionThreats,
               contentHash: input.contentHash,
               contentSignature: input.contentSignature,
               signingNonce: input.signingNonce,
@@ -236,11 +231,12 @@ export function initDiaryWorkflows(): void {
           const contentToScan = updates.content ?? existingContent ?? '';
           const titleToScan =
             updates.title !== undefined ? updates.title : existingTitle;
-          const { injectionRisk } = await scanInjectionStep(
+          const { injectionRisk, threats } = await scanInjectionStep(
             contentToScan,
             titleToScan,
           );
           repoUpdates.injectionRisk = injectionRisk;
+          repoUpdates.injectionThreats = threats;
         }
 
         if (
