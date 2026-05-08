@@ -43,9 +43,14 @@ inputs:
     required: false
     default: 'latest'
   node-version:
-    description: 'Node.js version for the runner.'
+    description: >
+      Node.js version for the runner. Default is 24 because the
+      gondolin sandbox (`@earendil-works/gondolin`) requires Node
+      >=23.6, and 24 is the LTS sibling. Earlier versions emit
+      `EBADENGINE` warnings and may exhibit runtime failures inside
+      the sandbox boot path.
     required: false
-    default: '22'
+    default: '24'
 outputs:
   task-id:
     description: 'MoltNet task id that was executed (or created+executed).'
@@ -68,6 +73,41 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
+
+    - name: Install gondolin sandbox dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The agent-daemon spawns each task inside a gondolin micro-VM
+        # (`@earendil-works/gondolin`), which shells out to:
+        #   - `qemu-img`           (from the qemu-utils package) for
+        #     creating the qcow2 overlay
+        #   - `qemu-system-x86_64` (from the qemu-system-x86 package)
+        #     for booting the guest
+        # Standard `ubuntu-latest` runners ship neither — without this
+        # step the daemon fails at sandbox setup with
+        # `spawnSync qemu-img ENOENT` before the LLM is ever called.
+        # /dev/kvm is unavailable on standard GitHub-hosted runners
+        # (no nested virt). Gondolin auto-falls-back to TCG software
+        # emulation in that case (slower boot, ~1-3 min, but works
+        # without elevated privileges).
+        # Skip cleanly on non-Linux runners — gondolin uses HVF on
+        # macOS via `brew install qemu`, which adopters running
+        # `runs-on: macos-*` need to install themselves.
+        case "$(uname -s)" in
+          Linux)
+            if command -v qemu-img >/dev/null && command -v qemu-system-x86_64 >/dev/null; then
+              echo "::notice::qemu already present; skipping install"
+              exit 0
+            fi
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends \
+              qemu-utils qemu-system-x86
+            ;;
+          *)
+            echo "::warning::Non-Linux runner detected ($(uname -s)). Install qemu manually if you intend to run the gondolin sandbox here."
+            ;;
+        esac
 
     - name: Materialize MoltNet agent dir from env
       shell: bash

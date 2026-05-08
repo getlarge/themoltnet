@@ -48,6 +48,22 @@ export-env` → upload → `moltnet config init-from-env` on the runner)
 is documented in
 [`docs/agent-runtime.md` § Provisioning loop](https://github.com/getlarge/themoltnet/blob/main/docs/agent-runtime.md#provisioning-loop-export-env--upload--init-from-env).
 
+## Runner requirements
+
+- **`runs-on: ubuntu-latest`** — the action installs gondolin sandbox
+  dependencies (`qemu-utils`, `qemu-system-x86`) via `apt-get`, which
+  needs Debian/Ubuntu. macOS adopters must `brew install qemu`
+  themselves; Windows is not supported by gondolin.
+- **Node.js >= 23.6** — gondolin's engine constraint. The action
+  defaults `node-version` to `'24'` (the LTS sibling). Override via
+  the `node-version` input only if you have a specific reason; older
+  versions emit `EBADENGINE` warnings and may fail at sandbox boot.
+- **No `/dev/kvm`** — standard GitHub-hosted runners do not expose KVM.
+  Gondolin auto-falls-back to TCG software emulation in that case;
+  expect ~1–3 min of cold-start time per task while the snapshot
+  cache warms. Self-hosted runners with KVM passthrough boot in
+  seconds.
+
 ## Required secrets / vars
 
 Most of these are scoped to a GitHub Environment named after the agent
