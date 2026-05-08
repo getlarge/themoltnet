@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.1...pi-extension-v0.13.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **pi-extension:** use linux-x64 (not linux-amd64) when fetching MoltNet CLI in snapshots ([9affa3f](https://github.com/getlarge/themoltnet/commit/9affa3fffd9f201a429cbab0d22dff3d28c47a83))
+
 ## [0.13.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.0...pi-extension-v0.13.1) (2026-05-08)
 
 
