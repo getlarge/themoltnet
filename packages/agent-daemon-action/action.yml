@@ -74,8 +74,24 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    # Cache the resolved .deb files so warm runs skip the ~90s download.
+    # Path is runner-writable (no sudo for save/restore). On hit, the
+    # install step uses `apt-get --no-download` to install from the
+    # restored cache without touching the network. Bump the `-v<N>-`
+    # segment if the package list below changes so we don't restore
+    # stale debs.
+    - name: Restore cached apt archives (gondolin deps)
+      if: runner.os == 'Linux'
+      id: apt-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/agent-daemon-action/apt
+        key: ${{ runner.os }}-${{ runner.arch }}-apt-gondolin-v1-qemu-utils-qemu-system-x86
+
     - name: Install gondolin sandbox dependencies
       shell: bash
+      env:
+        APT_CACHE_HIT: ${{ steps.apt-cache.outputs.cache-hit }}
       run: |
         set -euo pipefail
         # The agent-daemon spawns each task inside a gondolin micro-VM
@@ -100,9 +116,37 @@ runs:
               echo "::notice::qemu already present; skipping install"
               exit 0
             fi
+            CACHE_DIR="$HOME/.cache/agent-daemon-action/apt"
+            mkdir -p "$CACHE_DIR"
+            # Always update the package index — it's small (~1s) and
+            # required for `apt-get install` to resolve names even when
+            # the .debs themselves are cached.
             sudo apt-get update -qq
+            if [ "${APT_CACHE_HIT:-}" = "true" ] && [ -n "$(ls -A "$CACHE_DIR" 2>/dev/null || true)" ]; then
+              echo "::notice::apt cache hit; installing $(ls "$CACHE_DIR" | wc -l) debs from $CACHE_DIR"
+              # Stage cached .debs where apt expects them, then install
+              # with --no-download so any missing dep fails loud rather
+              # than silently fetching it.
+              sudo cp "$CACHE_DIR"/*.deb /var/cache/apt/archives/
+              if sudo apt-get install -y --no-install-recommends --no-download \
+                  qemu-utils qemu-system-x86; then
+                exit 0
+              fi
+              echo "::warning::cache hit but --no-download install failed; falling through to fresh install"
+            fi
+            # Cold path or cache miss: download + install, then stage
+            # the resolved .debs into the runner-writable cache dir so
+            # actions/cache picks them up post-job.
             sudo apt-get install -y --no-install-recommends \
               qemu-utils qemu-system-x86
+            shopt -s nullglob
+            count=0
+            for deb in /var/cache/apt/archives/*.deb; do
+              sudo cp "$deb" "$CACHE_DIR/"
+              count=$((count + 1))
+            done
+            sudo chown -R "$(id -u):$(id -g)" "$CACHE_DIR"
+            echo "::notice::staged $count debs for next run's cache"
             ;;
           *)
             echo "::warning::Non-Linux runner detected ($(uname -s)). Install qemu manually if you intend to run the gondolin sandbox here."
