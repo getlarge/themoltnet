@@ -29,6 +29,20 @@
       "type:util",
       "scope:task",
       "platform:isomorphic"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
+      }
+    }
   }
 }

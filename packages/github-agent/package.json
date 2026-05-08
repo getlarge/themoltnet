@@ -50,6 +50,20 @@
       "type:client",
       "scope:identity",
       "platform:cli"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
+      }
+    }
   }
 }
