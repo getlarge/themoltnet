@@ -34520,8 +34520,28 @@ async function createTask(input) {
 		diaryId: input.diaryId,
 		input: {
 			brief: briefWithSource,
-			...input.title ? { title: input.title } : {}
+			...input.title ? { title: input.title } : {},
+			...input.successCriteria ? { successCriteria: input.successCriteria } : {}
 		},
+		correlationId: input.correlationId
+	});
+}
+async function createAssessTask(input) {
+	const assessInput = {
+		targetTaskId: input.targetTaskId,
+		successCriteria: input.successCriteria
+	};
+	const reference = {
+		taskId: input.targetTaskId,
+		outputCid: input.targetOutputCid,
+		role: "judged_work"
+	};
+	return input.agent.tasks.create({
+		taskType: "assess_brief",
+		teamId: input.teamId,
+		diaryId: input.diaryId,
+		input: assessInput,
+		references: [reference],
 		correlationId: input.correlationId
 	});
 }
@@ -34552,8 +34572,7 @@ function parseMention({ body, isPullRequest }) {
 		};
 		return {
 			verb: "assess",
-			deferred: true,
-			blockedOn: 881
+			taskType: "assess_brief"
 		};
 	}
 	return {
@@ -34618,70 +34637,136 @@ async function resolveCorrelation(input, deps) {
 //#region src/dispatch.ts
 /**
 * Dispatch entry — invoked by `actions/github-script` inside the
-* composite action. Reads the issue_comment payload, parses the mention,
-* resolves the correlationId from PR-side anchors when applicable,
-* creates the task (fulfill_brief only in v1), and emits the resulting
-* task-id as an action output. Assess mentions reply with a "deferred,
-* blocked on #881" comment instead of creating a task.
+* composite action. Reads the issue_comment payload, parses the
+* mention, and either:
+*   - **fulfill** (issue context): generates a fresh correlationId,
+*     creates a `fulfill_brief` task with the issue body as the brief,
+*     emits its task-id as an action output. Optional
+*     `input.successCriteria` can be supplied per-imposer (not yet
+*     wired into the action surface; intentional).
+*   - **assess** (PR context): recovers the chain's correlationId
+*     from PR-side anchors, finds the originating fulfill_brief in
+*     that chain, fetches its accepted attempt's outputCid, **inherits
+*     `input.successCriteria` from the fulfill task**, and creates an
+*     `assess_brief` task that judges against the same envelope. If
+*     the originating fulfill carried no successCriteria, posts a
+*     diagnostic comment on the PR instead of creating the task —
+*     there is nothing machine-verifiable to judge.
+*
+* Wrong-context mentions and parse errors are surfaced as info-level
+* logs and (where applicable) PR/issue replies.
 */
-var ASSESS_DEFERRED_NOTICE = "👋 `@moltnet-assess` is recognised but auto-dispatch is **deferred** until the rubric registry lands ([#881](https://github.com/getlarge/themoltnet/issues/881)). For now, create an `assess_brief` task manually via the REST API or MCP and run `moltnet-agent once --task-id <id>` against it.";
+var NO_CRITERIA_NOTICE = "👋 `@moltnet-assess` recognised, but the originating `fulfill_brief` task carried no `input.successCriteria` — there is nothing machine-verifiable to judge against. To enable assessment, the imposer needs to supply `successCriteria` when creating the fulfill task. See [docs/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/agent-runtime.md) for the producer/judge model.";
+var NO_FULFILL_NOTICE = "👋 `@moltnet-assess` recognised, but no `fulfill_brief` task was found in this chain — assess can only run after fulfill. If you're sure a fulfill task exists, the chain id may have been lost; check the PR branch name (`moltnet/<correlationId>/...`), the first commit trailer (`Moltnet-Correlation-Id: <id>`), or the marker in the PR body.";
 async function dispatch(ctx) {
 	const { context, github, env } = ctx;
-	const { owner, repo, isPullRequest, issueNumber, referenceUrl, issueBody, issueTitle } = extractContext(context);
+	const extracted = extractContext(context);
 	const parsed = parseMention({
 		body: context.payload.comment.body,
-		isPullRequest
+		isPullRequest: extracted.isPullRequest
 	});
 	if (parsed.verb === null) {
 		import_core.info(`no-op: ${parsed.reason}`);
 		return;
 	}
-	if ("deferred" in parsed && parsed.deferred) {
-		import_core.info(`assess deferred (blocked on #${parsed.blockedOn}); posting reply`);
-		await github.rest.issues.createComment({
-			owner,
-			repo,
-			issue_number: issueNumber,
-			body: ASSESS_DEFERRED_NOTICE
-		});
-		return;
-	}
 	const teamId = required(env, "MOLTNET_TEAM_ID");
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
 	const moltnet = await connect();
-	const correlationId = await resolveCorrelation({
-		contextType: "issue",
-		referenceUrl
-	}, {
-		gh: {
-			async getPrHeadRef() {
-				return null;
-			},
-			async getPrCommitMessages() {
-				return [];
-			},
-			async getPrBody() {
-				return null;
-			}
-		},
-		randomUUID: () => crypto.randomUUID(),
-		logger: {
-			info: (msg, data) => import_core.info(`${msg} ${JSON.stringify(data ?? {})}`),
-			warn: (msg, data) => import_core.warning(`${msg} ${JSON.stringify(data ?? {})}`)
-		}
-	});
-	const created = await createTask({
-		agent: moltnet,
+	if (parsed.verb === "fulfill") {
+		await dispatchFulfill({
+			moltnet,
+			teamId,
+			diaryId,
+			issueNumber: extracted.issueNumber,
+			referenceUrl: extracted.referenceUrl,
+			issueTitle: extracted.issueTitle,
+			issueBody: extracted.issueBody
+		});
+		return;
+	}
+	await dispatchAssess({
+		moltnet,
+		github,
 		teamId,
 		diaryId,
+		owner: extracted.owner,
+		repo: extracted.repo,
+		prNumber: extracted.issueNumber,
+		referenceUrl: extracted.referenceUrl
+	});
+}
+async function dispatchFulfill(args) {
+	const correlationId = await resolveCorrelation({
+		contextType: "issue",
+		referenceUrl: args.referenceUrl
+	}, {
+		gh: prStubGh(),
+		randomUUID: () => crypto.randomUUID(),
+		logger: nxLogger()
+	});
+	const created = await createTask({
+		agent: args.moltnet,
+		teamId: args.teamId,
+		diaryId: args.diaryId,
 		correlationId,
-		referenceUrl,
-		title: issueTitle ?? `Issue #${issueNumber}`,
-		brief: issueBody ?? ""
+		referenceUrl: args.referenceUrl,
+		title: args.issueTitle ?? `Issue #${args.issueNumber}`,
+		brief: args.issueBody ?? ""
 	});
 	import_core.setOutput("task-id", created.id);
 	import_core.setOutput("correlation-id", correlationId);
 	import_core.info(`created fulfill_brief ${created.id} correlationId=${correlationId}`);
+}
+async function dispatchAssess(args) {
+	const pr = {
+		owner: args.owner,
+		repo: args.repo,
+		number: args.prNumber
+	};
+	const correlationId = await resolveCorrelation({
+		contextType: "pr",
+		referenceUrl: args.referenceUrl,
+		pr
+	}, {
+		gh: ghBackedBy(args.github),
+		randomUUID: () => crypto.randomUUID(),
+		logger: nxLogger()
+	});
+	const fulfill = (await args.moltnet.tasks.list({
+		teamId: args.teamId,
+		correlationId,
+		taskType: "fulfill_brief",
+		limit: 10
+	})).items?.find((t) => t.acceptedAttemptN !== null);
+	if (!fulfill) {
+		await postPrComment(args.github, pr, NO_FULFILL_NOTICE);
+		import_core.info(`assess: no completed fulfill_brief found for correlationId=${correlationId}`);
+		return;
+	}
+	const successCriteria = fulfill.input.successCriteria;
+	if (!successCriteria || !successCriteria.rubric) {
+		await postPrComment(args.github, pr, NO_CRITERIA_NOTICE);
+		import_core.info(`assess: fulfill ${fulfill.id} has no successCriteria.rubric`);
+		return;
+	}
+	const accepted = (await args.moltnet.tasks.listAttempts(fulfill.id)).find((a) => a.attemptN === fulfill.acceptedAttemptN);
+	if (!accepted?.outputCid) {
+		await postPrComment(args.github, pr, "👋 `@moltnet-assess` cannot resolve the fulfill task's accepted attempt outputCid. The fulfill task may not have completed yet.");
+		import_core.info(`assess: fulfill ${fulfill.id} accepted attempt has no outputCid`);
+		return;
+	}
+	const created = await createAssessTask({
+		agent: args.moltnet,
+		teamId: args.teamId,
+		diaryId: args.diaryId,
+		correlationId,
+		targetTaskId: fulfill.id,
+		targetOutputCid: accepted.outputCid,
+		successCriteria
+	});
+	import_core.setOutput("task-id", created.id);
+	import_core.setOutput("correlation-id", correlationId);
+	import_core.info(`created assess_brief ${created.id} for fulfill ${fulfill.id} (correlationId=${correlationId})`);
 }
 function extractContext(context) {
 	const owner = context.payload.repository.owner.login;
@@ -34701,6 +34786,59 @@ function required(env, key) {
 	const v = env[key];
 	if (!v || v.trim() === "") throw new Error(`missing required env: ${key}`);
 	return v;
+}
+function nxLogger() {
+	return {
+		info: (msg, data) => import_core.info(`${msg} ${JSON.stringify(data ?? {})}`),
+		warn: (msg, data) => import_core.warning(`${msg} ${JSON.stringify(data ?? {})}`)
+	};
+}
+function prStubGh() {
+	return {
+		async getPrHeadRef() {
+			return null;
+		},
+		async getPrCommitMessages() {
+			return [];
+		},
+		async getPrBody() {
+			return null;
+		}
+	};
+}
+function ghBackedBy(github) {
+	return {
+		async getPrHeadRef(pr) {
+			return (await github.rest.pulls.get({
+				owner: pr.owner,
+				repo: pr.repo,
+				pull_number: pr.number
+			})).data.head.ref;
+		},
+		async getPrCommitMessages(pr) {
+			return (await github.rest.pulls.listCommits({
+				owner: pr.owner,
+				repo: pr.repo,
+				pull_number: pr.number,
+				per_page: 50
+			})).data.map((c) => c.commit.message);
+		},
+		async getPrBody(pr) {
+			return (await github.rest.pulls.get({
+				owner: pr.owner,
+				repo: pr.repo,
+				pull_number: pr.number
+			})).data.body;
+		}
+	};
+}
+async function postPrComment(github, pr, body) {
+	await github.rest.issues.createComment({
+		owner: pr.owner,
+		repo: pr.repo,
+		issue_number: pr.number,
+		body
+	});
 }
 //#endregion
 //#region src/main.ts

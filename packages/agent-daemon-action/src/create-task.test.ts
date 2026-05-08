@@ -1,7 +1,8 @@
+import type { SuccessCriteria } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createTask } from './create-task.js';
+import { createAssessTask, createTask } from './create-task.js';
 
 const BASE_INPUT = {
   teamId: '11111111-1111-4111-8111-111111111111',
@@ -76,5 +77,70 @@ describe('createTask', () => {
     await expect(createTask({ agent, ...BASE_INPUT })).rejects.toThrow(
       /400.*invalid teamId/,
     );
+  });
+
+  it('forwards successCriteria when provided', async () => {
+    const m = makeAgent();
+    const sc: SuccessCriteria = {
+      gates: [],
+      assertions: [],
+      sideEffects: [],
+    };
+    await createTask({ agent: m.agent, ...BASE_INPUT, successCriteria: sc });
+    const body = m.create.mock.calls[0][0] as {
+      input: { successCriteria?: SuccessCriteria };
+    };
+    expect(body.input.successCriteria).toEqual(sc);
+  });
+});
+
+const RUBRIC: SuccessCriteria = {
+  gates: [],
+  assertions: [],
+  rubric: {
+    criteria: [
+      {
+        id: 'has-pr',
+        description: 'opens a PR',
+        weight: 1,
+        scoring: 'boolean',
+      },
+    ],
+  },
+  sideEffects: [],
+};
+
+describe('createAssessTask', () => {
+  it('calls agent.tasks.create with assess_brief shape + judged_work ref', async () => {
+    const m = makeAgent();
+    const out = await createAssessTask({
+      agent: m.agent,
+      teamId: BASE_INPUT.teamId,
+      diaryId: BASE_INPUT.diaryId,
+      correlationId: BASE_INPUT.correlationId,
+      targetTaskId: '44444444-4444-4444-8444-444444444444',
+      targetOutputCid: 'bafy-fulfill-output',
+      successCriteria: RUBRIC,
+    });
+
+    expect(out.id).toBe('task-1');
+    expect(m.create).toHaveBeenCalledTimes(1);
+    expect(m.create).toHaveBeenCalledWith({
+      taskType: 'assess_brief',
+      teamId: BASE_INPUT.teamId,
+      diaryId: BASE_INPUT.diaryId,
+      input: {
+        targetTaskId: '44444444-4444-4444-8444-444444444444',
+        successCriteria: RUBRIC,
+      },
+      references: [
+        {
+          taskId: '44444444-4444-4444-8444-444444444444',
+          outputCid: 'bafy-fulfill-output',
+          role: 'judged_work',
+        },
+      ],
+      correlationId: BASE_INPUT.correlationId,
+    });
   });
 });

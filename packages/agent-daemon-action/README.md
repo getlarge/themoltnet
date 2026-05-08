@@ -86,8 +86,14 @@ recovered, downstream consumers can fetch the rest of the chain via
 `ListTasksQuerySchema`).
 
 For issue comments (no PR yet), there is no prior chain to resolve —
-the dispatcher generates a fresh UUID immediately. `@moltnet-assess`
-auto-dispatch is deferred (#881).
+the dispatcher generates a fresh UUID immediately.
+
+When `@moltnet-assess` fires on a PR, the dispatcher resolves the
+correlationId, fetches the originating `fulfill_brief` task, and
+**inherits its `input.successCriteria` as the assess rubric** (per
+the producer/judge model in #1028). If the fulfill task carried no
+`successCriteria`, the dispatcher posts a diagnostic comment on the
+PR explaining there's nothing machine-verifiable to judge.
 
 ## Outputs
 
@@ -98,11 +104,6 @@ auto-dispatch is deferred (#881).
 
 ## v1 limitations
 
-- `@moltnet-assess` mentions reply with a "deferred, blocked on #881"
-  notice instead of creating an `assess_brief` task. The daemon itself
-  runs `assess_brief` tasks fine via `once --task-id`; only the
-  _auto-creation from a PR comment_ is gated on the rubric registry
-  redesign.
 - `poll` mode is intentionally not exposed — unbounded LLM spend is a
   bad fit for CI.
 - **Not on GitHub Marketplace yet.** Marketplace requires `action.yml`

@@ -482,7 +482,7 @@ The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeT
 
 ## Running on GitHub from external repos
 
-The same daemon works inside GitHub Actions via [`@themoltnet/agent-daemon-action`](../packages/agent-daemon-action), a composite action that wraps `npx @themoltnet/agent-daemon once`. Triggered by `@moltnet-fulfill` mentions on issues, the workflow creates a `fulfill_brief` task, runs the daemon against it, and the agent opens a PR.
+The same daemon works inside GitHub Actions via [`@themoltnet/agent-daemon-action`](../packages/agent-daemon-action), a composite action that wraps `npx @themoltnet/agent-daemon once`. Triggered by `@moltnet-fulfill` mentions on issues, the workflow creates a `fulfill_brief` task, runs the daemon against it, and the agent opens a PR. A subsequent `@moltnet-assess` on the resulting PR creates an `assess_brief` task that inherits the fulfill task's `input.successCriteria` as its rubric.
 
 ```mermaid
 sequenceDiagram
@@ -505,11 +505,20 @@ sequenceDiagram
   Daemon->>GH: PATCH PR body with <!-- moltnet-correlation: <corr> -->
 ```
 
-On a later `@moltnet-assess` against the resulting PR, the bot recovers
-the same `correlationId` from one of three PR-side anchors (branch
-name, first commit trailer, body marker) before calling
-`POST /tasks` again — see [Correlation anchors](#correlation-anchors)
-below.
+On a later `@moltnet-assess` against the resulting PR, the bot
+recovers the same `correlationId` from one of three PR-side anchors
+(branch name, first commit trailer, body marker), then:
+
+1. `tasks.list({ teamId, correlationId, taskType: 'fulfill_brief' })` to find the originating task.
+2. `tasks.listAttempts(fulfill.id)` to grab the accepted attempt's `outputCid` (required by the `judged_work` `TaskRef`).
+3. `POST /tasks` with `taskType: 'assess_brief'`, the same `correlationId`, `input.targetTaskId = fulfill.id`, and `input.successCriteria = fulfill.input.successCriteria` (rubric inherited from the producer — there is no other rubric source).
+
+If the originating fulfill carried no `successCriteria`, the bot
+posts a diagnostic comment on the PR instead of creating an assess
+task — there's nothing machine-verifiable to judge.
+
+See [Correlation anchors](#correlation-anchors) below for the
+recovery sources.
 
 ### Provisioning loop: `export-env` → upload → `init-from-env`
 
@@ -547,10 +556,10 @@ gh variable set --env moltnet MOLTNET_TEAM_ID --body "<team-uuid>"
 1. **Run the provisioning loop above** to upload the `MOLTNET_*` env vars to a `moltnet` GitHub Environment in the target repo. The full list — what's a secret vs a variable, what's optional — is in the [action README](https://github.com/getlarge/themoltnet/blob/main/packages/agent-daemon-action/README.md).
 2. **Copy** [`docs/examples/workflows/moltnet-mention.yml`](examples/workflows/moltnet-mention.yml) into `.github/workflows/` of the target repo.
 3. Open an issue, comment `@moltnet-fulfill please ...`. The workflow runs, the agent opens a PR with a `moltnet/<corr>/<slug>` branch, a `Moltnet-Correlation-Id` trailer on the first commit, and a hidden `<!-- moltnet-correlation: <corr> -->` marker in the PR body.
+4. On the resulting PR, comment `@moltnet-assess`. The bot recovers the correlationId from one of the three PR-side anchors, looks up the originating `fulfill_brief`, **inherits its `input.successCriteria` as the assess rubric** (#1028's producer/judge model — the chain is self-describing), and runs the assess agent. If the fulfill task had no `successCriteria`, the bot replies with a diagnostic and skips creating the assess task.
 
 ### What's deferred from the v1 GitHub flow
 
-- **`@moltnet-assess` auto-dispatch** — blocked on the rubric registry redesign ([#881](https://github.com/getlarge/themoltnet/issues/881)). The daemon itself runs `assess_brief` tasks fine via `once --task-id`; only the auto-creation from a PR comment is gated. The mention bot replies with a "deferred" notice when it sees `@moltnet-assess`.
 - **Auto-chaining** (assess → revision-fulfill loop). The correlationId plumbing makes the loop trivial to add later, but it's not in scope of v1.
 - **HITL gates beyond the GitHub Environment approval.**
 - **Docker distribution** — `npx` covers v1.

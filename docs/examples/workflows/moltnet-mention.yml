@@ -32,11 +32,13 @@
 #   MOLTNET_GITHUB_APP_SLUG  (optional, with the secret PEM above)
 #   MOLTNET_GIT_NAME, MOLTNET_GIT_EMAIL  (optional) override git author
 #
-# v1 limitations:
+# What runs:
 #   - @moltnet-fulfill (on issues) creates a fulfill_brief task and runs
 #     it via @themoltnet/agent-daemon.
-#   - @moltnet-assess (on PRs) replies with a "deferred, blocked on #881"
-#     notice. Manual assess_brief creation + `moltnet-agent once` still works.
+#   - @moltnet-assess (on PRs) inherits the originating fulfill task's
+#     input.successCriteria, creates an assess_brief task, and runs the
+#     judge agent. If the fulfill carried no successCriteria, the bot
+#     posts a diagnostic comment instead.
 name: MoltNet mention bot
 
 on:

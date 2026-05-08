@@ -12,13 +12,13 @@ describe('parseMention', () => {
     ).toEqual({ verb: 'fulfill', taskType: 'fulfill_brief' });
   });
 
-  it('returns deferred-assess on @moltnet-assess in a PR comment', () => {
+  it('returns assess on @moltnet-assess in a PR comment', () => {
     expect(
       parseMention({
         body: '@moltnet-assess looks good?',
         isPullRequest: true,
       }),
-    ).toEqual({ verb: 'assess', deferred: true, blockedOn: 881 });
+    ).toEqual({ verb: 'assess', taskType: 'assess_brief' });
   });
 
   it('rejects @moltnet-fulfill on a PR (wrong context)', () => {

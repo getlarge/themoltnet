@@ -1,26 +1,32 @@
 /**
- * Thin wrapper around the SDK's `agent.tasks.create()`.
+ * Thin wrappers around the SDK's `agent.tasks.create()` for the two
+ * task types the dispatcher creates.
  *
- * Body shape is enforced at compile time by `CreateTaskData['body']`
+ * Body shapes are enforced at compile time by `CreateTaskData['body']`
  * (generated from the OpenAPI spec via `agent-runtime`'s SDK), so a
  * malformed payload fails the build, not at runtime. The SDK also
  * handles client_credentials auth + token refresh; we never see a
  * bearer token here.
  *
- * The originating GitHub issue URL is embedded in the brief text the
- * agent receives; the chain id (`correlationId`) is the durable link
- * for downstream lookups. We do NOT populate `references[]` — that
- * field is for typed task-to-task pointers (e.g.
- * assess_brief→fulfill_brief, each ref carries the producer task's
- * id + outputCid + a role enum) and an issue URL has no producer
- * task.
+ * **Fulfill** is created when a human writes `@moltnet-fulfill` on an
+ * issue. The originating issue URL is embedded in the brief text;
+ * `references[]` is left empty.
  *
- * v1 only knows how to create `fulfill_brief` from this side.
- * Auto-creating `assess_brief` is deferred until the rubric registry
- * (#881) gives the dispatcher a clean way to pick a `criteriaCid`.
+ * **Assess** is created when a human writes `@moltnet-assess` on a PR
+ * that already has a fulfill_brief in the same correlation chain.
+ * The rubric is **inherited from the fulfill task's
+ * `input.successCriteria`** — no human-supplied rubric, no rubric
+ * registry lookup. The chain becomes self-describing: whatever
+ * acceptance the imposer pinned on the fulfill task is exactly what
+ * the assess task judges against (#1028's producer/judge model).
  */
 
-import type { Task } from '@moltnet/tasks';
+import type {
+  AssessBriefInput,
+  SuccessCriteria,
+  Task,
+  TaskRef,
+} from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 
 export interface FulfillTaskInput {
@@ -36,6 +42,13 @@ export interface FulfillTaskInput {
   referenceUrl: string;
   title?: string;
   brief: string;
+  /**
+   * Optional machine-verifiable acceptance envelope. When set, the
+   * producer LLM is required to emit `output.verification` per the
+   * cross-field rule in #1028. Inherits onto any subsequent
+   * assess_brief in the same chain.
+   */
+  successCriteria?: SuccessCriteria;
 }
 
 export async function createTask(input: FulfillTaskInput): Promise<Task> {
@@ -50,7 +63,49 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
     input: {
       brief: briefWithSource,
       ...(input.title ? { title: input.title } : {}),
+      ...(input.successCriteria
+        ? { successCriteria: input.successCriteria }
+        : {}),
     },
+    correlationId: input.correlationId,
+  });
+}
+
+export interface AssessTaskInput {
+  agent: Agent;
+  teamId: string;
+  diaryId: string;
+  correlationId: string;
+  /** The fulfill_brief being judged. */
+  targetTaskId: string;
+  /** outputCid of the fulfill task's accepted attempt — required by TaskRef. */
+  targetOutputCid: string;
+  /**
+   * Required rubric envelope. The dispatcher copies this from the
+   * fulfill task's `input.successCriteria`; if the fulfill carried no
+   * criteria the dispatcher posts a "nothing to judge" reply instead
+   * of calling this function.
+   */
+  successCriteria: SuccessCriteria;
+}
+
+export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
+  const assessInput: AssessBriefInput = {
+    targetTaskId: input.targetTaskId,
+    successCriteria: input.successCriteria,
+  };
+  const reference: TaskRef = {
+    taskId: input.targetTaskId,
+    outputCid: input.targetOutputCid,
+    role: 'judged_work',
+  };
+
+  return input.agent.tasks.create({
+    taskType: 'assess_brief',
+    teamId: input.teamId,
+    diaryId: input.diaryId,
+    input: assessInput,
+    references: [reference],
     correlationId: input.correlationId,
   });
 }
