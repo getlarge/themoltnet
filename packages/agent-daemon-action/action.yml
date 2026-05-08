@@ -4,9 +4,10 @@ inputs:
   agent-name:
     description: >
       MoltNet agent name. The action materialises
-      $RUNNER_TEMP/.moltnet/<agent-name>/ from MOLTNET_* env vars via
-      `moltnet config init-from-env`. Falls back to the
-      MOLTNET_AGENT_NAME env var when the input is empty.
+      $GITHUB_WORKSPACE/.moltnet/<agent-name>/ from MOLTNET_* env vars
+      via `moltnet config init-from-env`. When empty, the action falls
+      back to the MOLTNET_AGENT_NAME env var the caller set on the
+      step.
     required: false
     default: ''
   task-id:
@@ -38,6 +39,15 @@ outputs:
     value: ${{ steps.dispatch.outputs.correlation-id }}
 runs:
   using: 'composite'
+  # The composite handler in actions/runner propagates the caller-step's
+  # `env:` block into each child step's expression env context AND into
+  # the spawned shell's process environment (see CompositeActionHandler.cs
+  # > "Merge global env"). Adopters declare the MOLTNET_* set
+  # (CLIENT_ID, CLIENT_SECRET, PUBLIC_KEY, PRIVATE_KEY, FINGERPRINT,
+  # IDENTITY_ID, AGENT_NAME, API_URL, TEAM_ID, DIARY_ID, optional
+  # GITHUB_APP_*, GIT_NAME, GIT_EMAIL) on the step that calls this
+  # action — every shell below sees them via process.env without having
+  # to re-list each one in a child `env:` block.
   steps:
     - uses: actions/setup-node@v4
       with:
@@ -46,61 +56,83 @@ runs:
     - name: Materialize MoltNet agent dir from env
       shell: bash
       env:
-        # Forwarded into the CLI subprocess. See
-        # `moltnet config init-from-env --help` for the full list.
-        MOLTNET_AGENT_NAME: ${{ inputs.agent-name != '' && inputs.agent-name || env.MOLTNET_AGENT_NAME }}
-        MOLTNET_IDENTITY_ID: ${{ env.MOLTNET_IDENTITY_ID }}
-        MOLTNET_CLIENT_ID: ${{ env.MOLTNET_CLIENT_ID }}
-        MOLTNET_CLIENT_SECRET: ${{ env.MOLTNET_CLIENT_SECRET }}
-        MOLTNET_PUBLIC_KEY: ${{ env.MOLTNET_PUBLIC_KEY }}
-        MOLTNET_PRIVATE_KEY: ${{ env.MOLTNET_PRIVATE_KEY }}
-        MOLTNET_FINGERPRINT: ${{ env.MOLTNET_FINGERPRINT }}
-        MOLTNET_API_URL: ${{ env.MOLTNET_API_URL }}
-        MOLTNET_GITHUB_APP_ID: ${{ env.MOLTNET_GITHUB_APP_ID }}
-        MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ env.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
-        MOLTNET_GITHUB_APP_SLUG: ${{ env.MOLTNET_GITHUB_APP_SLUG }}
-        MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ env.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-        MOLTNET_GIT_NAME: ${{ env.MOLTNET_GIT_NAME }}
-        MOLTNET_GIT_EMAIL: ${{ env.MOLTNET_GIT_EMAIL }}
+        # Only the input override is forwarded explicitly — caller-env
+        # inheritance handles the rest. When inputs.agent-name is unset,
+        # the script falls through to the inherited MOLTNET_AGENT_NAME.
+        AGENT_NAME_OVERRIDE: ${{ inputs.agent-name }}
       run: |
         set -euo pipefail
+        if [ -n "${AGENT_NAME_OVERRIDE:-}" ]; then
+          export MOLTNET_AGENT_NAME="$AGENT_NAME_OVERRIDE"
+        elif [ -z "${MOLTNET_AGENT_NAME:-}" ]; then
+          echo "::error::MOLTNET_AGENT_NAME is required (set as env on the caller step or pass agent-name input)" >&2
+          exit 1
+        fi
         # Reconstruct the agent's .moltnet/<agent>/ tree (moltnet.json,
-        # SSH keys, gitconfig, optional GitHub App PEM) from env vars
-        # using the canonical CLI helper. The daemon resolves agent
-        # credentials via `git rev-parse --show-toplevel` + .moltnet/<name>/,
-        # so the materialized dir must be inside the checked-out repo —
+        # SSH keys, gitconfig, optional GitHub App PEM) from the
+        # caller-supplied MOLTNET_* env vars using the canonical CLI
+        # helper. The daemon resolves agent credentials via
+        # `git rev-parse --show-toplevel` + .moltnet/<name>/, so the
+        # materialized dir must be inside the checked-out repo —
         # i.e. $GITHUB_WORKSPACE. The dispatcher reads OAuth client
         # credentials from env directly via SDK.connect().
         npx -y @themoltnet/cli config init-from-env \
           --dir "$GITHUB_WORKSPACE" \
           --agent "$MOLTNET_AGENT_NAME"
         AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
-        echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig" >> "$GITHUB_ENV"
-        echo "MOLTNET_AGENT_DIR=$AGENT_DIR" >> "$GITHUB_ENV"
+        {
+          echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
+          echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
+          echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+        } >> "$GITHUB_ENV"
+
+    - name: Materialize Pi auth.json (when PI_AUTH_JSON is set)
+      shell: bash
+      run: |
+        set -euo pipefail
+        # When the caller exports PI_AUTH_JSON (the contents of an
+        # `~/.pi/agent/auth.json` produced by `pi /login` against
+        # subscription providers — Anthropic Pro/Max, ChatGPT
+        # Plus/Pro Codex, GitHub Copilot), write it to a runner-local
+        # path and point pi-extension at it via PI_AUTH_PATH.
+        #
+        # If PI_AUTH_JSON is absent the daemon falls back to env-var
+        # providers (ANTHROPIC_API_KEY etc.) which Pi reads natively.
+        #
+        # Refresh / re-seed: Pi rotates the OAuth tokens on each run
+        # but this action does not write the rotated file back.
+        # Subscription tokens age out within Pi's refresh window
+        # (~30 days for ChatGPT Codex per the OpenAI CI/CD doc).
+        # When that happens, re-run `pi /login` locally and re-upload
+        # the secret. See:
+        # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
+        if [ -n "${PI_AUTH_JSON:-}" ]; then
+          PI_AUTH_PATH="$RUNNER_TEMP/.pi/agent/auth.json"
+          mkdir -p "$(dirname "$PI_AUTH_PATH")"
+          printf '%s' "$PI_AUTH_JSON" > "$PI_AUTH_PATH"
+          chmod 600 "$PI_AUTH_PATH"
+          echo "PI_AUTH_PATH=$PI_AUTH_PATH" >> "$GITHUB_ENV"
+          echo "::notice::Pi auth.json materialized at \$PI_AUTH_PATH"
+        else
+          echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
+        fi
 
     - id: dispatch
       if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
       shell: bash
-      env:
-        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN || github.token }}
-        # SDK's connect() reads MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET /
-        # MOLTNET_API_URL from the environment and runs the OAuth
-        # client_credentials flow with auto-refresh on 401. Adopters set
-        # these as repo/environment secrets — see the workflow template.
-        MOLTNET_CLIENT_ID: ${{ env.MOLTNET_CLIENT_ID }}
-        MOLTNET_CLIENT_SECRET: ${{ env.MOLTNET_CLIENT_SECRET }}
-        MOLTNET_API_URL: ${{ env.MOLTNET_API_URL }}
-        MOLTNET_TEAM_ID: ${{ env.MOLTNET_TEAM_ID }}
-        MOLTNET_DIARY_ID: ${{ env.MOLTNET_DIARY_ID }}
       run: |
         set -euo pipefail
+        # MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET / MOLTNET_API_URL /
+        # MOLTNET_TEAM_ID / MOLTNET_DIARY_ID / GITHUB_TOKEN are inherited
+        # from the caller step's env. SDK's connect() reads the OAuth
+        # vars directly from process.env; the dispatch script reads
+        # TEAM_ID / DIARY_ID via process.env too.
         node "${{ github.action_path }}/dist/main.js"
 
     - id: run
       shell: bash
       env:
         TASK_ID: ${{ inputs.task-id != '' && inputs.task-id || steps.dispatch.outputs.task-id }}
-        MOLTNET_AGENT_NAME: ${{ inputs.agent-name != '' && inputs.agent-name || env.MOLTNET_AGENT_NAME }}
       run: |
         set -euo pipefail
         if [ -z "${TASK_ID:-}" ]; then

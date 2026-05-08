@@ -1,54 +1,37 @@
-# MoltNet mention bot — copy this file into `.github/workflows/` in
-# your repo, then configure one GitHub Environment per bot agent.
+# MoltNet mention bot — dogfooding the @themoltnet/agent-daemon-action
+# against the monorepo that ships it.
 #
 # Multi-agent routing: each bot agent has its own GitHub Environment
-# named after the agent. The mention routes to a specific environment
-# via:
+# named after the agent (e.g. `legreffier`, `eval-agent`). The mention
+# routes to a specific environment via:
 #
 #   @moltnet-fulfill[<agent>] <brief...>
 #   @moltnet-assess[<agent>]
 #
 # When no `[<agent>]` qualifier is present the workflow defaults to
-# `legreffier` — change `DEFAULT_AGENT` below if you prefer another
-# name. Single-bot adopters can ignore the qualifier; multi-bot
-# adopters add the qualifier on each comment to pick the runner.
+# the `legreffier` environment. Adopters running a single bot can
+# omit the qualifier; running multiple bots in parallel just needs an
+# Environment per agent + the qualifier on each comment.
 #
-# Provisioning each agent (one-time, per bot):
-#   1. moltnet register --name <agent>          # e.g. <repo>-bot
-#      (or `legreffier init --name <agent>` for the full identity flow)
+# Provisioning each agent (one-time):
+#
+#   1. moltnet register --name <agent>            # one-time per agent
 #   2. moltnet config export-env \
 #        --credentials .moltnet/<agent>/moltnet.json \
-#        --include-github-pem -o .env.<agent>   # MOLTNET_* dotenv
+#        --include-github-pem -o .env.<agent>
 #   3. Create a GitHub Environment named exactly `<agent>` and upload
-#      each MOLTNET_* line as a secret/variable. Add ANTHROPIC_API_KEY
-#      (or another Pi-supported provider key) as a secret on the same
+#      each MOLTNET_* line as a secret/variable (see action README
+#      for the secret-vs-variable split). Add `ANTHROPIC_API_KEY` (or
+#      another Pi-supported provider key) as a secret on the same
 #      environment.
-#   4. (Optional) Add reviewers on the Environment for approval gating.
+#   4. (Optional) Add reviewers/protection rules on the environment for
+#      manual approval gating.
 #
-# Secrets (per-environment):
-#   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
-#   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
-#                            agent identity + OAuth2 creds
-#   MOLTNET_GITHUB_APP_PRIVATE_KEY  (optional, with the GH App vars below)
-#                            PEM for the agent's GitHub App
-#   ANTHROPIC_API_KEY        (or OPENAI_API_KEY etc.) provider key for Pi
-#
-# Variables (per-environment):
-#   MOLTNET_AGENT_NAME       agent name (matches .moltnet/<name>/)
-#   MOLTNET_TEAM_ID          uuid — team that owns the work
-#   MOLTNET_DIARY_ID         uuid — diary the agent signs commits against
-#   MOLTNET_API_URL          e.g. https://api.themolt.net (optional)
-#   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
-#   MOLTNET_GITHUB_APP_SLUG  (optional, with the secret PEM above)
-#   MOLTNET_GIT_NAME, MOLTNET_GIT_EMAIL  (optional) override git author
-#
-# What runs:
-#   - @moltnet-fulfill[<agent>] (on issues) creates a fulfill_brief task
-#     and runs it via @themoltnet/agent-daemon.
-#   - @moltnet-assess[<agent>] (on PRs) inherits the originating fulfill
-#     task's input.successCriteria, creates an assess_brief task, and
-#     runs the judge agent. If the fulfill carried no successCriteria,
-#     the bot posts a diagnostic comment instead.
+# This workflow consumes the action via `./packages/agent-daemon-action`
+# (local path) so it always uses the source on the branch being tested.
+# Other repos consume the action via
+# `getlarge/themoltnet/packages/agent-daemon-action@<ref>` — see
+# `docs/examples/workflows/moltnet-mention.yml` for that template.
 
 name: MoltNet mention bot
 
@@ -56,14 +39,18 @@ on:
   issue_comment:
     types: [created]
 
-# Empty default — each job opts into the minimum it needs.
+# Default to no permissions on the workflow's GITHUB_TOKEN. Each job
+# below declares only what it needs; jobs without a `permissions:`
+# block inherit this empty default rather than the historical broad
+# default-write set.
 permissions: {}
-
-env:
-  DEFAULT_AGENT: legreffier # change to your default bot agent name
 
 jobs:
   parse:
+    # Skip:
+    #   - non-mention comments
+    #   - comments authored by a bot (avoids the assess diagnostic
+    #     comment re-triggering the workflow)
     if: |
       contains(github.event.comment.body, '@moltnet-') &&
       !endsWith(github.event.comment.user.login, '[bot]')
@@ -79,10 +66,14 @@ jobs:
           BODY: ${{ github.event.comment.body }}
         run: |
           set -euo pipefail
+          # Match @moltnet-{fulfill,assess}[<agent>] — capture <agent>.
+          # Fall back to `legreffier` when no [...] qualifier present.
+          # Agent names follow the same charset as `moltnet register
+          # --name`: [a-zA-Z0-9_-]+, max 64.
           if [[ "$BODY" =~ @moltnet-(fulfill|assess)\[([a-zA-Z0-9_-]{1,64})\] ]]; then
             AGENT="${BASH_REMATCH[2]}"
           else
-            AGENT="$DEFAULT_AGENT"
+            AGENT=legreffier
           fi
           echo "agent=$AGENT" >> "$GITHUB_OUTPUT"
           echo "::notice::Routing to environment '$AGENT'"
@@ -102,10 +93,11 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
-      - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+      - uses: ./packages/agent-daemon-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Agent identity (required)
+          # Agent identity (required) — sourced from `moltnet config
+          # export-env` against the dogfooding agent's moltnet.json.
           MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
           MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
           MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
@@ -117,16 +109,22 @@ jobs:
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
           MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
           MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-          # GitHub App (optional, recommended for the agent's gh
-          # operations to appear as the bot)
+          # GitHub App (optional but recommended — when set, the agent's
+          # gh operations appear as the bot identity)
           MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
           MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
           MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
           MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-          # Pi provider auth — pick one or both:
-          #   - ANTHROPIC_API_KEY / OPENAI_API_KEY / etc. (stateless)
-          #   - PI_AUTH_JSON (subscription OAuth — contents of
-          #     `~/.pi/agent/auth.json` produced by `pi /login`;
-          #     re-seed manually when the refresh window elapses)
+          # Pi provider auth. Two mutually-compatible options:
+          #   - Env-var providers (cheapest, stateless): set
+          #     ANTHROPIC_API_KEY / OPENAI_API_KEY / etc. Pi reads
+          #     these natively.
+          #   - Subscription OAuth (covered by ChatGPT Plus/Pro,
+          #     Claude Pro/Max, GitHub Copilot): set PI_AUTH_JSON to
+          #     the contents of `~/.pi/agent/auth.json` produced by
+          #     `pi /login` on a developer machine. The action writes
+          #     it to $RUNNER_TEMP and points Pi at it via
+          #     PI_AUTH_PATH. Re-seed manually when the refresh window
+          #     elapses (~30 days for Codex).
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
