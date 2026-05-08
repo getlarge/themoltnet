@@ -402,7 +402,6 @@ jobs:
           pnpm --filter @themoltnet/agent-daemon-action run build
 
       - name: Diff against committed dist
-        id: diff
         run: |
           if ! git diff --ignore-space-at-eol --text \
                 --exit-code packages/agent-daemon-action/dist/main.js; then
@@ -410,13 +409,11 @@ jobs:
             echo "::error::Run \`pnpm --filter @themoltnet/agent-daemon-action run build\` and commit the result."
             exit 1
           fi
-
-      - name: Upload expected dist on mismatch
-        if: ${{ failure() && steps.diff.conclusion == 'failure' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-daemon-action-dist
-          path: packages/agent-daemon-action/dist/
+        # The diff itself is printed to the job log by the command above,
+        # and the error message tells the developer what to run locally
+        # to reproduce. No artifact upload — committing a 1.18 MB bundle
+        # on every drift adds GH Actions storage with no diagnostic value
+        # beyond the inline diff.
 
   cli-go-mod-sync:
     name: CLI go.mod Sync
