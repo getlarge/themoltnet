@@ -60,31 +60,17 @@ import {
   recordTaskOutputParseResult,
 } from './task-output.js';
 
-/**
- * Structured turn-event sink invoked alongside every `reporter.record()`.
- *
- * Mirrors the `task_message` stream the daemon sends to the API into
- * the daemon's local logger so operators can tail the GitHub Actions
- * job log (or `pnpm dev:daemon` stderr) and see what the agent is
- * doing in real time — without crawling Axiom or the console UI.
- *
- * Payloads are intentionally summarised: `text_delta` becomes
- * `{ chars: N }` not the raw delta (a 4k-token answer would otherwise
- * fill the workflow log with prose); tool-call events keep tool names
- * and outcomes but truncate any returned blobs.
- *
- * Keep this interface narrow on purpose — implementations are free to
- * route to pino, console, or `/dev/null`. The default is no-op so
- * existing callers see no behavioural change.
- */
+// Wire-level kind union. Matches `TaskMessageKind` in libs/tasks; reusing
+// `Parameters<TaskReporter['record']>[0]['kind']` keeps the two surfaces
+// in sync and gives exhaustiveness in the summariser switch.
+export type TurnEventKind = Parameters<TaskReporter['record']>[0]['kind'];
+
+// Structured turn-event sink invoked alongside every `reporter.record()`.
+// Mirrors task_messages into the daemon's local logger so operators can
+// tail the workflow log without crawling Axiom or the console UI.
+// Default is no-op so existing callers see no behavioural change.
 export interface TurnEventHandler {
-  /**
-   * `event` is the wire-level message kind (matches `TaskMessageKind`
-   * — `info` | `text_delta` | `tool_call_start` | `tool_call_end` |
-   * `turn_end` | `error`). `summary` is a flat object suitable for
-   * direct pino emission.
-   */
-  (event: string, summary: Record<string, unknown>): void;
+  (event: TurnEventKind, summary: Record<string, unknown>): void;
 }
 
 const noopTurnEventHandler: TurnEventHandler = () => {};
@@ -264,18 +250,19 @@ export async function executePiTask(
 
     const onTurnEvent = opts.onTurnEvent ?? noopTurnEventHandler;
     const emit = (
-      kind: Parameters<TaskReporter['record']>[0]['kind'],
+      kind: TurnEventKind,
       payload: Record<string, unknown>,
     ): Promise<void> => {
-      // Mirror the message into the daemon's local logger first
-      // (synchronous, no I/O on the hot path) so even a network blip
-      // on `reporter.record` doesn't lose the breadcrumb. Swallow
-      // any logger throw — the reporter side is what actually
-      // matters for task semantics.
+      // Local mirror first; surface any throw on stderr so callback
+      // bugs don't go silent, but never let them propagate — the
+      // reporter side is what matters for task semantics.
       try {
         onTurnEvent(kind, summarizePayloadForLog(kind, payload));
-      } catch {
-        // ignore — pino logger errors must never break the executor.
+      } catch (err) {
+        process.stderr.write(
+          `[emit] onTurnEvent threw for kind="${kind}": ` +
+            `${err instanceof Error ? err.message : String(err)}\n`,
+        );
       }
       return reporter.record({ kind, payload });
     };
@@ -756,37 +743,22 @@ export function wireSessionAbort(
  * `task_messages.payload` row. Bodies above 4 KiB are replaced with a
  * `{ truncated, original_size }` marker so the JSONL/DB size stays bounded.
  */
-/**
- * Project a `task_message` payload into a flat shape suitable for a
- * pino log line — no raw model output, no large blobs. Operators
- * tail `pnpm dev:daemon` / the GitHub Actions log; the wire payload
- * (with full deltas, stack traces, etc.) still goes through the
- * reporter to the API for richer playback in the console UI.
- *
- * Keep this defensive: callers wrap a try/catch already, but a
- * well-behaved summariser never throws on any input shape.
- */
+// Project a task_message payload into a flat shape suitable for a pino
+// log line. Wire payload (with full deltas, stack traces) still goes to
+// the API; this is just the summary the daemon prints locally.
 function summarizePayloadForLog(
-  kind: string,
+  kind: TurnEventKind,
   payload: Record<string, unknown>,
 ): Record<string, unknown> {
   switch (kind) {
     case 'text_delta': {
       const delta = payload.delta;
-      // Don't log the prose — operators don't need to see every token
-      // chunk in the workflow log; they want flow ("model is talking",
-      // "model finished"). Surface byte/char counts so density is
-      // still observable.
       const chars = typeof delta === 'string' ? delta.length : 0;
       return { chars };
     }
-    case 'tool_call_start': {
+    case 'tool_call_start':
       return { tool: payload.tool_name };
-    }
-    case 'tool_call_end': {
-      // `result` is only set when the tool errored; in that case the
-      // executor already truncated to TRUNCATE_LIMIT, so re-surface
-      // it directly so operators see why the tool failed.
+    case 'tool_call_end':
       return {
         tool: payload.tool_name,
         is_error: payload.is_error === true,
@@ -794,33 +766,33 @@ function summarizePayloadForLog(
           ? { result: payload.result }
           : {}),
       };
-    }
-    case 'turn_end': {
+    case 'turn_end':
       return { stop_reason: payload.stop_reason };
-    }
-    case 'error': {
+    case 'error':
       return {
         phase: payload.phase,
+        // String slice (not truncateForWire) — keeps the value a string
+        // for stable log shape; operators don't need the original_size
+        // metadata in a workflow log.
         message:
           typeof payload.message === 'string'
-            ? truncateForWire(payload.message)
+            ? payload.message.slice(0, TRUNCATE_LIMIT)
             : payload.message,
       };
-    }
     case 'info':
-      // Most `info` events carry small structured data
-      // (`event: 'execute_start'`, `event: 'task_started'`, …).
-      // Forward as-is — caller decides if any field is too large
-      // (we use the same TRUNCATE_LIMIT guard as wire on each
-      // string field for safety).
       return Object.fromEntries(
         Object.entries(payload).map(([k, v]) => [
           k,
-          typeof v === 'string' ? truncateForWire(v) : v,
+          typeof v === 'string' ? v.slice(0, TRUNCATE_LIMIT) : v,
         ]),
       );
     default:
-      return { kind };
+      // Forward unknown kinds as-is so a future `TaskMessageKind`
+      // addition still carries diagnostic data until the summariser
+      // catches up. Exhaustiveness is enforced at compile time by the
+      // `TurnEventKind` switch above; this branch only fires when
+      // someone bypasses the type system at the call site.
+      return payload;
   }
 }
 

@@ -27,6 +27,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
   argv: string[];
@@ -158,29 +159,17 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const outputs: TaskOutput[] = [];
   try {
-    // Pino child for per-turn agent activity. Operators tail this to
-    // see what the agent is doing in real time (tool calls, turn
-    // boundaries, errors). text_delta is suppressed here — too chatty
-    // for a workflow log; the full stream still goes to the reporter
-    // and is visible via `tasks_messages_list` / the console UI.
-    const turnEventLogger = rootLogger.child({ name: 'agent-daemon.turn' });
-    const onTurnEvent = (
-      event: string,
-      summary: Record<string, unknown>,
-    ): void => {
-      if (event === 'text_delta') return;
-      const level =
-        event === 'error' ? 'warn' : event === 'turn_end' ? 'info' : 'debug';
-      turnEventLogger[level]({ event, ...summary }, `turn.${event}`);
-    };
-
+    // TODO: thread per-task taskId into the handler context once the
+    // executor exposes a per-task hook. Polling claims many tasks
+    // sequentially; until then turn events are correlatable only by
+    // process-wide ordering, not by taskId.
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
       mountPath: sandbox.rootDir,
       provider: common.provider,
       model: common.model,
       sandboxConfig: sandbox.config,
-      onTurnEvent,
+      onTurnEvent: makeTurnEventHandler(rootLogger),
     });
 
     runtime = new AgentRuntime({

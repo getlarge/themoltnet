@@ -24,6 +24,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
   if (isHelpFlag(argv)) {
@@ -124,33 +125,13 @@ export async function runOnce(argv: string[]): Promise<number> {
   });
 
   try {
-    // Pino child for per-turn agent activity. Operators tail the
-    // workflow log (or `pnpm dev:daemon` stderr) and see meaningful
-    // events: tool calls, turn ends, errors. We deliberately drop
-    // `text_delta` here — per-token chunks are too chatty for a
-    // workflow log; the full stream is still recorded via the
-    // reporter and visible in the console UI / `tasks_messages_list`.
-    const turnEventLogger = rootLogger.child({
-      name: 'agent-daemon.turn',
-      taskId,
-    });
-    const onTurnEvent = (
-      event: string,
-      summary: Record<string, unknown>,
-    ): void => {
-      if (event === 'text_delta') return;
-      const level =
-        event === 'error' ? 'warn' : event === 'turn_end' ? 'info' : 'debug';
-      turnEventLogger[level]({ event, ...summary }, `turn.${event}`);
-    };
-
     const executeTask = createPiTaskExecutor({
       agentName: opts.agent,
       mountPath: sandbox.rootDir,
       provider: opts.provider,
       model: opts.model,
       sandboxConfig: sandbox.config,
-      onTurnEvent,
+      onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
     });
 
     const writeCorrelationAnchors = makePrBodyAnchorWriter({
