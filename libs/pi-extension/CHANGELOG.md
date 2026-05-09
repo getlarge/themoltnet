@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.4](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.3...pi-extension-v0.13.4) (2026-05-09)
+
+
+### Bug Fixes
+
+* **pi-extension:** honor PI_CODING_AGENT_DIR for pi auth resolution ([1a802e7](https://github.com/getlarge/themoltnet/commit/1a802e74613ed006a34c941b1a5a5fe47297b3c1))
+* **pi-extension:** honor PI_CODING_AGENT_DIR; bump gondolin to 0.9.1 ([1e3d2f7](https://github.com/getlarge/themoltnet/commit/1e3d2f7971def7abe8f7fdca6129d3ce47d03f64))
+
 ## [0.13.3](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.2...pi-extension-v0.13.3) (2026-05-08)
 
 
