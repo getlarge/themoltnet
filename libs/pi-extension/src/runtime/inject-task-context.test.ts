@@ -165,4 +165,51 @@ describe('injectTaskContext', () => {
     expect(out.skills[0].name.length).toBe(64);
     expect(out.skills[0].description.length).toBe(1024);
   });
+
+  it('falls back to slug-derived metadata when YAML frontmatter is malformed', async () => {
+    const fs = mockFs();
+    // Unbalanced anchors / bogus structure — the YAML parser throws
+    // on this rather than returning an empty object.
+    const content = [
+      '---',
+      'name: *unclosed-anchor',
+      '  : nested-bad',
+      '---',
+      'real body bytes',
+    ].join('\n');
+    const out = await injectTaskContext({
+      context: [{ slug: 'broken-fm', binding: 'skill', content }],
+      fs,
+    });
+    // Parser threw → fallback metadata, but the skill is still
+    // delivered (file written, Skill object emitted).
+    expect(out.skills).toHaveLength(1);
+    expect(out.skills[0].name).toBe('broken-fm');
+    expect(out.skills[0].description).toBe(
+      'Task-injected context skill (broken-fm)',
+    );
+    expect(fs.writeFile).toHaveBeenCalledOnce();
+  });
+
+  it('propagates writeFile rejections to the caller', async () => {
+    const fs = mockFs();
+    fs.writeFile.mockRejectedValueOnce(new Error('ENOSPC'));
+    await expect(
+      injectTaskContext({
+        context: [{ slug: 'x', binding: 'skill', content: 'y' }],
+        fs,
+      }),
+    ).rejects.toThrow('ENOSPC');
+  });
+
+  it('propagates mkdir rejections to the caller', async () => {
+    const fs = mockFs();
+    fs.mkdir.mockRejectedValueOnce(new Error('EACCES'));
+    await expect(
+      injectTaskContext({
+        context: [{ slug: 'x', binding: 'skill', content: 'y' }],
+        fs,
+      }),
+    ).rejects.toThrow('EACCES');
+  });
 });

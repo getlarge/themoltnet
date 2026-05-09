@@ -124,6 +124,11 @@ export async function injectTaskContext(
  * a generic description so a SKILL.md without frontmatter still
  * renders something meaningful.
  *
+ * Frontmatter parsing is best-effort: a malformed YAML block is
+ * optional metadata, not a reason to fail the task. We swallow parser
+ * errors and fall back to the slug-derived metadata; the skill body
+ * is unaffected.
+ *
  * pi's `formatSkillsForPrompt` only reads `name`, `description`, and
  * `filePath` — `sourceInfo`/`baseDir` exist on the type but never
  * surface in the prompt, so a synthetic `SourceInfo` is enough.
@@ -134,7 +139,14 @@ function buildSyntheticSkill(args: {
   filePath: string;
   dir: string;
 }): Skill {
-  const { frontmatter: fm } = parseFrontmatter<SkillFrontmatter>(args.content);
+  let fm: Partial<SkillFrontmatter> = {};
+  try {
+    fm = parseFrontmatter<SkillFrontmatter>(args.content).frontmatter;
+  } catch {
+    // Malformed YAML frontmatter; fall back to slug-derived metadata.
+    // The slug surfaces in the description so the operator can still
+    // identify which entry has the bad YAML.
+  }
   const name = clip(
     typeof fm.name === 'string' && fm.name.trim().length > 0
       ? fm.name.trim()
