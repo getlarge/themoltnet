@@ -56,7 +56,7 @@ export const RunEvalOutput = Type.Object(
     ),
     totalTokens: Type.Integer({ minimum: 0 }),
     durationMs: Type.Integer({ minimum: 0 }),
-    traceparent: Type.String(),
+    traceparent: Type.String({ minLength: 1 }),
     /** Required iff input.successCriteria is set. */
     verification: Type.Optional(VerificationRecord),
   },

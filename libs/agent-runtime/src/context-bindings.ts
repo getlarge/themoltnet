@@ -60,11 +60,19 @@ export async function resolveTaskContext(
   for (const ref of args.context) {
     if (ref.binding === 'skill') {
       const prior = usedSlugs.get(ref.slug);
-      if (prior !== undefined && prior !== ref.content) {
-        throw new Error(
-          `slug collision on '${ref.slug}': two skill entries share the same slug ` +
-            `but have different content`,
-        );
+      if (prior !== undefined) {
+        if (prior !== ref.content) {
+          throw new Error(
+            `slug collision on '${ref.slug}': two skill entries share the same slug ` +
+              `but have different content`,
+          );
+        }
+        // Idempotent re-declaration of the same (slug, content) pair —
+        // record it as injected for the audit log but skip re-delivery
+        // so non-idempotent deliverers (e.g. ones that append rather
+        // than overwrite) cannot double-write the same bytes.
+        injected.push(ref);
+        continue;
       }
       usedSlugs.set(ref.slug, ref.content);
       await args.deliver.skill({ slug: ref.slug, content: ref.content });

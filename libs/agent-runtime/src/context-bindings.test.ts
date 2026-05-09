@@ -73,18 +73,23 @@ describe('resolveTaskContext', () => {
     ).rejects.toThrow(/slug collision/i);
   });
 
-  it('allows duplicate skill entries with identical content (idempotent)', async () => {
+  it('delivers a duplicate (slug, content) pair only once', async () => {
+    // Re-declaring the same skill content under the same slug is a
+    // benign idempotent restatement; the deliverer must NOT be called a
+    // second time. Non-idempotent deliverers (append-mode, audit-log
+    // writers) would otherwise double-write the same bytes.
     const deliverer = mockDeliverer();
-    await expect(
-      resolveTaskContext({
-        context: [
-          { slug: 'shared', binding: 'skill', content: 'same' },
-          { slug: 'shared', binding: 'skill', content: 'same' },
-        ],
-        deliver: deliverer,
-      }),
-    ).resolves.toBeDefined();
-    expect(deliverer.skill).toHaveBeenCalledTimes(2);
+    const out = await resolveTaskContext({
+      context: [
+        { slug: 'shared', binding: 'skill', content: 'same' },
+        { slug: 'shared', binding: 'skill', content: 'same' },
+      ],
+      deliver: deliverer,
+    });
+    expect(deliverer.skill).toHaveBeenCalledTimes(1);
+    // Both entries appear in the audit log so the imposer's intent
+    // (the duplicate declaration) is recoverable.
+    expect(out.injected).toHaveLength(2);
   });
 
   it('exercises all three bindings end-to-end', async () => {

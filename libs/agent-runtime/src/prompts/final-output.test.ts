@@ -5,6 +5,7 @@ import {
   JUDGE_PACK_TYPE,
   RENDER_PACK_TYPE,
   type Rubric,
+  RUN_EVAL_TYPE,
 } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
@@ -96,6 +97,24 @@ const TASK_FIXTURES: Array<{
             renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
             sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
             successCriteria: { version: 1, rubric },
+          },
+        }),
+        ctx,
+      ),
+  },
+  {
+    label: 'run_eval',
+    submitTool: 'submit_run_eval_output',
+    schema: 'RunEvalOutput',
+    prompt: () =>
+      buildPromptForTask(
+        makeFulfillBriefTask({
+          taskType: RUN_EVAL_TYPE,
+          input: {
+            scenario: { prompt: 'List 3 risks.' },
+            variantLabel: 'baseline',
+            context: [],
+            model: 'claude-opus-4-7',
           },
         }),
         ctx,

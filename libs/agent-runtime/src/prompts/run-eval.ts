@@ -22,13 +22,12 @@ interface Ctx {
  * a textual response (and optional file artifacts) that a later
  * `judge_eval_variant` task (Slice 2) grades against the rubric.
  *
- * Context delivery is daemon-side (see
- * apps/agent-daemon/src/lib/context-bindings.ts) and lands BEFORE this
+ * Context delivery is handled by `resolveTaskContext` (see
+ * libs/agent-runtime/src/context-bindings.ts) and runs BEFORE this
  * prompt is rendered: `prompt_prefix` items are concatenated ahead of
- * the body, `skill` items are written to disk under
- * /home/agent/.pi/skills/<slug>/SKILL.md, and `user_inline` items are
- * appended to the first user message. This builder does NOT inline
- * `input.context[]` itself.
+ * the body, `skill` items are persisted at the runtime's skill path,
+ * and `user_inline` items are appended to the first user message. This
+ * builder does NOT inline `input.context[]` itself.
  */
 export function buildRunEvalPrompt(input: RunEvalInput, ctx: Ctx): string {
   const { scenario, variantLabel, model, successCriteria } = input;
@@ -59,34 +58,32 @@ export function buildRunEvalPrompt(input: RunEvalInput, ctx: Ctx): string {
       ].join('\n')
     : '';
 
-  const lines = [
-    '# Run Eval Agent',
-    '',
-    `You are running an evaluation scenario as variant \`${variantLabel}\` against model \`${model}\`.`,
-    `Task id: \`${ctx.taskId}\``,
-    '',
+  const finalOutputBlock = buildFinalOutputBlock({
+    taskType: 'run_eval',
+    outputSchemaName: 'RunEvalOutput',
+    shapeSketch: [
+      '{',
+      '  "response": "<your free-form answer>",',
+      '  "artifacts": [{ "path": "...", "cid": "..." }],  // optional',
+      '  "totalTokens": <int>,',
+      '  "durationMs": <int>,',
+      '  "traceparent": "<from claim>",',
+      '  "verification": <required iff input.successCriteria; see Self-verification>',
+      '}',
+    ].join('\n'),
+  });
+
+  // Each section already carries its own internal blank lines. Drop
+  // sections that are absent so we never emit consecutive blanks.
+  const sections = [
+    '# Run Eval Agent\n',
+    `You are running an evaluation scenario as variant \`${variantLabel}\` against model \`${model}\`.\nTask id: \`${ctx.taskId}\`\n`,
     correlationSection,
-    '### Scenario',
-    '',
-    scenario.prompt,
-    '',
+    `### Scenario\n\n${scenario.prompt}\n`,
     inputFilesSection,
     verificationSection,
-    buildFinalOutputBlock({
-      taskType: 'run_eval',
-      outputSchemaName: 'RunEvalOutput',
-      shapeSketch: [
-        '{',
-        '  "response": "<your free-form answer>",',
-        '  "artifacts": [{ "path": "...", "cid": "..." }],  // optional',
-        '  "totalTokens": <int>,',
-        '  "durationMs": <int>,',
-        '  "traceparent": "<from claim>",',
-        '  "verification": <required iff input.successCriteria; see Self-verification>',
-        '}',
-      ].join('\n'),
-    }),
-  ];
+    finalOutputBlock,
+  ].filter((s) => s !== '');
 
-  return lines.join('\n');
+  return sections.join('\n');
 }
