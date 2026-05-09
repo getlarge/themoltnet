@@ -50,7 +50,9 @@ describe('RunEvalInput', () => {
     expect(
       Value.Check(RunEvalInput, {
         ...minimalInput,
-        context: [{ cid: 'bafy1', binding: 'skill' }],
+        context: [
+          { slug: 'pack-fidelity', binding: 'skill', content: '# body' },
+        ],
       }),
     ).toBe(true);
   });

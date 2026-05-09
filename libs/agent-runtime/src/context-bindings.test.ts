@@ -2,19 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ContextDeliverer,
-  type FlaggedContentCheck,
   resolveTaskContext,
 } from './context-bindings.js';
-
-const ok: FlaggedContentCheck = async () => ({ flagged: false });
-
-function makeFetcher(map: Record<string, Uint8Array>) {
-  return async (cid: string) => {
-    const bytes = map[cid];
-    if (!bytes) throw new Error(`cid ${cid} not found`);
-    return { cid, bytes };
-  };
-}
 
 function mockDeliverer(): ContextDeliverer & {
   skill: ReturnType<typeof vi.fn>;
@@ -28,9 +17,6 @@ describe('resolveTaskContext', () => {
     const deliverer = mockDeliverer();
     const out = await resolveTaskContext({
       context: [],
-      fetch: makeFetcher({}),
-      verifyCid: async () => true,
-      isFlagged: ok,
       deliver: deliverer,
     });
     expect(out.injected).toHaveLength(0);
@@ -39,117 +25,76 @@ describe('resolveTaskContext', () => {
     expect(out.userInlineSuffix).toBe('');
   });
 
-  it('writes skill bytes through the skill deliverer', async () => {
-    const bytes = new TextEncoder().encode('# Skill body');
+  it('writes skill content through the skill deliverer', async () => {
     const deliverer = mockDeliverer();
     const out = await resolveTaskContext({
-      context: [{ cid: 'bafyabc', binding: 'skill' }],
-      fetch: makeFetcher({ bafyabc: bytes }),
-      verifyCid: async () => true,
-      isFlagged: ok,
+      context: [
+        { slug: 'pack-fidelity', binding: 'skill', content: '# Skill body' },
+      ],
       deliver: deliverer,
     });
     expect(deliverer.skill).toHaveBeenCalledWith({
-      slug: 'bafyabc',
-      bytes,
+      slug: 'pack-fidelity',
+      content: '# Skill body',
     });
     expect(out.injected).toEqual([
-      expect.objectContaining({ cid: 'bafyabc', binding: 'skill' }),
+      expect.objectContaining({ slug: 'pack-fidelity', binding: 'skill' }),
     ]);
   });
 
   it('concatenates prompt_prefix items in declared order', async () => {
-    const a = new TextEncoder().encode('AAA');
-    const b = new TextEncoder().encode('BBB');
     const out = await resolveTaskContext({
       context: [
-        { cid: 'a', binding: 'prompt_prefix' },
-        { cid: 'b', binding: 'prompt_prefix' },
+        { slug: 'a', binding: 'prompt_prefix', content: 'AAA' },
+        { slug: 'b', binding: 'prompt_prefix', content: 'BBB' },
       ],
-      fetch: makeFetcher({ a, b }),
-      verifyCid: async () => true,
-      isFlagged: ok,
       deliver: mockDeliverer(),
     });
     expect(out.systemPromptPrefix).toBe('AAA\n\n---\n\nBBB');
   });
 
   it('concatenates user_inline items in declared order', async () => {
-    const a = new TextEncoder().encode('hello');
     const out = await resolveTaskContext({
-      context: [{ cid: 'a', binding: 'user_inline' }],
-      fetch: makeFetcher({ a }),
-      verifyCid: async () => true,
-      isFlagged: ok,
+      context: [{ slug: 'a', binding: 'user_inline', content: 'hello' }],
       deliver: mockDeliverer(),
     });
     expect(out.userInlineSuffix).toBe('hello');
   });
 
-  it('throws when verifyCid returns false', async () => {
-    await expect(
-      resolveTaskContext({
-        context: [{ cid: 'a', binding: 'skill' }],
-        fetch: makeFetcher({ a: new TextEncoder().encode('x') }),
-        verifyCid: async () => false,
-        isFlagged: ok,
-        deliver: mockDeliverer(),
-      }),
-    ).rejects.toThrow(/cid mismatch/i);
-  });
-
-  it('throws when isFlagged reports flagged content', async () => {
-    await expect(
-      resolveTaskContext({
-        context: [{ cid: 'a', binding: 'skill' }],
-        fetch: makeFetcher({ a: new TextEncoder().encode('x') }),
-        verifyCid: async () => true,
-        isFlagged: async () => ({ flagged: true, reason: 'injection_risk' }),
-        deliver: mockDeliverer(),
-      }),
-    ).rejects.toThrow(/flagged/i);
-  });
-
-  it('refuses skill slug collisions on distinct CIDs', async () => {
-    // Two CIDs that share the same first 12 alphanumeric chars produce
-    // colliding slugs. Resolver must fail loudly rather than overwrite.
-    const a = new TextEncoder().encode('alpha');
-    const b = new TextEncoder().encode('beta');
+  it('refuses skill slug collisions on distinct content', async () => {
     await expect(
       resolveTaskContext({
         context: [
-          { cid: 'bafyreiaaaaaa-1', binding: 'skill' },
-          { cid: 'bafyreiaaaaaa-2', binding: 'skill' },
+          { slug: 'shared', binding: 'skill', content: 'one' },
+          { slug: 'shared', binding: 'skill', content: 'two' },
         ],
-        fetch: makeFetcher({
-          'bafyreiaaaaaa-1': a,
-          'bafyreiaaaaaa-2': b,
-        }),
-        verifyCid: async () => true,
-        isFlagged: ok,
         deliver: mockDeliverer(),
       }),
     ).rejects.toThrow(/slug collision/i);
   });
 
+  it('allows duplicate skill entries with identical content (idempotent)', async () => {
+    const deliverer = mockDeliverer();
+    await expect(
+      resolveTaskContext({
+        context: [
+          { slug: 'shared', binding: 'skill', content: 'same' },
+          { slug: 'shared', binding: 'skill', content: 'same' },
+        ],
+        deliver: deliverer,
+      }),
+    ).resolves.toBeDefined();
+    expect(deliverer.skill).toHaveBeenCalledTimes(2);
+  });
+
   it('exercises all three bindings end-to-end', async () => {
-    const skillBytes = new TextEncoder().encode('# Skill');
-    const prefixBytes = new TextEncoder().encode('PREFIX');
-    const inlineBytes = new TextEncoder().encode('INLINE');
     const deliverer = mockDeliverer();
     const out = await resolveTaskContext({
       context: [
-        { cid: 'cid1', binding: 'skill' },
-        { cid: 'cid2', binding: 'prompt_prefix' },
-        { cid: 'cid3', binding: 'user_inline' },
+        { slug: 'a', binding: 'skill', content: '# Skill' },
+        { slug: 'b', binding: 'prompt_prefix', content: 'PREFIX' },
+        { slug: 'c', binding: 'user_inline', content: 'INLINE' },
       ],
-      fetch: makeFetcher({
-        cid1: skillBytes,
-        cid2: prefixBytes,
-        cid3: inlineBytes,
-      }),
-      verifyCid: async () => true,
-      isFlagged: ok,
       deliver: deliverer,
     });
 
@@ -160,8 +105,8 @@ describe('resolveTaskContext', () => {
     ]);
     expect(deliverer.skill).toHaveBeenCalledTimes(1);
     expect(deliverer.skill).toHaveBeenCalledWith({
-      slug: 'cid1',
-      bytes: skillBytes,
+      slug: 'a',
+      content: '# Skill',
     });
     expect(out.systemPromptPrefix).toBe('PREFIX');
     expect(out.userInlineSuffix).toBe('INLINE');

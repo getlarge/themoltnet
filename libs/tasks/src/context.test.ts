@@ -19,17 +19,49 @@ describe('ContextBinding', () => {
 
 describe('ContextRef', () => {
   it('round-trips a valid ref', () => {
-    const ref = { cid: 'bafyreigh2akiscaildc', binding: 'skill' as const };
+    const ref = {
+      slug: 'pack-fidelity',
+      binding: 'skill' as const,
+      content: '# Skill body\n',
+    };
     expect(Value.Check(ContextRef, ref)).toBe(true);
   });
 
-  it('rejects empty cid', () => {
-    expect(Value.Check(ContextRef, { cid: '', binding: 'skill' })).toBe(false);
+  it('rejects empty content', () => {
+    expect(
+      Value.Check(ContextRef, {
+        slug: 'x',
+        binding: 'skill',
+        content: '',
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects slug with disallowed characters', () => {
+    expect(
+      Value.Check(ContextRef, {
+        slug: 'has spaces',
+        binding: 'skill',
+        content: 'x',
+      }),
+    ).toBe(false);
+    expect(
+      Value.Check(ContextRef, {
+        slug: 'has/slash',
+        binding: 'skill',
+        content: 'x',
+      }),
+    ).toBe(false);
   });
 
   it('rejects extra fields', () => {
     expect(
-      Value.Check(ContextRef, { cid: 'bafy', binding: 'skill', extra: 1 }),
+      Value.Check(ContextRef, {
+        slug: 'x',
+        binding: 'skill',
+        content: 'x',
+        cid: 'leftover',
+      }),
     ).toBe(false);
   });
 });
@@ -41,8 +73,9 @@ describe('TaskContext', () => {
 
   it('rejects more than 5 items', () => {
     const six = Array.from({ length: 6 }, (_, i) => ({
-      cid: `bafy-${i}`,
+      slug: `item-${i}`,
       binding: 'skill' as const,
+      content: 'x',
     }));
     expect(Value.Check(TaskContext, six)).toBe(false);
   });
