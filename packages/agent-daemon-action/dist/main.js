@@ -34527,7 +34527,8 @@ async function createTask(input) {
 			...input.title ? { title: input.title } : {},
 			...input.successCriteria ? { successCriteria: input.successCriteria } : {}
 		},
-		correlationId: input.correlationId
+		correlationId: input.correlationId,
+		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {}
 	});
 }
 async function createAssessTask(input) {
@@ -34546,7 +34547,8 @@ async function createAssessTask(input) {
 		diaryId: input.diaryId,
 		input: assessInput,
 		references: [reference],
-		correlationId: input.correlationId
+		correlationId: input.correlationId,
+		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {}
 	});
 }
 //#endregion
@@ -34676,6 +34678,7 @@ async function dispatch(ctx) {
 	const teamId = required(env, "MOLTNET_TEAM_ID");
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
 	const moltnet = await connect();
+	const runningTimeoutSec = parseRunningTimeout(env);
 	if (parsed.verb === "fulfill") {
 		await dispatchFulfill({
 			moltnet,
@@ -34684,7 +34687,8 @@ async function dispatch(ctx) {
 			issueNumber: extracted.issueNumber,
 			referenceUrl: extracted.referenceUrl,
 			issueTitle: extracted.issueTitle,
-			issueBody: extracted.issueBody
+			issueBody: extracted.issueBody,
+			runningTimeoutSec
 		});
 		return;
 	}
@@ -34696,8 +34700,31 @@ async function dispatch(ctx) {
 		owner: extracted.owner,
 		repo: extracted.repo,
 		prNumber: extracted.issueNumber,
-		referenceUrl: extracted.referenceUrl
+		referenceUrl: extracted.referenceUrl,
+		runningTimeoutSec
 	});
+}
+/**
+* Resolve the runningTimeoutSec override from
+* `MOLTNET_RUNNING_TIMEOUT_SEC` (set by the action's `running-timeout-sec`
+* input). Returns `undefined` (use server default 7200s) when unset.
+*
+* The action has its own GitHub-side `timeout-minutes` ceiling that
+* SIGKILLs the runner; this server-side cap exists so the queue's view
+* of the task doesn't lag the runner — without it, after the runner
+* dies the task stays "running" up to 2h before lease_expired fires.
+* Operators should set both with the server cap >= the runner cap to
+* avoid the daemon getting cancelled mid-fail-report.
+*/
+function parseRunningTimeout(env) {
+	const raw = env.MOLTNET_RUNNING_TIMEOUT_SEC;
+	if (!raw) return void 0;
+	const n = Number(raw);
+	if (!Number.isInteger(n) || n < 1 || n > 86400) {
+		import_core.warning(`MOLTNET_RUNNING_TIMEOUT_SEC=${raw} is not an integer in [1, 86400]; using server default`);
+		return;
+	}
+	return n;
 }
 async function dispatchFulfill(args) {
 	const correlationId = await resolveCorrelation({
@@ -34715,7 +34742,8 @@ async function dispatchFulfill(args) {
 		correlationId,
 		referenceUrl: args.referenceUrl,
 		title: args.issueTitle ?? `Issue #${args.issueNumber}`,
-		brief: args.issueBody ?? ""
+		brief: args.issueBody ?? "",
+		runningTimeoutSec: args.runningTimeoutSec
 	});
 	import_core.setOutput("task-id", created.id);
 	import_core.setOutput("correlation-id", correlationId);
@@ -34766,7 +34794,8 @@ async function dispatchAssess(args) {
 		correlationId,
 		targetTaskId: fulfill.id,
 		targetOutputCid: accepted.outputCid,
-		successCriteria
+		successCriteria,
+		runningTimeoutSec: args.runningTimeoutSec
 	});
 	import_core.setOutput("task-id", created.id);
 	import_core.setOutput("correlation-id", correlationId);

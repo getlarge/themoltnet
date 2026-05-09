@@ -89,6 +89,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   const teamId = required(env, 'MOLTNET_TEAM_ID');
   const diaryId = required(env, 'MOLTNET_DIARY_ID');
   const moltnet = await connect();
+  const runningTimeoutSec = parseRunningTimeout(env);
 
   if (parsed.verb === 'fulfill') {
     await dispatchFulfill({
@@ -99,6 +100,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
       referenceUrl: extracted.referenceUrl,
       issueTitle: extracted.issueTitle,
       issueBody: extracted.issueBody,
+      runningTimeoutSec,
     });
     return;
   }
@@ -113,7 +115,33 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
     repo: extracted.repo,
     prNumber: extracted.issueNumber,
     referenceUrl: extracted.referenceUrl,
+    runningTimeoutSec,
   });
+}
+
+/**
+ * Resolve the runningTimeoutSec override from
+ * `MOLTNET_RUNNING_TIMEOUT_SEC` (set by the action's `running-timeout-sec`
+ * input). Returns `undefined` (use server default 7200s) when unset.
+ *
+ * The action has its own GitHub-side `timeout-minutes` ceiling that
+ * SIGKILLs the runner; this server-side cap exists so the queue's view
+ * of the task doesn't lag the runner — without it, after the runner
+ * dies the task stays "running" up to 2h before lease_expired fires.
+ * Operators should set both with the server cap >= the runner cap to
+ * avoid the daemon getting cancelled mid-fail-report.
+ */
+function parseRunningTimeout(env: NodeJS.ProcessEnv): number | undefined {
+  const raw = env.MOLTNET_RUNNING_TIMEOUT_SEC;
+  if (!raw) return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > 86400) {
+    core.warning(
+      `MOLTNET_RUNNING_TIMEOUT_SEC=${raw} is not an integer in [1, 86400]; using server default`,
+    );
+    return undefined;
+  }
+  return n;
 }
 
 async function dispatchFulfill(args: {
@@ -124,6 +152,7 @@ async function dispatchFulfill(args: {
   referenceUrl: string;
   issueTitle?: string;
   issueBody?: string | null;
+  runningTimeoutSec?: number;
 }): Promise<void> {
   const correlationId = await resolveCorrelation(
     { contextType: 'issue', referenceUrl: args.referenceUrl },
@@ -142,6 +171,7 @@ async function dispatchFulfill(args: {
     referenceUrl: args.referenceUrl,
     title: args.issueTitle ?? `Issue #${args.issueNumber}`,
     brief: args.issueBody ?? '',
+    runningTimeoutSec: args.runningTimeoutSec,
   });
 
   core.setOutput('task-id', created.id);
@@ -160,6 +190,7 @@ async function dispatchAssess(args: {
   repo: string;
   prNumber: number;
   referenceUrl: string;
+  runningTimeoutSec?: number;
 }): Promise<void> {
   const pr = { owner: args.owner, repo: args.repo, number: args.prNumber };
 
@@ -228,6 +259,7 @@ async function dispatchAssess(args: {
     targetTaskId: fulfill.id,
     targetOutputCid: accepted.outputCid,
     successCriteria,
+    runningTimeoutSec: args.runningTimeoutSec,
   });
 
   core.setOutput('task-id', created.id);
