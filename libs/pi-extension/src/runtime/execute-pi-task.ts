@@ -73,6 +73,16 @@ export interface TurnEventHandler {
   (event: TurnEventKind, summary: Record<string, unknown>): void;
 }
 
+// Factory variant for `onTurnEvent`. Polling daemons run N tasks per
+// process and need to bind per-task context (taskId, attemptN) into
+// each handler — they can't do that at executor-construction time.
+// The factory is invoked once per `executePiTask` call, before any
+// emit, so the returned handler always carries fresh per-task context.
+// See #1078 for motivation.
+export type TurnEventHandlerFactory = (
+  claimedTask: ClaimedTask,
+) => TurnEventHandler;
+
 const noopTurnEventHandler: TurnEventHandler = () => {};
 
 export interface ExecutePiTaskOptions {
@@ -106,10 +116,22 @@ export interface ExecutePiTaskOptions {
   checkpointPath?: string;
   /**
    * Optional callback invoked alongside every `reporter.record()` so
-   * the daemon can mirror task messages into its local logger. See
-   * `TurnEventHandler` for payload shape. Defaults to a no-op when unset.
+   * the daemon can mirror task messages into its local logger.
+   * Bound at executor-construction time — use when one task runs per
+   * process (e.g. `once.ts`) and per-task context is known before
+   * the executor is built. For poll mode, prefer `makeOnTurnEvent`
+   * below. If both are set, `makeOnTurnEvent` wins.
+   * See `TurnEventHandler` for payload shape. Defaults to a no-op.
    */
   onTurnEvent?: TurnEventHandler;
+  /**
+   * Per-task factory variant for `onTurnEvent`. Invoked once per
+   * task with the claimed task before any emit, so the returned
+   * handler can bind taskId / attemptN into a pino child.
+   * Use in poll mode where N tasks run sequentially in the same
+   * process. See #1078.
+   */
+  makeOnTurnEvent?: TurnEventHandlerFactory;
 }
 
 /**
@@ -248,7 +270,24 @@ export async function executePiTask(
     await reporter.open({ taskId: task.id, attemptN });
     reporterOpen = true;
 
-    const onTurnEvent = opts.onTurnEvent ?? noopTurnEventHandler;
+    // Resolve the handler once per task. The factory wins when set so
+    // poll-mode callers can bind per-task context (taskId, attemptN);
+    // factory throws are caught and downgraded to a stderr line so a
+    // misbehaving caller can't sink the executor.
+    let onTurnEvent: TurnEventHandler;
+    if (opts.makeOnTurnEvent) {
+      try {
+        onTurnEvent = opts.makeOnTurnEvent(claimedTask);
+      } catch (err) {
+        process.stderr.write(
+          `[emit] makeOnTurnEvent threw: ` +
+            `${err instanceof Error ? err.message : String(err)}\n`,
+        );
+        onTurnEvent = noopTurnEventHandler;
+      }
+    } else {
+      onTurnEvent = opts.onTurnEvent ?? noopTurnEventHandler;
+    }
     const emit = (
       kind: TurnEventKind,
       payload: Record<string, unknown>,
