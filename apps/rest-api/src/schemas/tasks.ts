@@ -1,4 +1,5 @@
 import {
+  ExecutorRef,
   ExecutorTrustLevel,
   Task,
   TaskAttempt,
@@ -39,6 +40,11 @@ export const CreateTaskBodySchema = Type.Object(
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
+    // Imposer-set executor pinning. Empty/unset = no restriction.
+    // Provider and model are lowercased server-side before being
+    // persisted, so daemons can advertise either case but comparisons
+    // are case-insensitive in practice.
+    allowedExecutors: Type.Optional(Type.Array(Type.Ref(ExecutorRef))),
     // Imposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
     // to long-running brief fulfillment (≤86400s = 24h).
@@ -57,6 +63,15 @@ export const ListTasksQuerySchema = Type.Object(
     teamId: Type.String({ format: 'uuid' }),
     status: Type.Optional(Type.Ref(TaskStatus)),
     taskType: Type.Optional(Type.String()),
+    // Daemon advertises its `(provider, model)` to scope the result to
+    // tasks it can actually run. Both must be provided together;
+    // providing only one is rejected as 400 by the route handler. When
+    // both are present, the SQL filter returns rows where
+    // `allowed_executors` is empty OR contains a matching pair. When
+    // both are absent, no executor filtering is applied (preserves
+    // pre-existing behavior).
+    provider: Type.Optional(Type.String({ minLength: 1 })),
+    model: Type.Optional(Type.String({ minLength: 1 })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
     imposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -216,6 +231,7 @@ export const taskSchemas = [
   // Primitive enums first (no dependencies)
   TaskStatus,
   ExecutorTrustLevel,
+  ExecutorRef,
   TaskMessageKind,
   TaskRef,
   TaskUsage,

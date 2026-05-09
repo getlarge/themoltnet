@@ -1373,6 +1373,11 @@ export type ExecutorTrustLevel =
   | 'releaseVerifiedTool'
   | 'sandboxAttested';
 
+export type ExecutorRef = {
+  provider: string;
+  model: string;
+};
+
 export type TaskMessageKind =
   | 'text_delta'
   | 'tool_call_start'
@@ -1445,6 +1450,10 @@ export type Task = {
     | 'agentSigned'
     | 'releaseVerifiedTool'
     | 'sandboxAttested';
+  allowedExecutors: Array<{
+    provider: string;
+    model: string;
+  }>;
   status:
     | 'queued'
     | 'dispatched'
@@ -1561,6 +1570,7 @@ export type CreateTaskBody = {
   maxAttempts?: number;
   expiresInSec?: number;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
+  allowedExecutors?: Array<ExecutorRef>;
   dispatchTimeoutSec?: number;
   runningTimeoutSec?: number;
 };
@@ -1569,6 +1579,8 @@ export type ListTasksQuery = {
   teamId: string;
   status?: TaskStatus;
   taskType?: string;
+  provider?: string;
+  model?: string;
   correlationId?: string;
   diaryId?: string;
   imposedByAgentId?: string;
@@ -6286,6 +6298,8 @@ export type ListTasksData = {
     teamId: string;
     status?: TaskStatus;
     taskType?: string;
+    provider?: string;
+    model?: string;
     correlationId?: string;
     diaryId?: string;
     imposedByAgentId?: string;
@@ -6303,6 +6317,10 @@ export type ListTasksData = {
 };
 
 export type ListTasksErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */
@@ -6337,6 +6355,7 @@ export type CreateTaskData = {
     maxAttempts?: number;
     expiresInSec?: number;
     requiredExecutorTrustLevel?: ExecutorTrustLevel;
+    allowedExecutors?: Array<ExecutorRef>;
     dispatchTimeoutSec?: number;
     runningTimeoutSec?: number;
   };

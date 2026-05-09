@@ -128,6 +128,8 @@ function dbTaskToWire(row: DbTask): Task {
     acceptedAttemptN: row.acceptedAttemptN ?? null,
     requiredExecutorTrustLevel:
       TRUST_LEVEL_TO_WIRE[row.requiredExecutorTrustLevel],
+    allowedExecutors:
+      (row.allowedExecutors as Task['allowedExecutors'] | null) ?? [],
     status: row.status,
     queuedAt: row.queuedAt.toISOString(),
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -192,6 +194,9 @@ export interface CreateTaskInput {
   maxAttempts?: number;
   expiresInSec?: number;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
+  // Imposer-set executor pinning. Empty/undefined = no restriction.
+  // Provider/model are normalized (lowercased) before persistence.
+  allowedExecutors?: { provider: string; model: string }[];
   // Imposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
   // DEFAULT_RUNNING_TIMEOUT_SECONDS in
@@ -331,6 +336,10 @@ export function createTaskService(deps: TaskServiceDeps) {
         imposedByHumanId: input.callerIsAgent ? null : input.callerId,
         requiredExecutorTrustLevel:
           TRUST_LEVEL_TO_DB[input.requiredExecutorTrustLevel ?? 'selfDeclared'],
+        allowedExecutors: (input.allowedExecutors ?? []).map((e) => ({
+          provider: e.provider.toLowerCase(),
+          model: e.model.toLowerCase(),
+        })),
         maxAttempts: input.maxAttempts ?? 1,
         dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
         runningTimeoutSec: input.runningTimeoutSec ?? null,
@@ -372,6 +381,12 @@ export function createTaskService(deps: TaskServiceDeps) {
       teamId: string;
       status?: string;
       taskType?: string;
+      // Daemon advertises its `(provider, model)` to filter the queue
+      // down to tasks it can run. Both lowercased upstream. Both must
+      // be set together; the route handler enforces this. When unset,
+      // no executor filter is applied.
+      executorProvider?: string;
+      executorModel?: string;
       correlationId?: string;
       diaryId?: string;
       imposedByAgentId?: string;
@@ -402,6 +417,8 @@ export function createTaskService(deps: TaskServiceDeps) {
         teamId: opts.teamId,
         status: opts.status as DbTask['status'] | undefined,
         taskType: opts.taskType,
+        executorProvider: opts.executorProvider,
+        executorModel: opts.executorModel,
         correlationId: opts.correlationId,
         diaryId: opts.diaryId,
         imposedByAgentId: opts.imposedByAgentId,

@@ -3486,6 +3486,7 @@ type CreateTaskForbidden ProblemDetails
 func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
+	AllowedExecutors           []ExecutorRef         `json:"allowedExecutors"`
 	CorrelationId              OptUUID               `json:"correlationId"`
 	DiaryId                    uuid.UUID             `json:"diaryId"`
 	DispatchTimeoutSec         OptInt                `json:"dispatchTimeoutSec"`
@@ -3497,6 +3498,11 @@ type CreateTaskReq struct {
 	RunningTimeoutSec          OptInt                `json:"runningTimeoutSec"`
 	TaskType                   string                `json:"taskType"`
 	TeamId                     uuid.UUID             `json:"teamId"`
+}
+
+// GetAllowedExecutors returns the value of AllowedExecutors.
+func (s *CreateTaskReq) GetAllowedExecutors() []ExecutorRef {
+	return s.AllowedExecutors
 }
 
 // GetCorrelationId returns the value of CorrelationId.
@@ -3552,6 +3558,11 @@ func (s *CreateTaskReq) GetTaskType() string {
 // GetTeamId returns the value of TeamId.
 func (s *CreateTaskReq) GetTeamId() uuid.UUID {
 	return s.TeamId
+}
+
+// SetAllowedExecutors sets the value of AllowedExecutors.
+func (s *CreateTaskReq) SetAllowedExecutors(val []ExecutorRef) {
+	s.AllowedExecutors = val
 }
 
 // SetCorrelationId sets the value of CorrelationId.
@@ -8282,6 +8293,32 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
+
+// Ref: #/components/schemas/ExecutorRef
+type ExecutorRef struct {
+	Model    string `json:"model"`
+	Provider string `json:"provider"`
+}
+
+// GetModel returns the value of Model.
+func (s *ExecutorRef) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *ExecutorRef) GetProvider() string {
+	return s.Provider
+}
+
+// SetModel sets the value of Model.
+func (s *ExecutorRef) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *ExecutorRef) SetProvider(val string) {
+	s.Provider = val
+}
 
 // Ref: #/components/schemas/ExecutorTrustLevel
 type ExecutorTrustLevel string
@@ -19943,6 +19980,7 @@ func (*Success) deleteDiaryRes()          {}
 // Ref: #/components/schemas/Task
 type Task struct {
 	AcceptedAttemptN           NilFloat64                     `json:"acceptedAttemptN"`
+	AllowedExecutors           []TaskAllowedExecutorsItem     `json:"allowedExecutors"`
 	CancelReason               NilString                      `json:"cancelReason"`
 	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
 	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
@@ -19971,6 +20009,11 @@ type Task struct {
 // GetAcceptedAttemptN returns the value of AcceptedAttemptN.
 func (s *Task) GetAcceptedAttemptN() NilFloat64 {
 	return s.AcceptedAttemptN
+}
+
+// GetAllowedExecutors returns the value of AllowedExecutors.
+func (s *Task) GetAllowedExecutors() []TaskAllowedExecutorsItem {
+	return s.AllowedExecutors
 }
 
 // GetCancelReason returns the value of CancelReason.
@@ -20093,6 +20136,11 @@ func (s *Task) SetAcceptedAttemptN(val NilFloat64) {
 	s.AcceptedAttemptN = val
 }
 
+// SetAllowedExecutors sets the value of AllowedExecutors.
+func (s *Task) SetAllowedExecutors(val []TaskAllowedExecutorsItem) {
+	s.AllowedExecutors = val
+}
+
 // SetCancelReason sets the value of CancelReason.
 func (s *Task) SetCancelReason(val NilString) {
 	s.CancelReason = val
@@ -20213,6 +20261,31 @@ func (*Task) completeTaskRes() {}
 func (*Task) createTaskRes()   {}
 func (*Task) failTaskRes()     {}
 func (*Task) getTaskRes()      {}
+
+type TaskAllowedExecutorsItem struct {
+	Model    string `json:"model"`
+	Provider string `json:"provider"`
+}
+
+// GetModel returns the value of Model.
+func (s *TaskAllowedExecutorsItem) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskAllowedExecutorsItem) GetProvider() string {
+	return s.Provider
+}
+
+// SetModel sets the value of Model.
+func (s *TaskAllowedExecutorsItem) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskAllowedExecutorsItem) SetProvider(val string) {
+	s.Provider = val
+}
 
 // Ref: #/components/schemas/TaskAttempt
 type TaskAttempt struct {
@@ -22217,6 +22290,7 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 
 func (*ValidationProblemDetails) completeTaskRes() {}
 func (*ValidationProblemDetails) createTaskRes()   {}
+func (*ValidationProblemDetails) listTasksRes()    {}
 
 type ValidationProblemDetailsAdditional map[string]jx.Raw
 
