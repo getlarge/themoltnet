@@ -19,8 +19,12 @@
 ## The only correct form
 
 ```bash
-# 1. Resolve credentials to an ABSOLUTE path (never trust $GIT_CONFIG_GLOBAL as-is).
-CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" 2>/dev/null && pwd)/moltnet.json"
+# 1. Resolve credentials to an ABSOLUTE path. GIT_CONFIG_GLOBAL is typically
+#    relative (e.g. .moltnet/<agent>/gitconfig). Anchor it against the repo
+#    root so this works from any subdirectory or worktree, not just the root.
+CFG="$GIT_CONFIG_GLOBAL"
+case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
+CREDS="$(dirname "$CFG")/moltnet.json"
 
 # 2. Refuse to proceed if the file does not exist at that absolute path.
 [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
@@ -42,18 +46,22 @@ so repeated calls are fast after the first API hit.
 
 ## Why absolute paths are mandatory
 
-`GIT_CONFIG_GLOBAL` is almost always a **relative path** (e.g. `.moltnet/<agent>/gitconfig`).
-Every git worktree has a different CWD from the main worktree root, so
-`$(dirname "$GIT_CONFIG_GLOBAL")` resolves differently depending on where you are.
-When it resolves to a non-existent directory:
+`GIT_CONFIG_GLOBAL` is almost always a **relative path** (e.g. `.moltnet/<agent>/gitconfig`),
+interpreted by git relative to the repo root — not the shell's CWD. So a bare
+`$(dirname "$GIT_CONFIG_GLOBAL")` resolves to a non-existent directory whenever
+you run `gh` from a subdirectory (e.g. `packages/api`) or from a worktree whose
+CWD differs from the main worktree root. When that happens:
 
 - `moltnet github token` (or `npx @themoltnet/cli github token`) prints `no credentials found` to stderr,
 - the command substitution yields an empty `GH_TOKEN`,
 - `gh` silently falls back to your personal token,
 - the resulting API call is attributed to the **human**, not the agent.
 
-This failure is invisible in normal output. The `cd ... && pwd` dance in step 1
-is the only reliable way to get an absolute path that works across worktrees.
+This failure is invisible in normal output. The `git rev-parse --show-toplevel`
+anchoring in step 1 is the only reliable way to get an absolute path that works
+from any CWD inside the repo (and any worktree). If the snippet is run outside
+a git repo, `git rev-parse` exits non-zero and the whole pipeline fails loudly
+instead of silently producing the wrong path.
 
 ## Forbidden patterns
 
