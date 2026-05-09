@@ -313,7 +313,19 @@ export async function executePiTask(
         }),
       });
 
-      const piAuthDir = join(homedir(), '.pi', 'agent');
+      // Pi-coding-agent's own env-var convention is
+      // `PI_CODING_AGENT_DIR` (see @earendil-works/pi-coding-agent's
+      // `config.ts:getAgentDir()`). When the daemon runs in CI, the
+      // host's HOME is the runner user's home (e.g. /home/runner) and
+      // the action writes auth.json to a runner-temp dir to keep the
+      // secret out of `~`. Hard-coding `homedir()/.pi/agent` here
+      // overrides that placement and breaks `createAgentSession` with
+      // a generic "No API key found for <provider>" before any LLM
+      // call. Honor PI_CODING_AGENT_DIR when set; otherwise fall back
+      // to the canonical home-rooted path so local `pi /login` flows
+      // continue to work unchanged.
+      const piAuthDir =
+        process.env.PI_CODING_AGENT_DIR ?? join(homedir(), '.pi', 'agent');
       const getModelLoose = getModel as unknown as (
         provider: string,
         modelId: string,
