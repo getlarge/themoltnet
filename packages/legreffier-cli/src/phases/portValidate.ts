@@ -21,7 +21,8 @@ export interface PortValidateResult {
  * Runs the generic `repairConfig({ dryRun: true })` checks, then adds
  * port-specific blocking checks:
  *  - `identity_id`, `keys.fingerprint`, `oauth2.client_id/secret`
- *  - `github.app_id` present and numeric, `github.app_slug`, `github.installation_id`
+ *  - `github.app_id` present and numeric, `github.app_slug`
+ *  - `github.installation_id` may be absent; port resolves it for the target owner
  *  - `ssh.private_key_path`, `ssh.public_key_path`, `git.config_path` set
  *  - `github.private_key_path` set
  *  - All four absolute paths (ssh priv/pub, git config, github pem) exist on disk

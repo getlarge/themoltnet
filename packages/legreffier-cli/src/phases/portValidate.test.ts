@@ -101,6 +101,23 @@ describe('runPortValidatePhase', () => {
     expect(result.issues.some((i) => i.field === 'github.app_id')).toBe(true);
   });
 
+  it('flags missing github.app_id as a blocker', async () => {
+    const dir = join(tmpRoot, 'no-app-id');
+    const config = baseConfig(dir);
+    delete (config.github as Record<string, string>).app_id;
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({ sourceDir: dir });
+
+    expect(result.canProceed).toBe(false);
+    expect(result.issues).toContainEqual({
+      field: 'github.app_id',
+      problem: 'missing — required for port',
+      action: 'warning',
+    });
+  });
+
   it('flags missing ssh file on disk', async () => {
     const dir = join(tmpRoot, 'no-ssh');
     await writeConfig(dir, baseConfig(dir));
