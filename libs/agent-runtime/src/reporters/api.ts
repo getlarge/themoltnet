@@ -55,6 +55,15 @@ export class ApiTaskReporter implements TaskReporter {
    * failures are never silently dropped by the batching layer.
    */
   private pendingError: Error | null = null;
+  /**
+   * Flips to `true` after the first successful `appendMessages` call.
+   * Used to gate the 403-retry window in `flush` to the very first
+   * append (the only point where the Keto `Task:claimant#Agent` tuple
+   * can lag the read API). Once any append has succeeded, Keto is
+   * known consistent for this task and a 403 thereafter is a real
+   * authorization failure that should surface immediately.
+   */
+  private firstAppendSucceeded = false;
 
   private readonly cancelController = new AbortController();
   private observedCancelReason: string | null = null;
@@ -186,9 +195,8 @@ export class ApiTaskReporter implements TaskReporter {
     const batch = this.buffer.splice(0, this.buffer.length);
     this.inFlight = (async () => {
       try {
-        await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
-          messages: batch,
-        });
+        await this.appendWithFirstCallRetry(batch);
+        this.firstAppendSucceeded = true;
       } catch (err) {
         // The batch was spliced out of the buffer before the network call.
         // Restore the messages to the FRONT of the buffer so a subsequent
@@ -311,6 +319,52 @@ export class ApiTaskReporter implements TaskReporter {
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         await this.sendHeartbeat();
+        return;
+      } catch (err) {
+        lastErr = err;
+        const status =
+          err && typeof err === 'object' && 'statusCode' in err
+            ? (err as { statusCode?: number }).statusCode
+            : undefined;
+        if (status !== 403 || attempt === maxAttempts) throw err;
+        await new Promise((resolve) => {
+          setTimeout(resolve, baseDelayMs * attempt);
+        });
+      }
+    }
+    throw lastErr;
+  }
+
+  /**
+   * Wrap `tasks.appendMessages` with a bounded 403-retry on the first
+   * call only. Mirrors `sendInitialHeartbeat` — the same Keto
+   * `Task:claimant#Agent` tuple race covers both endpoints, and a
+   * batched-up first flush triggered immediately after `open()` (e.g.
+   * a fast executor that records a `task_started` info message before
+   * any heartbeat round-trip completes) can hit a 403 even though the
+   * heartbeat itself eventually succeeds.
+   *
+   * Once `firstAppendSucceeded` is set we know Keto is consistent for
+   * this task and any subsequent 403 is a real authorization failure
+   * (e.g. another agent stole the claim) that must surface immediately.
+   */
+  private async appendWithFirstCallRetry(
+    batch: BufferedMessage[],
+  ): Promise<void> {
+    if (this.firstAppendSucceeded) {
+      await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
+        messages: batch,
+      });
+      return;
+    }
+    const maxAttempts = 5;
+    const baseDelayMs = 100;
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
+          messages: batch,
+        });
         return;
       } catch (err) {
         lastErr = err;
