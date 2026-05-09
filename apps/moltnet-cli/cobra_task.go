@@ -60,7 +60,7 @@ Suppresses text_delta by default to keep the output readable; pass
 		},
 	}
 	cmd.Flags().Int("attempt", 0, "Attempt number to tail (default: latest)")
-	cmd.Flags().Int("since", 0, "Start from messages with seq strictly greater than this (default: latest before now)")
+	cmd.Flags().Int("since", 0, "Inclusive seq cursor: print every message with seq >= this. --since 0 replays from the start (default: skip backlog, follow from now)")
 	cmd.Flags().String("kind", "", "Comma-separated subset of kinds to print (default: all). One of text_delta,tool_call_start,tool_call_end,turn_end,error,info")
 	cmd.Flags().Int("interval", 2, "Polling interval in seconds")
 	cmd.Flags().Bool("show-deltas", false, "Include text_delta messages (verbose)")

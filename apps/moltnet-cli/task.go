@@ -66,12 +66,22 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 		return err
 	}
 
-	// Initial cursor. Default behaviour follows from "now": skip backlog,
-	// only show messages that arrive while we're tailing. Pass --since 0
-	// to replay from the start.
+	// Initial cursor.
+	//
+	// `--since N` is *inclusive*: print every message with seq >= N. The
+	// server's afterSeq query param is exclusive, so we pass N-1. Special
+	// case: --since 0 means "from the very first message" → omit afterSeq
+	// entirely (passing -1 would also work but the API rejects negatives).
+	//
+	// Default (--since not changed): skip backlog and only show messages
+	// that arrive while we're tailing. We compute the current latest seq
+	// once and use it as the exclusive cursor.
 	var afterSeq moltnetapi.OptInt
 	if opts.sinceChanged {
-		afterSeq = moltnetapi.OptInt{Value: opts.since, Set: true}
+		if opts.since > 0 {
+			afterSeq = moltnetapi.OptInt{Value: opts.since - 1, Set: true}
+		}
+		// since == 0 → afterSeq stays unset → server returns all msgs
 	} else {
 		latest, err := latestSeq(ctx, client, taskUUID, attemptN)
 		if err != nil {
@@ -88,16 +98,21 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 		if err != nil {
 			return err
 		}
+		// Advance the cursor for EVERY received message, even ones the
+		// kind filter suppresses — otherwise a fully-filtered page (e.g.
+		// a burst of `text_delta` while `--show-deltas` is off) leaves
+		// `afterSeq` unchanged and the next poll re-fetches the same
+		// page, spinning until the task terminates.
 		for _, m := range messages {
+			seq := int(m.Seq)
+			if !afterSeq.Set || seq > afterSeq.Value {
+				afterSeq = moltnetapi.OptInt{Value: seq, Set: true}
+			}
 			if !kindAllow[string(m.Kind)] {
 				continue
 			}
 			if err := printMessage(opts.out, opts.format, m); err != nil {
 				return err
-			}
-			seq := int(m.Seq)
-			if !afterSeq.Set || seq > afterSeq.Value {
-				afterSeq = moltnetapi.OptInt{Value: seq, Set: true}
 			}
 		}
 
@@ -150,21 +165,35 @@ func resolveAttempt(ctx context.Context, client *moltnetapi.Client, taskID uuid.
 // latestSeq returns the highest seq currently visible on the attempt, or
 // -1 when there are no messages yet. Used to skip the backlog when tail
 // is invoked without --since.
+//
+// `GET /tasks/:id/attempts/:n/messages` is server-paged in ascending seq
+// order. A single fetch returns at most one page; for an attempt with N
+// pages of backlog the naive "read first page, take its max" approach
+// would skip everything past page 1 — and then on first poll we'd
+// stream the rest of the backlog as if it were live. We page through
+// using afterSeq until the server returns an empty page.
 func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, attemptN int) (int, error) {
-	// Fetch a small page; the server returns messages in ascending seq
-	// order, so the last one is the highest seen so far.
-	messages, err := fetchMessages(ctx, client, taskID, attemptN, moltnetapi.OptInt{})
-	if err != nil {
-		return 0, err
-	}
-	if len(messages) == 0 {
-		return -1, nil
-	}
 	max := -1
-	for _, m := range messages {
-		if int(m.Seq) > max {
-			max = int(m.Seq)
+	var afterSeq moltnetapi.OptInt
+	// Bound the loop so a buggy server can't keep us reading forever.
+	// The default page size is well under 1000 and an attempt with
+	// >100k messages would be a separate problem; this caps us at
+	// ~100 pages to be very safe.
+	const maxPages = 200
+	for page := 0; page < maxPages; page++ {
+		messages, err := fetchMessages(ctx, client, taskID, attemptN, afterSeq)
+		if err != nil {
+			return 0, err
 		}
+		if len(messages) == 0 {
+			break
+		}
+		for _, m := range messages {
+			if int(m.Seq) > max {
+				max = int(m.Seq)
+			}
+		}
+		afterSeq = moltnetapi.OptInt{Value: max, Set: true}
 	}
 	return max, nil
 }
