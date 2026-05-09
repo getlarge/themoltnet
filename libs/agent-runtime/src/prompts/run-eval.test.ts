@@ -57,4 +57,20 @@ describe('buildRunEvalPrompt', () => {
   it('always emits the final-output block', () => {
     expect(buildRunEvalPrompt(baseInput, ctx)).toContain('RunEvalOutput');
   });
+
+  it('omits the correlation section when correlationId is null/absent', () => {
+    expect(buildRunEvalPrompt(baseInput, ctx)).not.toContain('### Correlation');
+    expect(
+      buildRunEvalPrompt(baseInput, { ...ctx, correlationId: null }),
+    ).not.toContain('### Correlation');
+  });
+
+  it('emits the correlation section when correlationId is set', () => {
+    const out = buildRunEvalPrompt(baseInput, {
+      ...ctx,
+      correlationId: 'corr-abc',
+    });
+    expect(out).toContain('### Correlation');
+    expect(out).toContain('corr-abc');
+  });
 });

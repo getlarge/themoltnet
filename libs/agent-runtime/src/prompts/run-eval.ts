@@ -7,6 +7,12 @@ interface Ctx {
   diaryId: string;
   /** Task id — the agent must report it in its final structured output. */
   taskId: string;
+  /**
+   * MoltNet correlationId. For eval scenarios this groups the N variant
+   * `run_eval` tasks plus the eventual `judge_eval_variant` task under a
+   * single id. May be null for ad-hoc single-variant runs.
+   */
+  correlationId?: string | null;
 }
 
 /**
@@ -40,12 +46,26 @@ export function buildRunEvalPrompt(input: RunEvalInput, ctx: Ctx): string {
     ? buildSelfVerificationBlock(ctx.taskId)
     : '';
 
+  const correlationSection = ctx.correlationId
+    ? [
+        '### Correlation',
+        '',
+        `This task carries correlationId \`${ctx.correlationId}\`. It joins`,
+        'this variant to its sibling `run_eval` tasks (other variants of the',
+        'same scenario) and to the eventual `judge_eval_variant` task that',
+        'will grade them together. You do not need to act on it directly —',
+        'it is recorded for cross-variant aggregation at query time.',
+        '',
+      ].join('\n')
+    : '';
+
   const lines = [
     '# Run Eval Agent',
     '',
     `You are running an evaluation scenario as variant \`${variantLabel}\` against model \`${model}\`.`,
     `Task id: \`${ctx.taskId}\``,
     '',
+    correlationSection,
     '### Scenario',
     '',
     scenario.prompt,

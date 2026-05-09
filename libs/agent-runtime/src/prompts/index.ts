@@ -123,6 +123,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
       return buildRunEvalPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+        correlationId: task.correlationId,
       });
     }
 
