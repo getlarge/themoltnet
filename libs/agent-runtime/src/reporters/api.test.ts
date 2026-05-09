@@ -362,9 +362,10 @@ describe('ApiTaskReporter', () => {
     });
 
     it('does not retry on 403 after the first append has succeeded', async () => {
-      const error403 = Object.assign(new Error('Forbidden'), {
-        statusCode: 403,
-      });
+      const error403 = Object.assign(
+        new Error('Not authorized to append messages'),
+        { statusCode: 403 },
+      );
       const appendMock = vi
         .fn<TasksNamespace['appendMessages']>()
         .mockResolvedValueOnce({ count: 1 })
@@ -382,13 +383,41 @@ describe('ApiTaskReporter', () => {
       await reporter.record({ kind: 'info', payload: { event: 'started' } });
       expect(appendMock).toHaveBeenCalledTimes(1);
 
-      // Second append 403s. Without retry guard the reporter would loop
-      // and silently mask a real authorization regression (e.g. the
-      // claim was stolen by another agent). Must surface immediately.
+      // Second append 403s. Without the firstAppendSucceeded gate the
+      // reporter would re-enter the retry loop and silently mask a real
+      // authorization regression (claim stolen, grant revoked). It must
+      // surface as an "append messages failed" error on the next call.
       await expect(
         reporter.record({ kind: 'text_delta', payload: { delta: 'hi' } }),
-      ).rejects.toThrow(/append messages failed/);
+      ).rejects.toThrow(
+        /append messages failed.*Not authorized to append messages/,
+      );
       expect(appendMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry on a 403 whose message is not "Not authorized" (e.g. unrelated route guard)', async () => {
+      // Some Fastify route-level guards return 403 with different
+      // messages; those are permanent failures, not consistency lag.
+      // Retrying them just delays the surfacing.
+      const error403 = Object.assign(new Error('CSRF token mismatch'), {
+        statusCode: 403,
+      });
+      const appendMock = vi
+        .fn<TasksNamespace['appendMessages']>()
+        .mockRejectedValue(error403);
+      const { tasks } = makeMockTasks({ appendMessages: appendMock });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      await expect(
+        reporter.record({ kind: 'info', payload: { event: 'started' } }),
+      ).rejects.toThrow(/CSRF token mismatch/);
+      expect(appendMock).toHaveBeenCalledTimes(1);
     });
 
     it('does not retry on non-403 errors even on the first append', async () => {
@@ -415,9 +444,10 @@ describe('ApiTaskReporter', () => {
     });
 
     it('gives up after maxAttempts when 403 persists', async () => {
-      const error403 = Object.assign(new Error('Forbidden'), {
-        statusCode: 403,
-      });
+      const error403 = Object.assign(
+        new Error('Not authorized to append messages'),
+        { statusCode: 403 },
+      );
       const appendMock = vi
         .fn<TasksNamespace['appendMessages']>()
         .mockRejectedValue(error403);
@@ -440,13 +470,64 @@ describe('ApiTaskReporter', () => {
           payload: { event: 'task_started' },
         })
         .catch((err: unknown) => err);
-      // Drain all 4 backoffs between 5 attempts: 100 + 200 + 300 + 400.
-      await vi.advanceTimersByTimeAsync(1_000);
+      // Drain the 2 backoffs between 3 attempts: 100 + 200 ms.
+      await vi.advanceTimersByTimeAsync(500);
       const result = await recordPromise;
       expect(result).toBeInstanceOf(Error);
       expect((result as Error).message).toMatch(/append messages failed/);
-      // 5 attempts max, then surface.
-      expect(appendMock).toHaveBeenCalledTimes(5);
+      // 3 attempts max, then surface (down from 5 — see appendWithFirstCallRetry
+      // comment: realistic Keto window is "tens of milliseconds", 100+200ms
+      // covers it with margin without prolonging permanent-failure paths).
+      expect(appendMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('after re-open, the first-append retry budget is restored', async () => {
+      // Without `firstAppendSucceeded = false` in open(), a reporter
+      // re-opened for a new task or new attempt would skip the
+      // consistency-window retry entirely — the exact path
+      // appendWithFirstCallRetry exists to protect.
+      const error403 = Object.assign(
+        new Error('Not authorized to append messages'),
+        { statusCode: 403 },
+      );
+      const appendMock = vi
+        .fn<TasksNamespace['appendMessages']>()
+        // Lifecycle 1: succeeds immediately.
+        .mockResolvedValueOnce({ count: 1 })
+        // Lifecycle 2: 403 on attempt 1, success on attempt 2.
+        .mockRejectedValueOnce(error403)
+        .mockResolvedValueOnce({ count: 1 });
+      const { tasks } = makeMockTasks({ appendMessages: appendMock });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      // Lifecycle 1
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      await reporter.record({ kind: 'info', payload: { event: 'started' } });
+      expect(appendMock).toHaveBeenCalledTimes(1);
+
+      // Lifecycle 2 — re-open for a new attempt. The retry budget for
+      // *this* lifecycle's first append must be restored, otherwise
+      // the 403 below would surface immediately without retry.
+      const TASK_ID_2 = '22222222-2222-4222-8222-222222222222';
+      await reporter.open({ taskId: TASK_ID_2, attemptN: 1 });
+      const recordPromise = reporter.record({
+        kind: 'info',
+        payload: { event: 'started' },
+      });
+      // Drain the 100ms backoff between attempt 1 and attempt 2.
+      await vi.advanceTimersByTimeAsync(100);
+      await recordPromise;
+
+      expect(appendMock).toHaveBeenCalledTimes(3);
+      // The third call (lifecycle 2 attempt 2) targeted TASK_ID_2,
+      // proving the retry was for the new lifecycle.
+      const lastCall = appendMock.mock.calls.at(-1);
+      expect(lastCall?.[0]).toBe(TASK_ID_2);
     });
   });
 });
