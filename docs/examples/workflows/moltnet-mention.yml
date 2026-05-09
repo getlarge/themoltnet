@@ -129,6 +129,14 @@ jobs:
   dispatch:
     needs: [parse]
     runs-on: ubuntu-latest
+    # Hard ceiling on a single agent run. GitHub sends SIGTERM at
+    # `timeout-minutes - 5` and SIGKILL at exactly `timeout-minutes`,
+    # so the daemon's signal handlers get a 5-min grace window to call
+    # `tasks.fail()` cleanly. Pair with the action's
+    # `running-timeout-sec` input below (set slightly higher so the
+    # queue's view of the task outlasts the runner) — see action.yml
+    # `running-timeout-sec` docs for the rationale.
+    timeout-minutes: 30
     environment: ${{ needs.parse.outputs.agent }}
     # contents: read       — actions/checkout
     # issues: write        — post diagnostic comments on issues / PRs
@@ -142,6 +150,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+        with:
+          # Server-side cap, slightly higher than `timeout-minutes`
+          # above (30 min = 1800s + 5min SIGTERM grace = 2100s; pad
+          # to 2400s/40 min so the server cap never beats the runner
+          # cap to the punch).
+          running-timeout-sec: '2400'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Agent identity (required)
