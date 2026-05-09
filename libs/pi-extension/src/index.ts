@@ -474,5 +474,6 @@ export {
   executePiTask,
   type ExecutePiTaskOptions,
   type TurnEventHandler,
+  type TurnEventHandlerFactory,
   type TurnEventKind,
 } from './runtime/execute-pi-task.js';
