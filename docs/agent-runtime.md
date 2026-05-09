@@ -200,7 +200,7 @@ import {
   AgentRuntime,
   ApiTaskSource,
   ApiTaskReporter,
-  buildPromptForTask,
+  buildTaskUserPrompt,
 } from '@themoltnet/agent-runtime';
 
 const agent = await connect({ configDir: '.moltnet/my-agent' });
@@ -209,7 +209,10 @@ const runtime = new AgentRuntime({
   source: new ApiTaskSource({ agent, agentRuntimeId: 'my-daemon' }),
   makeReporter: (claim) => new ApiTaskReporter(agent.tasks, claim),
   executeTask: async (claim, reporter) => {
-    const systemPrompt = buildPromptForTask(claim.task, {
+    // First user-message body for the task. Pass to your LLM
+    // executor as the user turn (the system prompt is built
+    // separately, e.g. via pi's `appendSystemPrompt`).
+    const userPrompt = buildTaskUserPrompt(claim.task, {
       diaryId: claim.task.diaryId,
       taskId: claim.task.id,
     });
@@ -231,7 +234,7 @@ await runtime.start();
 Three things the runtime does for you that aren't obvious from the code:
 
 - **Heartbeats** — `ApiTaskReporter.open()` fires the first heartbeat before your executor runs (this is what transitions the attempt to `running` — see [`/heartbeat` is the start signal](#heartbeat-is-the-start-signal)) and keeps a timer going for the rest of the run. If you swap in a custom reporter, you must preserve this contract or `/complete` will be rejected.
-- **Prompt templates** — `buildPromptForTask` gives you a task-type-appropriate system prompt. You can concatenate, ignore, or override.
+- **Prompt templates** — `buildTaskUserPrompt` gives you a task-type-appropriate first user-message body (delivered to the LLM in the user role; the system prompt is built separately). You can concatenate, ignore, or override.
 - **Trace propagation** — the claim carries W3C trace context; any OpenTelemetry spans your executor creates land under the server-side workflow root.
 
 If the executor throws, the runtime reports `failed` with the error rather than letting the exception escape. If the process receives `SIGTERM`/`SIGINT`, call `runtime.stop()` — the current task finishes, the queue closes cleanly.

@@ -26,7 +26,9 @@
  */
 import {
   createSyntheticSourceInfo,
+  parseFrontmatter,
   type Skill,
+  type SkillFrontmatter,
 } from '@earendil-works/pi-coding-agent';
 import {
   type ContextRef,
@@ -59,7 +61,6 @@ export interface VmFsForContext {
  *  workspace mount so the Read tool can resolve them. */
 const SKILL_ROOT_IN_VM = '/workspace/.moltnet/skills';
 
-const FRONTMATTER_RE = /^---\s*\n([\s\S]*?)\n---\s*\n/;
 /** Bounds borrowed from pi's skill validation; conservative caps so a
  *  malformed SKILL.md doesn't bloat the system prompt. */
 const MAX_SKILL_NAME = 64;
@@ -118,13 +119,14 @@ export async function injectTaskContext(
 /**
  * Build a `Skill` object pi will faithfully render in
  * `<available_skills>`. We extract `name` and `description` from the
- * skill content's YAML frontmatter when present (matching pi's own
- * loader) and fall back to the slug + a generic description so a
- * SKILL.md without frontmatter still renders something meaningful.
+ * skill content's YAML frontmatter using pi's own `parseFrontmatter`
+ * helper (proper YAML, not a regex hack) and fall back to the slug +
+ * a generic description so a SKILL.md without frontmatter still
+ * renders something meaningful.
  *
  * pi's `formatSkillsForPrompt` only reads `name`, `description`, and
  * `filePath` — `sourceInfo`/`baseDir` exist on the type but never
- * surface in the prompt, so a synthetic SourceInfo is enough.
+ * surface in the prompt, so a synthetic `SourceInfo` is enough.
  */
 function buildSyntheticSkill(args: {
   slug: string;
@@ -132,7 +134,7 @@ function buildSyntheticSkill(args: {
   filePath: string;
   dir: string;
 }): Skill {
-  const fm = parseFrontmatter(args.content);
+  const { frontmatter: fm } = parseFrontmatter<SkillFrontmatter>(args.content);
   const name = clip(
     typeof fm.name === 'string' && fm.name.trim().length > 0
       ? fm.name.trim()
@@ -157,40 +159,8 @@ function buildSyntheticSkill(args: {
       origin: 'top-level',
       baseDir: args.dir,
     }),
-    disableModelInvocation:
-      typeof fm['disable-model-invocation'] === 'boolean'
-        ? fm['disable-model-invocation']
-        : false,
+    disableModelInvocation: fm['disable-model-invocation'] === true,
   };
-}
-
-/** Minimal YAML frontmatter parser — name/description/disable-model-invocation
- *  are all we read. Keeps the dependency surface small; pi's parser is not
- *  exported. */
-function parseFrontmatter(content: string): Record<string, unknown> {
-  const match = FRONTMATTER_RE.exec(content);
-  if (!match) return {};
-  const out: Record<string, unknown> = {};
-  for (const line of match[1].split('\n')) {
-    const m = /^([A-Za-z0-9_-]+)\s*:\s*(.*?)\s*$/.exec(line);
-    if (!m) continue;
-    const key = m[1];
-    const raw = m[2];
-    if (raw === 'true') out[key] = true;
-    else if (raw === 'false') out[key] = false;
-    else out[key] = stripQuotes(raw);
-  }
-  return out;
-}
-
-function stripQuotes(s: string): string {
-  if (
-    (s.startsWith('"') && s.endsWith('"')) ||
-    (s.startsWith("'") && s.endsWith("'"))
-  ) {
-    return s.slice(1, -1);
-  }
-  return s;
 }
 
 function clip(s: string, max: number): string {
