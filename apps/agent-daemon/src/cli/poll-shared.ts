@@ -238,54 +238,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             },
           };
         }
-        // Belt-and-braces: refuse a task whose `allowedExecutors` doesn't
-        // include this daemon's `(provider, model)` pair (e.g. server
-        // filter race, daemon connecting to an old server, or a buggy
-        // server that ignored the filter). Mirrors the taskTypes check
-        // above. Empty `allowedExecutors` = no restriction = always
-        // proceed.
-        const allowed = claimedTask.task.allowedExecutors ?? [];
-        const me = {
-          provider: common.provider.toLowerCase(),
-          model: common.model.toLowerCase(),
-        };
-        if (
-          allowed.length > 0 &&
-          !allowed.some(
-            (e) => e.provider === me.provider && e.model === me.model,
-          )
-        ) {
-          // Surface the mismatch loudly: this branch only fires when the
-          // server-side list filter let through a task it shouldn't have,
-          // which is a real correctness bug worth investigating.
-          rootLogger.error(
-            {
-              taskId: claimedTask.task.id,
-              attemptN: claimedTask.attemptN,
-              daemonProvider: me.provider,
-              daemonModel: me.model,
-              allowedExecutors: allowed,
-            },
-            'agent-daemon.executor_mismatch_post_claim',
-          );
-          return {
-            taskId: claimedTask.task.id,
-            attemptN: claimedTask.attemptN,
-            status: 'failed',
-            output: null,
-            outputCid: null,
-            usage: { inputTokens: 0, outputTokens: 0 },
-            durationMs: 0,
-            error: {
-              code: 'unsupported_executor',
-              message:
-                `Daemon executor (${me.provider}/${me.model}) is not in the ` +
-                `task's allowedExecutors list ` +
-                `(${allowed.map((e) => `${e.provider}/${e.model}`).join(', ')}).`,
-              retryable: true,
-            },
-          };
-        }
         // Pre-execute cancel check. The reporter's first heartbeat
         // (fired by `open()`) may already have observed `cancelled:true`
         // from the server — e.g. the imposer cancelled between claim and

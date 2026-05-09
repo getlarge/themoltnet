@@ -178,13 +178,14 @@ export function taskRoutes(fastify: FastifyInstance) {
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { provider, model } = request.query;
-      const providerSet = provider !== undefined;
-      const modelSet = model !== undefined;
-      if (providerSet !== modelSet) {
+      // Ajv keyword `dependentRequired` would express this declaratively
+      // but Fastify's strict-mode Ajv rejects 2019-09 keywords. Keep the
+      // check minimal: XOR over presence.
+      if (Boolean(provider) !== Boolean(model)) {
         throw createValidationProblem(
           [
             {
-              field: providerSet ? 'model' : 'provider',
+              field: provider ? 'model' : 'provider',
               message: 'provider and model must be provided together',
             },
           ],

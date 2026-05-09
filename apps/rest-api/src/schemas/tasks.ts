@@ -66,12 +66,11 @@ export const ListTasksQuerySchema = Type.Object(
     status: Type.Optional(Type.Ref(TaskStatus)),
     taskType: Type.Optional(Type.String()),
     // Daemon advertises its `(provider, model)` to scope the result to
-    // tasks it can actually run. Both must be provided together;
-    // providing only one is rejected as 400 by the route handler. When
-    // both are present, the SQL filter returns rows where
-    // `allowed_executors` is empty OR contains a matching pair. When
-    // both are absent, no executor filtering is applied (preserves
-    // pre-existing behavior).
+    // tasks it can actually run. Both must be provided together (XOR
+    // checked in the handler — Fastify's Ajv is draft-07 strict and
+    // rejects `dependentRequired`). When both are present, the SQL
+    // filter returns rows where `allowed_executors` is empty OR
+    // contains a matching pair.
     provider: Type.Optional(Type.String({ minLength: 1 })),
     model: Type.Optional(Type.String({ minLength: 1 })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),

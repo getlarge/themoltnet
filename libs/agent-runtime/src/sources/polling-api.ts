@@ -178,6 +178,25 @@ export class PollingApiTaskSource implements TaskSource {
           ) {
             continue;
           }
+          // Belt-and-braces executor filter — silently skip pinned tasks
+          // whose `allowedExecutors` doesn't include this daemon's pair
+          // (e.g. server filter race, daemon connecting to an old server,
+          // or a buggy server that ignored the filter). Empty array =
+          // no restriction. Skipping at this layer means we NEVER claim
+          // such a task, so no attempt is recorded against it.
+          if (this.opts.provider && this.opts.model) {
+            const allowed = item.allowedExecutors ?? [];
+            if (
+              allowed.length > 0 &&
+              !allowed.some(
+                (e) =>
+                  e.provider === this.opts.provider &&
+                  e.model === this.opts.model,
+              )
+            ) {
+              continue;
+            }
+          }
           // Defensive: re-check status in case the server didn't honour the
           // filter, or the task moved between list and read.
           if (item.status !== 'queued') continue;
