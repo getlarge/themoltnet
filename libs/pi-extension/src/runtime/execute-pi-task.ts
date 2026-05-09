@@ -31,12 +31,12 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
-  buildPromptForTask,
+  buildTaskUserPrompt,
   type ClaimedTask,
-  type PromptContext,
   type TaskOutput,
   type TaskReporter,
   type TaskUsage,
+  type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
 
@@ -73,7 +73,7 @@ export interface ExecutePiTaskOptions {
   /** Sandbox overrides (env, VFS shadows, resources). */
   sandboxConfig?: SandboxConfig;
   /**
-   * Forwarded to `buildPromptForTask` for per-type builders. Static
+   * Forwarded to `buildTaskUserPrompt` for per-type builders. Static
    * across tasks. Today no built-in builder needs per-task `extras` —
    * judges fetch their own dependent data via MoltNet tools
    * (`moltnet_get_task`, `moltnet_list_task_attempts`, etc.) at run
@@ -242,12 +242,12 @@ export async function executePiTask(
 
     let taskPrompt: string;
     try {
-      const promptCtx: PromptContext = {
+      const promptCtx: TaskUserPromptContext = {
         diaryId,
         taskId: task.id,
         extras: opts.promptExtras,
       };
-      taskPrompt = buildPromptForTask(task, promptCtx);
+      taskPrompt = buildTaskUserPrompt(task, promptCtx);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'prompt_build' });

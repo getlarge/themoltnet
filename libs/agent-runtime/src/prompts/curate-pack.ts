@@ -9,7 +9,7 @@ interface Ctx {
 }
 
 /**
- * Build the system prompt for a `curate_pack` task.
+ * Build the first user-message prompt for a `curate_pack` task.
  *
  * Design note: this prompt is deliberately NOT a numbered command
  * sequence. The curator's value comes from judgment — inferring scope
@@ -30,7 +30,7 @@ interface Ctx {
  * emits pruned state at phase boundaries so a follow-up session can
  * resume without replaying the tool history.
  */
-export function buildCuratePackPrompt(
+export function buildCuratePackUserPrompt(
   input: CuratePackInput,
   ctx: Ctx,
 ): string {

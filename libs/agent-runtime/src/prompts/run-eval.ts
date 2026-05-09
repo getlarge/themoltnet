@@ -16,7 +16,7 @@ interface Ctx {
 }
 
 /**
- * Build the system prompt for a `run_eval` task.
+ * Build the first user-message prompt for a `run_eval` task.
  *
  * Free-form: no git workflow, no commit ceremony. The executor produces
  * a textual response (and optional file artifacts) that a later
@@ -29,7 +29,7 @@ interface Ctx {
  * and `user_inline` items are appended to the first user message. This
  * builder does NOT inline `input.context[]` itself.
  */
-export function buildRunEvalPrompt(input: RunEvalInput, ctx: Ctx): string {
+export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
   const { scenario, variantLabel, successCriteria } = input;
 
   const inputFilesSection = scenario.inputFiles?.length

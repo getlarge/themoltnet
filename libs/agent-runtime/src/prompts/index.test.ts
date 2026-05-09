@@ -2,9 +2,9 @@ import { ASSESS_BRIEF_TYPE } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
-import { buildPromptForTask } from './index.js';
+import { buildTaskUserPrompt } from './index.js';
 
-describe('buildPromptForTask', () => {
+describe('buildTaskUserPrompt', () => {
   const ctx = { diaryId: 'd1', taskId: 't1' };
 
   it('builds fulfill_brief prompt with brief text', () => {
@@ -15,7 +15,7 @@ describe('buildPromptForTask', () => {
         scopeHint: 'misc',
       },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).toContain('Implement feature X');
     expect(prompt).toContain('t1');
   });
@@ -24,7 +24,7 @@ describe('buildPromptForTask', () => {
     const task = makeFulfillBriefTask({
       input: { brief: '', title: 'x' },
     });
-    expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
+    expect(() => buildTaskUserPrompt(task, ctx)).toThrow(/validation/);
   });
 
   it('builds assess_brief prompt with self-fetch instructions for the target task', () => {
@@ -50,7 +50,7 @@ describe('buildPromptForTask', () => {
         },
       },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     // The judge should be told the target's id and instructed to fetch
     // it via the MoltNet tools — no pre-resolved bundle required.
     expect(prompt).toContain(targetTaskId);
@@ -64,7 +64,7 @@ describe('buildPromptForTask', () => {
       correlationId,
       input: { brief: 'do the thing', title: 'thing' },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).toContain(correlationId);
     expect(prompt).toContain(`moltnet/${correlationId}/<short-slug>`);
     expect(prompt).toContain(`Moltnet-Correlation-Id: ${correlationId}`);
@@ -75,14 +75,14 @@ describe('buildPromptForTask', () => {
       correlationId: null,
       input: { brief: 'no chain', title: 'x' },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).not.toContain('Moltnet-Correlation-Id');
     expect(prompt).not.toMatch(/^### Correlation/m);
   });
 
   it('throws on unknown taskType', () => {
     const task = makeFulfillBriefTask({ taskType: 'custom_type' });
-    expect(() => buildPromptForTask(task, ctx)).toThrow(
+    expect(() => buildTaskUserPrompt(task, ctx)).toThrow(
       /No prompt builder registered/,
     );
   });

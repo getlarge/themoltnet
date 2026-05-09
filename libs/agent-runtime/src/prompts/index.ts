@@ -15,12 +15,12 @@ import {
 } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
-import { buildAssessBriefPrompt } from './assess-brief.js';
-import { buildCuratePackPrompt } from './curate-pack.js';
-import { buildFulfillBriefPrompt } from './fulfill-brief.js';
-import { buildJudgePackPrompt } from './judge-pack.js';
-import { buildRenderPackPrompt } from './render-pack.js';
-import { buildRunEvalPrompt } from './run-eval.js';
+import { buildAssessBriefUserPrompt } from './assess-brief.js';
+import { buildCuratePackUserPrompt } from './curate-pack.js';
+import { buildFulfillBriefUserPrompt } from './fulfill-brief.js';
+import { buildJudgePackUserPrompt } from './judge-pack.js';
+import { buildRenderPackUserPrompt } from './render-pack.js';
+import { buildRunEvalUserPrompt } from './run-eval.js';
 
 export * from './assess-brief.js';
 export * from './curate-pack.js';
@@ -30,22 +30,35 @@ export * from './render-pack.js';
 export * from './run-eval.js';
 
 /**
- * Context shared by all prompt builders. Per-type extras can ride
- * through `extras` if a builder ever needs out-of-band data; today
- * none do — judges and curators fetch their own dependent data via
- * MoltNet tools at run time, which keeps the daemon task-type-agnostic.
+ * Context shared by all task user-prompt builders. Per-type extras can
+ * ride through `extras` if a builder ever needs out-of-band data;
+ * today none do — judges and curators fetch their own dependent data
+ * via MoltNet tools at run time, which keeps the daemon
+ * task-type-agnostic.
  */
-export interface PromptContext {
+export interface TaskUserPromptContext {
   diaryId: string;
   taskId: string;
   extras?: Record<string, unknown>;
 }
 
 /**
- * Resolve the correct prompt builder for `task.taskType` and invoke it.
- * Throws if the type is unknown or the input fails TypeBox validation.
+ * Resolve the correct user-prompt builder for `task.taskType` and
+ * invoke it. Throws if the type is unknown or the input fails TypeBox
+ * validation.
+ *
+ * Role note: the returned string is delivered as the **first user
+ * message** of the agent's session (pi-coding-agent's
+ * `session.prompt(text)` puts text in the user role). The system
+ * prompt is built separately by pi from `appendSystemPrompt` (the
+ * runtime instructor lives there). Builders here are free-form Markdown
+ * for the user turn; they don't replace or prepend to the system
+ * prompt.
  */
-export function buildPromptForTask(task: Task, ctx: PromptContext): string {
+export function buildTaskUserPrompt(
+  task: Task,
+  ctx: TaskUserPromptContext,
+): string {
   switch (task.taskType) {
     case FULFILL_BRIEF_TYPE: {
       if (!Value.Check(FulfillBriefInput, task.input)) {
@@ -54,7 +67,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `fulfill_brief input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildFulfillBriefPrompt(task.input, {
+      return buildFulfillBriefUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         correlationId: task.correlationId,
@@ -68,7 +81,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `assess_brief input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildAssessBriefPrompt(task.input, {
+      return buildAssessBriefUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
@@ -81,7 +94,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `curate_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildCuratePackPrompt(task.input, {
+      return buildCuratePackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
@@ -94,7 +107,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `render_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildRenderPackPrompt(task.input, {
+      return buildRenderPackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
@@ -107,7 +120,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `judge_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildJudgePackPrompt(task.input, {
+      return buildJudgePackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
@@ -120,7 +133,7 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
           `run_eval input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildRunEvalPrompt(task.input, {
+      return buildRunEvalUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         correlationId: task.correlationId,

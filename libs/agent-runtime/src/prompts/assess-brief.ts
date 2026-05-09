@@ -8,7 +8,7 @@ interface Ctx {
 }
 
 /**
- * Build the system prompt for an `assess_brief` judge attempt.
+ * Build the first user-message prompt for an `assess_brief` judge attempt.
  *
  * Design note — no pre-resolved `target` projection
  * --------------------------------------------------
@@ -29,7 +29,7 @@ interface Ctx {
  * future task types whose products are docs / configs / changes /
  * anything) work without any code path here.
  */
-export function buildAssessBriefPrompt(
+export function buildAssessBriefUserPrompt(
   input: AssessBriefInput,
   ctx: Ctx,
 ): string {
