@@ -1,5 +1,6 @@
 import './formats.js';
 
+export * from './context.js';
 export * from './rubric.js';
 export * from './rubrics/pr-complexity.js';
 export * from './success-criteria.js';

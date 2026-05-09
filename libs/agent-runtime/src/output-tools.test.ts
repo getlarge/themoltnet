@@ -30,6 +30,7 @@ describe('getSubmitOutputContract', () => {
       'curate_pack',
       'render_pack',
       'judge_pack',
+      'run_eval',
     ] as const;
     for (const t of types) {
       const c = getSubmitOutputContract(t);

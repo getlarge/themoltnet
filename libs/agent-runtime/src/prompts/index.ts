@@ -9,6 +9,8 @@ import {
   JudgePackInput,
   RENDER_PACK_TYPE,
   RenderPackInput,
+  RUN_EVAL_TYPE,
+  RunEvalInput,
   type Task,
 } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
@@ -18,12 +20,14 @@ import { buildCuratePackPrompt } from './curate-pack.js';
 import { buildFulfillBriefPrompt } from './fulfill-brief.js';
 import { buildJudgePackPrompt } from './judge-pack.js';
 import { buildRenderPackPrompt } from './render-pack.js';
+import { buildRunEvalPrompt } from './run-eval.js';
 
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
 export * from './judge-pack.js';
 export * from './render-pack.js';
+export * from './run-eval.js';
 
 /**
  * Context shared by all prompt builders. Per-type extras can ride
@@ -106,6 +110,20 @@ export function buildPromptForTask(task: Task, ctx: PromptContext): string {
       return buildJudgePackPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+      });
+    }
+
+    case RUN_EVAL_TYPE: {
+      if (!Value.Check(RunEvalInput, task.input)) {
+        const errors = [...Value.Errors(RunEvalInput, task.input)];
+        throw new Error(
+          `run_eval input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildRunEvalPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
+        correlationId: task.correlationId,
       });
     }
 

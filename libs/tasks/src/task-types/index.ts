@@ -29,12 +29,19 @@ import {
   RenderPackInput,
   RenderPackOutput,
 } from './render-pack.js';
+import {
+  RUN_EVAL_TYPE,
+  RunEvalInput,
+  RunEvalOutput,
+  validateRunEvalOutput,
+} from './run-eval.js';
 
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
 export * from './judge-pack.js';
 export * from './render-pack.js';
+export * from './run-eval.js';
 
 interface TaskTypeEntry {
   readonly name: string;
@@ -163,6 +170,14 @@ export const BUILT_IN_TASK_TYPES = {
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateOutput: validateJudgePackOutput,
+  },
+  [RUN_EVAL_TYPE]: {
+    name: RUN_EVAL_TYPE,
+    inputSchema: RunEvalInput,
+    outputSchema: RunEvalOutput,
+    outputKind: 'artifact',
+    requiresReferences: false,
+    validateOutput: validateRunEvalOutput,
   },
 } as const satisfies Record<string, TaskTypeEntry>;
 
