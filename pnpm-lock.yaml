@@ -19,8 +19,8 @@ catalogs:
       specifier: ^1.59.1
       version: 1.59.1
     '@earendil-works/gondolin':
-      specifier: ^0.7.0
-      version: 0.7.0
+      specifier: ^0.9.1
+      version: 0.9.1
     '@earendil-works/pi-ai':
       specifier: ^0.74.0
       version: 0.74.0
@@ -438,7 +438,7 @@ importers:
     dependencies:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
-        version: 0.7.0
+        version: 0.9.1
       '@earendil-works/pi-ai':
         specifier: 'catalog:'
         version: 0.74.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)
@@ -1366,7 +1366,7 @@ importers:
     dependencies:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
-        version: 0.7.0
+        version: 0.9.1
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -2682,8 +2682,20 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@earendil-works/gondolin@0.7.0':
-    resolution: {integrity: sha512-QtMa6zyTgTEsX4UetVs7+hEp09lSV4iLcPSpT9y51lnpO9Z7tR/IGc1RafEZw58ISDDAXmP21C2jcZyi5KMg3Q==}
+  '@earendil-works/gondolin-krun-runner-darwin-arm64@0.9.1':
+    resolution: {integrity: sha512-gmQrgV2nWfa6rtKmfTDmDdoRH4or7AAG+dQjAVBMwTCrXBh0yuAWSSDzgI88AuN9xv/E4JifDnN2pg+zvDHTiw==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@earendil-works/gondolin-krun-runner-linux-x64@0.9.1':
+    resolution: {integrity: sha512-AvPPZkI1DNt8wRM5mOA2RHxwlvPbpeTLbD6RgOKCeTpxrYWEt0CYNvFkay2mCdO/6VN/4uJfR5Opcgwb3GnAEQ==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@earendil-works/gondolin@0.9.1':
+    resolution: {integrity: sha512-yg7AkbpmRWUyf+oBO4koFNVP1pC9p7hTFDIwuqomo5Iih685Q/7rfw7vVGA8mkTtHL82M+6Vy+dsnAT0FAfFvQ==}
     engines: {node: '>=23.6.0'}
     hasBin: true
 
@@ -11173,12 +11185,21 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@earendil-works/gondolin@0.7.0':
+  '@earendil-works/gondolin-krun-runner-darwin-arm64@0.9.1':
+    optional: true
+
+  '@earendil-works/gondolin-krun-runner-linux-x64@0.9.1':
+    optional: true
+
+  '@earendil-works/gondolin@0.9.1':
     dependencies:
       cbor: 10.0.12
       node-forge: 1.4.0
       ssh2: 1.17.0
-      undici: 7.24.7
+      undici: 8.2.0
+    optionalDependencies:
+      '@earendil-works/gondolin-krun-runner-darwin-arm64': 0.9.1
+      '@earendil-works/gondolin-krun-runner-linux-x64': 0.9.1
 
   '@earendil-works/pi-agent-core@0.74.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)':
     dependencies:
