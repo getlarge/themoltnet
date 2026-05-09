@@ -61,21 +61,7 @@ export const ExecutorTrustLevel = Type.Union(
 );
 export type ExecutorTrustLevel = Static<typeof ExecutorTrustLevel>;
 
-/**
- * A typed reference to a single LLM executor: a `(provider, model)` pair.
- *
- * Used in two places:
- *   - `Task.allowedExecutors` — imposer-set policy pinning a task to a
- *     specific set of executors.
- *   - List-tasks query parameters — daemons advertise their own
- *     `(provider, model)` to filter the queue down to tasks they can
- *     actually run.
- *
- * Both `provider` and `model` are free-form strings agreed between
- * imposer and daemon (e.g. `'anthropic'` / `'claude-sonnet-4-5'`).
- * Comparison is strict equality after lowercase normalization, applied
- * on the create-task path and on list-query input.
- */
+/** Identifies a (provider, model) daemon pair allowed to claim a task. */
 export const ExecutorRef = Type.Object(
   {
     provider: Type.String({ minLength: 1 }),
@@ -233,18 +219,8 @@ export const Task = Type.Object(
     acceptedAttemptN: Type.Union([Type.Number(), Type.Null()]),
     requiredExecutorTrustLevel: ExecutorTrustLevel,
 
-    // Imposer-set executor pinning. Empty array = no restriction (any
-    // daemon at the right trust level can claim — the default for every
-    // existing task type). Non-empty = the daemon's own `(provider,
-    // model)` must appear in this list, otherwise the daemon filters
-    // the task out at list time and (belt-and-braces) refuses to
-    // execute it post-claim.
-    //
-    // Mirrors the advisory routing of `--task-types`: not a server-
-    // enforced gate. A buggy daemon could in principle still claim a
-    // non-matching pinned task; the same hole exists today for
-    // task-type filtering. Imposer is responsible for choosing
-    // executors that some daemon actually serves.
+    // Imposer-set executor allowlist. Empty = no restriction. Advisory
+    // routing (mirrors `--task-types`); the daemon filters at list time.
     allowedExecutors: Type.Array(ExecutorRef, { maxItems: 16 }),
 
     // Lifecycle

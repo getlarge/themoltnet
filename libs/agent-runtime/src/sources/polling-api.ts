@@ -99,6 +99,11 @@ export class PollingApiTaskSource implements TaskSource {
           `must be >= pollIntervalMs (${this.minBackoffMs})`,
       );
     }
+    if (Boolean(opts.provider) !== Boolean(opts.model)) {
+      throw new Error(
+        'PollingApiTaskSource: provider and model must be set together',
+      );
+    }
     this.listLimit = opts.listLimit ?? DEFAULT_LIST_LIMIT;
     this.currentBackoffMs = this.minBackoffMs;
     // Bind teamId once so every log line from this source carries it.

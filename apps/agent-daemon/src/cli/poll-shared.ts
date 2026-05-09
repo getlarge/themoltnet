@@ -255,6 +255,19 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             (e) => e.provider === me.provider && e.model === me.model,
           )
         ) {
+          // Surface the mismatch loudly: this branch only fires when the
+          // server-side list filter let through a task it shouldn't have,
+          // which is a real correctness bug worth investigating.
+          rootLogger.error(
+            {
+              taskId: claimedTask.task.id,
+              attemptN: claimedTask.attemptN,
+              daemonProvider: me.provider,
+              daemonModel: me.model,
+              allowedExecutors: allowed,
+            },
+            'agent-daemon.executor_mismatch_post_claim',
+          );
           return {
             taskId: claimedTask.task.id,
             attemptN: claimedTask.attemptN,

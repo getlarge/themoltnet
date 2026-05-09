@@ -923,6 +923,7 @@
             "items": {
               "$ref": "#/components/schemas/ExecutorRef"
             },
+            "maxItems": 16,
             "type": "array"
           },
           "correlationId": {
@@ -12879,6 +12880,7 @@
                     "items": {
                       "$ref": "#/components/schemas/ExecutorRef"
                     },
+                    "maxItems": 16,
                     "type": "array"
                   },
                   "correlationId": {

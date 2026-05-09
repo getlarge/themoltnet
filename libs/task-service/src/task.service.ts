@@ -128,8 +128,7 @@ function dbTaskToWire(row: DbTask): Task {
     acceptedAttemptN: row.acceptedAttemptN ?? null,
     requiredExecutorTrustLevel:
       TRUST_LEVEL_TO_WIRE[row.requiredExecutorTrustLevel],
-    allowedExecutors:
-      (row.allowedExecutors as Task['allowedExecutors'] | null) ?? [],
+    allowedExecutors: row.allowedExecutors as Task['allowedExecutors'],
     status: row.status,
     queuedAt: row.queuedAt.toISOString(),
     completedAt: row.completedAt?.toISOString() ?? null,

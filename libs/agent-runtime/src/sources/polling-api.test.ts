@@ -161,24 +161,17 @@ describe('PollingApiTaskSource', () => {
     );
   });
 
-  it('omits provider/model from the list call when either is missing', async () => {
-    const list = vi
-      .fn<TasksNamespace['list']>()
-      .mockResolvedValue({ items: [], total: 0 });
-
-    const src = new PollingApiTaskSource({
-      agent: makeAgent(list, vi.fn()),
-      teamId: 't',
-      provider: 'anthropic',
-      // model intentionally unset
-      leaseTtlSec: 60,
-      stopWhenEmpty: true,
-    });
-
-    await src.claim();
-    const call = list.mock.calls[0][0] as Record<string, unknown>;
-    expect(call.provider).toBeUndefined();
-    expect(call.model).toBeUndefined();
+  it('throws when provider is set without model (or vice versa)', () => {
+    expect(
+      () =>
+        new PollingApiTaskSource({
+          agent: makeAgent(vi.fn(), vi.fn()),
+          teamId: 't',
+          provider: 'anthropic',
+          // model intentionally unset
+          leaseTtlSec: 60,
+        }),
+    ).toThrow(/provider and model must be set together/);
   });
 
   it('issues one list call per task type when multiple are configured', async () => {

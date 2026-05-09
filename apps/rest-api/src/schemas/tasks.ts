@@ -40,11 +40,13 @@ export const CreateTaskBodySchema = Type.Object(
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
-    // Imposer-set executor pinning. Empty/unset = no restriction.
-    // Provider and model are lowercased server-side before being
-    // persisted, so daemons can advertise either case but comparisons
-    // are case-insensitive in practice.
-    allowedExecutors: Type.Optional(Type.Array(Type.Ref(ExecutorRef))),
+    // Imposer-set executor allowlist. Empty/unset = no restriction.
+    // Lowercased server-side before persistence. maxItems matches the
+    // bound on Task.allowedExecutors so create-time and read-time
+    // contracts agree.
+    allowedExecutors: Type.Optional(
+      Type.Array(Type.Ref(ExecutorRef), { maxItems: 16 }),
+    ),
     // Imposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
     // to long-running brief fulfillment (≤86400s = 24h).

@@ -3295,6 +3295,17 @@ func (s *CreateTaskReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.AllowedExecutors == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    0,
+			MinLengthSet: false,
+			MaxLength:    16,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.AllowedExecutors)); err != nil {
+			return errors.Wrap(err, "array")
+		}
 		var failures []validate.FieldError
 		for i, elem := range s.AllowedExecutors {
 			if err := func() error {
