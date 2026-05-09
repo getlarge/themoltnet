@@ -68,7 +68,17 @@ export async function runPortCopyPhase(opts: {
   await chmod(targetSshPub, 0o644);
   copied.push(targetSshPub);
 
-  // 4. allowed_signers — optional. Lives alongside ssh keys by convention.
+  // 4. env — optional, but copying it lets rewrite preserve team/authorship
+  // settings while replacing only managed credential values.
+  const sourceEnv = join(sourceDir, 'env');
+  if (await fileExists(sourceEnv)) {
+    const targetEnv = join(targetDir, 'env');
+    await copyFile(sourceEnv, targetEnv);
+    await chmod(targetEnv, 0o600);
+    copied.push(targetEnv);
+  }
+
+  // 5. allowed_signers — optional. Lives alongside ssh keys by convention.
   const sourceAllowed = join(
     dirname(config.ssh.private_key_path),
     'allowed_signers',

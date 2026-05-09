@@ -317,6 +317,7 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.MY_AGENT_GITHUB_APP_INSTALLATION_ID).toBe('99999');
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
+    expect(parsed.env.GIT_CONFIG_GLOBAL).toBe('.moltnet/my-agent/gitconfig');
     expect(parsed.enabledMcpjsonServers).toEqual(['my-agent']);
     // Permissions include agent-specific MCP wildcard
     expect(parsed.permissions.allow).toContain('mcp__my-agent__*');
@@ -366,6 +367,7 @@ describe('writeSettingsLocal', () => {
     // New agent vars added
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
+    expect(parsed.env.GIT_CONFIG_GLOBAL).toBe('.moltnet/my-agent/gitconfig');
     // Non-env keys preserved
     expect(parsed.customKey).toBe(true);
     // Agent added to enabledMcpjsonServers without duplicating existing

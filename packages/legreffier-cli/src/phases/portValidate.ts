@@ -1,4 +1,5 @@
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import {
   type ConfigIssue,
@@ -32,7 +33,8 @@ export async function runPortValidatePhase(opts: {
 }): Promise<PortValidateResult> {
   const { sourceDir } = opts;
 
-  const config = await readConfig(sourceDir);
+  const sourceConfig = await readConfig(sourceDir);
+  const config = await hydrateLegacyPortConfig(sourceConfig, sourceDir);
   if (!config) {
     throw new Error(
       `No moltnet.json found in ${sourceDir} — nothing to port. ` +
@@ -42,10 +44,11 @@ export async function runPortValidatePhase(opts: {
 
   // Generic SDK checks (identity_id, keys, endpoints, file paths, legacy
   // credentials.json migration). Dry-run so we don't mutate the source.
-  const { issues: baseIssues } = await repairConfig({
+  const { issues: rawBaseIssues } = await repairConfig({
     configDir: sourceDir,
     dryRun: true,
   });
+  const baseIssues = await filterResolvedLegacyIssues(rawBaseIssues, config);
   const issues: ConfigIssue[] = [...baseIssues];
 
   // Port-specific required fields
@@ -86,13 +89,8 @@ export async function runPortValidatePhase(opts: {
       action: 'warning',
     });
   }
-  if (!config.github?.installation_id) {
-    issues.push({
-      field: 'github.installation_id',
-      problem: 'missing — required for port',
-      action: 'warning',
-    });
-  }
+  // Missing installation_id is not a source portability blocker. The port
+  // flow resolves the target owner installation after copying the PEM.
   if (!config.github?.private_key_path) {
     issues.push({
       field: 'github.private_key_path',
@@ -134,6 +132,80 @@ export async function runPortValidatePhase(opts: {
   const blockingIssues = issues.filter((i) => i.action === 'warning');
   const canProceed = blockingIssues.length === 0;
   return { config, issues, canProceed };
+}
+
+async function hydrateLegacyPortConfig(
+  config: MoltNetConfig | null,
+  sourceDir: string,
+): Promise<MoltNetConfig | null> {
+  if (!config) return null;
+
+  const gitConfigPath = config.git?.config_path ?? join(sourceDir, 'gitconfig');
+  const gitIdentity = await readGitConfigIdentity(gitConfigPath);
+
+  return {
+    ...config,
+    ssh: {
+      ...config.ssh,
+      private_key_path:
+        config.ssh?.private_key_path ?? join(sourceDir, 'ssh', 'id_ed25519'),
+      public_key_path:
+        config.ssh?.public_key_path ?? join(sourceDir, 'ssh', 'id_ed25519.pub'),
+    },
+    git: {
+      ...config.git,
+      name: config.git?.name ?? gitIdentity.name ?? '',
+      email: config.git?.email ?? gitIdentity.email ?? '',
+      signing: config.git?.signing ?? true,
+      config_path: gitConfigPath,
+    },
+    github: {
+      ...config.github,
+      app_id: config.github?.app_id ?? '',
+      installation_id: config.github?.installation_id ?? '',
+      private_key_path:
+        config.github?.private_key_path ??
+        (config.github?.app_slug
+          ? join(sourceDir, `${config.github.app_slug}.pem`)
+          : ''),
+    },
+  };
+}
+
+async function readGitConfigIdentity(
+  gitConfigPath: string,
+): Promise<{ name?: string; email?: string }> {
+  try {
+    const content = await readFile(gitConfigPath, 'utf-8');
+    return {
+      name: content.match(/^\s*name\s*=\s*(.+)$/m)?.[1]?.trim(),
+      email: content.match(/^\s*email\s*=\s*(.+)$/m)?.[1]?.trim(),
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function filterResolvedLegacyIssues(
+  issues: ConfigIssue[],
+  config: MoltNetConfig,
+): Promise<ConfigIssue[]> {
+  const fieldPath: Record<string, string | undefined> = {
+    'ssh.private_key_path': config.ssh?.private_key_path,
+    'ssh.public_key_path': config.ssh?.public_key_path,
+    'git.config_path': config.git?.config_path,
+    'github.private_key_path': config.github?.private_key_path,
+  };
+
+  const filtered: ConfigIssue[] = [];
+  for (const issue of issues) {
+    const resolvedPath = fieldPath[issue.field];
+    if (resolvedPath && (await fileExists(resolvedPath))) {
+      continue;
+    }
+    filtered.push(issue);
+  }
+  return filtered;
 }
 
 /** Format issues for display in the TUI. */

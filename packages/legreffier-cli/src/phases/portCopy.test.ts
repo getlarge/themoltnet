@@ -46,6 +46,15 @@ async function seedSource(dir: string): Promise<MoltNetConfig> {
   await writeFile(join(dir, 'ssh', 'id_ed25519'), 'PRIV', { mode: 0o600 });
   await writeFile(join(dir, 'ssh', 'id_ed25519.pub'), 'PUB');
   await writeFile(join(dir, 'gitconfig'), '[user]\n\tname = x\n');
+  await writeFile(
+    join(dir, 'env'),
+    [
+      "MOLTNET_TEAM_ID='team-123'",
+      "MOLTNET_COMMIT_AUTHORSHIP='coauthor'",
+      "MOLTNET_HUMAN_GIT_IDENTITY='Alice <alice@example.com>'",
+      "MOLTNET_HUMAN_SIGNINGKEY='/home/alice/.ssh/id_ed25519.pub'",
+    ].join('\n') + '\n',
+  );
   return config;
 }
 
@@ -69,7 +78,7 @@ describe('runPortCopyPhase', () => {
       config,
     });
 
-    expect(result.copied).toHaveLength(4); // json, pem, ssh priv, ssh pub
+    expect(result.copied).toHaveLength(5); // json, pem, ssh priv, ssh pub, env
     expect(result.warnings).toHaveLength(1); // allowed_signers missing
 
     // Verify contents copied
@@ -80,6 +89,9 @@ describe('runPortCopyPhase', () => {
       'utf-8',
     );
     expect(copiedPriv).toBe('PRIV');
+    const copiedEnv = await readFile(join(target, 'env'), 'utf-8');
+    expect(copiedEnv).toContain("MOLTNET_TEAM_ID='team-123'");
+    expect(copiedEnv).toContain("MOLTNET_COMMIT_AUTHORSHIP='coauthor'");
 
     // Verify 0600 on private material
     const pemStat = await stat(join(target, 'legreffier.pem'));
@@ -105,7 +117,7 @@ describe('runPortCopyPhase', () => {
       config,
     });
 
-    expect(result.copied).toHaveLength(5);
+    expect(result.copied).toHaveLength(6);
     expect(result.warnings).toHaveLength(0);
     const allowed = await readFile(
       join(target, 'ssh', 'allowed_signers'),

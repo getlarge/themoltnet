@@ -403,6 +403,7 @@ export async function writeSettingsLocal({
       [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
       [`${prefix}_CLIENT_ID`]: clientId,
       [`${prefix}_CLIENT_SECRET`]: clientSecret,
+      GIT_CONFIG_GLOBAL: `.moltnet/${agentName}/gitconfig`,
     },
   };
   await writeFile(filePath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
