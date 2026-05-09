@@ -24,6 +24,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
   if (isHelpFlag(argv)) {
@@ -130,6 +131,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       provider: opts.provider,
       model: opts.model,
       sandboxConfig: sandbox.config,
+      onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
     });
 
     const writeCorrelationAnchors = makePrBodyAnchorWriter({

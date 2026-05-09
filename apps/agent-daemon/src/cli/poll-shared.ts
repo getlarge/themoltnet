@@ -27,6 +27,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
   argv: string[];
@@ -158,12 +159,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const outputs: TaskOutput[] = [];
   try {
+    // No per-task taskId in turn events here — see #1078.
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
       mountPath: sandbox.rootDir,
       provider: common.provider,
       model: common.model,
       sandboxConfig: sandbox.config,
+      onTurnEvent: makeTurnEventHandler(rootLogger),
     });
 
     runtime = new AgentRuntime({
