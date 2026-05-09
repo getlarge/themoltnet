@@ -366,12 +366,12 @@ Releases are created as drafts (`"draft": true` in `release-please-config.json`)
 
 ### Release configuration files
 
-| File                               | Purpose                                                                    |
-| ---------------------------------- | -------------------------------------------------------------------------- |
+| File                               | Purpose                                                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `release-please-config.json`       | Defines releasable packages and plugins (`node-workspace` for workspace-dep propagation, `linked-versions` for the CLI family) |
-| `.release-please-manifest.json`    | Tracks current versions                                                    |
-| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher      |
-| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                  |
+| `.release-please-manifest.json`    | Tracks current versions                                                                                                        |
+| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher                                                          |
+| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                                                                      |
 
 ### npm trusted publishing (OIDC)
 
