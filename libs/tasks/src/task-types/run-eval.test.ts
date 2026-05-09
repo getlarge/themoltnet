@@ -12,7 +12,6 @@ const minimalInput = {
   scenario: { prompt: 'Summarize the file.' },
   variantLabel: 'baseline',
   context: [],
-  model: 'claude-opus-4-7',
 };
 
 const minimalOutput = {

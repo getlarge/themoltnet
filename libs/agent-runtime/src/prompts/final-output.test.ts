@@ -114,7 +114,6 @@ const TASK_FIXTURES: Array<{
             scenario: { prompt: 'List 3 risks.' },
             variantLabel: 'baseline',
             context: [],
-            model: 'claude-opus-4-7',
           },
         }),
         ctx,

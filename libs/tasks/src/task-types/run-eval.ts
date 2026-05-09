@@ -27,8 +27,6 @@ export const RunEvalInput = Type.Object(
     variantLabel: Type.String({ minLength: 1, maxLength: 64 }),
     /** Empty array IS the baseline. */
     context: TaskContext,
-    /** Model identifier the eval runner should use. */
-    model: Type.String({ minLength: 1 }),
     /**
      * Optional self-assessment criteria (advisory; the judge in Slice 2
      * is the binding evaluator). When present, `output.verification`

@@ -30,7 +30,7 @@ interface Ctx {
  * builder does NOT inline `input.context[]` itself.
  */
 export function buildRunEvalPrompt(input: RunEvalInput, ctx: Ctx): string {
-  const { scenario, variantLabel, model, successCriteria } = input;
+  const { scenario, variantLabel, successCriteria } = input;
 
   const inputFilesSection = scenario.inputFiles?.length
     ? [
@@ -77,7 +77,7 @@ export function buildRunEvalPrompt(input: RunEvalInput, ctx: Ctx): string {
   // sections that are absent so we never emit consecutive blanks.
   const sections = [
     '# Run Eval Agent\n',
-    `You are running an evaluation scenario as variant \`${variantLabel}\` against model \`${model}\`.\nTask id: \`${ctx.taskId}\`\n`,
+    `You are running an evaluation scenario as variant \`${variantLabel}\`.\nTask id: \`${ctx.taskId}\`\n`,
     correlationSection,
     `### Scenario\n\n${scenario.prompt}\n`,
     inputFilesSection,

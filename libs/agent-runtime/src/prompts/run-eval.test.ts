@@ -6,7 +6,6 @@ const baseInput = {
   scenario: { prompt: 'List the top 3 risks in this code.' },
   variantLabel: 'with-skill',
   context: [],
-  model: 'claude-opus-4-7',
 };
 
 const ctx = { diaryId: 'd-1', taskId: 't-1' };
@@ -24,10 +23,6 @@ describe('buildRunEvalPrompt', () => {
 
   it('includes the task id (agent must echo it)', () => {
     expect(buildRunEvalPrompt(baseInput, ctx)).toContain('t-1');
-  });
-
-  it('includes the model identifier', () => {
-    expect(buildRunEvalPrompt(baseInput, ctx)).toContain('claude-opus-4-7');
   });
 
   it('omits the self-verification block when no successCriteria', () => {
