@@ -30,9 +30,11 @@ import {
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
+import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  TaskContext,
   type TaskOutput,
   type TaskReporter,
   type TaskUsage,
@@ -53,6 +55,7 @@ import {
   createGondolinWriteOps,
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
+import { injectTaskContext } from './inject-task-context.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
 import { resolveSubmitTools } from './submit-output-tool.js';
 import {
@@ -254,6 +257,46 @@ export async function executePiTask(
       return makeFailedOutput('prompt_build_failed', message);
     }
 
+    // Slice 1.5 of #943 — resolve task.input.context[] into delivered
+    // skill files, system-prompt prefix, and user-message suffix. Only
+    // task types that carry a TaskContext fragment in their input
+    // schema (currently `run_eval`) populate this; everywhere else
+    // `rawContext` is undefined and the resolver short-circuits on an
+    // empty array.
+    const rawContext = (task.input as { context?: unknown }).context;
+    let injectedContext: Awaited<ReturnType<typeof injectTaskContext>>;
+    try {
+      const contextArray = rawContext === undefined ? [] : rawContext;
+      if (!Value.Check(TaskContext, contextArray)) {
+        throw new Error(
+          `task.input.context failed TaskContext validation: ${JSON.stringify(
+            [...Value.Errors(TaskContext, contextArray)].slice(0, 3),
+          )}`,
+        );
+      }
+      injectedContext = await injectTaskContext({
+        context: contextArray,
+        fs: managed.vm.fs,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emit('error', { message, phase: 'context_resolution' });
+      return makeFailedOutput('context_resolution_failed', message);
+    }
+
+    if (injectedContext.injected.length > 0) {
+      await emit('info', {
+        event: 'context_injected',
+        count: injectedContext.injected.length,
+        bindings: injectedContext.injected.map((r) => r.binding),
+        slugs: injectedContext.injected.map((r) => r.slug),
+      });
+    }
+
+    if (injectedContext.userInlineSuffix) {
+      taskPrompt = `${taskPrompt}\n\n---\n\n${injectedContext.userInlineSuffix}`;
+    }
+
     // pi's createAgentSession only treats `tools:` as a name-filter; the actual
     // read/write/edit/bash implementations are rebuilt from defaults inside the
     // session unless we route them through customTools, which DOES override the
@@ -343,16 +386,20 @@ export async function executePiTask(
           'moltnet.task.type': task.taskType,
         },
       });
-      // Daemon-controlled runtime isolation (issue #979):
+      // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
       //  - Inline the runtime instructor as appendSystemPrompt so the
       //    invariants (gh auth, diary discipline, accountable commits) are
       //    in the system prompt every turn, not lazily fetched via a
       //    pi Skill pointer the model may or may not follow.
-      //  - skillsOverride discards every locally-discovered skill
-      //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) so untrusted local
-      //    prose never appears as a `<location>` pointer in the system
-      //    prompt's `<available_skills>` block. Future skill-pack injection
-      //    (#956) will return daemon-fetched, CID-verified Skills here.
+      //  - Append `injectedContext.systemPromptPrefix` after the runtime
+      //    instructor when the task's input.context contributed any
+      //    `prompt_prefix` bindings. Empty string when none — guarded so
+      //    we don't pass an empty entry to pi.
+      //  - skillsOverride returns ONLY the skills resolved from
+      //    input.context (binding: 'skill'). Locally-discovered skills
+      //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) are discarded so
+      //    untrusted local prose never appears as a `<location>` pointer
+      //    in the system prompt's `<available_skills>` block.
       const runtimeInstructor = buildRuntimeInstructor({
         taskId: task.id,
         taskType: task.taskType,
@@ -361,12 +408,17 @@ export async function executePiTask(
         agentName: opts.agentName,
         correlationId: task.correlationId ?? null,
       });
+      const appendSystemPrompt: string[] = [runtimeInstructor];
+      if (injectedContext.systemPromptPrefix) {
+        appendSystemPrompt.push(injectedContext.systemPromptPrefix);
+      }
+      const injectedSkills = injectedContext.skills;
       const resourceLoader = new DefaultResourceLoader({
         cwd: mountPath,
         agentDir: piAuthDir,
         extensionFactories: [piOtelExtension],
-        appendSystemPrompt: [runtimeInstructor],
-        skillsOverride: () => ({ skills: [], diagnostics: [] }),
+        appendSystemPrompt,
+        skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
       });
       await resourceLoader.reload();
 
