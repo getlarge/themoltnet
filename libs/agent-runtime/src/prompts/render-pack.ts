@@ -9,10 +9,10 @@ interface Ctx {
 }
 
 /**
- * Build the system prompt for a `render_pack` task. Almost mechanical:
+ * Build the first user-message prompt for a `render_pack` task. Almost mechanical:
  * wraps `moltnet_pack_render` and emits the receipt.
  */
-export function buildRenderPackPrompt(
+export function buildRenderPackUserPrompt(
   input: RenderPackInput,
   ctx: Ctx,
 ): string {

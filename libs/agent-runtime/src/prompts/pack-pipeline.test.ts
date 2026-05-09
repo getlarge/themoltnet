@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
-import { buildPromptForTask } from './index.js';
+import { buildTaskUserPrompt } from './index.js';
 
 const ctx = { diaryId: 'd1', taskId: 't1' };
 
@@ -43,7 +43,7 @@ describe('curate_pack prompt', () => {
         recipe: 'topic-focused-v1',
       },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).toContain('incidents related to CI pipelines');
     expect(prompt).toContain('aaaaaaaa-0000-4000-8000-000000000001');
     expect(prompt).toContain('`scope:ci`');
@@ -62,7 +62,7 @@ describe('curate_pack prompt', () => {
         taskPrompt: '',
       },
     });
-    expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
+    expect(() => buildTaskUserPrompt(task, ctx)).toThrow(/validation/);
   });
 });
 
@@ -76,7 +76,7 @@ describe('render_pack prompt', () => {
         pinned: false,
       },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).toContain('bbbbbbbb-0000-4000-8000-000000000002');
     expect(prompt).toContain('moltnet_pack_render');
     expect(prompt).toContain('Persist**: `true`');
@@ -88,7 +88,7 @@ describe('render_pack prompt', () => {
       taskType: RENDER_PACK_TYPE,
       input: { packId: 'not-a-uuid' },
     });
-    expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
+    expect(() => buildTaskUserPrompt(task, ctx)).toThrow(/validation/);
   });
 });
 
@@ -102,7 +102,7 @@ describe('judge_pack prompt', () => {
         successCriteria: { version: 1, rubric: testRubric },
       },
     });
-    const prompt = buildPromptForTask(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).toContain('cccccccc-0000-4000-8000-000000000003');
     expect(prompt).toContain('dddddddd-0000-4000-8000-000000000004');
     expect(prompt).toContain('pack-fidelity');
@@ -132,6 +132,6 @@ describe('judge_pack prompt', () => {
         },
       },
     });
-    expect(() => buildPromptForTask(task, ctx)).toThrow(/validation/);
+    expect(() => buildTaskUserPrompt(task, ctx)).toThrow(/validation/);
   });
 });

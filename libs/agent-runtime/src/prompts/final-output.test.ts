@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
 import { buildFinalOutputBlock } from './final-output.js';
-import { buildPromptForTask } from './index.js';
+import { buildTaskUserPrompt } from './index.js';
 
 const ctx = { diaryId: 'd1', taskId: 't1' };
 
@@ -32,7 +32,7 @@ const TASK_FIXTURES: Array<{
     submitTool: 'submit_fulfill_brief_output',
     schema: 'FulfillBriefOutput',
     prompt: () =>
-      buildPromptForTask(
+      buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: FULFILL_BRIEF_TYPE,
           input: { brief: 'do', title: 'x' },
@@ -45,7 +45,7 @@ const TASK_FIXTURES: Array<{
     submitTool: 'submit_assess_brief_output',
     schema: 'AssessBriefOutput',
     prompt: () =>
-      buildPromptForTask(
+      buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: ASSESS_BRIEF_TYPE,
           input: {
@@ -61,7 +61,7 @@ const TASK_FIXTURES: Array<{
     submitTool: 'submit_curate_pack_output',
     schema: 'CuratePackOutput',
     prompt: () =>
-      buildPromptForTask(
+      buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: CURATE_PACK_TYPE,
           input: {
@@ -77,7 +77,7 @@ const TASK_FIXTURES: Array<{
     submitTool: 'submit_render_pack_output',
     schema: 'RenderPackOutput',
     prompt: () =>
-      buildPromptForTask(
+      buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: RENDER_PACK_TYPE,
           input: { packId: 'bbbbbbbb-0000-4000-8000-000000000002' },
@@ -90,7 +90,7 @@ const TASK_FIXTURES: Array<{
     submitTool: 'submit_judge_pack_output',
     schema: 'JudgePackOutput',
     prompt: () =>
-      buildPromptForTask(
+      buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: JUDGE_PACK_TYPE,
           input: {
@@ -107,7 +107,7 @@ const TASK_FIXTURES: Array<{
     submitTool: 'submit_run_eval_output',
     schema: 'RunEvalOutput',
     prompt: () =>
-      buildPromptForTask(
+      buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: RUN_EVAL_TYPE,
           input: {

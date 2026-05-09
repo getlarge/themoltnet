@@ -18,13 +18,13 @@ interface Ctx {
 }
 
 /**
- * Build the system prompt for a `fulfill_brief` task.
+ * Build the first user-message prompt for a `fulfill_brief` task.
  *
  * Generalized from the original `resolve-issue` prompt. No longer
  * GitHub-specific; references live on `Task.references[]` and the agent
  * is told to inspect them itself.
  */
-export function buildFulfillBriefPrompt(
+export function buildFulfillBriefUserPrompt(
   input: FulfillBriefInput,
   ctx: Ctx,
 ): string {

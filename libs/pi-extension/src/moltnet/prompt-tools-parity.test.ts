@@ -1,5 +1,5 @@
 import type { Task } from '@themoltnet/agent-runtime';
-import { buildPromptForTask } from '@themoltnet/agent-runtime';
+import { buildTaskUserPrompt } from '@themoltnet/agent-runtime';
 import { describe, expect, it } from 'vitest';
 
 import { createMoltNetTools, type MoltNetToolsConfig } from './tools.js';
@@ -178,7 +178,7 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
 
   for (const [name, task] of tasks) {
     it(`${name} prompt references only tools exposed by createMoltNetTools`, () => {
-      const prompt = buildPromptForTask(task, ctx);
+      const prompt = buildTaskUserPrompt(task, ctx);
       const refs = promptToolRefs(prompt);
       const missing = [...refs].filter((r) => !exposed.has(r));
       expect(
