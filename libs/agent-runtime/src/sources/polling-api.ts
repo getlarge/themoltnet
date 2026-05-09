@@ -19,6 +19,15 @@ export interface PollingApiTaskSourceOptions {
    */
   taskTypes?: string[];
   /**
+   * Daemon's `(provider, model)` pair. When set, forwarded to the list
+   * endpoint so the server returns only tasks whose `allowedExecutors`
+   * is empty or includes this exact pair. Both must be set together;
+   * otherwise no executor filtering is applied. Mirrors the advisory
+   * routing of `taskTypes`.
+   */
+  provider?: string;
+  model?: string;
+  /**
    * Optional further filter applied client-side after listing. Useful when
    * an agent should only act on tasks tied to specific diaries. Server has
    * no diary filter on `GET /tasks`, so this is post-filtered.
@@ -143,6 +152,9 @@ export class PollingApiTaskSource implements TaskSource {
           teamId: this.opts.teamId,
           status: 'queued' satisfies TaskStatus,
           ...(taskType ? { taskType } : {}),
+          ...(this.opts.provider && this.opts.model
+            ? { provider: this.opts.provider, model: this.opts.model }
+            : {}),
           limit: this.listLimit,
         });
         if (this.opts.debug) {

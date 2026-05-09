@@ -313,4 +313,106 @@ describe('Agent daemon (e2e)', () => {
     expect(final.status).toBe('cancelled');
     expect(final.cancelReason).toBe('e2e test cancellation');
   }, 30_000);
+
+  describe('Task.allowedExecutors filter', () => {
+    // Empty allowlist tasks remain visible to every daemon. A pinned
+    // task is only listed for daemons whose `(provider, model)` is in
+    // its `allowedExecutors`. Mirrors the advisory routing of
+    // `--task-types`: server filters at SQL level, daemon also pre-
+    // filters at the source level. No claim-time rejection.
+
+    function imposePinnedCuratePackTask(
+      allowed: {
+        provider: string;
+        model: string;
+      }[],
+    ) {
+      return agent.tasks.create({
+        taskType: 'curate_pack',
+        teamId,
+        diaryId,
+        input: { diaryId, taskPrompt: 'e2e allowedExecutors smoke' },
+        allowedExecutors: allowed,
+      });
+    }
+
+    it('persists allowedExecutors with lowercased provider/model', async () => {
+      const created = await imposePinnedCuratePackTask([
+        { provider: 'Anthropic', model: 'Claude-Sonnet-4-5' },
+      ]);
+      try {
+        expect(created.allowedExecutors).toEqual([
+          { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        ]);
+      } finally {
+        await agent.tasks.cancel(created.id, { reason: 'cleanup' });
+      }
+    });
+
+    it('filters out pinned tasks for a non-matching daemon', async () => {
+      const pinned = await imposePinnedCuratePackTask([
+        { provider: 'anthropic', model: 'claude-opus-4-7' },
+      ]);
+      try {
+        const result = await agent.tasks.list({
+          teamId,
+          status: 'queued',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          limit: 50,
+        });
+        expect(result.items.find((t) => t.id === pinned.id)).toBeUndefined();
+      } finally {
+        await agent.tasks.cancel(pinned.id, { reason: 'cleanup' });
+      }
+    });
+
+    it('returns pinned tasks to a matching daemon', async () => {
+      const pinned = await imposePinnedCuratePackTask([
+        { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+      ]);
+      try {
+        const result = await agent.tasks.list({
+          teamId,
+          status: 'queued',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          limit: 50,
+        });
+        expect(result.items.find((t) => t.id === pinned.id)).toBeDefined();
+      } finally {
+        await agent.tasks.cancel(pinned.id, { reason: 'cleanup' });
+      }
+    });
+
+    it('returns unrestricted tasks regardless of daemon executor', async () => {
+      const unrestricted = await imposeCuratePackTask();
+      try {
+        const result = await agent.tasks.list({
+          teamId,
+          status: 'queued',
+          provider: 'openai',
+          model: 'gpt-99',
+          limit: 50,
+        });
+        expect(
+          result.items.find((t) => t.id === unrestricted.id),
+        ).toBeDefined();
+      } finally {
+        await agent.tasks.cancel(unrestricted.id, { reason: 'cleanup' });
+      }
+    });
+
+    it('rejects provider without model with HTTP 400', async () => {
+      // SDK list signature requires both or neither; cast through to
+      // exercise the server-side both-or-neither validation directly.
+      await expect(
+        agent.tasks.list({
+          teamId,
+          status: 'queued',
+          provider: 'anthropic',
+        } as Parameters<typeof agent.tasks.list>[0]),
+      ).rejects.toMatchObject({ statusCode: 400 });
+    });
+  });
 });

@@ -177,6 +177,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         teamId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
+        provider: common.provider.toLowerCase(),
+        model: common.model.toLowerCase(),
         diaryIds: diaryIds.length > 0 ? diaryIds : undefined,
         leaseTtlSec: common.leaseTtlSec,
         listLimit,
@@ -232,6 +234,41 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               message:
                 `Daemon does not support task type "${claimedTask.task.taskType}". ` +
                 `Configured types: ${taskTypes.join(', ')}.`,
+              retryable: true,
+            },
+          };
+        }
+        // Belt-and-braces: refuse a task whose `allowedExecutors` doesn't
+        // include this daemon's `(provider, model)` pair (e.g. server
+        // filter race, daemon connecting to an old server, or a buggy
+        // server that ignored the filter). Mirrors the taskTypes check
+        // above. Empty `allowedExecutors` = no restriction = always
+        // proceed.
+        const allowed = claimedTask.task.allowedExecutors ?? [];
+        const me = {
+          provider: common.provider.toLowerCase(),
+          model: common.model.toLowerCase(),
+        };
+        if (
+          allowed.length > 0 &&
+          !allowed.some(
+            (e) => e.provider === me.provider && e.model === me.model,
+          )
+        ) {
+          return {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            status: 'failed',
+            output: null,
+            outputCid: null,
+            usage: { inputTokens: 0, outputTokens: 0 },
+            durationMs: 0,
+            error: {
+              code: 'unsupported_executor',
+              message:
+                `Daemon executor (${me.provider}/${me.model}) is not in the ` +
+                `task's allowedExecutors list ` +
+                `(${allowed.map((e) => `${e.provider}/${e.model}`).join(', ')}).`,
               retryable: true,
             },
           };
