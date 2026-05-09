@@ -317,4 +317,136 @@ describe('ApiTaskReporter', () => {
     await closePromise;
     expect(closed).toBe(true);
   });
+
+  // Regression for the Keto Task:claimant#Agent consistency window race
+  // observed on the dogfood smoke test (run #25595136618):
+  //
+  //   ApiTaskReporter: append messages failed for task ... attempt 1
+  //   (1 messages restored for retry, 0 dropped):
+  //   Forbidden: Not authorized to append messages.
+  //
+  // `claim` writes the claimant tuple, but Keto's read API can lag the
+  // write by tens of milliseconds. A flush() fired immediately after
+  // `open()` (e.g. a fast executor that records a `task_started` info
+  // message before any heartbeat round-trip completes) hits a check
+  // that doesn't yet see the tuple. Fix mirrors `sendInitialHeartbeat`:
+  // bounded retry on 403, gated to the very first append.
+  describe('first appendMessages 403-retry (Keto consistency window)', () => {
+    it('retries the first append on 403 and succeeds on the second attempt', async () => {
+      const error403 = Object.assign(
+        new Error('Forbidden: Not authorized to append messages'),
+        { statusCode: 403 },
+      );
+      const flakyAppend = vi
+        .fn<TasksNamespace['appendMessages']>()
+        .mockRejectedValueOnce(error403)
+        .mockResolvedValue({ count: 1 });
+      const { tasks } = makeMockTasks({ appendMessages: flakyAppend });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      const recordPromise = reporter.record({
+        kind: 'info',
+        payload: { event: 'task_started' },
+      });
+      // Drain the 100ms backoff between attempt 1 and attempt 2.
+      await vi.advanceTimersByTimeAsync(100);
+      await recordPromise;
+
+      expect(flakyAppend).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry on 403 after the first append has succeeded', async () => {
+      const error403 = Object.assign(new Error('Forbidden'), {
+        statusCode: 403,
+      });
+      const appendMock = vi
+        .fn<TasksNamespace['appendMessages']>()
+        .mockResolvedValueOnce({ count: 1 })
+        .mockRejectedValueOnce(error403);
+      const { tasks } = makeMockTasks({ appendMessages: appendMock });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      // First append succeeds — sets `firstAppendSucceeded`.
+      await reporter.record({ kind: 'info', payload: { event: 'started' } });
+      expect(appendMock).toHaveBeenCalledTimes(1);
+
+      // Second append 403s. Without retry guard the reporter would loop
+      // and silently mask a real authorization regression (e.g. the
+      // claim was stolen by another agent). Must surface immediately.
+      await expect(
+        reporter.record({ kind: 'text_delta', payload: { delta: 'hi' } }),
+      ).rejects.toThrow(/append messages failed/);
+      expect(appendMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry on non-403 errors even on the first append', async () => {
+      const error500 = Object.assign(new Error('Internal Server Error'), {
+        statusCode: 500,
+      });
+      const appendMock = vi
+        .fn<TasksNamespace['appendMessages']>()
+        .mockRejectedValue(error500);
+      const { tasks } = makeMockTasks({ appendMessages: appendMock });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      await expect(
+        reporter.record({ kind: 'info', payload: { event: 'started' } }),
+      ).rejects.toThrow(/append messages failed/);
+      // 500 = bug, not consistency. One attempt then surface.
+      expect(appendMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('gives up after maxAttempts when 403 persists', async () => {
+      const error403 = Object.assign(new Error('Forbidden'), {
+        statusCode: 403,
+      });
+      const appendMock = vi
+        .fn<TasksNamespace['appendMessages']>()
+        .mockRejectedValue(error403);
+      const { tasks } = makeMockTasks({ appendMessages: appendMock });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      // Attach the rejection handler synchronously so the promise is
+      // never unhandled while the timer pump advances; otherwise vitest
+      // flags the inFlight rejection as unhandled even though we're
+      // about to assert on it.
+      const recordPromise = reporter
+        .record({
+          kind: 'info',
+          payload: { event: 'task_started' },
+        })
+        .catch((err: unknown) => err);
+      // Drain all 4 backoffs between 5 attempts: 100 + 200 + 300 + 400.
+      await vi.advanceTimersByTimeAsync(1_000);
+      const result = await recordPromise;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(/append messages failed/);
+      // 5 attempts max, then surface.
+      expect(appendMock).toHaveBeenCalledTimes(5);
+    });
+  });
 });

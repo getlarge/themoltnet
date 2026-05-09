@@ -1675,6 +1675,74 @@ describe('Tasks API', () => {
       // with N appends must produce exactly 0..N-1.
       expect(seqs).toEqual(Array.from({ length: CONCURRENCY }, (_, i) => i));
     });
+
+    // Regression for the dogfood smoke test (run #25595136618):
+    //
+    //   ApiTaskReporter: append messages failed for task ... attempt 1
+    //   (1 messages restored for retry, 0 dropped):
+    //   Forbidden: Not authorized to append messages.
+    //
+    // `claim` writes the Task:claimant#Agent Keto tuple via
+    // `grantTaskClaimant`, but Keto's read API can lag the write by tens
+    // of ms. An `appendMessages` call fired in the same tick the claim
+    // response returns sees an empty claimant set, hits the
+    // permissionChecker.canReportTask check, and 403s with
+    // "Not authorized to append messages".
+    //
+    // The fix in libs/agent-runtime/src/reporters/api.ts (this PR) is a
+    // bounded 403-retry on the very first append, mirroring
+    // `sendInitialHeartbeat`. The test below documents the server's
+    // half of the contract: a freshly-claimed task MUST eventually
+    // accept the claimant's appendMessages — either on the first call
+    // (Keto already converged) or within a small bounded retry window.
+    //
+    // Note: this is a probabilistic race. The test loops with backoff
+    // identical to the agent-runtime client's, so flakes here would
+    // also indicate flakes in production. If the consistency window
+    // grows past ~1.5s (5 attempts × max 400ms backoff) this asserts.
+    it('claimant can append messages immediately after claim', async () => {
+      const { data: task } = await impose();
+      const racyTaskId = task!.id;
+      const { data: claimed } = await claim(racyTaskId);
+      const racyAttemptN = claimed!.attempt.attemptN;
+
+      // Mirror ApiTaskReporter.appendWithFirstCallRetry: 5 attempts,
+      // 100/200/300/400ms backoff. If the server fails the contract,
+      // the agent-daemon's reporter would too — both would surface a
+      // task-fatal append error.
+      let lastStatus: number | undefined;
+      let lastBody: unknown;
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const { data, error, response } = await appendTaskMessages({
+          client,
+          auth: () => claimer.accessToken,
+          path: { id: racyTaskId, n: racyAttemptN },
+          body: {
+            messages: [{ kind: 'info', payload: { event: 'task_started' } }],
+          },
+        });
+        lastStatus = response.status;
+        lastBody = error ?? data;
+        if (response.status === 200) {
+          expect(data!.count).toBe(1);
+          return;
+        }
+        if (response.status !== 403) {
+          // Anything other than 200 or 403 is unrelated to the
+          // consistency window — fail loud.
+          throw new Error(
+            `unexpected status ${response.status} on append: ${JSON.stringify(error)}`,
+          );
+        }
+        // Backoff before retrying.
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 100 * attempt);
+        });
+      }
+      throw new Error(
+        `claimant still 403'd after 5 retries; last status=${lastStatus}, body=${JSON.stringify(lastBody)}`,
+      );
+    });
   });
 
   // ── Concurrent claim (CAS gate) ────────────────────────────────────────────
