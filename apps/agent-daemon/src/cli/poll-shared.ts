@@ -159,10 +159,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const outputs: TaskOutput[] = [];
   try {
-    // TODO: thread per-task taskId into the handler context once the
-    // executor exposes a per-task hook. Polling claims many tasks
-    // sequentially; until then turn events are correlatable only by
-    // process-wide ordering, not by taskId.
+    // No per-task taskId in turn events here — see #1078.
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
       mountPath: sandbox.rootDir,
