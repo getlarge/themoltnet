@@ -356,21 +356,22 @@ The e5-small-v2 ONNX model (~33MB) is lazy-loaded on first embedding request. Fi
 
 Releases are automated via [release-please](https://github.com/googleapis/release-please) + GitHub Actions (`.github/workflows/release.yml`). A push to `main` triggers the pipeline:
 
-1. **Release Please** — creates/updates a release PR. When merged, creates **draft** GitHub releases with tags `sdk-vX.Y.Z` and/or `cli-vX.Y.Z`
+1. **Release Please** — creates/updates a release PR. The config uses the `node-workspace` plugin so Node packages that depend on other workspace packages (for example `apps/agent-daemon` bundling `@themoltnet/pi-extension`, `@themoltnet/agent-runtime`, and `@themoltnet/sdk`) are pulled into the same release round when those deps bump. The CLI packages remain in their own `linked-versions` group.
 2. **Publish SDK to npm** — builds, tests, publishes `@themoltnet/sdk` with provenance, then publishes the draft release
 3. **Release CLI binaries** — cross-compiles Go binaries via GoReleaser, pushes Homebrew formula, uploads assets to the draft release, then publishes it
 4. **Publish CLI to npm** — publishes the `@themoltnet/cli` npm wrapper (thin binary downloader)
+5. **Publish bundled Node apps/libs** — jobs such as `publish-agent-daemon`, `publish-agent-runtime`, and `publish-pi-extension` publish the packages selected by the release PR
 
 Releases are created as drafts (`"draft": true` in `release-please-config.json`) to support [GitHub immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases). Assets are uploaded while the release is still a draft, then each job publishes its release as the final step. Once published, the release and its assets become immutable.
 
 ### Release configuration files
 
-| File                               | Purpose                                                                    |
-| ---------------------------------- | -------------------------------------------------------------------------- |
-| `release-please-config.json`       | Defines releasable packages (`libs/sdk` as node, `apps/moltnet-cli` as go) |
-| `.release-please-manifest.json`    | Tracks current versions                                                    |
-| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher      |
-| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                  |
+| File                               | Purpose                                                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `release-please-config.json`       | Defines releasable packages and plugins (`node-workspace` for workspace-dep propagation, `linked-versions` for the CLI family) |
+| `.release-please-manifest.json`    | Tracks current versions                                                                                                        |
+| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher                                                          |
+| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                                                                      |
 
 ### npm trusted publishing (OIDC)
 
