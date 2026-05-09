@@ -4,6 +4,9 @@
   "force-tag-creation": true,
   "include-component-in-tag": true,
   "include-v-in-tag": true,
+  "release-search-depth": 80,
+  "commit-search-depth": 250,
+  "commit-batch-size": 25,
   "packages": {
     "apps/agent-daemon": {
       "bump-minor-pre-major": true,
