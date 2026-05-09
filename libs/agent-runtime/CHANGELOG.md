@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.10.0...agent-runtime-v0.11.0) (2026-05-09)
+
+
+### Features
+
+* two-tier timeout (runner + server) for the dispatch path; [#1064](https://github.com/getlarge/themoltnet/issues/1064) review fixes ([517e84a](https://github.com/getlarge/themoltnet/commit/517e84a34066cd2ef3a453f0e66b35ee669bce89))
+
+
+### Bug Fixes
+
+* **agent-runtime:** retry first appendMessages on 403 (Keto consistency window) ([6e804b2](https://github.com/getlarge/themoltnet/commit/6e804b29a3e649a8d48262222aa906e186d59407))
+* **agent-runtime:** retry first appendMessages on 403 + e2e coverage ([c6d4a09](https://github.com/getlarge/themoltnet/commit/c6d4a09d5d47069c1c8ad8d9919551b819a87d44))
+* **agent-runtime:** tighten first-append retry; reset on re-open ([#1064](https://github.com/getlarge/themoltnet/issues/1064) review) ([67610cf](https://github.com/getlarge/themoltnet/commit/67610cfe31345859603ccf5d26e82b2c8911be82))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.9.0...agent-runtime-v0.10.0) (2026-05-08)
 
 

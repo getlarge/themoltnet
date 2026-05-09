@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.3.1...agent-daemon-v0.4.0) (2026-05-09)
+
+
+### Features
+
+* **agent-daemon:** SIGTERM/SIGINT handler in once.ts + workflow timeout-minutes ([4914d94](https://github.com/getlarge/themoltnet/commit/4914d94dbe12aec0af0b37226e248a3a22ea1d63))
+* two-tier timeout (runner + server) for the dispatch path; [#1064](https://github.com/getlarge/themoltnet/issues/1064) review fixes ([517e84a](https://github.com/getlarge/themoltnet/commit/517e84a34066cd2ef3a453f0e66b35ee669bce89))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.11.0
+    * @themoltnet/pi-extension bumped to 0.13.5
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.3.0...agent-daemon-v0.3.1) (2026-05-09)
 
 
