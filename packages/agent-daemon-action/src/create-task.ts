@@ -49,6 +49,13 @@ export interface FulfillTaskInput {
    * assess_brief in the same chain.
    */
   successCriteria?: SuccessCriteria;
+  /**
+   * Override the imposer-side running-total cap (server default 7200s).
+   * Set this to match (or undercut) the workflow's `timeout-minutes`
+   * so an aborted runner doesn't leave the queue's view of the task
+   * "running" until the default 2h cap fires.
+   */
+  runningTimeoutSec?: number;
 }
 
 export async function createTask(input: FulfillTaskInput): Promise<Task> {
@@ -68,6 +75,9 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
         : {}),
     },
     correlationId: input.correlationId,
+    ...(input.runningTimeoutSec !== undefined
+      ? { runningTimeoutSec: input.runningTimeoutSec }
+      : {}),
   });
 }
 
@@ -87,6 +97,11 @@ export interface AssessTaskInput {
    * of calling this function.
    */
   successCriteria: SuccessCriteria;
+  /**
+   * Override the imposer-side running-total cap (server default 7200s).
+   * Same rationale as FulfillTaskInput.runningTimeoutSec.
+   */
+  runningTimeoutSec?: number;
 }
 
 export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
@@ -107,5 +122,8 @@ export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
     input: assessInput,
     references: [reference],
     correlationId: input.correlationId,
+    ...(input.runningTimeoutSec !== undefined
+      ? { runningTimeoutSec: input.runningTimeoutSec }
+      : {}),
   });
 }

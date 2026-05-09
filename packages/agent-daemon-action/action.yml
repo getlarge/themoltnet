@@ -42,6 +42,26 @@ inputs:
     description: 'npm semver range for @themoltnet/agent-daemon (passed to npx).'
     required: false
     default: 'latest'
+  running-timeout-sec:
+    description: >
+      Imposer-side cap on a single attempt's wall-clock runtime, in
+      seconds. Forwarded as `runningTimeoutSec` when the dispatcher
+      creates the fulfill_brief / assess_brief task. Range: 1..86400.
+      Server default when unset is 7200s (2h).
+
+      Pair this with `timeout-minutes:` on the calling job in your
+      workflow. The job-level `timeout-minutes` is the GitHub-enforced
+      hard kill (SIGKILL after a 5-min SIGTERM grace window); this
+      action input is the queue-side cap that prevents a dead-runner
+      task from staying "running" until the default 2h fires.
+
+      Recommended: set `timeout-minutes` slightly LOWER than this
+      input (e.g. 30 min job-level, 2400 = 40 min server-level), so
+      the daemon gets the full SIGTERM grace window to call
+      `tasks.fail()` cleanly before the server's lease check would
+      have time-out the attempt anyway.
+    required: false
+    default: ''
   node-version:
     description: >
       Node.js version for the runner. Default is 24 because the
@@ -314,6 +334,12 @@ runs:
     - id: dispatch
       if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
       shell: bash
+      env:
+        # Pass-through for `running-timeout-sec` action input. Read by
+        # the dispatcher's `parseRunningTimeout` and forwarded to
+        # `tasks.create` as `runningTimeoutSec`. Empty = use server
+        # default (7200s).
+        MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
       run: |
         set -euo pipefail
         # MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET / MOLTNET_API_URL /

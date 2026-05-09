@@ -89,6 +89,40 @@ export async function runOnce(argv: string[]): Promise<number> {
 
   rootLogger.info({ sandbox: sandbox.path, taskId }, 'agent-daemon.starting');
 
+  // Wire SIGTERM/SIGINT for cooperative shutdown. GitHub-hosted runners
+  // send SIGTERM 5 minutes before `timeout-minutes` expires (then
+  // SIGKILL on expiry); using that grace window to issue a server-side
+  // `tasks.cancel()` lets the workflow flip the attempt from
+  // `running` → `cancelled` cleanly instead of waiting on the
+  // ~5min lease_expired path. Idempotent: cancel-on-already-terminal
+  // is a server-side no-op.
+  let runtime: AgentRuntime | null = null;
+  const onSignal = (sig: string): void => {
+    rootLogger.warn({ signal: sig, taskId }, 'agent-daemon.draining');
+    runtime?.stop();
+    // Fire-and-forget: cancel reaches the workflow and surfaces back
+    // through the reporter's `cancelSignal`, which pi-extension uses
+    // to abort the LLM session. We don't await — SIGKILL deadline is
+    // 5 min away and the executor needs every second.
+    void ctx.agent.tasks
+      .cancel(taskId, { reason: `runner_${sig.toLowerCase()}` })
+      .catch((err: unknown) => {
+        // Cancel-on-already-terminal returns a 4xx; ignore. Other
+        // errors are visible in the daemon log but shouldn't block
+        // SIGKILL — the server's lease check is the backstop.
+        rootLogger.warn(
+          { err: err instanceof Error ? err.message : String(err), taskId },
+          'agent-daemon.cancel_on_signal_failed',
+        );
+      });
+  };
+  process.on('SIGINT', () => {
+    onSignal('SIGINT');
+  });
+  process.on('SIGTERM', () => {
+    onSignal('SIGTERM');
+  });
+
   try {
     const executeTask = createPiTaskExecutor({
       agentName: opts.agent,
@@ -103,7 +137,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       logger: rootLogger,
     });
 
-    const runtime = new AgentRuntime({
+    runtime = new AgentRuntime({
       logger: rootLogger,
       source: new ApiTaskSource({
         agent: ctx.agent,

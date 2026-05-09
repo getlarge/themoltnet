@@ -29,6 +29,27 @@ type BufferedMessage = {
 };
 
 /**
+ * True when an error looks like the Keto "tuple lagged the read API"
+ * race: HTTP 403 plus a server message starting with "Not authorized".
+ * Used to gate the first-append retry to the narrow recoverable case.
+ *
+ * The server's task.service.ts returns errors of the form
+ *   `Not authorized to <verb> ...`
+ * for every claimant-relation check (append messages, list messages,
+ * heartbeat, complete, fail). Other Fastify 403s — auth-plugin
+ * rejection, route-level guards — use different message shapes and
+ * are not consistency-window flakes; retrying them just delays the
+ * permanent failure surfacing.
+ */
+function isKetoConsistencyLag403(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const status = (err as { statusCode?: number }).statusCode;
+  if (status !== 403) return false;
+  const message = (err as { message?: string }).message ?? '';
+  return /Not authorized/i.test(message);
+}
+
+/**
  * TaskReporter backed by the Tasks API via the SDK's TasksNamespace.
  *
  * - `open()` fires an immediate heartbeat (satisfies DBOS recv('started', 300s))
@@ -106,6 +127,11 @@ export class ApiTaskReporter implements TaskReporter {
     }
     this.taskId = ctx.taskId;
     this.attemptN = ctx.attemptN;
+    // Reset the first-append guard for the new lifecycle. Without this,
+    // a re-opened reporter (new task or new attempt on a re-claim) would
+    // skip the Keto consistency-window retry — the exact path
+    // appendWithFirstCallRetry exists to protect.
+    this.firstAppendSucceeded = false;
 
     // Send immediately so the DBOS workflow receives the 'started' signal
     // before the dispatch timeout (default 5 min). Without this, fast tasks
@@ -315,24 +341,21 @@ export class ApiTaskReporter implements TaskReporter {
   private async sendInitialHeartbeat(): Promise<void> {
     const maxAttempts = 5;
     const baseDelayMs = 100;
-    let lastErr: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         await this.sendHeartbeat();
         return;
       } catch (err) {
-        lastErr = err;
         const status =
           err && typeof err === 'object' && 'statusCode' in err
             ? (err as { statusCode?: number }).statusCode
             : undefined;
         if (status !== 403 || attempt === maxAttempts) throw err;
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
           setTimeout(resolve, baseDelayMs * attempt);
         });
       }
     }
-    throw lastErr;
   }
 
   /**
@@ -347,6 +370,14 @@ export class ApiTaskReporter implements TaskReporter {
    * Once `firstAppendSucceeded` is set we know Keto is consistent for
    * this task and any subsequent 403 is a real authorization failure
    * (e.g. another agent stole the claim) that must surface immediately.
+   *
+   * Retry budget is intentionally tight: the documented Keto
+   * consistency window is "tens of milliseconds," so 100 ms + 200 ms
+   * (3 attempts total) covers the realistic window with margin without
+   * adding meaningful latency to the permanent-failure path (wrong
+   * task ID, claim revoked, etc.). We also string-match the server's
+   * `Not authorized` message to avoid retrying 403s that mean
+   * something else (Fastify routes can 403 for non-auth reasons too).
    */
   private async appendWithFirstCallRetry(
     batch: BufferedMessage[],
@@ -357,9 +388,8 @@ export class ApiTaskReporter implements TaskReporter {
       });
       return;
     }
-    const maxAttempts = 5;
+    const maxAttempts = 3;
     const baseDelayMs = 100;
-    let lastErr: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
@@ -367,18 +397,12 @@ export class ApiTaskReporter implements TaskReporter {
         });
         return;
       } catch (err) {
-        lastErr = err;
-        const status =
-          err && typeof err === 'object' && 'statusCode' in err
-            ? (err as { statusCode?: number }).statusCode
-            : undefined;
-        if (status !== 403 || attempt === maxAttempts) throw err;
-        await new Promise((resolve) => {
+        if (attempt === maxAttempts || !isKetoConsistencyLag403(err)) throw err;
+        await new Promise<void>((resolve) => {
           setTimeout(resolve, baseDelayMs * attempt);
         });
       }
     }
-    throw lastErr;
   }
 
   private async sendHeartbeat(): Promise<void> {
