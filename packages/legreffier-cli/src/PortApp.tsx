@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { adapters } from './adapters/index.js';
 import type { AgentAdapterOptions } from './adapters/types.js';
 import { toErrorMessage } from './api.js';
+import { ensureMoltnetGitignored } from './gitignore.js';
 import { runPortCopyPhase } from './phases/portCopy.js';
 import {
   type PortDiaryMode,
@@ -125,6 +126,9 @@ export function PortApp({
         });
         filesWritten.push(...copyResult.copied);
         warnings.push(...copyResult.warnings);
+        if (await ensureMoltnetGitignored(targetRepoDir)) {
+          filesWritten.push(join(targetRepoDir, '.gitignore'));
+        }
 
         // P3
         setPhase('rewriting');

@@ -73,7 +73,7 @@ export async function runPortRewritePhase(opts: {
     {
       app_id: config.github.app_id,
       app_slug: config.github.app_slug,
-      installation_id: config.github.installation_id,
+      installation_id: config.github.installation_id ?? '',
       private_key_path: newPem,
       ...(config.github.org ? { org: config.github.org } : {}),
     },
@@ -82,8 +82,8 @@ export async function runPortRewritePhase(opts: {
   await updateConfigSection(
     'git',
     {
-      name: config.git.name,
-      email: config.git.email,
+      name: config.git.name ?? agentName,
+      email: config.git.email ?? `${agentName}[bot]@users.noreply.github.com`,
       signing: config.git.signing,
       config_path: newGitConfig,
     },
@@ -100,8 +100,8 @@ export async function runPortRewritePhase(opts: {
   // 2. Regenerate gitconfig — signingkey must point to the new ssh public key.
   await writeGitConfig({
     configDir: targetDir,
-    name: config.git.name,
-    email: config.git.email,
+    name: config.git.name ?? agentName,
+    email: config.git.email ?? `${agentName}[bot]@users.noreply.github.com`,
     sshPublicKeyPath: newSshPub,
   });
 
@@ -115,7 +115,7 @@ export async function runPortRewritePhase(opts: {
     clientSecret: config.oauth2.client_secret,
     appId: config.github.app_id,
     pemPath: newPem,
-    installationId: config.github.installation_id,
+    installationId: config.github.installation_id ?? '',
     fingerprint: config.keys.fingerprint,
   });
 

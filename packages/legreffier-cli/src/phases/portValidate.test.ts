@@ -101,6 +101,23 @@ describe('runPortValidatePhase', () => {
     expect(result.issues.some((i) => i.field === 'github.app_id')).toBe(true);
   });
 
+  it('flags missing github.app_id as a blocker', async () => {
+    const dir = join(tmpRoot, 'no-app-id');
+    const config = baseConfig(dir);
+    delete (config.github as Record<string, string>).app_id;
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({ sourceDir: dir });
+
+    expect(result.canProceed).toBe(false);
+    expect(result.issues).toContainEqual({
+      field: 'github.app_id',
+      problem: 'missing — required for port',
+      action: 'warning',
+    });
+  });
+
   it('flags missing ssh file on disk', async () => {
     const dir = join(tmpRoot, 'no-ssh');
     await writeConfig(dir, baseConfig(dir));
@@ -139,9 +156,43 @@ describe('runPortValidatePhase', () => {
 
     const result = await runPortValidatePhase({ sourceDir: dir });
 
-    expect(result.canProceed).toBe(false);
+    expect(result.canProceed).toBe(true);
     expect(
       result.issues.some((i) => i.field === 'github.installation_id'),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it('hydrates legacy source configs from conventional files', async () => {
+    const dir = join(tmpRoot, 'legacy-hydrate');
+    const config = baseConfig(dir);
+    delete (config.ssh as Record<string, string>).private_key_path;
+    delete (config.ssh as Record<string, string>).public_key_path;
+    delete (config.git as Record<string, string>).config_path;
+    delete (config.git as Record<string, string>).name;
+    delete (config.git as Record<string, string>).email;
+    delete (config.github as Record<string, string>).installation_id;
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+    await writeFile(
+      join(dir, 'gitconfig'),
+      '[user]\n\tname = legacy-agent\n\temail = 1+legacy-agent[bot]@users.noreply.github.com\n',
+      'utf-8',
+    );
+
+    const result = await runPortValidatePhase({ sourceDir: dir });
+
+    expect(result.canProceed).toBe(true);
+    expect(result.config.ssh?.private_key_path).toBe(
+      join(dir, 'ssh', 'id_ed25519'),
+    );
+    expect(result.config.ssh?.public_key_path).toBe(
+      join(dir, 'ssh', 'id_ed25519.pub'),
+    );
+    expect(result.config.git?.config_path).toBe(join(dir, 'gitconfig'));
+    expect(result.config.git?.name).toBe('legacy-agent');
+    expect(result.config.git?.email).toBe(
+      '1+legacy-agent[bot]@users.noreply.github.com',
+    );
+    expect(result.issues.some((i) => i.action === 'warning')).toBe(false);
   });
 });

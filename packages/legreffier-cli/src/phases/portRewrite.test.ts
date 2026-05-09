@@ -53,6 +53,16 @@ async function seedTarget(sourceDir: string, targetDir: string) {
     mode: 0o600,
   });
   await writeFile(join(targetDir, 'ssh', 'id_ed25519.pub'), 'PUB');
+  await writeFile(
+    join(targetDir, 'env'),
+    [
+      "MOLTNET_TEAM_ID='team-123'",
+      "MOLTNET_COMMIT_AUTHORSHIP='human'",
+      "MOLTNET_HUMAN_GIT_IDENTITY='Alice <alice@example.com>'",
+      "MOLTNET_HUMAN_SIGNINGKEY='/home/alice/.ssh/id_ed25519.pub'",
+    ].join('\n') + '\n',
+    'utf-8',
+  );
   return config;
 }
 
@@ -113,5 +123,11 @@ describe('runPortRewritePhase', () => {
     expect(envContent).toContain(`LEGREFFIER_GITHUB_APP_ID='2878569'`);
     expect(envContent).toContain(`MOLTNET_AGENT_NAME='legreffier'`);
     expect(envContent).toContain(`MOLTNET_FINGERPRINT='ed25519:fp'`);
+    expect(envContent).toContain("MOLTNET_TEAM_ID='team-123'");
+    expect(envContent).toContain("MOLTNET_COMMIT_AUTHORSHIP='human'");
+    expect(envContent).toContain(
+      "MOLTNET_HUMAN_GIT_IDENTITY='Alice <alice@example.com>'",
+    );
+    expect(envContent).not.toContain('<<alice@example.com>>');
   });
 });
