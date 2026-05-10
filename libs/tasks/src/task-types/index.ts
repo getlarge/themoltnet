@@ -67,6 +67,19 @@ interface TaskTypeEntry {
    * or an error message that surfaces to the task runner.
    */
   readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
+  /**
+   * When true, executors should make the generic `subagent` custom
+   * tool available to sessions running this task type — letting the
+   * parent LLM delegate sub-tasks to isolated child sessions with
+   * named output contracts. See issue #1087 for the full design.
+   *
+   * Default: undefined (== false). Most task types do not delegate;
+   * only types whose execution is naturally fan-out-and-collect
+   * (e.g. judge_eval_variant) opt in. Keeping it opt-in prevents
+   * task-type LLMs from spuriously delegating work that should stay
+   * in their own session.
+   */
+  readonly usesSubagents?: boolean;
 }
 
 /**

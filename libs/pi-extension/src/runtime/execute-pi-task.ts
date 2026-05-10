@@ -19,15 +19,15 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
-import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+import type {
+  AgentSession,
+  ToolDefinition,
+} from '@earendil-works/pi-coding-agent';
 import {
-  createAgentSession,
   createBashToolDefinition,
   createEditToolDefinition,
   createReadToolDefinition,
   createWriteToolDefinition,
-  DefaultResourceLoader,
-  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { Value } from '@sinclair/typebox/value';
@@ -37,6 +37,7 @@ import {
   TaskContext,
   type TaskOutput,
   type TaskReporter,
+  taskTypeUsesSubagents,
   type TaskUsage,
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
@@ -46,7 +47,6 @@ import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
 } from '../moltnet/tools.js';
-import { createPiOtelExtension } from '../otel/index.js';
 import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
@@ -55,8 +55,13 @@ import {
   createGondolinWriteOps,
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
+import { buildAgentSession } from './agent-session-factory.js';
 import { injectTaskContext } from './inject-task-context.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
+import {
+  createSubagentTool,
+  type SubagentToolHandle,
+} from './subagent-tool.js';
 import { resolveSubmitTools } from './submit-output-tool.js';
 import {
   parseStructuredTaskOutput,
@@ -243,9 +248,12 @@ export async function executePiTask(
   const diaryId = task.diaryId ?? '';
   const taskTeamId = task.teamId ?? '';
   let reporterOpen = false;
-  let session:
-    | Awaited<ReturnType<typeof createAgentSession>>['session']
-    | null = null;
+  let session: AgentSession | null = null;
+  // Tracked at function scope so the post-prompt summary block can
+  // read the call counter even though the handle is only constructed
+  // inside the session-setup `try`. Null means "task type did not
+  // opt in to subagents".
+  let subagentHandle: SubagentToolHandle | null = null;
   const finalUsage: TaskUsage = emptyUsage(opts.provider, opts.model);
   // Tracked at function scope so `finally` can remove the listener
   // even if we throw before assigning. Null means "no listener wired".
@@ -449,17 +457,6 @@ export async function executePiTask(
       ) => Model<Api>;
       const modelHandle = getModelLoose(opts.provider, opts.model);
 
-      const piOtelExtension = createPiOtelExtension({
-        agentName: opts.agentName,
-        // MoltNet-specific attributes only. The extension owns gen_ai.*
-        // keys (populated from pi's model_select / turn_start events) and
-        // filters any gen_ai.* passed here.
-        spanAttributes: {
-          'moltnet.task.id': task.id,
-          'moltnet.task.attempt': attemptN,
-          'moltnet.task.type': task.taskType,
-        },
-      });
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
       //  - Inline the runtime instructor as appendSystemPrompt so the
       //    invariants (gh auth, diary discipline, accountable commits) are
@@ -487,24 +484,54 @@ export async function executePiTask(
         appendSystemPrompt.push(injectedContext.systemPromptPrefix);
       }
       const injectedSkills = injectedContext.skills;
-      const resourceLoader = new DefaultResourceLoader({
-        cwd: mountPath,
-        agentDir: piAuthDir,
-        extensionFactories: [piOtelExtension],
+
+      // Subagent custom tool — registered only when the task type opts
+      // in via TaskTypeEntry.usesSubagents (#1087). The subagent
+      // inherits Gondolin + moltnet_* tools but NOT this task's
+      // submit-output tool (different schema) nor the subagent tool
+      // itself (no nested delegation in v1).
+      const parentSubagentTools: ToolDefinition[] = [];
+      if (taskTypeUsesSubagents(task.taskType)) {
+        subagentHandle = createSubagentTool({
+          mountPath,
+          piAuthDir,
+          modelHandle,
+          agentName: opts.agentName,
+          inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
+          parentRuntimeInstructor: runtimeInstructor,
+          parentTaskId: task.id,
+          parentTaskType: task.taskType,
+          parentAttemptN: attemptN,
+          // Propagate parent cancel (operator cancel + task-level
+          // runningTimeoutSec expiry already flow through this signal
+          // for the parent session via `wireSessionAbort`) to every
+          // in-flight subagent's inner session.abort(). Closes #1090.
+          parentCancelSignal: reporter.cancelSignal,
+        });
+        parentSubagentTools.push(subagentHandle.tool);
+      }
+
+      session = await buildAgentSession({
+        mountPath,
+        piAuthDir,
+        modelHandle,
+        agentName: opts.agentName,
+        customTools: [
+          ...gondolinCustomTools,
+          ...moltnetTools,
+          ...submitTools,
+          ...parentSubagentTools,
+        ],
         appendSystemPrompt,
         skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
+        // MoltNet-specific span attrs only — pi's OTel extension owns
+        // gen_ai.* keys and filters anything we pass that collides.
+        otelSpanAttrs: {
+          'moltnet.task.id': task.id,
+          'moltnet.task.attempt': attemptN,
+          'moltnet.task.type': task.taskType,
+        },
       });
-      await resourceLoader.reload();
-
-      const created = await createAgentSession({
-        agentDir: piAuthDir,
-        cwd: mountPath,
-        model: modelHandle,
-        customTools: [...gondolinCustomTools, ...moltnetTools, ...submitTools],
-        sessionManager: SessionManager.inMemory(),
-        resourceLoader,
-      });
-      session = created.session;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'session_setup' });
@@ -612,6 +639,20 @@ export async function executePiTask(
       const message = err instanceof Error ? err.message : String(err);
       runError = { code: 'session_prompt_failed', message };
       await emit('error', { message, phase: 'session_prompt' });
+    }
+
+    // Emit a single summary line per task attempt that used the
+    // subagent tool. Useful for spotting parents that delegate
+    // unexpectedly often (or never delegate when they should). The
+    // call count is the only state on the handle; we don't track
+    // per-call failure rates here because each subagent invocation
+    // already emits its own OTel span via the inner session's
+    // piOtelExtension.
+    if (subagentHandle && subagentHandle.getCallCount() > 0) {
+      await emit('info', {
+        event: 'subagent_summary',
+        callCount: subagentHandle.getCallCount(),
+      });
     }
 
     await Promise.all(recordingPromise);

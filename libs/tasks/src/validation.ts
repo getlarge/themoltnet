@@ -17,6 +17,7 @@ interface TaskTypeDefinition {
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
   readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
+  readonly usesSubagents?: boolean;
 }
 
 function getTaskTypeEntry(taskType: string) {
@@ -118,6 +119,16 @@ export function validateTaskOutput(
  */
 export function getTaskOutputSchema(taskType: string): TSchema | null {
   return getTaskTypeEntry(taskType)?.outputSchema ?? null;
+}
+
+/**
+ * Whether sessions running this task type should have the generic
+ * `subagent` custom tool registered. Returns `false` for unknown task
+ * types and for task types that didn't opt in. See `TaskTypeEntry`
+ * for the design rationale.
+ */
+export function taskTypeUsesSubagents(taskType: string): boolean {
+  return getTaskTypeEntry(taskType)?.usesSubagents === true;
 }
 
 export function validateTaskCreateRequest(args: {
