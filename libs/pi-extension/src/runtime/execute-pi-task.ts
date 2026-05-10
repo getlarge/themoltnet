@@ -502,6 +502,11 @@ export async function executePiTask(
           parentTaskId: task.id,
           parentTaskType: task.taskType,
           parentAttemptN: attemptN,
+          // Propagate parent cancel (operator cancel + task-level
+          // runningTimeoutSec expiry already flow through this signal
+          // for the parent session via `wireSessionAbort`) to every
+          // in-flight subagent's inner session.abort(). Closes #1090.
+          parentCancelSignal: reporter.cancelSignal,
         });
         parentSubagentTools.push(subagentHandle.tool);
       }

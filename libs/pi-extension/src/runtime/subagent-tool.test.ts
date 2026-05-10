@@ -97,8 +97,15 @@ function makeFakeSessionFactory(
 
     return {
       prompt,
+      // The subagent-tool calls `abort()` when parent-cancel or
+      // timeout fires. The fake just records the call so tests can
+      // assert it was invoked. Real pi sessions resolve their
+      // outstanding `prompt()` promise via abort propagation; the
+      // fake's prompt() resolves naturally when its body returns, so
+      // abort here is observational only.
+      abort: vi.fn(async () => undefined),
       // pi's AgentSession has many more fields; we cast through unknown
-      // because the subagent-tool only ever calls `prompt`.
+      // because the subagent-tool only uses `prompt` and `abort`.
     } as unknown as AgentSession;
   };
 
@@ -320,5 +327,134 @@ describe('createSubagentTool', () => {
     // Inner tool returned isError:true; capture stayed null; outer
     // surfaces "never submitted" because no successful capture happened.
     expect(result.isError).toBe(true);
+  });
+
+  describe('cancel + timeout (#1090)', () => {
+    /**
+     * Build a fake `AgentSession` whose `prompt()` waits on a
+     * deferred promise resolved by `abort()`. Mirrors how a real pi
+     * session terminates outstanding `prompt()` calls when
+     * `session.abort()` lands.
+     */
+    function makeHangingFactory() {
+      let resolvePrompt: (() => void) | null = null;
+      let abortRequestedBeforePrompt = false;
+      const abort = vi.fn(async () => {
+        if (resolvePrompt) {
+          resolvePrompt();
+        } else {
+          // Pre-prompt abort: remember it so the next `prompt()`
+          // resolves immediately (mirrors how a real session would
+          // refuse to start work after it was aborted).
+          abortRequestedBeforePrompt = true;
+        }
+      });
+      const build = async (
+        _args: BuildAgentSessionArgs,
+      ): Promise<AgentSession> => {
+        const prompt = vi.fn(
+          (_text: string) =>
+            new Promise<void>((resolve) => {
+              if (abortRequestedBeforePrompt) {
+                resolve();
+              } else {
+                resolvePrompt = resolve;
+              }
+            }),
+        );
+        return { prompt, abort } as unknown as AgentSession;
+      };
+      return { build, abort };
+    }
+
+    it('aborts and returns isError when the parent cancel signal fires mid-prompt', async () => {
+      const { build, abort } = makeHangingFactory();
+      const ac = new AbortController();
+      const handle = createSubagentTool({
+        ...stubArgs(),
+        parentCancelSignal: ac.signal,
+        buildAgentSession: build,
+        // Disable the timeout fallback so we know the cancel path
+        // is what fires, not the timeout.
+        timeoutMs: 0,
+      });
+      const pending = callOuter(handle.tool, {
+        task: 'wait forever',
+        output_schema: 'sample',
+      });
+      // Give the tool a tick to enter `prompt()` and register the
+      // abort listener before we cancel.
+      await Promise.resolve();
+      ac.abort();
+      const result = await pending;
+      expect(abort).toHaveBeenCalledTimes(1);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/parent task was cancelled/);
+    });
+
+    it('aborts immediately when parent cancel signal is already aborted at call time', async () => {
+      const { build, abort } = makeHangingFactory();
+      const ac = new AbortController();
+      ac.abort(); // pre-aborted before the tool is called
+      const handle = createSubagentTool({
+        ...stubArgs(),
+        parentCancelSignal: ac.signal,
+        buildAgentSession: build,
+        timeoutMs: 0,
+      });
+      const result = await callOuter(handle.tool, {
+        task: 'will not run',
+        output_schema: 'sample',
+      });
+      expect(abort).toHaveBeenCalledTimes(1);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/parent task was cancelled/);
+    });
+
+    it('aborts and returns isError when the per-call timeout fires', async () => {
+      vi.useFakeTimers();
+      try {
+        const { build, abort } = makeHangingFactory();
+        const handle = createSubagentTool({
+          ...stubArgs(),
+          buildAgentSession: build,
+          timeoutMs: 1000,
+        });
+        const pending = callOuter(handle.tool, {
+          task: 'wait forever',
+          output_schema: 'sample',
+        });
+        // Let the tool register its setTimeout, then advance clock.
+        await Promise.resolve();
+        vi.advanceTimersByTime(1500);
+        const result = await pending;
+        expect(abort).toHaveBeenCalledTimes(1);
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toMatch(/timed out after 1000ms/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('does NOT abort or time out when prompt resolves before either fires', async () => {
+      // Use the existing happy-path factory that resolves prompt()
+      // synchronously after invoking submit. The `abort` mock should
+      // never be called.
+      const payload = { verdict: 'ok', score: 0.7 };
+      const factory = makeFakeSessionFactory(payload);
+      const ac = new AbortController();
+      const handle = createSubagentTool({
+        ...stubArgs(),
+        parentCancelSignal: ac.signal,
+        buildAgentSession: factory.build,
+        timeoutMs: 60_000,
+      });
+      const result = await callOuter(handle.tool, {
+        task: 'go',
+        output_schema: 'sample',
+      });
+      expect(result.isError).toBeFalsy();
+      expect(JSON.parse(result.content[0].text)).toEqual(payload);
+    });
   });
 });

@@ -116,6 +116,31 @@ export interface CreateSubagentToolArgs {
   parentAttemptN: number;
 
   /**
+   * Parent task's cancel signal. When the daemon cancels the parent
+   * task (operator cancel or task-level `runningTimeoutSec` expiry),
+   * each in-flight subagent's inner `session.abort()` is invoked so
+   * it tears down promptly instead of running until its own LLM
+   * call resolves. Mirrors the existing `wireSessionAbort` pattern
+   * the parent session uses.
+   *
+   * Optional only because the test seam can omit it; production
+   * callers (executePiTask) pass `reporter.cancelSignal`.
+   */
+  parentCancelSignal?: AbortSignal;
+
+  /**
+   * Per-call fallback timeout. Defends against an inner session that
+   * ignores `abort()` for any reason (LLM provider stuck, tool call
+   * hanging on I/O, etc.). When the timeout fires, `session.abort()`
+   * is invoked and the tool returns `isError: true` with a
+   * `subagent_timed_out` reason the parent LLM can recover from.
+   *
+   * Default: 5 minutes. Set to `0` to disable (relying purely on
+   * parentCancelSignal). Negative values are treated as the default.
+   */
+  timeoutMs?: number;
+
+  /**
    * Test seam. Production callers leave this undefined and get
    * `buildAgentSession` from the factory module. Tests inject a mock
    * that returns a stub session implementing only `prompt()` to
@@ -123,6 +148,8 @@ export interface CreateSubagentToolArgs {
    */
   buildAgentSession?: (args: BuildAgentSessionArgs) => Promise<AgentSession>;
 }
+
+const DEFAULT_SUBAGENT_TIMEOUT_MS = 5 * 60 * 1000;
 
 export interface SubagentToolHandle {
   /** ToolDefinition to register via `customTools` on the parent session. */
@@ -244,11 +271,71 @@ export function createSubagentTool(
         },
       });
 
+      // Wire parent-cancel and per-call timeout to inner session.abort().
+      // pi's PromptOptions has no `signal` field (as of 0.74), so we
+      // mirror the parent-session pattern: register listeners that
+      // call `session.abort()` and let it propagate through the
+      // streaming LLM response. Whichever fires first wins; both
+      // record their reason for the post-prompt error path.
+      let abortReason: 'parent_cancelled' | 'subagent_timed_out' | null = null;
+      let abortInvoked = false;
+      const fireAbort = (reason: typeof abortReason): void => {
+        if (abortInvoked) return;
+        abortInvoked = true;
+        abortReason = reason;
+        session.abort().catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err);
+          process.stderr.write(
+            `[subagent] inner session.abort() failed: ${message}\n`,
+          );
+        });
+      };
+
+      const cancelListener = args.parentCancelSignal
+        ? (() => {
+            const signal = args.parentCancelSignal;
+            const listener = () => fireAbort('parent_cancelled');
+            if (signal.aborted) {
+              listener();
+            } else {
+              signal.addEventListener('abort', listener, { once: true });
+            }
+            return () => signal.removeEventListener('abort', listener);
+          })()
+        : null;
+
+      const timeoutMs =
+        args.timeoutMs === undefined || args.timeoutMs < 0
+          ? DEFAULT_SUBAGENT_TIMEOUT_MS
+          : args.timeoutMs;
+      const timeoutHandle =
+        timeoutMs > 0
+          ? setTimeout(() => fireAbort('subagent_timed_out'), timeoutMs)
+          : null;
+
       try {
         await session.prompt(task);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return toolError(`subagent: inner session.prompt() threw: ${message}`);
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        if (cancelListener) cancelListener();
+      }
+
+      if (abortReason !== null) {
+        // Capture may or may not be set depending on whether the inner
+        // submit landed before abort; we always surface the abort as a
+        // recoverable tool error so the parent can decide to retry vs
+        // fail the task.
+        const reasonText =
+          abortReason === 'subagent_timed_out'
+            ? `subagent timed out after ${timeoutMs}ms`
+            : 'parent task was cancelled';
+        return toolError(
+          `subagent: ${reasonText}. The parent should fail this task or ` +
+            'retry with a clearer scope.',
+        );
       }
 
       if (captured === null) {
