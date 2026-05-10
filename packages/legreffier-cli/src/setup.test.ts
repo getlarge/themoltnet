@@ -431,6 +431,26 @@ describe('writeEnvFile', () => {
     expect(content).toContain("MOLTNET_FINGERPRINT='SHA256:testfingerprint'");
   });
 
+  it('writes repo-relative pem path when the pem lives in the agent dir', async () => {
+    const envDir = join(tmpRepo, '.moltnet', 'my-agent');
+
+    await writeEnvFile({
+      envDir,
+      agentName: 'my-agent',
+      prefix: 'MY_AGENT',
+      clientId: 'cid',
+      clientSecret: 'csec',
+      appId: '2878569',
+      pemPath: join(envDir, 'my-app.pem'),
+      installationId: '12345',
+    });
+
+    const content = await readFile(join(envDir, 'env'), 'utf-8');
+    expect(content).toContain(
+      "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='.moltnet/my-agent/my-app.pem'",
+    );
+  });
+
   it('preserves user-added vars on re-run', async () => {
     const envDir = join(tmpRepo, '.moltnet', 'my-agent');
     await mkdir(envDir, { recursive: true });

@@ -118,7 +118,7 @@ describe('runPortRewritePhase', () => {
     // env file has new PEM path and MOLTNET_AGENT_NAME
     const envContent = await readFile(join(target, 'env'), 'utf-8');
     expect(envContent).toContain(
-      `LEGREFFIER_GITHUB_APP_PRIVATE_KEY_PATH='${join(target, 'legreffier.pem')}'`,
+      "LEGREFFIER_GITHUB_APP_PRIVATE_KEY_PATH='.moltnet/legreffier/legreffier.pem'",
     );
     expect(envContent).toContain(`LEGREFFIER_GITHUB_APP_ID='2878569'`);
     expect(envContent).toContain(`MOLTNET_AGENT_NAME='legreffier'`);

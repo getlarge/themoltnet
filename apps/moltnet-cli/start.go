@@ -40,9 +40,10 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs [
 	// work correctly when launched from a linked worktree where .moltnet/
 	// was resolved from the main worktree.
 	repoRoot := filepath.Dir(moltnetDir)
+	paths := newAgentPathResolver(repoRoot, filepath.Join(moltnetDir, agentName), agentName)
 	for k, v := range vars {
-		if k == "GIT_CONFIG_GLOBAL" && v != "" && !filepath.IsAbs(v) {
-			vars[k] = filepath.Join(repoRoot, v)
+		if k == "GIT_CONFIG_GLOBAL" && v != "" {
+			vars[k] = paths.resolveFile(v, "gitconfig")
 		}
 	}
 

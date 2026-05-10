@@ -177,7 +177,8 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	gitConfigGlobal := firstNonEmpty(ctx.EnvVars["GIT_CONFIG_GLOBAL"], valueOrEmpty(creds.Git, func(g *GitSection) string {
 		return g.ConfigPath
 	}), filepath.Join(".moltnet", ctx.AgentName, "gitconfig"))
-	gitconfigPath := resolveMaybeRelative(ctx.RepoRoot, gitConfigGlobal)
+	paths := newAgentPathResolver(ctx.RepoRoot, ctx.AgentDir, ctx.AgentName)
+	gitconfigPath := paths.resolveFile(gitConfigGlobal, "gitconfig")
 
 	gitIdentity, err := readActivationGitIdentity(gitconfigPath)
 	if err != nil {
@@ -193,11 +194,15 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	}
 
 	inputs := map[string]activationCacheInput{}
+	sshPublicKeyPath := paths.resolveFile(
+		valueOrEmpty(creds.SSH, func(s *SSHSection) string { return s.PublicKeyPath }),
+		filepath.Join("ssh", "id_ed25519.pub"),
+	)
 	for name, path := range map[string]string{
 		"env":          ctx.EnvPath,
 		"gitconfig":    gitconfigPath,
 		"credentials":  credentialsPath,
-		"sshPublicKey": firstNonEmpty(valueOrEmpty(creds.SSH, func(s *SSHSection) string { return s.PublicKeyPath }), filepath.Join(ctx.AgentDir, "ssh", "id_ed25519.pub")),
+		"sshPublicKey": sshPublicKeyPath,
 	} {
 		input, err := hashActivationInput(ctx.RepoRoot, path)
 		if err != nil {
@@ -215,7 +220,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		Fingerprint:     fingerprint,
 		DiaryID:         ctx.EnvVars["MOLTNET_DIARY_ID"],
 		TeamID:          ctx.EnvVars["MOLTNET_TEAM_ID"],
-		GitConfigGlobal: gitConfigGlobal,
+		GitConfigGlobal: relativeToRepo(ctx.RepoRoot, gitconfigPath),
 		CredentialsPath: relativeToRepo(ctx.RepoRoot, credentialsPath),
 		AuthorshipMode:  authorshipMode,
 		AgentEmail:      gitIdentity.Email,

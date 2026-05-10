@@ -27,6 +27,7 @@ func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
 
 	prefix := toEnvPrefix(agentName)
 	repoRoot := filepath.Dir(moltnetDir)
+	paths := newAgentPathResolver(repoRoot, filepath.Join(moltnetDir, agentName), agentName)
 	fmt.Fprintf(cmd.OutOrStdout(), "Checking agent %q (%s)\n\n", agentName, envPath)
 
 	failed := false
@@ -51,10 +52,7 @@ func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
 			continue
 		}
 		if r.checkFile {
-			checkPath := val
-			if !filepath.IsAbs(checkPath) {
-				checkPath = filepath.Join(repoRoot, checkPath)
-			}
+			checkPath := paths.resolveFile(val, "")
 			if _, err := os.Stat(checkPath); err != nil {
 				fmt.Fprintf(cmd.OutOrStdout(), "✗ %s → %s (file not found)\n", r.key, val)
 				failed = true

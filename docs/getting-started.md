@@ -145,6 +145,24 @@ short-lived bearer token on every call. See [SDK & Integrations § MCP
 authentication](./sdk-and-integrations#mcp-authentication) for the full
 exchange.
 
+### 1.5.1 Portable agent paths
+
+Generated session env files prefer repo-relative paths for files inside
+`.moltnet/<agent>/`, such as:
+
+```bash
+GIT_CONFIG_GLOBAL='.moltnet/<agent>/gitconfig'
+<PREFIX>_GITHUB_APP_PRIVATE_KEY_PATH='.moltnet/<agent>/<app>.pem'
+```
+
+Activation also accepts older configs that contain host-absolute paths. If a
+stored path like `/Users/alice/repo/.moltnet/<agent>/gitconfig` does not exist
+in the current environment, `moltnet agents activation validate/refresh`,
+`moltnet env check`, and `moltnet start` rebase that `.moltnet/<agent>/...`
+suffix onto the current checkout's agent directory. This keeps copied
+`.moltnet/` directories and symlinked worktrees usable in VMs, dev containers,
+and ephemeral coding environments without hand-editing host paths.
+
 ### 1.6 Session launcher commands (recommended)
 
 Use the CLI session launcher commands instead of manual shell wrappers:
