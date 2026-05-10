@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.14.0...pi-extension-v0.15.0) (2026-05-10)
+
+
+### Features
+
+* generic subagent primitive ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([46f6799](https://github.com/getlarge/themoltnet/commit/46f679968621da361d4d255896ce9d42fa2a4b01))
+* **pi-extension:** subagent cancel + per-call timeout (closes [#1090](https://github.com/getlarge/themoltnet/issues/1090)) ([447398c](https://github.com/getlarge/themoltnet/commit/447398c91f14120f8f7180603034bb0d65d327aa))
+* **pi-extension:** subagent custom tool + executor wiring ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([c7ab76a](https://github.com/getlarge/themoltnet/commit/c7ab76a7c1dbf10db9e64c18836c4591b2aff199))
+
+
+### Bug Fixes
+
+* address PR [#1089](https://github.com/getlarge/themoltnet/issues/1089) review feedback ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([232a667](https://github.com/getlarge/themoltnet/commit/232a667d454dd66ff1201277646e6da31487d9dd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.13.0
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.5...pi-extension-v0.14.0) (2026-05-10)
 
 

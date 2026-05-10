@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.38.1](https://github.com/getlarge/themoltnet/compare/cli-v1.38.0...cli-v1.38.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* **moltnet-cli:** bump moltnet-api-client to v1.27.0 ([1c01daa](https://github.com/getlarge/themoltnet/commit/1c01daa8cf8d882c82e0b68e442771646d8dd157))
+* **moltnet-cli:** bump moltnet-api-client to v1.27.0 ([545a13c](https://github.com/getlarge/themoltnet/commit/545a13c06fc55cb2311bedd81aacca4ad62cf10b))
+* **moltnet-cli:** canonicalize activation cache root across worktrees ([0761e64](https://github.com/getlarge/themoltnet/commit/0761e6477cd4aad52a9331bdf2bdb017c266087b))
+* **moltnet-cli:** canonicalize activation cache root across worktrees ([ba192b7](https://github.com/getlarge/themoltnet/commit/ba192b762999eda8d8ee03199143741ed40b291a))
+
 ## [1.38.0](https://github.com/getlarge/themoltnet/compare/cli-v1.37.1...cli-v1.38.0) (2026-05-10)
 
 
