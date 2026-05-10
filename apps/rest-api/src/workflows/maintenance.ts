@@ -339,16 +339,43 @@ export function initMaintenanceWorkflows(
 
       let resumed = 0;
       let forceReleased = 0;
+      // Backstop threshold: if the row has been orphaned for more than
+      // twice the grace period, the previous sweep tick had a chance to
+      // resume the workflow and the in-workflow recv loop had a chance
+      // to fire its own deadline. If we still see the same row, treat
+      // DBOS.resumeWorkflow's success as a false positive (issue #1077:
+      // resume returns OK but the resumed workflow re-parks on a stale
+      // recv) and force-release unconditionally.
+      const now = Date.now();
+      const backstopAgeMs = input.gracePeriodSec * 2 * 1000;
       for (const { task, attempt } of orphans) {
-        // Try to wake the original workflow first. If DBOS still has its
-        // event log, the recv loop will see the missed deadline and
-        // transition naturally (lease_expired or running_total_exceeded).
-        const { resumed: didResume } = await tryResumeWorkflowStep(
-          attempt.workflowId,
-        );
-        if (didResume) {
-          resumed += 1;
-          continue;
+        const claimAgeMs = task.claimExpiresAt
+          ? now - task.claimExpiresAt.getTime()
+          : Infinity;
+        const pastBackstop = claimAgeMs >= backstopAgeMs;
+
+        if (!pastBackstop) {
+          // First-pass: try to wake the original workflow. If DBOS still
+          // has its event log, the recv loop will see the missed deadline
+          // and transition naturally (lease_expired / running_total_exceeded).
+          const { resumed: didResume } = await tryResumeWorkflowStep(
+            attempt.workflowId,
+          );
+          if (didResume) {
+            resumed += 1;
+            continue;
+          }
+        } else {
+          logger.warn(
+            {
+              taskId: task.id,
+              attemptN: attempt.attemptN,
+              workflowId: attempt.workflowId,
+              claimAgeMs,
+              backstopAgeMs,
+            },
+            'maintenance: task orphan — past backstop window, force-releasing without resume',
+          );
         }
         // Fall back to row-level force-release.
         await forceReleaseAttemptStep({
