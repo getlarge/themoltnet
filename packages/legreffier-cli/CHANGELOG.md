@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.33.2](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.1...legreffier-v0.33.2) (2026-05-10)
+
+
+### Bug Fixes
+
+* **cli:** make agent paths portable ([7072c5c](https://github.com/getlarge/themoltnet/commit/7072c5c92ef9b75d2b53448cd3d2c3c3950a73ab))
+* **legreffier:** anchor GitHub token credentials universally ([123e1c9](https://github.com/getlarge/themoltnet/commit/123e1c9b2986b4cff1cd494c4c6b58ba3b9e1ad0))
+* **legreffier:** anchor relative GIT_CONFIG_GLOBAL universally ([0619d21](https://github.com/getlarge/themoltnet/commit/0619d214685dea53e82d9ed4e41f37fa20689b50))
+* **legreffier:** harden port setup for legacy agents ([dff4417](https://github.com/getlarge/themoltnet/commit/dff4417f3fd59ecf9cae8e64ce59a2e2f7095879))
+* **legreffier:** harden port setup for legacy agents ([31c2d07](https://github.com/getlarge/themoltnet/commit/31c2d07798a1e75a39bbe611cc98ac85f926efd9)), closes [#1020](https://github.com/getlarge/themoltnet/issues/1020)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.23.6
+    * @themoltnet/sdk bumped to 0.100.0
+
 ## [0.33.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.0...legreffier-v0.33.1) (2026-05-08)
 
 

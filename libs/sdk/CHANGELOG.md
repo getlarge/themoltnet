@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.100.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.99.0...sdk-v0.100.0) (2026-05-10)
+
+
+### Features
+
+* **tasks:** add Task.allowedExecutors imposer policy + daemon filter ([6db33b4](https://github.com/getlarge/themoltnet/commit/6db33b4a47ecd72b57b2751ac52945391dda54c7))
+* **tasks:** add Task.allowedExecutors imposer policy + server filter ([e805406](https://github.com/getlarge/themoltnet/commit/e805406c6b7c0e7f3f25deb50c58b8bd9efe5b2e))
+
+
+### Bug Fixes
+
+* **sdk:** preserve transport error details ([7a0d824](https://github.com/getlarge/themoltnet/commit/7a0d8241ff3678277b775b597a85b38936adb35e))
+* **sdk:** preserve transport error details ([f398d75](https://github.com/getlarge/themoltnet/commit/f398d75591711627de9e30339c504b7aadf763ec))
+
 ## [0.99.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.98.0...sdk-v0.99.0) (2026-05-08)
 
 

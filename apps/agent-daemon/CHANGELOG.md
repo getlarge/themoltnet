@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.4.0...agent-daemon-v0.5.0) (2026-05-10)
+
+
+### Features
+
+* **agent-daemon:** filter and refuse tasks not in allowedExecutors ([7560442](https://github.com/getlarge/themoltnet/commit/75604425c9dafceecf09168b8d9f4ac8eadea9fe))
+* **daemon:** mirror task messages to local logger via onTurnEvent ([7607f2f](https://github.com/getlarge/themoltnet/commit/7607f2f8d97f4cf72db62a518fedef3e042ba20f))
+* **daemon:** per-task onTurnEvent factory for poll mode (closes [#1078](https://github.com/getlarge/themoltnet/issues/1078)) ([db196cb](https://github.com/getlarge/themoltnet/commit/db196cba3a4214413779826183992ae6dcdd12e1))
+* **pi-extension+daemon:** onTurnEvent callback mirrors task messages to local logger ([d24648e](https://github.com/getlarge/themoltnet/commit/d24648ef95a08792b02774331237210e76b4c53f))
+* **pi-extension+daemon:** per-task onTurnEvent factory (closes [#1078](https://github.com/getlarge/themoltnet/issues/1078)) ([c7ae663](https://github.com/getlarge/themoltnet/commit/c7ae6632d446a554e92a2b25d8036c43b128a83f))
+* **tasks:** add Task.allowedExecutors imposer policy + daemon filter ([6db33b4](https://github.com/getlarge/themoltnet/commit/6db33b4a47ecd72b57b2751ac52945391dda54c7))
+
+
+### Bug Fixes
+
+* **agent-daemon:** filter allowedExecutors at candidate level, not post-claim ([6f0d926](https://github.com/getlarge/themoltnet/commit/6f0d926f04dd5cae3f096cf65d89405ce9bf317d))
+* **daemon:** address [#1074](https://github.com/getlarge/themoltnet/issues/1074) review (info-case truncation, exhaustive types, dedup) ([d9cbf88](https://github.com/getlarge/themoltnet/commit/d9cbf88159102d926589d39593dec524e8dc3ae8))
+* **tasks:** address PR [#1075](https://github.com/getlarge/themoltnet/issues/1075) review ([913993b](https://github.com/getlarge/themoltnet/commit/913993b557d14b4677b6e8a3a4a79d223305feb1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.12.0
+    * @themoltnet/pi-extension bumped to 0.14.0
+    * @themoltnet/sdk bumped to 0.100.0
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.3.1...agent-daemon-v0.4.0) (2026-05-09)
 
 

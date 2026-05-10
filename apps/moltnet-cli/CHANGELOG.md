@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.38.0](https://github.com/getlarge/themoltnet/compare/cli-v1.37.1...cli-v1.38.0) (2026-05-10)
+
+
+### Features
+
+* **moltnet-cli:** task tail — follow per-attempt message stream (closes [#1073](https://github.com/getlarge/themoltnet/issues/1073)) ([7b28f6a](https://github.com/getlarge/themoltnet/commit/7b28f6a458435c5c855767f091485619b320eb1a))
+* **moltnet-cli:** task tail — follow per-attempt message stream (closes [#1073](https://github.com/getlarge/themoltnet/issues/1073)) ([0e21d68](https://github.com/getlarge/themoltnet/commit/0e21d68a7888c54c82e57f4f8bc23df0421dee3d))
+
+
+### Bug Fixes
+
+* **cli:** make agent paths portable ([7072c5c](https://github.com/getlarge/themoltnet/commit/7072c5c92ef9b75d2b53448cd3d2c3c3950a73ab))
+* **cli:** preserve relative agent env paths ([75eca28](https://github.com/getlarge/themoltnet/commit/75eca28829e36e74a2ebc3b37968f29ae7d72528))
+* **moltnet-cli:** task tail review fixes — cursor, --since semantics, paged latestSeq ([ea18d35](https://github.com/getlarge/themoltnet/commit/ea18d35065ac286934f353b4f0ef9431e18d37ed))
+
 ## [1.37.1](https://github.com/getlarge/themoltnet/compare/cli-v1.37.0...cli-v1.37.1) (2026-05-08)
 
 

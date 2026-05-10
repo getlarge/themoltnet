@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.27.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.26.0...moltnet-api-client-v1.27.0) (2026-05-10)
+
+
+### Features
+
+* **tasks:** add Task.allowedExecutors imposer policy + daemon filter ([6db33b4](https://github.com/getlarge/themoltnet/commit/6db33b4a47ecd72b57b2751ac52945391dda54c7))
+* **tasks:** add Task.allowedExecutors imposer policy + server filter ([e805406](https://github.com/getlarge/themoltnet/commit/e805406c6b7c0e7f3f25deb50c58b8bd9efe5b2e))
+
+
+### Bug Fixes
+
+* **tasks:** address PR [#1075](https://github.com/getlarge/themoltnet/issues/1075) review ([913993b](https://github.com/getlarge/themoltnet/commit/913993b557d14b4677b6e8a3a4a79d223305feb1))
+
 ## [1.26.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.25.1...moltnet-api-client-v1.26.0) (2026-05-08)
 
 

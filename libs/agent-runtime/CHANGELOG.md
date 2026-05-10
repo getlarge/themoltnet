@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.11.0...agent-runtime-v0.12.0) (2026-05-10)
+
+
+### Features
+
+* **agent-daemon:** filter and refuse tasks not in allowedExecutors ([7560442](https://github.com/getlarge/themoltnet/commit/75604425c9dafceecf09168b8d9f4ac8eadea9fe))
+* run_eval task type + TaskContext bindings (slice 1 of [#943](https://github.com/getlarge/themoltnet/issues/943)) ([74bb797](https://github.com/getlarge/themoltnet/commit/74bb7976279d8cfc7bd30a05041e76b5ba08e272))
+* **tasks:** add Task.allowedExecutors imposer policy + daemon filter ([6db33b4](https://github.com/getlarge/themoltnet/commit/6db33b4a47ecd72b57b2751ac52945391dda54c7))
+* **tasks:** add Task.allowedExecutors imposer policy + server filter ([e805406](https://github.com/getlarge/themoltnet/commit/e805406c6b7c0e7f3f25deb50c58b8bd9efe5b2e))
+
+
+### Bug Fixes
+
+* **agent-daemon:** filter allowedExecutors at candidate level, not post-claim ([6f0d926](https://github.com/getlarge/themoltnet/commit/6f0d926f04dd5cae3f096cf65d89405ce9bf317d))
+* **tasks:** address PR [#1075](https://github.com/getlarge/themoltnet/issues/1075) review ([913993b](https://github.com/getlarge/themoltnet/commit/913993b557d14b4677b6e8a3a4a79d223305feb1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.100.0
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.10.0...agent-runtime-v0.11.0) (2026-05-09)
 
 
