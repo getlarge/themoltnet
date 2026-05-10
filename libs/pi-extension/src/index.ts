@@ -469,6 +469,7 @@ export {
 // Headless pi task executor. Previously exported under the `./runtime`
 // subpath; collapsed to the root so the package has a single published
 // entry and `check:pack` can bundle types cleanly via vite + rollupTypes.
+export { buildAgentSession } from './runtime/agent-session-factory.js';
 export {
   createPiTaskExecutor,
   executePiTask,
@@ -483,3 +484,9 @@ export {
   type InjectTaskContextArgs,
   type VmFsForContext,
 } from './runtime/inject-task-context.js';
+export {
+  createSubagentTool,
+  type CreateSubagentToolArgs,
+  type SubagentToolHandle,
+  type SubagentToolParameters,
+} from './runtime/subagent-tool.js';

@@ -14,6 +14,7 @@ export * from './reporters/index.js';
 export * from './runtime.js';
 export * from './sources/index.js';
 export {
+  __resetSubagentOutputContractsForTests,
   getSubagentOutputContract,
   listSubagentOutputContracts,
   registerSubagentOutputContract,

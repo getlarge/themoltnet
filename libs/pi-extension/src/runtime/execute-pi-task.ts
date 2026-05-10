@@ -37,6 +37,7 @@ import {
   TaskContext,
   type TaskOutput,
   type TaskReporter,
+  taskTypeUsesSubagents,
   type TaskUsage,
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
@@ -57,6 +58,10 @@ import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import { injectTaskContext } from './inject-task-context.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
+import {
+  createSubagentTool,
+  type SubagentToolHandle,
+} from './subagent-tool.js';
 import { resolveSubmitTools } from './submit-output-tool.js';
 import {
   parseStructuredTaskOutput,
@@ -475,12 +480,39 @@ export async function executePiTask(
       }
       const injectedSkills = injectedContext.skills;
 
+      // Subagent custom tool — registered only when the task type opts
+      // in via TaskTypeEntry.usesSubagents (#1087). The subagent
+      // inherits Gondolin + moltnet_* tools but NOT this task's
+      // submit-output tool (different schema) nor the subagent tool
+      // itself (no nested delegation in v1).
+      const parentSubagentTools: ToolDefinition[] = [];
+      let subagentHandle: SubagentToolHandle | null = null;
+      if (taskTypeUsesSubagents(task.taskType)) {
+        subagentHandle = createSubagentTool({
+          mountPath,
+          piAuthDir,
+          modelHandle,
+          agentName: opts.agentName,
+          inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
+          parentRuntimeInstructor: runtimeInstructor,
+          parentTaskId: task.id,
+          parentTaskType: task.taskType,
+          parentAttemptN: attemptN,
+        });
+        parentSubagentTools.push(subagentHandle.tool);
+      }
+
       session = await buildAgentSession({
         mountPath,
         piAuthDir,
         modelHandle,
         agentName: opts.agentName,
-        customTools: [...gondolinCustomTools, ...moltnetTools, ...submitTools],
+        customTools: [
+          ...gondolinCustomTools,
+          ...moltnetTools,
+          ...submitTools,
+          ...parentSubagentTools,
+        ],
         appendSystemPrompt,
         skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
         // MoltNet-specific span attrs only — pi's OTel extension owns
