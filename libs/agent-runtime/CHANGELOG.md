@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.12.0...agent-runtime-v0.13.0) (2026-05-10)
+
+
+### Features
+
+* **agent-runtime:** subagent output contract registry ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([8fcd234](https://github.com/getlarge/themoltnet/commit/8fcd23460d520977fb8bf833a38976411b4debbc))
+* generic subagent primitive ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([46f6799](https://github.com/getlarge/themoltnet/commit/46f679968621da361d4d255896ce9d42fa2a4b01))
+* **pi-extension:** subagent custom tool + executor wiring ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([c7ab76a](https://github.com/getlarge/themoltnet/commit/c7ab76a7c1dbf10db9e64c18836c4591b2aff199))
+
+
+### Bug Fixes
+
+* address PR [#1089](https://github.com/getlarge/themoltnet/issues/1089) review feedback ([#1087](https://github.com/getlarge/themoltnet/issues/1087)) ([232a667](https://github.com/getlarge/themoltnet/commit/232a667d454dd66ff1201277646e6da31487d9dd))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.11.0...agent-runtime-v0.12.0) (2026-05-10)
 
 
