@@ -3,13 +3,15 @@ import './formats.js';
 import type { TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
+import {
+  type AsyncTaskValidationContext,
+  type TaskCreateSideEffect,
+  type TaskValidationError,
+} from './async-validation.js';
 import { BUILT_IN_TASK_TYPES } from './task-types/index.js';
 import type { TaskRef } from './wire.js';
 
-export interface TaskValidationError {
-  field: string;
-  message: string;
-}
+export type { TaskValidationError } from './async-validation.js';
 
 interface TaskTypeDefinition {
   readonly inputSchema: TSchema;
@@ -18,6 +20,14 @@ interface TaskTypeDefinition {
   readonly validateInput?: (input: unknown) => string | null;
   readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
   readonly usesSubagents?: boolean;
+  readonly validateInputAsync?: (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskValidationError[]>;
+  readonly onCreate?: (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskCreateSideEffect[]>;
 }
 
 function getTaskTypeEntry(taskType: string) {
@@ -160,4 +170,37 @@ export function validateTaskCreateRequest(args: {
     });
   }
   return errors;
+}
+
+/**
+ * Run a task type's async preflight validator (#1096) if registered.
+ * Returns an empty array when the task type has no async validator
+ * OR when its validator returned no errors. Callers MUST run this
+ * AFTER `validateTaskCreateRequest` returned no errors — async
+ * validators rely on the synchronous invariants holding.
+ */
+export async function validateTaskInputAsync(
+  taskType: string,
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskValidationError[]> {
+  const entry = getTaskTypeEntry(taskType);
+  if (!entry?.validateInputAsync) return [];
+  return entry.validateInputAsync(input, ctx);
+}
+
+/**
+ * Compute a task type's create-time side effects (#1096) if it
+ * declared any. Returns an empty array when no `onCreate` hook is
+ * registered. Callers (the task service) apply the returned effects
+ * inside the same transaction as the task insert.
+ */
+export async function getTaskCreateSideEffects(
+  taskType: string,
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskCreateSideEffect[]> {
+  const entry = getTaskTypeEntry(taskType);
+  if (!entry?.onCreate) return [];
+  return entry.onCreate(input, ctx);
 }

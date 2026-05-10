@@ -1,5 +1,10 @@
 import type { TSchema } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskCreateSideEffect,
+  TaskValidationError,
+} from '../async-validation.js';
 import { validateRubricWeights } from '../rubric.js';
 import type { SuccessCriteria } from '../success-criteria.js';
 import type { OutputKind } from '../wire.js';
@@ -80,6 +85,37 @@ interface TaskTypeEntry {
    * in their own session.
    */
   readonly usesSubagents?: boolean;
+  /**
+   * Async preflight run after sync `validateInput` at task-create
+   * time. Receives a narrow `AsyncTaskValidationContext` exposing
+   * only DB lookups (resolveTask, listTasksByCorrelation,
+   * findCorrelationSeal, resolveContextPack, resolveRenderedPack).
+   * Returns `TaskValidationError[]`; empty array means OK.
+   *
+   * Pure read-side: validators MUST NOT mutate state. Side effects
+   * a task type wants applied atomically with task creation are
+   * declared via `onCreate` instead.
+   *
+   * Server-side only — the SDK runs sync `validateInput` only.
+   * See issue #1096 for the full design.
+   */
+  readonly validateInputAsync?: (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskValidationError[]>;
+  /**
+   * Optional post-insert side effects a task type wants applied
+   * atomically with task creation. Returns the side-effect list;
+   * the task service applies them inside the same transaction as
+   * the task insert. Runs only after `validateInput` and
+   * `validateInputAsync` both pass.
+   *
+   * v1: only `sealCorrelation` is supported (see #1096).
+   */
+  readonly onCreate?: (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskCreateSideEffect[]>;
 }
 
 /**
