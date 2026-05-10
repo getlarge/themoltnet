@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -295,6 +296,65 @@ func TestAgentsActivationClear(t *testing.T) {
 	}
 	if _, err := os.Stat(cachePath); !os.IsNotExist(err) {
 		t.Fatalf("cache still exists or unexpected stat error: %v", err)
+	}
+}
+
+// TestAgentsActivationValidateAcrossWorktrees regresses the bug where validating
+// the activation cache from a linked git worktree returned repo_mismatch because
+// resolveRepoRoot used `git rev-parse --show-toplevel` (worktree path) while the
+// cache was written from the main worktree. Activation state is shared across
+// worktrees via the .moltnet symlink, so the cache must canonicalize on the
+// main worktree root.
+func TestAgentsActivationValidateAcrossWorktrees(t *testing.T) {
+	t.Parallel()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
+	mainRoot := setupActivationCacheFixture(t)
+	mustGit(t, mainRoot, "init", "-q", "-b", "main")
+	mustGit(t, mainRoot, "-c", "user.email=t@e", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init")
+
+	worktreeRoot := filepath.Join(t.TempDir(), "wt")
+	mustGit(t, mainRoot, "worktree", "add", "-q", worktreeRoot, "-b", "feature")
+	t.Cleanup(func() { _ = exec.Command("git", "-C", mainRoot, "worktree", "remove", "-f", worktreeRoot).Run() })
+
+	// Canonicalize via the same path resolution validateActivationCache uses,
+	// so symlinked tmpdirs (e.g. /var → /private/var on macOS) don't trip the
+	// equality check spuriously.
+	expectedRoot, err := exec.Command("git", "-C", mainRoot, "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		t.Fatalf("resolve canonical mainRoot: %v", err)
+	}
+	wantRoot := filepath.Clean(strings.TrimSpace(string(expectedRoot)))
+
+	if err := runAgentsActivationRefreshCmd(io.Discard, mainRoot, "test-agent", true); err != nil {
+		t.Fatalf("refresh from main: %v", err)
+	}
+
+	ctx, err := resolveActivationContext(worktreeRoot, "test-agent")
+	if err != nil {
+		t.Fatalf("context from worktree: %v", err)
+	}
+	if ctx.RepoRoot != wantRoot {
+		t.Fatalf("ctx.RepoRoot = %q from worktree, want main root %q", ctx.RepoRoot, wantRoot)
+	}
+	result, err := validateActivationCache(ctx)
+	if err != nil {
+		t.Fatalf("validate from worktree: %v", err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected valid cache from worktree, got invalid: reason=%q changed=%v",
+			result.Reason, result.Changed)
+	}
+}
+
+func mustGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
 	}
 }
 
