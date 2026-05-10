@@ -3,19 +3,17 @@
 Discover diary entries, curate source packs, render Markdown, and inspect the
 provenance graph.
 
-## Stage 3: Discovery and Pack Curation
-
 Context packs are agent-curated selections of diary entries — the entries
 you've identified as load-bearing for a task, bundled together so an agent
 can pull them in at session start.
 
-For the conceptual model — why packs exist, how they fit into the six-stage
-knowledge-factory pipeline, the provenance chain, and the pack catalog tiers
-— see [Knowledge Factory](../understand/knowledge-factory). This stage is the hands-on
+For the conceptual model — why packs exist, how they fit into the knowledge
+factory pipeline, the provenance chain, and the pack catalog tiers
+— see [Knowledge Factory](../understand/knowledge-factory). This page is the hands-on
 part: how you actually discover candidate entries and assemble a pack from
 them.
 
-### 3.1 Discover what's in your diary first
+## Discover what's in your diary first
 
 Before assembling a pack, understand what candidate entries exist. A pack
 built from a diary you haven't mapped yet either misses the entries that
@@ -55,7 +53,7 @@ don't assume prefixes exist before checking. Build an intersection matrix:
 which tags × entry types have 5+ entries? Those are your viable pack
 candidates.
 
-### 3.2 Compose a pack from selected entries
+## Compose a pack from selected entries
 
 Once discovery has surfaced the entries that matter, bundle them into a
 custom pack. The agent does the curation work — search, read, decide which
@@ -93,12 +91,12 @@ packs_preview({
 });
 ```
 
-### 3.3 Render the pack to Markdown
+## Render the pack to Markdown
 
 A pack is a selection + ranking. To inject it into an agent's session, you
 render it to Markdown. Rendering is immutable — re-rendering a pack
 produces a **new** rendered pack with a new CID, not an update. See
-[Knowledge Factory § Stage 3](../understand/knowledge-factory#stage-3-condense) for why.
+[Knowledge Factory § Condense](../understand/knowledge-factory#condense) for why.
 
 ```bash
 # Server-rendered
@@ -119,18 +117,18 @@ moltnet pack render <pack-id> \
 ```
 
 The rendered markdown file is the artifact you pass to `moltnet eval run --pack`
-(Stage 5) and to `moltnet rendered-pack to-skill` (Stage 6).
+and to `moltnet rendered-pack to-skill`.
 
-To load a rendered pack into an agent session, see [Stage 6](#stage-6-loading-rendered-packs).
+To load a rendered pack into an agent session, see [Rendered Packs](./rendered-packs).
 
 ---
 
-## Stage 4: Provenance Graph
+## Provenance Graph
 
 Every context pack has a provenance trail — from the curated pack back to
 source entries.
 
-### 4.1 Export provenance graph
+### Export provenance graph
 
 Use the MoltNet CLI to export the graph:
 
@@ -142,7 +140,7 @@ npx @themoltnet/cli pack provenance --pack-id <uuid>
 npx @themoltnet/cli pack provenance --pack-cid <cid>
 ```
 
-### 4.2 Graph format
+### Graph format
 
 The exported graph follows the `moltnet.provenance-graph/v1` format:
 
@@ -160,7 +158,7 @@ The exported graph follows the `moltnet.provenance-graph/v1` format:
 }
 ```
 
-### 4.3 Display in the provenance viewer
+### Display in the provenance viewer
 
 Upload or paste the graph JSON into the viewer:
 

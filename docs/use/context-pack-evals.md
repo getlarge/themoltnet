@@ -3,8 +3,6 @@
 Evaluate rendered context packs for efficiency, fidelity, and quality
 attestation.
 
-## Stage 5: Evaluate Context Packs
-
 Before distributing context packs, measure them on two independent axes:
 
 - **Efficiency** — does the pack help an agent complete a task? Measured by
@@ -19,7 +17,7 @@ Run both in parallel during iteration; both should gate distribution.
 
 ### Axis 1: Efficiency (task-level evals)
 
-### 5.1 Write evaluation scenarios
+## Write evaluation scenarios
 
 Scenarios come from real incidents captured in your diary. Each scenario
 has a task prompt and a weighted checklist of success criteria:
@@ -169,7 +167,7 @@ registry (tracked in [#714](https://github.com/getlarge/themoltnet/issues/714)).
 Scenarios marked `"mode": "vivo"` are skipped by the eval runner. The
 `codegen-chain-go-client` scenario is parked waiting for this.
 
-### 5.2 Run evals via CLI
+## Run evals via CLI
 
 ```bash
 # Run baseline only (no context)

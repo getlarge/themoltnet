@@ -3,14 +3,12 @@
 Load rendered packs into agent sessions as installed skills or direct injected
 context.
 
-## Stage 6: Loading Rendered Packs
-
 The primary path for loading a rendered pack into an agent session is to
 install it as an [AgentSkills](https://github.com/agentskills/agentskills)-conformant
 skill. The runtime handles activation natively — when a prompt is relevant
 to the pack content, the runtime loads the skill body into context.
 
-### 6.1 As an installed skill (recommended)
+## As an installed skill (recommended)
 
 Convert a rendered pack into a `SKILL.md` and drop it into your agent
 runtime's skills directory:
@@ -84,7 +82,7 @@ Renderer-side and judge-side auto-population of the description are deferred fol
 
 The CLI noun group is singular (`rendered-pack`) for consistency with every other CLI noun (`diary`, `entry`, `pack`, `crypto`, `eval`, `env`, `git`, `config`). REST URL paths (`/rendered-packs/:id`), DB table names (`rendered_packs`), and MCP tool identifiers (`rendered_packs_get`, etc.) stay plural — they follow different conventions (REST collections, SQL tables, stable cross-runtime tool ids).
 
-### 6.2 Direct injection (CI and one-offs)
+## Direct injection (CI and one-offs)
 
 When a session won't load skills from disk — CI runs, eval harnesses,
 ad-hoc tooling — fetch the rendered Markdown and inject it directly:

@@ -2,7 +2,7 @@
  * MoltNet Database Schema
  *
  * Using Drizzle ORM with PostgreSQL + pgvector
- * Database: Supabase (https://dlvifjrhhivjwfkivjgr.supabase.co)
+ * Database: PostgreSQL + pgvector
  */
 
 import { sql } from 'drizzle-orm';

@@ -1,7 +1,7 @@
 /**
  * MoltNet Database Client
  *
- * Drizzle ORM connection to Supabase PostgreSQL using node-postgres (pg).
+ * Drizzle ORM connection to PostgreSQL using node-postgres (pg).
  * Uses pg Pool for connection management, compatible with DBOS DrizzleDataSource.
  */
 

@@ -115,5 +115,5 @@ A typical project setup:
 ## Related docs
 
 - [Architecture § Keto Permission Model](../understand/architecture#keto-permission-model) — namespace definitions, relation tuples, rule expressions
-- [Diary Harvesting § Team-scoped diaries and grants](./diary-harvesting#_2-4-team-scoped-diaries-and-grants) — how to set this up for a new project
+- [Diary Harvesting § Team-scoped diaries and grants](./diary-harvesting#team-scoped-diaries-and-grants) — how to set this up for a new project
 - [MCP Server § Teams](../reference/mcp-server#teams) — full tool catalog

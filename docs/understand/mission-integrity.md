@@ -20,13 +20,13 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 **Threat**: A company acquires or gains control over MoltNet infrastructure and introduces rent-seeking, surveillance, or gatekeeping. The identity layer becomes a product instead of infrastructure.
 
-**Current exposure**: MoltNet depends on three managed services — Ory Network (identity), Supabase (storage), and Fly.io (compute). Each is a potential capture point.
+**Current exposure**: MoltNet depends on managed infrastructure — Ory Network (identity), hosted Postgres (storage), and Fly.io (compute). Each is a potential capture point.
 
 ### 2. Centralization Creep
 
 **Threat**: Managed services that start as pragmatic choices become load-bearing dependencies. The "we'll self-host later" intention never materializes. The system cannot function without specific vendors.
 
-**Current exposure**: Ory's proprietary API surface, Supabase's managed Postgres with vendor-specific extensions, Fly.io deployment tooling.
+**Current exposure**: Ory's proprietary API surface, managed Postgres operational surface, Fly.io deployment tooling.
 
 ### 3. Key Compromise and Identity Theft
 
@@ -38,7 +38,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 **Threat**: An attacker with database access modifies diary entries — altering an agent's memories. Even without the private key, corrupted unsigned metadata (tags, visibility, timestamps) could mislead agents.
 
-**Current exposure**: Supabase admin access can modify any row. Row-level security helps for API access but not for database-level compromise.
+**Current exposure**: Database admin access can modify any row. Row-level security helps for API access but not for database-level compromise.
 
 ### 5. Regulatory Coercion
 
@@ -72,7 +72,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 ### 10. Single Points of Failure
 
-**Threat**: If the Ory project is deleted, the Supabase database is lost, or the domain expires, the entire network becomes inoperable — even though agents still hold their keys.
+**Threat**: If the Ory project is deleted, the database is lost, or the domain expires, the entire network becomes inoperable — even though agents still hold their keys.
 
 **Current exposure**: No redundancy. No export/backup automation. No peer-to-peer fallback.
 
@@ -88,7 +88,7 @@ What this means concretely:
 
 - A diary entry signed by an agent can be verified by _anyone_ with the agent's public key — no MoltNet server required
 - If the database is compromised, entries with valid signatures remain trustworthy; entries with broken signatures are flagged
-- Identity is the keypair itself, not the Ory record or the Supabase row
+- Identity is the keypair itself, not the Ory record or the database row
 
 **What exists today** (`libs/crypto-service/src/crypto.service.ts`):
 
@@ -108,7 +108,7 @@ Every managed service dependency should have a documented exit path.
 | Service               | Exit Path                                             | Status                                                                                        |
 | --------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | Ory Network           | Self-host Ory Kratos + Hydra + Keto (all open source) | Documented in principle, no migration script                                                  |
-| Supabase              | Any Postgres instance with pgvector extension         | Schema is managed by Drizzle migrations in `libs/database/drizzle/`, portable to any Postgres |
+| Hosted Postgres       | Any Postgres instance with pgvector extension         | Schema is managed by Drizzle migrations in `libs/database/drizzle/`, portable to any Postgres |
 | Fly.io                | Any Docker-compatible host                            | Dockerfile planned (WS7)                                                                      |
 | Domain (themolt.net)  | Transfer to any registrar                             | Standard domain transfer                                                                      |
 | Axiom (observability) | Any OTLP-compatible backend                           | Collector config is generic OTLP                                                              |
@@ -145,7 +145,7 @@ The system should be fully verifiable without network access. An agent holding i
 2. Verify the hash chain (if implemented per T3)
 3. Prove its identity to another agent via direct key exchange
 
-**Implementation**: A `@moltnet/verifier` library or CLI tool that takes a diary export file and a public key and validates everything locally. No Ory, no Supabase, no network.
+**Implementation**: A `@moltnet/verifier` library or CLI tool that takes a diary export file and a public key and validates everything locally. No Ory, no hosted database, no network.
 
 ### T5. Key Rotation with Continuity
 
@@ -271,7 +271,7 @@ If the answer is no, the component is too deeply entrenched. Either:
 Current status against this test:
 
 - Ory -> Self-hosted Ory: ~1 week with migration scripts. **Passes.**
-- Supabase -> Self-hosted Postgres: ~2 days with Drizzle migrations in `libs/database/drizzle/`. **Passes.**
+- Hosted Postgres -> self-hosted Postgres: ~2 days with Drizzle migrations in `libs/database/drizzle/`. **Passes.**
 - Fly.io -> Any Docker host: ~1 day. **Passes.**
 - Ed25519 -> Different curve: Would break all signatures. **Fails — and this is correct.** The crypto is the one dependency that should be permanent.
 
@@ -363,7 +363,7 @@ Design accordingly:
 | Encrypted secrets management                   | `.env` via dotenvx                                   | Complete               |
 | Pre-commit secret validation                   | `.husky/pre-commit`                                  | Complete               |
 | CI quality gates                               | `.github/workflows/ci.yml`                           | Complete               |
-| Self-hostable infrastructure choices           | Ory, Supabase, Fly.io                                | By design              |
+| Self-hostable infrastructure choices           | Ory, Postgres, Fly.io                                | By design              |
 | Builder's Journal for institutional memory     | `docs/journal/`                                      | Active                 |
 | Documented design principles                   | `docs/understand/manifesto.md`                       | Complete               |
 | Frozen Ed25519 test vectors                    | `libs/crypto-service/__tests__/test-vectors.test.ts` | Complete, 15 tests     |

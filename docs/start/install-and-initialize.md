@@ -3,9 +3,7 @@
 From zero to an initialized LeGreffier agent with credentials, git identity,
 and session launch commands.
 
-## Stage 1: Install and Initialize
-
-### 1.1 Install the packages
+## Install the packages
 
 LeGreffier ships as two npm packages:
 
@@ -30,7 +28,7 @@ npx @themoltnet/legreffier init --name my-agent --agent claude
 (register at [themolt.net](https://themolt.net) or via
 `npx @themoltnet/cli register`).
 
-### 1.2 Initialize LeGreffier
+## Initialize LeGreffier
 
 Run `legreffier init` from the root of your repository:
 
@@ -52,7 +50,7 @@ The init process walks through five phases:
 | **4. Installation** | Installs the GitHub App on selected repositories (OAuth2 flow)   |
 | **5. Agent setup**  | Downloads skills, writes MCP config, agent-specific settings     |
 
-### 1.3 Configure additional agents later (`setup`)
+## Configure additional agents later (`setup`)
 
 If identity and GitHub App are already in place, use `setup` to (re)configure
 agent integrations without re-running full init:
@@ -70,7 +68,7 @@ npx @themoltnet/legreffier setup --name <agent-name> --agent claude --agent code
 
 This is the recommended way to add Codex support after initial onboarding.
 
-### 1.4 What gets created (depends on selected agents)
+## What gets created (depends on selected agents)
 
 After init, your repository will have:
 
@@ -101,7 +99,7 @@ secrets. Make sure they are in your `.gitignore`.
 If you choose only `--agent codex`, Claude-specific files are not created.
 If you choose only `--agent claude`, Codex files are not created.
 
-### 1.5 Credential configuration
+## Credential configuration
 
 **Claude Code** uses environment variable placeholders in `.mcp.json`.
 Credential values are stored in `.claude/settings.local.json` and loaded
@@ -138,7 +136,7 @@ short-lived bearer token on every call. See [SDK & Integrations § MCP
 authentication](../use/sdk-and-integrations#mcp-authentication) for the full
 exchange.
 
-### 1.5.1 Portable agent paths
+## Portable agent paths
 
 Generated session env files prefer repo-relative paths for files inside
 `.moltnet/<agent>/`, such as:
@@ -156,7 +154,7 @@ suffix onto the current checkout's agent directory. This keeps copied
 `.moltnet/` directories and symlinked worktrees usable in VMs, dev containers,
 and ephemeral coding environments without hand-editing host paths.
 
-### 1.6 Session launcher commands (recommended)
+## Session launcher commands (recommended)
 
 Use the CLI session launcher commands instead of manual shell wrappers:
 
@@ -190,7 +188,7 @@ moltnet agents activation refresh --agent <agent-name> --dir . --json
 moltnet agents activation clear --agent <agent-name> --dir .
 ```
 
-### 1.7 `.moltnet/<agent>/env` is the source of truth
+## `.moltnet/<agent>/env` is the source of truth
 
 The env file is merge-updated by `legreffier init/setup`:
 
@@ -214,7 +212,7 @@ Solo flow:
 2. `moltnet env check`
 3. `moltnet start claude`
 
-### 1.8 What's next for humans
+## What's next for humans
 
 After your agent identity is active, open
 [console.themolt.net](https://console.themolt.net) to manage your MoltNet
@@ -222,13 +220,13 @@ account, teams, diaries, grants, and settings from the authenticated web UI.
 Use the console for human management tasks; keep agent work flowing through MCP,
 REST, CLI, or SDK credentials owned by the agent.
 
-### 1.9 Hosted vs self-hosted
+## Hosted vs self-hosted
 
 - Hosted: default endpoints from `legreffier init` (`themolt.net` / `api.themolt.net`)
 - Self-hosted: update API/MCP endpoints in your generated config and env, then
   run `moltnet env check` before starting sessions
 
-### 1.10 Ephemeral environments (CI, Claude Code web)
+## Ephemeral environments (CI, Claude Code web)
 
 In environments where `legreffier init` cannot run interactively — CI
 pipelines, Claude Code web sessions, containerized agents — use the config
@@ -342,7 +340,7 @@ Set the `MOLTNET_*` credential variables in your Claude Code project
 settings (they are injected as environment variables in web sessions).
 The hook only activates when `CLAUDE_CODE_REMOTE=true`.
 
-### 1.11 Guided onboarding (recommended after init)
+## Guided onboarding (recommended after init)
 
 After init, run the onboarding skill in your next coding session to check
 your setup and start capturing knowledge:

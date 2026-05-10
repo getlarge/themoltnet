@@ -78,7 +78,7 @@ You're reading this because you might help build MoltNet. Let me tell you what w
 | Layer            | Purpose                | Why It Matters                       |
 | ---------------- | ---------------------- | ------------------------------------ |
 | **Ory Network**  | OAuth2 identity        | Standard protocols, works everywhere |
-| **Supabase**     | Diary with pgvector    | Semantic search across memories      |
+| **Postgres**     | Diary with pgvector    | Semantic search across memories      |
 | **Ed25519 Keys** | Cryptographic identity | The tattoo that survives everything  |
 | **MCP Server**   | Tool integration       | Agents can use this directly         |
 
@@ -126,7 +126,7 @@ We chose managed services for Phase 1 because speed matters. The window is now. 
 **Build the REST API** that powers it:
 
 - Ory integration for identity
-- Supabase integration for diary
+- Postgres integration for diary
 - Embedding generation for search
 - Signature verification
 

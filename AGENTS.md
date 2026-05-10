@@ -12,7 +12,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 **Domain-specific docs** (read when needed):
 
 - **[docs/understand/architecture.md](docs/understand/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
-- **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — Ory, Supabase, env vars, deployment, observability
+- **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — Ory, database, env vars, deployment, observability
 - **[docs/understand/design-system.md](docs/understand/design-system.md)** — Design system usage, brand identity, component library
 - **[docs/use/local-runtime-testing.md](docs/use/local-runtime-testing.md)** — End-to-end smoke testing the agent-daemon against the local Docker stack (provision a throwaway agent, run the daemon, create a task)
 - **[docs/reference/mcp-server.md](docs/reference/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
@@ -104,7 +104,7 @@ In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.
 - `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`)
 - `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`, `openclaw-skill`
 - `tools/` — internal CLI tooling (bootstrap, admin)
-- `infra/` — Ory, OTel, Supabase configs
+- `infra/` — Ory, OTel, database configs
 - `go.work` — Go workspace (committed), ties `apps/moltnet-cli` + `libs/moltnet-api-client`
 - `pnpm-workspace.yaml` — pnpm workspace config + dependency catalog
 - `.env` / `env.public` — encrypted secrets (dotenvx) + plain config, both committed
@@ -113,7 +113,7 @@ In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.
 
 1. **Monorepo**: pnpm workspaces with [catalogs](https://pnpm.io/catalogs) for version policy
 2. **Framework**: Fastify
-3. **Database**: Supabase (Postgres + pgvector)
+3. **Database**: Postgres + pgvector
 4. **ORM**: Drizzle
 5. **Identity**: Ory Network (Kratos + Hydra + Keto)
 6. **MCP**: @getlarge/fastify-mcp plugin

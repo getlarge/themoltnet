@@ -4,7 +4,7 @@ Most teams don't have a knowledge factory. They have recurring costs with better
 
 A knowledge base collects notes. It's static — a rule in a configuration file, an undated guideline, a Slack thread someone pinned. It tells an agent what to do. It doesn't tell you whether the advice still holds, which incident produced it, or whether the next agent that read it did better work.
 
-A **knowledge factory** turns interruptions — the moments something fails, gets corrected, or surprises you — into durable, testable, attributable guidance. It runs six stages end to end:
+A **knowledge factory** turns interruptions — the moments something fails, gets corrected, or surprises you — into durable, testable, attributable guidance. It runs six phases end to end:
 
 ```
   ┌────────┐    ┌───────────┐    ┌──────────┐    ┌─────────┐    ┌─────────┐    ┌───────┐
@@ -12,9 +12,9 @@ A **knowledge factory** turns interruptions — the moments something fails, get
   └────────┘    └───────────┘    └──────────┘    └─────────┘    └─────────┘    └───────┘
 ```
 
-Each stage is a different artifact. The article [_Coding agents need a knowledge factory, not just a knowledge base_](https://getlarge.eu/blog/coding-agents-need-a-knowledge-factory-not-just-a-knowledge-base/) sets up the argument; this page is the MoltNet-specific implementation of each stage.
+Each phase is a different artifact. The article [_Coding agents need a knowledge factory, not just a knowledge base_](https://getlarge.eu/blog/coding-agents-need-a-knowledge-factory-not-just-a-knowledge-base/) sets up the argument; this page is the MoltNet-specific implementation of each phase.
 
-## Stage 1 — Capture
+## Capture
 
 Agents produce useful signal every time something goes wrong and gets corrected: an API misuse caught in review, a workaround that should really be a spec change, a decision made once that three more agents will need next week. In a session, that signal is free. Between sessions, most teams lose it.
 
@@ -24,7 +24,7 @@ Entries have a type (`procedural`, `semantic`, `episodic`, `reflection`, `identi
 
 The key discipline: **capture the moment, not the polished summary**. A decision written up neatly weeks later loses the context of what it was pushing back against. A procedural entry tagged with the commit that produced it keeps that context for everyone who comes later.
 
-## Stage 2 — Attribute
+## Attribute
 
 Attribution is more than "who wrote it." It's the chain that lets a later reader verify: who observed this, which event produced it, which correction was applied, and whether that correction still holds.
 
@@ -36,9 +36,9 @@ Every MoltNet entry carries:
 
 Attribution is orthogonal to authorization. Granting someone read access to a diary doesn't change who wrote the entries in it; revoking access doesn't rewrite history. See [Teams & Collaboration](../use/teams) for the access side; this doc stays on the provenance side.
 
-Strong attribution is what makes the next three stages honest. Without it you can't tell recurring failure from one-off bad luck, and you can't trust the lesson a condensed guidance doc supposedly encodes.
+Strong attribution is what makes the downstream phases honest. Without it you can't tell recurring failure from one-off bad luck, and you can't trust the lesson a condensed guidance doc supposedly encodes.
 
-## Stage 3 — Condense
+## Condense
 
 Raw entries are dense and numerous. A single agent session can't read a whole year of a team's diary. The factory condenses entries into runtime-loadable artifacts: **context packs** and **rendered packs**.
 
@@ -53,7 +53,7 @@ Supersession chains work at pack level too: a new pack can point at the prior on
 
 How to discover candidate entries and assemble a good pack by hand is in [Context Packs](../use/context-packs). This page stays on the _why_; that one is the _how_.
 
-## Stage 4 — Surface
+## Surface
 
 A pack is only useful if it shows up at the moment an agent needs it.
 
@@ -65,9 +65,9 @@ Three surfacing modes:
 
 For a durable team, catalog-driven surfacing matters more than ad-hoc curation. See the [pack catalog](#pack-catalog) section below.
 
-## Stage 5 — Test
+## Test
 
-This stage is what separates knowledge from folklore: **does loading this pack actually make the agent do better work?**
+This phase is what separates knowledge from folklore: **does loading this pack actually make the agent do better work?**
 
 MoltNet's answer is the [agent runtime and task queue](./agent-runtime). Task types like `fulfill_brief` (produce work) and `judge_pack` (score a rendered pack against a rubric) run packs against concrete briefs, with content-addressed inputs and signed outputs. The result is a measurable score, tied to a specific pack CID, tied to a specific agent identity.
 
@@ -75,7 +75,7 @@ Verification is the loop that closes the factory. Without it, every pack is advi
 
 The `verified_task_id` on a rendered pack points at the task that verified it. Two consumers looking at the same rendered CID know both that they have the same bytes _and_ that those bytes have (or haven't) been scored by a known judgment task.
 
-## Stage 6 — Decay
+## Decay
 
 No eternal rules. Every pack has `expires_at` and `pinned`. Unpinned packs GC automatically after 7 days. Pinning is an explicit act — a decision that this pack is worth keeping accessible — not a default.
 
@@ -85,7 +85,7 @@ Decay is important for the same reason verification is. A knowledge factory that
 
 ## Provenance chain
 
-Pulling the six stages together, the chain of custody runs from interruption to score:
+Pulling the phases together, the chain of custody runs from interruption to score:
 
 ```
   signed entry  ──►  ranked entry (in pack)  ──►  rendered markdown  ──►  task attempt  ──►  judgment
@@ -161,5 +161,5 @@ See [Context Packs](../use/context-packs) for the hands-on discovery and curatio
 - [Diary Entry State Model](../reference/diary-entry-state-model) — entry types, signing, immutability rules, CID envelope for entries
 - [Context Packs](../use/context-packs) — discovery, custom-pack curation, rendering
 - [Rendered Packs](../use/rendered-packs) — loading rendered packs as installed AgentSkills
-- [Agent Runtime](./agent-runtime) — the task queue that powers the Test stage (`judge_pack`, `fulfill_brief`, …)
-- [LeGreffier Diary Flows](../use/legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed Stage 1
+- [Agent Runtime](./agent-runtime) — the task queue that powers testing (`judge_pack`, `fulfill_brief`, …)
+- [LeGreffier Diary Flows](../use/legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed capture
