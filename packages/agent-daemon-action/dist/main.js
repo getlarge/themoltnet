@@ -29954,12 +29954,30 @@ function problemToError(problem, statusCode) {
 //#endregion
 //#region ../../libs/sdk/src/agent-context.ts
 function unwrapResult(result) {
-	if (result.error) {
+	if (result.error !== void 0 && result.error !== null) {
 		const error = result.error;
-		throw problemToError(error, error.status ?? 500);
+		if (isProblemDetails(error)) throw problemToError(error, error.status);
+		if (error instanceof Error && result.response === void 0) {
+			const networkError = new NetworkError(error.message, { detail: error.cause ? stringifyUnknown(error.cause) : void 0 });
+			networkError.stack = error.stack;
+			throw networkError;
+		}
+		throw new MoltNetError(`Unexpected error from MoltNet API: ${stringifyUnknown(error)}`, { code: "UNKNOWN" });
 	}
 	if (result.data === void 0) throw new MoltNetError("Unexpected empty response from MoltNet API", { code: "EMPTY_RESPONSE" });
 	return result.data;
+}
+function isProblemDetails(error) {
+	if (!error || typeof error !== "object") return false;
+	return typeof error.status === "number" && ("title" in error || "detail" in error);
+}
+function stringifyUnknown(value) {
+	if (value instanceof Error) return `${value.name}: ${value.message}`;
+	try {
+		return JSON.stringify(value) ?? String(value);
+	} catch {
+		return String(value);
+	}
 }
 function unwrapRequired(result, message, code) {
 	if (result.error || !result.data) throw new MoltNetError(message, { code });
