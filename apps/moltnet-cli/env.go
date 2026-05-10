@@ -32,21 +32,33 @@ func parseEnvFile(path string) (map[string]string, error) {
 // resolveMoltnetDir finds the .moltnet/ directory, checking cwd first,
 // then falling back to the main worktree root if in a git worktree.
 func resolveMoltnetDir(cwd string) (string, error) {
+	moltnetDir, _, err := resolveMoltnetDirAndRoot(cwd)
+	return moltnetDir, err
+}
+
+// resolveMoltnetDirAndRoot returns both the .moltnet/ directory and the main
+// worktree root. When called from a linked worktree, the returned root is the
+// main worktree (parent of git-common-dir), not the linked worktree path. This
+// keeps any agent state shared across worktrees (e.g. activation cache) keyed
+// on the same root the .moltnet/ symlink actually points at, instead of
+// invalidating every time the user switches worktrees.
+func resolveMoltnetDirAndRoot(cwd string) (moltnetDir, mainRoot string, err error) {
 	candidate := filepath.Join(cwd, ".moltnet")
-	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-		return candidate, nil
+	if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+		root := canonicalizeRoot(cwd)
+		return filepath.Join(root, ".moltnet"), root, nil
 	}
 
 	// Check if we're in a git worktree
 	cmd := exec.Command("git", "rev-parse", "--git-common-dir")
 	cmd.Dir = cwd
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf(".moltnet/ not found in %s and not in a git repo", cwd)
+	out, runErr := cmd.Output()
+	if runErr != nil {
+		return "", "", fmt.Errorf(".moltnet/ not found in %s and not in a git repo", cwd)
 	}
 	gitCommonDir := strings.TrimSpace(string(out))
 	if gitCommonDir == "" || gitCommonDir == ".git" {
-		return "", fmt.Errorf(".moltnet/ not found in %s", cwd)
+		return "", "", fmt.Errorf(".moltnet/ not found in %s", cwd)
 	}
 
 	// gitCommonDir is relative or absolute — resolve it
@@ -54,12 +66,26 @@ func resolveMoltnetDir(cwd string) (string, error) {
 		gitCommonDir = filepath.Join(cwd, gitCommonDir)
 	}
 	// gitCommonDir points to .git in the main worktree; parent is the worktree root
-	mainRoot := filepath.Dir(gitCommonDir)
+	mainRoot = canonicalizeRoot(filepath.Dir(gitCommonDir))
 	candidate = filepath.Join(mainRoot, ".moltnet")
-	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-		return candidate, nil
+	if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+		// Also canonicalize the moltnet dir itself in case it's a symlink
+		// (e.g. linked worktrees frequently symlink .moltnet → main repo's
+		// .moltnet so identity files are shared across worktrees).
+		return canonicalizeRoot(candidate), mainRoot, nil
 	}
-	return "", fmt.Errorf(".moltnet/ not found in %s or main worktree %s", cwd, mainRoot)
+	return "", "", fmt.Errorf(".moltnet/ not found in %s or main worktree %s", cwd, mainRoot)
+}
+
+// canonicalizeRoot returns a stable absolute path for use as the activation
+// cache key. Resolves symlinks so the same root produced from different CWDs
+// (e.g. /var → /private/var on macOS, or a worktree resolving its main via
+// git-common-dir) compares equal.
+func canonicalizeRoot(path string) string {
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return filepath.Clean(resolved)
+	}
+	return filepath.Clean(path)
 }
 
 // resolveAgentName determines which agent to use.

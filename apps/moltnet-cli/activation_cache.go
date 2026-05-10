@@ -116,7 +116,7 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 	if err != nil {
 		return nil, fmt.Errorf("resolve dir: %w", err)
 	}
-	moltnetDir, err := resolveMoltnetDir(absDir)
+	moltnetDir, repoRoot, err := resolveMoltnetDirAndRoot(absDir)
 	if err != nil {
 		return nil, err
 	}
@@ -134,10 +134,6 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 			return nil, fmt.Errorf("read env file: %w", err)
 		}
 	}
-	repoRoot, err := resolveRepoRoot(absDir)
-	if err != nil {
-		return nil, err
-	}
 	return &activationContext{
 		MoltnetDir: moltnetDir,
 		AgentDir:   agentDir,
@@ -148,20 +144,6 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 		EnvVars:    envVars,
 		CachePath:  filepath.Join(agentDir, "activation-cache.json"),
 	}, nil
-}
-
-func resolveRepoRoot(dir string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err == nil {
-		return filepath.Clean(strings.TrimSpace(string(out))), nil
-	}
-	abs, absErr := filepath.Abs(dir)
-	if absErr != nil {
-		return "", fmt.Errorf("resolve repo root: %w", absErr)
-	}
-	return filepath.Clean(abs), nil
 }
 
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {

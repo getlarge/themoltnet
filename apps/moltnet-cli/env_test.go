@@ -78,12 +78,19 @@ func TestResolveMoltnetDir_CWD(t *testing.T) {
 	if err := os.Mkdir(moltnetDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// resolveMoltnetDir canonicalizes its return (resolves symlinks) so the
+	// activation cache key is stable across CWD spellings (e.g. /var vs
+	// /private/var on macOS). Compare to the canonical form.
+	want, err := filepath.EvalSymlinks(moltnetDir)
+	if err != nil {
+		t.Fatalf("eval symlinks: %v", err)
+	}
 	got, err := resolveMoltnetDir(dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != moltnetDir {
-		t.Errorf("got %q, want %q", got, moltnetDir)
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
@@ -283,8 +290,14 @@ func TestStartDryRun(t *testing.T) {
 	if !strings.Contains(stdout, "MY_VAR=hello") {
 		t.Errorf("expected MY_VAR in dry-run output, got: %s", stdout)
 	}
-	// GIT_CONFIG_GLOBAL should be resolved to an absolute path
-	absGitconfig := filepath.Join(dir, ".moltnet", "test-agent", "gitconfig")
+	// GIT_CONFIG_GLOBAL should be resolved to an absolute path. dir is
+	// canonicalized so the expectation matches the canonical form returned
+	// by resolveMoltnetDir (e.g. /var → /private/var on macOS).
+	canonicalDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatalf("eval symlinks: %v", err)
+	}
+	absGitconfig := filepath.Join(canonicalDir, ".moltnet", "test-agent", "gitconfig")
 	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL="+absGitconfig) {
 		t.Errorf("expected absolute GIT_CONFIG_GLOBAL path, got: %s", stdout)
 	}
