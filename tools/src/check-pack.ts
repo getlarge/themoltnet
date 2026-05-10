@@ -120,9 +120,21 @@ function checkPackage(pkgDir: string): boolean {
   // Check for workspace package references in .d.ts files.
   // @moltnet/* packages are private workspace packages not published to npm;
   // any reference in a published .d.ts file will cause TS errors for consumers.
+  // Only match real module specifiers (import/export-from, dynamic import,
+  // triple-slash reference) — substring matches inside JSDoc/comments are
+  // false positives because dts bundlers preserve source comments verbatim.
   const dtsFiles = paths.filter((p) => p.endsWith('.d.ts'));
   if (dtsFiles.length > 0) {
     const dtsLeaks: string[] = [];
+    // Strip /* ... */ block comments and // line comments before matching, so
+    // that mentions of @moltnet/* in JSDoc don't count as imports.
+    const stripComments = (src: string): string =>
+      src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    // Module specifier patterns covering: `from '@moltnet/x'`,
+    // `import('@moltnet/x')`, `require('@moltnet/x')`, and
+    // `/// <reference types="@moltnet/x" />`.
+    const importRe =
+      /(?:from|import|require)\s*\(?\s*['"]@moltnet\/[^'"]+['"]|<reference\s+types=['"]@moltnet\/[^'"]+['"]/g;
     for (const dtsPath of dtsFiles) {
       const fullPath = join(pkgDir, dtsPath);
       let content: string;
@@ -132,11 +144,11 @@ function checkPackage(pkgDir: string): boolean {
         // file listed in tarball manifest but not on disk — skip
         continue;
       }
-      const leakLines = content
-        .split('\n')
-        .filter((l) => l.includes('@moltnet/'));
-      if (leakLines.length > 0) {
-        dtsLeaks.push(`  ${dtsPath}: ${leakLines.length} workspace import(s)`);
+      const matches = stripComments(content).match(importRe);
+      if (matches && matches.length > 0) {
+        dtsLeaks.push(
+          `  ${dtsPath}: ${matches.length} workspace import(s) — e.g. ${matches[0]}`,
+        );
       }
     }
     if (dtsLeaks.length > 0) {
