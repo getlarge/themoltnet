@@ -673,7 +673,7 @@ export function createMoltNetTools(
           );
         }
         targetDiaryId = taskCtx.diaryId;
-        // task:* namespace — see docs/agent-runtime.md "Task provenance
+        // task:* namespace — see docs/understand/agent-runtime.md "Task provenance
         // tags" for the full convention. All task-related provenance
         // shares this prefix so `moltnet_diary_tags --prefix task:` and
         // `moltnet_list_entries --tags task:type:<type>` filter cleanly.

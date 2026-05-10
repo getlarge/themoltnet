@@ -11,5 +11,6 @@ client. The daemon (`@moltnet/agent-daemon`) wires it up.
 
 **For the user-facing model — task lifecycle, producer/judge
 separation, self-verification flow, source/reporter options — see
-[`docs/agent-runtime.md`](../../docs/agent-runtime.md).** This README is
-the contributor-facing landing page only.
+[`docs/understand/agent-runtime.md`](../../docs/understand/agent-runtime.md)
+and [`docs/use/agent-executors.md`](../../docs/use/agent-executors.md).**
+This README is the contributor-facing landing page only.

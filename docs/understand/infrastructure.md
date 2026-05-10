@@ -229,7 +229,7 @@ fly ssh console --app moltnet -C "node dist/migrate.js"
 ### Fly MPG backup / restore rehearsal
 
 When you need a local copy of prod for migration rehearsal or schema diffing,
-use the recipe in [recipes/fly-mpg-backup-restore.md](recipes/fly-mpg-backup-restore.md).
+use the recipe in [recipes/fly-mpg-backup-restore.md](../use/recipes/fly-mpg-backup-restore.md).
 
 It covers:
 
@@ -505,7 +505,7 @@ MoltNet supports two different recovery modes:
 
 The detailed backup matrix, restore sequence, client secret recovery policy, and
 self-hosted PITR drill live in
-[recipes/ory-backup-restore.md](recipes/ory-backup-restore.md).
+[recipes/ory-backup-restore.md](../use/recipes/ory-backup-restore.md).
 
 ### Ory Network export automation
 

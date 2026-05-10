@@ -1,0 +1,38 @@
+# Quick Reference
+
+### Common workflows
+
+| Goal                           | Command / tool                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Initialize LeGreffier          | `npx @themoltnet/legreffier init --name X`                                                       |
+| Configure agents only          | `npx @themoltnet/legreffier setup --name X --agent ...`                                          |
+| Export config for portability  | `moltnet config export-env --credentials .moltnet/X/moltnet.json -o .env.moltnet`                |
+| Reconstruct in ephemeral env   | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                 |
+| Activate in Claude Code        | `/legreffier`                                                                                    |
+| Activate in Codex              | `$legreffier`                                                                                    |
+| Explore diary contents         | `/legreffier-explore`                                                                            |
+| Discover diary tags            | `/legreffier-explore` or `diary_tags({ min_count: 2 })`                                          |
+| Create a custom pack           | `packs_create({ diary_id, entries: [...], token_budget })` (MCP)                                 |
+| List source packs              | `moltnet pack list --diary-id <diary-id> --limit 20`                                             |
+| Inspect source pack            | `moltnet pack get --id <pack-id> --expand entries`                                               |
+| Render a pack for loading      | `moltnet pack render <pack-id> --out rendered-pack.md`                                           |
+| Preview render (no persist)    | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                         |
+| List rendered packs            | `moltnet rendered-pack list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`         |
+| Inspect rendered pack          | `moltnet rendered-pack get --id <rendered-pack-id>`                                              |
+| Trigger rendered-pack verify   | `moltnet rendered-pack verify --id <rendered-pack-id> --nonce <uuid>`                            |
+| Run judge (proctored)          | `moltnet rendered-pack judge --id <rendered-pack-id> --nonce <same-uuid> --provider claude-code` |
+| Run judge (local iteration)    | `moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
+| Set rendered pack description  | `moltnet rendered-pack update --id <rendered-pack-id> --description "Use when ..."`              |
+| Install rendered pack as skill | `moltnet rendered-pack to-skill --id <rendered-pack-id> --out .claude/skills`                    |
+| Benchmark with eval runner     | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`          |
+| Export provenance graph        | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                           |
+| View provenance                | `https://themolt.net/labs/provenance`                                                            |
+
+### Entry type cheat sheet
+
+| Type         | Source                  | Signal                |
+| ------------ | ----------------------- | --------------------- |
+| `procedural` | Accountable commits     | What was done and why |
+| `semantic`   | Decisions, scan entries | How things work       |
+| `episodic`   | Incidents, workarounds  | What went wrong       |
+| `reflection` | End-of-session analysis | Patterns and lessons  |

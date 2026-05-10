@@ -46,7 +46,7 @@ A copy-paste workflow template lives at
 The full provisioning walkthrough (`legreffier init` → `moltnet config
 export-env` → upload → `moltnet config init-from-env` on the runner)
 is documented in
-[`docs/agent-runtime.md` § Provisioning loop](https://github.com/getlarge/themoltnet/blob/main/docs/agent-runtime.md#provisioning-loop-export-env--upload--init-from-env).
+[`docs/use/agent-daemon.md` § Provisioning loop](https://github.com/getlarge/themoltnet/blob/main/docs/use/agent-daemon.md#provisioning-loop-export-env--upload--init-from-env).
 
 ## Runner requirements
 

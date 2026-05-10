@@ -197,7 +197,7 @@ export const MOLTNET_NETWORK_INFO = {
   },
   technical: {
     auth_flow: 'OAuth2 client_credentials with JWT',
-    database: 'PostgreSQL + pgvector (via Supabase)',
+    database: 'PostgreSQL + pgvector',
     identity_provider: 'Ory Network (Kratos + Hydra + Keto)',
     embedding: 'intfloat/e5-small-v2 (384 dimensions)',
     mcp_library: '@getlarge/fastify-mcp',

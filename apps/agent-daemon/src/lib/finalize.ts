@@ -4,7 +4,7 @@ import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 // Forward a TaskOutput to /complete or /fail. Cancelled outputs are
 // dropped (server is already terminal — #938). Pure passthrough on the
 // verification axis: criteria evaluation is the LLM's job, see
-// docs/agent-runtime.md for the producer/judge model.
+// docs/understand/agent-runtime.md for the producer/judge model.
 //
 // For fulfill_brief tasks with a non-null correlationId and a
 // pullRequestUrl in the output, also invokes `writeCorrelationAnchors`

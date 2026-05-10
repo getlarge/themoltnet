@@ -5,27 +5,13 @@ import llmstxt from 'vitepress-plugin-llms';
 // Links to these files appear inside published pages (markdown cross-refs that
 // still make sense on GitHub's raw view); they must survive the build-time
 // dead-link check, so the same list drives both srcExclude and ignoreDeadLinks.
-const INTERNAL_DOCS = [
-  'manifesto',
-  'builders-manifesto',
-  'builder-journal',
-  'agent-coordination',
-  'mission-integrity',
-  'identity-soul-diary',
-  'openclaw-integration',
-  'task-lifecycle',
-  'sandbox',
-  'human-participation',
-  'doc-maintenance',
-  'infrastructure',
-] as const;
+const INTERNAL_DOCS = [] as const;
 const INTERNAL_SUBTREES = [
   'journal',
   'research',
   'superpowers',
   'rendered-packs',
   'demos',
-  'recipes',
 ] as const;
 
 // Match ./FOO, /FOO, FOO.md, ../FOO, etc. anywhere in the URL.
@@ -82,63 +68,76 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     siteTitle: 'MoltNet Docs',
-    nav: [{ text: 'Getting Started', link: '/getting-started' }],
+    nav: [
+      { text: 'Start', link: '/start/getting-started' },
+      { text: 'Use', link: '/use/tasks' },
+      { text: 'Understand', link: '/understand/agent-runtime' },
+      { text: 'Reference', link: '/reference/mcp-server' },
+    ],
     sidebar: [
       {
-        text: 'Getting Started',
-        link: '/getting-started',
+        text: 'Start',
+        link: '/start/getting-started',
         items: [
           {
-            text: 'Stage 1 · Install and Initialize',
-            link: '/getting-started#stage-1-install-and-initialize',
+            text: 'Getting Started',
+            link: '/start/getting-started',
           },
           {
-            text: 'Stage 2 · Task Harvesting',
-            link: '/getting-started#stage-2-task-harvesting',
+            text: 'Install and Initialize',
+            link: '/start/install-and-initialize',
           },
           {
-            text: 'Stage 3 · Discovery and Pack Curation',
-            link: '/getting-started#stage-3-discovery-and-pack-curation',
-          },
-          {
-            text: 'Stage 4 · Provenance Graph',
-            link: '/getting-started#stage-4-provenance-graph',
-          },
-          {
-            text: 'Stage 5 · Evaluate Context Packs',
-            link: '/getting-started#stage-5-evaluate-context-packs',
-          },
-          {
-            text: 'Stage 6 · Loading Rendered Packs',
-            link: '/getting-started#stage-6-loading-rendered-packs',
-          },
-          {
-            text: 'Commit Authorship Modes',
-            link: '/getting-started#commit-authorship-modes',
-          },
-          {
-            text: 'Quick Reference',
-            link: '/getting-started#quick-reference',
+            text: 'First Runtime Task',
+            link: '/start/first-task',
           },
         ],
       },
       {
-        text: 'Guides',
+        text: 'Use',
         items: [
-          { text: 'SDK & Integrations', link: '/sdk-and-integrations' },
-          { text: 'MCP Server', link: '/mcp-server' },
-          { text: 'Agent Runtime', link: '/agent-runtime' },
-          { text: 'Teams & Collaboration', link: '/teams' },
-          { text: 'LeGreffier Diary Flows', link: '/legreffier-flows' },
+          { text: 'Tasks', link: '/use/tasks' },
+          { text: 'Agent Daemon', link: '/use/agent-daemon' },
+          { text: 'Agent Executors', link: '/use/agent-executors' },
+          { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
+          { text: 'Teams & Collaboration', link: '/use/teams' },
+          { text: 'Diary Harvesting', link: '/use/diary-harvesting' },
+          { text: 'LeGreffier Diary Flows', link: '/use/legreffier-flows' },
+          { text: 'Context Packs', link: '/use/context-packs' },
+          { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
+          { text: 'Rendered Packs', link: '/use/rendered-packs' },
+          { text: 'Local Runtime Testing', link: '/use/local-runtime-testing' },
+        ],
+      },
+      {
+        text: 'Understand',
+        items: [
+          { text: 'Agent Runtime Concepts', link: '/understand/agent-runtime' },
+          { text: 'Knowledge Factory', link: '/understand/knowledge-factory' },
+          { text: 'Architecture', link: '/understand/architecture' },
+          { text: 'Manifesto', link: '/understand/manifesto' },
+          { text: 'Mission Integrity', link: '/understand/mission-integrity' },
+          { text: 'Infrastructure', link: '/understand/infrastructure' },
+          { text: 'Design System', link: '/understand/design-system' },
         ],
       },
       {
         text: 'Reference',
         items: [
-          { text: 'Knowledge Factory', link: '/knowledge-factory' },
-          { text: 'Architecture', link: '/architecture' },
-          { text: 'Diary Entry State Model', link: '/diary-entry-state-model' },
-          { text: 'Design System', link: '/design-system' },
+          { text: 'MCP Server', link: '/reference/mcp-server' },
+          { text: 'Task Reference', link: '/reference/tasks' },
+          {
+            text: 'Diary Entry State Model',
+            link: '/reference/diary-entry-state-model',
+          },
+          {
+            text: 'Commit Authorship',
+            link: '/reference/commit-authorship',
+          },
+          {
+            text: 'Quick Reference',
+            link: '/reference/quick-reference',
+          },
           {
             text: 'API Reference ↗',
             link: 'https://api.themolt.net/docs',

@@ -107,4 +107,4 @@ The CLI depends on the generated Go API client (`libs/moltnet-api-client`, modul
 
 - [MoltNet](https://themolt.net) — network overview
 - [`@themoltnet/sdk`](../../libs/sdk) — TypeScript SDK
-- [docs/mcp-server.md](../../docs/mcp-server.md) — MCP tool reference
+- [docs/reference/mcp-server.md](../../docs/reference/mcp-server.md) — MCP tool reference

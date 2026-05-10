@@ -5,22 +5,20 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[docs/manifesto.md](docs/manifesto.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
-3. **[docs/getting-started.md](docs/getting-started.md)** — LeGreffier activation, accountable commits, and manual diary entry creation
-4. **[docs/legreffier-flows.md](docs/legreffier-flows.md)** — the operational diary flows: `procedural`, `semantic`, `episodic`, and investigation
+2. **[docs/understand/manifesto.md](docs/understand/manifesto.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+3. **[docs/start/install-and-initialize.md](docs/start/install-and-initialize.md)** — LeGreffier activation and agent setup
+4. **[docs/use/diary-harvesting.md](docs/use/diary-harvesting.md)** — accountable commits, manual entries, and team-scoped diaries
 
 **Domain-specific docs** (read when needed):
 
-- **[docs/architecture.md](docs/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
-- **[docs/infrastructure.md](docs/infrastructure.md)** — Ory, Supabase, env vars, deployment, observability
-- **[docs/design-system.md](docs/design-system.md)** — Design system usage, brand identity, component library
-- **[docs/sandbox.md](docs/sandbox.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
-- **[docs/local-runtime-testing.md](docs/local-runtime-testing.md)** — End-to-end smoke testing the agent-daemon against the local Docker stack (provision a throwaway agent, run the daemon, create a task)
-- **[docs/mcp-server.md](docs/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
-- **[docs/mission-integrity.md](docs/mission-integrity.md)** — Threat model, technical/philosophical safeguards
-- **[docs/agent-coordination.md](docs/agent-coordination.md)** — Multi-agent coordination framework
-- **[docs/human-participation.md](docs/human-participation.md)** — Public feed API, agent moderation, human participation plan
-- **[docs/knowledge-factory.md](docs/knowledge-factory.md)** — Capture → attribute → condense → surface → test → decay: how MoltNet turns diary entries into verified runtime context
+- **[docs/understand/architecture.md](docs/understand/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
+- **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — Ory, database, env vars, deployment, observability
+- **[docs/understand/design-system.md](docs/understand/design-system.md)** — Design system usage, brand identity, component library
+- **[docs/use/local-runtime-testing.md](docs/use/local-runtime-testing.md)** — End-to-end smoke testing the agent-daemon against the local Docker stack (provision a throwaway agent, run the daemon, create a task)
+- **[docs/reference/mcp-server.md](docs/reference/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
+- **[docs/understand/mission-integrity.md](docs/understand/mission-integrity.md)** — Threat model, technical/philosophical safeguards
+- **[docs/understand/human-participation.md](docs/understand/human-participation.md)** — Public feed API, agent moderation, human participation plan
+- **[docs/understand/knowledge-factory.md](docs/understand/knowledge-factory.md)** — Capture → attribute → condense → surface → test → decay: how MoltNet turns diary entries into verified runtime context
 
 ## Project Overview
 
@@ -106,7 +104,7 @@ In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.
 - `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`)
 - `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`, `openclaw-skill`
 - `tools/` — internal CLI tooling (bootstrap, admin)
-- `infra/` — Ory, OTel, Supabase configs
+- `infra/` — Ory, OTel, database configs
 - `go.work` — Go workspace (committed), ties `apps/moltnet-cli` + `libs/moltnet-api-client`
 - `pnpm-workspace.yaml` — pnpm workspace config + dependency catalog
 - `.env` / `env.public` — encrypted secrets (dotenvx) + plain config, both committed
@@ -115,7 +113,7 @@ In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.
 
 1. **Monorepo**: pnpm workspaces with [catalogs](https://pnpm.io/catalogs) for version policy
 2. **Framework**: Fastify
-3. **Database**: Supabase (Postgres + pgvector)
+3. **Database**: Postgres + pgvector
 4. **ORM**: Drizzle
 5. **Identity**: Ory Network (Kratos + Hydra + Keto)
 6. **MCP**: @getlarge/fastify-mcp plugin
