@@ -18,4 +18,3 @@ install, initialize, validate, then move to the task-oriented guides.
 - [Commit authorship modes](../reference/commit-authorship.md)
 - [Quick reference](../reference/quick-reference.md)
 - [MCP tool reference](../reference/mcp-server.md)
-
