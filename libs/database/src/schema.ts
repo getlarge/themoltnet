@@ -1030,6 +1030,14 @@ export const tasks = pgTable(
     )
       .notNull()
       .default('self_declared'),
+    // Imposer-set executor pinning. Empty array = no restriction.
+    // Element shape: { provider: string, model: string }, both
+    // lowercased on the create-task path. Compared as a JSONB containment
+    // query against a daemon's advertised pair on list-tasks.
+    allowedExecutors: jsonb('allowed_executors')
+      .notNull()
+      .default(sql`'[]'::jsonb`)
+      .$type<{ provider: string; model: string }[]>(),
     queuedAt: timestamp('queued_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1071,6 +1079,12 @@ export const tasks = pgTable(
     index('tasks_claim_expires_idx')
       .on(table.claimExpiresAt)
       .where(sql`claim_expires_at IS NOT NULL`),
+    // GIN(jsonb_path_ops) supports the @> filter on `allowed_executors`
+    // used by the GET /tasks executor scope.
+    index('tasks_allowed_executors_gin_idx').using(
+      'gin',
+      sql`${table.allowedExecutors} jsonb_path_ops`,
+    ),
     check(
       'tasks_imposer_xor',
       sql`(imposed_by_agent_id IS NOT NULL) <> (imposed_by_human_id IS NOT NULL)`,

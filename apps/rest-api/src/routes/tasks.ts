@@ -140,6 +140,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           maxAttempts: request.body.maxAttempts,
           expiresInSec: request.body.expiresInSec,
           requiredExecutorTrustLevel: request.body.requiredExecutorTrustLevel,
+          allowedExecutors: request.body.allowedExecutors,
           dispatchTimeoutSec: request.body.dispatchTimeoutSec,
           runningTimeoutSec: request.body.runningTimeoutSec,
           callerId: identityId,
@@ -166,6 +167,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         querystring: ListTasksQuerySchema,
         response: {
           200: Type.Ref(TaskListResponseSchema),
+          400: Type.Ref(ValidationProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
         },
@@ -175,11 +177,28 @@ export function taskRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = getAuthContext(request);
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { provider, model } = request.query;
+      // Ajv keyword `dependentRequired` would express this declaratively
+      // but Fastify's strict-mode Ajv rejects 2019-09 keywords. Keep the
+      // check minimal: XOR over presence.
+      if (Boolean(provider) !== Boolean(model)) {
+        throw createValidationProblem(
+          [
+            {
+              field: provider ? 'model' : 'provider',
+              message: 'provider and model must be provided together',
+            },
+          ],
+          'provider and model must be provided together',
+        );
+      }
       try {
         return await fastify.taskService.list({
           teamId: request.query.teamId,
           status: request.query.status,
           taskType: request.query.taskType,
+          executorProvider: provider?.toLowerCase(),
+          executorModel: model?.toLowerCase(),
           correlationId: request.query.correlationId,
           diaryId: request.query.diaryId,
           imposedByAgentId: request.query.imposedByAgentId,

@@ -79,6 +79,7 @@ export interface TaskSummary {
   imposedByHumanId: string | null;
   acceptedAttemptN: number | null;
   requiredExecutorTrustLevel: ExecutorTrustLevel;
+  allowedExecutors: { provider: string; model: string }[];
   status: TaskStatus;
   queuedAt: string;
   completedAt: string | null;

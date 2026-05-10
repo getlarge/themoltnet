@@ -69,6 +69,12 @@ export function createTaskRepository(db: Database) {
       teamId: string;
       status?: Task['status'];
       taskType?: string;
+      // When both are provided, filter the result to tasks that either
+      // have an empty `allowed_executors` array (no restriction) or
+      // include this exact `(provider, model)` pair. Both are expected
+      // to be lowercased upstream (route handler).
+      executorProvider?: string;
+      executorModel?: string;
       correlationId?: string;
       diaryId?: string;
       imposedByAgentId?: string;
@@ -86,6 +92,20 @@ export function createTaskRepository(db: Database) {
       const filters: SQL[] = [eq(tasks.teamId, opts.teamId)];
       if (opts.status) filters.push(eq(tasks.status, opts.status));
       if (opts.taskType) filters.push(eq(tasks.taskType, opts.taskType));
+      if (opts.executorProvider && opts.executorModel) {
+        // Either no restriction set, or our pair is one of the allowed
+        // executors. JSONB containment (`@>`) is index-friendly with a
+        // GIN index on `allowed_executors`. The pair is bound as a
+        // text parameter and cast to jsonb to keep the path
+        // injection-safe (provider/model are caller-supplied strings).
+        const pairJson = JSON.stringify([
+          { provider: opts.executorProvider, model: opts.executorModel },
+        ]);
+        filters.push(sql`(
+          ${tasks.allowedExecutors} = '[]'::jsonb
+          OR ${tasks.allowedExecutors} @> ${pairJson}::jsonb
+        )`);
+      }
       if (opts.correlationId)
         filters.push(eq(tasks.correlationId, opts.correlationId));
       if (opts.diaryId) filters.push(eq(tasks.diaryId, opts.diaryId));

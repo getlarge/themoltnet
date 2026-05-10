@@ -138,6 +138,42 @@ describe('PollingApiTaskSource', () => {
     expect(list).toHaveBeenCalledTimes(2);
   });
 
+  it('forwards provider and model to the list call when both are set', async () => {
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, vi.fn()),
+      teamId: 't',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+    });
+
+    await src.claim();
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+      }),
+    );
+  });
+
+  it('throws when provider is set without model (or vice versa)', () => {
+    expect(
+      () =>
+        new PollingApiTaskSource({
+          agent: makeAgent(vi.fn(), vi.fn()),
+          teamId: 't',
+          provider: 'anthropic',
+          // model intentionally unset
+          leaseTtlSec: 60,
+        }),
+    ).toThrow(/provider and model must be set together/);
+  });
+
   it('issues one list call per task type when multiple are configured', async () => {
     const list = vi
       .fn<TasksNamespace['list']>()
@@ -196,6 +232,78 @@ describe('PollingApiTaskSource', () => {
     });
 
     await expect(src.claim()).rejects.toThrow('boom');
+  });
+
+  it('drops pinned candidates whose allowedExecutors does not include the daemon pair — never claimed', async () => {
+    // Pinned to a different model — daemon must skip silently, NOT claim
+    // and then fail. The diaryIds-style filter at listCandidates is what
+    // matters; the post-claim layer is gone.
+    const pinnedForOtherModel = makeFulfillBriefTask({
+      id: '11111111-1111-4111-8111-111111111111',
+      status: 'queued',
+      allowedExecutors: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+    });
+    const unrestricted = makeFulfillBriefTask({
+      id: '22222222-2222-4222-8222-222222222222',
+      status: 'queued',
+      allowedExecutors: [],
+    });
+    const list = vi.fn<TasksNamespace['list']>().mockResolvedValue({
+      items: [pinnedForOtherModel, unrestricted],
+      total: 2,
+    });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: unrestricted,
+      attempt: { taskId: unrestricted.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+    });
+
+    const result = await src.claim();
+    expect(result?.task.id).toBe(unrestricted.id);
+    // The pinned-for-other-model task must never have been claimed.
+    expect(claim).toHaveBeenCalledTimes(1);
+    expect(claim).toHaveBeenCalledWith(unrestricted.id, { leaseTtlSec: 60 });
+  });
+
+  it('keeps pinned candidates whose allowedExecutors includes the daemon pair', async () => {
+    const pinnedForUs = makeFulfillBriefTask({
+      id: '33333333-3333-4333-8333-333333333333',
+      status: 'queued',
+      allowedExecutors: [
+        { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        { provider: 'openai', model: 'gpt-5' },
+      ],
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [pinnedForUs], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: pinnedForUs,
+      attempt: { taskId: pinnedForUs.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+    });
+
+    const result = await src.claim();
+    expect(result?.task.id).toBe(pinnedForUs.id);
+    expect(claim).toHaveBeenCalledTimes(1);
   });
 
   it('drops candidates not matching diaryIds filter', async () => {

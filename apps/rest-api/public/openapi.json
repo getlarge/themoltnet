@@ -1160,6 +1160,13 @@
       },
       "CreateTaskBody": {
         "properties": {
+          "allowedExecutors": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutorRef"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
           "correlationId": {
             "format": "uuid",
             "type": "string"
@@ -2490,6 +2497,21 @@
         ],
         "type": "object"
       },
+      "ExecutorRef": {
+        "additionalProperties": false,
+        "properties": {
+          "model": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["provider", "model"],
+        "type": "object"
+      },
       "ExecutorTrustLevel": {
         "anyOf": [
           {
@@ -2770,6 +2792,14 @@
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
+          },
+          "model": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "minLength": 1,
+            "type": "string"
           },
           "queuedAfter": {
             "format": "date-time",
@@ -4781,6 +4811,25 @@
               }
             ]
           },
+          "allowedExecutors": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "model": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "provider": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": ["provider", "model"],
+              "type": "object"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
           "cancelReason": {
             "anyOf": [
               {
@@ -5098,6 +5147,7 @@
           "imposedByHumanId",
           "acceptedAttemptN",
           "requiredExecutorTrustLevel",
+          "allowedExecutors",
           "status",
           "queuedAt",
           "completedAt",
@@ -14750,6 +14800,24 @@
           },
           {
             "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "correlationId",
             "required": false,
             "schema": {
@@ -14868,6 +14936,16 @@
             },
             "description": "Default Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -14910,6 +14988,13 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "allowedExecutors": {
+                    "items": {
+                      "$ref": "#/components/schemas/ExecutorRef"
+                    },
+                    "maxItems": 16,
+                    "type": "array"
+                  },
                   "correlationId": {
                     "format": "uuid",
                     "type": "string"

@@ -177,6 +177,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         teamId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
+        provider: common.provider.toLowerCase(),
+        model: common.model.toLowerCase(),
         diaryIds: diaryIds.length > 0 ? diaryIds : undefined,
         leaseTtlSec: common.leaseTtlSec,
         listLimit,

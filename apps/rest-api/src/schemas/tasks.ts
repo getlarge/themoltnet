@@ -1,4 +1,5 @@
 import {
+  ExecutorRef,
   ExecutorTrustLevel,
   Task,
   TaskAttempt,
@@ -39,6 +40,13 @@ export const CreateTaskBodySchema = Type.Object(
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
+    // Imposer-set executor allowlist. Empty/unset = no restriction.
+    // Lowercased server-side before persistence. maxItems matches the
+    // bound on Task.allowedExecutors so create-time and read-time
+    // contracts agree.
+    allowedExecutors: Type.Optional(
+      Type.Array(Type.Ref(ExecutorRef), { maxItems: 16 }),
+    ),
     // Imposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
     // to long-running brief fulfillment (≤86400s = 24h).
@@ -57,6 +65,14 @@ export const ListTasksQuerySchema = Type.Object(
     teamId: Type.String({ format: 'uuid' }),
     status: Type.Optional(Type.Ref(TaskStatus)),
     taskType: Type.Optional(Type.String()),
+    // Daemon advertises its `(provider, model)` to scope the result to
+    // tasks it can actually run. Both must be provided together (XOR
+    // checked in the handler — Fastify's Ajv is draft-07 strict and
+    // rejects `dependentRequired`). When both are present, the SQL
+    // filter returns rows where `allowed_executors` is empty OR
+    // contains a matching pair.
+    provider: Type.Optional(Type.String({ minLength: 1 })),
+    model: Type.Optional(Type.String({ minLength: 1 })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
     imposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -216,6 +232,7 @@ export const taskSchemas = [
   // Primitive enums first (no dependencies)
   TaskStatus,
   ExecutorTrustLevel,
+  ExecutorRef,
   TaskMessageKind,
   TaskRef,
   TaskUsage,

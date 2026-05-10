@@ -24,6 +24,7 @@ export const taskFixture: TaskSummary = {
   imposedByHumanId: null,
   acceptedAttemptN: null,
   requiredExecutorTrustLevel: 'selfDeclared',
+  allowedExecutors: [],
   status: 'running',
   queuedAt: '2026-04-27T10:00:00.000Z',
   completedAt: null,

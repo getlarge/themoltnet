@@ -1,0 +1,2 @@
+ALTER TABLE "tasks" ADD COLUMN "allowed_executors" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+CREATE INDEX "tasks_allowed_executors_gin_idx" ON "tasks" USING gin ("allowed_executors" jsonb_path_ops);

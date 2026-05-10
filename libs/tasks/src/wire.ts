@@ -61,6 +61,16 @@ export const ExecutorTrustLevel = Type.Union(
 );
 export type ExecutorTrustLevel = Static<typeof ExecutorTrustLevel>;
 
+/** Identifies a (provider, model) daemon pair allowed to claim a task. */
+export const ExecutorRef = Type.Object(
+  {
+    provider: Type.String({ minLength: 1 }),
+    model: Type.String({ minLength: 1 }),
+  },
+  { $id: 'ExecutorRef', additionalProperties: false },
+);
+export type ExecutorRef = Static<typeof ExecutorRef>;
+
 export const OutputKind = Type.Union(
   [Type.Literal('artifact'), Type.Literal('judgment')],
   { $id: 'OutputKind' },
@@ -208,6 +218,10 @@ export const Task = Type.Object(
     imposedByHumanId: Type.Union([Uuid, Type.Null()]),
     acceptedAttemptN: Type.Union([Type.Number(), Type.Null()]),
     requiredExecutorTrustLevel: ExecutorTrustLevel,
+
+    // Imposer-set executor allowlist. Empty = no restriction. Advisory
+    // routing (mirrors `--task-types`); the daemon filters at list time.
+    allowedExecutors: Type.Array(ExecutorRef, { maxItems: 16 }),
 
     // Lifecycle
     status: TaskStatus,
