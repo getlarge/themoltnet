@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, sep } from 'node:path';
 import { parseEnv } from 'node:util';
 
 export interface WriteEnvFileOptions {
@@ -29,6 +29,19 @@ function q(v: string): string {
   return `'${v.replace(/'/g, "'\\''")}'`;
 }
 
+function portableAgentPath(
+  envDir: string,
+  agentName: string,
+  filePath: string,
+): string {
+  if (!filePath || !isAbsolute(filePath)) return filePath;
+  const rel = relative(envDir, filePath);
+  if (rel === '' || rel === '..' || rel.startsWith(`..${sep}`)) {
+    return filePath;
+  }
+  return join('.moltnet', agentName, rel).replaceAll(sep, '/');
+}
+
 /**
  * Write or merge agent env vars into .moltnet/<agent>/env.
  * Managed keys (prefixed + GIT_CONFIG_GLOBAL) are updated;
@@ -37,12 +50,13 @@ function q(v: string): string {
 export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
   await mkdir(opts.envDir, { recursive: true });
   const envPath = join(opts.envDir, 'env');
+  const pemPath = portableAgentPath(opts.envDir, opts.agentName, opts.pemPath);
 
   const managedEntries: [string, string][] = [
     [`${opts.prefix}_CLIENT_ID`, q(opts.clientId)],
     [`${opts.prefix}_CLIENT_SECRET`, q(opts.clientSecret)],
     [`${opts.prefix}_GITHUB_APP_ID`, q(opts.appId)],
-    [`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`, q(opts.pemPath)],
+    [`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`, q(pemPath)],
     [`${opts.prefix}_GITHUB_APP_INSTALLATION_ID`, q(opts.installationId)],
     ['GIT_CONFIG_GLOBAL', q(`.moltnet/${opts.agentName}/gitconfig`)],
     ['MOLTNET_AGENT_NAME', q(opts.agentName)],

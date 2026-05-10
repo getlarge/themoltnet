@@ -117,6 +117,74 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	}
 }
 
+func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	hostAgentDir := filepath.Join(
+		string(filepath.Separator),
+		"Users",
+		"edouard",
+		"Dev",
+		"getlarge",
+		"themolt",
+		".moltnet",
+		"test-agent",
+	)
+	hostGitconfig := filepath.Join(hostAgentDir, "gitconfig")
+	hostSSHPublicKey := filepath.Join(hostAgentDir, "ssh", "id_ed25519.pub")
+
+	env := strings.Join([]string{
+		"MOLTNET_AGENT_NAME='test-agent'",
+		"MOLTNET_FINGERPRINT='SHA256:testfingerprint'",
+		"MOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'",
+		"MOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'",
+		"GIT_CONFIG_GLOBAL='" + hostGitconfig + "'",
+		"",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	configPath := filepath.Join(agentDir, "moltnet.json")
+	creds, err := ReadConfigFrom(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	creds.SSH.PublicKeyPath = hostSSHPublicKey
+	if _, err := WriteConfigTo(creds, configPath); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "refresh", "--agent", "test-agent", "--dir", dir, "--json")
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	var result activationValidationResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("unmarshal refresh result: %v\n%s", err, stdout)
+	}
+	if !result.Valid {
+		t.Fatalf("refresh valid = false, reason=%s", result.Reason)
+	}
+	if result.GitConfigGlobal != ".moltnet/test-agent/gitconfig" {
+		t.Fatalf("gitConfigGlobal = %q", result.GitConfigGlobal)
+	}
+
+	cache, err := readActivationCache(filepath.Join(agentDir, "activation-cache.json"))
+	if err != nil {
+		t.Fatalf("read cache: %v", err)
+	}
+	if cache.Inputs["gitconfig"].Path != ".moltnet/test-agent/gitconfig" {
+		t.Fatalf("gitconfig input path = %q", cache.Inputs["gitconfig"].Path)
+	}
+	if cache.Inputs["sshPublicKey"].Path != ".moltnet/test-agent/ssh/id_ed25519.pub" {
+		t.Fatalf("ssh public key input path = %q", cache.Inputs["sshPublicKey"].Path)
+	}
+}
+
 func TestAgentsActivationValidateHashMismatch(t *testing.T) {
 	t.Parallel()
 	dir := setupActivationCacheFixture(t)

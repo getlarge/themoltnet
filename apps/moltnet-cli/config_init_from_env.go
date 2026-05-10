@@ -217,7 +217,8 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 
 	if config.GitHub != nil {
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, shellQuote(config.GitHub.AppID)))
-		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_PRIVATE_KEY_PATH='%s'", prefix, shellQuote(config.GitHub.PrivateKeyPath)))
+		pemPath := portableAgentEnvPath(agentDir, agentName, config.GitHub.PrivateKeyPath)
+		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_PRIVATE_KEY_PATH='%s'", prefix, shellQuote(pemPath)))
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_INSTALLATION_ID='%s'", prefix, shellQuote(config.GitHub.InstallationID)))
 	}
 
