@@ -13,4 +13,10 @@ export * from './prompts/index.js';
 export * from './reporters/index.js';
 export * from './runtime.js';
 export * from './sources/index.js';
+export {
+  getSubagentOutputContract,
+  listSubagentOutputContracts,
+  registerSubagentOutputContract,
+  type SubagentOutputContract,
+} from './subagent-output-contracts.js';
 export * from '@moltnet/tasks';
