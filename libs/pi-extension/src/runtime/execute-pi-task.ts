@@ -249,6 +249,11 @@ export async function executePiTask(
   const taskTeamId = task.teamId ?? '';
   let reporterOpen = false;
   let session: AgentSession | null = null;
+  // Tracked at function scope so the post-prompt summary block can
+  // read the call counter even though the handle is only constructed
+  // inside the session-setup `try`. Null means "task type did not
+  // opt in to subagents".
+  let subagentHandle: SubagentToolHandle | null = null;
   const finalUsage: TaskUsage = emptyUsage(opts.provider, opts.model);
   // Tracked at function scope so `finally` can remove the listener
   // even if we throw before assigning. Null means "no listener wired".
@@ -486,7 +491,6 @@ export async function executePiTask(
       // submit-output tool (different schema) nor the subagent tool
       // itself (no nested delegation in v1).
       const parentSubagentTools: ToolDefinition[] = [];
-      let subagentHandle: SubagentToolHandle | null = null;
       if (taskTypeUsesSubagents(task.taskType)) {
         subagentHandle = createSubagentTool({
           mountPath,
@@ -630,6 +634,20 @@ export async function executePiTask(
       const message = err instanceof Error ? err.message : String(err);
       runError = { code: 'session_prompt_failed', message };
       await emit('error', { message, phase: 'session_prompt' });
+    }
+
+    // Emit a single summary line per task attempt that used the
+    // subagent tool. Useful for spotting parents that delegate
+    // unexpectedly often (or never delegate when they should). The
+    // call count is the only state on the handle; we don't track
+    // per-call failure rates here because each subagent invocation
+    // already emits its own OTel span via the inner session's
+    // piOtelExtension.
+    if (subagentHandle && subagentHandle.getCallCount() > 0) {
+      await emit('info', {
+        event: 'subagent_summary',
+        callCount: subagentHandle.getCallCount(),
+      });
     }
 
     await Promise.all(recordingPromise);

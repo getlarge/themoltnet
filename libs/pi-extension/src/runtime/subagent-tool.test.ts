@@ -204,6 +204,39 @@ describe('createSubagentTool', () => {
     expect(factory.innerSubmitInvocations).toBe(1);
   });
 
+  it('increments getCallCount across multiple successful calls', async () => {
+    // Successive parent invocations should accrue. The handle's
+    // counter is read by execute-pi-task to emit a per-attempt
+    // subagent_summary event, so anything > 1 needs to be observable.
+    const payload = { verdict: 'ok', score: 0.5 };
+    const factory = makeFakeSessionFactory(payload);
+    const handle = createSubagentTool({
+      ...stubArgs(),
+      buildAgentSession: factory.build,
+    });
+    await callOuter(handle.tool, { task: 'a', output_schema: 'sample' });
+    expect(handle.getCallCount()).toBe(1);
+    await callOuter(handle.tool, { task: 'b', output_schema: 'sample' });
+    expect(handle.getCallCount()).toBe(2);
+    await callOuter(handle.tool, { task: 'c', output_schema: 'sample' });
+    expect(handle.getCallCount()).toBe(3);
+    // The fake factory counts inner submit invocations; should match.
+    expect(factory.innerSubmitInvocations).toBe(3);
+  });
+
+  it('does not increment getCallCount when output_schema is unknown', async () => {
+    const factory = makeFakeSessionFactory(null);
+    const handle = createSubagentTool({
+      ...stubArgs(),
+      buildAgentSession: factory.build,
+    });
+    await callOuter(handle.tool, {
+      task: 'go',
+      output_schema: 'unknown_contract',
+    });
+    expect(handle.getCallCount()).toBe(0);
+  });
+
   it('passes parent runtime instructor + subagent preamble in appendSystemPrompt', async () => {
     const payload = { verdict: 'ok', score: 0.5 };
     const factory = makeFakeSessionFactory(payload);

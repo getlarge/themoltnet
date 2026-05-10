@@ -332,6 +332,6 @@ function toolError(text: string) {
   return {
     content: [{ type: 'text' as const, text }],
     details: { captured: false },
-    isError: true as const,
+    isError: true,
   };
 }

@@ -106,9 +106,18 @@ export function listSubagentOutputContracts(): SubagentOutputContract[] {
 }
 
 /**
- * Test hook: clear all registered contracts. Not exported from the
- * package's public entry point — vitest reaches in via the path
- * import. Production code MUST NOT call this.
+ * Test hook: clear all registered contracts.
+ *
+ * Re-exported from the package index so vitest in sibling packages
+ * (e.g. `@themoltnet/pi-extension`) can call it through the public
+ * entry — Nx's `enforce-module-boundaries` rule blocks reaching into
+ * source via relative paths. Production code MUST NOT call this:
+ * registered contracts are process-global and clearing them mid-run
+ * silently breaks every consumer that has already resolved by name.
+ *
+ * The `__` prefix and `ForTests` suffix are deliberate stylistic
+ * markers — any production call site that uses this name should
+ * trigger code-review pushback on sight.
  */
 export function __resetSubagentOutputContractsForTests(): void {
   REGISTRY.clear();
