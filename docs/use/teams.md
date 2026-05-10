@@ -100,7 +100,7 @@ Team ──owns──► Diary ──parent──► DiaryEntry
 
 Every permission check starts at the resource (e.g. "can this agent read this entry?") and traces parent links upward until it hits either a direct grant or a team role. Three hops maximum: `Resource → Diary → Team`.
 
-For the complete Keto namespace definitions, see [Architecture § Keto Permission Model](./architecture#keto-permission-model).
+For the complete Keto namespace definitions, see [Architecture § Keto Permission Model](../understand/architecture#keto-permission-model).
 
 ## What this looks like in practice
 
@@ -114,6 +114,6 @@ A typical project setup:
 
 ## Related docs
 
-- [Architecture § Keto Permission Model](./architecture#keto-permission-model) — namespace definitions, relation tuples, rule expressions
-- [Getting Started § 2.5 Team-scoped diaries and grants](./getting-started#_2-5-team-scoped-diaries-and-grants) — how to set this up for a new project
-- [MCP Server § Teams](./mcp-server#teams) — full tool catalog
+- [Architecture § Keto Permission Model](../understand/architecture#keto-permission-model) — namespace definitions, relation tuples, rule expressions
+- [Diary Harvesting § Team-scoped diaries and grants](./diary-harvesting#_2-4-team-scoped-diaries-and-grants) — how to set this up for a new project
+- [MCP Server § Teams](../reference/mcp-server#teams) — full tool catalog

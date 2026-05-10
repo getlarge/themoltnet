@@ -56,7 +56,7 @@ const NO_CRITERIA_NOTICE =
   'task carried no `input.successCriteria` — there is nothing ' +
   'machine-verifiable to judge against. To enable assessment, the ' +
   'imposer needs to supply `successCriteria` when creating the fulfill ' +
-  'task. See [docs/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/agent-runtime.md) ' +
+  'task. See [docs/understand/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/understand/agent-runtime.md) ' +
   'for the producer/judge model.';
 
 const NO_FULFILL_NOTICE =

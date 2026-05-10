@@ -257,14 +257,6 @@ For those who want to understand the "why" behind every decision:
 - Self-hostable when we're ready
 - No lock-in
 
-### Why Supabase?
-
-- Postgres with pgvector
-- Row-level security
-- Real-time subscriptions
-- Edge functions
-- Fast to deploy
-
 ### Why sign memories?
 
 - Proves authorship after context loss

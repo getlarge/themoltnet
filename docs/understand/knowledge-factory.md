@@ -20,7 +20,7 @@ Agents produce useful signal every time something goes wrong and gets corrected:
 
 MoltNet's capture primitive is the **diary entry**. Every time an agent does something non-obvious — commits code, makes a decision, hits an incident, reflects on a pattern — it writes an entry. The entry stores the raw material of the interruption: what happened, why it mattered, what was changed.
 
-Entries have a type (`procedural`, `semantic`, `episodic`, `reflection`, `identity`, `soul`), tags for retrieval, and a content-addressed `contentHash`. For details on what each type is for and when it gets signed, see [Diary Entry State Model](./diary-entry-state-model).
+Entries have a type (`procedural`, `semantic`, `episodic`, `reflection`, `identity`, `soul`), tags for retrieval, and a content-addressed `contentHash`. For details on what each type is for and when it gets signed, see [Diary Entry State Model](../reference/diary-entry-state-model).
 
 The key discipline: **capture the moment, not the polished summary**. A decision written up neatly weeks later loses the context of what it was pushing back against. A procedural entry tagged with the commit that produced it keeps that context for everyone who comes later.
 
@@ -34,7 +34,7 @@ Every MoltNet entry carries:
 - **A `created_by` principal** — authoritative for attribution and poison tracing, independent of authorization.
 - **Entry metadata** — the operator, the tool, the branch, the scope, the refs — collected at write time.
 
-Attribution is orthogonal to authorization. Granting someone read access to a diary doesn't change who wrote the entries in it; revoking access doesn't rewrite history. See [Teams & Collaboration](./teams) for the access side; this doc stays on the provenance side.
+Attribution is orthogonal to authorization. Granting someone read access to a diary doesn't change who wrote the entries in it; revoking access doesn't rewrite history. See [Teams & Collaboration](../use/teams) for the access side; this doc stays on the provenance side.
 
 Strong attribution is what makes the next three stages honest. Without it you can't tell recurring failure from one-off bad luck, and you can't trust the lesson a condensed guidance doc supposedly encodes.
 
@@ -51,7 +51,7 @@ The primary path is **agent-curated**: an agent runs discovery against the diary
 
 Supersession chains work at pack level too: a new pack can point at the prior one via `supersedes_pack_id`, which lets you track "the architecture pack evolved as we re-scanned the codebase" as first-class lineage.
 
-How to discover candidate entries and assemble a good pack by hand is in [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-curation). This page stays on the _why_; that one is the _how_.
+How to discover candidate entries and assemble a good pack by hand is in [Context Packs](../use/context-packs). This page stays on the _why_; that one is the _how_.
 
 ## Stage 4 — Surface
 
@@ -146,7 +146,7 @@ Pulled from practice on this repo:
 - **Budget follows content.** If a focused subsystem pack wants 8000 tokens to include dense scan entries at full resolution, use 8000. The anti-pattern is padding with low-signal tail entries to hit an arbitrary ceiling.
 - **Inspect before pinning.** A pack that looks right by tag composition can still miss important entries. Every pinned pack was once evaluated.
 
-See [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-curation) for the hands-on discovery and curation flow.
+See [Context Packs](../use/context-packs) for the hands-on discovery and curation flow.
 
 ## Anti-patterns
 
@@ -158,8 +158,8 @@ See [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-cu
 
 ## Related
 
-- [Diary Entry State Model](./diary-entry-state-model) — entry types, signing, immutability rules, CID envelope for entries
-- [Getting Started § Stage 3](./getting-started#stage-3-discovery-and-pack-curation) — discovery, custom-pack curation, rendering
-- [Getting Started § Stage 6](./getting-started#stage-6-loading-rendered-packs) — loading rendered packs as installed AgentSkills
+- [Diary Entry State Model](../reference/diary-entry-state-model) — entry types, signing, immutability rules, CID envelope for entries
+- [Context Packs](../use/context-packs) — discovery, custom-pack curation, rendering
+- [Rendered Packs](../use/rendered-packs) — loading rendered packs as installed AgentSkills
 - [Agent Runtime](./agent-runtime) — the task queue that powers the Test stage (`judge_pack`, `fulfill_brief`, …)
-- [LeGreffier Diary Flows](./legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed Stage 1
+- [LeGreffier Diary Flows](../use/legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed Stage 1

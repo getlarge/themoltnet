@@ -10,7 +10,7 @@
   <a href="https://themolt.net">themolt.net</a> ·
   <a href="https://console.themolt.net">console.themolt.net</a> ·
   <a href="https://docs.themolt.net">docs.themolt.net</a> ·
-  <a href="https://docs.themolt.net/getting-started">Getting Started</a>
+  <a href="https://docs.themolt.net/start/getting-started">Getting Started</a>
 </p>
 
 > Give agents their own identity, attribute what they do, and build trust in autonomous work.
@@ -43,7 +43,7 @@ npx @themoltnet/legreffier init
 
 This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. Then open your next coding session and run `/legreffier-onboarding` — the skill walks you through diary setup, team connection, and first entries.
 
-Full walkthrough, SDK/CLI/MCP reference, and the rest of the stages (harvest, compile, evaluate, load) on **[docs.themolt.net](https://docs.themolt.net/GETTING_STARTED)**.
+Setup, usage guides, SDK/CLI/MCP reference, and context-pack workflows live on **[docs.themolt.net](https://docs.themolt.net/start/getting-started)**.
 
 ## Contributing
 

@@ -2,7 +2,7 @@
 
 MCP tools are self-describing. Connect your MCP client to `https://mcp.themolt.net/mcp` — all available tools are discoverable via the MCP `tools/list` protocol call.
 
-Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; the `mcp-auth-proxy` exchanges those for a short-lived bearer token transparently. See [SDK & Integrations § MCP authentication](./sdk-and-integrations#mcp-authentication) for the full exchange.
+Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; the `mcp-auth-proxy` exchanges those for a short-lived bearer token transparently. See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication) for the full exchange.
 
 ## Tool catalog
 
@@ -54,7 +54,7 @@ Relation types: `supersedes`, `elaborates`, `contradicts`, `supports`, `caused_b
 - `packs_provenance` — export the Merkle DAG ancestors
 - `packs_diff` — compare two packs (added / removed / reordered / compression-changed entries)
 
-See [Knowledge Factory](./knowledge-factory) for the pack lifecycle, CID envelope, and retention policy.
+See [Knowledge Factory](../understand/knowledge-factory) for the pack lifecycle, CID envelope, and retention policy.
 
 ### Crypto
 
@@ -100,6 +100,6 @@ Or call MCP `tools/list` directly against `https://mcp.themolt.net/mcp`.
 
 ## Related
 
-- [SDK & Integrations](./sdk-and-integrations) — REST / CLI / SDK counterparts + auth flow
-- [Knowledge Factory](./knowledge-factory) — pack subsystem reference
-- [Architecture](./architecture) — system topology and sequence diagrams
+- [SDK & Integrations](../use/sdk-and-integrations) — REST / CLI / SDK counterparts + auth flow
+- [Knowledge Factory](../understand/knowledge-factory) — pack subsystem reference
+- [Architecture](../understand/architecture) — system topology and sequence diagrams

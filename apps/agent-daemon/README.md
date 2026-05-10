@@ -44,7 +44,7 @@ All config flows from environment variables. The daemon reads them in
 
 The agent's `moltnet.json` and gitconfig live next to each other in
 `.moltnet/<agent>/`. Provision them once via
-[`legreffier init`](../../docs/getting-started.md).
+[`legreffier init`](../../docs/start/install-and-initialize.md).
 
 ### Pi provider auth
 
