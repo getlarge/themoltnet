@@ -14,6 +14,7 @@ import {
   type ContextPackRepository,
   type DataSource,
   DBOS,
+  DBOSErrors,
   type NonceRepository,
   type RenderedPackRepository,
   type TaskRepository,
@@ -235,11 +236,27 @@ export function initMaintenanceWorkflows(
         await DBOS.resumeWorkflow(workflowId);
         return { resumed: true };
       } catch (err) {
-        // Workflow not recoverable (handle missing, already terminal,
-        // etc.). Caller falls back to row-level force-release.
+        // Distinguish expected "not recoverable" outcomes (workflow
+        // handle missing, already terminal/cancelled, invalid state
+        // transition) from unexpected infrastructure failures (DB
+        // connectivity, SDK bugs). Expected → fall through to row-level
+        // force-release. Unexpected → re-throw so DBOS step retries
+        // kick in instead of silently force-releasing every orphan in
+        // the batch on a transient blip.
+        const expected =
+          err instanceof DBOSErrors.DBOSNonExistentWorkflowError ||
+          err instanceof DBOSErrors.DBOSInvalidWorkflowTransitionError ||
+          err instanceof DBOSErrors.DBOSWorkflowCancelledError;
+        if (!expected) {
+          logger.warn(
+            { workflowId, err },
+            'maintenance: task orphan — resume hit unexpected error, will retry',
+          );
+          throw err;
+        }
         logger.debug(
           { workflowId, err },
-          'maintenance: task orphan — resume failed, will force-release',
+          'maintenance: task orphan — resume failed (workflow not recoverable), will force-release',
         );
         return { resumed: false };
       }
@@ -339,24 +356,83 @@ export function initMaintenanceWorkflows(
 
       let resumed = 0;
       let forceReleased = 0;
+      // Backstop threshold: if the row has been orphaned for more than
+      // twice the grace period, the previous sweep tick had a chance to
+      // resume the workflow and the in-workflow recv loop had a chance
+      // to fire its own deadline. If we still see the same row, treat
+      // DBOS.resumeWorkflow's success as a false positive (issue #1077:
+      // resume returns OK but the resumed workflow re-parks on a stale
+      // recv) and force-release unconditionally.
+      const backstopAgeMs = input.gracePeriodSec * 2 * 1000;
       for (const { task, attempt } of orphans) {
-        // Try to wake the original workflow first. If DBOS still has its
-        // event log, the recv loop will see the missed deadline and
-        // transition naturally (lease_expired or running_total_exceeded).
-        const { resumed: didResume } = await tryResumeWorkflowStep(
-          attempt.workflowId,
-        );
-        if (didResume) {
-          resumed += 1;
-          continue;
+        // Recompute per-iteration: the loop awaits async I/O on every
+        // step, and a stale `now` would understate claimAgeMs for tasks
+        // processed late in a large batch.
+        if (!task.claimExpiresAt) {
+          // listOrphanedTasks' SQL filter (lt(claimExpiresAt, …))
+          // never returns null rows today, but if that ever changes a
+          // null expiry tells us nothing about age — don't pretend it's
+          // past the backstop. Force-release with an honest log.
+          logger.error(
+            {
+              taskId: task.id,
+              attemptN: attempt.attemptN,
+              workflowId: attempt.workflowId,
+            },
+            'maintenance: task orphan — claimExpiresAt is null, force-releasing (unexpected: listOrphanedTasks should have excluded this row)',
+          );
+        } else {
+          const claimAgeMs = Date.now() - task.claimExpiresAt.getTime();
+          const pastBackstop = claimAgeMs >= backstopAgeMs;
+
+          if (!pastBackstop) {
+            // First-pass: try to wake the original workflow. If DBOS still
+            // has its event log, the recv loop will see the missed deadline
+            // and transition naturally (lease_expired / running_total_exceeded).
+            const { resumed: didResume } = await tryResumeWorkflowStep(
+              attempt.workflowId,
+            );
+            if (didResume) {
+              resumed += 1;
+              continue;
+            }
+          } else {
+            logger.warn(
+              {
+                taskId: task.id,
+                attemptN: attempt.attemptN,
+                workflowId: attempt.workflowId,
+                claimAgeMs,
+                backstopAgeMs,
+              },
+              'maintenance: task orphan — past backstop window, force-releasing without resume',
+            );
+          }
         }
-        // Fall back to row-level force-release.
-        await forceReleaseAttemptStep({
-          taskId: task.id,
-          attemptN: attempt.attemptN,
-          claimedByAgentId: attempt.claimedByAgentId,
-        });
-        forceReleased += 1;
+        // Fall back to row-level force-release. Per-iteration try/catch:
+        // if force-release on one orphan fails after step retries, we
+        // still want to process the remaining batch and emit the
+        // summary log. Otherwise the scheduler silently records a
+        // workflow failure and every subsequent orphan in the batch
+        // is skipped.
+        try {
+          await forceReleaseAttemptStep({
+            taskId: task.id,
+            attemptN: attempt.attemptN,
+            claimedByAgentId: attempt.claimedByAgentId,
+          });
+          forceReleased += 1;
+        } catch (err) {
+          logger.error(
+            {
+              taskId: task.id,
+              attemptN: attempt.attemptN,
+              workflowId: attempt.workflowId,
+              err,
+            },
+            'maintenance: task orphan — force-release failed; task remains stuck, will retry next sweep',
+          );
+        }
       }
       logger.info(
         { examined: orphans.length, resumed, forceReleased },
