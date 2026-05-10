@@ -61,13 +61,11 @@ export interface VmFsForContext {
 
 /**
  * Where in the VM we write skill bodies — the memory-backed mount
- * declared in `vm-manager.ts`. Memory was chosen over a path under
- * `/workspace` because Gondolin's RealFSProvider requires the leaf's
- * parent directory to already exist on the host (its
- * `_resolvePathFollow` runs before `recursive: true` reaches
- * `fs.mkdir`). MemoryProvider honours `recursive` correctly. The
- * agent's Gondolin Read tool accepts paths under this mount (see
- * `toGuestPath` in `tool-operations.ts`).
+ * declared in `vm-manager.ts`. See the comment on
+ * `GUEST_TASK_SKILLS_MOUNT` there for the full rationale (ephemeral
+ * by intent + the worktree symlink interaction with Gondolin's
+ * sandbox-escape protection). The agent's Gondolin Read tool accepts
+ * paths under this mount via `toGuestPath` in `tool-operations.ts`.
  */
 const SKILL_ROOT_IN_VM = GUEST_TASK_SKILLS_MOUNT;
 

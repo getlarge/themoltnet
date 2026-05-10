@@ -20,11 +20,19 @@ const GUEST_WORKSPACE = '/workspace';
  * Gondolin mounts can't nest. The agent's Gondolin-bound Read tool
  * accepts paths under this prefix (see toGuestPath in tool-operations.ts).
  *
- * MemoryProvider was chosen over a host-backed mount because
- * Gondolin's RealFSProvider requires the leaf's parent directory to
- * already exist on the host (its `_resolvePathFollow` runs before
- * `recursive: true` is forwarded to fs.mkdir). MemoryProvider's
- * mkdir honours `recursive` correctly and leaves no host artefacts.
+ * Why MemoryProvider rather than a path under /workspace:
+ *   - Injected skills are ephemeral by intent: per-task-attempt input
+ *     scoped to the VM lifetime. MemoryProvider models that exactly —
+ *     in-memory, per-VM-instance, zero host artefacts, automatic
+ *     cleanup on VM close.
+ *   - Writing under /workspace fails in worktrees because we symlink
+ *     `.moltnet/` to the main repo (so credentials are reachable from
+ *     worktrees), and Gondolin's RealFSProvider correctly refuses to
+ *     create paths whose ancestors' realpath escapes the mount root.
+ *     That refusal is a deliberate sandbox-escape protection, not a
+ *     bug. See diary semantic entry cd27d9d3-efdc-4aec-ac0d-5fd8ce258d1f
+ *     and episodic 7affbfeb-18a2-4963-aeac-c177eb2afa2d for the full
+ *     investigation and the alternatives we rejected.
  */
 export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
 
