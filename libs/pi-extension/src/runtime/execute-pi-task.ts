@@ -19,15 +19,15 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
-import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+import type {
+  AgentSession,
+  ToolDefinition,
+} from '@earendil-works/pi-coding-agent';
 import {
-  createAgentSession,
   createBashToolDefinition,
   createEditToolDefinition,
   createReadToolDefinition,
   createWriteToolDefinition,
-  DefaultResourceLoader,
-  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { Value } from '@sinclair/typebox/value';
@@ -46,7 +46,6 @@ import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
 } from '../moltnet/tools.js';
-import { createPiOtelExtension } from '../otel/index.js';
 import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
@@ -55,6 +54,7 @@ import {
   createGondolinWriteOps,
 } from '../tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
+import { buildAgentSession } from './agent-session-factory.js';
 import { injectTaskContext } from './inject-task-context.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
 import { resolveSubmitTools } from './submit-output-tool.js';
@@ -243,9 +243,7 @@ export async function executePiTask(
   const diaryId = task.diaryId ?? '';
   const taskTeamId = task.teamId ?? '';
   let reporterOpen = false;
-  let session:
-    | Awaited<ReturnType<typeof createAgentSession>>['session']
-    | null = null;
+  let session: AgentSession | null = null;
   const finalUsage: TaskUsage = emptyUsage(opts.provider, opts.model);
   // Tracked at function scope so `finally` can remove the listener
   // even if we throw before assigning. Null means "no listener wired".
@@ -449,17 +447,6 @@ export async function executePiTask(
       ) => Model<Api>;
       const modelHandle = getModelLoose(opts.provider, opts.model);
 
-      const piOtelExtension = createPiOtelExtension({
-        agentName: opts.agentName,
-        // MoltNet-specific attributes only. The extension owns gen_ai.*
-        // keys (populated from pi's model_select / turn_start events) and
-        // filters any gen_ai.* passed here.
-        spanAttributes: {
-          'moltnet.task.id': task.id,
-          'moltnet.task.attempt': attemptN,
-          'moltnet.task.type': task.taskType,
-        },
-      });
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
       //  - Inline the runtime instructor as appendSystemPrompt so the
       //    invariants (gh auth, diary discipline, accountable commits) are
@@ -487,24 +474,23 @@ export async function executePiTask(
         appendSystemPrompt.push(injectedContext.systemPromptPrefix);
       }
       const injectedSkills = injectedContext.skills;
-      const resourceLoader = new DefaultResourceLoader({
-        cwd: mountPath,
-        agentDir: piAuthDir,
-        extensionFactories: [piOtelExtension],
+
+      session = await buildAgentSession({
+        mountPath,
+        piAuthDir,
+        modelHandle,
+        agentName: opts.agentName,
+        customTools: [...gondolinCustomTools, ...moltnetTools, ...submitTools],
         appendSystemPrompt,
         skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
+        // MoltNet-specific span attrs only — pi's OTel extension owns
+        // gen_ai.* keys and filters anything we pass that collides.
+        otelSpanAttrs: {
+          'moltnet.task.id': task.id,
+          'moltnet.task.attempt': attemptN,
+          'moltnet.task.type': task.taskType,
+        },
       });
-      await resourceLoader.reload();
-
-      const created = await createAgentSession({
-        agentDir: piAuthDir,
-        cwd: mountPath,
-        model: modelHandle,
-        customTools: [...gondolinCustomTools, ...moltnetTools, ...submitTools],
-        sessionManager: SessionManager.inMemory(),
-        resourceLoader,
-      });
-      session = created.session;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'session_setup' });
