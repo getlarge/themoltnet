@@ -124,49 +124,56 @@ describe('startAttemptWorkflow — timeout paths', () => {
     setTaskWorkflowDeps(deps);
     initTaskWorkflows();
 
-    // Pin nowMs so the workflow's pinned startedAtMs is a known value
-    // far enough in the past that runningTimeoutSec=1 is already
-    // exhausted by the time the recv loop checks remainingMs.
-    const fakeStartedAtMs = Date.now() - 60_000; // 60s ago
-    // We can't easily intercept the registered nowMs step (it's wrapped
-    // inside registerStep), but the step is called as a normal fn since
-    // our DBOS mock returns the function itself. We rely on the fact
-    // that the loop's remainingMs = totalDeadlineMs - Date.now() will
-    // be negative because totalDeadlineMs ~= now-60s + 1s = now-59s.
-    // So we need the loop to enter at all: dispatch returns 'started',
-    // running phase enters, computes remainingMs, sees <=0 → timeout.
-    void fakeStartedAtMs;
+    const baseTime = new Date('2026-01-01T00:00:00Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(baseTime);
 
-    const recvMock = vi.mocked(DBOS.recv);
-    recvMock.mockReset();
-    recvMock.mockResolvedValueOnce({
-      kind: 'started',
-      leaseTtlSec: LEASE_TTL_SEC,
-    } as TaskProgressEvent);
-    // No second mock — if the loop falls through to a second recv it
-    // means remainingMs was still positive (bug we want to catch).
+    try {
+      const recvMock = vi.mocked(DBOS.recv);
+      recvMock.mockReset();
+      recvMock
+        // Dispatch phase: 'started' arrives immediately at baseTime.
+        // After this returns, the workflow records startedAtMs via
+        // nowMsStep — also baseTime.
+        .mockResolvedValueOnce({
+          kind: 'started',
+          leaseTtlSec: LEASE_TTL_SEC,
+        } as TaskProgressEvent)
+        // Running phase: jump the clock past startedAt + runningTimeoutSec
+        // (10s) BEFORE returning null. The workflow's recv-null branch
+        // then computes Date.now() >= totalDeadlineMs and must pick
+        // running_total_exceeded over lease_expired.
+        .mockImplementationOnce(async () => {
+          vi.setSystemTime(new Date(baseTime.getTime() + 11_000));
+          return null;
+        });
 
-    const result = await taskWorkflows.startAttemptWorkflow(
-      TASK_ID,
-      ATTEMPT_N,
-      AGENT_ID,
-      WORKFLOW_ID,
-      LEASE_TTL_SEC,
-      null,
-      null,
-      // runningTimeoutSec=1: total deadline is startedAt + 1s. By the
-      // time the recv loop's first iteration runs, even a few ms of
-      // setup may push us close; mocked DBOS.recv returns synchronously.
-      // With 1s budget we expect the loop to either return
-      // running_total_exceeded immediately or after one no-op recv.
-      1,
-    );
+      const result = await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+        null,
+        null,
+        // runningTimeoutSec = 10s. totalDeadline = baseTime + 10s.
+        // We advance to baseTime + 11s before recv returns null, so
+        // the deadline check fires running_total_exceeded.
+        10,
+      );
 
-    // Either is acceptable: the contract is "the workflow eventually
-    // returns timed_out with one of the recognised reasons."
-    expect(result.status).toBe('timed_out');
-    expect(['running_total_exceeded', 'lease_expired']).toContain(
-      result.timeoutReason,
-    );
+      expect(result.status).toBe('timed_out');
+      expect(result.timeoutReason).toBe('running_total_exceeded');
+
+      const updateAttempt = vi.mocked(deps.updateAttempt);
+      const timedOutCall = updateAttempt.mock.calls.find(
+        ([, , fields]) => fields.status === 'timed_out',
+      );
+      expect(timedOutCall).toBeDefined();
+      const errorField = timedOutCall![2].error as { code: string } | null;
+      expect(errorField?.code).toBe('running_total_exceeded');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
