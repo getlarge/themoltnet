@@ -98,18 +98,10 @@ func uniqueCleanPaths(paths []string) []string {
 }
 
 func portableAgentEnvPath(agentDir, agentName, path string) string {
-	if path == "" {
-		return ""
-	}
-	absPath, err := filepath.Abs(path)
-	if err != nil {
+	if path == "" || !filepath.IsAbs(path) {
 		return path
 	}
-	absAgentDir, err := filepath.Abs(agentDir)
-	if err != nil {
-		return path
-	}
-	rel, err := filepath.Rel(absAgentDir, absPath)
+	rel, err := filepath.Rel(agentDir, path)
 	if err != nil || rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
 		return path
 	}

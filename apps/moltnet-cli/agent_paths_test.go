@@ -74,3 +74,15 @@ func TestPortableAgentEnvPathKeepsExternalPath(t *testing.T) {
 		t.Fatalf("portable path = %q, want %q", got, externalPath)
 	}
 }
+
+func TestPortableAgentEnvPathKeepsRelativePath(t *testing.T) {
+	t.Parallel()
+
+	agentDir := filepath.Join(string(filepath.Separator), "workspace", "repo", ".moltnet", "legreffier")
+	relativePath := filepath.Join(".moltnet", "legreffier", "legreffier.pem")
+
+	got := portableAgentEnvPath(agentDir, "legreffier", relativePath)
+	if got != relativePath {
+		t.Fatalf("portable path = %q, want %q", got, relativePath)
+	}
+}
