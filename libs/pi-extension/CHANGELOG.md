@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.5...pi-extension-v0.14.0) (2026-05-10)
+
+
+### Features
+
+* **daemon:** mirror task messages to local logger via onTurnEvent ([7607f2f](https://github.com/getlarge/themoltnet/commit/7607f2f8d97f4cf72db62a518fedef3e042ba20f))
+* **daemon:** per-task onTurnEvent factory for poll mode (closes [#1078](https://github.com/getlarge/themoltnet/issues/1078)) ([db196cb](https://github.com/getlarge/themoltnet/commit/db196cba3a4214413779826183992ae6dcdd12e1))
+* **pi-extension+daemon:** onTurnEvent callback mirrors task messages to local logger ([d24648e](https://github.com/getlarge/themoltnet/commit/d24648ef95a08792b02774331237210e76b4c53f))
+* **pi-extension+daemon:** per-task onTurnEvent factory (closes [#1078](https://github.com/getlarge/themoltnet/issues/1078)) ([c7ae663](https://github.com/getlarge/themoltnet/commit/c7ae6632d446a554e92a2b25d8036c43b128a83f))
+* **pi-extension:** wire resolveTaskContext ([#943](https://github.com/getlarge/themoltnet/issues/943) slice 1.5) ([a0f19e1](https://github.com/getlarge/themoltnet/commit/a0f19e1be0aa90731307c2cf9c0856395c5ebd5c))
+* **pi-extension:** wire resolveTaskContext into execute-pi-task ([#943](https://github.com/getlarge/themoltnet/issues/943) slice 1.5) ([2ac4b54](https://github.com/getlarge/themoltnet/commit/2ac4b546b50a85794ff79f9b31f017e65f8afe19))
+* **tasks:** add Task.allowedExecutors imposer policy + daemon filter ([6db33b4](https://github.com/getlarge/themoltnet/commit/6db33b4a47ecd72b57b2751ac52945391dda54c7))
+* **tasks:** add Task.allowedExecutors imposer policy + server filter ([e805406](https://github.com/getlarge/themoltnet/commit/e805406c6b7c0e7f3f25deb50c58b8bd9efe5b2e))
+
+
+### Bug Fixes
+
+* address inconsistencies found during rebase check ([#943](https://github.com/getlarge/themoltnet/issues/943)) ([e0622f4](https://github.com/getlarge/themoltnet/commit/e0622f4bbc056010a7734bf02d9d66228c59b0a9))
+* **daemon:** address [#1074](https://github.com/getlarge/themoltnet/issues/1074) review (info-case truncation, exhaustive types, dedup) ([d9cbf88](https://github.com/getlarge/themoltnet/commit/d9cbf88159102d926589d39593dec524e8dc3ae8))
+* **pi-extension:** address PR [#1076](https://github.com/getlarge/themoltnet/issues/1076) review feedback ([#943](https://github.com/getlarge/themoltnet/issues/943)) ([a97720a](https://github.com/getlarge/themoltnet/commit/a97720a2d0551768a375efc6f75b1684373d713d))
+* **pi-extension:** MemoryProvider mount for task-context skills + smoke test ([#943](https://github.com/getlarge/themoltnet/issues/943)) ([8d7433c](https://github.com/getlarge/themoltnet/commit/8d7433cd9f14396af15f81feff69dad123039515))
+* **pi-extension:** mount task-context skills via MemoryProvider ([#943](https://github.com/getlarge/themoltnet/issues/943)) ([c622e5e](https://github.com/getlarge/themoltnet/commit/c622e5e8f05ab6a3576dcfe4f4953298da26117b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.12.0
+    * @themoltnet/sdk bumped to 0.100.0
+
 ## [0.13.5](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.13.4...pi-extension-v0.13.5) (2026-05-09)
 
 
