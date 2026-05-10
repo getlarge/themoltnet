@@ -477,3 +477,9 @@ export {
   type TurnEventHandlerFactory,
   type TurnEventKind,
 } from './runtime/execute-pi-task.js';
+export {
+  type InjectedTaskContext,
+  injectTaskContext,
+  type InjectTaskContextArgs,
+  type VmFsForContext,
+} from './runtime/inject-task-context.js';

@@ -15,6 +15,8 @@ import type {
   WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 
+import { GUEST_TASK_SKILLS_MOUNT } from './vm-manager.js';
+
 export type { BashOperations, EditOperations, ReadOperations, WriteOperations };
 
 const GUEST_WORKSPACE = '/workspace';
@@ -35,6 +37,16 @@ export function toGuestPath(localCwd: string, localPath: string): string {
   if (
     localPath === GUEST_WORKSPACE ||
     localPath.startsWith(`${GUEST_WORKSPACE}/`)
+  ) {
+    return localPath;
+  }
+  // Same accommodation for the memory-backed task-context skills mount
+  // (#943 slice 1.5). pi advertises injected skills with absolute paths
+  // under this mount in `<available_skills>`; the agent has to be able
+  // to Read them.
+  if (
+    localPath === GUEST_TASK_SKILLS_MOUNT ||
+    localPath.startsWith(`${GUEST_TASK_SKILLS_MOUNT}/`)
   ) {
     return localPath;
   }

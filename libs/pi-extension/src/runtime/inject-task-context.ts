@@ -36,6 +36,8 @@ import {
   type TaskContext,
 } from '@themoltnet/agent-runtime';
 
+import { GUEST_TASK_SKILLS_MOUNT } from '../vm-manager.js';
+
 /**
  * Subset of `@earendil-works/gondolin`'s `VmFs` we actually use. We
  * narrow the dependency surface so unit tests can hand in a
@@ -57,9 +59,15 @@ export interface VmFsForContext {
   ) => Promise<void>;
 }
 
-/** Where in the VM we write skill bodies. Always under the agent's
- *  workspace mount so the Read tool can resolve them. */
-const SKILL_ROOT_IN_VM = '/workspace/.moltnet/skills';
+/**
+ * Where in the VM we write skill bodies — the memory-backed mount
+ * declared in `vm-manager.ts`. See the comment on
+ * `GUEST_TASK_SKILLS_MOUNT` there for the full rationale (ephemeral
+ * by intent + the worktree symlink interaction with Gondolin's
+ * sandbox-escape protection). The agent's Gondolin Read tool accepts
+ * paths under this mount via `toGuestPath` in `tool-operations.ts`.
+ */
+const SKILL_ROOT_IN_VM = GUEST_TASK_SKILLS_MOUNT;
 
 /** Bounds borrowed from pi's skill validation; conservative caps so a
  *  malformed SKILL.md doesn't bloat the system prompt. */

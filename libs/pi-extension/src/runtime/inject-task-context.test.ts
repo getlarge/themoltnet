@@ -35,21 +35,19 @@ describe('injectTaskContext', () => {
     });
 
     expect(fs.mkdir).toHaveBeenCalledWith(
-      '/workspace/.moltnet/skills/pack-fidelity',
+      '/moltnet-task-skills/pack-fidelity',
       { recursive: true },
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/workspace/.moltnet/skills/pack-fidelity/SKILL.md',
+      '/moltnet-task-skills/pack-fidelity/SKILL.md',
       content,
       { mode: 0o644 },
     );
     expect(out.skills).toHaveLength(1);
     const skill = out.skills[0];
     expect(skill.name).toBe('pack-fidelity');
-    expect(skill.filePath).toBe(
-      '/workspace/.moltnet/skills/pack-fidelity/SKILL.md',
-    );
-    expect(skill.baseDir).toBe('/workspace/.moltnet/skills/pack-fidelity');
+    expect(skill.filePath).toBe('/moltnet-task-skills/pack-fidelity/SKILL.md');
+    expect(skill.baseDir).toBe('/moltnet-task-skills/pack-fidelity');
     expect(skill.disableModelInvocation).toBe(false);
   });
 

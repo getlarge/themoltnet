@@ -7,12 +7,34 @@ import type { VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
+  MemoryProvider,
   RealFSProvider,
   ShadowProvider,
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
 const GUEST_WORKSPACE = '/workspace';
+/**
+ * Memory-backed VFS mount used by the daemon to inject task-context
+ * skills (#943 slice 1.5). Sibling of /workspace, NOT a sub-path —
+ * Gondolin mounts can't nest. The agent's Gondolin-bound Read tool
+ * accepts paths under this prefix (see toGuestPath in tool-operations.ts).
+ *
+ * Why MemoryProvider rather than a path under /workspace:
+ *   - Injected skills are ephemeral by intent: per-task-attempt input
+ *     scoped to the VM lifetime. MemoryProvider models that exactly —
+ *     in-memory, per-VM-instance, zero host artefacts, automatic
+ *     cleanup on VM close.
+ *   - Writing under /workspace fails in worktrees because we symlink
+ *     `.moltnet/` to the main repo (so credentials are reachable from
+ *     worktrees), and Gondolin's RealFSProvider correctly refuses to
+ *     create paths whose ancestors' realpath escapes the mount root.
+ *     That refusal is a deliberate sandbox-escape protection, not a
+ *     bug. See diary semantic entry cd27d9d3-efdc-4aec-ac0d-5fd8ce258d1f
+ *     and episodic 7affbfeb-18a2-4963-aeac-c177eb2afa2d for the full
+ *     investigation and the alternatives we rejected.
+ */
+export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
 
 import type { SandboxConfig } from './snapshot.js';
 
@@ -265,6 +287,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     vfs: {
       mounts: {
         [GUEST_WORKSPACE]: workspaceProvider,
+        // Memory-backed mount for task-context skill injection (#943).
+        // Per-VM-instance, never persisted, never shared.
+        [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
       },
     },
   });
