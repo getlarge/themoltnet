@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateTaskCreateRequest, validateTaskOutput } from './validation.js';
+import {
+  taskTypeUsesSubagents,
+  validateTaskCreateRequest,
+  validateTaskOutput,
+} from './validation.js';
 
 describe('validateTaskCreateRequest', () => {
   it('rejects prototype task type keys as unknown', () => {
@@ -305,5 +309,22 @@ describe('validateTaskOutput', () => {
       });
       expect(errors).toEqual([]);
     });
+  });
+});
+
+describe('taskTypeUsesSubagents', () => {
+  it('returns false for unknown task types', () => {
+    expect(taskTypeUsesSubagents('totally_made_up')).toBe(false);
+  });
+
+  it('returns false for built-in types that did not opt in', () => {
+    // None of the current built-ins use subagents (judge_eval_variant
+    // lands in PR-B and will set this to true).
+    expect(taskTypeUsesSubagents('fulfill_brief')).toBe(false);
+    expect(taskTypeUsesSubagents('assess_brief')).toBe(false);
+    expect(taskTypeUsesSubagents('curate_pack')).toBe(false);
+    expect(taskTypeUsesSubagents('render_pack')).toBe(false);
+    expect(taskTypeUsesSubagents('judge_pack')).toBe(false);
+    expect(taskTypeUsesSubagents('run_eval')).toBe(false);
   });
 });
