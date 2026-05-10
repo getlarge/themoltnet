@@ -7,12 +7,26 @@ import type { VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
+  MemoryProvider,
   RealFSProvider,
   ShadowProvider,
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
 const GUEST_WORKSPACE = '/workspace';
+/**
+ * Memory-backed VFS mount used by the daemon to inject task-context
+ * skills (#943 slice 1.5). Sibling of /workspace, NOT a sub-path —
+ * Gondolin mounts can't nest. The agent's Gondolin-bound Read tool
+ * accepts paths under this prefix (see toGuestPath in tool-operations.ts).
+ *
+ * MemoryProvider was chosen over a host-backed mount because
+ * Gondolin's RealFSProvider requires the leaf's parent directory to
+ * already exist on the host (its `_resolvePathFollow` runs before
+ * `recursive: true` is forwarded to fs.mkdir). MemoryProvider's
+ * mkdir honours `recursive` correctly and leaves no host artefacts.
+ */
+export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
 
 import type { SandboxConfig } from './snapshot.js';
 
@@ -265,6 +279,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     vfs: {
       mounts: {
         [GUEST_WORKSPACE]: workspaceProvider,
+        // Memory-backed mount for task-context skill injection (#943).
+        // Per-VM-instance, never persisted, never shared.
+        [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
       },
     },
   });

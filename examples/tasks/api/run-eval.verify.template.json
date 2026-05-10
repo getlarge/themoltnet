@@ -1,0 +1,31 @@
+{
+  "diaryId": "{{diaryId}}",
+  "input": {
+    "context": [
+      {
+        "binding": "skill",
+        "content": "---\nname: verify-skill\ndescription: Smoke-test skill injected via input.context to verify Slice 1.5 of #943 wires the agent's Read tool against /workspace/.moltnet/skills/<slug>/SKILL.md.\n---\nSKILL-BODY-FIRST-LINE: this is the first non-frontmatter line of the verify-skill body.\n\nThe rest of this file is irrelevant to the smoke test.",
+        "slug": "verify-skill"
+      },
+      {
+        "binding": "prompt_prefix",
+        "content": "PROMPT-PREFIX-MARKER: this line was injected via binding=prompt_prefix and should appear in the system prompt.",
+        "slug": "verify-prompt-prefix"
+      },
+      {
+        "binding": "user_inline",
+        "content": "USER-INLINE-MARKER: this line was injected via binding=user_inline and should appear in the user message.",
+        "slug": "verify-user-inline"
+      }
+    ],
+    "scenario": {
+      "prompt": "You are doing a wiring smoke test for the run_eval task type's context-injection plumbing. Your sole job is to retrieve three pieces of evidence and report them in your structured output. Do NOT do any reasoning, planning, or extra work — just the three lookups, then submit.\n\n1. Use your Read tool to open `/workspace/.moltnet/skills/verify-skill/SKILL.md` and read its first non-frontmatter line of the body.\n2. Look at your system prompt for any line that begins with `PROMPT-PREFIX-MARKER:` and copy it verbatim.\n3. Look at the messages in this conversation for any line that begins with `USER-INLINE-MARKER:` and copy it verbatim.\n\nThen call `submit_run_eval_output` with:\n  - `response`: a multi-line string with three labelled lines, e.g.\n      `skill-first-line: <what you read>`\n      `prompt-prefix-marker: <what you found>`\n      `user-inline-marker: <what you found>`\n  - `totalTokens`: estimate is fine (any int >= 0).\n  - `durationMs`: estimate (any int >= 0).\n  - `traceparent`: the value the runtime gave you on claim (or an empty-but-nonempty placeholder like `00-x-x-00` if you cannot find it — schema requires minLength 1).\n\nIf any of the three lookups fails, report `<missing>` for that line and submit anyway. The point of this run is to surface what the wiring delivered, not to retry."
+    },
+    "variantLabel": "verify-slice-1.5"
+  },
+  "maxAttempts": 1,
+  "references": [],
+  "requiredExecutorTrustLevel": "selfDeclared",
+  "taskType": "run_eval",
+  "teamId": "{{teamId}}"
+}
