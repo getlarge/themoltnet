@@ -34680,7 +34680,7 @@ async function resolveCorrelation(input, deps) {
 * Wrong-context mentions and parse errors are surfaced as info-level
 * logs and (where applicable) PR/issue replies.
 */
-var NO_CRITERIA_NOTICE = "👋 `@moltnet-assess` recognised, but the originating `fulfill_brief` task carried no `input.successCriteria` — there is nothing machine-verifiable to judge against. To enable assessment, the imposer needs to supply `successCriteria` when creating the fulfill task. See [docs/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/agent-runtime.md) for the producer/judge model.";
+var NO_CRITERIA_NOTICE = "👋 `@moltnet-assess` recognised, but the originating `fulfill_brief` task carried no `input.successCriteria` — there is nothing machine-verifiable to judge against. To enable assessment, the imposer needs to supply `successCriteria` when creating the fulfill task. See [docs/understand/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/understand/agent-runtime.md) for the producer/judge model.";
 var NO_FULFILL_NOTICE = "👋 `@moltnet-assess` recognised, but no `fulfill_brief` task was found in this chain — assess can only run after fulfill. If you're sure a fulfill task exists, the chain id may have been lost; check the PR branch name (`moltnet/<correlationId>/...`), the first commit trailer (`Moltnet-Correlation-Id: <id>`), or the marker in the PR body.";
 async function dispatch(ctx) {
 	const { context, github, env } = ctx;
