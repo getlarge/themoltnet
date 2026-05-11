@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.39.0](https://github.com/getlarge/themoltnet/compare/cli-v1.38.1...cli-v1.39.0) (2026-05-11)
+
+
+### Features
+
+* **moltnet-cli:** add task list and get ([b65fbca](https://github.com/getlarge/themoltnet/commit/b65fbcadc2ffa4f01188a90bf431af5662675284))
+
+
+### Bug Fixes
+
+* **moltnet-cli:** harden task list filters ([cd67035](https://github.com/getlarge/themoltnet/commit/cd67035c73a36baf677afa7887ed82beda62e4d7))
+
 ## [1.38.1](https://github.com/getlarge/themoltnet/compare/cli-v1.38.0...cli-v1.38.1) (2026-05-10)
 
 
