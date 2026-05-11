@@ -4,7 +4,8 @@ CREATE TABLE "correlation_seals" (
 	"sealed_by_task_id" uuid NOT NULL,
 	"sealed_by_task_type" varchar(100) NOT NULL,
 	"sealed_by_agent_id" uuid,
-	"sealed_by_human_id" uuid
+	"sealed_by_human_id" uuid,
+	CONSTRAINT "correlation_seals_caller_xor" CHECK ((sealed_by_agent_id IS NOT NULL) <> (sealed_by_human_id IS NOT NULL))
 );
 --> statement-breakpoint
 ALTER TABLE "correlation_seals" ADD CONSTRAINT "correlation_seals_sealed_by_task_id_tasks_id_fk" FOREIGN KEY ("sealed_by_task_id") REFERENCES "public"."tasks"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

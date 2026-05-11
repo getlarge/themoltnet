@@ -1,1 +1,0 @@
-ALTER TABLE "correlation_seals" ADD CONSTRAINT "correlation_seals_caller_xor" CHECK ((sealed_by_agent_id IS NOT NULL) <> (sealed_by_human_id IS NOT NULL));
