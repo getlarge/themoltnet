@@ -24,6 +24,7 @@ import {
   type TaskMessage as DbTaskMessage,
   type TaskRepository,
   taskWorkflows,
+  type TransactionRunner,
 } from '@moltnet/database';
 import {
   type AsyncTaskValidationContext,
@@ -114,6 +115,18 @@ export class TaskServiceError extends Error {
     super(message);
     this.name = 'TaskServiceError';
   }
+}
+
+/**
+ * Postgres surfaces unique-key violations as SQLSTATE `23505`.
+ * Drizzle / pg propagate that as `err.code === '23505'` (or
+ * `cause.code` when wrapped). Used by the create flow's defensive
+ * seal-insert catch (#1101 M2).
+ */
+function isUniqueViolation(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const e = err as { code?: unknown; cause?: { code?: unknown } };
+  return e.code === '23505' || e.cause?.code === '23505';
 }
 
 function taskWorkflowId(taskId: string, attemptN: number): string {
@@ -242,6 +255,17 @@ interface TaskServiceDeps {
   correlationSealRepository: CorrelationSealRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
+  /**
+   * Wraps the task-insert + side-effect (e.g. correlation_seal insert)
+   * DB writes in a single transaction so they commit or roll back
+   * together. Required by #1096 — without it, a crash between the
+   * task-insert and the seal-insert leaves a sealing task with no
+   * seal, breaking the very invariant the seal protects.
+   *
+   * Production wires `createDBOSTransactionRunner(dataSource)`;
+   * tests wire `createDrizzleTransactionRunner(db)` or a stub.
+   */
+  transactionRunner: TransactionRunner;
   logger: Logger;
 }
 
@@ -255,6 +279,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     correlationSealRepository,
     permissionChecker,
     relationshipWriter,
+    transactionRunner,
     logger,
   } = deps;
 
@@ -525,67 +550,105 @@ export function createTaskService(deps: TaskServiceDeps) {
         expiresAt,
       };
 
-      const row = await taskRepository.create(newTask);
-
-      // Apply task-type-declared create-time side effects (#1096).
-      // Currently only `sealCorrelation`; the union is open. Runs
-      // BEFORE Keto grant because if grant fails we roll back BOTH
-      // the task and any seals it created (see catch block).
+      // Resolve task-type-declared side effects BEFORE the
+      // transaction so the validator ctx (with caller-bound
+      // permission checks) runs on already-committed data. The
+      // effects are pure data; applying them is what the tx wraps.
       const sideEffects = await getTaskCreateSideEffects(
         input.taskType,
         input.inputPayload,
         asyncCtx,
       );
+
+      // DB-atomic block: task insert + any seal inserts commit or
+      // roll back together. Throwing anywhere inside aborts the
+      // entire transaction — Postgres handles the rollback; we do
+      // NOT run compensating writes for anything inside this block.
+      //
+      // pg_advisory_xact_lock on each correlationId serializes
+      // concurrent judge_eval_variant creates against the same
+      // variant set. Without it, two creates that both saw "no
+      // seal" in their async validators could both pass the
+      // re-check and only collide on the PK insert — by which point
+      // the loser may have done unrelated work.
+      let row: DbTask;
       try {
-        for (const effect of sideEffects) {
-          if (effect.kind === 'sealCorrelation') {
-            // Re-check the seal under the same transaction the row
-            // was inserted in: if a concurrent create won the race
-            // between our async validator and here, surface a
-            // conflict instead of crashing on the PK violation.
-            const existing =
-              await correlationSealRepository.findByCorrelationId(
-                effect.correlationId,
-              );
-            if (existing && existing.sealedByTaskId !== row.id) {
-              throw new TaskServiceError(
-                'conflict',
-                `correlation_id ${effect.correlationId} was sealed by another task while this one was being created`,
-              );
+        row = await transactionRunner.runInTransaction(
+          async () => {
+            const inserted = await taskRepository.create(newTask);
+            for (const effect of sideEffects) {
+              if (effect.kind === 'sealCorrelation') {
+                await correlationSealRepository.acquireCorrelationLock(
+                  effect.correlationId,
+                );
+                const existing =
+                  await correlationSealRepository.findByCorrelationId(
+                    effect.correlationId,
+                  );
+                if (existing) {
+                  // Lock-protected re-check: a previous create
+                  // committed its seal while we were waiting on the
+                  // lock. Surface a clear conflict; the surrounding
+                  // tx will roll back the task we just inserted.
+                  throw new TaskServiceError(
+                    'conflict',
+                    `correlation_id ${effect.correlationId} was sealed by another concurrent create (sealed_by_task_id=${existing.sealedByTaskId}, sealed_by_task_type=${existing.sealedByTaskType})`,
+                  );
+                }
+                try {
+                  await correlationSealRepository.create({
+                    correlationId: effect.correlationId,
+                    sealedByTaskId: inserted.id,
+                    sealedByTaskType: input.taskType,
+                    sealedByAgentId: input.callerIsAgent
+                      ? input.callerId
+                      : null,
+                    sealedByHumanId: input.callerIsAgent
+                      ? null
+                      : input.callerId,
+                  });
+                } catch (sealErr) {
+                  // Defensive: PK violation despite the lock + re-check
+                  // (e.g. the lock helper is somehow a no-op). Surface
+                  // as a conflict instead of a 500.
+                  if (isUniqueViolation(sealErr)) {
+                    throw new TaskServiceError(
+                      'conflict',
+                      `correlation_id ${effect.correlationId} was sealed by another concurrent create`,
+                    );
+                  }
+                  throw sealErr;
+                }
+              }
             }
-            if (!existing) {
-              await correlationSealRepository.create({
-                correlationId: effect.correlationId,
-                sealedByTaskId: row.id,
-                sealedByTaskType: input.taskType,
-                sealedByAgentId: input.callerIsAgent ? input.callerId : null,
-                sealedByHumanId: input.callerIsAgent ? null : input.callerId,
-              });
-            }
-          }
-        }
-      } catch (err) {
-        // Side effect failed — cancel the task and unseal anything
-        // we may have already written so the imposer can retry.
-        logger.error(
-          { taskId: row.id, taskType: row.taskType, err },
-          'task.create.side_effect_failed — rolling back task',
+            return inserted;
+          },
+          { name: 'task.create' },
         );
-        await Promise.allSettled([
-          correlationSealRepository.deleteBySealingTaskId(row.id),
-          taskRepository.updateStatus(row.id, 'cancelled', {
-            cancelReason: 'Create-time side effect failed',
-            cancelledByAgentId: null,
-            cancelledByHumanId: null,
-          }),
-        ]);
+      } catch (err) {
         if (err instanceof TaskServiceError) throw err;
+        logger.error(
+          { taskType: input.taskType, err },
+          'task.create.tx_failed',
+        );
         throw new TaskServiceError(
           'conflict',
-          'Failed to apply create-time side effect — task was rolled back',
+          'Task create transaction failed — task was not created',
         );
       }
 
+      // Keto grant runs OUTSIDE the DB transaction: Keto is a
+      // separate system and is not transactional with Postgres. If
+      // the grant fails after we've already committed the task +
+      // seal, we compensate by marking the task `cancelled` and
+      // deleting any seal it acquired. Order matters here: the
+      // seal's FK to tasks is `restrict`, so we MUST delete the
+      // seal before any operation that might delete the task row.
+      // `updateStatus → cancelled` does NOT delete the task — it
+      // only mutates `status` — so the FK never fires either way.
+      // Delete-first is preserved anyway because it matches the
+      // mental model and keeps the order valid if a future change
+      // ever switches the rollback to a hard delete.
       try {
         await relationshipWriter.grantTaskParent(row.id, input.diaryId);
       } catch (err) {
@@ -593,16 +656,30 @@ export function createTaskService(deps: TaskServiceDeps) {
           { taskId: row.id, diaryId: input.diaryId, err },
           'task.create.grant_failed — rolling back task',
         );
-        // Roll back BOTH the seal (if any) and the task. The seal's
-        // FK to tasks is restrict, so we must delete the seal first.
-        await Promise.allSettled([
-          correlationSealRepository.deleteBySealingTaskId(row.id),
-          taskRepository.updateStatus(row.id, 'cancelled', {
+        // Sequential, not allSettled: if seal delete fails (e.g. DB
+        // hiccup), we MUST surface that rather than silently
+        // continuing — a stale seal on a cancelled task locks the
+        // correlation group against recovery.
+        try {
+          await correlationSealRepository.deleteBySealingTaskId(row.id);
+        } catch (sealDelErr) {
+          logger.error(
+            { taskId: row.id, err: sealDelErr },
+            'task.create.grant_failed.seal_cleanup_failed — manual intervention required',
+          );
+        }
+        try {
+          await taskRepository.updateStatus(row.id, 'cancelled', {
             cancelReason: 'Keto grant failed during creation',
-            cancelledByAgentId: null,
-            cancelledByHumanId: null,
-          }),
-        ]);
+            cancelledByAgentId: input.callerIsAgent ? input.callerId : null,
+            cancelledByHumanId: input.callerIsAgent ? null : input.callerId,
+          });
+        } catch (cancelErr) {
+          logger.error(
+            { taskId: row.id, err: cancelErr },
+            'task.create.grant_failed.cancel_failed',
+          );
+        }
         throw new TaskServiceError(
           'conflict',
           'Failed to register task ownership — task was rolled back',

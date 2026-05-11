@@ -393,6 +393,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     correlationSealRepository,
     permissionChecker,
     relationshipWriter,
+    transactionRunner,
     logger: app.log,
   });
 
