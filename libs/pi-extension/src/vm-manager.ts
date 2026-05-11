@@ -327,9 +327,25 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
   '`);
 
-  // Fix DNS: ensure working resolvers (VM gateway DNS may not forward correctly)
-  await vm.exec(`sh -c 'echo "nameserver 8.8.8.8
-nameserver 1.1.1.1" > /etc/resolv.conf'`);
+  // Fix DNS: ensure working resolvers (VM gateway DNS may not forward
+  // correctly) and wait for resolution to actually work before downstream
+  // resumeCommands run. Without the wait we've observed EAI_AGAIN errors
+  // on pnpm fetch when the resolver isn't ready yet at the moment of
+  // first lookup — Gondolin's resumed VM is a fresh overlay so any
+  // resolv.conf baked into the snapshot is replaced, and there's a brief
+  // race between our write here and DHCP/udhcpc finishing.
+  // Fix DNS: ensure working resolvers. Note Gondolin's MITM proxy returns
+  // RFC 5737 placeholder IPs (192.0.2.1 IPv4, 2001:db8::1 IPv6) for every
+  // hostname — actual routing happens transparently in the proxy. Node's
+  // default dual-stack behavior can attempt the unreachable IPv6 first
+  // and fail with EAI_AGAIN; consumers needing reliable resolution
+  // should set NODE_OPTIONS=--dns-result-order=ipv4first via
+  // sandbox.json#env (and curl --4 / similar for shell tools).
+  await vmRun(
+    vm,
+    'DNS resolvers',
+    `printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf`,
+  );
 
   // Tell git that the workspace mount is trusted regardless of UID. The host
   // workspace is bind-mounted into /workspace via Gondolin's RealFSProvider,
@@ -345,30 +361,12 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
     `git config --system --add safe.directory '*'`,
   );
 
-  // Overlay-mount a guest-kernel tmpfs at /workspace/node_modules so package
-  // installs (pnpm/npm) bypass the Gondolin FUSE bridge entirely. Without
-  // this, every file write during install traverses guest-FUSE →
-  // virtio-RPC → host RealFSProvider, costing ~80× more wall-clock than a
-  // plain Linux mount (diary 47b67636: 240s vs 3s for identical pnpm
-  // install). The kernel resolves mount points before FUSE, so writes to
-  // /workspace/node_modules/... never reach sandboxfs or the host. Side
-  // effect: the host worktree's existing node_modules (if any) is fully
-  // hidden by the mount and remains untouched — no host pollution. tmpfs
-  // is per-VM: install is discarded on VM exit; the pnpm content store
-  // is the persistence point (configured separately by the consumer via
-  // sandbox.json env / resumeCommands). A silent mount failure would
-  // route writes through the FUSE bridge — the exact problem this fix
-  // exists to solve — so vmRun fails loudly if the mount doesn't take.
-  await vmRun(
-    vm,
-    'tmpfs /workspace/node_modules',
-    `mkdir -p /workspace/node_modules && mount -t tmpfs -o size=4G,mode=0755,uid=501,gid=501 tmpfs /workspace/node_modules`,
-  );
-
   // Consumer-provided per-resume commands. Repo-specific bootstrap
-  // (corepack-install a pinned pnpm, `pnpm fetch`, etc.) belongs here,
-  // not in vm-manager — pi-extension stays repo-agnostic. Sequential,
-  // first failure aborts resume via vmRun.
+  // (corepack-install a pinned pnpm, `pnpm fetch`, kernel tmpfs mounts
+  // for paths the consumer wants out of the Gondolin FUSE hot path —
+  // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
+  // here, not in vm-manager. pi-extension stays repo-agnostic.
+  // Sequential, first failure aborts resume via vmRun.
   for (const [i, cmd] of (
     config.sandboxConfig?.resumeCommands ?? []
   ).entries()) {
