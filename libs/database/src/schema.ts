@@ -1103,6 +1103,52 @@ export const tasks = pgTable(
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 
+// ── Correlation Seals ──────────────────────────────────────
+//
+// A correlation_id is "sealed" when a task type that demands a
+// monotonic-add-only snapshot of its correlation group is created
+// against it (`judge_eval_variant` is the first user). Sealing
+// rejects subsequent task-create calls in the same correlation_id
+// so the snapshot the judge captured stays canonical.
+//
+// One row per correlation_id; primary key prevents double-sealing.
+// `sealed_by_task_id` is the task whose creation triggered the
+// seal; foreign-key cascade is `restrict` because deleting the
+// sealing task would silently unseal the group and invite the
+// race condition we sealed against.
+//
+// See issue #1096 for the design.
+
+export const correlationSeals = pgTable(
+  'correlation_seals',
+  {
+    correlationId: uuid('correlation_id').primaryKey(),
+    sealedAt: timestamp('sealed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    sealedByTaskId: uuid('sealed_by_task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'restrict' }),
+    sealedByTaskType: varchar('sealed_by_task_type', {
+      length: 100,
+    }).notNull(),
+    /** Optional caller (agent or human) that triggered the seal. */
+    sealedByAgentId: uuid('sealed_by_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'set null' },
+    ),
+    sealedByHumanId: uuid('sealed_by_human_id').references(() => humans.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    index('correlation_seals_sealed_by_task_idx').on(table.sealedByTaskId),
+  ],
+);
+
+export type CorrelationSeal = typeof correlationSeals.$inferSelect;
+export type NewCorrelationSeal = typeof correlationSeals.$inferInsert;
+
 // ── Executor Manifests ─────────────────────────────────────
 
 export const executorManifests = pgTable(
