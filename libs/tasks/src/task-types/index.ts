@@ -25,6 +25,15 @@ import {
   FulfillBriefOutput,
 } from './fulfill-brief.js';
 import {
+  JUDGE_EVAL_VARIANT_TYPE,
+  JudgeEvalVariantInput,
+  JudgeEvalVariantOutput,
+  onCreateJudgeEvalVariant,
+  validateJudgeEvalVariantInput,
+  validateJudgeEvalVariantInputAsync,
+  validateJudgeEvalVariantOutput,
+} from './judge-eval-variant.js';
+import {
   JUDGE_PACK_TYPE,
   JudgePackInput,
   JudgePackOutput,
@@ -47,6 +56,7 @@ import {
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
+export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
@@ -233,6 +243,18 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'artifact',
     requiresReferences: false,
     validateOutput: validateRunEvalOutput,
+  },
+  [JUDGE_EVAL_VARIANT_TYPE]: {
+    name: JUDGE_EVAL_VARIANT_TYPE,
+    inputSchema: JudgeEvalVariantInput,
+    outputSchema: JudgeEvalVariantOutput,
+    outputKind: 'judgment',
+    requiresReferences: false,
+    validateInput: validateJudgeEvalVariantInput,
+    validateOutput: validateJudgeEvalVariantOutput,
+    validateInputAsync: validateJudgeEvalVariantInputAsync,
+    onCreate: onCreateJudgeEvalVariant,
+    usesSubagents: true,
   },
 } as const satisfies Record<string, TaskTypeEntry>;
 

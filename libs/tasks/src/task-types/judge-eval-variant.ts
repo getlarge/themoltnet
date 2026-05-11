@@ -32,6 +32,11 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskCreateSideEffect,
+  TaskValidationError,
+} from '../async-validation.js';
 import { validateRubricWeights } from '../rubric.js';
 import {
   type SuccessCriteria,
@@ -272,4 +277,178 @@ export function validateJudgeEvalVariantOutput(
   }
 
   return null;
+}
+
+/**
+ * Local stable-stringify for cross-variant `successCriteria` byte-
+ * equality. Recursively sorts object keys; arrays preserve order
+ * (intentional — rubric criteria order is semantically meaningful).
+ * Mirrors the canonical-JSON shape `crypto-service` uses for CIDs,
+ * without taking on a crypto-service dep just for this comparison.
+ */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(stableStringify).join(',') + ']';
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return (
+    '{' +
+    keys
+      .map((k) => JSON.stringify(k) + ':' + stableStringify(obj[k]))
+      .join(',') +
+    '}'
+  );
+}
+
+/**
+ * Async preflight for `judge_eval_variant` (#1096 + #943):
+ *
+ *  1. Every `runTaskIds[i]` resolves to a task the caller can read.
+ *  2. Every resolved task is `taskType === 'run_eval'`.
+ *  3. Every resolved task is `status === 'completed'` with a
+ *     non-null `acceptedAttemptN` — grading an unaccepted attempt
+ *     races with re-attempts and pollutes the judge attestation.
+ *  4. Every resolved task shares a non-null `correlationId`, and all
+ *     `correlationId`s are equal. Without this an imposer could
+ *     fabricate a "variant set" by stapling unrelated runs together.
+ *  5. The shared `correlationId` is NOT already sealed. A previous
+ *     judge_eval_variant against the same group is final; produce a
+ *     fresh correlation_id for a new judging round rather than
+ *     adding contradictory verdicts to a sealed group.
+ *  6. Every variant's `input.successCriteria` is byte-identical (via
+ *     stable-stringify). Different rubrics across "variants" makes
+ *     the comparison meaningless.
+ */
+export async function validateJudgeEvalVariantInputAsync(
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskValidationError[]> {
+  const { runTaskIds } = input as JudgeEvalVariantInput;
+  const errors: TaskValidationError[] = [];
+
+  const resolved = await Promise.all(
+    runTaskIds.map((id) => ctx.resolveTask(id)),
+  );
+
+  let missingTargets = false;
+  const presentTargets: NonNullable<(typeof resolved)[number]>[] = [];
+  for (let i = 0; i < runTaskIds.length; i++) {
+    const t = resolved[i];
+    if (!t) {
+      missingTargets = true;
+      errors.push({
+        field: `runTaskIds[${i}]`,
+        message: `runTaskIds[${i}]=${runTaskIds[i]} does not resolve to a task you can read`,
+      });
+      continue;
+    }
+    presentTargets.push(t);
+    if (t.taskType !== 'run_eval') {
+      errors.push({
+        field: `runTaskIds[${i}]`,
+        message: `runTaskIds[${i}]=${runTaskIds[i]} is a ${t.taskType}, not a run_eval`,
+      });
+    }
+    if (t.status !== 'completed' || t.acceptedAttemptN === null) {
+      errors.push({
+        field: `runTaskIds[${i}]`,
+        message: `runTaskIds[${i}]=${runTaskIds[i]} is not completed with an accepted attempt (status=${t.status}, acceptedAttemptN=${t.acceptedAttemptN})`,
+      });
+    }
+  }
+
+  if (missingTargets || presentTargets.length === 0) {
+    return errors;
+  }
+
+  // (4) shared, non-null correlationId.
+  const correlationIds = new Set(
+    presentTargets.map((t) => t.correlationId ?? '__null__'),
+  );
+  if (correlationIds.has('__null__')) {
+    errors.push({
+      field: 'runTaskIds',
+      message:
+        'one or more run_eval targets have no correlation_id; cannot group as variants',
+    });
+  }
+  if (correlationIds.size > 1) {
+    errors.push({
+      field: 'runTaskIds',
+      message: `run_eval targets span multiple correlation_ids (${Array.from(correlationIds).join(', ')}); variants must share one`,
+    });
+  }
+
+  if (errors.length > 0) {
+    return errors;
+  }
+
+  const correlationId = presentTargets[0].correlationId;
+  if (!correlationId) {
+    return errors;
+  }
+
+  // (5) not already sealed.
+  const seal = await ctx.findCorrelationSeal(correlationId);
+  if (seal) {
+    errors.push({
+      field: 'runTaskIds',
+      message: `correlation_id ${correlationId} is already sealed by ${seal.sealedByTaskType}/${seal.sealedByTaskId} at ${seal.sealedAt}; use a fresh correlation_id for a new judging round`,
+    });
+  }
+
+  // (6) byte-identical successCriteria across variants.
+  const first = stableStringify(
+    (presentTargets[0].input as { successCriteria?: unknown }).successCriteria,
+  );
+  for (let i = 1; i < presentTargets.length; i++) {
+    const next = stableStringify(
+      (presentTargets[i].input as { successCriteria?: unknown })
+        .successCriteria,
+    );
+    if (next !== first) {
+      errors.push({
+        field: `runTaskIds[${i}]`,
+        message: `runTaskIds[${i}] has a different input.successCriteria than runTaskIds[0]; all variants must share the rubric and gates`,
+      });
+      break;
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Side effect emitted on successful `judge_eval_variant` create:
+ * seal the shared correlation_id atomically with the insert. The
+ * task service applies the seal in the same transaction; a
+ * concurrent second `judge_eval_variant` against the same group
+ * loses the race and is rejected with a clean conflict error.
+ *
+ * The seal applies to the SHARED correlation_id of the targets —
+ * NOT to the judge task's own correlationId (which is typically
+ * null or distinct). The task service derives the correlationId
+ * for the effect from the resolved targets, not from the judge
+ * task row.
+ */
+export async function onCreateJudgeEvalVariant(
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskCreateSideEffect[]> {
+  const { runTaskIds } = input as JudgeEvalVariantInput;
+  // Resolve only the first target — the async validator already
+  // proved all share one non-null correlation_id, so reading one
+  // is sufficient and avoids a redundant fan-out.
+  const first = await ctx.resolveTask(runTaskIds[0]);
+  if (!first?.correlationId) {
+    // Defensive: validation should have caught this. Return no
+    // effects so the create proceeds without a seal rather than
+    // throwing from a hook that runs after validation passed.
+    return [];
+  }
+  return [{ kind: 'sealCorrelation', correlationId: first.correlationId }];
 }
