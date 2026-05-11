@@ -189,6 +189,8 @@ describe('GET /tasks', () => {
       method: 'GET',
       url:
         `/tasks?teamId=${TEAM_ID}` +
+        '&taskTypes=fulfill_brief' +
+        '&taskTypes=curate_pack' +
         `&diaryId=${DIARY_ID}` +
         `&imposedByAgentId=${OWNER_ID}` +
         `&imposedByHumanId=550e8400-e29b-41d4-a716-446655440099` +
@@ -205,6 +207,7 @@ describe('GET /tasks', () => {
     expect(mocks.taskService.list).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
+        taskTypes: ['fulfill_brief', 'curate_pack'],
         diaryId: DIARY_ID,
         imposedByAgentId: OWNER_ID,
         imposedByHumanId: '550e8400-e29b-41d4-a716-446655440099',

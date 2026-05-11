@@ -693,7 +693,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     async list(opts: {
       teamId: string;
       status?: string;
-      taskType?: string;
+      taskTypes?: string[];
       // Daemon advertises its `(provider, model)` to filter the queue
       // down to tasks it can run. Both lowercased upstream. Both must
       // be set together; the route handler enforces this. When unset,
@@ -729,7 +729,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       const { items, nextCursor } = await taskRepository.list({
         teamId: opts.teamId,
         status: opts.status as DbTask['status'] | undefined,
-        taskType: opts.taskType,
+        taskTypes: opts.taskTypes,
         executorProvider: opts.executorProvider,
         executorModel: opts.executorModel,
         correlationId: opts.correlationId,

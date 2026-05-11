@@ -238,6 +238,86 @@ describe('Tasks API', () => {
       expect(found).toBeDefined();
     });
 
+    it('filters by repeated taskTypes', async () => {
+      const { data: curateTask, error: curateError } = await createTask({
+        client,
+        auth: () => imposer.accessToken,
+        body: {
+          taskType: 'curate_pack',
+          teamId: imposer.personalTeamId,
+          diaryId: imposer.privateDiaryId,
+          input: {
+            diaryId: imposer.privateDiaryId,
+            taskPrompt: 'taskTypes filter curate',
+          },
+        },
+      });
+      expect(curateError).toBeUndefined();
+
+      const { data: fulfillTask, error: fulfillError } = await createTask({
+        client,
+        auth: () => imposer.accessToken,
+        body: {
+          taskType: 'fulfill_brief',
+          teamId: imposer.personalTeamId,
+          diaryId: imposer.privateDiaryId,
+          input: {
+            brief: 'taskTypes filter fulfill',
+            title: 'taskTypes filter fulfill',
+          },
+        },
+      });
+      expect(fulfillError).toBeUndefined();
+
+      try {
+        const { data: fulfillOnly, error: fulfillOnlyError } = await listTasks({
+          client,
+          auth: () => imposer.accessToken,
+          query: {
+            teamId: imposer.personalTeamId,
+            taskTypes: ['fulfill_brief'],
+            limit: 50,
+          },
+        });
+        expect(fulfillOnlyError).toBeUndefined();
+        expect(fulfillOnly!.items.map((item) => item.id)).toContain(
+          fulfillTask!.id,
+        );
+        expect(fulfillOnly!.items.map((item) => item.id)).not.toContain(
+          curateTask!.id,
+        );
+
+        const { data: either, error: eitherError } = await listTasks({
+          client,
+          auth: () => imposer.accessToken,
+          query: {
+            teamId: imposer.personalTeamId,
+            taskTypes: ['curate_pack', 'fulfill_brief'],
+            limit: 50,
+          },
+        });
+        expect(eitherError).toBeUndefined();
+        expect(either!.items.map((item) => item.id)).toEqual(
+          expect.arrayContaining([curateTask!.id, fulfillTask!.id]),
+        );
+      } finally {
+        await Promise.all([
+          cancelTask({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: curateTask!.id },
+            body: { reason: 'cleanup' },
+          }),
+          cancelTask({
+            client,
+            auth: () => imposer.accessToken,
+            path: { id: fulfillTask!.id },
+            body: { reason: 'cleanup' },
+          }),
+        ]);
+      }
+    });
+
     it('returns 403 when listing another team the caller cannot access', async () => {
       const { response } = await listTasks({
         client,

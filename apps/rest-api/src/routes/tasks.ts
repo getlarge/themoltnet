@@ -196,7 +196,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         return await fastify.taskService.list({
           teamId: request.query.teamId,
           status: request.query.status,
-          taskType: request.query.taskType,
+          taskTypes: request.query.taskTypes,
           executorProvider: provider?.toLowerCase(),
           executorModel: model?.toLowerCase(),
           correlationId: request.query.correlationId,

@@ -32,7 +32,7 @@ export function TasksPage() {
       query: {
         teamId: teamId ?? '',
         status,
-        taskType: taskType.trim() || undefined,
+        taskTypes: taskType.trim() ? [taskType.trim()] : undefined,
         correlationId: correlationId.trim() || undefined,
         limit: PAGE_SIZE,
       },

@@ -34786,7 +34786,7 @@ async function dispatchAssess(args) {
 	const fulfill = (await args.moltnet.tasks.list({
 		teamId: args.teamId,
 		correlationId,
-		taskType: "fulfill_brief",
+		taskTypes: ["fulfill_brief"],
 		limit: 10
 	})).items?.find((t) => t.acceptedAttemptN !== null);
 	if (!fulfill) {

@@ -83,7 +83,7 @@ export function createTaskRepository(db: Database) {
     async list(opts: {
       teamId: string;
       status?: Task['status'];
-      taskType?: string;
+      taskTypes?: string[];
       // When both are provided, filter the result to tasks that either
       // have an empty `allowed_executors` array (no restriction) or
       // include this exact `(provider, model)` pair. Both are expected
@@ -106,7 +106,13 @@ export function createTaskRepository(db: Database) {
       const limit = Math.min(opts.limit ?? PAGE_SIZE, PAGE_SIZE);
       const filters: SQL[] = [eq(tasks.teamId, opts.teamId)];
       if (opts.status) filters.push(eq(tasks.status, opts.status));
-      if (opts.taskType) filters.push(eq(tasks.taskType, opts.taskType));
+      const taskTypes =
+        opts.taskTypes?.filter((taskType) => taskType.length > 0) ?? [];
+      if (taskTypes.length === 1) {
+        filters.push(eq(tasks.taskType, taskTypes[0]));
+      } else if (taskTypes.length > 1) {
+        filters.push(inArray(tasks.taskType, taskTypes));
+      }
       if (opts.executorProvider && opts.executorModel) {
         // Either no restriction set, or our pair is one of the allowed
         // executors. JSONB containment (`@>`) is index-friendly with a

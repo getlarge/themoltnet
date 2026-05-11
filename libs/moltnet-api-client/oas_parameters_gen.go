@@ -7292,23 +7292,24 @@ func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Requ
 
 // ListTasksParams is parameters of listTasks operation.
 type ListTasksParams struct {
-	TeamId           uuid.UUID
-	Status           OptTaskStatus `json:",omitempty,omitzero"`
-	TaskType         OptString     `json:",omitempty,omitzero"`
-	Provider         OptString     `json:",omitempty,omitzero"`
-	Model            OptString     `json:",omitempty,omitzero"`
-	CorrelationId    OptUUID       `json:",omitempty,omitzero"`
-	DiaryId          OptUUID       `json:",omitempty,omitzero"`
-	ImposedByAgentId OptUUID       `json:",omitempty,omitzero"`
-	ImposedByHumanId OptUUID       `json:",omitempty,omitzero"`
-	ClaimedByAgentId OptUUID       `json:",omitempty,omitzero"`
-	HasAttempts      OptBool       `json:",omitempty,omitzero"`
-	QueuedAfter      OptDateTime   `json:",omitempty,omitzero"`
-	QueuedBefore     OptDateTime   `json:",omitempty,omitzero"`
-	CompletedAfter   OptDateTime   `json:",omitempty,omitzero"`
-	CompletedBefore  OptDateTime   `json:",omitempty,omitzero"`
-	Limit            OptInt        `json:",omitempty,omitzero"`
-	Cursor           OptString     `json:",omitempty,omitzero"`
+	TeamId uuid.UUID
+	Status OptTaskStatus `json:",omitempty,omitzero"`
+	// Repeated task type filter. Single value also accepted.
+	TaskTypes        []string    `json:",omitempty"`
+	Provider         OptString   `json:",omitempty,omitzero"`
+	Model            OptString   `json:",omitempty,omitzero"`
+	CorrelationId    OptUUID     `json:",omitempty,omitzero"`
+	DiaryId          OptUUID     `json:",omitempty,omitzero"`
+	ImposedByAgentId OptUUID     `json:",omitempty,omitzero"`
+	ImposedByHumanId OptUUID     `json:",omitempty,omitzero"`
+	ClaimedByAgentId OptUUID     `json:",omitempty,omitzero"`
+	HasAttempts      OptBool     `json:",omitempty,omitzero"`
+	QueuedAfter      OptDateTime `json:",omitempty,omitzero"`
+	QueuedBefore     OptDateTime `json:",omitempty,omitzero"`
+	CompletedAfter   OptDateTime `json:",omitempty,omitzero"`
+	CompletedBefore  OptDateTime `json:",omitempty,omitzero"`
+	Limit            OptInt      `json:",omitempty,omitzero"`
+	Cursor           OptString   `json:",omitempty,omitzero"`
 }
 
 func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams) {
@@ -7330,11 +7331,11 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "taskType",
+			Name: "taskTypes",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.TaskType = v.(OptString)
+			params.TaskTypes = v.([]string)
 		}
 	}
 	{
@@ -7560,43 +7561,90 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 			Err:  err,
 		}
 	}
-	// Decode query: taskType.
+	// Decode query: taskTypes.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "taskType",
+			Name:    "taskTypes",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotTaskTypeVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotTaskTypesVal string
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotTaskTypesVal = c
+						return nil
+					}(); err != nil {
 						return err
 					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotTaskTypeVal = c
+					params.TaskTypes = append(params.TaskTypes, paramsDotTaskTypesVal)
 					return nil
-				}(); err != nil {
-					return err
-				}
-				params.TaskType.SetTo(paramsDotTaskTypeVal)
-				return nil
+				})
 			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.TaskTypes == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.TaskTypes)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.TaskTypes {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     0,
+							MaxLengthSet:  false,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(elem)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
+				}
+				return nil
+			}(); err != nil {
 				return err
 			}
 		}
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "taskType",
+			Name: "taskTypes",
 			In:   "query",
 			Err:  err,
 		}
