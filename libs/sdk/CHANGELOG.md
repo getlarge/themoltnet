@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.102.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.101.0...sdk-v0.102.0) (2026-05-11)
+
+
+### Features
+
+* **sdk:** expose browser-safe human entrypoint ([38e456b](https://github.com/getlarge/themoltnet/commit/38e456b335487e2607cf14d5b53cf89294b2ecfc))
+
 ## [0.101.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.100.0...sdk-v0.101.0) (2026-05-11)
 
 

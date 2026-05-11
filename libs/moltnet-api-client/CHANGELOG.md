@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.27.0...moltnet-api-client-v1.28.0) (2026-05-11)
+
+
+### Features
+
+* **tasks:** support multi-type task polling ([621e4fc](https://github.com/getlarge/themoltnet/commit/621e4fc8f26d9abb74e092a76866142e23f2db7e))
+
 ## [1.27.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.26.0...moltnet-api-client-v1.27.0) (2026-05-10)
 
 

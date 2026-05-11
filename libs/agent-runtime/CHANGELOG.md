@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.14.0...agent-runtime-v0.15.0) (2026-05-11)
+
+
+### Features
+
+* **tasks:** support multi-type task polling ([621e4fc](https://github.com/getlarge/themoltnet/commit/621e4fc8f26d9abb74e092a76866142e23f2db7e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.102.0
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.13.0...agent-runtime-v0.14.0) (2026-05-11)
 
 
