@@ -10,7 +10,7 @@ import {
   updateDiaryEntryById,
   verifyDiaryEntryById,
 } from '@moltnet/api-client';
-import { computeContentCid } from '@moltnet/crypto-service';
+import { computeContentCid } from '@moltnet/crypto-service/content-cid';
 import * as ed from '@noble/ed25519';
 
 import type { EntriesNamespace } from '../agent.js';

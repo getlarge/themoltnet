@@ -24,7 +24,7 @@ export default defineConfig({
     }),
   ],
   build: {
-    ssr: 'src/index.ts',
+    ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
     // Mirror the SSR entry as rolldownOptions.input so @nx/vite/plugin
@@ -33,8 +33,17 @@ export default defineConfig({
     // rolldownOptions.input — but NOT build.ssr). Vite's actual build
     // is still driven by build.ssr; this field is a hint to the Nx
     // inference layer.
+    rollupOptions: {
+      input: {
+        human: 'src/human.ts',
+        index: 'src/index.ts',
+      },
+    },
     rolldownOptions: {
-      input: 'src/index.ts',
+      input: {
+        human: 'src/human.ts',
+        index: 'src/index.ts',
+      },
     },
   },
   ssr: {

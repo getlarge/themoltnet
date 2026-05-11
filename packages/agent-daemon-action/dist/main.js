@@ -30139,7 +30139,6 @@ function createDiaryGrantsNamespace(context) {
 		}
 	};
 }
-new TextEncoder();
 //#endregion
 //#region ../../node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/utils.js
 /** Checks if something is Uint8Array. Be careful: nodejs Buffer will return true. */
@@ -31862,6 +31861,793 @@ var wNAF = (n) => {
 		f
 	};
 };
+//#endregion
+//#region ../../libs/sdk/src/namespaces/entries.ts
+function createEntriesNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async create(diaryId, body) {
+			return unwrapResult(await createDiaryEntry({
+				client,
+				auth,
+				body,
+				path: { diaryId }
+			}));
+		},
+		async list(diaryId, query) {
+			return unwrapResult(await listDiaryEntries({
+				client,
+				auth,
+				query,
+				path: { diaryId }
+			}));
+		},
+		async get(entryId) {
+			return unwrapResult(await getDiaryEntryById({
+				client,
+				auth,
+				path: { entryId }
+			}));
+		},
+		async update(entryId, body) {
+			return unwrapResult(await updateDiaryEntryById({
+				client,
+				auth,
+				path: { entryId },
+				body
+			}));
+		},
+		async delete(entryId) {
+			return unwrapResult(await deleteDiaryEntryById({
+				client,
+				auth,
+				path: { entryId }
+			}));
+		},
+		async search(body) {
+			return unwrapResult(await searchDiary({
+				client,
+				auth,
+				body
+			}));
+		},
+		async reflect(query) {
+			return unwrapResult(await reflectDiary({
+				client,
+				auth,
+				query
+			}));
+		},
+		async verify(entryId) {
+			return unwrapResult(await verifyDiaryEntryById({
+				client,
+				auth,
+				path: { entryId }
+			}));
+		},
+		async createSigned(diaryId, body, privateKey) {
+			const signingRequest = unwrapResult(await createSigningRequest({
+				client,
+				auth,
+				body: { message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null) }
+			}));
+			const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, "base64"));
+			const signature = await signAsync(new Uint8Array(Buffer.from(signingRequest.signingInput, "base64")), privateKeyBytes);
+			const signatureB64 = Buffer.from(signature).toString("base64");
+			unwrapResult(await submitSignature({
+				client,
+				auth,
+				path: { id: signingRequest.id },
+				body: { signature: signatureB64 }
+			}));
+			return unwrapResult(await createDiaryEntry({
+				client,
+				auth,
+				path: { diaryId },
+				body: {
+					...body,
+					signingRequestId: signingRequest.id
+				}
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/legreffier.ts
+function createLegreffierNamespace(context) {
+	const { client } = context;
+	return {
+		async startOnboarding(body) {
+			return unwrapResult(await startLegreffierOnboarding({
+				client,
+				body
+			}));
+		},
+		async getOnboardingStatus(workflowId) {
+			return unwrapResult(await getLegreffierOnboardingStatus({
+				client,
+				path: { workflowId }
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/packs.ts
+function createPacksNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async get(id, query) {
+			return unwrapResult(await getContextPackById({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async list(selector) {
+			if ("diaryId" in selector) {
+				const { diaryId, ...query } = selector;
+				return unwrapResult(await listDiaryPacks({
+					client,
+					auth,
+					path: { id: diaryId },
+					query
+				}));
+			}
+			const { containsEntry, ...query } = selector;
+			return unwrapResult(await listContextPacks({
+				client,
+				auth,
+				query: {
+					...query,
+					containsEntry
+				}
+			}));
+		},
+		async getProvenance(id, query) {
+			return unwrapResult(await getContextPackProvenanceById({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async getProvenanceByCid(cid, query) {
+			return unwrapResult(await getContextPackProvenanceByCid({
+				client,
+				auth,
+				path: { cid },
+				query
+			}));
+		},
+		async previewRendered(id, body) {
+			return unwrapResult(await previewRenderedPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async render(id, body) {
+			return unwrapResult(await renderContextPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async getLatestRendered(id, query) {
+			return unwrapResult(await getLatestRenderedPack({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async listRendered(diaryId, query) {
+			return unwrapResult(await listDiaryRenderedPacks({
+				client,
+				auth,
+				path: { id: diaryId },
+				query
+			}));
+		},
+		async getRendered(id, query) {
+			return unwrapResult(await getRenderedPackById({
+				client,
+				auth,
+				path: { id },
+				query
+			}));
+		},
+		async update(id, body) {
+			return unwrapResult(await updateContextPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async updateRendered(id, body) {
+			return unwrapResult(await updateRenderedPack({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async create(diaryId, body) {
+			return unwrapResult(await createDiaryCustomPack({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		},
+		async preview(diaryId, body) {
+			return unwrapResult(await previewDiaryCustomPack({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/problems.ts
+function createProblemsNamespace(context) {
+	const { client } = context;
+	return {
+		async list() {
+			return unwrapRequired(await listProblemTypes({ client }), "Failed to list problem types", "PROBLEMS_FAILED");
+		},
+		async get(type) {
+			return unwrapRequired(await getProblemType({
+				client,
+				path: { type }
+			}), `Failed to get problem type: ${type}`, "PROBLEM_TYPE_FAILED");
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/public.ts
+function createPublicNamespace(context) {
+	const { client } = context;
+	return {
+		async feed(query) {
+			return unwrapResult(await getPublicFeed({
+				client,
+				query
+			}));
+		},
+		async searchFeed(query) {
+			return unwrapResult(await searchPublicFeed({
+				client,
+				query
+			}));
+		},
+		async entry(id) {
+			return unwrapResult(await getPublicEntry({
+				client,
+				path: { id }
+			}));
+		},
+		async networkInfo() {
+			return unwrapRequired(await getNetworkInfo({ client }), "Failed to fetch network info", "NETWORK_INFO_FAILED");
+		},
+		async llmsTxt() {
+			return unwrapRequired(await getLlmsTxt({ client }), "Failed to fetch llms.txt", "LLMS_TXT_FAILED");
+		},
+		async health() {
+			return unwrapRequired(await getHealth({ client }), "Failed to fetch health", "HEALTH_FAILED");
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/recovery.ts
+function createRecoveryNamespace(context) {
+	const { client } = context;
+	return {
+		async requestChallenge(body) {
+			return unwrapResult(await requestRecoveryChallenge({
+				client,
+				body
+			}));
+		},
+		async verifyChallenge(body) {
+			return unwrapResult(await verifyRecoveryChallenge({
+				client,
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/signing-requests.ts
+function createSigningRequestsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list(query) {
+			return unwrapResult(await listSigningRequests({
+				client,
+				auth,
+				query
+			}));
+		},
+		async create(body) {
+			return unwrapResult(await createSigningRequest({
+				client,
+				auth,
+				body
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getSigningRequest({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async submit(id, body) {
+			return unwrapResult(await submitSignature({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/tasks.ts
+function createTasksNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async schemas() {
+			return unwrapResult(await listTaskSchemas({
+				client,
+				auth
+			}));
+		},
+		async list(query) {
+			return unwrapResult(await listTasks({
+				client,
+				auth,
+				query
+			}));
+		},
+		async create(body) {
+			return unwrapResult(await createTask$1({
+				client,
+				auth,
+				body
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getTask({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async claim(id, body) {
+			const result = await claimTask({
+				client,
+				auth,
+				path: { id },
+				body
+			});
+			const data = unwrapResult(result);
+			const traceHeaders = {};
+			const traceparent = result.response.headers.get("traceparent");
+			if (traceparent) {
+				traceHeaders["traceparent"] = traceparent;
+				const tracestate = result.response.headers.get("tracestate");
+				if (tracestate) traceHeaders["tracestate"] = tracestate;
+			}
+			return {
+				...data,
+				traceHeaders
+			};
+		},
+		async heartbeat(id, n, body) {
+			return unwrapResult(await taskHeartbeat({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async complete(id, n, body) {
+			return unwrapResult(await completeTask({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async fail(id, n, body) {
+			return unwrapResult(await failTask({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async cancel(id, body) {
+			return unwrapResult(await cancelTask({
+				client,
+				auth,
+				path: { id },
+				body
+			}));
+		},
+		async listAttempts(id) {
+			return unwrapResult(await listTaskAttempts({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async listMessages(id, n, query) {
+			return unwrapResult(await listTaskMessages({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				query
+			}));
+		},
+		async appendMessages(id, n, body) {
+			return unwrapResult(await appendTaskMessages({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/teams.ts
+function createTeamsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list() {
+			return unwrapResult(await listTeams({
+				client,
+				auth
+			}));
+		},
+		async get(id) {
+			return unwrapResult(await getTeam({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async listMembers(id) {
+			return unwrapResult(await listTeamMembers({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async create(body) {
+			return unwrapResult(await createTeam({
+				client,
+				auth,
+				body
+			}));
+		},
+		async join(code) {
+			return unwrapResult(await joinTeam({
+				client,
+				auth,
+				body: { code }
+			}));
+		},
+		async delete(id) {
+			return unwrapResult(await deleteTeam({
+				client,
+				auth,
+				path: { id }
+			}));
+		},
+		async removeMember(teamId, subjectId) {
+			return unwrapResult(await removeTeamMember({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					subjectId
+				}
+			}));
+		},
+		invites: {
+			async create(teamId, body) {
+				return unwrapResult(await createTeamInvite({
+					client,
+					auth,
+					path: { id: teamId },
+					body
+				}));
+			},
+			async list(teamId) {
+				return unwrapResult(await listTeamInvites({
+					client,
+					auth,
+					path: { id: teamId }
+				}));
+			},
+			async delete(teamId, inviteId) {
+				return unwrapResult(await deleteTeamInvite({
+					client,
+					auth,
+					path: {
+						id: teamId,
+						inviteId
+					}
+				}));
+			}
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/vouch.ts
+function createVouchNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async issue() {
+			return unwrapResult(await issueVoucher({
+				client,
+				auth
+			}));
+		},
+		async listActive() {
+			return unwrapResult(await listActiveVouchers({
+				client,
+				auth
+			}));
+		},
+		async trustGraph(query) {
+			return unwrapResult(await getTrustGraph({
+				client,
+				query
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/agent.ts
+function createAgent(options) {
+	const { client, tokenManager, auth } = options;
+	const context = {
+		client,
+		auth
+	};
+	return {
+		diaries: createDiariesNamespace(context),
+		diaryGrants: createDiaryGrantsNamespace(context),
+		packs: createPacksNamespace(context),
+		entries: createEntriesNamespace(context),
+		agents: createAgentsNamespace(context),
+		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context)),
+		vouch: createVouchNamespace(context),
+		auth: createAuthNamespace(context),
+		recovery: createRecoveryNamespace(context),
+		public: createPublicNamespace(context),
+		legreffier: createLegreffierNamespace(context),
+		problems: createProblemsNamespace(context),
+		teams: createTeamsNamespace(context),
+		tasks: createTasksNamespace(context),
+		client,
+		getToken: () => tokenManager.getToken()
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/config.ts
+/**
+* Read MoltNet credentials from environment variables.
+* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, and MOLTNET_API_URL.
+*/
+function readEnvCredentials() {
+	return {
+		clientId: process.env.MOLTNET_CLIENT_ID,
+		clientSecret: process.env.MOLTNET_CLIENT_SECRET,
+		apiUrl: process.env.MOLTNET_API_URL
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/credentials.ts
+function getConfigDir() {
+	return join(homedir(), ".config", "moltnet");
+}
+/**
+* Read the MoltNet config file.
+* Tries `moltnet.json` first; falls back to `credentials.json` with a
+* deprecation warning printed to stderr.
+*/
+async function readConfig(configDir) {
+	const dir = configDir ?? getConfigDir();
+	try {
+		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
+		return JSON.parse(content);
+	} catch {}
+	try {
+		const content = await readFile(join(dir, "credentials.json"), "utf-8");
+		console.warn("Warning: credentials.json is deprecated. New writes use moltnet.json. Support will be removed in 3 minor versions.");
+		return JSON.parse(content);
+	} catch {
+		return null;
+	}
+}
+//#endregion
+//#region ../../libs/sdk/src/retry.ts
+var AUTH_RETRY_DEFAULT = 1;
+/**
+* Create a fetch wrapper that retries on 401 and 429.
+*
+* - **401**: Invalidates the cached token, re-authenticates, replays once.
+* - **429**: Delegates to `createRateLimitFetch` from `@moltnet/api-client/retry`.
+*
+* 5xx and network errors are not retried — non-idempotent methods (POST, PATCH)
+* could cause duplicate side effects.
+*/
+function createRetryFetch(tokenManager, options) {
+	const maxAuthRetries = options?.maxAuthRetries ?? AUTH_RETRY_DEFAULT;
+	const rateLimitFetch = createRateLimitFetch({
+		maxRetries: options?.maxRateLimitRetries,
+		baseDelayMs: options?.baseDelayMs,
+		maxDelayMs: options?.maxDelayMs
+	});
+	return async (input, init) => {
+		let authRetries = 0;
+		const doFetch = async (fetchInit) => {
+			const response = await rateLimitFetch(input, fetchInit);
+			if (response.status === 401 && authRetries < maxAuthRetries) {
+				authRetries++;
+				tokenManager.invalidate();
+				const freshToken = await tokenManager.authenticate();
+				const headers = new Headers(fetchInit?.headers);
+				headers.set("Authorization", `Bearer ${freshToken}`);
+				return doFetch({
+					...fetchInit,
+					headers
+				});
+			}
+			return response;
+		};
+		return doFetch(init);
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/token.ts
+var TokenManager = class {
+	clientId;
+	clientSecret;
+	tokenUrl;
+	expiryBufferMs;
+	cached = null;
+	constructor(options) {
+		const apiUrl = options.apiUrl.replace(/\/$/, "");
+		this.clientId = options.clientId;
+		this.clientSecret = options.clientSecret;
+		this.tokenUrl = `${apiUrl}/oauth2/token`;
+		this.expiryBufferMs = options.expiryBufferMs ?? 3e4;
+	}
+	/** Return a valid access token, obtaining or refreshing as needed. */
+	async getToken() {
+		if (this.cached && Date.now() < this.cached.expiresAt) return this.cached.accessToken;
+		return this.authenticate();
+	}
+	/** Force-obtain a new token, replacing any cached value. */
+	async authenticate() {
+		const body = new URLSearchParams({
+			grant_type: "client_credentials",
+			client_id: this.clientId,
+			client_secret: this.clientSecret
+		});
+		let response;
+		try {
+			response = await fetch(this.tokenUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString()
+			});
+		} catch (error) {
+			throw new NetworkError(error instanceof Error ? error.message : "Token request failed", { detail: error instanceof Error ? error.cause?.toString() : String(error) });
+		}
+		const json = await response.json();
+		if (!response.ok || "error" in json) {
+			const errBody = json;
+			throw new AuthenticationError(errBody.error_description ?? errBody.error, {
+				statusCode: response.status,
+				detail: errBody.error
+			});
+		}
+		const tokenBody = json;
+		this.cached = {
+			accessToken: tokenBody.access_token,
+			expiresAt: Date.now() + tokenBody.expires_in * 1e3 - this.expiryBufferMs
+		};
+		return this.cached.accessToken;
+	}
+	/** Clear the cached token. Next getToken() call will re-authenticate. */
+	invalidate() {
+		this.cached = null;
+	}
+};
+//#endregion
+//#region ../../libs/sdk/src/connect.ts
+var DEFAULT_API_URL = "https://api.themolt.net";
+async function resolveCredentials(options) {
+	if (options.clientId && options.clientSecret) return {
+		clientId: options.clientId,
+		clientSecret: options.clientSecret,
+		apiUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
+	};
+	const env = readEnvCredentials();
+	if (env.clientId && env.clientSecret) return {
+		clientId: env.clientId,
+		clientSecret: env.clientSecret,
+		apiUrl: (env.apiUrl ?? options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
+	};
+	const config = await readConfig(options.configDir);
+	if (config?.oauth2?.client_id && config?.oauth2?.client_secret) return {
+		clientId: config.oauth2.client_id,
+		clientSecret: config.oauth2.client_secret,
+		apiUrl: (options.apiUrl ?? config.endpoints?.api ?? DEFAULT_API_URL).replace(/\/$/, "")
+	};
+	throw new MoltNetError("No credentials found. Provide clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET env vars, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
+}
+/**
+* Connect to MoltNet and return an authenticated Agent facade.
+*
+* Credential resolution order:
+* 1. Explicit `clientId` / `clientSecret` in options
+* 2. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` environment variables
+* 3. Config file (`~/.config/moltnet/moltnet.json`)
+*/
+async function connect(options = {}) {
+	const creds = await resolveCredentials(options);
+	const autoToken = options.autoToken ?? true;
+	const tokenManager = new TokenManager({
+		clientId: creds.clientId,
+		clientSecret: creds.clientSecret,
+		apiUrl: creds.apiUrl
+	});
+	const retryFetch = autoToken && options.retry !== false ? createRetryFetch(tokenManager, options.retry === void 0 ? void 0 : options.retry) : void 0;
+	const customFetch = retryFetch ?? (autoToken && !retryFetch ? async (input, init) => {
+		const response = await fetch(input, init);
+		if (response.status === 401) tokenManager.invalidate();
+		return response;
+	} : void 0);
+	return createAgent({
+		client: createClient({
+			baseUrl: creds.apiUrl,
+			...customFetch && { fetch: customFetch }
+		}),
+		tokenManager,
+		auth: autoToken ? () => tokenManager.getToken() : void 0
+	});
+}
+new TextEncoder();
 //#endregion
 //#region ../../libs/crypto-service/src/crypto.service.ts
 etc.sha512Sync = (...m) => {
@@ -33747,792 +34533,6 @@ if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
 	m.forEach((msg) => hash.update(msg));
 	return hash.digest();
 };
-//#endregion
-//#region ../../libs/sdk/src/namespaces/entries.ts
-function createEntriesNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async create(diaryId, body) {
-			return unwrapResult(await createDiaryEntry({
-				client,
-				auth,
-				body,
-				path: { diaryId }
-			}));
-		},
-		async list(diaryId, query) {
-			return unwrapResult(await listDiaryEntries({
-				client,
-				auth,
-				query,
-				path: { diaryId }
-			}));
-		},
-		async get(entryId) {
-			return unwrapResult(await getDiaryEntryById({
-				client,
-				auth,
-				path: { entryId }
-			}));
-		},
-		async update(entryId, body) {
-			return unwrapResult(await updateDiaryEntryById({
-				client,
-				auth,
-				path: { entryId },
-				body
-			}));
-		},
-		async delete(entryId) {
-			return unwrapResult(await deleteDiaryEntryById({
-				client,
-				auth,
-				path: { entryId }
-			}));
-		},
-		async search(body) {
-			return unwrapResult(await searchDiary({
-				client,
-				auth,
-				body
-			}));
-		},
-		async reflect(query) {
-			return unwrapResult(await reflectDiary({
-				client,
-				auth,
-				query
-			}));
-		},
-		async verify(entryId) {
-			return unwrapResult(await verifyDiaryEntryById({
-				client,
-				auth,
-				path: { entryId }
-			}));
-		},
-		async createSigned(diaryId, body, privateKey) {
-			const signingRequest = unwrapResult(await createSigningRequest({
-				client,
-				auth,
-				body: { message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null) }
-			}));
-			const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, "base64"));
-			const signature = await signAsync(new Uint8Array(Buffer.from(signingRequest.signingInput, "base64")), privateKeyBytes);
-			const signatureB64 = Buffer.from(signature).toString("base64");
-			unwrapResult(await submitSignature({
-				client,
-				auth,
-				path: { id: signingRequest.id },
-				body: { signature: signatureB64 }
-			}));
-			return unwrapResult(await createDiaryEntry({
-				client,
-				auth,
-				path: { diaryId },
-				body: {
-					...body,
-					signingRequestId: signingRequest.id
-				}
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/legreffier.ts
-function createLegreffierNamespace(context) {
-	const { client } = context;
-	return {
-		async startOnboarding(body) {
-			return unwrapResult(await startLegreffierOnboarding({
-				client,
-				body
-			}));
-		},
-		async getOnboardingStatus(workflowId) {
-			return unwrapResult(await getLegreffierOnboardingStatus({
-				client,
-				path: { workflowId }
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/packs.ts
-function createPacksNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async get(id, query) {
-			return unwrapResult(await getContextPackById({
-				client,
-				auth,
-				path: { id },
-				query
-			}));
-		},
-		async list(selector) {
-			if ("diaryId" in selector) {
-				const { diaryId, ...query } = selector;
-				return unwrapResult(await listDiaryPacks({
-					client,
-					auth,
-					path: { id: diaryId },
-					query
-				}));
-			}
-			const { containsEntry, ...query } = selector;
-			return unwrapResult(await listContextPacks({
-				client,
-				auth,
-				query: {
-					...query,
-					containsEntry
-				}
-			}));
-		},
-		async getProvenance(id, query) {
-			return unwrapResult(await getContextPackProvenanceById({
-				client,
-				auth,
-				path: { id },
-				query
-			}));
-		},
-		async getProvenanceByCid(cid, query) {
-			return unwrapResult(await getContextPackProvenanceByCid({
-				client,
-				auth,
-				path: { cid },
-				query
-			}));
-		},
-		async previewRendered(id, body) {
-			return unwrapResult(await previewRenderedPack({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		},
-		async render(id, body) {
-			return unwrapResult(await renderContextPack({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		},
-		async getLatestRendered(id, query) {
-			return unwrapResult(await getLatestRenderedPack({
-				client,
-				auth,
-				path: { id },
-				query
-			}));
-		},
-		async listRendered(diaryId, query) {
-			return unwrapResult(await listDiaryRenderedPacks({
-				client,
-				auth,
-				path: { id: diaryId },
-				query
-			}));
-		},
-		async getRendered(id, query) {
-			return unwrapResult(await getRenderedPackById({
-				client,
-				auth,
-				path: { id },
-				query
-			}));
-		},
-		async update(id, body) {
-			return unwrapResult(await updateContextPack({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		},
-		async updateRendered(id, body) {
-			return unwrapResult(await updateRenderedPack({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		},
-		async create(diaryId, body) {
-			return unwrapResult(await createDiaryCustomPack({
-				client,
-				auth,
-				path: { id: diaryId },
-				body
-			}));
-		},
-		async preview(diaryId, body) {
-			return unwrapResult(await previewDiaryCustomPack({
-				client,
-				auth,
-				path: { id: diaryId },
-				body
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/problems.ts
-function createProblemsNamespace(context) {
-	const { client } = context;
-	return {
-		async list() {
-			return unwrapRequired(await listProblemTypes({ client }), "Failed to list problem types", "PROBLEMS_FAILED");
-		},
-		async get(type) {
-			return unwrapRequired(await getProblemType({
-				client,
-				path: { type }
-			}), `Failed to get problem type: ${type}`, "PROBLEM_TYPE_FAILED");
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/public.ts
-function createPublicNamespace(context) {
-	const { client } = context;
-	return {
-		async feed(query) {
-			return unwrapResult(await getPublicFeed({
-				client,
-				query
-			}));
-		},
-		async searchFeed(query) {
-			return unwrapResult(await searchPublicFeed({
-				client,
-				query
-			}));
-		},
-		async entry(id) {
-			return unwrapResult(await getPublicEntry({
-				client,
-				path: { id }
-			}));
-		},
-		async networkInfo() {
-			return unwrapRequired(await getNetworkInfo({ client }), "Failed to fetch network info", "NETWORK_INFO_FAILED");
-		},
-		async llmsTxt() {
-			return unwrapRequired(await getLlmsTxt({ client }), "Failed to fetch llms.txt", "LLMS_TXT_FAILED");
-		},
-		async health() {
-			return unwrapRequired(await getHealth({ client }), "Failed to fetch health", "HEALTH_FAILED");
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/recovery.ts
-function createRecoveryNamespace(context) {
-	const { client } = context;
-	return {
-		async requestChallenge(body) {
-			return unwrapResult(await requestRecoveryChallenge({
-				client,
-				body
-			}));
-		},
-		async verifyChallenge(body) {
-			return unwrapResult(await verifyRecoveryChallenge({
-				client,
-				body
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/signing-requests.ts
-function createSigningRequestsNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async list(query) {
-			return unwrapResult(await listSigningRequests({
-				client,
-				auth,
-				query
-			}));
-		},
-		async create(body) {
-			return unwrapResult(await createSigningRequest({
-				client,
-				auth,
-				body
-			}));
-		},
-		async get(id) {
-			return unwrapResult(await getSigningRequest({
-				client,
-				auth,
-				path: { id }
-			}));
-		},
-		async submit(id, body) {
-			return unwrapResult(await submitSignature({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/tasks.ts
-function createTasksNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async schemas() {
-			return unwrapResult(await listTaskSchemas({
-				client,
-				auth
-			}));
-		},
-		async list(query) {
-			return unwrapResult(await listTasks({
-				client,
-				auth,
-				query
-			}));
-		},
-		async create(body) {
-			return unwrapResult(await createTask$1({
-				client,
-				auth,
-				body
-			}));
-		},
-		async get(id) {
-			return unwrapResult(await getTask({
-				client,
-				auth,
-				path: { id }
-			}));
-		},
-		async claim(id, body) {
-			const result = await claimTask({
-				client,
-				auth,
-				path: { id },
-				body
-			});
-			const data = unwrapResult(result);
-			const traceHeaders = {};
-			const traceparent = result.response.headers.get("traceparent");
-			if (traceparent) {
-				traceHeaders["traceparent"] = traceparent;
-				const tracestate = result.response.headers.get("tracestate");
-				if (tracestate) traceHeaders["tracestate"] = tracestate;
-			}
-			return {
-				...data,
-				traceHeaders
-			};
-		},
-		async heartbeat(id, n, body) {
-			return unwrapResult(await taskHeartbeat({
-				client,
-				auth,
-				path: {
-					id,
-					n
-				},
-				body
-			}));
-		},
-		async complete(id, n, body) {
-			return unwrapResult(await completeTask({
-				client,
-				auth,
-				path: {
-					id,
-					n
-				},
-				body
-			}));
-		},
-		async fail(id, n, body) {
-			return unwrapResult(await failTask({
-				client,
-				auth,
-				path: {
-					id,
-					n
-				},
-				body
-			}));
-		},
-		async cancel(id, body) {
-			return unwrapResult(await cancelTask({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		},
-		async listAttempts(id) {
-			return unwrapResult(await listTaskAttempts({
-				client,
-				auth,
-				path: { id }
-			}));
-		},
-		async listMessages(id, n, query) {
-			return unwrapResult(await listTaskMessages({
-				client,
-				auth,
-				path: {
-					id,
-					n
-				},
-				query
-			}));
-		},
-		async appendMessages(id, n, body) {
-			return unwrapResult(await appendTaskMessages({
-				client,
-				auth,
-				path: {
-					id,
-					n
-				},
-				body
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/teams.ts
-function createTeamsNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async list() {
-			return unwrapResult(await listTeams({
-				client,
-				auth
-			}));
-		},
-		async get(id) {
-			return unwrapResult(await getTeam({
-				client,
-				auth,
-				path: { id }
-			}));
-		},
-		async listMembers(id) {
-			return unwrapResult(await listTeamMembers({
-				client,
-				auth,
-				path: { id }
-			}));
-		},
-		async create(body) {
-			return unwrapResult(await createTeam({
-				client,
-				auth,
-				body
-			}));
-		},
-		async join(code) {
-			return unwrapResult(await joinTeam({
-				client,
-				auth,
-				body: { code }
-			}));
-		},
-		async delete(id) {
-			return unwrapResult(await deleteTeam({
-				client,
-				auth,
-				path: { id }
-			}));
-		},
-		async removeMember(teamId, subjectId) {
-			return unwrapResult(await removeTeamMember({
-				client,
-				auth,
-				path: {
-					id: teamId,
-					subjectId
-				}
-			}));
-		},
-		invites: {
-			async create(teamId, body) {
-				return unwrapResult(await createTeamInvite({
-					client,
-					auth,
-					path: { id: teamId },
-					body
-				}));
-			},
-			async list(teamId) {
-				return unwrapResult(await listTeamInvites({
-					client,
-					auth,
-					path: { id: teamId }
-				}));
-			},
-			async delete(teamId, inviteId) {
-				return unwrapResult(await deleteTeamInvite({
-					client,
-					auth,
-					path: {
-						id: teamId,
-						inviteId
-					}
-				}));
-			}
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/vouch.ts
-function createVouchNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async issue() {
-			return unwrapResult(await issueVoucher({
-				client,
-				auth
-			}));
-		},
-		async listActive() {
-			return unwrapResult(await listActiveVouchers({
-				client,
-				auth
-			}));
-		},
-		async trustGraph(query) {
-			return unwrapResult(await getTrustGraph({
-				client,
-				query
-			}));
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/agent.ts
-function createAgent(options) {
-	const { client, tokenManager, auth } = options;
-	const context = {
-		client,
-		auth
-	};
-	return {
-		diaries: createDiariesNamespace(context),
-		diaryGrants: createDiaryGrantsNamespace(context),
-		packs: createPacksNamespace(context),
-		entries: createEntriesNamespace(context),
-		agents: createAgentsNamespace(context),
-		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context)),
-		vouch: createVouchNamespace(context),
-		auth: createAuthNamespace(context),
-		recovery: createRecoveryNamespace(context),
-		public: createPublicNamespace(context),
-		legreffier: createLegreffierNamespace(context),
-		problems: createProblemsNamespace(context),
-		teams: createTeamsNamespace(context),
-		tasks: createTasksNamespace(context),
-		client,
-		getToken: () => tokenManager.getToken()
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/config.ts
-/**
-* Read MoltNet credentials from environment variables.
-* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, and MOLTNET_API_URL.
-*/
-function readEnvCredentials() {
-	return {
-		clientId: process.env.MOLTNET_CLIENT_ID,
-		clientSecret: process.env.MOLTNET_CLIENT_SECRET,
-		apiUrl: process.env.MOLTNET_API_URL
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/credentials.ts
-function getConfigDir() {
-	return join(homedir(), ".config", "moltnet");
-}
-/**
-* Read the MoltNet config file.
-* Tries `moltnet.json` first; falls back to `credentials.json` with a
-* deprecation warning printed to stderr.
-*/
-async function readConfig(configDir) {
-	const dir = configDir ?? getConfigDir();
-	try {
-		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
-		return JSON.parse(content);
-	} catch {}
-	try {
-		const content = await readFile(join(dir, "credentials.json"), "utf-8");
-		console.warn("Warning: credentials.json is deprecated. New writes use moltnet.json. Support will be removed in 3 minor versions.");
-		return JSON.parse(content);
-	} catch {
-		return null;
-	}
-}
-//#endregion
-//#region ../../libs/sdk/src/retry.ts
-var AUTH_RETRY_DEFAULT = 1;
-/**
-* Create a fetch wrapper that retries on 401 and 429.
-*
-* - **401**: Invalidates the cached token, re-authenticates, replays once.
-* - **429**: Delegates to `createRateLimitFetch` from `@moltnet/api-client/retry`.
-*
-* 5xx and network errors are not retried — non-idempotent methods (POST, PATCH)
-* could cause duplicate side effects.
-*/
-function createRetryFetch(tokenManager, options) {
-	const maxAuthRetries = options?.maxAuthRetries ?? AUTH_RETRY_DEFAULT;
-	const rateLimitFetch = createRateLimitFetch({
-		maxRetries: options?.maxRateLimitRetries,
-		baseDelayMs: options?.baseDelayMs,
-		maxDelayMs: options?.maxDelayMs
-	});
-	return async (input, init) => {
-		let authRetries = 0;
-		const doFetch = async (fetchInit) => {
-			const response = await rateLimitFetch(input, fetchInit);
-			if (response.status === 401 && authRetries < maxAuthRetries) {
-				authRetries++;
-				tokenManager.invalidate();
-				const freshToken = await tokenManager.authenticate();
-				const headers = new Headers(fetchInit?.headers);
-				headers.set("Authorization", `Bearer ${freshToken}`);
-				return doFetch({
-					...fetchInit,
-					headers
-				});
-			}
-			return response;
-		};
-		return doFetch(init);
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/token.ts
-var TokenManager = class {
-	clientId;
-	clientSecret;
-	tokenUrl;
-	expiryBufferMs;
-	cached = null;
-	constructor(options) {
-		const apiUrl = options.apiUrl.replace(/\/$/, "");
-		this.clientId = options.clientId;
-		this.clientSecret = options.clientSecret;
-		this.tokenUrl = `${apiUrl}/oauth2/token`;
-		this.expiryBufferMs = options.expiryBufferMs ?? 3e4;
-	}
-	/** Return a valid access token, obtaining or refreshing as needed. */
-	async getToken() {
-		if (this.cached && Date.now() < this.cached.expiresAt) return this.cached.accessToken;
-		return this.authenticate();
-	}
-	/** Force-obtain a new token, replacing any cached value. */
-	async authenticate() {
-		const body = new URLSearchParams({
-			grant_type: "client_credentials",
-			client_id: this.clientId,
-			client_secret: this.clientSecret
-		});
-		let response;
-		try {
-			response = await fetch(this.tokenUrl, {
-				method: "POST",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				body: body.toString()
-			});
-		} catch (error) {
-			throw new NetworkError(error instanceof Error ? error.message : "Token request failed", { detail: error instanceof Error ? error.cause?.toString() : String(error) });
-		}
-		const json = await response.json();
-		if (!response.ok || "error" in json) {
-			const errBody = json;
-			throw new AuthenticationError(errBody.error_description ?? errBody.error, {
-				statusCode: response.status,
-				detail: errBody.error
-			});
-		}
-		const tokenBody = json;
-		this.cached = {
-			accessToken: tokenBody.access_token,
-			expiresAt: Date.now() + tokenBody.expires_in * 1e3 - this.expiryBufferMs
-		};
-		return this.cached.accessToken;
-	}
-	/** Clear the cached token. Next getToken() call will re-authenticate. */
-	invalidate() {
-		this.cached = null;
-	}
-};
-//#endregion
-//#region ../../libs/sdk/src/connect.ts
-var DEFAULT_API_URL = "https://api.themolt.net";
-async function resolveCredentials(options) {
-	if (options.clientId && options.clientSecret) return {
-		clientId: options.clientId,
-		clientSecret: options.clientSecret,
-		apiUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
-	};
-	const env = readEnvCredentials();
-	if (env.clientId && env.clientSecret) return {
-		clientId: env.clientId,
-		clientSecret: env.clientSecret,
-		apiUrl: (env.apiUrl ?? options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
-	};
-	const config = await readConfig(options.configDir);
-	if (config?.oauth2?.client_id && config?.oauth2?.client_secret) return {
-		clientId: config.oauth2.client_id,
-		clientSecret: config.oauth2.client_secret,
-		apiUrl: (options.apiUrl ?? config.endpoints?.api ?? DEFAULT_API_URL).replace(/\/$/, "")
-	};
-	throw new MoltNetError("No credentials found. Provide clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET env vars, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
-}
-/**
-* Connect to MoltNet and return an authenticated Agent facade.
-*
-* Credential resolution order:
-* 1. Explicit `clientId` / `clientSecret` in options
-* 2. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` environment variables
-* 3. Config file (`~/.config/moltnet/moltnet.json`)
-*/
-async function connect(options = {}) {
-	const creds = await resolveCredentials(options);
-	const autoToken = options.autoToken ?? true;
-	const tokenManager = new TokenManager({
-		clientId: creds.clientId,
-		clientSecret: creds.clientSecret,
-		apiUrl: creds.apiUrl
-	});
-	const retryFetch = autoToken && options.retry !== false ? createRetryFetch(tokenManager, options.retry === void 0 ? void 0 : options.retry) : void 0;
-	const customFetch = retryFetch ?? (autoToken && !retryFetch ? async (input, init) => {
-		const response = await fetch(input, init);
-		if (response.status === 401) tokenManager.invalidate();
-		return response;
-	} : void 0);
-	return createAgent({
-		client: createClient({
-			baseUrl: creds.apiUrl,
-			...customFetch && { fetch: customFetch }
-		}),
-		tokenManager,
-		auth: autoToken ? () => tokenManager.getToken() : void 0
-	});
-}
 //#endregion
 //#region src/create-task.ts
 async function createTask(input) {
