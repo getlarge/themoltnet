@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.13.0...agent-runtime-v0.14.0) (2026-05-11)
+
+
+### Features
+
+* **tasks,agent-runtime:** register judge_eval_variant + subagent contract ([#943](https://github.com/getlarge/themoltnet/issues/943)) ([8a47f52](https://github.com/getlarge/themoltnet/commit/8a47f5227cfda7788370f55e296e3bb697e133a2))
+* **tasks:** async task validation + correlation seals + judge_eval_variant ([#1096](https://github.com/getlarge/themoltnet/issues/1096), [#943](https://github.com/getlarge/themoltnet/issues/943)) ([68e2c05](https://github.com/getlarge/themoltnet/commit/68e2c05c6c91c2e4a55f994f2c5f6df99582ad6a))
+
+
+### Bug Fixes
+
+* **agent-runtime:** escape backslashes in judge_eval_variant criteria cells ([a4480d0](https://github.com/getlarge/themoltnet/commit/a4480d04d935aa6b36b9be713601918665bd4d62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.101.0
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.12.0...agent-runtime-v0.13.0) (2026-05-10)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.101.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.100.0...sdk-v0.101.0) (2026-05-11)
+
+
+### Features
+
+* **sdk:** support human session connections ([b19f76f](https://github.com/getlarge/themoltnet/commit/b19f76f7c125038d395af003f9c96d8deac43670))
+* **sdk:** support human session connections ([e9d762e](https://github.com/getlarge/themoltnet/commit/e9d762e476ec7f0d69f24512990525370c22bb78))
+
 ## [0.100.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.99.0...sdk-v0.100.0) (2026-05-10)
 
 
