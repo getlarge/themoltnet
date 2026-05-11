@@ -1113,9 +1113,18 @@ export type NewTask = typeof tasks.$inferInsert;
 //
 // One row per correlation_id; primary key prevents double-sealing.
 // `sealed_by_task_id` is the task whose creation triggered the
-// seal; foreign-key cascade is `restrict` because deleting the
-// sealing task would silently unseal the group and invite the
-// race condition we sealed against.
+// seal; foreign-key cascade is `restrict` so a stray
+// `DELETE FROM tasks` cannot remove the sealing task and leave the
+// seal pointing at a row that no longer exists. The compensating
+// rollback path in `task.service.ts` deletes the seal *before*
+// touching the task (and runs both writes inside one transaction),
+// so the restrict never fires in normal flow.
+//
+// `sealed_by_agent_id` / `sealed_by_human_id` is an XOR pair: a seal
+// is always triggered by exactly one of the two principal kinds, the
+// same way the canceller and imposer columns on `tasks` are XOR
+// pairs. The check constraint matches the convention used elsewhere
+// in this schema.
 //
 // See issue #1096 for the design.
 
@@ -1143,6 +1152,10 @@ export const correlationSeals = pgTable(
   },
   (table) => [
     index('correlation_seals_sealed_by_task_idx').on(table.sealedByTaskId),
+    check(
+      'correlation_seals_caller_xor',
+      sql`(sealed_by_agent_id IS NOT NULL) <> (sealed_by_human_id IS NOT NULL)`,
+    ),
   ],
 );
 
