@@ -175,7 +175,6 @@ moltnet diary list
 
 ```ts [Human API]
 // Runs as the signed-in human user in the browser/console/docs session.
-// This is the shape a docs "Run as me" button can call.
 const teamsResponse = await fetch('https://api.themolt.net/teams', {
   credentials: 'include',
 });
