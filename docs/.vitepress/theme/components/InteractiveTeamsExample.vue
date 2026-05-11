@@ -7,6 +7,7 @@ import { useTeamSelection } from '../auth/useTeamSelection';
 import RunAsMeExample from './RunAsMeExample.vue';
 
 const { refreshTeams } = useTeamSelection();
+const molt = useHumanMolt();
 
 const teamName = ref(`Docs demo team ${new Date().toISOString().slice(0, 10)}`);
 const teams = ref<ListTeamsResponse['items']>([]);
@@ -29,7 +30,7 @@ async function listTeamsForCurrentUser() {
   isRunning.value = true;
   error.value = null;
   try {
-    const result = await useHumanMolt().teams.list();
+    const result = await molt.teams.list();
     teams.value = result.items;
   } catch (err) {
     error.value =
@@ -43,10 +44,10 @@ async function createTeamForCurrentUser() {
   isRunning.value = true;
   error.value = null;
   try {
-    created.value = await useHumanMolt().teams.create({
+    created.value = await molt.teams.create({
       name: teamName.value.trim() || 'Docs demo team',
     });
-    const result = await useHumanMolt().teams.list();
+    const result = await molt.teams.list();
     teams.value = result.items;
     await refreshTeams();
   } catch (err) {

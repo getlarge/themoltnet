@@ -32,8 +32,6 @@ const canRun = computed(
     !props.isRunning &&
     (!props.requireTeam || !!selectedTeamId.value),
 );
-
-defineExpose({ canRun });
 </script>
 
 <template>
@@ -64,7 +62,7 @@ defineExpose({ canRun });
 
         <template v-else>
           <div class="moltnet-example__fields">
-            <label>
+            <label v-if="requireTeam">
               <span>Selected team</span>
               <input
                 :value="

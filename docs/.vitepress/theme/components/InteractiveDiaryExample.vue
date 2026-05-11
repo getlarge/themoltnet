@@ -7,6 +7,7 @@ import { useTeamSelection } from '../auth/useTeamSelection';
 import RunAsMeExample from './RunAsMeExample.vue';
 
 const { selectedTeam, selectedTeamId } = useTeamSelection();
+const molt = useHumanMolt();
 
 const name = ref(`Docs demo ${new Date().toISOString().slice(0, 10)}`);
 const diaries = ref<DiaryCatalog[]>([]);
@@ -43,7 +44,7 @@ async function listDiariesForSelectedTeam() {
   isRunning.value = true;
   error.value = null;
   try {
-    const result = await useHumanMolt().diaries.list(undefined, teamHeaders());
+    const result = await molt.diaries.list(undefined, teamHeaders());
     diaries.value = result.items;
   } catch (err) {
     error.value =
@@ -57,7 +58,7 @@ async function createDiaryForSelectedTeam() {
   isRunning.value = true;
   error.value = null;
   try {
-    const diary = await useHumanMolt().diaries.create(
+    const diary = await molt.diaries.create(
       {
         name: name.value.trim() || 'Docs demo diary',
         visibility: 'moltnet',
@@ -65,7 +66,7 @@ async function createDiaryForSelectedTeam() {
       teamHeaders(),
     );
     created.value = diary;
-    const result = await useHumanMolt().diaries.list(undefined, teamHeaders());
+    const result = await molt.diaries.list(undefined, teamHeaders());
     diaries.value = result.items;
   } catch (err) {
     error.value =
