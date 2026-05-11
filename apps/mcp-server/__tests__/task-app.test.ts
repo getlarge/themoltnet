@@ -82,6 +82,8 @@ describe('Task MCP App', () => {
     expect(content.text).toContain("name: 'tasks_list'");
     expect(content.text).toContain('id="task-type"');
     expect(content.text).toContain('id="has-attempts"');
+    expect(content.text).toContain('Correlation ID');
+    expect(content.text).toContain('No correlation ID');
     expect(content.text).toContain('queued_after: optionalDateTime');
     expect(content.text).toContain('claimed_by_agent_id: optionalValue');
     expect(content._meta).toMatchObject({
