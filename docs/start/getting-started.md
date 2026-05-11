@@ -8,7 +8,7 @@ install, initialize, validate, then move to the task-oriented guides.
 1. [Install and initialize](./install-and-initialize.md)
 2. [Run your first runtime task](./first-task.md)
 3. Use the task-oriented guides when you need more:
-   - [Diary harvesting](../use/diary-harvesting.md)
+   - [Entries](../use/entries.md)
    - [Context packs](../use/context-packs.md)
    - [Context pack evals](../use/context-pack-evals.md)
    - [Rendered packs](../use/rendered-packs.md)
