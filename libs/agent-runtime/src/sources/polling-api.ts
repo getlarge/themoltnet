@@ -12,10 +12,10 @@ export interface PollingApiTaskSourceOptions {
   teamId: string;
   /**
    * Whitelist of task types this daemon will execute. The list endpoint
-   * accepts a single `taskType`; we issue one list per type per tick when
-   * more than one is configured. An empty/undefined list means "any type"
-   * (one untyped list call per tick) — only safe when the agent really can
-   * execute every registered task type.
+   * accepts repeated `taskTypes` query params, so a configured whitelist is
+   * sent in one list request per tick. An empty/undefined list means "any
+   * type" (one untyped list call per tick) — only safe when the agent really
+   * can execute every registered task type.
    */
   taskTypes?: string[];
   /**
@@ -142,82 +142,84 @@ export class PollingApiTaskSource implements TaskSource {
     candidates: Task[];
     hadListError: boolean;
   }> {
-    const types =
-      this.opts.taskTypes && this.opts.taskTypes.length > 0
-        ? this.opts.taskTypes
-        : [undefined];
-
     const seen = new Set<string>();
     const out: Task[] = [];
     let hadListError = false;
-    for (const taskType of types) {
-      if (this.aborted()) break;
-      try {
-        const result = await this.opts.agent.tasks.list({
-          teamId: this.opts.teamId,
-          status: 'queued' satisfies TaskStatus,
-          ...(taskType ? { taskType } : {}),
-          ...(this.opts.provider && this.opts.model
-            ? { provider: this.opts.provider, model: this.opts.model }
-            : {}),
-          limit: this.listLimit,
-        });
-        if (this.opts.debug) {
-          this.logger.debug(
-            { taskType, total: result.total, returned: result.items.length },
-            'polling-api.list_ok',
-          );
+    if (this.aborted()) return { candidates: out, hadListError };
+    try {
+      const taskTypes =
+        this.opts.taskTypes && this.opts.taskTypes.length > 0
+          ? this.opts.taskTypes
+          : undefined;
+      const result = await this.opts.agent.tasks.list({
+        teamId: this.opts.teamId,
+        status: 'queued' satisfies TaskStatus,
+        ...(taskTypes ? { taskTypes } : {}),
+        ...(this.opts.provider && this.opts.model
+          ? { provider: this.opts.provider, model: this.opts.model }
+          : {}),
+        limit: this.listLimit,
+      });
+      if (this.opts.debug) {
+        this.logger.debug(
+          { taskTypes, total: result.total, returned: result.items.length },
+          'polling-api.list_ok',
+        );
+      }
+      for (const item of result.items) {
+        if (seen.has(item.id)) continue;
+        if (
+          this.opts.taskTypes &&
+          this.opts.taskTypes.length > 0 &&
+          !this.opts.taskTypes.includes(item.taskType)
+        ) {
+          continue;
         }
-        for (const item of result.items) {
-          if (seen.has(item.id)) continue;
+        if (
+          this.opts.diaryIds &&
+          this.opts.diaryIds.length > 0 &&
+          (item.diaryId === null || !this.opts.diaryIds.includes(item.diaryId))
+        ) {
+          continue;
+        }
+        // Belt-and-braces executor filter — silently skip pinned tasks
+        // whose `allowedExecutors` doesn't include this daemon's pair
+        // (e.g. server filter race, daemon connecting to an old server,
+        // or a buggy server that ignored the filter). Empty array =
+        // no restriction. Skipping at this layer means we NEVER claim
+        // such a task, so no attempt is recorded against it.
+        if (this.opts.provider && this.opts.model) {
+          const allowed = item.allowedExecutors ?? [];
           if (
-            this.opts.diaryIds &&
-            this.opts.diaryIds.length > 0 &&
-            (item.diaryId === null ||
-              !this.opts.diaryIds.includes(item.diaryId))
+            allowed.length > 0 &&
+            !allowed.some(
+              (e) =>
+                e.provider === this.opts.provider &&
+                e.model === this.opts.model,
+            )
           ) {
             continue;
           }
-          // Belt-and-braces executor filter — silently skip pinned tasks
-          // whose `allowedExecutors` doesn't include this daemon's pair
-          // (e.g. server filter race, daemon connecting to an old server,
-          // or a buggy server that ignored the filter). Empty array =
-          // no restriction. Skipping at this layer means we NEVER claim
-          // such a task, so no attempt is recorded against it.
-          if (this.opts.provider && this.opts.model) {
-            const allowed = item.allowedExecutors ?? [];
-            if (
-              allowed.length > 0 &&
-              !allowed.some(
-                (e) =>
-                  e.provider === this.opts.provider &&
-                  e.model === this.opts.model,
-              )
-            ) {
-              continue;
-            }
-          }
-          // Defensive: re-check status in case the server didn't honour the
-          // filter, or the task moved between list and read.
-          if (item.status !== 'queued') continue;
-          seen.add(item.id);
-          out.push(item);
         }
-      } catch (err) {
-        // List failures (e.g. 5xx) are transient. Log + signal the caller
-        // so drain-mode doesn't misread an empty result as a drained
-        // queue. The poll loop backs off and retries; a real exit only
-        // happens when every list call this round succeeded and returned
-        // nothing.
-        hadListError = true;
-        this.logger.warn(
-          {
-            err,
-            taskType,
-          },
-          'polling-api.list_failed',
-        );
+        // Defensive: re-check status in case the server didn't honour the
+        // filter, or the task moved between list and read.
+        if (item.status !== 'queued') continue;
+        seen.add(item.id);
+        out.push(item);
       }
+    } catch (err) {
+      // List failures (e.g. 5xx) are transient. Log + signal the caller
+      // so drain-mode doesn't misread an empty result as a drained
+      // queue. The poll loop backs off and retries; a real exit only
+      // happens when the list call succeeded and returned nothing.
+      hadListError = true;
+      this.logger.warn(
+        {
+          err,
+          taskTypes: this.opts.taskTypes,
+        },
+        'polling-api.list_failed',
+      );
     }
     return { candidates: out, hadListError };
   }

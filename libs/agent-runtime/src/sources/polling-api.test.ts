@@ -174,7 +174,7 @@ describe('PollingApiTaskSource', () => {
     ).toThrow(/provider and model must be set together/);
   });
 
-  it('issues one list call per task type when multiple are configured', async () => {
+  it('issues one list call with all task types when multiple are configured', async () => {
     const list = vi
       .fn<TasksNamespace['list']>()
       .mockResolvedValue({ items: [], total: 0 });
@@ -188,12 +188,9 @@ describe('PollingApiTaskSource', () => {
     });
 
     await src.claim();
-    expect(list).toHaveBeenCalledTimes(2);
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ taskType: 'fulfill_brief' }),
-    );
-    expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ taskType: 'curate_pack' }),
+      expect.objectContaining({ taskTypes: ['fulfill_brief', 'curate_pack'] }),
     );
   });
 

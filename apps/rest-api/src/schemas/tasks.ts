@@ -64,7 +64,12 @@ export const ListTasksQuerySchema = Type.Object(
   {
     teamId: Type.String({ format: 'uuid' }),
     status: Type.Optional(Type.Ref(TaskStatus)),
-    taskType: Type.Optional(Type.String()),
+    taskTypes: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 }), {
+        maxItems: 20,
+        description: 'Repeated task type filter. Single value also accepted.',
+      }),
+    ),
     // Daemon advertises its `(provider, model)` to scope the result to
     // tasks it can actually run. Both must be provided together (XOR
     // checked in the handler — Fastify's Ajv is draft-07 strict and

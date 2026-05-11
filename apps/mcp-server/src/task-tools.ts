@@ -195,7 +195,7 @@ export async function handleTasksList(
     query: {
       teamId: args.team_id,
       status: args.status,
-      taskType: args.task_type,
+      taskTypes: args.task_type ? [args.task_type] : undefined,
       correlationId: args.correlation_id,
       diaryId: args.diary_id,
       imposedByAgentId: args.imposed_by_agent_id,

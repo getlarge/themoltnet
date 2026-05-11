@@ -2134,8 +2134,14 @@
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
           },
-          "taskType": {
-            "type": "string"
+          "taskTypes": {
+            "description": "Repeated task type filter. Single value also accepted.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
           },
           "teamId": {
             "format": "uuid",
@@ -12677,11 +12683,17 @@
             }
           },
           {
+            "description": "Repeated task type filter. Single value also accepted.",
             "in": "query",
-            "name": "taskType",
+            "name": "taskTypes",
             "required": false,
             "schema": {
-              "type": "string"
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
             }
           },
           {

@@ -11609,16 +11609,25 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
-		// Encode "taskType" parameter.
+		// Encode "taskTypes" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "taskType",
+			Name:    "taskTypes",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.TaskType.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+			if params.TaskTypes != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.TaskTypes {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
 			}
 			return nil
 		}); err != nil {

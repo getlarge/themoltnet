@@ -15586,9 +15586,9 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					In:   "query",
 				}: params.Status,
 				{
-					Name: "taskType",
+					Name: "taskTypes",
 					In:   "query",
-				}: params.TaskType,
+				}: params.TaskTypes,
 				{
 					Name: "provider",
 					In:   "query",
