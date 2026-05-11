@@ -1,12 +1,20 @@
 {
   "env": {
     "GOPATH": "/home/agent/go",
-    "GOROOT": "/usr/lib/go"
+    "GOROOT": "/usr/lib/go",
+    "NODE_OPTIONS": "--dns-result-order=ipv4first",
+    "NPM_CONFIG_NODE_LINKER": "hoisted",
+    "NPM_CONFIG_PREFER_OFFLINE": "true",
+    "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
   },
   "resources": {
-    "cpus": 2,
+    "cpus": 4,
     "memory": "6G"
   },
+  "resumeCommands": [
+    "mkdir -p /workspace/node_modules && mount -t tmpfs -o size=4G,mode=0755,uid=501,gid=501 tmpfs /workspace/node_modules",
+    "cd /workspace && pnpm fetch --frozen-lockfile"
+  ],
   "snapshot": {
     "allowedHosts": [
       "unofficial-builds.nodejs.org",
@@ -21,7 +29,9 @@
     "setupCommands": [
       "apk add --no-cache libgcc libstdc++ python3 go",
       "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz && node --version'",
-      "npm install -g pnpm tsx 2>/dev/null"
+      "npm install -g tsx 2>/dev/null",
+      "corepack enable && corepack install --global pnpm@10.29.3",
+      "mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store"
     ]
   },
   "vfs": {

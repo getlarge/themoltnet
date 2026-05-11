@@ -205,6 +205,30 @@ const BASE_ALLOWED_HOSTS = [
 ];
 
 /**
+ * Run a shell command in the guest and throw if it fails. Mirror of
+ * `run()` in `snapshot.ts` for the resume-side hook chain — every
+ * setup step is essential to a healthy session, so a silent non-zero
+ * exit (e.g. a mount that fails into the FUSE write path, or a
+ * consumer-provided resume command that fails to install pnpm) must
+ * surface immediately rather than fall through to cryptic agent
+ * errors later.
+ */
+async function vmRun(vm: VM, label: string, command: string): Promise<void> {
+  // Wrap with `set -o pipefail` inside the script (not on the sh command
+  // line, which busybox ash on Alpine doesn't accept as a flag). This
+  // ensures pipelines like `foo | tail` propagate foo's non-zero exit
+  // instead of masking it behind tail's success.
+  const wrapped = `set -eu\nset -o pipefail\n${command}`;
+  const r = await vm.exec(['sh', '-c', wrapped]);
+  if (r.exitCode !== 0) {
+    const tail = [r.stderr, r.stdout].filter(Boolean).join('\n').slice(-800);
+    throw new Error(
+      `resume step "${label}" failed (exit ${r.exitCode}):\n${tail}`,
+    );
+  }
+}
+
+/**
  * Resume a VM from a checkpoint, inject credentials, configure egress +
  * TLS. Returns the managed VM handle.
  */
@@ -303,9 +327,51 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
   '`);
 
-  // Fix DNS: ensure working resolvers (VM gateway DNS may not forward correctly)
-  await vm.exec(`sh -c 'echo "nameserver 8.8.8.8
-nameserver 1.1.1.1" > /etc/resolv.conf'`);
+  // Fix DNS: ensure working resolvers (VM gateway DNS may not forward
+  // correctly) and wait for resolution to actually work before downstream
+  // resumeCommands run. Without the wait we've observed EAI_AGAIN errors
+  // on pnpm fetch when the resolver isn't ready yet at the moment of
+  // first lookup — Gondolin's resumed VM is a fresh overlay so any
+  // resolv.conf baked into the snapshot is replaced, and there's a brief
+  // race between our write here and DHCP/udhcpc finishing.
+  // Fix DNS: ensure working resolvers. Note Gondolin's MITM proxy returns
+  // RFC 5737 placeholder IPs (192.0.2.1 IPv4, 2001:db8::1 IPv6) for every
+  // hostname — actual routing happens transparently in the proxy. Node's
+  // default dual-stack behavior can attempt the unreachable IPv6 first
+  // and fail with EAI_AGAIN; consumers needing reliable resolution
+  // should set NODE_OPTIONS=--dns-result-order=ipv4first via
+  // sandbox.json#env (and curl --4 / similar for shell tools).
+  await vmRun(
+    vm,
+    'DNS resolvers',
+    `printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf`,
+  );
+
+  // Tell git that the workspace mount is trusted regardless of UID. The host
+  // workspace is bind-mounted into /workspace via Gondolin's RealFSProvider,
+  // so the on-disk owner is the host's UID (typically 501) — not the guest's
+  // 'agent' user (also UID 501 by happy coincidence, but git checks against
+  // file ownership at the filesystem level). Without this, every git command
+  // inside the VM emits 'detected dubious ownership' and exits 128. Setting
+  // this system-wide rather than per-user covers both root (post-resume
+  // setup) and agent (task workload) callers.
+  await vmRun(
+    vm,
+    'git safe.directory',
+    `git config --system --add safe.directory '*'`,
+  );
+
+  // Consumer-provided per-resume commands. Repo-specific bootstrap
+  // (corepack-install a pinned pnpm, `pnpm fetch`, kernel tmpfs mounts
+  // for paths the consumer wants out of the Gondolin FUSE hot path —
+  // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
+  // here, not in vm-manager. pi-extension stays repo-agnostic.
+  // Sequential, first failure aborts resume via vmRun.
+  for (const [i, cmd] of (
+    config.sandboxConfig?.resumeCommands ?? []
+  ).entries()) {
+    await vmRun(vm, `resumeCommands[${i}]`, cmd);
+  }
 
   // Inject credentials into VM-side agent directory structure:
   //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
