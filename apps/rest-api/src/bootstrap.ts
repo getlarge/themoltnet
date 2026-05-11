@@ -24,6 +24,7 @@ import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
   createContextPackRepository,
+  createCorrelationSealRepository,
   createDatabase,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
@@ -207,6 +208,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const contextPackRepository = createContextPackRepository(dbConnection.db);
   const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
+  const correlationSealRepository = createCorrelationSealRepository(
+    dbConnection.db,
+  );
   const taskRepository = createTaskRepository(dbConnection.db);
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
@@ -384,8 +388,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     taskRepository,
     diaryRepository,
     agentRepository,
+    contextPackRepository,
+    renderedPackRepository,
+    correlationSealRepository,
     permissionChecker,
     relationshipWriter,
+    transactionRunner,
     logger: app.log,
   });
 

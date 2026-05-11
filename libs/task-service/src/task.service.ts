@@ -12,21 +12,30 @@ import {
 } from '@moltnet/crypto-service';
 import {
   type AgentRepository,
+  type ContextPackRepository,
+  type CorrelationSealRepository,
   DBOS,
   type DiaryRepository,
   type NewTask,
   type NewTaskMessage,
+  type RenderedPackRepository,
   type Task as DbTask,
   type TaskAttempt as DbTaskAttempt,
   type TaskMessage as DbTaskMessage,
   type TaskRepository,
   taskWorkflows,
+  type TransactionRunner,
 } from '@moltnet/database';
 import {
+  type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
+  type CorrelationSeal,
   type ExecutorTrustLevel as WireExecutorTrustLevel,
+  getTaskCreateSideEffects,
   getTaskTypeRegistry,
   type OutputKind,
+  type ResolvedContextPack,
+  type ResolvedRenderedPack,
   type Task,
   type TaskAttempt,
   type TaskError,
@@ -34,6 +43,7 @@ import {
   type TaskUsage,
   type TaskValidationError,
   validateTaskCreateRequest,
+  validateTaskInputAsync,
   validateTaskOutput,
 } from '@moltnet/tasks';
 import type { TSchema } from '@sinclair/typebox';
@@ -105,6 +115,18 @@ export class TaskServiceError extends Error {
     super(message);
     this.name = 'TaskServiceError';
   }
+}
+
+/**
+ * Postgres surfaces unique-key violations as SQLSTATE `23505`.
+ * Drizzle / pg propagate that as `err.code === '23505'` (or
+ * `cause.code` when wrapped). Used by the create flow's defensive
+ * seal-insert catch (#1101 M2).
+ */
+function isUniqueViolation(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const e = err as { code?: unknown; cause?: { code?: unknown } };
+  return e.code === '23505' || e.cause?.code === '23505';
 }
 
 function taskWorkflowId(taskId: string, attemptN: number): string {
@@ -225,8 +247,25 @@ interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
+  /** Used to resolve `context_packs` in async validators (#1096). */
+  contextPackRepository: ContextPackRepository;
+  /** Used to resolve `rendered_packs` in async validators (#1096). */
+  renderedPackRepository: RenderedPackRepository;
+  /** Correlation-seal lookups + inserts for the validation pass (#1096). */
+  correlationSealRepository: CorrelationSealRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
+  /**
+   * Wraps the task-insert + side-effect (e.g. correlation_seal insert)
+   * DB writes in a single transaction so they commit or roll back
+   * together. Required by #1096 — without it, a crash between the
+   * task-insert and the seal-insert leaves a sealing task with no
+   * seal, breaking the very invariant the seal protects.
+   *
+   * Production wires `createDBOSTransactionRunner(dataSource)`;
+   * tests wire `createDrizzleTransactionRunner(db)` or a stub.
+   */
+  transactionRunner: TransactionRunner;
   logger: Logger;
 }
 
@@ -235,10 +274,126 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     diaryRepository,
     agentRepository,
+    contextPackRepository,
+    renderedPackRepository,
+    correlationSealRepository,
     permissionChecker,
     relationshipWriter,
+    transactionRunner,
     logger,
   } = deps;
+
+  /**
+   * Build the async validation context (#1096) for one create call.
+   * The ctx exposes read-only lookups; side effects declared via
+   * `onCreate` are applied separately AFTER the task is inserted, so
+   * the ctx is safe to call from any task-type validator.
+   *
+   * Visibility: every resolver runs the caller-bound Keto check
+   * before returning a row. Returning the bare DB row would leak the
+   * existence (and shape) of cross-team tasks to anyone who can
+   * guess a UUID — see the get / list paths in this file that
+   * already gate on `canViewTask` for the same reason. Resolvers
+   * return `null` indistinguishably for "does not exist" and "you
+   * cannot read it"; validators surface that as a generic
+   * "does not resolve to a task you can read" error so the failure
+   * mode of guessing UUIDs is the same as guessing wrong types.
+   *
+   * `resolveTask` returns the bare DB row mapped to the wire `Task`
+   * shape so validators see the same field names imposers see.
+   *
+   * For `findCorrelationSeal`: seal rows are not visibility-scoped
+   * — a seal carries only a correlation_id and the sealing task's
+   * id/type/timestamp, none of which is sensitive on its own.
+   * Imposers already know the correlation_id (they passed it). The
+   * sealed-by-task metadata is the same kind of information the
+   * imposer would see when trying to create a duplicate — leaking
+   * "yes, sealed" is exactly the API contract.
+   */
+  function makeAsyncValidationContext(
+    callerId: string,
+    callerNs: KetoNamespace,
+  ): AsyncTaskValidationContext {
+    return {
+      async resolveTask(taskId: string) {
+        const canView = await permissionChecker.canViewTask(
+          taskId,
+          callerId,
+          callerNs,
+        );
+        if (!canView) return null;
+        const row = await taskRepository.findById(taskId);
+        return row ? dbTaskToWire(row) : null;
+      },
+      async listTasksByCorrelation(correlationId: string) {
+        const rows = await taskRepository.findByCorrelationId(correlationId);
+        if (rows.length === 0) return [];
+        // Batched-friendly filter: keep only rows the caller can
+        // view. Done in parallel; permissionChecker is Keto-only
+        // (no DB hit), so this is cheap.
+        const checks = await Promise.all(
+          rows.map((row) =>
+            permissionChecker.canViewTask(row.id, callerId, callerNs),
+          ),
+        );
+        return rows.filter((_, i) => checks[i]).map((row) => dbTaskToWire(row));
+      },
+      async findCorrelationSeal(
+        correlationId: string,
+      ): Promise<CorrelationSeal | null> {
+        const row =
+          await correlationSealRepository.findByCorrelationId(correlationId);
+        if (!row) return null;
+        return {
+          correlationId: row.correlationId,
+          sealedAt: row.sealedAt.toISOString(),
+          sealedByTaskId: row.sealedByTaskId,
+          sealedByTaskType: row.sealedByTaskType,
+        };
+      },
+      async resolveContextPack(
+        packId: string,
+      ): Promise<ResolvedContextPack | null> {
+        const canRead = await permissionChecker.canReadPack(
+          packId,
+          callerId,
+          callerNs,
+        );
+        if (!canRead) return null;
+        const row = await contextPackRepository.findById(packId);
+        if (!row) return null;
+        return {
+          id: row.id,
+          packCid: row.packCid,
+          diaryId: row.diaryId,
+        };
+      },
+      async resolveRenderedPack(
+        packId: string,
+      ): Promise<ResolvedRenderedPack | null> {
+        // Rendered packs don't have their own Keto object; visibility
+        // is inherited from the source context pack. Look up the row
+        // first to find the source, then check pack visibility on it.
+        // Order matters: if the row doesn't exist, the caller learns
+        // "no" without us having issued a permission check on an
+        // unrelated id.
+        const row = await renderedPackRepository.findById(packId);
+        if (!row) return null;
+        const canRead = await permissionChecker.canReadPack(
+          row.sourcePackId,
+          callerId,
+          callerNs,
+        );
+        if (!canRead) return null;
+        return {
+          id: row.id,
+          packCid: row.packCid,
+          sourcePackId: row.sourcePackId,
+          diaryId: row.diaryId,
+        };
+      },
+    };
+  }
 
   return {
     async create(input: CreateTaskInput): Promise<Task> {
@@ -276,6 +431,56 @@ export function createTaskService(deps: TaskServiceDeps) {
             },
           ],
         );
+      }
+
+      // Async preflight validation (#1096). Runs after sync validators
+      // have established that the input is well-formed but BEFORE any
+      // DB writes — task types use the ctx to resolve referenced ids,
+      // check correlation seals, etc. Errors here come back as a list
+      // (not a single message) because async validators can surface
+      // multiple independent invariant violations in one pass.
+      const asyncCtx = makeAsyncValidationContext(
+        input.callerId,
+        input.callerNs,
+      );
+      const asyncErrors = await validateTaskInputAsync(
+        input.taskType,
+        input.inputPayload,
+        asyncCtx,
+      );
+      if (asyncErrors.length > 0) {
+        throw new TaskServiceError(
+          'invalid',
+          `Task create payload failed async validation for task type: ${input.taskType}`,
+          asyncErrors,
+        );
+      }
+
+      // Service-level invariant (#1096): a sealed correlation_id
+      // rejects ALL subsequent task-creates against that group —
+      // regardless of task type. Applies after task-type-specific
+      // async validation so the seal check is the last gate. Task
+      // types that themselves SEAL a correlation (e.g.
+      // judge_eval_variant) declare that via `onCreate`; the seal
+      // they write is for THEIR correlationId, so it does not block
+      // their own create — there is no seal at validate time, only
+      // at apply time.
+      if (input.correlationId) {
+        const existingSeal = await asyncCtx.findCorrelationSeal(
+          input.correlationId,
+        );
+        if (existingSeal) {
+          throw new TaskServiceError(
+            'invalid',
+            `correlation_id ${input.correlationId} is sealed by ${existingSeal.sealedByTaskType}/${existingSeal.sealedByTaskId}; no further tasks may be added to this correlation group`,
+            [
+              {
+                field: 'correlationId',
+                message: `correlation_id ${input.correlationId} is sealed (sealed_by_task_id=${existingSeal.sealedByTaskId}, sealed_by_task_type=${existingSeal.sealedByTaskType}, sealed_at=${existingSeal.sealedAt}). Use a fresh correlation_id for new variants.`,
+              },
+            ],
+          );
+        }
       }
 
       if (!input.diaryId) {
@@ -345,8 +550,105 @@ export function createTaskService(deps: TaskServiceDeps) {
         expiresAt,
       };
 
-      const row = await taskRepository.create(newTask);
+      // Resolve task-type-declared side effects BEFORE the
+      // transaction so the validator ctx (with caller-bound
+      // permission checks) runs on already-committed data. The
+      // effects are pure data; applying them is what the tx wraps.
+      const sideEffects = await getTaskCreateSideEffects(
+        input.taskType,
+        input.inputPayload,
+        asyncCtx,
+      );
 
+      // DB-atomic block: task insert + any seal inserts commit or
+      // roll back together. Throwing anywhere inside aborts the
+      // entire transaction — Postgres handles the rollback; we do
+      // NOT run compensating writes for anything inside this block.
+      //
+      // pg_advisory_xact_lock on each correlationId serializes
+      // concurrent judge_eval_variant creates against the same
+      // variant set. Without it, two creates that both saw "no
+      // seal" in their async validators could both pass the
+      // re-check and only collide on the PK insert — by which point
+      // the loser may have done unrelated work.
+      let row: DbTask;
+      try {
+        row = await transactionRunner.runInTransaction(
+          async () => {
+            const inserted = await taskRepository.create(newTask);
+            for (const effect of sideEffects) {
+              if (effect.kind === 'sealCorrelation') {
+                await correlationSealRepository.acquireCorrelationLock(
+                  effect.correlationId,
+                );
+                const existing =
+                  await correlationSealRepository.findByCorrelationId(
+                    effect.correlationId,
+                  );
+                if (existing) {
+                  // Lock-protected re-check: a previous create
+                  // committed its seal while we were waiting on the
+                  // lock. Surface a clear conflict; the surrounding
+                  // tx will roll back the task we just inserted.
+                  throw new TaskServiceError(
+                    'conflict',
+                    `correlation_id ${effect.correlationId} was sealed by another concurrent create (sealed_by_task_id=${existing.sealedByTaskId}, sealed_by_task_type=${existing.sealedByTaskType})`,
+                  );
+                }
+                try {
+                  await correlationSealRepository.create({
+                    correlationId: effect.correlationId,
+                    sealedByTaskId: inserted.id,
+                    sealedByTaskType: input.taskType,
+                    sealedByAgentId: input.callerIsAgent
+                      ? input.callerId
+                      : null,
+                    sealedByHumanId: input.callerIsAgent
+                      ? null
+                      : input.callerId,
+                  });
+                } catch (sealErr) {
+                  // Defensive: PK violation despite the lock + re-check
+                  // (e.g. the lock helper is somehow a no-op). Surface
+                  // as a conflict instead of a 500.
+                  if (isUniqueViolation(sealErr)) {
+                    throw new TaskServiceError(
+                      'conflict',
+                      `correlation_id ${effect.correlationId} was sealed by another concurrent create`,
+                    );
+                  }
+                  throw sealErr;
+                }
+              }
+            }
+            return inserted;
+          },
+          { name: 'task.create' },
+        );
+      } catch (err) {
+        if (err instanceof TaskServiceError) throw err;
+        logger.error(
+          { taskType: input.taskType, err },
+          'task.create.tx_failed',
+        );
+        throw new TaskServiceError(
+          'conflict',
+          'Task create transaction failed — task was not created',
+        );
+      }
+
+      // Keto grant runs OUTSIDE the DB transaction: Keto is a
+      // separate system and is not transactional with Postgres. If
+      // the grant fails after we've already committed the task +
+      // seal, we compensate by marking the task `cancelled` and
+      // deleting any seal it acquired. Order matters here: the
+      // seal's FK to tasks is `restrict`, so we MUST delete the
+      // seal before any operation that might delete the task row.
+      // `updateStatus → cancelled` does NOT delete the task — it
+      // only mutates `status` — so the FK never fires either way.
+      // Delete-first is preserved anyway because it matches the
+      // mental model and keeps the order valid if a future change
+      // ever switches the rollback to a hard delete.
       try {
         await relationshipWriter.grantTaskParent(row.id, input.diaryId);
       } catch (err) {
@@ -354,18 +656,30 @@ export function createTaskService(deps: TaskServiceDeps) {
           { taskId: row.id, diaryId: input.diaryId, err },
           'task.create.grant_failed — rolling back task',
         );
-        await taskRepository
-          .updateStatus(row.id, 'cancelled', {
+        // Sequential, not allSettled: if seal delete fails (e.g. DB
+        // hiccup), we MUST surface that rather than silently
+        // continuing — a stale seal on a cancelled task locks the
+        // correlation group against recovery.
+        try {
+          await correlationSealRepository.deleteBySealingTaskId(row.id);
+        } catch (sealDelErr) {
+          logger.error(
+            { taskId: row.id, err: sealDelErr },
+            'task.create.grant_failed.seal_cleanup_failed — manual intervention required',
+          );
+        }
+        try {
+          await taskRepository.updateStatus(row.id, 'cancelled', {
             cancelReason: 'Keto grant failed during creation',
-            cancelledByAgentId: null,
-            cancelledByHumanId: null,
-          })
-          .catch((rollbackErr: unknown) => {
-            logger.error(
-              { taskId: row.id, err: rollbackErr },
-              'task.create.rollback_failed',
-            );
+            cancelledByAgentId: input.callerIsAgent ? input.callerId : null,
+            cancelledByHumanId: input.callerIsAgent ? null : input.callerId,
           });
+        } catch (cancelErr) {
+          logger.error(
+            { taskId: row.id, err: cancelErr },
+            'task.create.grant_failed.cancel_failed',
+          );
+        }
         throw new TaskServiceError(
           'conflict',
           'Failed to register task ownership — task was rolled back',

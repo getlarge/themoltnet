@@ -55,6 +55,10 @@ export {
   type PackDiffRow,
 } from './repositories/context-pack.repository.js';
 export {
+  type CorrelationSealRepository,
+  createCorrelationSealRepository,
+} from './repositories/correlation-seal.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';

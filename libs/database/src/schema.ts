@@ -1103,6 +1103,65 @@ export const tasks = pgTable(
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 
+// ── Correlation Seals ──────────────────────────────────────
+//
+// A correlation_id is "sealed" when a task type that demands a
+// monotonic-add-only snapshot of its correlation group is created
+// against it (`judge_eval_variant` is the first user). Sealing
+// rejects subsequent task-create calls in the same correlation_id
+// so the snapshot the judge captured stays canonical.
+//
+// One row per correlation_id; primary key prevents double-sealing.
+// `sealed_by_task_id` is the task whose creation triggered the
+// seal; foreign-key cascade is `restrict` so a stray
+// `DELETE FROM tasks` cannot remove the sealing task and leave the
+// seal pointing at a row that no longer exists. The compensating
+// rollback path in `task.service.ts` deletes the seal *before*
+// touching the task (and runs both writes inside one transaction),
+// so the restrict never fires in normal flow.
+//
+// `sealed_by_agent_id` / `sealed_by_human_id` is an XOR pair: a seal
+// is always triggered by exactly one of the two principal kinds, the
+// same way the canceller and imposer columns on `tasks` are XOR
+// pairs. The check constraint matches the convention used elsewhere
+// in this schema.
+//
+// See issue #1096 for the design.
+
+export const correlationSeals = pgTable(
+  'correlation_seals',
+  {
+    correlationId: uuid('correlation_id').primaryKey(),
+    sealedAt: timestamp('sealed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    sealedByTaskId: uuid('sealed_by_task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'restrict' }),
+    sealedByTaskType: varchar('sealed_by_task_type', {
+      length: 100,
+    }).notNull(),
+    /** Optional caller (agent or human) that triggered the seal. */
+    sealedByAgentId: uuid('sealed_by_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'set null' },
+    ),
+    sealedByHumanId: uuid('sealed_by_human_id').references(() => humans.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    index('correlation_seals_sealed_by_task_idx').on(table.sealedByTaskId),
+    check(
+      'correlation_seals_caller_xor',
+      sql`(sealed_by_agent_id IS NOT NULL) <> (sealed_by_human_id IS NOT NULL)`,
+    ),
+  ],
+);
+
+export type CorrelationSeal = typeof correlationSeals.$inferSelect;
+export type NewCorrelationSeal = typeof correlationSeals.$inferInsert;
+
 // ── Executor Manifests ─────────────────────────────────────
 
 export const executorManifests = pgTable(

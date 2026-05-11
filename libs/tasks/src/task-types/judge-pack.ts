@@ -20,6 +20,10 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskValidationError,
+} from '../async-validation.js';
 import { AssertionResult } from '../rubric.js';
 import { SuccessCriteria } from '../success-criteria.js';
 
@@ -153,4 +157,47 @@ export function validateJudgePackOutput(output: unknown): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Async preflight (#1096):
+ *   - `renderedPackId` resolves to a rendered_packs row.
+ *   - `sourcePackId` resolves to a context_packs row.
+ *   - The rendered pack actually came from the claimed source pack —
+ *     `renderedPack.sourcePackId === input.sourcePackId`. Without
+ *     this check a judge can be tricked into grading rendering A as
+ *     if it came from source B.
+ */
+export async function validateJudgePackInputAsync(
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskValidationError[]> {
+  const { renderedPackId, sourcePackId } = input as JudgePackInput;
+  const errors: TaskValidationError[] = [];
+
+  const [rendered, source] = await Promise.all([
+    ctx.resolveRenderedPack(renderedPackId),
+    ctx.resolveContextPack(sourcePackId),
+  ]);
+
+  if (!rendered) {
+    errors.push({
+      field: 'renderedPackId',
+      message: `renderedPackId ${renderedPackId} does not resolve to a rendered pack you can read`,
+    });
+  }
+  if (!source) {
+    errors.push({
+      field: 'sourcePackId',
+      message: `sourcePackId ${sourcePackId} does not resolve to a context pack you can read`,
+    });
+  }
+  if (rendered && source && rendered.sourcePackId !== source.id) {
+    errors.push({
+      field: 'sourcePackId',
+      message: `renderedPack ${renderedPackId} was produced from source ${rendered.sourcePackId}, not from sourcePackId=${sourcePackId}`,
+    });
+  }
+
+  return errors;
 }

@@ -5,7 +5,9 @@ import {
   CuratePackInput,
   FULFILL_BRIEF_TYPE,
   FulfillBriefInput,
+  JUDGE_EVAL_VARIANT_TYPE,
   JUDGE_PACK_TYPE,
+  JudgeEvalVariantInput,
   JudgePackInput,
   RENDER_PACK_TYPE,
   RenderPackInput,
@@ -18,6 +20,7 @@ import { Value } from '@sinclair/typebox/value';
 import { buildAssessBriefUserPrompt } from './assess-brief.js';
 import { buildCuratePackUserPrompt } from './curate-pack.js';
 import { buildFulfillBriefUserPrompt } from './fulfill-brief.js';
+import { buildJudgeEvalVariantUserPrompt } from './judge-eval-variant.js';
 import { buildJudgePackUserPrompt } from './judge-pack.js';
 import { buildRenderPackUserPrompt } from './render-pack.js';
 import { buildRunEvalUserPrompt } from './run-eval.js';
@@ -25,6 +28,7 @@ import { buildRunEvalUserPrompt } from './run-eval.js';
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
+export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
@@ -121,6 +125,19 @@ export function buildTaskUserPrompt(
         );
       }
       return buildJudgePackUserPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
+      });
+    }
+
+    case JUDGE_EVAL_VARIANT_TYPE: {
+      if (!Value.Check(JudgeEvalVariantInput, task.input)) {
+        const errors = [...Value.Errors(JudgeEvalVariantInput, task.input)];
+        throw new Error(
+          `judge_eval_variant input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildJudgeEvalVariantUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });

@@ -1,5 +1,10 @@
 import type { TSchema } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskCreateSideEffect,
+  TaskValidationError,
+} from '../async-validation.js';
 import { validateRubricWeights } from '../rubric.js';
 import type { SuccessCriteria } from '../success-criteria.js';
 import type { OutputKind } from '../wire.js';
@@ -7,6 +12,7 @@ import {
   ASSESS_BRIEF_TYPE,
   AssessBriefInput,
   AssessBriefOutput,
+  validateAssessBriefInputAsync,
 } from './assess-brief.js';
 import {
   CURATE_PACK_TYPE,
@@ -19,15 +25,26 @@ import {
   FulfillBriefOutput,
 } from './fulfill-brief.js';
 import {
+  JUDGE_EVAL_VARIANT_TYPE,
+  JudgeEvalVariantInput,
+  JudgeEvalVariantOutput,
+  onCreateJudgeEvalVariant,
+  validateJudgeEvalVariantInput,
+  validateJudgeEvalVariantInputAsync,
+  validateJudgeEvalVariantOutput,
+} from './judge-eval-variant.js';
+import {
   JUDGE_PACK_TYPE,
   JudgePackInput,
   JudgePackOutput,
+  validateJudgePackInputAsync,
   validateJudgePackOutput,
 } from './judge-pack.js';
 import {
   RENDER_PACK_TYPE,
   RenderPackInput,
   RenderPackOutput,
+  validateRenderPackInputAsync,
 } from './render-pack.js';
 import {
   RUN_EVAL_TYPE,
@@ -39,6 +56,7 @@ import {
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
+export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
@@ -80,6 +98,37 @@ interface TaskTypeEntry {
    * in their own session.
    */
   readonly usesSubagents?: boolean;
+  /**
+   * Async preflight run after sync `validateInput` at task-create
+   * time. Receives a narrow `AsyncTaskValidationContext` exposing
+   * only DB lookups (resolveTask, listTasksByCorrelation,
+   * findCorrelationSeal, resolveContextPack, resolveRenderedPack).
+   * Returns `TaskValidationError[]`; empty array means OK.
+   *
+   * Pure read-side: validators MUST NOT mutate state. Side effects
+   * a task type wants applied atomically with task creation are
+   * declared via `onCreate` instead.
+   *
+   * Server-side only — the SDK runs sync `validateInput` only.
+   * See issue #1096 for the full design.
+   */
+  readonly validateInputAsync?: (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskValidationError[]>;
+  /**
+   * Optional post-insert side effects a task type wants applied
+   * atomically with task creation. Returns the side-effect list;
+   * the task service applies them inside the same transaction as
+   * the task insert. Runs only after `validateInput` and
+   * `validateInputAsync` both pass.
+   *
+   * v1: only `sealCorrelation` is supported (see #1096).
+   */
+  readonly onCreate?: (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskCreateSideEffect[]>;
 }
 
 /**
@@ -158,6 +207,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'judgment',
     requiresReferences: true,
     validateInput: validateJudgmentInput,
+    validateInputAsync: validateAssessBriefInputAsync,
   },
   [CURATE_PACK_TYPE]: {
     name: CURATE_PACK_TYPE,
@@ -174,6 +224,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'artifact',
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
+    validateInputAsync: validateRenderPackInputAsync,
   },
   [JUDGE_PACK_TYPE]: {
     name: JUDGE_PACK_TYPE,
@@ -183,6 +234,7 @@ export const BUILT_IN_TASK_TYPES = {
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateOutput: validateJudgePackOutput,
+    validateInputAsync: validateJudgePackInputAsync,
   },
   [RUN_EVAL_TYPE]: {
     name: RUN_EVAL_TYPE,
@@ -191,6 +243,18 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'artifact',
     requiresReferences: false,
     validateOutput: validateRunEvalOutput,
+  },
+  [JUDGE_EVAL_VARIANT_TYPE]: {
+    name: JUDGE_EVAL_VARIANT_TYPE,
+    inputSchema: JudgeEvalVariantInput,
+    outputSchema: JudgeEvalVariantOutput,
+    outputKind: 'judgment',
+    requiresReferences: false,
+    validateInput: validateJudgeEvalVariantInput,
+    validateOutput: validateJudgeEvalVariantOutput,
+    validateInputAsync: validateJudgeEvalVariantInputAsync,
+    onCreate: onCreateJudgeEvalVariant,
+    usesSubagents: true,
   },
 } as const satisfies Record<string, TaskTypeEntry>;
 
