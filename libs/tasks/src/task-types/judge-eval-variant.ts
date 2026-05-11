@@ -88,8 +88,21 @@ export type JudgeEvalVariantInput = Static<typeof JudgeEvalVariantInput>;
 export const JudgeEvalVariantResult = Type.Object(
   {
     runTaskId: Type.String({ format: 'uuid' }),
-    /** Copied from the producer task for convenience. */
-    variantLabel: Type.String({ minLength: 1, maxLength: 64 }),
+    /**
+     * Copied from the producer task for convenience.
+     *
+     * Cannot contain ` - ` (space-hyphen-space) because that token
+     * is the delimiter inside the optional `deltas` map keys
+     * (`"<labelA> - <labelB>"`). Allowing it in a label would make
+     * delta keys ambiguous: `"v1 - new - baseline"` could mean
+     * `("v1", "new - baseline")` or `("v1 - new", "baseline")`.
+     * #1101 review M5.
+     */
+    variantLabel: Type.String({
+      minLength: 1,
+      maxLength: 64,
+      pattern: '^(?!.* - ).*$',
+    }),
     scores: Type.Array(JudgePackScore, { minItems: 1 }),
     composite: Type.Number({ minimum: 0, maximum: 1 }),
     /** 1–3 sentence verdict per variant. */

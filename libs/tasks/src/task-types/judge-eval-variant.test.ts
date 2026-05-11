@@ -412,6 +412,18 @@ describe('validateJudgeEvalVariantOutput', () => {
     );
   });
 
+  it('rejects a variantLabel containing " - " (delimiter collision)', () => {
+    expect(
+      Value.Check(JudgeEvalVariantOutput, {
+        results: [
+          { ...result(TASK_A, 'a'), variantLabel: 'v1 - new' },
+          result(TASK_B, 'b'),
+        ],
+        traceparent: '00-x-y-01',
+      }),
+    ).toBe(false);
+  });
+
   it('rejects deltas keys referencing unknown labels', () => {
     const out = {
       results: [result(TASK_A, 'a'), result(TASK_B, 'b')],
