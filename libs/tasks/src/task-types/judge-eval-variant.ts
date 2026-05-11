@@ -129,7 +129,15 @@ export const JudgeEvalVariantOutput = Type.Object(
      * the parent could compute them; absent when the parent prefers
      * derive-at-query-time aggregation. Imposer convention.
      */
-    deltas: Type.Optional(Type.Record(Type.String(), Type.Number())),
+    /**
+     * Composite scores are in [0, 1], so any composite-A − composite-B
+     * difference is bounded to [-1, 1]. Enforcing the bound at the
+     * schema level rejects nonsense deltas (e.g. raw scores accidentally
+     * placed in the deltas map). #1101 review minor m2.
+     */
+    deltas: Type.Optional(
+      Type.Record(Type.String(), Type.Number({ minimum: -1, maximum: 1 })),
+    ),
 
     /** Model that drove the parent + subagent sessions. */
     judgeModel: Type.Optional(Type.String({ minLength: 1 })),

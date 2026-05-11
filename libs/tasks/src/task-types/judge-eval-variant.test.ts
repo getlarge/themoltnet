@@ -412,6 +412,16 @@ describe('validateJudgeEvalVariantOutput', () => {
     );
   });
 
+  it('rejects deltas values outside [-1, 1] (#1101 m2)', () => {
+    expect(
+      Value.Check(JudgeEvalVariantOutput, {
+        results: [result(TASK_A, 'a'), result(TASK_B, 'b')],
+        deltas: { 'a - b': 1.5 },
+        traceparent: '00-x-y-01',
+      }),
+    ).toBe(false);
+  });
+
   it('rejects scores with a criterionId not in the input rubric (#1101 m3)', () => {
     const out = {
       results: [
