@@ -238,6 +238,168 @@ func TestRunTaskList_ModelRequiresProvider(t *testing.T) {
 	}
 }
 
+func TestRunTaskList_ProviderModelMustBeNonEmpty(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:      "22222222-2222-4222-8222-222222222222",
+		provider:    " ",
+		providerSet: true,
+		model:       "gpt-5.1",
+		modelSet:    true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "must both be non-empty") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_EmptyTaskTypesRejected(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:       "22222222-2222-4222-8222-222222222222",
+		taskTypes:    []string{" , "},
+		taskTypesSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "at least one non-empty value") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_InvalidTeamID(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID: "not-a-uuid",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "invalid --team-id") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_InvalidStatus(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:    "22222222-2222-4222-8222-222222222222",
+		status:    "bogus",
+		statusSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "invalid --status") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_InvalidUUIDFilter(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:     "22222222-2222-4222-8222-222222222222",
+		diaryID:    "not-a-uuid",
+		diaryIDSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "invalid --diary-id") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_InvalidRFC3339Filter(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:         "22222222-2222-4222-8222-222222222222",
+		queuedAfter:    "not-a-date",
+		queuedAfterSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "invalid --queued-after") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_LimitMustBePositive(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:   "22222222-2222-4222-8222-222222222222",
+		limit:    0,
+		limitSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--limit must be >= 1") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_LimitAndCursorPlumbed(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:    "22222222-2222-4222-8222-222222222222",
+		limit:     25,
+		limitSet:  true,
+		cursor:    "cursor-1",
+		cursorSet: true,
+	})
+	if err != nil {
+		t.Fatalf("runTaskListWithClient: %v", err)
+	}
+	if got, ok := h.listParams.Limit.Get(); !ok || got != 25 {
+		t.Errorf("Limit = %d, set=%v; want 25, true", got, ok)
+	}
+	if got, ok := h.listParams.Cursor.Get(); !ok || got != "cursor-1" {
+		t.Errorf("Cursor = %q, set=%v; want cursor-1, true", got, ok)
+	}
+}
+
 func TestRunTaskList_HasAttemptsFalsePreserved(t *testing.T) {
 	h := &stubTasksHandler{}
 	_, _, client := newTestServer(t, h)

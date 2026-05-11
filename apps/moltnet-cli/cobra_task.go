@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -27,33 +29,29 @@ func newTaskListCmd() *cobra.Command {
   moltnet task list --team-id <uuid> --provider openai --model gpt-5.1 --has-attempts=false`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			taskTypes, _ := cmd.Flags().GetStringSlice("task-types")
-			taskTypeAliases, _ := cmd.Flags().GetStringArray("task-type")
 			opts := taskListOpts{
-				apiURL:              apiURL,
-				credPath:            credPath,
-				teamID:              mustGetStringFlag(cmd, "team-id"),
-				taskTypes:           taskTypes,
-				taskTypeAliases:     taskTypeAliases,
-				status:              mustGetStringFlag(cmd, "status"),
-				diaryID:             mustGetStringFlag(cmd, "diary-id"),
-				correlationID:       mustGetStringFlag(cmd, "correlation-id"),
-				imposedByAgentID:    mustGetStringFlag(cmd, "imposed-by-agent-id"),
-				imposedByHumanID:    mustGetStringFlag(cmd, "imposed-by-human-id"),
-				claimedByAgentID:    mustGetStringFlag(cmd, "claimed-by-agent-id"),
-				provider:            mustGetStringFlag(cmd, "provider"),
-				model:               mustGetStringFlag(cmd, "model"),
-				hasAttempts:         mustGetBoolFlag(cmd, "has-attempts"),
+				apiURL:              flagString(cmd, "api-url"),
+				credPath:            flagString(cmd, "credentials"),
+				teamID:              flagString(cmd, "team-id"),
+				taskTypes:           flagStringSlice(cmd, "task-types"),
+				taskTypeAliases:     flagStringArray(cmd, "task-type"),
+				status:              flagString(cmd, "status"),
+				diaryID:             flagString(cmd, "diary-id"),
+				correlationID:       flagString(cmd, "correlation-id"),
+				imposedByAgentID:    flagString(cmd, "imposed-by-agent-id"),
+				imposedByHumanID:    flagString(cmd, "imposed-by-human-id"),
+				claimedByAgentID:    flagString(cmd, "claimed-by-agent-id"),
+				provider:            flagString(cmd, "provider"),
+				model:               flagString(cmd, "model"),
+				hasAttempts:         flagBool(cmd, "has-attempts"),
 				hasAttemptsSet:      cmd.Flags().Changed("has-attempts"),
-				queuedAfter:         mustGetStringFlag(cmd, "queued-after"),
-				queuedBefore:        mustGetStringFlag(cmd, "queued-before"),
-				completedAfter:      mustGetStringFlag(cmd, "completed-after"),
-				completedBefore:     mustGetStringFlag(cmd, "completed-before"),
-				limit:               mustGetIntFlag(cmd, "limit"),
+				queuedAfter:         flagString(cmd, "queued-after"),
+				queuedBefore:        flagString(cmd, "queued-before"),
+				completedAfter:      flagString(cmd, "completed-after"),
+				completedBefore:     flagString(cmd, "completed-before"),
+				limit:               flagInt(cmd, "limit"),
 				limitSet:            cmd.Flags().Changed("limit"),
-				cursor:              mustGetStringFlag(cmd, "cursor"),
+				cursor:              flagString(cmd, "cursor"),
 				cursorSet:           cmd.Flags().Changed("cursor"),
 				taskTypesSet:        cmd.Flags().Changed("task-types"),
 				taskTypeAliasesSet:  cmd.Flags().Changed("task-type"),
@@ -102,9 +100,11 @@ func newTaskGetCmd() *cobra.Command {
 		Example: `  moltnet task get <task-uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			return runTaskGetCmd(apiURL, credPath, args[0])
+			return runTaskGetCmd(
+				flagString(cmd, "api-url"),
+				flagString(cmd, "credentials"),
+				args[0],
+			)
 		},
 	}
 	return cmd
@@ -163,17 +163,42 @@ Suppresses text_delta by default to keep the output readable; pass
 	return cmd
 }
 
-func mustGetStringFlag(cmd *cobra.Command, name string) string {
-	v, _ := cmd.Flags().GetString(name)
+func flagString(cmd *cobra.Command, name string) string {
+	v, err := cmd.Flags().GetString(name)
+	if err != nil {
+		panic(fmt.Sprintf("flagString %q: %v", name, err))
+	}
 	return v
 }
 
-func mustGetBoolFlag(cmd *cobra.Command, name string) bool {
-	v, _ := cmd.Flags().GetBool(name)
+func flagBool(cmd *cobra.Command, name string) bool {
+	v, err := cmd.Flags().GetBool(name)
+	if err != nil {
+		panic(fmt.Sprintf("flagBool %q: %v", name, err))
+	}
 	return v
 }
 
-func mustGetIntFlag(cmd *cobra.Command, name string) int {
-	v, _ := cmd.Flags().GetInt(name)
+func flagInt(cmd *cobra.Command, name string) int {
+	v, err := cmd.Flags().GetInt(name)
+	if err != nil {
+		panic(fmt.Sprintf("flagInt %q: %v", name, err))
+	}
+	return v
+}
+
+func flagStringSlice(cmd *cobra.Command, name string) []string {
+	v, err := cmd.Flags().GetStringSlice(name)
+	if err != nil {
+		panic(fmt.Sprintf("flagStringSlice %q: %v", name, err))
+	}
+	return v
+}
+
+func flagStringArray(cmd *cobra.Command, name string) []string {
+	v, err := cmd.Flags().GetStringArray(name)
+	if err != nil {
+		panic(fmt.Sprintf("flagStringArray %q: %v", name, err))
+	}
 	return v
 }

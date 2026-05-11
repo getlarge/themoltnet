@@ -110,6 +110,9 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 	if opts.taskTypeAliasesSet {
 		params.TaskTypes = append(params.TaskTypes, cleanCSVValues(opts.taskTypeAliases)...)
 	}
+	if (opts.taskTypesSet || opts.taskTypeAliasesSet) && len(params.TaskTypes) == 0 {
+		return moltnetapi.ListTasksParams{}, fmt.Errorf("--task-types / --task-type: at least one non-empty value is required")
+	}
 	if opts.statusSet {
 		var status moltnetapi.TaskStatus
 		if err := status.UnmarshalText([]byte(opts.status)); err != nil {
@@ -148,8 +151,13 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 		return moltnetapi.ListTasksParams{}, fmt.Errorf("--provider and --model must be set together")
 	}
 	if opts.providerSet {
-		params.Provider = moltnetapi.NewOptString(opts.provider)
-		params.Model = moltnetapi.NewOptString(opts.model)
+		provider := strings.TrimSpace(opts.provider)
+		model := strings.TrimSpace(opts.model)
+		if provider == "" || model == "" {
+			return moltnetapi.ListTasksParams{}, fmt.Errorf("--provider and --model must both be non-empty")
+		}
+		params.Provider = moltnetapi.NewOptString(provider)
+		params.Model = moltnetapi.NewOptString(model)
 	}
 	if opts.hasAttemptsSet {
 		params.HasAttempts = moltnetapi.NewOptBool(opts.hasAttempts)
@@ -176,6 +184,9 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 		}
 	}
 	if opts.limitSet {
+		if opts.limit <= 0 {
+			return moltnetapi.ListTasksParams{}, fmt.Errorf("--limit must be >= 1, got %d", opts.limit)
+		}
 		params.Limit = moltnetapi.NewOptInt(opts.limit)
 	}
 	if opts.cursorSet {
@@ -188,12 +199,7 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 func cleanCSVValues(values []string) []string {
 	out := make([]string, 0, len(values))
 	for _, value := range values {
-		for _, part := range strings.Split(value, ",") {
-			part = strings.TrimSpace(part)
-			if part != "" {
-				out = append(out, part)
-			}
-		}
+		out = append(out, splitAndTrim(value, ",")...)
 	}
 	return out
 }
