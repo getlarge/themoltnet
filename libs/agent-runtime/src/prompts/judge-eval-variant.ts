@@ -37,10 +37,16 @@ export function buildJudgeEvalVariantUserPrompt(
     );
   }
 
+  // Markdown table cell escaping: backslash first, then pipe. Order
+  // matters — escaping `|` first would double-escape the backslashes
+  // we just emitted. Newlines collapse to a space (Markdown table
+  // cells are single-line).
+  const escapeCell = (s: string) =>
+    s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
   const criteriaTable = rubric.criteria
     .map(
       (c) =>
-        `| \`${c.id}\` | ${c.weight.toFixed(3)} | ${c.scoring} | ${c.description.replace(/\|/g, '\\|')} |`,
+        `| \`${c.id}\` | ${c.weight.toFixed(3)} | ${c.scoring} | ${escapeCell(c.description)} |`,
     )
     .join('\n');
 
