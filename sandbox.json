@@ -8,9 +8,7 @@
     "cpus": 4,
     "memory": "6G"
   },
-  "resumeCommands": [
-    "cd /workspace && pnpm fetch --frozen-lockfile 2>&1 | tail -5"
-  ],
+  "resumeCommands": ["cd /workspace && pnpm fetch --frozen-lockfile"],
   "snapshot": {
     "allowedHosts": [
       "unofficial-builds.nodejs.org",
@@ -27,8 +25,7 @@
       "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz && node --version'",
       "npm install -g tsx 2>/dev/null",
       "corepack enable && corepack install --global pnpm@10.29.3",
-      "mkdir -p /opt/pnpm-store && chmod 0777 /opt/pnpm-store && printf 'store-dir=/opt/pnpm-store\\n' > /etc/npmrc"
+      "mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store"
     ]
-  },
-  "vfs": {}
+  }
 }

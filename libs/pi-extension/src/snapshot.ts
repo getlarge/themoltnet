@@ -45,7 +45,13 @@ export interface SandboxConfig {
   /** Shell commands to run every VM resume, after platform setup
    *  (TLS, DNS, git safe.directory, tmpfs node_modules) and before
    *  the agent session starts. Use for per-session bootstrap that
-   *  doesn't belong baked into the snapshot. */
+   *  doesn't belong baked into the snapshot.
+   *
+   *  Not included in the snapshot cache key — changes here apply on
+   *  every resume without triggering a snapshot rebuild. Each command
+   *  runs in a fresh shell with `set -eu` and `set -o pipefail`; a
+   *  non-zero exit (including from any segment of a pipeline) aborts
+   *  resume with the failing command's stderr/stdout tail. */
   resumeCommands?: string[];
   /** VFS shadow settings — hide host paths from the guest. */
   vfs?: {

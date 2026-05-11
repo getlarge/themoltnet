@@ -205,6 +205,30 @@ const BASE_ALLOWED_HOSTS = [
 ];
 
 /**
+ * Run a shell command in the guest and throw if it fails. Mirror of
+ * `run()` in `snapshot.ts` for the resume-side hook chain — every
+ * setup step is essential to a healthy session, so a silent non-zero
+ * exit (e.g. a mount that fails into the FUSE write path, or a
+ * consumer-provided resume command that fails to install pnpm) must
+ * surface immediately rather than fall through to cryptic agent
+ * errors later.
+ */
+async function vmRun(vm: VM, label: string, command: string): Promise<void> {
+  // Wrap with `set -o pipefail` inside the script (not on the sh command
+  // line, which busybox ash on Alpine doesn't accept as a flag). This
+  // ensures pipelines like `foo | tail` propagate foo's non-zero exit
+  // instead of masking it behind tail's success.
+  const wrapped = `set -eu\nset -o pipefail\n${command}`;
+  const r = await vm.exec(['sh', '-c', wrapped]);
+  if (r.exitCode !== 0) {
+    const tail = [r.stderr, r.stdout].filter(Boolean).join('\n').slice(-800);
+    throw new Error(
+      `resume step "${label}" failed (exit ${r.exitCode}):\n${tail}`,
+    );
+  }
+}
+
+/**
  * Resume a VM from a checkpoint, inject credentials, configure egress +
  * TLS. Returns the managed VM handle.
  */
@@ -315,7 +339,11 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
   // inside the VM emits 'detected dubious ownership' and exits 128. Setting
   // this system-wide rather than per-user covers both root (post-resume
   // setup) and agent (task workload) callers.
-  await vm.exec(`sh -c "git config --system --add safe.directory '*'"`);
+  await vmRun(
+    vm,
+    'git safe.directory',
+    `git config --system --add safe.directory '*'`,
+  );
 
   // Overlay-mount a guest-kernel tmpfs at /workspace/node_modules so package
   // installs (pnpm/npm) bypass the Gondolin FUSE bridge entirely. Without
@@ -325,21 +353,26 @@ nameserver 1.1.1.1" > /etc/resolv.conf'`);
   // install). The kernel resolves mount points before FUSE, so writes to
   // /workspace/node_modules/... never reach sandboxfs or the host. Side
   // effect: the host worktree's existing node_modules (if any) is fully
-  // hidden by the mount and remains untouched — no host pollution. Note
-  // tmpfs is per-VM: on VM exit the install is gone; first install per VM
-  // session pays the network cost into the rootfs-resident pnpm store at
-  // /var/cache/pnpm-store (configured via /etc/npmrc when used).
-  await vm.exec(`sh -c '
-    mkdir -p /workspace/node_modules
-    mount -t tmpfs -o size=4G,mode=0755,uid=501,gid=501 tmpfs /workspace/node_modules
-  '`);
+  // hidden by the mount and remains untouched — no host pollution. tmpfs
+  // is per-VM: install is discarded on VM exit; the pnpm content store
+  // is the persistence point (configured separately by the consumer via
+  // sandbox.json env / resumeCommands). A silent mount failure would
+  // route writes through the FUSE bridge — the exact problem this fix
+  // exists to solve — so vmRun fails loudly if the mount doesn't take.
+  await vmRun(
+    vm,
+    'tmpfs /workspace/node_modules',
+    `mkdir -p /workspace/node_modules && mount -t tmpfs -o size=4G,mode=0755,uid=501,gid=501 tmpfs /workspace/node_modules`,
+  );
 
   // Consumer-provided per-resume commands. Repo-specific bootstrap
   // (corepack-install a pinned pnpm, `pnpm fetch`, etc.) belongs here,
   // not in vm-manager — pi-extension stays repo-agnostic. Sequential,
-  // first failure aborts resume.
-  for (const cmd of config.sandboxConfig?.resumeCommands ?? []) {
-    await vm.exec(`sh -c ${JSON.stringify(cmd)}`);
+  // first failure aborts resume via vmRun.
+  for (const [i, cmd] of (
+    config.sandboxConfig?.resumeCommands ?? []
+  ).entries()) {
+    await vmRun(vm, `resumeCommands[${i}]`, cmd);
   }
 
   // Inject credentials into VM-side agent directory structure:
