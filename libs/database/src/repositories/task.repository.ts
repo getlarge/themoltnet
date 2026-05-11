@@ -65,6 +65,21 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    /**
+     * Find all tasks sharing a `correlation_id`. Used by async
+     * validators (#1096) — e.g. `judge_eval_variant` enumerates the
+     * variants in its correlation group to verify they're all
+     * `run_eval` / completed / share byte-identical `successCriteria`.
+     * No team or visibility filter — the caller (task service) runs
+     * the permission check separately. Returns the bare rows.
+     */
+    async findByCorrelationId(correlationId: string): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(eq(tasks.correlationId, correlationId));
+    },
+
     async list(opts: {
       teamId: string;
       status?: Task['status'];

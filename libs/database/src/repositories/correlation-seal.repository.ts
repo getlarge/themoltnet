@@ -49,6 +49,23 @@ export function createCorrelationSealRepository(db: Database) {
         .returning();
       return row;
     },
+
+    /**
+     * Remove a seal by its sealing task id. Used by the task
+     * service's create-rollback path: if a sealing task failed to
+     * register ownership in Keto and got cancelled, its seal would
+     * otherwise persist and lock the correlation group against
+     * recovery. Idempotent (returns the deleted row or null).
+     */
+    async deleteBySealingTaskId(
+      taskId: string,
+    ): Promise<CorrelationSeal | null> {
+      const [row] = await getExecutor(db)
+        .delete(correlationSeals)
+        .where(eq(correlationSeals.sealedByTaskId, taskId))
+        .returning();
+      return row ?? null;
+    },
   };
 }
 

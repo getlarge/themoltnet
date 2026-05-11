@@ -12,10 +12,13 @@ import {
 } from '@moltnet/crypto-service';
 import {
   type AgentRepository,
+  type ContextPackRepository,
+  type CorrelationSealRepository,
   DBOS,
   type DiaryRepository,
   type NewTask,
   type NewTaskMessage,
+  type RenderedPackRepository,
   type Task as DbTask,
   type TaskAttempt as DbTaskAttempt,
   type TaskMessage as DbTaskMessage,
@@ -23,10 +26,15 @@ import {
   taskWorkflows,
 } from '@moltnet/database';
 import {
+  type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
+  type CorrelationSeal,
   type ExecutorTrustLevel as WireExecutorTrustLevel,
+  getTaskCreateSideEffects,
   getTaskTypeRegistry,
   type OutputKind,
+  type ResolvedContextPack,
+  type ResolvedRenderedPack,
   type Task,
   type TaskAttempt,
   type TaskError,
@@ -34,6 +42,7 @@ import {
   type TaskUsage,
   type TaskValidationError,
   validateTaskCreateRequest,
+  validateTaskInputAsync,
   validateTaskOutput,
 } from '@moltnet/tasks';
 import type { TSchema } from '@sinclair/typebox';
@@ -225,6 +234,12 @@ interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
+  /** Used to resolve `context_packs` in async validators (#1096). */
+  contextPackRepository: ContextPackRepository;
+  /** Used to resolve `rendered_packs` in async validators (#1096). */
+  renderedPackRepository: RenderedPackRepository;
+  /** Correlation-seal lookups + inserts for the validation pass (#1096). */
+  correlationSealRepository: CorrelationSealRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
   logger: Logger;
@@ -235,10 +250,71 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     diaryRepository,
     agentRepository,
+    contextPackRepository,
+    renderedPackRepository,
+    correlationSealRepository,
     permissionChecker,
     relationshipWriter,
     logger,
   } = deps;
+
+  /**
+   * Build the async validation context (#1096) for one create call.
+   * The ctx exposes read-only lookups; side effects declared via
+   * `onCreate` are applied separately AFTER the task is inserted, so
+   * the ctx is safe to call from any task-type validator.
+   *
+   * `resolveTask` returns the bare DB row mapped to the wire `Task`
+   * shape so validators see the same field names imposers see.
+   */
+  function makeAsyncValidationContext(): AsyncTaskValidationContext {
+    return {
+      async resolveTask(taskId: string) {
+        const row = await taskRepository.findById(taskId);
+        return row ? dbTaskToWire(row) : null;
+      },
+      async listTasksByCorrelation(correlationId: string) {
+        const rows = await taskRepository.findByCorrelationId(correlationId);
+        return rows.map((row) => dbTaskToWire(row));
+      },
+      async findCorrelationSeal(
+        correlationId: string,
+      ): Promise<CorrelationSeal | null> {
+        const row =
+          await correlationSealRepository.findByCorrelationId(correlationId);
+        if (!row) return null;
+        return {
+          correlationId: row.correlationId,
+          sealedAt: row.sealedAt.toISOString(),
+          sealedByTaskId: row.sealedByTaskId,
+          sealedByTaskType: row.sealedByTaskType,
+        };
+      },
+      async resolveContextPack(
+        packId: string,
+      ): Promise<ResolvedContextPack | null> {
+        const row = await contextPackRepository.findById(packId);
+        if (!row) return null;
+        return {
+          id: row.id,
+          packCid: row.packCid,
+          diaryId: row.diaryId,
+        };
+      },
+      async resolveRenderedPack(
+        packId: string,
+      ): Promise<ResolvedRenderedPack | null> {
+        const row = await renderedPackRepository.findById(packId);
+        if (!row) return null;
+        return {
+          id: row.id,
+          packCid: row.packCid,
+          sourcePackId: row.sourcePackId,
+          diaryId: row.diaryId,
+        };
+      },
+    };
+  }
 
   return {
     async create(input: CreateTaskInput): Promise<Task> {
@@ -275,6 +351,26 @@ export function createTaskService(deps: TaskServiceDeps) {
               message: `Unknown task type: ${input.taskType}`,
             },
           ],
+        );
+      }
+
+      // Async preflight validation (#1096). Runs after sync validators
+      // have established that the input is well-formed but BEFORE any
+      // DB writes — task types use the ctx to resolve referenced ids,
+      // check correlation seals, etc. Errors here come back as a list
+      // (not a single message) because async validators can surface
+      // multiple independent invariant violations in one pass.
+      const asyncCtx = makeAsyncValidationContext();
+      const asyncErrors = await validateTaskInputAsync(
+        input.taskType,
+        input.inputPayload,
+        asyncCtx,
+      );
+      if (asyncErrors.length > 0) {
+        throw new TaskServiceError(
+          'invalid',
+          `Task create payload failed async validation for task type: ${input.taskType}`,
+          asyncErrors,
         );
       }
 
@@ -347,6 +443,65 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const row = await taskRepository.create(newTask);
 
+      // Apply task-type-declared create-time side effects (#1096).
+      // Currently only `sealCorrelation`; the union is open. Runs
+      // BEFORE Keto grant because if grant fails we roll back BOTH
+      // the task and any seals it created (see catch block).
+      const sideEffects = await getTaskCreateSideEffects(
+        input.taskType,
+        input.inputPayload,
+        asyncCtx,
+      );
+      try {
+        for (const effect of sideEffects) {
+          if (effect.kind === 'sealCorrelation') {
+            // Re-check the seal under the same transaction the row
+            // was inserted in: if a concurrent create won the race
+            // between our async validator and here, surface a
+            // conflict instead of crashing on the PK violation.
+            const existing =
+              await correlationSealRepository.findByCorrelationId(
+                effect.correlationId,
+              );
+            if (existing && existing.sealedByTaskId !== row.id) {
+              throw new TaskServiceError(
+                'conflict',
+                `correlation_id ${effect.correlationId} was sealed by another task while this one was being created`,
+              );
+            }
+            if (!existing) {
+              await correlationSealRepository.create({
+                correlationId: effect.correlationId,
+                sealedByTaskId: row.id,
+                sealedByTaskType: input.taskType,
+                sealedByAgentId: input.callerIsAgent ? input.callerId : null,
+                sealedByHumanId: input.callerIsAgent ? null : input.callerId,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        // Side effect failed — cancel the task and unseal anything
+        // we may have already written so the imposer can retry.
+        logger.error(
+          { taskId: row.id, taskType: row.taskType, err },
+          'task.create.side_effect_failed — rolling back task',
+        );
+        await Promise.allSettled([
+          correlationSealRepository.deleteBySealingTaskId(row.id),
+          taskRepository.updateStatus(row.id, 'cancelled', {
+            cancelReason: 'Create-time side effect failed',
+            cancelledByAgentId: null,
+            cancelledByHumanId: null,
+          }),
+        ]);
+        if (err instanceof TaskServiceError) throw err;
+        throw new TaskServiceError(
+          'conflict',
+          'Failed to apply create-time side effect — task was rolled back',
+        );
+      }
+
       try {
         await relationshipWriter.grantTaskParent(row.id, input.diaryId);
       } catch (err) {
@@ -354,18 +509,16 @@ export function createTaskService(deps: TaskServiceDeps) {
           { taskId: row.id, diaryId: input.diaryId, err },
           'task.create.grant_failed — rolling back task',
         );
-        await taskRepository
-          .updateStatus(row.id, 'cancelled', {
+        // Roll back BOTH the seal (if any) and the task. The seal's
+        // FK to tasks is restrict, so we must delete the seal first.
+        await Promise.allSettled([
+          correlationSealRepository.deleteBySealingTaskId(row.id),
+          taskRepository.updateStatus(row.id, 'cancelled', {
             cancelReason: 'Keto grant failed during creation',
             cancelledByAgentId: null,
             cancelledByHumanId: null,
-          })
-          .catch((rollbackErr: unknown) => {
-            logger.error(
-              { taskId: row.id, err: rollbackErr },
-              'task.create.rollback_failed',
-            );
-          });
+          }),
+        ]);
         throw new TaskServiceError(
           'conflict',
           'Failed to register task ownership — task was rolled back',
