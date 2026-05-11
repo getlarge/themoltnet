@@ -7,7 +7,7 @@
  * triggered it (the task service composes both writes inside one
  * DB transaction via `getExecutor(db)`).
  */
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -15,10 +15,38 @@ import {
   correlationSeals,
   type NewCorrelationSeal,
 } from '../schema.js';
-import { getExecutor } from '../transaction-context.js';
+import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 
 export function createCorrelationSealRepository(db: Database) {
   return {
+    /**
+     * Acquire a transaction-scoped advisory lock on a correlation_id.
+     *
+     * Two concurrent `judge_eval_variant` creates against the same
+     * variant set otherwise race: both see "no seal" in their async
+     * validator, both insert the task, both attempt to insert the
+     * seal. Without serialization, one wins the PK violation but the
+     * loser may have already done irreversible work elsewhere (e.g.
+     * a Keto grant in a parallel branch).
+     *
+     * `pg_advisory_xact_lock(int8)` auto-releases on COMMIT or
+     * ROLLBACK; it's strictly local to the current transaction. We
+     * MUST be inside one — call sites must wrap the seal-acquire
+     * path in `transactionRunner.runInTransaction()`. We assert
+     * that here so a missing wrapper fails fast instead of silently
+     * skipping serialization.
+     */
+    async acquireCorrelationLock(correlationId: string): Promise<void> {
+      if (!hasActiveTransaction()) {
+        throw new Error(
+          'acquireCorrelationLock must be called inside a TransactionRunner-managed transaction; pg_advisory_xact_lock has no effect outside one',
+        );
+      }
+      await getExecutor(db).execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${correlationId}::text, 0::bigint))`,
+      );
+    },
+
     /**
      * Look up the seal for a correlation_id, or null. Used by
      * `validateInputAsync` to surface a clean error when an
