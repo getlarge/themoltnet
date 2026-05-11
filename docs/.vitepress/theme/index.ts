@@ -8,7 +8,9 @@ import { createMermaidRenderer } from 'vitepress-mermaid-renderer';
 import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
 
 import AdoptionDashboard from './components/AdoptionDashboard.vue';
+import InteractiveDiaryExample from './components/InteractiveDiaryExample.vue';
 import LoginButton from './components/LoginButton.vue';
+import TeamSelector from './components/TeamSelector.vue';
 import UserCard from './components/UserCard.vue';
 import UserGreeting from './components/UserGreeting.vue';
 
@@ -40,7 +42,11 @@ export default {
 
       return () =>
         h(DefaultTheme.Layout, null, {
-          'nav-bar-content-after': () => h(LoginButton),
+          'nav-bar-content-after': () =>
+            h('div', { class: 'moltnet-nav-controls' }, [
+              h(TeamSelector),
+              h(LoginButton),
+            ]),
           'home-hero-actions-after': () => h(UserGreeting),
           'home-features-after': () => h(AdoptionDashboard),
         });
@@ -48,8 +54,10 @@ export default {
   }),
   enhanceApp({ app }) {
     app.component('AdoptionDashboard', AdoptionDashboard);
+    app.component('InteractiveDiaryExample', InteractiveDiaryExample);
     app.component('UserCard', UserCard);
     app.component('UserGreeting', UserGreeting);
     app.component('LoginButton', LoginButton);
+    app.component('TeamSelector', TeamSelector);
   },
 } satisfies Theme;

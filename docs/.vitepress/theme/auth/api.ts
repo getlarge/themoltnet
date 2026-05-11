@@ -13,7 +13,7 @@ const DEFAULT_API_URL = 'https://api.themolt.net';
 
 let client: Client | null = null;
 
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     const injected = (
       window as unknown as { __MOLTNET_CONFIG__?: { apiBaseUrl?: string } }

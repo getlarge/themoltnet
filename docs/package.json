@@ -16,6 +16,7 @@
     "@moltnet/api-client": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "@themoltnet/design-system": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
     "@types/node": "catalog:",
     "mermaid": "catalog:",
     "tsx": "catalog:",
