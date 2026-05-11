@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.15.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.15.0...pi-extension-v0.15.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* **pi-extension:** address PR [#1099](https://github.com/getlarge/themoltnet/issues/1099) review — vmRun helper, pipefail, perms ([a5f68af](https://github.com/getlarge/themoltnet/commit/a5f68af4db62067ff938a27a8930021775e4f2fa))
+* **pi-extension:** make pnpm install 100× faster in agent VM ([86b9a9e](https://github.com/getlarge/themoltnet/commit/86b9a9e5eb713d191eee1bb14c8bcbb12ae15258))
+* **pi-extension:** make pnpm install 100× faster in agent VM (closes [#1097](https://github.com/getlarge/themoltnet/issues/1097)) ([3200edf](https://github.com/getlarge/themoltnet/commit/3200edf894095276851d438307d1c88dc898048a))
+* **pi-extension:** move tmpfs mount to resumeCommands; env defaults for plain pnpm install ([6449f0e](https://github.com/getlarge/themoltnet/commit/6449f0ef9b34134b35c6448912ad2a3f01d6bc4a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.14.0
+    * @themoltnet/sdk bumped to 0.101.0
+
 ## [0.15.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.14.0...pi-extension-v0.15.0) (2026-05-10)
 
 
