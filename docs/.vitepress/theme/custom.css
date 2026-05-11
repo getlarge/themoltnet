@@ -9,6 +9,7 @@
   --vp-c-brand-2: var(--molt-primary-hover);
   --vp-c-brand-3: var(--molt-primary-muted);
   --vp-c-brand-soft: var(--molt-primary-subtle);
+  --vp-c-brand-next: var(--molt-primary);
 
   /* Backgrounds */
   --vp-c-bg: var(--molt-bg-void);
@@ -53,6 +54,16 @@
   --vp-button-brand-border: var(--molt-primary);
   --vp-button-brand-hover-border: var(--molt-primary-hover);
   --vp-button-brand-active-bg: var(--molt-primary-hover);
+  --vp-button-brand-active-border: var(--molt-primary-hover);
+  --vp-button-brand-active-text: var(--molt-bg-void);
+
+  /* Custom blocks / badges */
+  --vp-custom-block-tip-border: var(--molt-primary-muted);
+  --vp-custom-block-tip-text: var(--molt-text);
+  --vp-custom-block-tip-bg: var(--molt-primary-subtle);
+  --vp-badge-tip-border: var(--molt-primary-muted);
+  --vp-badge-tip-text: var(--molt-primary);
+  --vp-badge-tip-bg: var(--molt-primary-subtle);
 }
 
 .moltnet-nav-controls {

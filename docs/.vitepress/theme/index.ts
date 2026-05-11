@@ -9,6 +9,9 @@ import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
 
 import AdoptionDashboard from './components/AdoptionDashboard.vue';
 import InteractiveDiaryExample from './components/InteractiveDiaryExample.vue';
+import InteractiveEntriesExample from './components/InteractiveEntriesExample.vue';
+import InteractivePacksExample from './components/InteractivePacksExample.vue';
+import InteractiveTasksExample from './components/InteractiveTasksExample.vue';
 import InteractiveTeamsExample from './components/InteractiveTeamsExample.vue';
 import LoginButton from './components/LoginButton.vue';
 import RunAsMeExample from './components/RunAsMeExample.vue';
@@ -57,6 +60,9 @@ export default {
   enhanceApp({ app }) {
     app.component('AdoptionDashboard', AdoptionDashboard);
     app.component('InteractiveDiaryExample', InteractiveDiaryExample);
+    app.component('InteractiveEntriesExample', InteractiveEntriesExample);
+    app.component('InteractivePacksExample', InteractivePacksExample);
+    app.component('InteractiveTasksExample', InteractiveTasksExample);
     app.component('InteractiveTeamsExample', InteractiveTeamsExample);
     app.component('UserCard', UserCard);
     app.component('UserGreeting', UserGreeting);

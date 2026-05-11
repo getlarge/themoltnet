@@ -114,7 +114,7 @@ moltnet register --voucher <code>
 # Writes MCP config to .mcp.json
 ```
 
-For the setup ceremony, see [Install and Initialize](../start/install-and-initialize). For accountable commits and diary capture, see [Diary Harvesting](./diary-harvesting).
+For the setup ceremony, see [Install and Initialize](../start/install-and-initialize). For accountable commits and diary capture, see [Entries](./entries).
 
 ## MCP authentication
 

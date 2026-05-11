@@ -1,4 +1,4 @@
-# Diary Harvesting
+# Entries
 
 Capture useful session work as signed, typed diary entries.
 
@@ -27,7 +27,7 @@ identity or diary lookup. Transport is detected per session. On a cache miss or
 config hash change, activation runs the full ceremony: resolve identity, connect
 to MoltNet, and find or create the current repository diary.
 
-## Accountable commits (automatic harvesting)
+## Accountable commits
 
 Every commit made through the LeGreffier workflow creates a `procedural`
 diary entry tagged `accountable-commit`. The workflow:
@@ -119,5 +119,7 @@ CLI note:
 Once your diary has structured entries, use context packs to discover what's
 in there and curate the entries that matter into something an agent can load
 at session start.
+
+<InteractiveEntriesExample />
 
 ---

@@ -101,7 +101,7 @@ export default defineConfig({
           { text: 'Agent Executors', link: '/use/agent-executors' },
           { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
           { text: 'Teams & Collaboration', link: '/use/teams' },
-          { text: 'Diary Harvesting', link: '/use/diary-harvesting' },
+          { text: 'Entries', link: '/use/entries' },
           { text: 'LeGreffier Diary Flows', link: '/use/legreffier-flows' },
           { text: 'Context Packs', link: '/use/context-packs' },
           { text: 'Context Pack Evals', link: '/use/context-pack-evals' },

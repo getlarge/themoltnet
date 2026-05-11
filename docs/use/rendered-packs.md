@@ -3,6 +3,8 @@
 Load rendered packs into agent sessions as installed skills or direct injected
 context.
 
+<InteractivePacksExample />
+
 The primary path for loading a rendered pack into an agent session is to
 install it as an [AgentSkills](https://github.com/agentskills/agentskills)-conformant
 skill. The runtime handles activation natively — when a prompt is relevant

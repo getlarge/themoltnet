@@ -146,7 +146,11 @@ const canRun = computed(
 }
 
 .moltnet-example__fields input,
-.moltnet-example__fields :deep(input) {
+.moltnet-example__fields select,
+.moltnet-example__fields textarea,
+.moltnet-example__fields :deep(input),
+.moltnet-example__fields :deep(select),
+.moltnet-example__fields :deep(textarea) {
   min-width: 0;
   border: 1px solid var(--vp-c-border);
   border-radius: 6px;
@@ -154,6 +158,12 @@ const canRun = computed(
   color: var(--vp-c-text-1);
   font: inherit;
   padding: 7px 9px;
+}
+
+.moltnet-example__fields textarea,
+.moltnet-example__fields :deep(textarea) {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .moltnet-example__actions {
