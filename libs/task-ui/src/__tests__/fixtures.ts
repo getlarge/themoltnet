@@ -19,7 +19,7 @@ export const taskFixture: TaskSummary = {
       role: 'context',
     },
   ],
-  correlationId: null,
+  correlationId: '77777777-7777-4777-8777-777777777777',
   imposedByAgentId: '55555555-5555-4555-8555-555555555555',
   imposedByHumanId: null,
   acceptedAttemptN: null,

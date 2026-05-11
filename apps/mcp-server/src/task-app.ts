@@ -679,6 +679,9 @@ function buildTaskAppHtml(): string {
           const attemptText = task.acceptedAttemptN
             ? 'Accepted attempt ' + task.acceptedAttemptN
             : 'No accepted attempt';
+          const correlationText = task.correlationId
+            ? 'Correlation ' + task.correlationId
+            : 'No correlation ID';
           const row = document.createElement('button');
           row.type = 'button';
           row.className = 'queue-item';
@@ -687,6 +690,8 @@ function buildTaskAppHtml(): string {
             escapeHtml(task.taskType) +
             '</strong><code class="muted mono">' +
             escapeHtml(task.id) +
+            '</code><code class="muted mono">' +
+            escapeHtml(correlationText) +
             '</code><span class="muted">' +
             escapeHtml(requesterText + ' · ' + attemptText) +
             '</span></div><span class="status queue-status">' +
@@ -722,6 +727,8 @@ function buildTaskAppHtml(): string {
           escapeHtml(task.teamId ?? '—') +
           '</span></div><div class="fact"><strong>Diary</strong><span class="mono">' +
           escapeHtml(task.diaryId ?? '—') +
+          '</span></div><div class="fact"><strong>Correlation ID</strong><span class="mono">' +
+          escapeHtml(task.correlationId ?? '—') +
           '</span></div><div class="fact"><strong>Queued</strong><span>' +
           escapeHtml(task.queuedAt ?? 'unknown') +
           '</span></div><div class="fact"><strong>Requester</strong><span class="mono">' +

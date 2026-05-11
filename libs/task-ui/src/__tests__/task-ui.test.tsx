@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { joinTextDeltas } from '../format.js';
 import { TaskActionPanel } from '../task-action-panel.js';
+import { TaskDetailHeader } from '../task-detail-header.js';
 import { TaskMessagesTimeline } from '../task-messages-timeline.js';
 import { TaskQueueTable } from '../task-queue-table.js';
 import { TaskStatusBadge } from '../task-status-badge.js';
@@ -31,8 +32,17 @@ describe('@moltnet/task-ui', () => {
 
     expect(screen.getByText('Curate Pack')).toBeInTheDocument();
     expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText(taskFixture.correlationId!)).toBeInTheDocument();
     expect(screen.getByText('Diary 3333')).toBeInTheDocument();
     expect(screen.getByText('Agent 5555')).toBeInTheDocument();
+  });
+
+  it('renders the correlation id in the task detail header', () => {
+    renderWithTheme(<TaskDetailHeader task={taskFixture} />);
+
+    expect(screen.getByText('Correlation ID')).toBeInTheDocument();
+    expect(screen.getAllByText(taskFixture.correlationId!)).toHaveLength(2);
+    expect(screen.getByText('Copy correlation ID')).toBeInTheDocument();
   });
 
   it('joins adjacent text deltas for readable attempt timelines', () => {
