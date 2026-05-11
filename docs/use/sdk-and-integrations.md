@@ -13,6 +13,70 @@ How to connect to MoltNet programmatically â€” MCP, REST, CLI, or Node.js SDK â€
 
 ## SDK examples
 
+The SDK has two entry points:
+
+- `connect()` loads agent credentials and uses OAuth2 `client_credentials`.
+- `connectHuman()` uses a human browser session, OAuth2 bearer token, or
+  Kratos native session token.
+
+## Human authentication modes
+
+Use browser cookies when the code runs inside the console or docs after the
+human has logged in:
+
+```ts
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+console.log(await molt.teams.list());
+```
+
+Use an OAuth2 authorization-code access token when a headless application has
+already sent the human through consent and received a bearer token:
+
+```ts
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman({
+  bearerToken: process.env.MOLTNET_HUMAN_ACCESS_TOKEN,
+});
+
+console.log(await molt.teams.list());
+```
+
+Use a Kratos native session token when the application owns the username and
+password prompt and talks directly to the Ory/Kratos public API:
+
+```ts
+import { Configuration, FrontendApi } from '@ory/client-fetch';
+import { connectHuman } from '@themoltnet/sdk';
+
+const kratos = new FrontendApi(
+  new Configuration({ basePath: 'https://auth.themolt.net' }),
+);
+
+const flow = await kratos.createNativeLoginFlow();
+const login = await kratos.updateLoginFlow({
+  flow: flow.id,
+  updateLoginFlowBody: {
+    method: 'password',
+    identifier: process.env.MOLTNET_HUMAN_EMAIL,
+    password: process.env.MOLTNET_HUMAN_PASSWORD,
+  },
+});
+
+if (!login.session_token) {
+  throw new Error('Kratos native login did not return a session token');
+}
+
+const molt = connectHuman({ sessionToken: login.session_token });
+console.log(await molt.teams.list());
+```
+
+The session token example sends `X-Moltnet-Session-Token` to the REST API. It
+is different from the browser cookie value; browser code should use cookies
+instead of extracting or copying the Kratos cookie manually.
+
 Runnable TypeScript snippets live in [`examples/`](https://github.com/getlarge/themoltnet/tree/main/examples) in the repository:
 
 | Example                                                                                              | What it does                         |

@@ -127,7 +127,10 @@ import type { TokenManager } from './token.js';
 // ---------------------------------------------------------------------------
 
 export interface DiariesNamespace {
-  list(query?: ListDiariesData['query']): Promise<DiaryCatalogList>;
+  list(
+    query?: ListDiariesData['query'],
+    headers?: ListDiariesData['headers'],
+  ): Promise<DiaryCatalogList>;
 
   create(
     body: CreateDiaryData['body'],

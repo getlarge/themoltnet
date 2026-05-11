@@ -19,8 +19,8 @@ export function createDiariesNamespace(
   const { client, auth } = context;
 
   return {
-    async list(query) {
-      return unwrapResult(await listDiaries({ client, auth, query }));
+    async list(query, headers) {
+      return unwrapResult(await listDiaries({ client, auth, query, headers }));
     },
 
     async create(body, headers) {

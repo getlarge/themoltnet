@@ -1,10 +1,10 @@
-import type { Client, ProblemDetails } from '@moltnet/api-client';
+import type { Client, Config, ProblemDetails } from '@moltnet/api-client';
 
 import { MoltNetError, NetworkError, problemToError } from './errors.js';
 
 export interface AgentContext {
   client: Client;
-  auth?: () => Promise<string>;
+  auth?: Config['auth'];
 }
 
 export function unwrapResult<T>(

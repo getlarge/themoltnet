@@ -30045,11 +30045,12 @@ function createCryptoNamespace(context, signingRequests) {
 function createDiariesNamespace(context) {
 	const { client, auth } = context;
 	return {
-		async list(query) {
+		async list(query, headers) {
 			return unwrapResult(await listDiaries({
 				client,
 				auth,
-				query
+				query,
+				headers
 			}));
 		},
 		async create(body, headers) {
