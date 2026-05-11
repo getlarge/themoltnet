@@ -596,6 +596,11 @@ export async function executePiTask(
       );
     };
 
+    // Snapshot `session` into a non-null local so the cap-abort closure
+    // doesn't have to assert; by the time this point is reached the
+    // success path has assigned the session (failure returned earlier).
+    const liveSession = session;
+
     // Trigger a cap abort idempotently. The pi session will emit a final
     // `turn_end` with `stopReason: 'aborted'` in response; we silently
     // ignore that turn_end (no llmAbort flip) and surface the cap reason
@@ -605,7 +610,7 @@ export async function executePiTask(
     const triggerCapAbort = (code: string, message: string): void => {
       if (capAbort) return;
       capAbort = { code, message };
-      session.abort().catch((err: unknown) => {
+      liveSession.abort().catch((err: unknown) => {
         const m = err instanceof Error ? err.message : String(err);
         process.stderr.write(`[cap] session.abort() failed: ${m}\n`);
       });
@@ -829,7 +834,15 @@ export async function executePiTask(
     // Cap-driven abort: distinct from imposer cancel. Failed status
     // (the task didn't complete its work), but with a specific error
     // code so the imposer can decide whether to retry with a higher cap.
-    if (capAbort) {
+    // Cast back to the union: TS narrows `capAbort` to `null` in the
+    // parent scope because it doesn't follow the closure mutation
+    // inside `triggerCapAbort`. The cast restores the full union so
+    // the truthy check can narrow correctly.
+    const capAbortSnapshot = capAbort as {
+      code: string;
+      message: string;
+    } | null;
+    if (capAbortSnapshot) {
       return {
         taskId: task.id,
         attemptN: attemptN,
@@ -839,8 +852,8 @@ export async function executePiTask(
         usage,
         durationMs: Date.now() - startTime,
         error: {
-          code: capAbort.code,
-          message: capAbort.message,
+          code: capAbortSnapshot.code,
+          message: capAbortSnapshot.message,
           retryable: false,
         },
       };

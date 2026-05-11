@@ -8,7 +8,6 @@ import {
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import { createPiTaskExecutor } from '@themoltnet/pi-extension';
-import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
@@ -18,6 +17,7 @@ import {
 } from '../lib/correlation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
+import { createRootLogger } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
@@ -119,14 +119,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
   });
 
-  // Pretty in dev (TTY), structured JSON otherwise.
-  const rootLogger = pino({
+  const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: `agent-daemon.${opts.modeLabel}`,
     level: cfg.logLevel || (common.debug ? 'debug' : 'info'),
-    ...(process.stderr.isTTY
-      ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
-      : {}),
-  }).child({
+  });
+  const rootLogger = logger.child({
     mode: opts.modeLabel,
     agent: common.agent,
     teamId,
@@ -276,6 +273,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     return anyFailed ? 1 : 0;
   } finally {
     await otelShutdown();
+    await shutdownLogger();
   }
 }
 

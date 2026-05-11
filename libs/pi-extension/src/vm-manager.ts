@@ -318,149 +318,179 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     },
   });
 
-  // Fix TLS: append Gondolin MITM CA to system trust store.
-  // Unofficial-builds Node ships its own OpenSSL which can't load
-  // NODE_EXTRA_CA_CERTS from /etc/gondolin/mitm/ca.crt (error 8000000D).
-  await vm.exec(`sh -c '
+  // Everything past cp.resume() owns the live VM. Any throw between
+  // here and the final `return { vm, ... }` must close the VM, or the
+  // qemu child process (visible in `process.getActiveResourcesInfo()`
+  // as `ProcessWrap` + ~12 `PipeWrap` for its stdio fds) keeps the
+  // Node event loop alive, and `executePiTask`'s own finally block
+  // never runs because it depends on the resolved `managed` handle
+  // we're about to return.
+  try {
+    // Fix TLS: append Gondolin MITM CA to system trust store.
+    // Unofficial-builds Node ships its own OpenSSL which can't load
+    // NODE_EXTRA_CA_CERTS from /etc/gondolin/mitm/ca.crt (error 8000000D).
+    await vm.exec(`sh -c '
     cp /etc/gondolin/mitm/ca.crt /usr/local/share/ca-certificates/gondolin-mitm.crt
     update-ca-certificates 2>/dev/null
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
   '`);
 
-  // Fix DNS: ensure working resolvers (VM gateway DNS may not forward
-  // correctly) and wait for resolution to actually work before downstream
-  // resumeCommands run. Without the wait we've observed EAI_AGAIN errors
-  // on pnpm fetch when the resolver isn't ready yet at the moment of
-  // first lookup — Gondolin's resumed VM is a fresh overlay so any
-  // resolv.conf baked into the snapshot is replaced, and there's a brief
-  // race between our write here and DHCP/udhcpc finishing.
-  // Fix DNS: ensure working resolvers. Note Gondolin's MITM proxy returns
-  // RFC 5737 placeholder IPs (192.0.2.1 IPv4, 2001:db8::1 IPv6) for every
-  // hostname — actual routing happens transparently in the proxy. Node's
-  // default dual-stack behavior can attempt the unreachable IPv6 first
-  // and fail with EAI_AGAIN; consumers needing reliable resolution
-  // should set NODE_OPTIONS=--dns-result-order=ipv4first via
-  // sandbox.json#env (and curl --4 / similar for shell tools).
-  await vmRun(
-    vm,
-    'DNS resolvers',
-    `printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf`,
-  );
+    // Fix DNS: ensure working resolvers (VM gateway DNS may not forward
+    // correctly) and wait for resolution to actually work before downstream
+    // resumeCommands run. Without the wait we've observed EAI_AGAIN errors
+    // on pnpm fetch when the resolver isn't ready yet at the moment of
+    // first lookup — Gondolin's resumed VM is a fresh overlay so any
+    // resolv.conf baked into the snapshot is replaced, and there's a brief
+    // race between our write here and DHCP/udhcpc finishing.
+    // Fix DNS: ensure working resolvers. Note Gondolin's MITM proxy returns
+    // RFC 5737 placeholder IPs (192.0.2.1 IPv4, 2001:db8::1 IPv6) for every
+    // hostname — actual routing happens transparently in the proxy. Node's
+    // default dual-stack behavior can attempt the unreachable IPv6 first
+    // and fail with EAI_AGAIN; consumers needing reliable resolution
+    // should set NODE_OPTIONS=--dns-result-order=ipv4first via
+    // sandbox.json#env (and curl --4 / similar for shell tools).
+    await vmRun(
+      vm,
+      'DNS resolvers',
+      `printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf`,
+    );
 
-  // Tell git that the workspace mount is trusted regardless of UID. The host
-  // workspace is bind-mounted into /workspace via Gondolin's RealFSProvider,
-  // so the on-disk owner is the host's UID (typically 501) — not the guest's
-  // 'agent' user (also UID 501 by happy coincidence, but git checks against
-  // file ownership at the filesystem level). Without this, every git command
-  // inside the VM emits 'detected dubious ownership' and exits 128. Setting
-  // this system-wide rather than per-user covers both root (post-resume
-  // setup) and agent (task workload) callers.
-  await vmRun(
-    vm,
-    'git safe.directory',
-    `git config --system --add safe.directory '*'`,
-  );
+    // Tell git that the workspace mount is trusted regardless of UID. The host
+    // workspace is bind-mounted into /workspace via Gondolin's RealFSProvider,
+    // so the on-disk owner is the host's UID (typically 501) — not the guest's
+    // 'agent' user (also UID 501 by happy coincidence, but git checks against
+    // file ownership at the filesystem level). Without this, every git command
+    // inside the VM emits 'detected dubious ownership' and exits 128. Setting
+    // this system-wide rather than per-user covers both root (post-resume
+    // setup) and agent (task workload) callers.
+    await vmRun(
+      vm,
+      'git safe.directory',
+      `git config --system --add safe.directory '*'`,
+    );
 
-  // Consumer-provided per-resume commands. Repo-specific bootstrap
-  // (corepack-install a pinned pnpm, `pnpm fetch`, kernel tmpfs mounts
-  // for paths the consumer wants out of the Gondolin FUSE hot path —
-  // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
-  // here, not in vm-manager. pi-extension stays repo-agnostic.
-  // Sequential, first failure aborts resume via vmRun.
-  for (const [i, cmd] of (
-    config.sandboxConfig?.resumeCommands ?? []
-  ).entries()) {
-    await vmRun(vm, `resumeCommands[${i}]`, cmd);
-  }
+    // Consumer-provided per-resume commands. Repo-specific bootstrap
+    // (corepack-install a pinned pnpm, `pnpm fetch`, kernel tmpfs mounts
+    // for paths the consumer wants out of the Gondolin FUSE hot path —
+    // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
+    // here, not in vm-manager. pi-extension stays repo-agnostic.
+    // Sequential, first failure aborts resume via vmRun.
+    for (const [i, cmd] of (
+      config.sandboxConfig?.resumeCommands ?? []
+    ).entries()) {
+      await vmRun(vm, `resumeCommands[${i}]`, cmd);
+    }
 
-  // Inject credentials into VM-side agent directory structure:
-  //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
-  // Mirrors host layout so legreffier skill and CLI work identically.
-  const vmSshDir = `${vmAgentDir}/ssh`;
-  await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
+    // Inject credentials into VM-side agent directory structure:
+    //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
+    // Mirrors host layout so legreffier skill and CLI work identically.
+    const vmSshDir = `${vmAgentDir}/ssh`;
+    await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
 
-  if (creds.piAuthJson !== null) {
-    await vm.fs.writeFile('/home/agent/.pi/agent/auth.json', creds.piAuthJson, {
+    if (creds.piAuthJson !== null) {
+      await vm.fs.writeFile(
+        '/home/agent/.pi/agent/auth.json',
+        creds.piAuthJson,
+        {
+          mode: 0o600,
+        },
+      );
+    }
+    // else: rely on env-var provider auth (ANTHROPIC_API_KEY, …) carried via
+    // agentEnv and the host environment.
+
+    // Rewrite moltnet.json with VM-local paths before injecting into the guest.
+    // The host-absolute paths (ssh private_key_path, github private_key_path)
+    // are invalid inside the VM — replace them with paths under vmAgentDir.
+    const vmMoltnetJson = rewriteMoltnetJsonPaths(
+      creds.moltnetJson,
+      vmAgentDir,
+      vmSshDir,
+      creds.githubAppPemFilename,
+    );
+    await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, vmMoltnetJson, {
       mode: 0o600,
     });
-  }
-  // else: rely on env-var provider auth (ANTHROPIC_API_KEY, …) carried via
-  // agentEnv and the host environment.
 
-  // Rewrite moltnet.json with VM-local paths before injecting into the guest.
-  // The host-absolute paths (ssh private_key_path, github private_key_path)
-  // are invalid inside the VM — replace them with paths under vmAgentDir.
-  const vmMoltnetJson = rewriteMoltnetJsonPaths(
-    creds.moltnetJson,
-    vmAgentDir,
-    vmSshDir,
-    creds.githubAppPemFilename,
-  );
-  await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, vmMoltnetJson, {
-    mode: 0o600,
-  });
-
-  await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
-    mode: 0o600,
-  });
-
-  // Inject gitconfig with VM-side signing key path and relative worktree
-  // paths. `worktree.useRelativePaths = true` (git >= 2.48) makes
-  // `git worktree add` write relative pointers — the only form that is
-  // simultaneously valid inside the VM (where the mount appears at
-  // `/workspace`) and on the host (where it appears at the real mount
-  // path). Without it the guest writes `/workspace/...` absolute paths
-  // that get persisted via RealFSProvider and leave corrupt worktree
-  // metadata on the host.
-  if (creds.gitconfig) {
-    const vmSigningKey = `${vmSshDir}/id_ed25519`;
-    let vmGitconfig = creds.gitconfig.replace(
-      /signingKey\s*=\s*.+/g,
-      `signingKey = ${vmSigningKey}`,
-    );
-    vmGitconfig = ensureRelativeWorktreePaths(vmGitconfig);
-    await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
-      mode: 0o644,
-    });
-  }
-
-  // Inject SSH keys for commit signing
-  if (creds.sshPrivateKey) {
-    await vm.fs.writeFile(`${vmSshDir}/id_ed25519`, creds.sshPrivateKey, {
+    await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
       mode: 0o600,
     });
-  }
-  if (creds.sshPublicKey) {
-    await vm.fs.writeFile(`${vmSshDir}/id_ed25519.pub`, creds.sshPublicKey, {
-      mode: 0o644,
-    });
-  }
-  if (creds.allowedSigners) {
-    await vm.fs.writeFile(`${vmSshDir}/allowed_signers`, creds.allowedSigners, {
-      mode: 0o644,
-    });
-  }
 
-  // Inject GitHub App PEM so `moltnet github token` works inside the guest.
-  // The filename is the basename of the host path (e.g. "legreffier.pem"),
-  // matching the path written into vmMoltnetJson above.
-  if (creds.githubAppPem && creds.githubAppPemFilename) {
-    await vm.fs.writeFile(
-      `${vmAgentDir}/${creds.githubAppPemFilename}`,
-      creds.githubAppPem,
-      { mode: 0o600 },
-    );
+    // Inject gitconfig with VM-side signing key path and relative worktree
+    // paths. `worktree.useRelativePaths = true` (git >= 2.48) makes
+    // `git worktree add` write relative pointers — the only form that is
+    // simultaneously valid inside the VM (where the mount appears at
+    // `/workspace`) and on the host (where it appears at the real mount
+    // path). Without it the guest writes `/workspace/...` absolute paths
+    // that get persisted via RealFSProvider and leave corrupt worktree
+    // metadata on the host.
+    if (creds.gitconfig) {
+      const vmSigningKey = `${vmSshDir}/id_ed25519`;
+      let vmGitconfig = creds.gitconfig.replace(
+        /signingKey\s*=\s*.+/g,
+        `signingKey = ${vmSigningKey}`,
+      );
+      vmGitconfig = ensureRelativeWorktreePaths(vmGitconfig);
+      await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
+        mode: 0o644,
+      });
+    }
+
+    // Inject SSH keys for commit signing
+    if (creds.sshPrivateKey) {
+      await vm.fs.writeFile(`${vmSshDir}/id_ed25519`, creds.sshPrivateKey, {
+        mode: 0o600,
+      });
+    }
+    if (creds.sshPublicKey) {
+      await vm.fs.writeFile(`${vmSshDir}/id_ed25519.pub`, creds.sshPublicKey, {
+        mode: 0o644,
+      });
+    }
+    if (creds.allowedSigners) {
+      await vm.fs.writeFile(
+        `${vmSshDir}/allowed_signers`,
+        creds.allowedSigners,
+        {
+          mode: 0o644,
+        },
+      );
+    }
+
+    // Inject GitHub App PEM so `moltnet github token` works inside the guest.
+    // The filename is the basename of the host path (e.g. "legreffier.pem"),
+    // matching the path written into vmMoltnetJson above.
+    if (creds.githubAppPem && creds.githubAppPemFilename) {
+      await vm.fs.writeFile(
+        `${vmAgentDir}/${creds.githubAppPemFilename}`,
+        creds.githubAppPem,
+        { mode: 0o600 },
+      );
+    }
+
+    await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet');
+
+    return {
+      vm,
+      credentials: creds,
+      mountPath: config.mountPath,
+      guestWorkspace: GUEST_WORKSPACE,
+      agentDir,
+    };
+  } catch (err) {
+    // Anything after cp.resume() owns the live VM. If setup throws
+    // (TLS, DNS, safe.directory, tmpfs mounts, resumeCommands, …),
+    // close the qemu process before rethrowing — otherwise the
+    // ProcessWrap + ~12 PipeWrap handles leak and Node's event
+    // loop sticks around forever after the daemon's main() resolves.
+    try {
+      await vm.close();
+    } catch (closeErr) {
+      const m = closeErr instanceof Error ? closeErr.message : String(closeErr);
+      process.stderr.write(`[vm] post-throw vm.close() failed: ${m}\n`);
+    }
+    throw err;
   }
-
-  await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet');
-
-  return {
-    vm,
-    credentials: creds,
-    mountPath: config.mountPath,
-    guestWorkspace: GUEST_WORKSPACE,
-    agentDir,
-  };
 }
 
 /**

@@ -6,7 +6,6 @@ import {
   ApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import { createPiTaskExecutor } from '@themoltnet/pi-extension';
-import { pino } from 'pino';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
@@ -16,6 +15,7 @@ import {
 } from '../lib/correlation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
+import { createRootLogger } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
@@ -75,13 +75,11 @@ export async function runOnce(argv: string[]): Promise<number> {
     },
   });
 
-  const rootLogger = pino({
+  const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.once',
     level: cfg.logLevel || (opts.debug ? 'debug' : 'info'),
-    ...(process.stderr.isTTY
-      ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
-      : {}),
-  }).child({
+  });
+  const rootLogger = logger.child({
     mode: 'once',
     agent: opts.agent,
     provider: opts.provider,
@@ -179,5 +177,6 @@ export async function runOnce(argv: string[]): Promise<number> {
     return output.status === 'completed' ? 0 : 1;
   } finally {
     await otelShutdown();
+    await shutdownLogger();
   }
 }
