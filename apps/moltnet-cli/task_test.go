@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -15,6 +16,277 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/go-faster/jx"
 )
+
+// ── task list/get ────────────────────────────────────────────────────────────
+
+type stubTasksHandler struct {
+	moltnetapi.UnimplementedHandler
+
+	listCalls      int
+	listParams     moltnetapi.ListTasksParams
+	getCalls       int
+	getParams      moltnetapi.GetTaskParams
+	responseTaskID uuid.UUID
+}
+
+func (h *stubTasksHandler) ListTasks(_ context.Context, params moltnetapi.ListTasksParams) (moltnetapi.ListTasksRes, error) {
+	h.listCalls++
+	h.listParams = params
+	return &moltnetapi.TaskListResponse{
+		Items: []moltnetapi.Task{*newTaskFixture(h.responseTaskID, params.TeamId)},
+		Total: 1,
+	}, nil
+}
+
+func (h *stubTasksHandler) GetTask(_ context.Context, params moltnetapi.GetTaskParams) (moltnetapi.GetTaskRes, error) {
+	h.getCalls++
+	h.getParams = params
+	return newTaskFixture(params.ID, uuid.MustParse("22222222-2222-4222-8222-222222222222")), nil
+}
+
+func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
+	if taskID == uuid.Nil {
+		taskID = uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	}
+	if teamID == uuid.Nil {
+		teamID = uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	}
+	t := &moltnetapi.Task{
+		ID:                         taskID,
+		TeamId:                     teamID,
+		DiaryId:                    moltnetapi.NewNilUUID(uuid.MustParse("33333333-3333-4333-8333-333333333333")),
+		TaskType:                   "fulfill_brief",
+		Status:                     moltnetapi.TaskStatusQueued,
+		Input:                      moltnetapi.TaskInput{},
+		InputCid:                   "bafy-input",
+		InputSchemaCid:             "bafy-schema",
+		ImposedByAgentId:           moltnetapi.NewNilUUID(uuid.MustParse("44444444-4444-4444-8444-444444444444")),
+		MaxAttempts:                1,
+		OutputKind:                 moltnetapi.TaskOutputKindArtifact,
+		QueuedAt:                   time.Date(2026, 5, 11, 12, 0, 0, 0, time.UTC),
+		RequiredExecutorTrustLevel: moltnetapi.TaskRequiredExecutorTrustLevelSelfDeclared,
+		References:                 []moltnetapi.TaskReferencesItem{},
+	}
+	t.AcceptedAttemptN.SetToNull()
+	t.CancelReason.SetToNull()
+	t.CancelledByAgentId.SetToNull()
+	t.CancelledByHumanId.SetToNull()
+	t.CompletedAt.SetToNull()
+	t.CorrelationId.SetToNull()
+	t.DispatchTimeoutSec.SetToNull()
+	t.ExpiresAt.SetToNull()
+	t.ImposedByHumanId.SetToNull()
+	t.RunningTimeoutSec.SetToNull()
+	return t
+}
+
+func TestRunTaskList_TaskTypesCSV(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:       "22222222-2222-4222-8222-222222222222",
+		taskTypes:    []string{"curate_pack,fulfill_brief"},
+		taskTypesSet: true,
+	})
+	if err != nil {
+		t.Fatalf("runTaskListWithClient: %v", err)
+	}
+	if h.listCalls != 1 {
+		t.Fatalf("expected one list call, got %d", h.listCalls)
+	}
+	want := []string{"curate_pack", "fulfill_brief"}
+	if !reflect.DeepEqual(h.listParams.TaskTypes, want) {
+		t.Errorf("TaskTypes = %#v, want %#v", h.listParams.TaskTypes, want)
+	}
+}
+
+func TestRunTaskList_TaskTypesMixedWithRepeatableAlias(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:             "22222222-2222-4222-8222-222222222222",
+		taskTypes:          []string{"curate_pack"},
+		taskTypesSet:       true,
+		taskTypeAliases:    []string{"fulfill_brief", "judge_answer"},
+		taskTypeAliasesSet: true,
+	})
+	if err != nil {
+		t.Fatalf("runTaskListWithClient: %v", err)
+	}
+	want := []string{"curate_pack", "fulfill_brief", "judge_answer"}
+	if !reflect.DeepEqual(h.listParams.TaskTypes, want) {
+		t.Errorf("TaskTypes = %#v, want %#v", h.listParams.TaskTypes, want)
+	}
+}
+
+func TestRunTaskList_UUIDFilters(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:              "22222222-2222-4222-8222-222222222222",
+		diaryID:             "33333333-3333-4333-8333-333333333333",
+		diaryIDSet:          true,
+		correlationID:       "55555555-5555-4555-8555-555555555555",
+		correlationIDSet:    true,
+		imposedByAgentID:    "44444444-4444-4444-8444-444444444444",
+		imposedByAgentIDSet: true,
+		imposedByHumanID:    "66666666-6666-4666-8666-666666666666",
+		imposedByHumanIDSet: true,
+		claimedByAgentID:    "77777777-7777-4777-8777-777777777777",
+		claimedByAgentIDSet: true,
+	})
+	if err != nil {
+		t.Fatalf("runTaskListWithClient: %v", err)
+	}
+
+	assertOptUUID := func(name string, got moltnetapi.OptUUID, want string) {
+		t.Helper()
+		value, ok := got.Get()
+		if !ok {
+			t.Fatalf("%s was not set", name)
+		}
+		if value != uuid.MustParse(want) {
+			t.Errorf("%s = %s, want %s", name, value, want)
+		}
+	}
+	assertOptUUID("DiaryId", h.listParams.DiaryId, "33333333-3333-4333-8333-333333333333")
+	assertOptUUID("CorrelationId", h.listParams.CorrelationId, "55555555-5555-4555-8555-555555555555")
+	assertOptUUID("ImposedByAgentId", h.listParams.ImposedByAgentId, "44444444-4444-4444-8444-444444444444")
+	assertOptUUID("ImposedByHumanId", h.listParams.ImposedByHumanId, "66666666-6666-4666-8666-666666666666")
+	assertOptUUID("ClaimedByAgentId", h.listParams.ClaimedByAgentId, "77777777-7777-4777-8777-777777777777")
+}
+
+func TestRunTaskList_RFC3339Filters(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:             "22222222-2222-4222-8222-222222222222",
+		queuedAfter:        "2026-05-11T01:02:03Z",
+		queuedAfterSet:     true,
+		queuedBefore:       "2026-05-11T02:03:04Z",
+		queuedBeforeSet:    true,
+		completedAfter:     "2026-05-11T03:04:05Z",
+		completedAfterSet:  true,
+		completedBefore:    "2026-05-11T04:05:06Z",
+		completedBeforeSet: true,
+	})
+	if err != nil {
+		t.Fatalf("runTaskListWithClient: %v", err)
+	}
+
+	assertOptTime := func(name string, got moltnetapi.OptDateTime, want string) {
+		t.Helper()
+		value, ok := got.Get()
+		if !ok {
+			t.Fatalf("%s was not set", name)
+		}
+		parsed, err := time.Parse(time.RFC3339, want)
+		if err != nil {
+			t.Fatalf("parse want time: %v", err)
+		}
+		if !value.Equal(parsed) {
+			t.Errorf("%s = %s, want %s", name, value, parsed)
+		}
+	}
+	assertOptTime("QueuedAfter", h.listParams.QueuedAfter, "2026-05-11T01:02:03Z")
+	assertOptTime("QueuedBefore", h.listParams.QueuedBefore, "2026-05-11T02:03:04Z")
+	assertOptTime("CompletedAfter", h.listParams.CompletedAfter, "2026-05-11T03:04:05Z")
+	assertOptTime("CompletedBefore", h.listParams.CompletedBefore, "2026-05-11T04:05:06Z")
+}
+
+func TestRunTaskList_ProviderRequiresModel(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:      "22222222-2222-4222-8222-222222222222",
+		provider:    "openai",
+		providerSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--provider and --model") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_ModelRequiresProvider(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:   "22222222-2222-4222-8222-222222222222",
+		model:    "gpt-5.1",
+		modelSet: true,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--provider and --model") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.listCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
+	}
+}
+
+func TestRunTaskList_HasAttemptsFalsePreserved(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskListWithClient(context.Background(), client, taskListOpts{
+		teamID:         "22222222-2222-4222-8222-222222222222",
+		hasAttempts:    false,
+		hasAttemptsSet: true,
+	})
+	if err != nil {
+		t.Fatalf("runTaskListWithClient: %v", err)
+	}
+	value, ok := h.listParams.HasAttempts.Get()
+	if !ok {
+		t.Fatal("HasAttempts was not set")
+	}
+	if value {
+		t.Errorf("HasAttempts = true, want false")
+	}
+}
+
+func TestRunTaskGet_PassesID(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	taskID := "11111111-1111-4111-8111-111111111111"
+	if err := runTaskGetWithClient(context.Background(), client, taskID); err != nil {
+		t.Fatalf("runTaskGetWithClient: %v", err)
+	}
+	if h.getCalls != 1 {
+		t.Fatalf("expected one get call, got %d", h.getCalls)
+	}
+	if h.getParams.ID != uuid.MustParse(taskID) {
+		t.Errorf("ID = %s, want %s", h.getParams.ID, taskID)
+	}
+}
+
+func TestRunTaskGet_InvalidID(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskGetWithClient(context.Background(), client, "not-a-uuid")
+	if err == nil {
+		t.Fatal("expected invalid ID error")
+	}
+	if h.getCalls != 0 {
+		t.Errorf("request should not be made on invalid ID, got %d calls", h.getCalls)
+	}
+}
 
 // ── parseKindFilter ───────────────────────────────────────────────────────────
 

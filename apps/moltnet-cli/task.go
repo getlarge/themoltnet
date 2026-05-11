@@ -28,6 +28,217 @@ type taskTailOpts struct {
 	out          io.Writer
 }
 
+type taskListOpts struct {
+	apiURL   string
+	credPath string
+
+	teamID string
+
+	taskTypes          []string
+	taskTypesSet       bool
+	taskTypeAliases    []string
+	taskTypeAliasesSet bool
+
+	status              string
+	statusSet           bool
+	diaryID             string
+	diaryIDSet          bool
+	correlationID       string
+	correlationIDSet    bool
+	imposedByAgentID    string
+	imposedByAgentIDSet bool
+	imposedByHumanID    string
+	imposedByHumanIDSet bool
+	claimedByAgentID    string
+	claimedByAgentIDSet bool
+	provider            string
+	providerSet         bool
+	model               string
+	modelSet            bool
+	hasAttempts         bool
+	hasAttemptsSet      bool
+	queuedAfter         string
+	queuedAfterSet      bool
+	queuedBefore        string
+	queuedBeforeSet     bool
+	completedAfter      string
+	completedAfterSet   bool
+	completedBefore     string
+	completedBeforeSet  bool
+	limit               int
+	limitSet            bool
+	cursor              string
+	cursorSet           bool
+}
+
+func runTaskListCmd(opts taskListOpts) error {
+	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	if err != nil {
+		return err
+	}
+	return runTaskListWithClient(context.Background(), client, opts)
+}
+
+func runTaskListWithClient(ctx context.Context, client *moltnetapi.Client, opts taskListOpts) error {
+	params, err := buildListTasksParams(opts)
+	if err != nil {
+		return err
+	}
+
+	res, err := client.ListTasks(ctx, params)
+	if err != nil {
+		return fmt.Errorf("task list: %w", formatTransportError(err))
+	}
+	list, ok := res.(*moltnetapi.TaskListResponse)
+	if !ok {
+		return formatAPIError(res)
+	}
+	return printJSON(list)
+}
+
+func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error) {
+	teamID, err := uuid.Parse(opts.teamID)
+	if err != nil {
+		return moltnetapi.ListTasksParams{}, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+	}
+
+	params := moltnetapi.ListTasksParams{TeamId: teamID}
+
+	if opts.taskTypesSet {
+		params.TaskTypes = append(params.TaskTypes, cleanCSVValues(opts.taskTypes)...)
+	}
+	if opts.taskTypeAliasesSet {
+		params.TaskTypes = append(params.TaskTypes, cleanCSVValues(opts.taskTypeAliases)...)
+	}
+	if opts.statusSet {
+		var status moltnetapi.TaskStatus
+		if err := status.UnmarshalText([]byte(opts.status)); err != nil {
+			return moltnetapi.ListTasksParams{}, fmt.Errorf("invalid --status %q: %w", opts.status, err)
+		}
+		params.Status = moltnetapi.NewOptTaskStatus(status)
+	}
+
+	if opts.diaryIDSet {
+		if params.DiaryId, err = parseOptUUIDFlag("diary-id", opts.diaryID); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.correlationIDSet {
+		if params.CorrelationId, err = parseOptUUIDFlag("correlation-id", opts.correlationID); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.imposedByAgentIDSet {
+		if params.ImposedByAgentId, err = parseOptUUIDFlag("imposed-by-agent-id", opts.imposedByAgentID); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.imposedByHumanIDSet {
+		if params.ImposedByHumanId, err = parseOptUUIDFlag("imposed-by-human-id", opts.imposedByHumanID); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.claimedByAgentIDSet {
+		if params.ClaimedByAgentId, err = parseOptUUIDFlag("claimed-by-agent-id", opts.claimedByAgentID); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+
+	if opts.providerSet != opts.modelSet {
+		return moltnetapi.ListTasksParams{}, fmt.Errorf("--provider and --model must be set together")
+	}
+	if opts.providerSet {
+		params.Provider = moltnetapi.NewOptString(opts.provider)
+		params.Model = moltnetapi.NewOptString(opts.model)
+	}
+	if opts.hasAttemptsSet {
+		params.HasAttempts = moltnetapi.NewOptBool(opts.hasAttempts)
+	}
+
+	if opts.queuedAfterSet {
+		if params.QueuedAfter, err = parseOptRFC3339Flag("queued-after", opts.queuedAfter); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.queuedBeforeSet {
+		if params.QueuedBefore, err = parseOptRFC3339Flag("queued-before", opts.queuedBefore); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.completedAfterSet {
+		if params.CompletedAfter, err = parseOptRFC3339Flag("completed-after", opts.completedAfter); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.completedBeforeSet {
+		if params.CompletedBefore, err = parseOptRFC3339Flag("completed-before", opts.completedBefore); err != nil {
+			return moltnetapi.ListTasksParams{}, err
+		}
+	}
+	if opts.limitSet {
+		params.Limit = moltnetapi.NewOptInt(opts.limit)
+	}
+	if opts.cursorSet {
+		params.Cursor = moltnetapi.NewOptString(opts.cursor)
+	}
+
+	return params, nil
+}
+
+func cleanCSVValues(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		for _, part := range strings.Split(value, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				out = append(out, part)
+			}
+		}
+	}
+	return out
+}
+
+func parseOptUUIDFlag(name, value string) (moltnetapi.OptUUID, error) {
+	id, err := uuid.Parse(value)
+	if err != nil {
+		return moltnetapi.OptUUID{}, fmt.Errorf("invalid --%s %q: %w", name, value, err)
+	}
+	return moltnetapi.NewOptUUID(id), nil
+}
+
+func parseOptRFC3339Flag(name, value string) (moltnetapi.OptDateTime, error) {
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return moltnetapi.OptDateTime{}, fmt.Errorf("invalid --%s %q: %w", name, value, err)
+	}
+	return moltnetapi.NewOptDateTime(t), nil
+}
+
+func runTaskGetCmd(apiURL, credPath, taskID string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	return runTaskGetWithClient(context.Background(), client, taskID)
+}
+
+func runTaskGetWithClient(ctx context.Context, client *moltnetapi.Client, taskID string) error {
+	taskUUID, err := uuid.Parse(taskID)
+	if err != nil {
+		return fmt.Errorf("invalid task ID %q: %w", taskID, err)
+	}
+
+	res, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: taskUUID})
+	if err != nil {
+		return fmt.Errorf("task get: %w", formatTransportError(err))
+	}
+	task, ok := res.(*moltnetapi.Task)
+	if !ok {
+		return formatAPIError(res)
+	}
+	return printJSON(task)
+}
+
 func runTaskTailCmd(opts taskTailOpts) error {
 	if opts.format != "human" && opts.format != "json" {
 		return fmt.Errorf("--format: unsupported value %q (one of: human, json)", opts.format)

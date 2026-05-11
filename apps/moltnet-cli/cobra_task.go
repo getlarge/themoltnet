@@ -10,9 +10,104 @@ func newTaskCmd() *cobra.Command {
 		Short: "Task queue operations",
 	}
 
+	taskCmd.AddCommand(newTaskListCmd())
+	taskCmd.AddCommand(newTaskGetCmd())
 	taskCmd.AddCommand(newTaskTailCmd())
 
 	return taskCmd
+}
+
+func newTaskListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List tasks",
+		Example: `  moltnet task list --team-id <uuid>
+  moltnet task list --team-id <uuid> --task-types curate_pack,fulfill_brief
+  moltnet task list --team-id <uuid> --task-type curate_pack --task-type fulfill_brief
+  moltnet task list --team-id <uuid> --provider openai --model gpt-5.1 --has-attempts=false`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			taskTypes, _ := cmd.Flags().GetStringSlice("task-types")
+			taskTypeAliases, _ := cmd.Flags().GetStringArray("task-type")
+			opts := taskListOpts{
+				apiURL:              apiURL,
+				credPath:            credPath,
+				teamID:              mustGetStringFlag(cmd, "team-id"),
+				taskTypes:           taskTypes,
+				taskTypeAliases:     taskTypeAliases,
+				status:              mustGetStringFlag(cmd, "status"),
+				diaryID:             mustGetStringFlag(cmd, "diary-id"),
+				correlationID:       mustGetStringFlag(cmd, "correlation-id"),
+				imposedByAgentID:    mustGetStringFlag(cmd, "imposed-by-agent-id"),
+				imposedByHumanID:    mustGetStringFlag(cmd, "imposed-by-human-id"),
+				claimedByAgentID:    mustGetStringFlag(cmd, "claimed-by-agent-id"),
+				provider:            mustGetStringFlag(cmd, "provider"),
+				model:               mustGetStringFlag(cmd, "model"),
+				hasAttempts:         mustGetBoolFlag(cmd, "has-attempts"),
+				hasAttemptsSet:      cmd.Flags().Changed("has-attempts"),
+				queuedAfter:         mustGetStringFlag(cmd, "queued-after"),
+				queuedBefore:        mustGetStringFlag(cmd, "queued-before"),
+				completedAfter:      mustGetStringFlag(cmd, "completed-after"),
+				completedBefore:     mustGetStringFlag(cmd, "completed-before"),
+				limit:               mustGetIntFlag(cmd, "limit"),
+				limitSet:            cmd.Flags().Changed("limit"),
+				cursor:              mustGetStringFlag(cmd, "cursor"),
+				cursorSet:           cmd.Flags().Changed("cursor"),
+				taskTypesSet:        cmd.Flags().Changed("task-types"),
+				taskTypeAliasesSet:  cmd.Flags().Changed("task-type"),
+				statusSet:           cmd.Flags().Changed("status"),
+				diaryIDSet:          cmd.Flags().Changed("diary-id"),
+				correlationIDSet:    cmd.Flags().Changed("correlation-id"),
+				imposedByAgentIDSet: cmd.Flags().Changed("imposed-by-agent-id"),
+				imposedByHumanIDSet: cmd.Flags().Changed("imposed-by-human-id"),
+				claimedByAgentIDSet: cmd.Flags().Changed("claimed-by-agent-id"),
+				providerSet:         cmd.Flags().Changed("provider"),
+				modelSet:            cmd.Flags().Changed("model"),
+				queuedAfterSet:      cmd.Flags().Changed("queued-after"),
+				queuedBeforeSet:     cmd.Flags().Changed("queued-before"),
+				completedAfterSet:   cmd.Flags().Changed("completed-after"),
+				completedBeforeSet:  cmd.Flags().Changed("completed-before"),
+			}
+			return runTaskListCmd(opts)
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().StringSlice("task-types", nil, "Comma-separated task type filter; may be repeated")
+	cmd.Flags().StringArray("task-type", nil, "Task type filter; may be repeated")
+	cmd.Flags().String("status", "", "Filter by task status")
+	cmd.Flags().String("diary-id", "", "Filter by diary UUID")
+	cmd.Flags().String("correlation-id", "", "Filter by correlation UUID")
+	cmd.Flags().String("imposed-by-agent-id", "", "Filter by imposing agent UUID")
+	cmd.Flags().String("imposed-by-human-id", "", "Filter by imposing human UUID")
+	cmd.Flags().String("claimed-by-agent-id", "", "Filter by claimed agent UUID")
+	cmd.Flags().String("provider", "", "Filter by executor provider; requires --model")
+	cmd.Flags().String("model", "", "Filter by executor model; requires --provider")
+	cmd.Flags().Bool("has-attempts", false, "Filter by whether tasks have attempts")
+	cmd.Flags().String("queued-after", "", "Filter queuedAt >= RFC3339 timestamp")
+	cmd.Flags().String("queued-before", "", "Filter queuedAt <= RFC3339 timestamp")
+	cmd.Flags().String("completed-after", "", "Filter completedAt >= RFC3339 timestamp")
+	cmd.Flags().String("completed-before", "", "Filter completedAt <= RFC3339 timestamp")
+	cmd.Flags().Int("limit", 0, "Maximum number of tasks to return")
+	cmd.Flags().String("cursor", "", "Pagination cursor")
+	_ = cmd.MarkFlagRequired("team-id")
+	return cmd
+}
+
+func newTaskGetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "get <task-id>",
+		Short:   "Get a task by ID",
+		Example: `  moltnet task get <task-uuid>`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runTaskGetCmd(apiURL, credPath, args[0])
+		},
+	}
+	return cmd
 }
 
 func newTaskTailCmd() *cobra.Command {
@@ -66,4 +161,19 @@ Suppresses text_delta by default to keep the output readable; pass
 	cmd.Flags().Bool("show-deltas", false, "Include text_delta messages (verbose)")
 	cmd.Flags().String("format", "human", "Output format: human | json")
 	return cmd
+}
+
+func mustGetStringFlag(cmd *cobra.Command, name string) string {
+	v, _ := cmd.Flags().GetString(name)
+	return v
+}
+
+func mustGetBoolFlag(cmd *cobra.Command, name string) bool {
+	v, _ := cmd.Flags().GetBool(name)
+	return v
+}
+
+func mustGetIntFlag(cmd *cobra.Command, name string) int {
+	v, _ := cmd.Flags().GetInt(name)
+	return v
 }
