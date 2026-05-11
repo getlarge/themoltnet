@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.15.2...pi-extension-v0.16.0) (2026-05-11)
+
+
+### Features
+
+* **agent-daemon:** --max-turns and --max-bash-timeouts caps ([#1094](https://github.com/getlarge/themoltnet/issues/1094) P1) ([fc5f7bd](https://github.com/getlarge/themoltnet/commit/fc5f7bd99f4578f9460a410faee5c6c89fbb3e15))
+
+
+### Bug Fixes
+
+* **daemon,pi-extension:** close VM on resume failure; close pino transport; TS narrowing (closes [#1107](https://github.com/getlarge/themoltnet/issues/1107)) ([7cd9bcf](https://github.com/getlarge/themoltnet/commit/7cd9bcf1e104dd766a29ba24c1d6171c40488a19))
+* **pi-extension:** runtime-instructor forbids `moltnet entry` CLI inside tasks (closes [#1094](https://github.com/getlarge/themoltnet/issues/1094) P4) ([2b4229d](https://github.com/getlarge/themoltnet/commit/2b4229d73ef580446bf4606c5381f7a2afa19256))
+* **pi-extension:** use existing configFor helper in tool-description test ([c2180b6](https://github.com/getlarge/themoltnet/commit/c2180b64d2c945cc160aa920eb45a20f0fd5e7ed))
+* **pi-extension:** warn against `moltnet entry` CLI in tool description (reinforces [#1094](https://github.com/getlarge/themoltnet/issues/1094) P4) ([9766d55](https://github.com/getlarge/themoltnet/commit/9766d557867214be2c11b8083f4fba299e40c0cc))
+
 ## [0.15.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.15.1...pi-extension-v0.15.2) (2026-05-11)
 
 

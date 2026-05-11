@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.5.3...agent-daemon-v0.6.0) (2026-05-11)
+
+
+### Features
+
+* **agent-daemon:** --max-turns and --max-bash-timeouts caps ([#1094](https://github.com/getlarge/themoltnet/issues/1094) P1) ([fc5f7bd](https://github.com/getlarge/themoltnet/commit/fc5f7bd99f4578f9460a410faee5c6c89fbb3e15))
+
+
+### Bug Fixes
+
+* **daemon,pi-extension:** close VM on resume failure; close pino transport; TS narrowing (closes [#1107](https://github.com/getlarge/themoltnet/issues/1107)) ([7cd9bcf](https://github.com/getlarge/themoltnet/commit/7cd9bcf1e104dd766a29ba24c1d6171c40488a19))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-extension bumped to 0.16.0
+
 ## [0.5.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.5.2...agent-daemon-v0.5.3) (2026-05-11)
 
 
