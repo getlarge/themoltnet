@@ -1,12 +1,16 @@
 {
   "env": {
     "GOPATH": "/home/agent/go",
-    "GOROOT": "/usr/lib/go"
+    "GOROOT": "/usr/lib/go",
+    "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
   },
   "resources": {
-    "cpus": 2,
+    "cpus": 4,
     "memory": "6G"
   },
+  "resumeCommands": [
+    "cd /workspace && pnpm fetch --frozen-lockfile 2>&1 | tail -5"
+  ],
   "snapshot": {
     "allowedHosts": [
       "unofficial-builds.nodejs.org",
@@ -21,11 +25,10 @@
     "setupCommands": [
       "apk add --no-cache libgcc libstdc++ python3 go",
       "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz && node --version'",
-      "npm install -g pnpm tsx 2>/dev/null"
+      "npm install -g tsx 2>/dev/null",
+      "corepack enable && corepack install --global pnpm@10.29.3",
+      "mkdir -p /opt/pnpm-store && chmod 0777 /opt/pnpm-store && printf 'store-dir=/opt/pnpm-store\\n' > /etc/npmrc"
     ]
   },
-  "vfs": {
-    "shadow": ["node_modules"],
-    "shadowMode": "tmpfs"
-  }
+  "vfs": {}
 }

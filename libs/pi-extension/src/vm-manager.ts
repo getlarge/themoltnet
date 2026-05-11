@@ -307,6 +307,41 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   await vm.exec(`sh -c 'echo "nameserver 8.8.8.8
 nameserver 1.1.1.1" > /etc/resolv.conf'`);
 
+  // Tell git that the workspace mount is trusted regardless of UID. The host
+  // workspace is bind-mounted into /workspace via Gondolin's RealFSProvider,
+  // so the on-disk owner is the host's UID (typically 501) — not the guest's
+  // 'agent' user (also UID 501 by happy coincidence, but git checks against
+  // file ownership at the filesystem level). Without this, every git command
+  // inside the VM emits 'detected dubious ownership' and exits 128. Setting
+  // this system-wide rather than per-user covers both root (post-resume
+  // setup) and agent (task workload) callers.
+  await vm.exec(`sh -c "git config --system --add safe.directory '*'"`);
+
+  // Overlay-mount a guest-kernel tmpfs at /workspace/node_modules so package
+  // installs (pnpm/npm) bypass the Gondolin FUSE bridge entirely. Without
+  // this, every file write during install traverses guest-FUSE →
+  // virtio-RPC → host RealFSProvider, costing ~80× more wall-clock than a
+  // plain Linux mount (diary 47b67636: 240s vs 3s for identical pnpm
+  // install). The kernel resolves mount points before FUSE, so writes to
+  // /workspace/node_modules/... never reach sandboxfs or the host. Side
+  // effect: the host worktree's existing node_modules (if any) is fully
+  // hidden by the mount and remains untouched — no host pollution. Note
+  // tmpfs is per-VM: on VM exit the install is gone; first install per VM
+  // session pays the network cost into the rootfs-resident pnpm store at
+  // /var/cache/pnpm-store (configured via /etc/npmrc when used).
+  await vm.exec(`sh -c '
+    mkdir -p /workspace/node_modules
+    mount -t tmpfs -o size=4G,mode=0755,uid=501,gid=501 tmpfs /workspace/node_modules
+  '`);
+
+  // Consumer-provided per-resume commands. Repo-specific bootstrap
+  // (corepack-install a pinned pnpm, `pnpm fetch`, etc.) belongs here,
+  // not in vm-manager — pi-extension stays repo-agnostic. Sequential,
+  // first failure aborts resume.
+  for (const cmd of config.sandboxConfig?.resumeCommands ?? []) {
+    await vm.exec(`sh -c ${JSON.stringify(cmd)}`);
+  }
+
   // Inject credentials into VM-side agent directory structure:
   //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
   // Mirrors host layout so legreffier skill and CLI work identically.
