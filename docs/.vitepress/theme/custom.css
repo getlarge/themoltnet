@@ -55,6 +55,11 @@
   --vp-button-brand-active-bg: var(--molt-primary-hover);
 }
 
+.moltnet-nav-controls {
+  display: flex;
+  align-items: center;
+}
+
 /* Home hero gradient using brand colors */
 :root {
   --vp-home-hero-name-color: transparent;

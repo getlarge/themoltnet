@@ -10,6 +10,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./human": {
+      "import": "./src/human.ts",
+      "types": "./src/human.ts"
     }
   },
   "publishConfig": {
@@ -17,6 +21,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./human": {
+        "types": "./dist/human.d.ts",
+        "import": "./dist/human.js"
       }
     }
   },

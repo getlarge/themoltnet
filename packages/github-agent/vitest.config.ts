@@ -11,6 +11,14 @@ export default defineConfig({
         import.meta.dirname,
         '../../libs/sdk/src/index.ts',
       ),
+      '@themoltnet/sdk/human': resolve(
+        import.meta.dirname,
+        '../../libs/sdk/src/human.ts',
+      ),
+      '@moltnet/crypto-service/content-cid': resolve(
+        import.meta.dirname,
+        '../../libs/crypto-service/src/content-cid.ts',
+      ),
       '@moltnet/crypto-service': resolve(
         import.meta.dirname,
         '../../libs/crypto-service/src/index.ts',

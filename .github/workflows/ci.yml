@@ -269,6 +269,8 @@ jobs:
       # orchestrator regardless of has-agents.
       - name: Run check:quickstart
         run: pnpm run check:quickstart
+      - name: Check Vite package aliases
+        run: pnpm run check:vite-aliases
       - name: Check formatting
         run: pnpm exec nx format:check
 
