@@ -25,10 +25,10 @@
  * Cross-task input invariants — "all targets share the same
  * correlation_id, all are `run_eval`, all are completed with an
  * accepted attempt, all share byte-identical `input.successCriteria`"
- * — REQUIRE async DB lookups and live in the rest-api task-create
- * handler, not in `validateInput` (which is sync). The TypeBox layer
- * here only enforces shape: UUID format, minItems/maxItems, rubric
- * presence + weight invariant.
+ * — REQUIRE async DB lookups and live in `validateInputAsync` below,
+ * which the task service runs at create time (#1096 wiring). The
+ * TypeBox layer here only enforces shape: UUID format,
+ * minItems/maxItems, rubric presence + weight invariant.
  */
 import { type Static, Type } from '@sinclair/typebox';
 
@@ -146,9 +146,10 @@ export type JudgeEvalVariantOutput = Static<typeof JudgeEvalVariantOutput>;
  * must sum to 1.
  *
  * Cross-task invariants (all targets are `run_eval`, all completed,
- * share `correlation_id`, byte-identical `input.successCriteria`) are
- * NOT checked here — they require async DB lookups against
- * `runTaskIds` and live in the rest-api task-create handler.
+ * share `correlation_id`, byte-identical `input.successCriteria`)
+ * are NOT checked here — they require async DB lookups against
+ * `runTaskIds` and live in `validateJudgeEvalVariantInputAsync`
+ * below, invoked by the task service at create time (#1096).
  */
 export function validateJudgeEvalVariantInput(input: unknown): string | null {
   const sc = (input as { successCriteria?: SuccessCriteria }).successCriteria;
@@ -246,11 +247,18 @@ export function validateJudgeEvalVariantOutput(
       let sum = 0;
       for (const sc of result.scores) {
         const w = weightById.get(sc.criterionId);
-        // Unknown criterion id: don't accumulate. The rubric/output
-        // mismatch is a separate concern (the schema permits any
-        // criterionId string); judges that fabricate ids should be
-        // caught upstream, not by silently distorting the composite.
-        if (w === undefined) continue;
+        if (w === undefined) {
+          // Fabricated criterionId: reject loudly. Silently
+          // ignoring would let a judge inflate composite by
+          // padding scores with high-value, unrecognized criteria
+          // (which the schema permits — the criterionId field is
+          // an open string). #1101 review m3.
+          return (
+            `results[${r}].scores: criterionId "${sc.criterionId}" is not in ` +
+            `the input rubric (known: ${Array.from(weightById.keys()).join(', ')}). ` +
+            'Score every rubric criterion exactly once; do not invent new ids.'
+          );
+        }
         sum += w * sc.score;
       }
       // Allow tiny FP drift; arithmetic should be exact in practice

@@ -412,6 +412,29 @@ describe('validateJudgeEvalVariantOutput', () => {
     );
   });
 
+  it('rejects scores with a criterionId not in the input rubric (#1101 m3)', () => {
+    const out = {
+      results: [
+        {
+          ...result(TASK_A, 'a'),
+          // Add an extra score with a fabricated criterionId; rubric
+          // weights still sum to 1, but the extra id should be
+          // rejected rather than silently ignored.
+          scores: [
+            { criterionId: 'c1', score: 0.5, rationale: 'ok' },
+            { criterionId: 'c2', score: 1.0, rationale: 'great' },
+            { criterionId: 'fabricated', score: 1.0, rationale: 'fake' },
+          ],
+        },
+        result(TASK_B, 'b'),
+      ],
+      traceparent: '00-x-y-01',
+    };
+    expect(validateJudgeEvalVariantOutput(out, input)).toMatch(
+      /not in the input rubric/,
+    );
+  });
+
   it('rejects a variantLabel containing " - " (delimiter collision)', () => {
     expect(
       Value.Check(JudgeEvalVariantOutput, {
