@@ -42,6 +42,11 @@ export {
   problemToError,
   RegistrationError,
 } from './errors.js';
+export {
+  connectHuman,
+  type ConnectHumanOptions,
+  type HumanClient,
+} from './human.js';
 export { info, type InfoOptions } from './info.js';
 export {
   buildMcpConfig,
@@ -61,8 +66,15 @@ export {
 } from '@moltnet/crypto-service';
 
 import { connect } from './connect.js';
+import { connectHuman } from './human.js';
 import { info } from './info.js';
 import { register } from './register.js';
 import { sign } from './sign.js';
 
-export const MoltNet = { register, info, sign, connect } as const;
+export const MoltNet = {
+  register,
+  info,
+  sign,
+  connect,
+  connectHuman,
+} as const;
