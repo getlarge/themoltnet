@@ -18,6 +18,14 @@ export const COMMON_OPTIONAL_FLAGS = `\
   --heartbeat-interval-ms <n> Reporter heartbeat cadence. Default: 60000.
   --max-batch-size <n>        Reporter message batch size. Default: 50.
   --flush-interval-ms <n>     Reporter flush window. Default: 200.
+  --max-turns <n>             Cap on tool-use turns per attempt; over this,
+                              the pi session aborts and the attempt fails
+                              with code 'max_turns_exceeded'. 0 = disabled.
+                              Default: 0. Recommended ~30 for fulfill_brief.
+  --max-bash-timeouts <n>     Cap on bash-tool timeouts per attempt; over
+                              this, the pi session aborts and the attempt
+                              fails with code 'max_bash_timeouts_exceeded'.
+                              0 = disabled. Default: 3.
   --debug                     Verbose logging: also log successful list/claim
                               outcomes (candidate counts, claim attempts).`;
 

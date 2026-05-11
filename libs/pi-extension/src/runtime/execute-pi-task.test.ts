@@ -14,7 +14,7 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { wireSessionAbort } from './execute-pi-task.js';
+import { isBashTimeoutResult, wireSessionAbort } from './execute-pi-task.js';
 import {
   __resetTaskOutputCounterForTests,
   extractJsonObject,
@@ -344,5 +344,70 @@ describe('wireSessionAbort', () => {
       setTimeout(resolve, 10);
     });
     expect(abort).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('isBashTimeoutResult', () => {
+  it('matches the pi structured tool-error shape verbatim', () => {
+    // Stable wrapper string from @earendil-works/pi-coding-agent's
+    // bash.js: `appendStatus(text, \`Command timed out after ${secs} seconds\`)`.
+    // We match against the substring "Command timed out after" so a
+    // bump in pi's wording (e.g. plural-vs-singular) keeps working.
+    expect(
+      isBashTimeoutResult({
+        content: [
+          {
+            type: 'text',
+            text: 'partial output before timeout\nCommand timed out after 120 seconds',
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('matches a flat string fallback (defensive — pi flattens some results)', () => {
+    expect(isBashTimeoutResult('Command timed out after 5 seconds')).toBe(true);
+  });
+
+  it('rejects a non-timeout bash error', () => {
+    expect(
+      isBashTimeoutResult({
+        content: [
+          { type: 'text', text: 'Command exited with code 1\nerror text' },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects an aborted-but-not-timed-out result', () => {
+    expect(
+      isBashTimeoutResult({
+        content: [{ type: 'text', text: 'Command aborted' }],
+      }),
+    ).toBe(false);
+  });
+
+  it('handles missing or malformed result without throwing', () => {
+    expect(isBashTimeoutResult(null)).toBe(false);
+    expect(isBashTimeoutResult(undefined)).toBe(false);
+    expect(isBashTimeoutResult({})).toBe(false);
+    expect(isBashTimeoutResult({ content: null })).toBe(false);
+    expect(isBashTimeoutResult({ content: [{}] })).toBe(false);
+    expect(isBashTimeoutResult({ content: [{ text: 42 }] })).toBe(false);
+    expect(isBashTimeoutResult(42)).toBe(false);
+  });
+
+  it('matches even when the timeout text is not at start of message', () => {
+    // Real pi output puts captured stdout BEFORE the appendStatus suffix.
+    expect(
+      isBashTimeoutResult({
+        content: [
+          {
+            type: 'text',
+            text: 'lots of build output...\n\nCommand timed out after 240 seconds',
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 });

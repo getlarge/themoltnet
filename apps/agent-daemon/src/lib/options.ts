@@ -12,6 +12,18 @@ export interface CommonOptions {
   heartbeatIntervalMs: number;
   maxBatchSize: number;
   flushIntervalMs: number;
+  /**
+   * Cap on the number of tool-use turns per attempt. `0` disables.
+   * Matches the Anthropic Agent SDK `maxTurns` semantics: only counts
+   * turns whose stopReason !== 'end_turn'. See issue #1094.
+   */
+  maxTurns: number;
+  /**
+   * Cap on the number of `bash` tool timeouts per attempt. `0`
+   * disables. Catches the death-spiral pattern from task `a3762f44`.
+   * See issue #1094.
+   */
+  maxBashTimeouts: number;
   debug: boolean;
 }
 
@@ -23,6 +35,8 @@ export interface CommonRawArgs {
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
   'flush-interval-ms'?: string;
+  'max-turns'?: string;
+  'max-bash-timeouts'?: string;
   debug?: boolean;
 }
 
@@ -31,6 +45,14 @@ const DEFAULTS = {
   heartbeatIntervalMs: 60_000,
   maxBatchSize: 50,
   flushIntervalMs: 200,
+  // 0 = disabled. Operator opts in. Recommended 30 for fulfill_brief
+  // per issue #1094 (matches the typical depth of a successful agent run).
+  maxTurns: 0,
+  // 3 timeouts in one attempt is decisive: at this point the model is
+  // either stuck in a loop or running operations the sandbox can't
+  // complete within reasonable bounds. Either way, terminating is
+  // cheaper than letting the host job timeout fire.
+  maxBashTimeouts: 3,
 } as const;
 
 export class MissingRequiredOptionError extends Error {
@@ -74,6 +96,16 @@ export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
       'flush-interval-ms',
       DEFAULTS.flushIntervalMs,
     ),
+    maxTurns: parseNonNegativeInt(
+      args['max-turns'],
+      'max-turns',
+      DEFAULTS.maxTurns,
+    ),
+    maxBashTimeouts: parseNonNegativeInt(
+      args['max-bash-timeouts'],
+      'max-bash-timeouts',
+      DEFAULTS.maxBashTimeouts,
+    ),
     debug: args.debug === true,
   };
   return opts;
@@ -116,6 +148,8 @@ export function commonOptionDefs() {
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },
     'flush-interval-ms': { type: 'string' },
+    'max-turns': { type: 'string' },
+    'max-bash-timeouts': { type: 'string' },
     debug: { type: 'boolean' },
   } as const;
 }

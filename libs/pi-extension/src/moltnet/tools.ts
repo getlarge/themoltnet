@@ -636,7 +636,10 @@ export function createMoltNetTools(
       'During an active task, the entry is forced into the task diary and tagged with ' +
       'the task:* provenance namespace (task:id:<id>, task:type:<type>, ' +
       'task:attempt:<n>, plus task:correlation:<id> when set); an explicit diaryId ' +
-      'mismatching the task diary is rejected.',
+      'mismatching the task diary is rejected. ' +
+      'Use this tool — NOT `moltnet entry create` / `moltnet entry create-signed` ' +
+      'via bash. The CLI path bypasses task-tag auto-injection and leaves entries ' +
+      'invisible to taskFilter queries.',
     parameters: Type.Object({
       title: Type.String({
         description: 'Entry title (concise, descriptive)',

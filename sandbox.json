@@ -3,17 +3,16 @@
     "GOPATH": "/home/agent/go",
     "GOROOT": "/usr/lib/go",
     "NODE_OPTIONS": "--dns-result-order=ipv4first",
-    "NPM_CONFIG_NODE_LINKER": "hoisted",
     "NPM_CONFIG_PREFER_OFFLINE": "true",
     "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
   },
   "resources": {
     "cpus": 4,
-    "memory": "6G"
+    "memory": "8G"
   },
   "resumeCommands": [
-    "mkdir -p /workspace/node_modules && mount -t tmpfs -o size=4G,mode=0755,uid=501,gid=501 tmpfs /workspace/node_modules",
-    "cd /workspace && pnpm fetch --frozen-lockfile"
+    "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done",
+    "cd /workspace && pnpm install --frozen-lockfile"
   ],
   "snapshot": {
     "allowedHosts": [
