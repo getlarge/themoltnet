@@ -6,6 +6,10 @@ export default defineConfig({
   resolve: {
     alias: {
       // Point to source so tests don't require a prior build of the SDK
+      '@themoltnet/sdk/human': resolve(
+        __dirname,
+        '../../libs/sdk/src/human.ts',
+      ),
       '@themoltnet/sdk': resolve(__dirname, '../../libs/sdk/src/index.ts'),
     },
   },
