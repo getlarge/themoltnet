@@ -38,6 +38,18 @@ describe('runtime instructor', () => {
     expect(out).not.toMatch(/`task_attempt:/);
   });
 
+  it('forbids the `moltnet entry` CLI inside a task (it bypasses task-tag auto-injection)', () => {
+    // This is the #1094 P4 fix: entry `2c7109f3` (the failed
+    // task `a3762f44` postmortem) was created via the moltnet CLI
+    // from inside the VM, which hits the REST API directly and
+    // bypasses the custom tool's auto-tag injection — leaving an
+    // entry that `task:id:` filters can't find. The runtime
+    // instructor must steer the agent away from that path.
+    const out = buildRuntimeInstructor(ctx);
+    expect(out).toMatch(/moltnet entry create/i);
+    expect(out).toMatch(/bypass/i);
+  });
+
   it('declares the accountable-commit trailer shape', () => {
     const out = buildRuntimeInstructor(ctx);
     expect(out).toMatch(/MoltNet-Diary: <id>/);
