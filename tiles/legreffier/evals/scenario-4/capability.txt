@@ -1,1 +1,0 @@
-Multi-commit task shaping and pre-push checklist

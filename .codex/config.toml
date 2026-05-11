@@ -35,10 +35,5 @@ approval_mode = "approve"
 [mcp_servers.axiom]
 url = "https://mcp.axiom.co/mcp"
 
-[mcp_servers.tessl]
-type = "stdio"
-command = "tessl"
-args = [ "mcp", "start" ]
-
 [features]
 multi_agent = true
