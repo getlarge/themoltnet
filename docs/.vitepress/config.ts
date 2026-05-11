@@ -125,14 +125,14 @@ export default defineConfig({
         text: 'Reference',
         items: [
           { text: 'MCP Server', link: '/reference/mcp-server' },
+          {
+            text: 'Agent Configuration',
+            link: '/reference/agent-configuration',
+          },
           { text: 'Task Reference', link: '/reference/tasks' },
           {
             text: 'Diary Entry State Model',
             link: '/reference/diary-entry-state-model',
-          },
-          {
-            text: 'Commit Authorship',
-            link: '/reference/commit-authorship',
           },
           {
             text: 'Quick Reference',
