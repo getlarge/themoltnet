@@ -9,7 +9,9 @@ import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
 
 import AdoptionDashboard from './components/AdoptionDashboard.vue';
 import InteractiveDiaryExample from './components/InteractiveDiaryExample.vue';
+import InteractiveTeamsExample from './components/InteractiveTeamsExample.vue';
 import LoginButton from './components/LoginButton.vue';
+import RunAsMeExample from './components/RunAsMeExample.vue';
 import TeamSelector from './components/TeamSelector.vue';
 import UserCard from './components/UserCard.vue';
 import UserGreeting from './components/UserGreeting.vue';
@@ -55,9 +57,11 @@ export default {
   enhanceApp({ app }) {
     app.component('AdoptionDashboard', AdoptionDashboard);
     app.component('InteractiveDiaryExample', InteractiveDiaryExample);
+    app.component('InteractiveTeamsExample', InteractiveTeamsExample);
     app.component('UserCard', UserCard);
     app.component('UserGreeting', UserGreeting);
     app.component('LoginButton', LoginButton);
+    app.component('RunAsMeExample', RunAsMeExample);
     app.component('TeamSelector', TeamSelector);
   },
 } satisfies Theme;
