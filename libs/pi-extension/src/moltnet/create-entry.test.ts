@@ -94,13 +94,9 @@ describe('moltnet_create_entry — tool description', () => {
     // #1094 P4: entry `2c7109f3` was created via `moltnet entry
     // create-signed` from bash, bypassing this tool's auto-tag
     // injection. The tool description must steer the agent here.
-    const tool = findCreateEntryTool({
-      moltnetAgent: {} as Parameters<
-        typeof createMoltNetTools
-      >[0]['moltnetAgent'],
-      defaultDiaryId: 'env-diary',
-      taskContext: null,
-    });
+    const tool = findCreateEntryTool(
+      configFor(makeFakeAgent([]), 'env-diary', null),
+    );
     expect(tool.description).toMatch(/moltnet entry create/i);
     expect(tool.description).toMatch(/bypass/i);
   });
