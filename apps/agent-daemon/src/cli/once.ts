@@ -132,6 +132,8 @@ export async function runOnce(argv: string[]): Promise<number> {
       model: opts.model,
       sandboxConfig: sandbox.config,
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
+      maxTurns: opts.maxTurns,
+      maxBashTimeouts: opts.maxBashTimeouts,
     });
 
     const writeCorrelationAnchors = makePrBodyAnchorWriter({

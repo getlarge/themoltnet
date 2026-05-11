@@ -169,6 +169,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       // claimed task; binds taskId+attemptN into the pino child so
       // turn events are correlatable per task in poll mode (#1078).
       makeOnTurnEvent: makeTurnEventHandlerFactory(rootLogger),
+      maxTurns: common.maxTurns,
+      maxBashTimeouts: common.maxBashTimeouts,
     });
 
     runtime = new AgentRuntime({

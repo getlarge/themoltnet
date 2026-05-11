@@ -140,6 +140,28 @@ export interface ExecutePiTaskOptions {
    * process. See #1078.
    */
   makeOnTurnEvent?: TurnEventHandlerFactory;
+  /**
+   * Cap the number of tool-use turns per attempt. When the limit is
+   * reached, the pi session is aborted and the attempt finalizes with
+   * `error.code: max_turns_exceeded`. A tool-use turn = any `turn_end`
+   * whose `stopReason !== 'end_turn'` (matches the Anthropic SDK
+   * `max_turns` semantics: the model's final text-only response doesn't
+   * count). Default `0` = disabled. Recommended `30` for `fulfill_brief`.
+   * Closes part of #1094.
+   */
+  maxTurns?: number;
+  /**
+   * Cap the number of `bash` tool timeouts per attempt. A timeout is a
+   * `tool_execution_end` for `bash` whose result text contains
+   * "Command timed out after" (pi's stable error wrapper from
+   * `@earendil-works/pi-coding-agent`'s bash tool). When the limit is
+   * reached, the pi session is aborted and the attempt finalizes with
+   * `error.code: max_bash_timeouts_exceeded`. Catches the death-spiral
+   * pattern from task `a3762f44` where the model kept retrying
+   * long-blocking shell commands until the host job timeout fired.
+   * Default `3`. Set to `0` to disable. Closes part of #1094.
+   */
+  maxBashTimeouts?: number;
 }
 
 /**
@@ -549,6 +571,13 @@ export async function executePiTask(
     let reporterError: { code: string; message: string } | null = null;
     const usage: TaskUsage = finalUsage;
 
+    // Cap-driven abort state. See `triggerCapAbort` below.
+    let capAbort: { code: string; message: string } | null = null;
+    let toolUseTurnCount = 0;
+    let bashTimeoutCount = 0;
+    const maxTurns = opts.maxTurns ?? 0;
+    const maxBashTimeouts = opts.maxBashTimeouts ?? 3;
+
     // Wire reporter.cancelSignal → session.abort() so the LLM session
     // tears down promptly when the imposer cancels mid-prompt. Tracked
     // via `cancelListener` at function scope so `finally` can remove it
@@ -565,6 +594,22 @@ export async function executePiTask(
           }
         }),
       );
+    };
+
+    // Trigger a cap abort idempotently. The pi session will emit a final
+    // `turn_end` with `stopReason: 'aborted'` in response; we silently
+    // ignore that turn_end (no llmAbort flip) and surface the cap reason
+    // in finalization. `cancelled` (imposer-driven) and `capAbort`
+    // (executor-driven) are distinct paths; both call session.abort()
+    // but the finalization picks the right error code.
+    const triggerCapAbort = (code: string, message: string): void => {
+      if (capAbort) return;
+      capAbort = { code, message };
+      session.abort().catch((err: unknown) => {
+        const m = err instanceof Error ? err.message : String(err);
+        process.stderr.write(`[cap] session.abort() failed: ${m}\n`);
+      });
+      track(emit('info', { event: 'cap_abort', code, message }));
     };
 
     session.subscribe((event) => {
@@ -584,6 +629,26 @@ export async function executePiTask(
             result: event.isError ? truncateForWire(event.result) : undefined,
           }),
         );
+        // Bash-timeout cap. pi's bash tool wraps timeout errors with the
+        // text "Command timed out after <N> seconds" (see
+        // @earendil-works/pi-coding-agent's bash.js error path). We
+        // detect the substring in the structured tool result content.
+        // Total across the attempt (not consecutive) — different
+        // commands timing out is still a death-spiral pattern.
+        if (
+          maxBashTimeouts > 0 &&
+          event.toolName === 'bash' &&
+          event.isError &&
+          isBashTimeoutResult(event.result)
+        ) {
+          bashTimeoutCount += 1;
+          if (bashTimeoutCount >= maxBashTimeouts) {
+            triggerCapAbort(
+              'max_bash_timeouts_exceeded',
+              `Aborted after ${bashTimeoutCount} bash timeouts in this attempt (cap ${maxBashTimeouts}).`,
+            );
+          }
+        }
       } else if (event.type === 'turn_end') {
         const msg = event.message as {
           role?: string;
@@ -611,7 +676,28 @@ export async function executePiTask(
           if (cr) usage.cacheReadTokens = (usage.cacheReadTokens ?? 0) + cr;
           if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
         }
-        track(emit('turn_end', { stop_reason: msg?.stopReason ?? 'end_turn' }));
+        const stopReason = msg?.stopReason ?? 'end_turn';
+        track(emit('turn_end', { stop_reason: stopReason }));
+        // Tool-use turn counter for the max-turns cap. Anthropic SDK
+        // semantics: count only tool-use turns (any turn whose
+        // stopReason !== 'end_turn'). The final text-only response
+        // does not consume a turn. 'aborted' turns (from our own
+        // session.abort, or imposer cancel) are also excluded; they
+        // don't represent forward progress against the cap.
+        if (
+          maxTurns > 0 &&
+          stopReason !== 'end_turn' &&
+          stopReason !== 'aborted' &&
+          stopReason !== 'error'
+        ) {
+          toolUseTurnCount += 1;
+          if (toolUseTurnCount >= maxTurns) {
+            triggerCapAbort(
+              'max_turns_exceeded',
+              `Aborted after ${toolUseTurnCount} tool-use turns (cap ${maxTurns}).`,
+            );
+          }
+        }
         // Reflect ONLY the final turn's stop reason. pi emits turn_end per
         // assistant turn; a transient error in an earlier turn that pi then
         // recovers from (next turn completes cleanly) must not fail the task.
@@ -670,7 +756,7 @@ export async function executePiTask(
     let parsedOutput: Record<string, unknown> | null = null;
     let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
-    if (!runError && !llmAbort && !cancelled) {
+    if (!runError && !llmAbort && !cancelled && !capAbort) {
       // Prefer the submit-tool's captured payload over the parser path.
       // The submit-tool already validated args against the task type's
       // output schema; if the model called it successfully we trust the
@@ -735,6 +821,26 @@ export async function executePiTask(
           message:
             reporter.cancelReason ??
             'Task cancelled by imposer while pi session was running.',
+          retryable: false,
+        },
+      };
+    }
+
+    // Cap-driven abort: distinct from imposer cancel. Failed status
+    // (the task didn't complete its work), but with a specific error
+    // code so the imposer can decide whether to retry with a higher cap.
+    if (capAbort) {
+      return {
+        taskId: task.id,
+        attemptN: attemptN,
+        status: 'failed',
+        output: null,
+        outputCid: null,
+        usage,
+        durationMs: Date.now() - startTime,
+        error: {
+          code: capAbort.code,
+          message: capAbort.message,
           retryable: false,
         },
       };
@@ -926,6 +1032,38 @@ function summarizePayloadForLog(
       // someone bypasses the type system at the call site.
       return payload;
   }
+}
+
+/**
+ * Detect pi's bash-timeout error wrapper in a `tool_execution_end`
+ * result. The bash tool surfaces a timeout as a structured tool result
+ * `{ content: [{ type: 'text', text: '… Command timed out after N
+ * seconds' }] }` (see `@earendil-works/pi-coding-agent`'s bash.js).
+ * Substring-match against the stable wrapper string is the only
+ * mechanism short of patching pi; the string is part of pi's external
+ * tool-error API and changing it would break agents that read tool
+ * errors.
+ */
+export function isBashTimeoutResult(result: unknown): boolean {
+  if (result === null || result === undefined) return false;
+  // String form, in case pi ever flattens.
+  if (typeof result === 'string') {
+    return result.includes('Command timed out after');
+  }
+  if (typeof result !== 'object') return false;
+  const content = (result as { content?: unknown }).content;
+  if (!Array.isArray(content)) return false;
+  for (const part of content) {
+    if (
+      typeof part === 'object' &&
+      part !== null &&
+      typeof (part as { text?: unknown }).text === 'string' &&
+      (part as { text: string }).text.includes('Command timed out after')
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 const TRUNCATE_LIMIT = 4 * 1024;

@@ -64,6 +64,8 @@ describe('parseCommonOptions', () => {
       heartbeatIntervalMs: 60_000,
       maxBatchSize: 50,
       flushIntervalMs: 200,
+      maxTurns: 0,
+      maxBashTimeouts: 3,
       debug: false,
     });
   });
@@ -75,11 +77,34 @@ describe('parseCommonOptions', () => {
       'heartbeat-interval-ms': '5000',
       'max-batch-size': '10',
       'flush-interval-ms': '0',
+      'max-turns': '30',
+      'max-bash-timeouts': '5',
     });
     expect(result.leaseTtlSec).toBe(60);
     expect(result.heartbeatIntervalMs).toBe(5_000);
     expect(result.maxBatchSize).toBe(10);
     expect(result.flushIntervalMs).toBe(0);
+    expect(result.maxTurns).toBe(30);
+    expect(result.maxBashTimeouts).toBe(5);
+  });
+
+  it('accepts --max-turns=0 and --max-bash-timeouts=0 as "disabled"', () => {
+    const result = parseCommonOptions({
+      ...valid,
+      'max-turns': '0',
+      'max-bash-timeouts': '0',
+    });
+    expect(result.maxTurns).toBe(0);
+    expect(result.maxBashTimeouts).toBe(0);
+  });
+
+  it('rejects negative --max-turns / --max-bash-timeouts', () => {
+    expect(() => parseCommonOptions({ ...valid, 'max-turns': '-1' })).toThrow(
+      /non-negative integer/,
+    );
+    expect(() =>
+      parseCommonOptions({ ...valid, 'max-bash-timeouts': '-1' }),
+    ).toThrow(/non-negative integer/);
   });
 
   it('rejects --lease-ttl-sec=0 (must be positive)', () => {
