@@ -256,7 +256,7 @@ describe('Task tools', () => {
           query: expect.objectContaining({
             teamId: TEAM_ID,
             status: 'queued',
-            taskType: 'curate_pack',
+            taskTypes: ['curate_pack'],
             diaryId: DIARY_ID,
             imposedByAgentId: '330e8400-e29b-41d4-a716-446655440091',
             imposedByHumanId: '330e8400-e29b-41d4-a716-446655440093',
