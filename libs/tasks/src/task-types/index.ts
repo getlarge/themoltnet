@@ -12,6 +12,7 @@ import {
   ASSESS_BRIEF_TYPE,
   AssessBriefInput,
   AssessBriefOutput,
+  validateAssessBriefInputAsync,
 } from './assess-brief.js';
 import {
   CURATE_PACK_TYPE,
@@ -27,12 +28,14 @@ import {
   JUDGE_PACK_TYPE,
   JudgePackInput,
   JudgePackOutput,
+  validateJudgePackInputAsync,
   validateJudgePackOutput,
 } from './judge-pack.js';
 import {
   RENDER_PACK_TYPE,
   RenderPackInput,
   RenderPackOutput,
+  validateRenderPackInputAsync,
 } from './render-pack.js';
 import {
   RUN_EVAL_TYPE,
@@ -194,6 +197,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'judgment',
     requiresReferences: true,
     validateInput: validateJudgmentInput,
+    validateInputAsync: validateAssessBriefInputAsync,
   },
   [CURATE_PACK_TYPE]: {
     name: CURATE_PACK_TYPE,
@@ -210,6 +214,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'artifact',
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
+    validateInputAsync: validateRenderPackInputAsync,
   },
   [JUDGE_PACK_TYPE]: {
     name: JUDGE_PACK_TYPE,
@@ -219,6 +224,7 @@ export const BUILT_IN_TASK_TYPES = {
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateOutput: validateJudgePackOutput,
+    validateInputAsync: validateJudgePackInputAsync,
   },
   [RUN_EVAL_TYPE]: {
     name: RUN_EVAL_TYPE,

@@ -16,6 +16,10 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskValidationError,
+} from '../async-validation.js';
 import { SuccessCriteria } from '../success-criteria.js';
 
 export const ASSESS_BRIEF_TYPE = 'assess_brief' as const;
@@ -81,3 +85,44 @@ export const AssessBriefOutput = Type.Object(
   { $id: 'AssessBriefOutput', additionalProperties: false },
 );
 export type AssessBriefOutput = Static<typeof AssessBriefOutput>;
+
+/**
+ * Async preflight (#1096):
+ *   - `targetTaskId` resolves to a real task the caller can see.
+ *   - The target is a `fulfill_brief` (you cannot grade an arbitrary
+ *     task type as if it were a brief fulfillment).
+ *   - The target is `completed` with an accepted attempt — grading
+ *     an in-flight or failed task would either race or grade nothing.
+ *
+ * Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
+ * layer concern and intentionally NOT checked here. It belongs in
+ * an auth-aware claim-time check.
+ */
+export async function validateAssessBriefInputAsync(
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskValidationError[]> {
+  const { targetTaskId } = input as AssessBriefInput;
+  const errors: TaskValidationError[] = [];
+  const target = await ctx.resolveTask(targetTaskId);
+  if (!target) {
+    errors.push({
+      field: 'targetTaskId',
+      message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`,
+    });
+    return errors;
+  }
+  if (target.taskType !== 'fulfill_brief') {
+    errors.push({
+      field: 'targetTaskId',
+      message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`,
+    });
+  }
+  if (target.status !== 'completed' || target.acceptedAttemptN === null) {
+    errors.push({
+      field: 'targetTaskId',
+      message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`,
+    });
+  }
+  return errors;
+}

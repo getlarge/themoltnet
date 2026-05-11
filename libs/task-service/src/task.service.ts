@@ -374,6 +374,33 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
+      // Service-level invariant (#1096): a sealed correlation_id
+      // rejects ALL subsequent task-creates against that group —
+      // regardless of task type. Applies after task-type-specific
+      // async validation so the seal check is the last gate. Task
+      // types that themselves SEAL a correlation (e.g.
+      // judge_eval_variant) declare that via `onCreate`; the seal
+      // they write is for THEIR correlationId, so it does not block
+      // their own create — there is no seal at validate time, only
+      // at apply time.
+      if (input.correlationId) {
+        const existingSeal = await asyncCtx.findCorrelationSeal(
+          input.correlationId,
+        );
+        if (existingSeal) {
+          throw new TaskServiceError(
+            'invalid',
+            `correlation_id ${input.correlationId} is sealed by ${existingSeal.sealedByTaskType}/${existingSeal.sealedByTaskId}; no further tasks may be added to this correlation group`,
+            [
+              {
+                field: 'correlationId',
+                message: `correlation_id ${input.correlationId} is sealed (sealed_by_task_id=${existingSeal.sealedByTaskId}, sealed_by_task_type=${existingSeal.sealedByTaskType}, sealed_at=${existingSeal.sealedAt}). Use a fresh correlation_id for new variants.`,
+              },
+            ],
+          );
+        }
+      }
+
       if (!input.diaryId) {
         throw new TaskServiceError('invalid', 'diaryId is required', [
           { field: 'diaryId', message: 'diaryId is required' },

@@ -15,6 +15,10 @@
  */
 import { type Static, Type } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskValidationError,
+} from '../async-validation.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const RENDER_PACK_TYPE = 'render_pack' as const;
@@ -84,3 +88,24 @@ export const RenderPackOutput = Type.Object(
   { $id: 'RenderPackOutput', additionalProperties: false },
 );
 export type RenderPackOutput = Static<typeof RenderPackOutput>;
+
+/**
+ * Async preflight (#1096): `packId` resolves to a context_packs row
+ * the caller can read.
+ */
+export async function validateRenderPackInputAsync(
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskValidationError[]> {
+  const { packId } = input as RenderPackInput;
+  const pack = await ctx.resolveContextPack(packId);
+  if (!pack) {
+    return [
+      {
+        field: 'packId',
+        message: `packId ${packId} does not resolve to a context pack you can read`,
+      },
+    ];
+  }
+  return [];
+}
