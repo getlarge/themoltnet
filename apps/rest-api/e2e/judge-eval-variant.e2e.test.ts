@@ -250,11 +250,10 @@ describe('judge_eval_variant concurrency (#1101 M6)', () => {
     expect(loser.response.status).toBe(400);
 
     // The error body surfaces the seal — proves the rejection came
-    // from the seal check, not from some unrelated validation.
-    const body = (await loser.response.clone().json()) as Record<
-      string,
-      unknown
-    >;
-    expect(JSON.stringify(body)).toMatch(/sealed/i);
+    // from the seal check, not from some unrelated validation. The
+    // api-client already parsed and consumed the response body, so
+    // we read it from `loser.error` rather than re-parsing the
+    // Response stream.
+    expect(JSON.stringify(loser.error)).toMatch(/sealed/i);
   });
 });
