@@ -33,6 +33,7 @@ export function TaskDetailHeader({
     ['Team', renderTeamLabel?.(task.teamId) ?? task.teamId],
     ['Diary', renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'],
     ['Imposer', renderActorLabel?.(actorId) ?? actorId ?? '—'],
+    ['Correlation ID', task.correlationId ?? '—'],
     ['Queued', formatDateTime(task.queuedAt)],
     ['Completed', formatDateTime(task.completedAt)],
     ['Expires', formatDateTime(task.expiresAt)],
@@ -94,13 +95,21 @@ export function TaskDetailHeader({
                 style={{
                   overflowWrap: 'anywhere',
                   fontFamily:
-                    typeof value === 'string' && value.includes('-')
+                    typeof value === 'string' &&
+                    value !== '—' &&
+                    value.includes('-')
                       ? theme.font.family.mono
                       : undefined,
                 }}
               >
                 {value}
               </Text>
+              {label === 'Correlation ID' && task.correlationId ? (
+                <CopyButton
+                  value={task.correlationId}
+                  label="Copy correlation ID"
+                />
+              ) : null}
             </Stack>
           ))}
         </div>

@@ -42,7 +42,7 @@ export function TaskQueueTable({
   }
 
   const columns =
-    'minmax(150px, 1.2fr) minmax(110px, .8fr) minmax(120px, 1fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)';
+    'minmax(150px, 1.1fr) minmax(110px, .7fr) minmax(190px, 1.4fr) minmax(120px, .9fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)';
 
   return (
     <div
@@ -52,7 +52,7 @@ export function TaskQueueTable({
         borderRadius: theme.radius.lg,
       }}
     >
-      <div style={{ minWidth: 760 }}>
+      <div style={{ minWidth: 980 }}>
         <div
           style={{
             display: 'grid',
@@ -68,6 +68,7 @@ export function TaskQueueTable({
         >
           <span>Type</span>
           <span>Status</span>
+          <span>Correlation</span>
           <span>Diary</span>
           <span>Requester</span>
           <span>Age</span>
@@ -121,6 +122,25 @@ export function TaskQueueTable({
               </span>
               <span>
                 <TaskStatusBadge status={task.status} />
+              </span>
+              <span
+                title={task.correlationId ?? undefined}
+                style={{ minWidth: 0 }}
+              >
+                <Text
+                  variant="caption"
+                  color={task.correlationId ? undefined : 'muted'}
+                  style={{
+                    fontFamily: task.correlationId
+                      ? theme.font.family.mono
+                      : undefined,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {task.correlationId ?? '—'}
+                </Text>
               </span>
               <span>
                 {renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'}
