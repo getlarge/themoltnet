@@ -264,18 +264,54 @@ export function createTaskService(deps: TaskServiceDeps) {
    * `onCreate` are applied separately AFTER the task is inserted, so
    * the ctx is safe to call from any task-type validator.
    *
+   * Visibility: every resolver runs the caller-bound Keto check
+   * before returning a row. Returning the bare DB row would leak the
+   * existence (and shape) of cross-team tasks to anyone who can
+   * guess a UUID — see the get / list paths in this file that
+   * already gate on `canViewTask` for the same reason. Resolvers
+   * return `null` indistinguishably for "does not exist" and "you
+   * cannot read it"; validators surface that as a generic
+   * "does not resolve to a task you can read" error so the failure
+   * mode of guessing UUIDs is the same as guessing wrong types.
+   *
    * `resolveTask` returns the bare DB row mapped to the wire `Task`
    * shape so validators see the same field names imposers see.
+   *
+   * For `findCorrelationSeal`: seal rows are not visibility-scoped
+   * — a seal carries only a correlation_id and the sealing task's
+   * id/type/timestamp, none of which is sensitive on its own.
+   * Imposers already know the correlation_id (they passed it). The
+   * sealed-by-task metadata is the same kind of information the
+   * imposer would see when trying to create a duplicate — leaking
+   * "yes, sealed" is exactly the API contract.
    */
-  function makeAsyncValidationContext(): AsyncTaskValidationContext {
+  function makeAsyncValidationContext(
+    callerId: string,
+    callerNs: KetoNamespace,
+  ): AsyncTaskValidationContext {
     return {
       async resolveTask(taskId: string) {
+        const canView = await permissionChecker.canViewTask(
+          taskId,
+          callerId,
+          callerNs,
+        );
+        if (!canView) return null;
         const row = await taskRepository.findById(taskId);
         return row ? dbTaskToWire(row) : null;
       },
       async listTasksByCorrelation(correlationId: string) {
         const rows = await taskRepository.findByCorrelationId(correlationId);
-        return rows.map((row) => dbTaskToWire(row));
+        if (rows.length === 0) return [];
+        // Batched-friendly filter: keep only rows the caller can
+        // view. Done in parallel; permissionChecker is Keto-only
+        // (no DB hit), so this is cheap.
+        const checks = await Promise.all(
+          rows.map((row) =>
+            permissionChecker.canViewTask(row.id, callerId, callerNs),
+          ),
+        );
+        return rows.filter((_, i) => checks[i]).map((row) => dbTaskToWire(row));
       },
       async findCorrelationSeal(
         correlationId: string,
@@ -293,6 +329,12 @@ export function createTaskService(deps: TaskServiceDeps) {
       async resolveContextPack(
         packId: string,
       ): Promise<ResolvedContextPack | null> {
+        const canRead = await permissionChecker.canReadPack(
+          packId,
+          callerId,
+          callerNs,
+        );
+        if (!canRead) return null;
         const row = await contextPackRepository.findById(packId);
         if (!row) return null;
         return {
@@ -304,8 +346,20 @@ export function createTaskService(deps: TaskServiceDeps) {
       async resolveRenderedPack(
         packId: string,
       ): Promise<ResolvedRenderedPack | null> {
+        // Rendered packs don't have their own Keto object; visibility
+        // is inherited from the source context pack. Look up the row
+        // first to find the source, then check pack visibility on it.
+        // Order matters: if the row doesn't exist, the caller learns
+        // "no" without us having issued a permission check on an
+        // unrelated id.
         const row = await renderedPackRepository.findById(packId);
         if (!row) return null;
+        const canRead = await permissionChecker.canReadPack(
+          row.sourcePackId,
+          callerId,
+          callerNs,
+        );
+        if (!canRead) return null;
         return {
           id: row.id,
           packCid: row.packCid,
@@ -360,7 +414,10 @@ export function createTaskService(deps: TaskServiceDeps) {
       // check correlation seals, etc. Errors here come back as a list
       // (not a single message) because async validators can surface
       // multiple independent invariant violations in one pass.
-      const asyncCtx = makeAsyncValidationContext();
+      const asyncCtx = makeAsyncValidationContext(
+        input.callerId,
+        input.callerNs,
+      );
       const asyncErrors = await validateTaskInputAsync(
         input.taskType,
         input.inputPayload,
