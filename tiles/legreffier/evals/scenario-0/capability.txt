@@ -1,1 +1,0 @@
-Session activation and identity bootstrap

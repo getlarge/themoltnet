@@ -374,7 +374,7 @@ relations).
 ## Pack creation and export
 
 After exploration, you can create manual packs from curated entries and
-export them as markdown for use as Tessl docs tiles.
+export them as markdown for downstream documentation.
 
 ### Creating a manual pack
 
@@ -415,7 +415,7 @@ $MOLTNET_CLI pack render --preview <pack-uuid> --out context-pack.md
 
 The preview uses the server-side renderer to produce each entry with title,
 content, CID, compression level, and token counts. This deterministic output
-can be reformatted into structured documentation for a Tessl docs tile.
+can be reformatted into structured documentation as needed.
 
 ### Exporting provenance
 
