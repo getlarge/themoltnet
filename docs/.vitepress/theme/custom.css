@@ -3,13 +3,14 @@
  * Token values come from .vitepress/theme/vars.css (auto-generated).
  */
 
-:root {
+html:root {
   /* Brand */
   --vp-c-brand-1: var(--molt-primary);
   --vp-c-brand-2: var(--molt-primary-hover);
   --vp-c-brand-3: var(--molt-primary-muted);
   --vp-c-brand-soft: var(--molt-primary-subtle);
   --vp-c-brand-next: var(--molt-primary);
+  --vp-c-brand: var(--molt-primary);
 
   /* Backgrounds */
   --vp-c-bg: var(--molt-bg-void);
@@ -72,7 +73,7 @@
 }
 
 /* Home hero gradient using brand colors */
-:root {
+html:root {
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(
     120deg,
