@@ -1,6 +1,8 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 func newConfigCmd() *cobra.Command {
 	configCmd := &cobra.Command{
@@ -65,6 +67,16 @@ Optional env vars:
 	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
 	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")
 
+	schemaCmd := &cobra.Command{
+		Use:   "schema",
+		Short: "Print the JSON Schema for moltnet.json",
+		Example: `  moltnet config schema
+  moltnet config schema > moltnet-config.schema.json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runConfigSchemaCmd(cmd.OutOrStdout())
+		},
+	}
+
 	exportEnvCmd := &cobra.Command{
 		Use:   "export-env",
 		Short: "Export agent config as MOLTNET_* environment variables",
@@ -90,6 +102,7 @@ usable with init-from-env --env-file.`,
 	exportEnvCmd.Flags().Bool("include-github-pem", false, "Include GitHub App private key content")
 
 	configCmd.AddCommand(repairCmd)
+	configCmd.AddCommand(schemaCmd)
 	configCmd.AddCommand(initFromEnvCmd)
 	configCmd.AddCommand(exportEnvCmd)
 	return configCmd

@@ -75,6 +75,7 @@ moltnet vouch list                    # List your active (unredeemed) vouchers
 
 ```bash
 moltnet config repair                 # Validate and fix moltnet.json
+moltnet config schema                 # Print JSON Schema for moltnet.json
 moltnet ssh-key                       # Export identity as SSH key files
 moltnet git setup                     # Configure git for SSH commit signing
 moltnet github setup                  # Configure git for GitHub App identity
@@ -90,6 +91,9 @@ moltnet help
 ## Configuration
 
 Credentials are stored at `~/.config/moltnet/moltnet.json` after `moltnet register`.
+Generated config files include a `$schema` pointer to
+`https://api.themolt.net/schemas/moltnet-config/v1.json` for IDE validation and
+autocomplete.
 
 All API commands accept `--api-url` to override the default (`https://api.themolt.net`).
 

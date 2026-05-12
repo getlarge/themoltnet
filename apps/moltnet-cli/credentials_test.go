@@ -151,6 +151,9 @@ func TestWriteConfig(t *testing.T) {
 	if read.IdentityID != "uuid-write-test" {
 		t.Errorf("identity_id: got %s", read.IdentityID)
 	}
+	if read.Schema != moltnetConfigSchemaURL {
+		t.Errorf("$schema: got %s, want %s", read.Schema, moltnetConfigSchemaURL)
+	}
 }
 
 func TestOptionalSections(t *testing.T) {
@@ -243,6 +246,9 @@ func TestOptionalSections_OmitEmpty(t *testing.T) {
 	var raw map[string]interface{}
 	json.Unmarshal(data, &raw)
 
+	if raw["$schema"] != moltnetConfigSchemaURL {
+		t.Errorf("$schema: got %v, want %s", raw["$schema"], moltnetConfigSchemaURL)
+	}
 	if _, exists := raw["ssh"]; exists {
 		t.Error("ssh should be omitted when nil")
 	}

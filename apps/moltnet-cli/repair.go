@@ -118,6 +118,14 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		}
 	}
 
+	if creds.Schema == "" {
+		creds.Schema = moltnetConfigSchemaURL
+		issues = append(issues, ConfigIssue{Field: "$schema", Problem: "missing — set to canonical MoltNet config schema", Action: "fixed"})
+	} else if creds.Schema != moltnetConfigSchemaURL {
+		creds.Schema = moltnetConfigSchemaURL
+		issues = append(issues, ConfigIssue{Field: "$schema", Problem: "incorrect — updated to " + moltnetConfigSchemaURL, Action: "fixed"})
+	}
+
 	// Required fields
 	if creds.IdentityID == "" {
 		issues = append(issues, ConfigIssue{Field: "identity_id", Problem: "missing", Action: "warning"})
