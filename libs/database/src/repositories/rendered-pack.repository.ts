@@ -112,15 +112,17 @@ export function createRenderedPackRepository(db: Database) {
 
     async findLatestBySourcePackId(
       sourcePackId: string,
-    ): Promise<RenderedPack | null> {
-      const [row] = await getExecutor(db)
-        .select()
+    ): Promise<RenderedPackWithCreator | null> {
+      const [row] = (await getExecutor(db)
+        .select(renderedPackSelection)
         .from(renderedPacks)
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(eq(renderedPacks.sourcePackId, sourcePackId))
         .orderBy(desc(renderedPacks.createdAt))
-        .limit(1);
+        .limit(1)) as RenderedPackRow[];
 
-      return row ?? null;
+      return row ? normalizeRenderedPack(row) : null;
     },
 
     async listBySourcePackId(

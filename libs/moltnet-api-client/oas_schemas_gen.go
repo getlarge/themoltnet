@@ -18925,19 +18925,20 @@ func (*RenderedPackResult) renderContextPackRes() {}
 
 // Ref: #/components/schemas/RenderedPackWithContent
 type RenderedPackWithContent struct {
-	Content        string      `json:"content"`
-	ContentHash    string      `json:"contentHash"`
-	CreatedAt      time.Time   `json:"createdAt"`
-	Description    NilString   `json:"description"`
-	DiaryId        uuid.UUID   `json:"diaryId"`
-	ExpiresAt      NilDateTime `json:"expiresAt"`
-	ID             uuid.UUID   `json:"id"`
-	PackCid        string      `json:"packCid"`
-	Pinned         bool        `json:"pinned"`
-	RenderMethod   string      `json:"renderMethod"`
-	SourcePackId   uuid.UUID   `json:"sourcePackId"`
-	TotalTokens    int         `json:"totalTokens"`
-	VerifiedTaskId OptNilUUID  `json:"verifiedTaskId"`
+	Content        string                         `json:"content"`
+	ContentHash    string                         `json:"contentHash"`
+	CreatedAt      time.Time                      `json:"createdAt"`
+	Creator        RenderedPackWithContentCreator `json:"creator"`
+	Description    NilString                      `json:"description"`
+	DiaryId        uuid.UUID                      `json:"diaryId"`
+	ExpiresAt      NilDateTime                    `json:"expiresAt"`
+	ID             uuid.UUID                      `json:"id"`
+	PackCid        string                         `json:"packCid"`
+	Pinned         bool                           `json:"pinned"`
+	RenderMethod   string                         `json:"renderMethod"`
+	SourcePackId   uuid.UUID                      `json:"sourcePackId"`
+	TotalTokens    int                            `json:"totalTokens"`
+	VerifiedTaskId OptNilUUID                     `json:"verifiedTaskId"`
 }
 
 // GetContent returns the value of Content.
@@ -18953,6 +18954,11 @@ func (s *RenderedPackWithContent) GetContentHash() string {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *RenderedPackWithContent) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetCreator returns the value of Creator.
+func (s *RenderedPackWithContent) GetCreator() RenderedPackWithContentCreator {
+	return s.Creator
 }
 
 // GetDescription returns the value of Description.
@@ -19020,6 +19026,11 @@ func (s *RenderedPackWithContent) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
+// SetCreator sets the value of Creator.
+func (s *RenderedPackWithContent) SetCreator(val RenderedPackWithContentCreator) {
+	s.Creator = val
+}
+
 // SetDescription sets the value of Description.
 func (s *RenderedPackWithContent) SetDescription(val NilString) {
 	s.Description = val
@@ -19073,6 +19084,74 @@ func (s *RenderedPackWithContent) SetVerifiedTaskId(val OptNilUUID) {
 func (*RenderedPackWithContent) getLatestRenderedPackRes() {}
 func (*RenderedPackWithContent) getRenderedPackByIdRes()   {}
 func (*RenderedPackWithContent) updateRenderedPackRes()    {}
+
+// RenderedPackWithContentCreator represents sum type.
+type RenderedPackWithContentCreator struct {
+	Type           RenderedPackWithContentCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// RenderedPackWithContentCreatorType is oneOf type of RenderedPackWithContentCreator.
+type RenderedPackWithContentCreatorType string
+
+// Possible values for RenderedPackWithContentCreatorType.
+const (
+	AgentPrincipalRenderedPackWithContentCreator RenderedPackWithContentCreatorType = "agent"
+	HumanPrincipalRenderedPackWithContentCreator RenderedPackWithContentCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether RenderedPackWithContentCreator is AgentPrincipal.
+func (s RenderedPackWithContentCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalRenderedPackWithContentCreator
+}
+
+// IsHumanPrincipal reports whether RenderedPackWithContentCreator is HumanPrincipal.
+func (s RenderedPackWithContentCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalRenderedPackWithContentCreator
+}
+
+// SetAgentPrincipal sets RenderedPackWithContentCreator to AgentPrincipal.
+func (s *RenderedPackWithContentCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalRenderedPackWithContentCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if RenderedPackWithContentCreator is AgentPrincipal.
+func (s RenderedPackWithContentCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalRenderedPackWithContentCreator returns new RenderedPackWithContentCreator from AgentPrincipal.
+func NewAgentPrincipalRenderedPackWithContentCreator(v AgentPrincipal) RenderedPackWithContentCreator {
+	var s RenderedPackWithContentCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets RenderedPackWithContentCreator to HumanPrincipal.
+func (s *RenderedPackWithContentCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalRenderedPackWithContentCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if RenderedPackWithContentCreator is HumanPrincipal.
+func (s RenderedPackWithContentCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalRenderedPackWithContentCreator returns new RenderedPackWithContentCreator from HumanPrincipal.
+func NewHumanPrincipalRenderedPackWithContentCreator(v HumanPrincipal) RenderedPackWithContentCreator {
+	var s RenderedPackWithContentCreator
+	s.SetHumanPrincipal(v)
+	return s
+}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 

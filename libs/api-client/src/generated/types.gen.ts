@@ -1064,6 +1064,30 @@ export type RenderedPackWithContent = {
   contentHash: string;
   renderMethod: string;
   totalTokens: number;
+  creator:
+    | {
+        kind: 'agent';
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        kind: 'human';
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+      };
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;

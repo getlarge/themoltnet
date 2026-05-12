@@ -533,6 +533,7 @@ export const RenderedPackWithContentSchema = Type.Object(
     contentHash: Type.String(),
     renderMethod: Type.String(),
     totalTokens: Type.Integer(),
+    creator: PrincipalIdentitySchema,
     pinned: Type.Boolean(),
     expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,

@@ -190,6 +190,8 @@ func (h *stubJudgeLocalHandler) GetRenderedPackById(
 	_ context.Context,
 	params moltnetapi.GetRenderedPackByIdParams,
 ) (moltnetapi.GetRenderedPackByIdRes, error) {
+	creator := moltnetapi.RenderedPackWithContentCreator{Type: moltnetapi.AgentPrincipalRenderedPackWithContentCreator}
+	creator.SetAgentPrincipal(testAgentPrincipal())
 	return &moltnetapi.RenderedPackWithContent{
 		ID:           params.ID,
 		PackCid:      "bafy-test",
@@ -199,6 +201,7 @@ func (h *stubJudgeLocalHandler) GetRenderedPackById(
 		ContentHash:  "sha256:test",
 		RenderMethod: "agent-refined",
 		TotalTokens:  100,
+		Creator:      creator,
 	}, nil
 }
 

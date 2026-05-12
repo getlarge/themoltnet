@@ -476,6 +476,7 @@ const RenderedPackWithContentSchema = Type.Object({
   contentHash: Type.String(),
   renderMethod: Type.String(),
   totalTokens: Type.Number(),
+  creator: PrincipalIdentitySchema,
   pinned: Type.Boolean(),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
@@ -564,9 +565,11 @@ export const RenderedPackUpdateOutputSchema = Type.Object({
   contentHash: Type.String(),
   renderMethod: Type.String(),
   totalTokens: Type.Number(),
+  creator: PrincipalIdentitySchema,
   pinned: Type.Boolean(),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
+  verifiedTaskId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   description: Type.Union([Type.String(), Type.Null()]),
 });
 

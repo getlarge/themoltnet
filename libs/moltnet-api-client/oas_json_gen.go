@@ -47769,6 +47769,10 @@ func (s *RenderedPackWithContent) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
+	}
+	{
 		e.FieldStart("description")
 		s.Description.Encode(e)
 	}
@@ -47812,20 +47816,21 @@ func (s *RenderedPackWithContent) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRenderedPackWithContent = [13]string{
+var jsonFieldsNameOfRenderedPackWithContent = [14]string{
 	0:  "content",
 	1:  "contentHash",
 	2:  "createdAt",
-	3:  "description",
-	4:  "diaryId",
-	5:  "expiresAt",
-	6:  "id",
-	7:  "packCid",
-	8:  "pinned",
-	9:  "renderMethod",
-	10: "sourcePackId",
-	11: "totalTokens",
-	12: "verifiedTaskId",
+	3:  "creator",
+	4:  "description",
+	5:  "diaryId",
+	6:  "expiresAt",
+	7:  "id",
+	8:  "packCid",
+	9:  "pinned",
+	10: "renderMethod",
+	11: "sourcePackId",
+	12: "totalTokens",
+	13: "verifiedTaskId",
 }
 
 // Decode decodes RenderedPackWithContent from json.
@@ -47873,8 +47878,18 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "description":
+		case "creator":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Creator.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creator\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -47884,7 +47899,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "diaryId":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -47896,7 +47911,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "expiresAt":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -47906,7 +47921,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -47918,7 +47933,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "packCid":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCid = string(v)
@@ -47930,7 +47945,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
 		case "pinned":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Bool()
 				s.Pinned = bool(v)
@@ -47942,7 +47957,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
 		case "renderMethod":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.RenderMethod = string(v)
@@ -47954,7 +47969,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"renderMethod\"")
 			}
 		case "sourcePackId":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SourcePackId = v
@@ -47966,7 +47981,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourcePackId\"")
 			}
 		case "totalTokens":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalTokens = int(v)
@@ -47998,7 +48013,7 @@ func (s *RenderedPackWithContent) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00001111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -48040,6 +48055,120 @@ func (s *RenderedPackWithContent) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RenderedPackWithContent) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderedPackWithContentCreator as json.
+func (s RenderedPackWithContentCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s RenderedPackWithContentCreator) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalRenderedPackWithContentCreator:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalRenderedPackWithContentCreator:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes RenderedPackWithContentCreator from json.
+func (s *RenderedPackWithContentCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderedPackWithContentCreator to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalRenderedPackWithContentCreator
+					found = true
+				case "human":
+					s.Type = HumanPrincipalRenderedPackWithContentCreator
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalRenderedPackWithContentCreator:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalRenderedPackWithContentCreator:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RenderedPackWithContentCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderedPackWithContentCreator) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
