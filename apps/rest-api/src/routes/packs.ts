@@ -35,10 +35,7 @@ import {
   PackQuerySchema,
   PackUpdateBodySchema,
 } from '../schemas.js';
-import {
-  authContextToCreator,
-  rowToResponseWithCreator,
-} from '../utils/auth-principal.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
 
 interface SelectedEntry {
@@ -786,20 +783,12 @@ export async function packRoutes(fastify: FastifyInstance) {
         }));
       }
 
-      const inflatedRendered = packs.renderedPacks
-        ? await Promise.all(
-            packs.renderedPacks.map((rp) =>
-              rowToResponseWithCreator(rp, fastify),
-            ),
-          )
-        : undefined;
-
       const response = {
         items,
         total: packs.total,
         limit,
         offset,
-        ...(inflatedRendered ? { renderedPacks: inflatedRendered } : {}),
+        ...(packs.renderedPacks ? { renderedPacks: packs.renderedPacks } : {}),
       };
 
       return response;

@@ -3139,6 +3139,23 @@
                 "format": "date-time",
                 "type": "string"
               },
+              "creator": {
+                "discriminator": {
+                  "mapping": {
+                    "agent": "#/components/schemas/AgentPrincipal",
+                    "human": "#/components/schemas/HumanPrincipal"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentPrincipal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HumanPrincipal"
+                  }
+                ]
+              },
               "diaryId": {
                 "description": "UUID v4 identifier",
                 "format": "uuid",
@@ -3591,6 +3608,23 @@
           "contentHash": {
             "type": "string"
           },
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -3632,6 +3666,7 @@
           "renderMethod",
           "renderedMarkdown",
           "totalTokens",
+          "creator",
           "pinned"
         ],
         "type": "object"
@@ -3647,6 +3682,23 @@
           "createdAt": {
             "format": "date-time",
             "type": "string"
+          },
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
           },
           "description": {
             "nullable": true,
@@ -3696,6 +3748,7 @@
           "contentHash",
           "renderMethod",
           "totalTokens",
+          "creator",
           "pinned",
           "expiresAt",
           "createdAt",

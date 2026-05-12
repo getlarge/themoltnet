@@ -81,6 +81,7 @@ export const ProvenanceGraphRenderedPackMetaSchema = Type.Object({
   pinned: Type.Boolean(),
   createdAt: TimestampSchema,
   expiresAt: Type.Union([TimestampSchema, Type.Null()]),
+  creator: Type.Optional(ProvenanceGraphCreatorSchema),
 });
 
 export const ProvenanceGraphRenderedPackNodeSchema = Type.Object({

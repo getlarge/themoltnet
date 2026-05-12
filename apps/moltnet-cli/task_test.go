@@ -959,8 +959,8 @@ func makeTestMsg(seq int, kind moltnetapi.TaskMessageKind, payloadJSON string) m
 // envelope does).
 type stubAttemptsHandler struct {
 	moltnetapi.UnimplementedHandler
-	attempts          []moltnetapi.TaskAttempt
-	acceptedAttemptN  *int // nil → null on the wire
+	attempts         []moltnetapi.TaskAttempt
+	acceptedAttemptN *int // nil → null on the wire
 }
 
 func (h *stubAttemptsHandler) ListTaskAttempts(_ context.Context, _ moltnetapi.ListTaskAttemptsParams) (moltnetapi.ListTaskAttemptsRes, error) {

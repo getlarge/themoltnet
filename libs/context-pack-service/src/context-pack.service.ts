@@ -570,6 +570,7 @@ export class ContextPackService {
         renderMethod: input.renderMethod,
         renderedMarkdown,
         totalTokens: existing.totalTokens,
+        creator: existing.creator,
         pinned: existing.pinned,
       };
     }
@@ -616,10 +617,24 @@ export class ContextPackService {
           renderMethod: input.renderMethod,
           renderedMarkdown,
           totalTokens: raced.totalTokens,
+          creator: raced.creator,
           pinned: raced.pinned,
         };
       }
       throw err;
+    }
+
+    // Re-fetch via findById to obtain the JOIN-resolved creator. The insert
+    // returning() shape lacks the agents/humans columns needed to build a
+    // PrincipalIdentity, and we want responses to mirror GET responses.
+    const withCreator = await this.deps.renderedPackRepository.findById(
+      rendered.id,
+    );
+    if (!withCreator) {
+      throw new PackServiceError(
+        `Rendered pack ${rendered.id} disappeared after insert`,
+        'not_found',
+      );
     }
 
     return {
@@ -632,6 +647,7 @@ export class ContextPackService {
       renderMethod: rendered.renderMethod,
       renderedMarkdown,
       totalTokens: rendered.totalTokens,
+      creator: withCreator.creator,
       pinned: rendered.pinned,
     };
   }

@@ -402,7 +402,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           expiresAt === undefined &&
           verifiedTaskId === undefined
         ) {
-          return afterDescription;
+          return { ...rendered, ...afterDescription };
         }
         Object.assign(rendered, afterDescription);
       }
@@ -464,7 +464,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         // If only verifiedTaskId was sent, return now; otherwise fall through
         // to process pinned / expiresAt on the updated state.
         if (pinned === undefined && expiresAt === undefined) {
-          return afterVerify;
+          return { ...rendered, ...afterVerify };
         }
         // Refresh rendered so the pin/expiry logic below sees the latest state.
         Object.assign(rendered, afterVerify);
@@ -525,7 +525,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           'Rendered pack not found after update',
         );
       }
-      return updated;
+      return { ...rendered, ...updated };
     },
   );
 }

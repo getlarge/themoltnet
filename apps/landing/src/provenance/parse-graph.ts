@@ -63,7 +63,9 @@ function isValidNode(node: unknown): node is ProvenanceGraph['nodes'][number] {
       typeof node.meta.totalTokens === 'number' &&
       typeof node.meta.pinned === 'boolean' &&
       typeof node.meta.createdAt === 'string' &&
-      (typeof node.meta.expiresAt === 'string' || node.meta.expiresAt === null)
+      (typeof node.meta.expiresAt === 'string' ||
+        node.meta.expiresAt === null) &&
+      isCreator(node.meta.creator)
     );
   }
 

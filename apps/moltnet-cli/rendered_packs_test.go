@@ -71,6 +71,8 @@ func (h *stubRenderedPacksHandler) GetRenderedPackById(
 ) (moltnetapi.GetRenderedPackByIdRes, error) {
 	h.getCalls++
 	h.getID = params.ID
+	creator := moltnetapi.RenderedPackWithContentCreator{Type: moltnetapi.AgentPrincipalRenderedPackWithContentCreator}
+	creator.SetAgentPrincipal(testAgentPrincipal())
 	return &moltnetapi.RenderedPackWithContent{
 		ID:           params.ID,
 		PackCid:      "bafy-rendered-1",
@@ -80,6 +82,7 @@ func (h *stubRenderedPacksHandler) GetRenderedPackById(
 		ContentHash:  "sha256:abc",
 		RenderMethod: "agent-refined",
 		TotalTokens:  200,
+		Creator:      creator,
 		Pinned:       false,
 	}, nil
 }
@@ -96,6 +99,8 @@ func (h *stubRenderedPacksHandler) UpdateRenderedPack(
 		h.updatePinned = req.Value.Pinned
 	}
 	desc := req.Value.Description
+	creator := moltnetapi.RenderedPackWithContentCreator{Type: moltnetapi.AgentPrincipalRenderedPackWithContentCreator}
+	creator.SetAgentPrincipal(testAgentPrincipal())
 	return &moltnetapi.RenderedPackWithContent{
 		ID:           params.ID,
 		PackCid:      "bafy-rendered-1",
@@ -105,6 +110,7 @@ func (h *stubRenderedPacksHandler) UpdateRenderedPack(
 		ContentHash:  "sha256:abc",
 		RenderMethod: "agent-refined",
 		TotalTokens:  200,
+		Creator:      creator,
 		Pinned:       req.Value.Pinned.Or(false),
 		Description: func() moltnetapi.NilString {
 			if desc.Set && !desc.Null {

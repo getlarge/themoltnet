@@ -6,6 +6,7 @@
  * fetch by ID, permission checks, and preview mode.
  */
 
+import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 
 import {
@@ -20,6 +21,7 @@ import {
   getRenderedPackById,
   listDiaryEntries,
   listDiaryPacks,
+  listDiaryRenderedPacks,
   previewRenderedPack,
   renderContextPack,
   type RenderedPackPreview,
@@ -319,7 +321,69 @@ describe('Rendered packs', () => {
 
     expect(error, `getById failed: ${JSON.stringify(error)}`).toBeUndefined();
     expect(response.status).toBe(200);
-    expect((data as RenderedPackWithContent).packCid).toBe(latest.packCid);
+    const rendered = data as RenderedPackWithContent;
+    expect(rendered.packCid).toBe(latest.packCid);
+    assert(rendered.creator.kind === 'agent');
+    expect(rendered.creator.identityId).toBe(agentA.identityId);
+    expect(rendered.creator.publicKey).toBe(agentA.keyPair.publicKey);
+  });
+
+  it('includes creator on latest, get-by-id, and list responses', async () => {
+    const renderedMarkdown = '# Creator metadata\n\nPreserve provenance.';
+    const {
+      data: createdData,
+      error: createError,
+      response: createResponse,
+    } = await renderContextPack({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: sourcePackId },
+      body: {
+        renderMethod: 'agent-refined',
+        renderedMarkdown,
+      },
+    });
+
+    expect(
+      createError,
+      `render failed: ${JSON.stringify(createError)}`,
+    ).toBeUndefined();
+    expect(createResponse.status).toBe(201);
+    const created = createdData as RenderedPackResult;
+
+    const { data: latestData } = await getLatestRenderedPack({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: sourcePackId },
+    });
+    const latest = latestData as RenderedPackWithContent;
+
+    const { data: byIdData } = await getRenderedPackById({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: created.id },
+    });
+    const byId = byIdData as RenderedPackWithContent;
+
+    const { data: listData } = await listDiaryRenderedPacks({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: agentA.moltnetDiaryId },
+      query: { sourcePackId },
+    });
+    const listed = listData!.items.find((item) => item.id === created.id);
+    assert(listed, 'expected listed rendered pack');
+
+    expect(latest.id).toBe(created.id);
+    assert(latest.creator.kind === 'agent');
+    expect(latest.creator.identityId).toBe(agentA.identityId);
+    expect(latest.creator.publicKey).toBe(agentA.keyPair.publicKey);
+    assert(byId.creator.kind === 'agent');
+    expect(byId.creator.identityId).toBe(agentA.identityId);
+    expect(byId.creator.publicKey).toBe(agentA.keyPair.publicKey);
+    assert(listed.creator.kind === 'agent');
+    expect(listed.creator.identityId).toBe(agentA.identityId);
+    expect(listed.creator.publicKey).toBe(agentA.keyPair.publicKey);
   });
 
   it('returns 403 when another agent tries to read a rendered pack', async () => {
