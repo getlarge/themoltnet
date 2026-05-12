@@ -3139,6 +3139,23 @@
                 "format": "date-time",
                 "type": "string"
               },
+              "creator": {
+                "discriminator": {
+                  "mapping": {
+                    "agent": "#/components/schemas/AgentPrincipal",
+                    "human": "#/components/schemas/HumanPrincipal"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentPrincipal"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HumanPrincipal"
+                  }
+                ]
+              },
               "diaryId": {
                 "description": "UUID v4 identifier",
                 "format": "uuid",

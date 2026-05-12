@@ -14888,6 +14888,52 @@ func (o OptProvenanceGraphPackNodeMetaCreator) Or(d ProvenanceGraphPackNodeMetaC
 	return d
 }
 
+// NewOptProvenanceGraphRenderedPackNodeMetaCreator returns new OptProvenanceGraphRenderedPackNodeMetaCreator with value set to v.
+func NewOptProvenanceGraphRenderedPackNodeMetaCreator(v ProvenanceGraphRenderedPackNodeMetaCreator) OptProvenanceGraphRenderedPackNodeMetaCreator {
+	return OptProvenanceGraphRenderedPackNodeMetaCreator{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProvenanceGraphRenderedPackNodeMetaCreator is optional ProvenanceGraphRenderedPackNodeMetaCreator.
+type OptProvenanceGraphRenderedPackNodeMetaCreator struct {
+	Value ProvenanceGraphRenderedPackNodeMetaCreator
+	Set   bool
+}
+
+// IsSet returns true if OptProvenanceGraphRenderedPackNodeMetaCreator was set.
+func (o OptProvenanceGraphRenderedPackNodeMetaCreator) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProvenanceGraphRenderedPackNodeMetaCreator) Reset() {
+	var v ProvenanceGraphRenderedPackNodeMetaCreator
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProvenanceGraphRenderedPackNodeMetaCreator) SetTo(v ProvenanceGraphRenderedPackNodeMetaCreator) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProvenanceGraphRenderedPackNodeMetaCreator) Get() (v ProvenanceGraphRenderedPackNodeMetaCreator, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProvenanceGraphRenderedPackNodeMetaCreator) Or(d ProvenanceGraphRenderedPackNodeMetaCreator) ProvenanceGraphRenderedPackNodeMetaCreator {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRelationStatus returns new OptRelationStatus with value set to v.
 func NewOptRelationStatus(v RelationStatus) OptRelationStatus {
 	return OptRelationStatus{
@@ -17277,7 +17323,8 @@ func (s *ProvenanceGraphRenderedPackNodeKind) UnmarshalText(data []byte) error {
 
 type ProvenanceGraphRenderedPackNodeMeta struct {
 	// ISO 8601 timestamp.
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time                                     `json:"createdAt"`
+	Creator   OptProvenanceGraphRenderedPackNodeMetaCreator `json:"creator"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID `json:"diaryId"`
 	// ISO 8601 timestamp.
@@ -17295,6 +17342,11 @@ type ProvenanceGraphRenderedPackNodeMeta struct {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *ProvenanceGraphRenderedPackNodeMeta) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetCreator returns the value of Creator.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetCreator() OptProvenanceGraphRenderedPackNodeMetaCreator {
+	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -17342,6 +17394,11 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
+// SetCreator sets the value of Creator.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetCreator(val OptProvenanceGraphRenderedPackNodeMetaCreator) {
+	s.Creator = val
+}
+
 // SetDiaryId sets the value of DiaryId.
 func (s *ProvenanceGraphRenderedPackNodeMeta) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
@@ -17380,6 +17437,74 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) SetSourcePackId(val uuid.UUID) {
 // SetTotalTokens sets the value of TotalTokens.
 func (s *ProvenanceGraphRenderedPackNodeMeta) SetTotalTokens(val float64) {
 	s.TotalTokens = val
+}
+
+// ProvenanceGraphRenderedPackNodeMetaCreator represents sum type.
+type ProvenanceGraphRenderedPackNodeMetaCreator struct {
+	Type           ProvenanceGraphRenderedPackNodeMetaCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// ProvenanceGraphRenderedPackNodeMetaCreatorType is oneOf type of ProvenanceGraphRenderedPackNodeMetaCreator.
+type ProvenanceGraphRenderedPackNodeMetaCreatorType string
+
+// Possible values for ProvenanceGraphRenderedPackNodeMetaCreatorType.
+const (
+	AgentPrincipalProvenanceGraphRenderedPackNodeMetaCreator ProvenanceGraphRenderedPackNodeMetaCreatorType = "agent"
+	HumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator ProvenanceGraphRenderedPackNodeMetaCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether ProvenanceGraphRenderedPackNodeMetaCreator is AgentPrincipal.
+func (s ProvenanceGraphRenderedPackNodeMetaCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalProvenanceGraphRenderedPackNodeMetaCreator
+}
+
+// IsHumanPrincipal reports whether ProvenanceGraphRenderedPackNodeMetaCreator is HumanPrincipal.
+func (s ProvenanceGraphRenderedPackNodeMetaCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator
+}
+
+// SetAgentPrincipal sets ProvenanceGraphRenderedPackNodeMetaCreator to AgentPrincipal.
+func (s *ProvenanceGraphRenderedPackNodeMetaCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalProvenanceGraphRenderedPackNodeMetaCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if ProvenanceGraphRenderedPackNodeMetaCreator is AgentPrincipal.
+func (s ProvenanceGraphRenderedPackNodeMetaCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalProvenanceGraphRenderedPackNodeMetaCreator returns new ProvenanceGraphRenderedPackNodeMetaCreator from AgentPrincipal.
+func NewAgentPrincipalProvenanceGraphRenderedPackNodeMetaCreator(v AgentPrincipal) ProvenanceGraphRenderedPackNodeMetaCreator {
+	var s ProvenanceGraphRenderedPackNodeMetaCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets ProvenanceGraphRenderedPackNodeMetaCreator to HumanPrincipal.
+func (s *ProvenanceGraphRenderedPackNodeMetaCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if ProvenanceGraphRenderedPackNodeMetaCreator is HumanPrincipal.
+func (s ProvenanceGraphRenderedPackNodeMetaCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator returns new ProvenanceGraphRenderedPackNodeMetaCreator from HumanPrincipal.
+func NewHumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator(v HumanPrincipal) ProvenanceGraphRenderedPackNodeMetaCreator {
+	var s ProvenanceGraphRenderedPackNodeMetaCreator
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // Ref: #/components/schemas/PublicFeedEntry

@@ -128,27 +128,35 @@ export function createRenderedPackRepository(db: Database) {
     async listBySourcePackId(
       sourcePackId: string,
       limit = 50,
-    ): Promise<RenderedPack[]> {
-      return getExecutor(db)
-        .select()
+    ): Promise<RenderedPackWithCreator[]> {
+      const rows = (await getExecutor(db)
+        .select(renderedPackSelection)
         .from(renderedPacks)
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(eq(renderedPacks.sourcePackId, sourcePackId))
         .orderBy(desc(renderedPacks.createdAt))
-        .limit(limit);
+        .limit(limit)) as RenderedPackRow[];
+
+      return rows.map(normalizeRenderedPack);
     },
 
     async listBySourcePackIds(
       sourcePackIds: string[],
       limit = 500,
-    ): Promise<RenderedPack[]> {
+    ): Promise<RenderedPackWithCreator[]> {
       if (sourcePackIds.length === 0) return [];
 
-      return getExecutor(db)
-        .select()
+      const rows = (await getExecutor(db)
+        .select(renderedPackSelection)
         .from(renderedPacks)
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(inArray(renderedPacks.sourcePackId, sourcePackIds))
         .orderBy(desc(renderedPacks.createdAt))
-        .limit(limit);
+        .limit(limit)) as RenderedPackRow[];
+
+      return rows.map(normalizeRenderedPack);
     },
 
     async listByDiary(

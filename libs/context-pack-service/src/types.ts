@@ -6,7 +6,6 @@ import type {
   PackDiffCompressionLevel,
   PackDiffRow,
   PrincipalIdentity,
-  RenderedPack,
   RenderedPackWithCreator,
 } from '@moltnet/database';
 
@@ -124,7 +123,7 @@ export interface ListPacksByEntryInput {
 export interface PacksByEntryResult {
   items: ContextPackWithCreator[];
   total: number;
-  renderedPacks?: RenderedPack[];
+  renderedPacks?: RenderedPackWithCreator[];
 }
 
 export interface GetPackByIdInput {

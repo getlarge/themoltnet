@@ -2,7 +2,7 @@ import type { KetoNamespace } from '@moltnet/auth';
 import type {
   ContextPackWithCreator,
   ExpandedPackEntry,
-  RenderedPack,
+  RenderedPackWithCreator,
 } from '@moltnet/database';
 import type { ProvenanceGraph } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
@@ -207,7 +207,7 @@ function pushEntryNode(
 
 function pushRenderedPackNode(
   nodes: ProvenanceGraph['nodes'],
-  renderedPack: RenderedPack,
+  renderedPack: RenderedPackWithCreator,
 ): void {
   nodes.push({
     id: renderedPackNodeId(renderedPack.id),
@@ -224,6 +224,7 @@ function pushRenderedPackNode(
       pinned: renderedPack.pinned,
       createdAt: renderedPack.createdAt.toISOString(),
       expiresAt: renderedPack.expiresAt?.toISOString() ?? null,
+      creator: renderedPack.creator,
     },
   });
 }
