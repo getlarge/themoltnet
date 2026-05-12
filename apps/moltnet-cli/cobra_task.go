@@ -15,8 +15,44 @@ func newTaskCmd() *cobra.Command {
 	taskCmd.AddCommand(newTaskListCmd())
 	taskCmd.AddCommand(newTaskGetCmd())
 	taskCmd.AddCommand(newTaskTailCmd())
+	taskCmd.AddCommand(newTaskAttemptsCmd())
 
 	return taskCmd
+}
+
+func newTaskAttemptsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "attempts <task-id>",
+		Short: "List attempts for a task",
+		Long: `List attempts for a task — including each attempt's output payload.
+
+` + "`moltnet task get`" + ` returns the task envelope (status, acceptedAttemptN)
+but does not embed attempt payloads. Use this command to inspect what an
+accepted attempt actually produced (judgment JSON, generated artifact, etc.)
+without spinning up a one-off SDK script.`,
+		Example: `  # All attempts (JSON array)
+  moltnet task attempts <task-uuid>
+
+  # Just the accepted attempt (single object, not array)
+  moltnet task attempts <task-uuid> --accepted-only
+
+  # Just the accepted attempt's output field — pipe straight into jq
+  moltnet task attempts <task-uuid> --accepted-only --field output`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runTaskAttemptsCmd(taskAttemptsOpts{
+				apiURL:       flagString(cmd, "api-url"),
+				credPath:     flagString(cmd, "credentials"),
+				taskID:       args[0],
+				acceptedOnly: flagBool(cmd, "accepted-only"),
+				field:        flagString(cmd, "field"),
+				out:          cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().Bool("accepted-only", false, "Return only the accepted attempt (single object, not an array)")
+	cmd.Flags().String("field", "", "Print only one field of the selected attempt (one of: output, outputCid, error, status, attemptN). Requires --accepted-only when there are multiple attempts")
+	return cmd
 }
 
 func newTaskListCmd() *cobra.Command {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"sync"
@@ -947,5 +948,196 @@ func makeTestMsg(seq int, kind moltnetapi.TaskMessageKind, payloadJSON string) m
 		Timestamp: time.Now().UTC(),
 		Kind:      kind,
 		Payload:   moltnetapi.TaskMessagePayload{"event": jx.Raw(payloadJSON)},
+	}
+}
+
+// ── runTaskAttemptsCmd ───────────────────────────────────────────────────────
+
+// stubAttemptsHandler exercises ListTaskAttempts + GetTask for the
+// `task attempts` subcommand. The accepted-attempt path requires both
+// (the attempts list does not embed acceptedAttemptN — only the task
+// envelope does).
+type stubAttemptsHandler struct {
+	moltnetapi.UnimplementedHandler
+	attempts          []moltnetapi.TaskAttempt
+	acceptedAttemptN  *int // nil → null on the wire
+}
+
+func (h *stubAttemptsHandler) ListTaskAttempts(_ context.Context, _ moltnetapi.ListTaskAttemptsParams) (moltnetapi.ListTaskAttemptsRes, error) {
+	resp := moltnetapi.ListTaskAttemptsOKApplicationJSON(h.attempts)
+	return &resp, nil
+}
+
+func (h *stubAttemptsHandler) GetTask(_ context.Context, params moltnetapi.GetTaskParams) (moltnetapi.GetTaskRes, error) {
+	t := newTaskFixture(params.ID, uuid.MustParse("22222222-2222-4222-8222-222222222222"))
+	if h.acceptedAttemptN != nil {
+		t.AcceptedAttemptN.SetTo(float64(*h.acceptedAttemptN))
+		t.Status = moltnetapi.TaskStatusCompleted
+	}
+	return t, nil
+}
+
+func acceptedAttemptFixture(n int, output map[string]string) moltnetapi.TaskAttempt {
+	a := validRunningAttempt()
+	a.AttemptN = float64(n)
+	a.Status = moltnetapi.TaskAttemptStatusCompleted
+	if output != nil {
+		payload := moltnetapi.TaskAttemptOutput{}
+		for k, v := range output {
+			payload[k] = jx.Raw(fmt.Sprintf("%q", v))
+		}
+		a.Output.SetTo(payload)
+		a.OutputCid.SetTo("bafy-output-" + fmt.Sprint(n))
+	}
+	return a
+}
+
+func TestRunTaskAttempts_DefaultPrintsAll(t *testing.T) {
+	h := &stubAttemptsHandler{
+		attempts: []moltnetapi.TaskAttempt{
+			acceptedAttemptFixture(1, map[string]string{"verdict": "pass"}),
+			acceptedAttemptFixture(2, map[string]string{"verdict": "fail"}),
+		},
+	}
+	_, _, client := newTestServer(t, h)
+
+	var buf bytes.Buffer
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID: "11111111-1111-4111-8111-111111111111",
+		out:    &buf,
+	})
+	if err != nil {
+		t.Fatalf("runTaskAttemptsWithClient: %v", err)
+	}
+
+	var got []map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatalf("output is not a JSON array: %v\noutput: %s", err, buf.String())
+	}
+	if len(got) != 2 {
+		t.Errorf("expected 2 attempts, got %d", len(got))
+	}
+}
+
+func TestRunTaskAttempts_AcceptedOnlyReturnsSingleObject(t *testing.T) {
+	accepted := 2
+	h := &stubAttemptsHandler{
+		attempts: []moltnetapi.TaskAttempt{
+			acceptedAttemptFixture(1, map[string]string{"verdict": "fail"}),
+			acceptedAttemptFixture(2, map[string]string{"verdict": "pass"}),
+		},
+		acceptedAttemptN: &accepted,
+	}
+	_, _, client := newTestServer(t, h)
+
+	var buf bytes.Buffer
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID:       "11111111-1111-4111-8111-111111111111",
+		acceptedOnly: true,
+		out:          &buf,
+	})
+	if err != nil {
+		t.Fatalf("runTaskAttemptsWithClient: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatalf("expected a single JSON object, got: %s", buf.String())
+	}
+	if got["attemptN"] != float64(2) {
+		t.Errorf("expected attemptN=2, got %v", got["attemptN"])
+	}
+}
+
+func TestRunTaskAttempts_AcceptedOnly_NoAcceptedAttempt(t *testing.T) {
+	h := &stubAttemptsHandler{
+		attempts: []moltnetapi.TaskAttempt{
+			acceptedAttemptFixture(1, nil),
+		},
+		// acceptedAttemptN nil → wire value is null
+	}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID:       "11111111-1111-4111-8111-111111111111",
+		acceptedOnly: true,
+		out:          io.Discard,
+	})
+	if err == nil || !strings.Contains(err.Error(), "no accepted attempt") {
+		t.Fatalf("expected 'no accepted attempt' error, got %v", err)
+	}
+}
+
+func TestRunTaskAttempts_FieldOutput(t *testing.T) {
+	accepted := 1
+	h := &stubAttemptsHandler{
+		attempts: []moltnetapi.TaskAttempt{
+			acceptedAttemptFixture(1, map[string]string{"verdict": "pass"}),
+		},
+		acceptedAttemptN: &accepted,
+	}
+	_, _, client := newTestServer(t, h)
+
+	var buf bytes.Buffer
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID:       "11111111-1111-4111-8111-111111111111",
+		acceptedOnly: true,
+		field:        "output",
+		out:          &buf,
+	})
+	if err != nil {
+		t.Fatalf("runTaskAttemptsWithClient: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatalf("--field output should print just the output JSON, got: %s", buf.String())
+	}
+	if got["verdict"] != "pass" {
+		t.Errorf("expected verdict=pass, got %v", got["verdict"])
+	}
+}
+
+func TestRunTaskAttempts_FieldRequiresAcceptedOnly(t *testing.T) {
+	h := &stubAttemptsHandler{
+		attempts: []moltnetapi.TaskAttempt{acceptedAttemptFixture(1, nil)},
+	}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID: "11111111-1111-4111-8111-111111111111",
+		field:  "output",
+		out:    io.Discard,
+	})
+	if err == nil || !strings.Contains(err.Error(), "--field requires --accepted-only") {
+		t.Fatalf("expected --field/--accepted-only error, got %v", err)
+	}
+}
+
+func TestRunTaskAttempts_UnknownField(t *testing.T) {
+	h := &stubAttemptsHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID:       "11111111-1111-4111-8111-111111111111",
+		acceptedOnly: true,
+		field:        "bogus",
+		out:          io.Discard,
+	})
+	if err == nil || !strings.Contains(err.Error(), "unknown field") {
+		t.Fatalf("expected unknown field error, got %v", err)
+	}
+}
+
+func TestRunTaskAttempts_InvalidTaskID(t *testing.T) {
+	h := &stubAttemptsHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
+		taskID: "not-a-uuid",
+		out:    io.Discard,
+	})
+	if err == nil || !strings.Contains(err.Error(), "invalid task ID") {
+		t.Fatalf("expected invalid task ID error, got %v", err)
 	}
 }

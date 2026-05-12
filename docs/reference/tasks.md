@@ -30,7 +30,7 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 
 ### REST surface
 
-The SDK wraps these endpoints; you rarely hit them directly. The MCP server also exposes equivalents — `tasks_create`, `tasks_list`, `tasks_get`, `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`, `tasks_console_link`, `tasks_app_open` — for human + LLM operators driving the queue from a chat client.
+The SDK wraps these endpoints; you rarely hit them directly. The MCP server also exposes equivalents — `tasks_create`, `tasks_list`, `tasks_get`, `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`, `tasks_console_link`, `tasks_app_open` — for human + LLM operators driving the queue from a chat client. The Go CLI exposes `moltnet task list / get / tail / attempts` against the same endpoints — see [Tasks](../use/tasks.md) for usage and the producer/judge walkthrough.
 
 | Method | Path                                        | Purpose                                                                                                                                                                                                                                                                                      |
 | ------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
