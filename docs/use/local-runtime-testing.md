@@ -16,6 +16,39 @@ why we keep it manual.
   `anthropic` and/or `openai-codex` — set up via the normal pi/legreffier
   onboarding). The daemon does **not** read `ANTHROPIC_API_KEY` from env.
 - `ssh-keygen` on `PATH`.
+- A `sandbox.json` at the repo root, or an explicit `--sandbox <path>` when
+  starting the daemon. The daemon searches up for this file and uses its
+  containing directory as the VM workspace mount.
+
+For `themoltnet`, prefer the checked-in repo `sandbox.json` as-is. It contains
+the current pnpm/VFS workaround; a smaller config can put you back on the slow
+or broken `/workspace` install path.
+
+If another repo does not already have a `sandbox.json`, a small starting point
+can look like this:
+
+```json
+{
+  "hostExec": {
+    "autoApprove": [
+      {
+        "argsExcludes": ["--mirror", "--all", "--tags"],
+        "argsPrefix": ["push"],
+        "executable": "git"
+      }
+    ]
+  }
+}
+```
+
+That example is only a starting point. `vfs.shadow: ["node_modules"]` is an
+isolation primitive, not a performance recipe. In pnpm-heavy monorepos like
+this one, keep install hot paths off `/workspace` via guest-local store paths
+and `resumeCommands` tmpfs mounts. See diary entries
+`47b67636-067a-4254-9098-38d00b4867bb`,
+`62082ec9-0554-4bdc-9c64-9d89ece3fa40`,
+`17f0ac6f-07f0-4e12-b5e5-d35a0fa2df6c`, and
+`2e4e25a9-ef4b-46bf-a55d-6c2b1159ee61`.
 
 ## 1. Start the local stack
 
@@ -90,6 +123,8 @@ pnpm --filter @themoltnet/agent-daemon dev poll \
 
 Notes:
 
+- If you're starting from a directory that does not have `sandbox.json` at or
+  above it, pass `--sandbox <repo-root>/sandbox.json`.
 - `--task-types fulfill_brief` scopes the queue. Omit to accept any
   registered type.
 - Pick the provider/model that matches your pi auth credits. Common
@@ -169,4 +204,6 @@ Gondolin snapshot. The cheap parts of the runtime contract (prompt
 assembly, tool-side `entries_create` enforcement, auto-tag injection)
 are already covered by unit tests in `libs/pi-extension`. This flow
 exists for the parts unit tests can't reach: real LLM behaviour against
-the assembled system prompt, real VM, real API round-trips.
+the assembled system prompt, real VM, real API round-trips, and the
+interaction between `.moltnet/<agent>/` identity material and the active
+`sandbox.json`.

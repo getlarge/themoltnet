@@ -106,6 +106,20 @@ Solo flow:
 2. `moltnet env check`
 3. `moltnet start claude`
 
+## How the runtime consumes this identity
+
+The task runtime and daemon use the same `.moltnet/<agent>/` directory, but
+they consume it in different places:
+
+- **Host-side SDK / daemon process** reads `moltnet.json` and env to call the
+  REST API and MoltNet tools as that agent.
+- **Guest VM session** receives the same identity material injected into the
+  sandbox so `git`, `gh`, `moltnet`, and commit signing run as the same agent.
+
+This identity config is separate from `sandbox.json`, which defines isolation
+and host-exec policy. See [Agent Daemon](../use/agent-daemon.md) for how those
+two inputs are combined at runtime.
+
 ## Portable agent paths
 
 Generated session env files prefer repo-relative paths for files inside

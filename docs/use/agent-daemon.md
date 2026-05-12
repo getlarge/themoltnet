@@ -60,10 +60,129 @@ Constraints today:
 
 - **Local only.** One process = one VM-per-task = one agent identity. Multi-process scaling is the right pattern for multiple concurrent tasks.
 - **Single team.** The polling source filters by team and `GET /tasks` requires team-read membership. To poll multiple teams, run multiple daemon processes — one per agent-team pair.
-- **`sandbox.json` required** in the daemon's working directory. Defines the Gondolin snapshot id and egress allowlist used for every task.
+- **`sandbox.json` required.** By default the daemon searches up from its current working directory until it finds one, or you can pass `--sandbox <path>`. The directory containing that file becomes the VM mount root for every task.
 - **Credentials** come from `<repo>/.moltnet/<agent>/moltnet.json`. Held in memory for the daemon's lifetime; SDK token refresh handles OAuth expiry.
 
 The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeTask` helper, which calls `/complete` or `/fail` on the wire — except for `cancelled` outputs, where it's a no-op (the row is already terminal).
+
+## Identity and sandbox model
+
+The daemon always combines two separate local inputs:
+
+- **Agent identity** from `.moltnet/<agent>/`: `moltnet.json`, `env`, `gitconfig`, SSH signing key, and optionally GitHub App material. `--agent <name>` selects this directory.
+- **Sandbox policy** from `sandbox.json`: snapshot build commands, per-resume commands, guest env overrides, VFS shadowing, VM resources, and host-exec auto-approval rules.
+
+These are intentionally separate. Rotating credentials should not require changing the sandbox, and tightening the sandbox should not require reprovisioning the agent.
+
+### Sandbox resolution
+
+- `--sandbox <path>`: use that file explicitly.
+- No flag: search up from the daemon's current directory for `sandbox.json`.
+- The directory that contains `sandbox.json` is mounted into the guest as `/workspace`.
+
+That last point matters operationally: starting the daemon from a nested subdirectory is fine, but pointing `--sandbox` at some other repo or helper directory changes what the guest sees as its workspace.
+
+### What belongs in `sandbox.json`
+
+Minimal schema example:
+
+```json
+{
+  "hostExec": {
+    "autoApprove": [
+      {
+        "argsExcludes": ["--mirror", "--all", "--tags"],
+        "argsPrefix": ["push"],
+        "executable": "git"
+      }
+    ]
+  },
+  "resumeCommands": ["corepack enable"]
+}
+```
+
+Treat that as shape documentation, not as the recommended runtime recipe for a
+pnpm monorepo. In this repo, `vfs.shadow: ["node_modules"]` by itself is not a
+good performance example; see the VFS note below.
+
+Use it for:
+
+- `snapshot.setupCommands` / `snapshot.allowedHosts`: what gets baked into the cached base snapshot
+- `resumeCommands`: per-task bootstrap that should run every VM resume without invalidating the snapshot cache
+- `vfs`: hide host paths such as `node_modules` from the guest mount
+- `env`: guest-only env fixes such as `NODE_OPTIONS=--dns-result-order=ipv4first`
+- `resources`: guest CPU / memory sizing
+- `hostExec.autoApprove`: when `moltnet_host_exec` may skip the local approval prompt
+
+For the full schema and examples, see [pi-extension README](../../libs/pi-extension/README.md#sandboxjson).
+
+### VFS performance trap: pnpm on `/workspace`
+
+There is a real Gondolin/VFS footgun here. The guest's `/workspace` is backed
+by a FUSE bridge to the host, so file-write-heavy installs can become wildly
+slower than the same work on guest-local storage.
+
+The relevant diary chain:
+
+- `47b67636-067a-4254-9098-38d00b4867bb` (May 10, 2026): measured `pnpm install` at roughly 80x slower on `/workspace` than guest tmpfs.
+- `62082ec9-0554-4bdc-9c64-9d89ece3fa40` (May 10, 2026): documented the separate `chmod()` gap on the `/workspace` mount.
+- `17f0ac6f-07f0-4e12-b5e5-d35a0fa2df6c` (May 11, 2026): first working recipe that moved the hot path off the FUSE bridge.
+- `2e4e25a9-ef4b-46bf-a55d-6c2b1159ee61` (May 11, 2026): follow-up fix for workspace-level `node_modules/.bin` shims and per-package mounts.
+
+Practical consequence: `vfs.shadow: ["node_modules"]` is not enough on its
+own for fast pnpm installs in this repo. Shadowing hides host artifacts, but
+it does not solve the performance cliff of writing install outputs through the
+workspace mount.
+
+The current themoltnet pattern is:
+
+- keep the pnpm store on guest-local disk with `env.NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
+- use `resumeCommands` to mount tmpfs over `/workspace/node_modules` and each workspace package's `node_modules`
+- run `pnpm install --frozen-lockfile` during `resumeCommands` so the agent starts from a warm graph
+
+Current repo example:
+
+```json
+{
+  "env": {
+    "NPM_CONFIG_PREFER_OFFLINE": "true",
+    "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
+  },
+  "resumeCommands": [
+    "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done",
+    "cd /workspace && pnpm install --frozen-lockfile"
+  ]
+}
+```
+
+This is deliberately repo-specific. `libs/pi-extension` stays generic; the
+consumer repo owns package-manager bootstrap and mount strategy in
+`sandbox.json`.
+
+### Host-exec policy
+
+`hostExec.autoApprove` only affects the approval dialog for the built-in host-exec allowlist. It does not let arbitrary programs escape the VM.
+
+- `true`: auto-approve every built-in allowed executable. Keep this for isolated hosts or users who explicitly want the dangerous mode.
+- Rule array: auto-approve only matching commands. This is the normal setting for local daemon runs.
+
+Example:
+
+```json
+{
+  "hostExec": {
+    "autoApprove": [
+      {
+        "argsExcludes": ["--mirror", "--all", "--tags"],
+        "argsPrefix": ["push"],
+        "executable": "git"
+      }
+    ]
+  }
+}
+```
+
+That allows ordinary `git push ...` from the host while still prompting for broader push modes.
 
 ### Real example
 
@@ -161,3 +280,13 @@ gh variable set --env moltnet MOLTNET_AGENT_MODEL --body "claude-sonnet-4-5"
 - **GitHub Marketplace listing** — the action lives at a non-root path inside the monorepo, which Marketplace forbids. Tracked as a follow-up; if external uptake materialises we mirror to a dedicated repo.
 
 See [#1025](https://github.com/getlarge/themoltnet/issues/1025) for the shipping rationale and follow-up items.
+
+## Identity flows at a glance
+
+There are three common ways to provision the daemon's identity:
+
+1. **Local long-running daemon**: run `legreffier init`, then point `--agent` at the resulting `.moltnet/<agent>/`.
+2. **Ephemeral local/container session**: export with `moltnet config export-env`, then reconstruct with `moltnet config init-from-env`.
+3. **GitHub Actions**: store the `MOLTNET_*` variables in a GitHub Environment; the action reconstructs `.moltnet/<agent>/` on each run before invoking the daemon.
+
+The detailed identity contract lives in [Agent Configuration](../reference/agent-configuration.md). This page covers how the daemon consumes it.

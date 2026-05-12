@@ -140,6 +140,7 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     "cpus": 2,
     "memory": "6G"
   },
+  "resumeCommands": ["corepack enable"],
   "snapshot": {
     "allowedHosts": ["unofficial-builds.nodejs.org"],
     "overlaySize": "8G",
@@ -175,6 +176,25 @@ VM resource limits applied at runtime.
 | `cpus`   | Number of virtual CPUs  |
 | `memory` | RAM limit (e.g. `"6G"`) |
 
+### `resumeCommands`
+
+Shell commands that run on every VM resume, after platform setup and before the
+agent session starts.
+
+Use this for per-session bootstrap that should not invalidate the snapshot
+cache: mounting tmpfs, warming package-manager state, lightweight repo-local
+setup.
+
+Important properties:
+
+- runs after TLS, DNS, and `git safe.directory` setup
+- not part of the snapshot cache key
+- each command runs in a fresh shell with `set -eu` and `set -o pipefail`
+- first non-zero exit aborts VM resume
+
+This split exists so repo-specific bootstrap can live in `sandbox.json` while
+`pi-extension` stays consumer-agnostic.
+
 ### `vfs`
 
 VFS shadow configuration — hide host paths from the guest mount.
@@ -186,6 +206,31 @@ VFS shadow configuration — hide host paths from the guest mount.
 
 Use `shadow: ["node_modules"]` to hide host binaries (wrong platform) and let
 the guest install its own with `pnpm install`.
+
+#### VFS caveat: shadowing is not a pnpm performance fix
+
+For this repo we hit two distinct `/workspace` problems:
+
+- the FUSE bridge makes file-write-heavy installs much slower than guest-local filesystems
+- the `/workspace` VFS path drops `chmod()` calls, which breaks tools that create files and chmod them later
+
+Dogfood trail:
+
+- `47b67636-067a-4254-9098-38d00b4867bb` — `/workspace` install path measured at roughly 80x slower than guest tmpfs
+- `62082ec9-0554-4bdc-9c64-9d89ece3fa40` — `chmod()` gap on the workspace mount
+- `17f0ac6f-07f0-4e12-b5e5-d35a0fa2df6c` — first 100x pnpm recipe
+- `2e4e25a9-ef4b-46bf-a55d-6c2b1159ee61` — follow-up fix for per-workspace `node_modules`
+
+`vfs.shadow: ["node_modules"]` is still useful to hide host-built artifacts,
+but it does not solve the hot-path problem by itself. For fast pnpm setup, move
+both endpoints off the FUSE bridge:
+
+- package store on guest-local disk, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
+- install target on guest tmpfs via `resumeCommands`
+
+Current themoltnet `sandbox.json` does this by mounting tmpfs over the root and
+per-workspace `node_modules` directories before running `pnpm install
+--frozen-lockfile`.
 
 ### `env`
 

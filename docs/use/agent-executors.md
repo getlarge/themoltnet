@@ -48,6 +48,30 @@ const runtime = new AgentRuntime({
 await runtime.start();
 ```
 
+If you're not writing your own executor from scratch, the bundled pi executor
+already wires the MoltNet identity and the Gondolin sandbox together:
+
+```ts
+import { createPiTaskExecutor } from '@themoltnet/pi-extension';
+
+const executeTask = createPiTaskExecutor({
+  agentName: 'legreffier',
+  mountPath: process.cwd(),
+  provider: 'openai-codex',
+  model: 'gpt-5.4-codex',
+  sandboxConfig,
+});
+```
+
+Those inputs are distinct:
+
+- `agentName` selects `.moltnet/<agent>/` on the host and injects that identity into the VM.
+- `mountPath` is the host directory mounted into the guest as `/workspace`.
+- `sandboxConfig` controls snapshot build, resume-time bootstrap, VFS shadowing, guest env overrides, resources, and host-exec approval.
+
+If you're using the daemon, it resolves those for you from `--agent` plus
+`sandbox.json`. If you're embedding the executor yourself, keep the same split.
+
 Three things the runtime does for you that aren't obvious from the code:
 
 - **Heartbeats** — `ApiTaskReporter.open()` fires the first heartbeat before your executor runs (this is what transitions the attempt to `running` — see [`/heartbeat` is the start signal](#heartbeat-is-the-start-signal)) and keeps a timer going for the rest of the run. If you swap in a custom reporter, you must preserve this contract or `/complete` will be rejected.
@@ -55,6 +79,18 @@ Three things the runtime does for you that aren't obvious from the code:
 - **Trace propagation** — the claim carries W3C trace context; any OpenTelemetry spans your executor creates land under the server-side workflow root.
 
 If the executor throws, the runtime reports `failed` with the error rather than letting the exception escape. If the process receives `SIGTERM`/`SIGINT`, call `runtime.stop()` — the current task finishes, the queue closes cleanly.
+
+### Identity and sandbox are executor concerns, not runtime concerns
+
+`@themoltnet/agent-runtime` does not know how your executor authenticates to
+git, GitHub, or MoltNet tools, and it does not define any sandbox by itself.
+That boundary is deliberate:
+
+- the runtime owns task claiming, heartbeats, cancellation, output validation, and finalization
+- the executor owns how work is performed and under which credentials / isolation model
+
+The bundled pi executor uses `.moltnet/<agent>/` plus `sandbox.json`; another
+executor could use a different VM, a container, or no sandbox at all.
 
 ### Executor contract
 
