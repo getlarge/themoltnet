@@ -1,6 +1,6 @@
 import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockEntry,
@@ -38,6 +38,10 @@ describe('Diary entry routes', () => {
     // Default: diary is found and accessible
     mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
     mocks.diaryService.findOwnedDiary.mockResolvedValue(MOCK_DIARY);
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   describe(`POST /diaries/${DIARY_ID}/entries`, () => {
