@@ -66,6 +66,16 @@ interface TaskTypeEntry {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
   readonly outputKind: OutputKind;
+  /**
+   * Filesystem isolation policy requested by the task type.
+   *
+   * `shared_mount` = run directly against the daemon's configured mountPath.
+   * `dedicated_worktree` = provision a fresh linked git worktree per attempt
+   * and mount that into the sandbox instead of the daemon's primary checkout.
+   *
+   * Default: undefined (== `shared_mount`).
+   */
+  readonly workspaceMode?: 'shared_mount' | 'dedicated_worktree';
   readonly requiresReferences: boolean;
   /**
    * Optional cross-field validator run AFTER `Value.Check(inputSchema)`
@@ -197,6 +207,7 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: FulfillBriefInput,
     outputSchema: FulfillBriefOutput,
     outputKind: 'artifact',
+    workspaceMode: 'dedicated_worktree',
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
   },

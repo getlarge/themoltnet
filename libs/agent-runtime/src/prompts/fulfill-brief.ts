@@ -15,6 +15,10 @@ interface Ctx {
    * the resulting PR even if the MoltNet API is unreachable.
    */
   correlationId?: string | null;
+  workspace?: {
+    mode: 'shared_mount' | 'dedicated_worktree';
+    branch?: string | null;
+  };
 }
 
 /**
@@ -72,6 +76,20 @@ export function buildFulfillBriefUserPrompt(
       ].join('\n')
     : '';
 
+  const workspaceSection =
+    ctx.workspace?.mode === 'dedicated_worktree'
+      ? [
+          '### Workspace',
+          '',
+          'This attempt is running inside a dedicated git worktree created',
+          'for this task. Do not repurpose or switch the primary checkout.',
+          ctx.workspace.branch
+            ? `The current branch is \`${ctx.workspace.branch}\`. Stay on this branch unless the runtime instructor explicitly tells you otherwise.`
+            : 'Stay on the branch that was pre-provisioned for this task.',
+          '',
+        ].join('\n')
+      : '';
+
   const lines = [
     '# Fulfill Brief Agent',
     '',
@@ -92,9 +110,12 @@ export function buildFulfillBriefUserPrompt(
     criteriaSection,
     seedSection,
     correlationSection,
+    workspaceSection,
     '### Workflow',
     '',
-    `1. Create a feature branch (starting prefix suggestion: \`${branchSlug}<short-slug>\`).`,
+    ctx.workspace?.mode === 'dedicated_worktree'
+      ? `1. Use the already-provisioned dedicated worktree branch${ctx.workspace.branch ? ` (\`${ctx.workspace.branch}\`)` : ''}; do not create or switch the primary checkout.`
+      : `1. Create a feature branch (starting prefix suggestion: \`${branchSlug}<short-slug>\`).`,
     '2. Understand the problem — read relevant code; do not speculate.',
     '3. Implement the change. Keep commits small and coherent.',
     '4. Add tests if applicable.',

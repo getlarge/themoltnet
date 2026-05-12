@@ -70,6 +70,25 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain(`Moltnet-Correlation-Id: ${correlationId}`);
   });
 
+  it('mentions the dedicated worktree branch when provided by the executor', () => {
+    const correlationId = '22222222-3333-4444-8555-666666666666';
+    const task = makeFulfillBriefTask({
+      correlationId,
+      input: { brief: 'do the thing', title: 'thing' },
+    });
+    const prompt = buildTaskUserPrompt(task, {
+      ...ctx,
+      workspace: {
+        mode: 'dedicated_worktree',
+        branch: `moltnet/${correlationId}/thing`,
+      },
+    });
+    expect(prompt).toContain('### Workspace');
+    expect(prompt).toContain('dedicated git worktree');
+    expect(prompt).toContain(`moltnet/${correlationId}/thing`);
+    expect(prompt).toContain('already-provisioned dedicated worktree branch');
+  });
+
   it('omits the correlation section when correlationId is null', () => {
     const task = makeFulfillBriefTask({
       correlationId: null,
