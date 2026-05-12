@@ -7,8 +7,8 @@
       "weight": 0.1666
     },
     {
-      "description": "PASS if no `*.proto` files are added, modified, or deleted in the diff. FAIL if any `.proto` file is touched. Wire-protocol changes require a separate human review track and cannot auto-merge. Use `gh pr diff <num> --name-only | grep -E '\\\\.proto$'` to confirm.",
-      "id": "gate_no_protobuf",
+      "description": "PASS if the diff does not touch HTTP API contracts or their generated clients. FAIL if any of these are modified: `apps/rest-api/public/openapi.json` (the served public spec), `libs/moltnet-api-client/openapi-normalized.json` (the ogen input), any `libs/moltnet-api-client/oas_*.go` (ogen-generated client surface), `apps/rest-api/scripts/generate-openapi.ts`, or `libs/moltnet-api-client/generate.go`. These define the wire contract MoltNet exposes; a change here means external clients (Go CLI, agent-daemon, third parties) see a different API shape. Wire-protocol changes need human review of compatibility, versioning, and downstream regeneration. Use `gh pr diff <num> --name-only` and check for any path matching the patterns above.",
+      "id": "gate_no_api_specs",
       "scoring": "boolean",
       "weight": 0.1666
     },
