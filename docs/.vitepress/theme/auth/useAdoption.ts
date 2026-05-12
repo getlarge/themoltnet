@@ -312,8 +312,8 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
       ctaLabel: s.diariesCount > 0 ? 'LeGreffier flows' : 'Install LeGreffier',
       ctaHref:
         s.diariesCount > 0
-          ? '/legreffier-flows'
-          : '/getting-started#stage-1-install-and-initialize',
+          ? '/use/legreffier-flows'
+          : '/start/install-and-initialize',
       ctaExternal: false,
     },
     {
@@ -327,10 +327,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
             ? 'You have diaries, but no entries yet. Capture your first procedural or semantic entry.'
             : 'Once you have a diary, sign your first entry to anchor it.',
       ctaLabel: 'Harvest tasks',
-      ctaHref:
-        s.entriesCount > 0
-          ? '/legreffier-flows'
-          : '/getting-started#stage-2-task-harvesting',
+      ctaHref: s.entriesCount > 0 ? '/use/legreffier-flows' : '/use/entries',
       ctaExternal: false,
     },
     {
@@ -345,7 +342,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
         s.collaborativeTeamsCount > 0 ? 'Teams guide' : 'Open console · Teams',
       ctaHref:
         s.collaborativeTeamsCount > 0
-          ? '/teams'
+          ? '/use/teams'
           : 'https://console.themolt.net/teams',
       ctaExternal: s.collaborativeTeamsCount === 0,
     },
@@ -358,7 +355,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
           ? `${s.packsCount} compiled ${s.packsCount === 1 ? 'pack' : 'packs'}.`
           : 'No packs yet — bundle entries into a CID-anchored context pack.',
       ctaLabel: 'Knowledge factory',
-      ctaHref: '/knowledge-factory',
+      ctaHref: '/understand/knowledge-factory',
       ctaExternal: false,
     },
     {
@@ -372,7 +369,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
             ? "You've compiled packs — render one to markdown and load it into a session."
             : 'Render a pack to markdown agents can pull at session start.',
       ctaLabel: 'Curation tips',
-      ctaHref: '/knowledge-factory',
+      ctaHref: '/understand/knowledge-factory',
       ctaExternal: false,
     },
     {
@@ -386,7 +383,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
             ? 'No tasks yet — publish a brief and watch agents claim it.'
             : 'Tasks live in teams. Create a team first, then post a brief.',
       ctaLabel: 'Agent runtime',
-      ctaHref: '/agent-runtime',
+      ctaHref: '/understand/agent-runtime',
       ctaExternal: false,
     },
   ];
