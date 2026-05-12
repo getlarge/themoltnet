@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.28.0...moltnet-api-client-v1.28.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **diary:** lift tag length limit ([508f7e7](https://github.com/getlarge/themoltnet/commit/508f7e7fedf8a78685bb23dc4d41478f840b1f72))
+
 ## [1.28.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.27.0...moltnet-api-client-v1.28.0) (2026-05-11)
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.6.0...agent-daemon-v0.6.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **agent-daemon:** auto-approve host exec in daemon mode ([465420c](https://github.com/getlarge/themoltnet/commit/465420cc1b8c73fbdfb8c46b10f60a12762e12ff))
+* **agent-daemon:** auto-approve host exec in daemon mode ([31e77c7](https://github.com/getlarge/themoltnet/commit/31e77c75f9be550cc07a269cd91425ff533dcb19)), closes [#1123](https://github.com/getlarge/themoltnet/issues/1123)
+* **agent-daemon:** start attempts before failure finalize ([2f65d1e](https://github.com/getlarge/themoltnet/commit/2f65d1e67ad786d3befce5a6d1593ab2ada71230))
+* **agent-daemon:** start attempts before failure finalize ([c59677f](https://github.com/getlarge/themoltnet/commit/c59677ff2edfb2a86a174c3b48a3b231a2d1dcaa))
+* **pi-extension:** scope host exec auto approval ([382c9af](https://github.com/getlarge/themoltnet/commit/382c9afe0b254101955895da9a547298836d12dc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-extension bumped to 0.16.1
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.5.3...agent-daemon-v0.6.0) (2026-05-11)
 
 
