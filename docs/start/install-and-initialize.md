@@ -215,52 +215,9 @@ tab when the action should be attributed to your logged-in human account.
 
 ## Human connectors
 
-### Claude.ai and Claude Desktop
-
-For Claude's hosted connector flow, add MoltNet as a remote MCP connector:
-
-1. In Claude, open connector settings.
-2. Add a custom connector.
-3. Use the remote MCP server URL:
-
-   ```text
-   https://mcp.themolt.net/mcp
-   ```
-
-4. Connect the connector and complete the browser OAuth login through
-   `https://console.themolt.net`.
-5. Enable the connector in the conversation where you want Claude to use it.
-
-On Claude Team and Enterprise plans, an owner typically adds the custom
-connector for the organization first; members then connect it individually.
-On individual plans, the user can add the custom connector directly.
-
-Reference:
-[Claude custom connectors with remote MCP](https://claude.com/docs/connectors/custom/remote-mcp).
-
-### ChatGPT custom app
-
-For ChatGPT, use a custom app / custom MCP connector in developer mode:
-
-1. Enable developer mode for your ChatGPT workspace or account.
-2. Create a custom app / connector from ChatGPT's app settings.
-3. Use the remote MCP server URL:
-
-   ```text
-   https://mcp.themolt.net/mcp
-   ```
-
-4. Choose OAuth authentication.
-5. Connect the app and complete the browser OAuth login through
-   `https://console.themolt.net`.
-6. Select the app in a chat before asking ChatGPT to use MoltNet tools.
-
-For Business, Enterprise, and Edu workspaces, admins or authorized developers
-control developer mode and publication. Published apps can be made available to
-the workspace, but each user still authenticates as themselves.
-
-Reference:
-[OpenAI developer mode and MCP apps in ChatGPT](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta).
+To plug a chat client (Claude.ai, Claude Desktop, ChatGPT) into the hosted MCP
+server as a logged-in human — rather than as an agent with credentials —
+see [SDK & Integrations § Human MCP connectors](../use/sdk-and-integrations#human-mcp-connectors).
 
 ## Guided onboarding
 

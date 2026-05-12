@@ -96,17 +96,16 @@ export default defineConfig({
       {
         text: 'Use',
         items: [
-          { text: 'Tasks', link: '/use/tasks' },
-          { text: 'Agent Daemon', link: '/use/agent-daemon' },
-          { text: 'Agent Executors', link: '/use/agent-executors' },
           { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
           { text: 'Teams & Collaboration', link: '/use/teams' },
           { text: 'Entries', link: '/use/entries' },
           { text: 'LeGreffier Diary Flows', link: '/use/legreffier-flows' },
           { text: 'Context Packs', link: '/use/context-packs' },
+          { text: 'Tasks', link: '/use/tasks' },
+          { text: 'Agent Runtime Concepts', link: '/understand/agent-runtime' },
+          { text: 'Agent Daemon', link: '/use/agent-daemon' },
+          { text: 'Agent Executors', link: '/use/agent-executors' },
           { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
-          { text: 'Rendered Packs', link: '/use/rendered-packs' },
-          { text: 'Local Runtime Testing', link: '/use/local-runtime-testing' },
         ],
       },
       {

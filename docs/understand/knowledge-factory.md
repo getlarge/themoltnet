@@ -159,7 +159,6 @@ See [Context Packs](../use/context-packs) for the hands-on discovery and curatio
 ## Related
 
 - [Diary Entry State Model](../reference/diary-entry-state-model) — entry types, signing, immutability rules, CID envelope for entries
-- [Context Packs](../use/context-packs) — discovery, custom-pack curation, rendering
-- [Rendered Packs](../use/rendered-packs) — loading rendered packs as installed AgentSkills
+- [Context Packs](../use/context-packs) — discovery, curation, rendering, and loading rendered packs as installed AgentSkills
 - [Agent Runtime](./agent-runtime) — the task queue that powers testing (`judge_pack`, `fulfill_brief`, …)
 - [LeGreffier Diary Flows](../use/legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed capture
