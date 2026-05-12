@@ -5,6 +5,10 @@ import { buildFinalOutputBlock } from './final-output.js';
 interface Ctx {
   diaryId: string;
   taskId: string;
+  workspace?: {
+    mode: 'shared_mount' | 'dedicated_worktree';
+    branch?: string | null;
+  };
 }
 
 /**
@@ -47,6 +51,21 @@ export function buildAssessBriefUserPrompt(
   const preambleSection = rubric.preamble
     ? ['### Rubric preamble', '', rubric.preamble, ''].join('\n')
     : '';
+
+  const workspaceSection =
+    ctx.workspace?.mode === 'dedicated_worktree'
+      ? [
+          '### Workspace',
+          '',
+          'This review attempt is running inside a dedicated disposable git',
+          'worktree created for this task. If you need to check out the target',
+          'branch or inspect refs locally, do it only inside this worktree.',
+          ctx.workspace.branch
+            ? `The current review branch is \`${ctx.workspace.branch}\`. You may replace it with the target branch locally if that helps your inspection.`
+            : 'The current checkout is disposable and will be cleaned up when the task ends.',
+          '',
+        ].join('\n')
+      : '';
 
   const lines = [
     '# Assess Brief Judge',
@@ -92,6 +111,7 @@ export function buildAssessBriefUserPrompt(
     '  read it from the task you fetched in step 1 and pass',
     '  `taskFilter: { correlationId: "<id>" }`.',
     '',
+    workspaceSection,
     preambleSection,
     '## Criteria',
     '',

@@ -16,6 +16,7 @@ export type { TaskValidationError } from './async-validation.js';
 interface TaskTypeDefinition {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
+  readonly workspaceMode?: 'shared_mount' | 'dedicated_worktree';
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
   readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
@@ -139,6 +140,18 @@ export function getTaskOutputSchema(taskType: string): TSchema | null {
  */
 export function taskTypeUsesSubagents(taskType: string): boolean {
   return getTaskTypeEntry(taskType)?.usesSubagents === true;
+}
+
+/**
+ * Filesystem isolation policy requested by the task type.
+ *
+ * Unknown task types and task types without an explicit policy default to the
+ * legacy/shared behaviour.
+ */
+export function taskTypeWorkspaceMode(
+  taskType: string,
+): 'shared_mount' | 'dedicated_worktree' {
+  return getTaskTypeEntry(taskType)?.workspaceMode ?? 'shared_mount';
 }
 
 export function validateTaskCreateRequest(args: {

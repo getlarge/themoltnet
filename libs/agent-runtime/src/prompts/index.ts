@@ -43,6 +43,10 @@ export * from './run-eval.js';
 export interface TaskUserPromptContext {
   diaryId: string;
   taskId: string;
+  workspace?: {
+    mode: 'shared_mount' | 'dedicated_worktree';
+    branch?: string | null;
+  };
   extras?: Record<string, unknown>;
 }
 
@@ -75,6 +79,7 @@ export function buildTaskUserPrompt(
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         correlationId: task.correlationId,
+        workspace: ctx.workspace,
       });
     }
 
@@ -88,6 +93,7 @@ export function buildTaskUserPrompt(
       return buildAssessBriefUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+        workspace: ctx.workspace,
       });
     }
 

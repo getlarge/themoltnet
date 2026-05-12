@@ -15,8 +15,9 @@
  * `AgentRuntime`.
  */
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
 import type {
@@ -38,6 +39,7 @@ import {
   type TaskOutput,
   type TaskReporter,
   taskTypeUsesSubagents,
+  taskTypeWorkspaceMode,
   type TaskUsage,
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
@@ -171,6 +173,13 @@ export interface ExecutePiTaskOptions {
   hostExecAutoApprove?: HostExecAutoApproveConfig;
 }
 
+interface PreparedTaskWorkspace {
+  mountPath: string;
+  mode: 'shared_mount' | 'dedicated_worktree';
+  branch: string | null;
+  cleanup: () => void;
+}
+
 /**
  * Factory that builds a pi-specific `executeTask` function suitable for
  * injection into `AgentRuntime`. The returned function caches the resolved
@@ -213,7 +222,9 @@ export async function executePiTask(
   const task = claimedTask.task;
   const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
-  const mountPath = opts.mountPath ?? process.cwd();
+  const requestedMountPath = opts.mountPath ?? process.cwd();
+  const workspace = prepareTaskWorkspace(task, requestedMountPath);
+  const mountPath = workspace.mountPath;
 
   // Pre-execute cancel guard. If the reporter's cancel signal is already
   // aborted (the imposer cancelled between claim and executor entry), don't
@@ -266,7 +277,8 @@ export async function executePiTask(
     // Best-effort — older git versions lack --relative-paths.
   }
 
-  const managed = await resumeVm({
+  let managed: Awaited<ReturnType<typeof resumeVm>> | null = null;
+  managed = await resumeVm({
     checkpointPath,
     agentName: opts.agentName,
     mountPath,
@@ -352,6 +364,8 @@ export async function executePiTask(
       teamId: task.teamId,
       provider: opts.provider,
       model: opts.model,
+      workspaceMode: workspace.mode,
+      workspaceBranch: workspace.branch,
     });
 
     let taskPrompt: string;
@@ -359,6 +373,7 @@ export async function executePiTask(
       const promptCtx: TaskUserPromptContext = {
         diaryId,
         taskId: task.id,
+        workspace: { mode: workspace.mode, branch: workspace.branch },
         extras: opts.promptExtras,
       };
       taskPrompt = buildTaskUserPrompt(task, promptCtx);
@@ -950,7 +965,149 @@ export async function executePiTask(
         );
       }
     }
-    await managed.vm.close();
+    if (managed) {
+      await managed.vm.close();
+    }
+    try {
+      workspace.cleanup();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error(
+        `executePiTask: workspace cleanup failed for task ${task.id} ` +
+          `attempt ${attemptN}: ${detail}`,
+      );
+    }
+  }
+}
+
+export function resolveTaskWorktreeBranch(
+  task: Pick<
+    ClaimedTask['task'],
+    'taskType' | 'correlationId' | 'id' | 'input'
+  >,
+): string | null {
+  if (taskTypeWorkspaceMode(task.taskType) !== 'dedicated_worktree') {
+    return null;
+  }
+
+  if (task.taskType === 'fulfill_brief') {
+    const input = task.input as {
+      brief?: unknown;
+      title?: unknown;
+      scopeHint?: unknown;
+    };
+    const title =
+      typeof input.title === 'string' && input.title.trim().length > 0
+        ? input.title
+        : typeof input.brief === 'string' && input.brief.trim().length > 0
+          ? input.brief
+          : task.taskType;
+    const slug = slugifyBranchComponent(title) || 'task';
+
+    if (task.correlationId) {
+      return `moltnet/${task.correlationId}/${slug}`;
+    }
+
+    const scopeHint =
+      typeof input.scopeHint === 'string' && input.scopeHint.trim().length > 0
+        ? slugifyBranchComponent(input.scopeHint)
+        : 'task';
+    return `feat/${scopeHint || 'task'}-${slug}`;
+  }
+
+  return `task/${slugifyBranchComponent(task.taskType) || 'task'}-${task.id.slice(0, 8)}`;
+}
+
+export function slugifyBranchComponent(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/g, '');
+}
+
+function prepareTaskWorkspace(
+  task: ClaimedTask['task'],
+  requestedMountPath: string,
+): PreparedTaskWorkspace {
+  const branch = resolveTaskWorktreeBranch(task);
+  if (!branch) {
+    return {
+      mountPath: requestedMountPath,
+      mode: 'shared_mount',
+      branch: null,
+      cleanup: () => {},
+    };
+  }
+
+  const mainRepo = findMainWorktree();
+  const worktreeDir = join(mainRepo, '.worktrees', `task-${task.id}`);
+  removeExistingTaskWorktree(mainRepo, worktreeDir);
+
+  const relMount = relative(mainRepo, requestedMountPath);
+  const mountPath =
+    relMount === '' || relMount.startsWith('..')
+      ? worktreeDir
+      : join(worktreeDir, relMount);
+  const baseRef = resolveWorktreeBaseRef(mainRepo);
+  const branchExists = gitRefExists(mainRepo, `refs/heads/${branch}`);
+  const addArgs = branchExists
+    ? ['-C', mainRepo, 'worktree', 'add', worktreeDir, branch]
+    : ['-C', mainRepo, 'worktree', 'add', '-b', branch, worktreeDir, baseRef];
+  execFileSync('git', addArgs, { stdio: 'pipe' });
+
+  return {
+    mountPath,
+    mode: 'dedicated_worktree',
+    branch,
+    cleanup: () => {
+      execFileSync(
+        'git',
+        ['-C', mainRepo, 'worktree', 'remove', '--force', worktreeDir],
+        { stdio: 'pipe' },
+      );
+    },
+  };
+}
+
+function removeExistingTaskWorktree(
+  mainRepo: string,
+  worktreeDir: string,
+): void {
+  if (!existsSync(worktreeDir)) return;
+  const list = execFileSync(
+    'git',
+    ['-C', mainRepo, 'worktree', 'list', '--porcelain'],
+    { encoding: 'utf8', stdio: 'pipe' },
+  );
+  const marker = `worktree ${worktreeDir}\n`;
+  if (!list.includes(marker) && !list.endsWith(`worktree ${worktreeDir}`)) {
+    return;
+  }
+  execFileSync(
+    'git',
+    ['-C', mainRepo, 'worktree', 'remove', '--force', worktreeDir],
+    { stdio: 'pipe' },
+  );
+}
+
+function resolveWorktreeBaseRef(mainRepo: string): string {
+  return gitRefExists(mainRepo, 'refs/heads/main') ? 'main' : 'HEAD';
+}
+
+function gitRefExists(mainRepo: string, ref: string): boolean {
+  try {
+    execFileSync(
+      'git',
+      ['-C', mainRepo, 'show-ref', '--verify', '--quiet', ref],
+      {
+        stdio: 'pipe',
+      },
+    );
+    return true;
+  } catch {
+    return false;
   }
 }
 

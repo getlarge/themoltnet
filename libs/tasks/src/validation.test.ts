@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   taskTypeUsesSubagents,
+  taskTypeWorkspaceMode,
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
@@ -326,5 +327,26 @@ describe('taskTypeUsesSubagents', () => {
     expect(taskTypeUsesSubagents('render_pack')).toBe(false);
     expect(taskTypeUsesSubagents('judge_pack')).toBe(false);
     expect(taskTypeUsesSubagents('run_eval')).toBe(false);
+  });
+});
+
+describe('taskTypeWorkspaceMode', () => {
+  it('defaults unknown task types to shared_mount', () => {
+    expect(taskTypeWorkspaceMode('totally_made_up')).toBe('shared_mount');
+  });
+
+  it('marks fulfill_brief as dedicated_worktree', () => {
+    expect(taskTypeWorkspaceMode('fulfill_brief')).toBe('dedicated_worktree');
+  });
+
+  it('marks assess_brief as dedicated_worktree', () => {
+    expect(taskTypeWorkspaceMode('assess_brief')).toBe('dedicated_worktree');
+  });
+
+  it('keeps non-mutating built-ins on shared_mount', () => {
+    expect(taskTypeWorkspaceMode('curate_pack')).toBe('shared_mount');
+    expect(taskTypeWorkspaceMode('render_pack')).toBe('shared_mount');
+    expect(taskTypeWorkspaceMode('judge_pack')).toBe('shared_mount');
+    expect(taskTypeWorkspaceMode('run_eval')).toBe('shared_mount');
   });
 });

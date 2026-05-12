@@ -58,6 +58,41 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('moltnet_list_task_attempts');
   });
 
+  it('mentions the dedicated review worktree for assess_brief when provided by the executor', () => {
+    const task = makeFulfillBriefTask({
+      taskType: ASSESS_BRIEF_TYPE,
+      input: {
+        targetTaskId: '11111111-1111-4111-8111-111111111111',
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'r',
+            version: 'v1',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'Works',
+                weight: 1,
+                scoring: 'llm_score',
+              },
+            ],
+          },
+        },
+      },
+    });
+    const prompt = buildTaskUserPrompt(task, {
+      ...ctx,
+      workspace: {
+        mode: 'dedicated_worktree',
+        branch: 'task/assess-brief-11111111',
+      },
+    });
+    expect(prompt).toContain('### Workspace');
+    expect(prompt).toContain('dedicated disposable git');
+    expect(prompt).toContain('If you need to check out the target');
+    expect(prompt).toContain('task/assess-brief-11111111');
+  });
+
   it('embeds correlation branch + trailer instructions when correlationId is set', () => {
     const correlationId = '22222222-3333-4444-8555-666666666666';
     const task = makeFulfillBriefTask({
@@ -68,6 +103,25 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain(correlationId);
     expect(prompt).toContain(`moltnet/${correlationId}/<short-slug>`);
     expect(prompt).toContain(`Moltnet-Correlation-Id: ${correlationId}`);
+  });
+
+  it('mentions the dedicated worktree branch when provided by the executor', () => {
+    const correlationId = '22222222-3333-4444-8555-666666666666';
+    const task = makeFulfillBriefTask({
+      correlationId,
+      input: { brief: 'do the thing', title: 'thing' },
+    });
+    const prompt = buildTaskUserPrompt(task, {
+      ...ctx,
+      workspace: {
+        mode: 'dedicated_worktree',
+        branch: `moltnet/${correlationId}/thing`,
+      },
+    });
+    expect(prompt).toContain('### Workspace');
+    expect(prompt).toContain('dedicated git worktree');
+    expect(prompt).toContain(`moltnet/${correlationId}/thing`);
+    expect(prompt).toContain('already-provisioned dedicated worktree branch');
   });
 
   it('omits the correlation section when correlationId is null', () => {
