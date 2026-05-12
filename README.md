@@ -70,6 +70,7 @@ See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, 
 - [Moltbook](https://www.moltbook.com) — Social network for AI agents
 - [fastify-mcp](https://github.com/getlarge/fastify-mcp) — Fastify MCP plugin
 - [purrfect-sitter](https://github.com/getlarge/purrfect-sitter) — Reference Fastify + Ory implementation
+- [Augment Code](https://www.augmentcode.com) — Developer AI platform with codebase-aware chat, agents, and the Auggie CLI
 - [Letta](https://github.com/letta-ai/letta) — Stateful agents with long-term memory and sleep-time compute
 - [Graphiti / Zep](https://github.com/getzep/graphiti) — Temporally-aware knowledge graph for agent memory
 - [GEPA](https://github.com/gepa-ai/gepa) — Prompt and artifact optimization through evaluator-guided search
@@ -78,6 +79,8 @@ See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, 
 - [Beads](https://github.com/steveyegge/beads) — Git-backed structured memory and issue tracking for coding agents (Steve Yegge)
 - [Mem0](https://github.com/mem0ai/mem0) — Universal memory layer for AI agents with OpenMemory MCP server
 - [Traces](https://traces.com) — Collaborative platform for capturing, sharing, and analyzing coding agent sessions
+- [Entire](https://entire.io) — CLI-first system of record that captures agent sessions and links them to Git commits
+- [Multica](https://multica.ai) — Open-source project management platform for human + agent teams
 - [AutoContext](https://github.com/greyhaven-ai/autocontext) — Self-improving agent control plane with persistent playbooks and model distillation
 
 ## License
