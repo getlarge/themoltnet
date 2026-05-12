@@ -46,6 +46,7 @@ import { connect } from '@themoltnet/sdk';
 import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
+  type HostExecAutoApproveConfig,
 } from '../moltnet/tools.js';
 import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
@@ -163,10 +164,11 @@ export interface ExecutePiTaskOptions {
    */
   maxBashTimeouts?: number;
   /**
-   * Skip per-call UI approval for `moltnet_host_exec`. Keep false for
-   * interactive consumers; daemon automation enables this explicitly.
+   * Skip per-call UI approval for matching `moltnet_host_exec` commands.
+   * Keep false/undefined for interactive consumers. `true` skips every dialog
+   * after HOST_EXEC_ALLOWED; an array limits auto-approval to matching rules.
    */
-  autoApproveHostExec?: boolean;
+  hostExecAutoApprove?: HostExecAutoApproveConfig;
 }
 
 /**
@@ -453,7 +455,10 @@ export async function executePiTask(
         },
         getHostCwd: () => mountPath,
         hostExecBaseEnv,
-        autoApproveHostExec: opts.autoApproveHostExec,
+        hostExecAutoApprove:
+          opts.hostExecAutoApprove ??
+          opts.sandboxConfig?.hostExec?.autoApprove ??
+          false,
         // Daemon path is always inside an active task — wire the task
         // context so moltnet_create_entry forces the task diary and
         // injects provenance tags (issue #979).

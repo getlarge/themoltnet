@@ -132,7 +132,6 @@ export async function runOnce(argv: string[]): Promise<number> {
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
       maxTurns: opts.maxTurns,
       maxBashTimeouts: opts.maxBashTimeouts,
-      autoApproveHostExec: true,
     });
 
     const writeCorrelationAnchors = makePrBodyAnchorWriter({

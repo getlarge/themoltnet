@@ -66,6 +66,25 @@ To use an alternate auth-file path: `PI_AUTH_PATH=/abs/path/to/auth.json`.
 | `MOLTNET_OTEL_ENDPOINT` | unset   | OTLP traces endpoint. Empty = disabled. |
 | `LOG_LEVEL`             | `info`  | Pino log level override.                |
 
+### Host command auto-approval
+
+The daemon reads `sandbox.json` through `--sandbox` or by searching up from the
+current directory. Configure host-side auto-approval there, not in task data:
+
+```json
+{
+  "hostExec": {
+    "autoApprove": [
+      { "argsPrefix": ["push"], "executable": "git" },
+      { "argsPrefix": ["pr", "create"], "executable": "gh" }
+    ]
+  }
+}
+```
+
+Set `"autoApprove": true` only for isolated hosts where every built-in
+host-exec command is safe to run without a dialog.
+
 ## Correlation anchors
 
 When a `fulfill_brief` task carries a non-null `correlationId`, the daemon

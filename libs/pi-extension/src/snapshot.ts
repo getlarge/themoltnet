@@ -62,6 +62,21 @@ export interface SandboxConfig {
   };
   /** Environment variable overrides for the guest VM (applied on top of defaults). */
   env?: Record<string, string>;
+  /** Host-side escape hatch policy. Applies only to `moltnet_host_exec`. */
+  hostExec?: {
+    /**
+     * `true` auto-approves every allowed executable. An array auto-approves
+     * only commands matching one of the executable/argument rules.
+     */
+    autoApprove?:
+      | boolean
+      | {
+          executable: string;
+          argsPrefix?: string[];
+          argsContains?: string[];
+          argsExcludes?: string[];
+        }[];
+  };
   /** VM resource allocation. */
   resources?: {
     /** Memory size in qemu syntax (default '1G'). */

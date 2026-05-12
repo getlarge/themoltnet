@@ -168,7 +168,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       makeOnTurnEvent: makeTurnEventHandlerFactory(rootLogger),
       maxTurns: common.maxTurns,
       maxBashTimeouts: common.maxBashTimeouts,
-      autoApproveHostExec: true,
     });
 
     runtime = new AgentRuntime({
