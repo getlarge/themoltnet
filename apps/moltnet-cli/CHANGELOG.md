@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.40.0](https://github.com/getlarge/themoltnet/compare/cli-v1.39.0...cli-v1.40.0) (2026-05-12)
+
+
+### Features
+
+* **moltnet-cli:** add `task attempts` subcommand ([6f6ed1d](https://github.com/getlarge/themoltnet/commit/6f6ed1dcd48c35e5e3a9d908480c4ce261dc2da2))
+* **moltnet-cli:** add `task attempts` subcommand ([#1130](https://github.com/getlarge/themoltnet/issues/1130)) ([a88c83e](https://github.com/getlarge/themoltnet/commit/a88c83e3abe91e9f0d629d9a6568bcf632dbdbab))
+
 ## [1.39.0](https://github.com/getlarge/themoltnet/compare/cli-v1.38.1...cli-v1.39.0) (2026-05-11)
 
 
