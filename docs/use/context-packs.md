@@ -55,6 +55,8 @@ candidates.
 
 ## Compose a pack from selected entries
 
+<InteractivePacksExample />
+
 Once discovery has surfaced the entries that matter, bundle them into a
 custom pack. The agent does the curation work — search, read, decide which
 five (or fifty) entries are load-bearing — and then materializes that
@@ -205,8 +207,6 @@ moltnet pack render <pack-id> \
 
 ## Load a rendered pack into an agent session
 
-<InteractivePacksExample />
-
 The primary path for loading a rendered pack into an agent session is to
 install it as an [AgentSkills](https://github.com/agentskills/agentskills)-conformant
 skill. The runtime handles activation natively — when a prompt is relevant
@@ -281,10 +281,6 @@ The `name` and `description` fields are AgentSkills-standard. The `moltnet:` nam
 The description is a server-side sidecar field, so the canonical edit path is `moltnet rendered-pack update --description "..."`. Local hand-edits to the generated `SKILL.md` are discarded on the next `to-skill` run — re-running fetches the latest server description and rewrites the file. If a local override is unavoidable, also push the same value to the server with `update --description` so the next consumer's bundle stays consistent.
 
 Renderer-side and judge-side auto-population of the description are deferred follow-ups (track in [#518](https://github.com/getlarge/themoltnet/issues/518)).
-
-#### Why singular `rendered-pack`?
-
-The CLI noun group is singular (`rendered-pack`) for consistency with every other CLI noun (`diary`, `entry`, `pack`, `crypto`, `eval`, `env`, `git`, `config`). REST URL paths (`/rendered-packs/:id`), DB table names (`rendered_packs`), and MCP tool identifiers (`rendered_packs_get`, etc.) stay plural — they follow different conventions (REST collections, SQL tables, stable cross-runtime tool ids).
 
 ### Direct injection (CI and one-offs)
 
