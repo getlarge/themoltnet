@@ -109,11 +109,20 @@ describe('Diary schemas', () => {
       ).toBe(false);
     });
 
-    it('rejects tag over 50 chars', () => {
+    it('accepts tag up to 128 chars', () => {
       expect(
         Value.Check(CreateDiaryEntrySchema, {
           content: 'test',
-          tags: ['a'.repeat(51)],
+          tags: ['a'.repeat(128)],
+        }),
+      ).toBe(true);
+    });
+
+    it('rejects tag over 128 chars', () => {
+      expect(
+        Value.Check(CreateDiaryEntrySchema, {
+          content: 'test',
+          tags: ['a'.repeat(129)],
         }),
       ).toBe(false);
     });

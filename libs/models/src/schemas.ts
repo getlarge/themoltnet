@@ -64,11 +64,15 @@ export const FingerprintSchema = Type.String({
 // Diary Entry Schemas
 // ============================================================================
 
+export const DIARY_TAG_MAX_LENGTH = 128;
+
 export const CreateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.String({ minLength: 1, maxLength: 100000 }),
   tags: Type.Optional(
-    Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+    Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+      maxItems: 20,
+    }),
   ),
 });
 
@@ -76,14 +80,16 @@ export const UpdateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
   tags: Type.Optional(
-    Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+    Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+      maxItems: 20,
+    }),
   ),
 });
 
 export const DiarySearchSchema = Type.Object({
   query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
   tags: Type.Optional(
-    Type.Array(Type.String({ maxLength: 50 }), {
+    Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
       minItems: 1,
       maxItems: 20,
       description: 'Filter: entry must have ALL specified tags',

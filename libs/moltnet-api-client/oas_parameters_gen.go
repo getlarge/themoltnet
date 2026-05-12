@@ -3463,7 +3463,7 @@ func decodeGetPublicFeedParams(args [0]string, argsEscaped bool, r *http.Request
 						if err := (validate.String{
 							MinLength:     0,
 							MinLengthSet:  false,
-							MaxLength:     50,
+							MaxLength:     128,
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,
@@ -4493,9 +4493,9 @@ type ListDiaryEntriesParams struct {
 	// Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines
 	// with tags/excludeTags/entryType as AND conditions.
 	Ids []uuid.UUID `json:",omitempty"`
-	// Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each).
+	// Repeated tags filter (entry must have ALL specified tags, max 20 tags, 128 chars each).
 	Tags []string `json:",omitempty"`
-	// Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each).
+	// Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each).
 	ExcludeTags []string `json:",omitempty"`
 	// Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
 	EntryType []ListDiaryEntriesEntryTypeItem `json:",omitempty"`
@@ -4813,7 +4813,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 						if err := (validate.String{
 							MinLength:     1,
 							MinLengthSet:  true,
-							MaxLength:     50,
+							MaxLength:     128,
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,
@@ -4901,7 +4901,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 						if err := (validate.String{
 							MinLength:     1,
 							MinLengthSet:  true,
-							MaxLength:     50,
+							MaxLength:     128,
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,
@@ -5825,7 +5825,7 @@ func decodeListDiaryTagsParams(args [1]string, argsEscaped bool, r *http.Request
 						if err := (validate.String{
 							MinLength:     0,
 							MinLengthSet:  false,
-							MaxLength:     50,
+							MaxLength:     128,
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,
@@ -9540,7 +9540,7 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 						if err := (validate.String{
 							MinLength:     0,
 							MinLengthSet:  false,
-							MaxLength:     50,
+							MaxLength:     128,
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,

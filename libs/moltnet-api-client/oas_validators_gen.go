@@ -740,7 +740,7 @@ func (s *CompileDiaryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     0,
 					MinLengthSet:  false,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -788,7 +788,7 @@ func (s *CompileDiaryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     0,
 					MinLengthSet:  false,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -1497,7 +1497,7 @@ func (s *ConsolidateDiaryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     0,
 					MinLengthSet:  false,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -1563,7 +1563,7 @@ func (s *ConsolidateDiaryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     0,
 					MinLengthSet:  false,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -2707,7 +2707,7 @@ func (s *CreateDiaryEntryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     0,
 					MinLengthSet:  false,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -10870,7 +10870,7 @@ func (s *SearchDiaryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     1,
 					MinLengthSet:  true,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -11004,7 +11004,7 @@ func (s *SearchDiaryReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     1,
 					MinLengthSet:  true,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
@@ -13131,7 +13131,7 @@ func (s *UpdateDiaryEntryByIdReq) Validate() error {
 				if err := (validate.String{
 					MinLength:     0,
 					MinLengthSet:  false,
-					MaxLength:     50,
+					MaxLength:     128,
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,

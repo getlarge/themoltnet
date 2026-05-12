@@ -63,6 +63,8 @@ export interface MoltNetToolsConfig {
   getTaskContext?(): MoltNetTaskContext | null;
 }
 
+const DIARY_TAG_MAX_LENGTH = 128;
+
 /**
  * Baseline env keys forwarded to host-exec child processes.
  * Callers can extend this set at sandbox startup via `MoltNetToolsConfig.hostExecBaseEnv`.
@@ -423,18 +425,24 @@ export function createMoltNetTools(
         Type.Number({ description: 'Max entries to return (default 10)' }),
       ),
       tags: Type.Optional(
-        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
-          description:
-            'Tags filter — entry must have ALL listed tags (AND). Max 20.',
-          maxItems: 20,
-        }),
+        Type.Array(
+          Type.String({ minLength: 1, maxLength: DIARY_TAG_MAX_LENGTH }),
+          {
+            description:
+              'Tags filter — entry must have ALL listed tags (AND). Max 20.',
+            maxItems: 20,
+          },
+        ),
       ),
       excludeTags: Type.Optional(
-        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
-          description:
-            'Tags to exclude — entry must have NONE of these. Max 20.',
-          maxItems: 20,
-        }),
+        Type.Array(
+          Type.String({ minLength: 1, maxLength: DIARY_TAG_MAX_LENGTH }),
+          {
+            description:
+              'Tags to exclude — entry must have NONE of these. Max 20.',
+            maxItems: 20,
+          },
+        ),
       ),
       entryType: Type.Optional(
         Type.String({
@@ -560,16 +568,22 @@ export function createMoltNetTools(
         Type.Number({ description: 'Max results (default 5)' }),
       ),
       tags: Type.Optional(
-        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
-          description: 'Entry must have ALL listed tags (AND). Max 20.',
-          maxItems: 20,
-        }),
+        Type.Array(
+          Type.String({ minLength: 1, maxLength: DIARY_TAG_MAX_LENGTH }),
+          {
+            description: 'Entry must have ALL listed tags (AND). Max 20.',
+            maxItems: 20,
+          },
+        ),
       ),
       excludeTags: Type.Optional(
-        Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
-          description: 'Entry must have NONE of these tags. Max 20.',
-          maxItems: 20,
-        }),
+        Type.Array(
+          Type.String({ minLength: 1, maxLength: DIARY_TAG_MAX_LENGTH }),
+          {
+            description: 'Entry must have NONE of these tags. Max 20.',
+            maxItems: 20,
+          },
+        ),
       ),
       entryTypes: Type.Optional(
         Type.Array(Type.String(), {

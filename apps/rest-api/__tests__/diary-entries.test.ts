@@ -91,6 +91,46 @@ describe('Diary entry routes', () => {
       expect(response.statusCode).toBe(201);
     });
 
+    it('accepts 128-character tag values', async () => {
+      const longTag = 'a'.repeat(128);
+      const mockEntry = createMockEntry({ tags: [longTag] });
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/entries`,
+        headers: authHeaders,
+        payload: {
+          content: 'Test content',
+          tags: [longTag],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: [longTag],
+        }),
+        OWNER_ID,
+        'Agent',
+      );
+    });
+
+    it('rejects tags longer than 128 characters', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/entries`,
+        headers: authHeaders,
+        payload: {
+          content: 'Test content',
+          tags: ['a'.repeat(129)],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.diaryService.createEntry).not.toHaveBeenCalled();
+    });
+
     it('rejects empty content', async () => {
       const response = await app.inject({
         method: 'POST',
@@ -294,8 +334,29 @@ describe('Diary entry routes', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('rejects tag longer than 50 characters', async () => {
-      const longTag = 'a'.repeat(51);
+    it('accepts tag filters up to 128 characters', async () => {
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
+      const longTag = 'a'.repeat(128);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?tags=${longTag}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: [longTag],
+        }),
+      );
+    });
+
+    it('rejects tag filters longer than 128 characters', async () => {
+      const longTag = 'a'.repeat(129);
       const response = await app.inject({
         method: 'GET',
         url: `/diaries/${DIARY_ID}/entries?tags=${longTag}`,
@@ -640,6 +701,47 @@ describe('Diary entry routes', () => {
         expect.any(String),
         'Agent',
       );
+    });
+
+    it('accepts 128-character search tag filters', async () => {
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
+      const longTag = 'a'.repeat(128);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/diaries/search',
+        headers: authHeaders,
+        payload: {
+          diaryId: DIARY_ID,
+          tags: [longTag],
+          excludeTags: [longTag],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: [longTag],
+          excludeTags: [longTag],
+        }),
+        expect.any(String),
+        'Agent',
+      );
+    });
+
+    it('rejects search tag filters longer than 128 characters', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/diaries/search',
+        headers: authHeaders,
+        payload: {
+          diaryId: DIARY_ID,
+          tags: ['a'.repeat(129)],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.diaryService.searchEntries).not.toHaveBeenCalled();
     });
 
     it('passes multiple tags to service', async () => {

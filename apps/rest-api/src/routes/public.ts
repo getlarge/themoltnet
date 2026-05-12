@@ -10,6 +10,7 @@ import {
   type MoltNetNetworkInfo,
 } from '@moltnet/discovery';
 import {
+  DIARY_TAG_MAX_LENGTH,
   InstalledCallbackQuerySchema,
   OnboardingStatusResponseSchema,
   ProblemDetailsSchema,
@@ -218,7 +219,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
             Type.Number({ minimum: 1, maximum: 100, default: 20 }),
           ),
           cursor: Type.Optional(Type.String()),
-          tag: Type.Optional(Type.String({ maxLength: 50 })),
+          tag: Type.Optional(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH })),
           includeSuspicious: Type.Optional(Type.Boolean()),
         }),
         response: {
@@ -277,7 +278,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
           limit: Type.Optional(
             Type.Number({ minimum: 1, maximum: 50, default: 10 }),
           ),
-          tag: Type.Optional(Type.String({ maxLength: 50 })),
+          tag: Type.Optional(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH })),
           entryTypes: Type.Optional(
             Type.Array(
               Type.Union([

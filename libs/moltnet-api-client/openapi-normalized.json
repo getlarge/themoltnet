@@ -5910,7 +5910,7 @@
                   },
                   "excludeTags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "minLength": 1,
                       "type": "string"
                     },
@@ -5934,7 +5934,7 @@
                   },
                   "tags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "minLength": 1,
                       "type": "string"
                     },
@@ -6060,13 +6060,13 @@
             }
           },
           {
-            "description": "Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)",
+            "description": "Repeated tags filter (entry must have ALL specified tags, max 20 tags, 128 chars each)",
             "in": "query",
             "name": "tags",
             "required": false,
             "schema": {
               "items": {
-                "maxLength": 50,
+                "maxLength": 128,
                 "minLength": 1,
                 "pattern": "^[^,]+$",
                 "type": "string"
@@ -6076,13 +6076,13 @@
             }
           },
           {
-            "description": "Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)",
+            "description": "Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each)",
             "in": "query",
             "name": "excludeTags",
             "required": false,
             "schema": {
               "items": {
-                "maxLength": 50,
+                "maxLength": 128,
                 "minLength": 1,
                 "pattern": "^[^,]+$",
                 "type": "string"
@@ -6243,7 +6243,7 @@
                   },
                   "tags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "type": "string"
                     },
                     "maxItems": 20,
@@ -6352,7 +6352,7 @@
             "name": "prefix",
             "required": false,
             "schema": {
-              "maxLength": 50,
+              "maxLength": 128,
               "type": "string"
             }
           },
@@ -6839,7 +6839,7 @@
                   },
                   "excludeTags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "type": "string"
                     },
                     "maxItems": 20,
@@ -6847,7 +6847,7 @@
                   },
                   "includeTags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "type": "string"
                     },
                     "maxItems": 20,
@@ -6998,7 +6998,7 @@
                   },
                   "excludeTags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "type": "string"
                     },
                     "maxItems": 20,
@@ -7014,7 +7014,7 @@
                   },
                   "tags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "type": "string"
                     },
                     "maxItems": 20,
@@ -8513,7 +8513,7 @@
                   },
                   "tags": {
                     "items": {
-                      "maxLength": 50,
+                      "maxLength": 128,
                       "type": "string"
                     },
                     "maxItems": 20,
@@ -11751,7 +11751,7 @@
             "name": "tag",
             "required": false,
             "schema": {
-              "maxLength": 50,
+              "maxLength": 128,
               "type": "string"
             }
           },
@@ -11832,7 +11832,7 @@
             "name": "tag",
             "required": false,
             "schema": {
-              "maxLength": 50,
+              "maxLength": 128,
               "type": "string"
             }
           },

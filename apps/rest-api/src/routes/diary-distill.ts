@@ -6,6 +6,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  DIARY_TAG_MAX_LENGTH,
   DiaryParamsSchema,
   entryTypeLiterals,
   ProblemDetailsSchema,
@@ -123,10 +124,14 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
             Type.Array(Type.String({ format: 'uuid' }), { maxItems: 500 }),
           ),
           tags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+            Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+              maxItems: 20,
+            }),
           ),
           excludeTags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+            Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+              maxItems: 20,
+            }),
           ),
           threshold: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           strategy: Type.Optional(
@@ -201,10 +206,14 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           ),
           lambda: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           includeTags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+            Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+              maxItems: 20,
+            }),
           ),
           excludeTags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+            Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+              maxItems: 20,
+            }),
           ),
           wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
