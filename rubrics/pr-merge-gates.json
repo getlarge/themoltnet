@@ -1,0 +1,44 @@
+{
+  "criteria": [
+    {
+      "description": "PASS if the PR's total changed lines (added + removed, across all non-generated files) is ≤ 400. FAIL if the count exceeds 400. EXCLUDE the following from the count: lockfiles (`pnpm-lock.yaml`, `go.sum`, `go.work.sum`, `package-lock.json`), generated code (`*.gen.ts`, `*.gen.go`, files under any path containing `/generated/` or `/__generated__/`), embedded schema artifacts (`*.schema.json`, `schemas/*.json`), and OpenAPI specs (`openapi.json`). Start from `gh pr diff <num> | wc -l` and subtract the lines belonging to excluded paths. Cite both the raw count and the excluded subtotal in your evidence.",
+      "id": "gate_line_count",
+      "scoring": "boolean",
+      "weight": 0.1666
+    },
+    {
+      "description": "PASS if no `*.proto` files are added, modified, or deleted in the diff. FAIL if any `.proto` file is touched. Wire-protocol changes require a separate human review track and cannot auto-merge. Use `gh pr diff <num> --name-only | grep -E '\\\\.proto$'` to confirm.",
+      "id": "gate_no_protobuf",
+      "scoring": "boolean",
+      "weight": 0.1666
+    },
+    {
+      "description": "PASS if no files under `libs/database/drizzle/` are added or modified. FAIL if any database migration is touched. Migrations are forward-only and need human review for ordering, rollback strategy, and data-loss risk; never auto-merge them. Also FAIL if the schema definition at `libs/database/src/schema.ts` is modified without a corresponding migration (drift is its own problem).",
+      "id": "gate_no_migrations",
+      "scoring": "boolean",
+      "weight": 0.1666
+    },
+    {
+      "description": "PASS if the diff does not touch deployment, container, or CI surface. FAIL if any of these paths are modified: `infra/`, `docker-compose*.yaml`, `Dockerfile*`, `.github/workflows/`, `.github/actions/`, `fly.toml`, `.fly/`, or `nx.json`. These changes affect what runs in production and how — they need a human reviewer who understands the deployment topology.",
+      "id": "gate_no_infra",
+      "scoring": "boolean",
+      "weight": 0.1666
+    },
+    {
+      "description": "PASS if the diff does not touch authentication, authorization, or cryptographic code. FAIL if any of these paths are modified: `libs/auth/`, `libs/crypto-service/`, `apps/rest-api/src/plugins/auth*`, `apps/mcp-server/src/auth*`, or any file path containing `auth`, `crypto`, `signing`, `jwt`, `token`, `ory`, or `keto` (case-insensitive). Security primitives need cryptographer-aware review; the gate is intentionally over-broad — false positives are cheap, false negatives are catastrophic.",
+      "id": "gate_no_auth",
+      "scoring": "boolean",
+      "weight": 0.1666
+    },
+    {
+      "description": "PASS if the diff does not modify the diary-write or accountable-commit audit pipeline. FAIL if any of these are touched: `libs/diary-service/`, `apps/rest-api/src/routes/diary-entries*`, `apps/rest-api/src/routes/signing*`, the `moltnet_create_entry` custom tool in `libs/pi-extension/src/moltnet/tools.ts`, or the diary-entry signing flow in `libs/crypto-service/`. The audit trail is how MoltNet proves what an agent did; changes here must be reviewed.",
+      "id": "gate_no_audit_logging",
+      "scoring": "boolean",
+      "weight": 0.167
+    }
+  ],
+  "preamble": "You are evaluating whether a GitHub pull request meets the **objective gates** for low-risk auto-merge in this repository. Each criterion is a deterministic boolean: PASS if the gate is satisfied, FAIL if it is not. There are no fractional scores. Do NOT score reviewability or code quality here — that's the job of a separate rubric. Stick to mechanical inspection of the diff and the file paths it touches.\n\nUse `gh pr diff <number>` and `gh pr view <number>` to inspect the diff. Read individual files in the workspace if a path inspection requires confirmation. Don't run tests, don't push commits, don't modify anything.\n\nFor each gate, report PASS or FAIL with concrete evidence: a file path that triggered FAIL, a line count number, the result of a substring search. Vague answers (\"looks clean\") are not useful. When the diff is ambiguous (e.g. a renamed file might or might not be a migration), favor FAIL — the gate exists to prevent unsupervised merges through paths that need human eyes.\n\nThe composite score this rubric produces is purely informational; auto-merge consumers should AND-gate on every PASS, not on a weighted sum.",
+  "rubricId": "pr-merge-gates-v1",
+  "scope": "pull_request",
+  "version": "v1"
+}

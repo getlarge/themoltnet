@@ -34,12 +34,20 @@
  *
  * Usage
  * -----
- *   pnpm --filter @moltnet/tools task:assess-pr --target-task <uuid>
- *   pnpm --filter @moltnet/tools task:assess-pr --target-task <uuid> --dry-run
+ *   pnpm --filter @moltnet/tools task:assess-pr \
+ *     --target-task <uuid> --rubric rubrics/pr-complexity-v1.json
+ *   pnpm --filter @moltnet/tools task:assess-pr \
+ *     --target-task <uuid> --rubric rubrics/pr-merge-gates.json --dry-run
  *
  * Flags
  * -----
  *   -t, --target-task   UUID of the fulfill_brief task to assess (required)
+ *   -r, --rubric        Path to a Rubric JSON file (required). Resolved
+ *                       relative to CWD. The @moltnet/tasks library ships
+ *                       no default rubric — consumers author or fork one
+ *                       per repo. See `rubrics/` at the repo root for
+ *                       starter rubrics (pr-complexity-v1.json,
+ *                       pr-merge-gates.json).
  *   -a, --agent         MoltNet agent name (default: legreffier)
  *       --dry-run       Print the synthesized Task input + skip the POST.
  *
@@ -50,33 +58,47 @@
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
 
 import {
   ASSESS_BRIEF_TYPE,
   type AssessBriefInput,
-  PR_COMPLEXITY_V1,
+  Rubric,
 } from '@moltnet/tasks';
+import { Value } from '@sinclair/typebox/value';
 import { connect } from '@themoltnet/sdk';
 
 const { values: args } = parseArgs({
   options: {
     'target-task': { type: 'string', short: 't' },
     agent: { type: 'string', short: 'a', default: 'legreffier' },
+    rubric: { type: 'string', short: 'r' },
     'dry-run': { type: 'boolean', default: false },
   },
 });
 
 if (!args['target-task']) {
   console.error(
-    'Usage: tsx tools/src/tasks/assess-pr.ts --target-task <uuid> [--agent <name>] [--dry-run]',
+    'Usage: tsx tools/src/tasks/assess-pr.ts --target-task <uuid> --rubric <path> [--agent <name>] [--dry-run]',
+  );
+  process.exit(1);
+}
+
+if (!args.rubric) {
+  console.error(
+    'Missing required flag: --rubric <path-to-rubric.json>\n\n' +
+      'Rubrics are repo-specific — there is no default. See `rubrics/` at\n' +
+      'the repo root for examples (pr-complexity-v1.json, pr-merge-gates.json),\n' +
+      'or author your own. The file must conform to the @moltnet/tasks Rubric\n' +
+      'schema (rubricId, version, criteria[]; weights sum to 1).',
   );
   process.exit(1);
 }
 
 const targetTaskId = args['target-task'];
 const agentName = args.agent!;
+const rubricArg = args.rubric;
 const dryRun = args['dry-run']!;
 
 const UUID_RE =
@@ -119,11 +141,53 @@ async function main() {
     );
   }
 
+  // Resolve --rubric against the repo root, not the caller's CWD, so
+  // `--rubric rubrics/pr-merge-gates.json` works the same whether the
+  // operator is at the repo root, in `tools/`, or in a worktree
+  // subdirectory. Absolute paths are passed through unchanged. The
+  // lib ships no default rubric — consumers author or fork one per repo.
+  const rubricPath = isAbsolute(rubricArg)
+    ? rubricArg
+    : resolve(mainRepo, rubricArg);
+  let rubricJson: unknown;
+  try {
+    rubricJson = JSON.parse(readFileSync(rubricPath, 'utf8'));
+  } catch (err) {
+    throw new Error(
+      `Failed to read --rubric ${rubricPath}: ` +
+        (err instanceof Error ? err.message : String(err)),
+    );
+  }
+  if (!Value.Check(Rubric, rubricJson)) {
+    const errors = [...Value.Errors(Rubric, rubricJson)].slice(0, 5);
+    throw new Error(
+      `Rubric at ${rubricPath} does not match the @moltnet/tasks Rubric schema. ` +
+        `First ${errors.length} validation error(s):\n` +
+        errors.map((e) => `  - ${e.path || '(root)'}: ${e.message}`).join('\n'),
+    );
+  }
+  const rubric = rubricJson;
+
+  // Weights must sum to 1 (TypeBox enforces only per-element 0..1
+  // bounds; the cross-element invariant is policy, not schema). Check
+  // here so the operator gets a fast error instead of a server-side
+  // rejection later — and to make the rubric author's intent explicit.
+  const totalWeight = rubric.criteria.reduce(
+    (acc: number, c: { weight: number }) => acc + c.weight,
+    0,
+  );
+  if (Math.abs(totalWeight - 1) > 0.005) {
+    throw new Error(
+      `Rubric ${rubric.rubricId}@${rubric.version}: criterion weights ` +
+        `sum to ${totalWeight.toFixed(4)}, expected 1.0 (tolerance ±0.005).`,
+    );
+  }
+
   const input: AssessBriefInput = {
     targetTaskId,
     successCriteria: {
       version: 1,
-      rubric: PR_COMPLEXITY_V1,
+      rubric,
     },
   };
 
