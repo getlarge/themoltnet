@@ -226,6 +226,113 @@ describe('moltnet_host_exec UI approval', () => {
     ).rejects.toThrow(/user declined/);
   });
 
+  it('skips ctx.ui.confirm when autoApproveHostExec is true', async () => {
+    let confirmCalls = 0;
+    const tool = getHostExecTool({
+      ...makeConfig('/tmp'),
+      autoApproveHostExec: true,
+    });
+    const ctx = {
+      ui: {
+        confirm: async () => {
+          confirmCalls += 1;
+          return false;
+        },
+      },
+    };
+
+    const result = await callTool(
+      tool,
+      { executable: 'git', args: ['--version'] },
+      ctx,
+    );
+    const parsed = JSON.parse(getText(result));
+    expect(parsed.host_exec).toBe(true);
+    expect(parsed.stdout).toMatch(/git version/);
+    expect(confirmCalls).toBe(0);
+  });
+
+  it('skips ctx.ui.confirm when hostExecAutoApprove matches a rule', async () => {
+    let confirmCalls = 0;
+    const tool = getHostExecTool({
+      ...makeConfig('/tmp'),
+      hostExecAutoApprove: [{ executable: 'git', argsPrefix: ['--version'] }],
+    });
+    const ctx = {
+      ui: {
+        confirm: async () => {
+          confirmCalls += 1;
+          return false;
+        },
+      },
+    };
+
+    const result = await callTool(
+      tool,
+      { executable: 'git', args: ['--version'] },
+      ctx,
+    );
+    const parsed = JSON.parse(getText(result));
+    expect(parsed.host_exec).toBe(true);
+    expect(parsed.stdout).toMatch(/git version/);
+    expect(confirmCalls).toBe(0);
+  });
+
+  it('prompts when hostExecAutoApprove does not match a rule', async () => {
+    const tool = getHostExecTool({
+      ...makeConfig('/tmp'),
+      hostExecAutoApprove: [{ executable: 'git', argsPrefix: ['push'] }],
+    });
+    const ctx = { ui: { confirm: async () => false } };
+
+    await expect(
+      callTool(tool, { executable: 'git', args: ['--version'] }, ctx),
+    ).rejects.toThrow(/user declined/);
+  });
+
+  it('prompts when a matching rule excludes one of the args', async () => {
+    const tool = getHostExecTool({
+      ...makeConfig('/tmp'),
+      hostExecAutoApprove: [
+        {
+          executable: 'git',
+          argsPrefix: ['--version'],
+          argsExcludes: ['--version'],
+        },
+      ],
+    });
+    const ctx = { ui: { confirm: async () => false } };
+
+    await expect(
+      callTool(tool, { executable: 'git', args: ['--version'] }, ctx),
+    ).rejects.toThrow(/user declined/);
+  });
+
+  it('allows an executable-only hostExecAutoApprove rule', async () => {
+    let confirmCalls = 0;
+    const tool = getHostExecTool({
+      ...makeConfig('/tmp'),
+      hostExecAutoApprove: [{ executable: 'git' }],
+    });
+    const ctx = {
+      ui: {
+        confirm: async () => {
+          confirmCalls += 1;
+          return false;
+        },
+      },
+    };
+
+    const result = await callTool(
+      tool,
+      { executable: 'git', args: ['--version'] },
+      ctx,
+    );
+    const parsed = JSON.parse(getText(result));
+    expect(parsed.host_exec).toBe(true);
+    expect(confirmCalls).toBe(0);
+  });
+
   it('proceeds without dialog when ctx has no ui (headless)', async () => {
     const tool = getHostExecTool(makeConfig('/tmp'));
     const result = await callTool(

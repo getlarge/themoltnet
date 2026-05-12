@@ -126,6 +126,16 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     "GOPATH": "/home/agent/go",
     "GOROOT": "/usr/lib/go"
   },
+  "hostExec": {
+    "autoApprove": [
+      {
+        "argsExcludes": ["--mirror", "--all"],
+        "argsPrefix": ["push"],
+        "executable": "git"
+      },
+      { "argsPrefix": ["pr", "create"], "executable": "gh" }
+    ]
+  },
   "resources": {
     "cpus": 2,
     "memory": "6G"
@@ -182,6 +192,45 @@ the guest install its own with `pnpm install`.
 Environment variable overrides applied to the guest VM. Use this to fix host
 env pollution (e.g. `GOROOT` from mise/asdf pointing at a macOS path leaking
 into the Linux guest).
+
+### `hostExec`
+
+Host-side escape hatch policy for `moltnet_host_exec`. The executable must
+still be in the built-in host-exec allowlist (`git`, `gh`, `moltnet`); this
+setting only controls whether the per-call UI approval dialog is skipped.
+
+`autoApprove: true` skips the dialog for every allowed host command. Use that
+only on isolated hosts or disposable machines.
+
+For local daemon runs, prefer rule-based approval:
+
+```json
+{
+  "hostExec": {
+    "autoApprove": [
+      {
+        "argsExcludes": ["--mirror", "--all"],
+        "argsPrefix": ["push"],
+        "executable": "git"
+      },
+      { "argsPrefix": ["pr", "create"], "executable": "gh" },
+      { "argsPrefix": ["pr", "view"], "executable": "gh" }
+    ]
+  }
+}
+```
+
+Each rule matches an exact executable plus optional argument constraints:
+
+| Field          | Description                                                 |
+| -------------- | ----------------------------------------------------------- |
+| `executable`   | Exact executable name                                       |
+| `argsPrefix`   | Ordered argument prefix; later flags/args are still allowed |
+| `argsContains` | Tokens that must appear anywhere in the args                |
+| `argsExcludes` | Tokens that block auto-approval when present                |
+
+If a rule only sets `executable`, all argument lists for that executable are
+auto-approved after the built-in executable allowlist check.
 
 ## Base snapshot
 

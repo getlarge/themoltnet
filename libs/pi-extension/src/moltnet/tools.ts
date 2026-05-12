@@ -39,6 +39,21 @@ export interface MoltNetTaskContext {
   correlationId: string | null;
 }
 
+export interface HostExecAutoApproveRule {
+  /** Exact executable name. Must still pass HOST_EXEC_ALLOWED. */
+  executable: string;
+  /** Optional ordered argument prefix; flags after the prefix are allowed. */
+  argsPrefix?: readonly string[];
+  /** Optional unordered argument tokens that must appear somewhere. */
+  argsContains?: readonly string[];
+  /** Optional argument tokens that prevent auto-approval when present. */
+  argsExcludes?: readonly string[];
+}
+
+export type HostExecAutoApproveConfig =
+  | boolean
+  | readonly HostExecAutoApproveRule[];
+
 export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;
   getDiaryId(): string | null;
@@ -54,6 +69,19 @@ export interface MoltNetToolsConfig {
    * Defaults to HOST_EXEC_DEFAULT_BASE_ENV when omitted.
    */
   hostExecBaseEnv?: ReadonlySet<string>;
+  /**
+   * When true, `moltnet_host_exec` skips the per-call UI approval dialog.
+   * Intended for non-interactive daemon automation only; interactive
+   * consumers should keep the default false behavior.
+   */
+  autoApproveHostExec?: boolean;
+  /**
+   * Host-exec auto-approval policy. `true` skips all dialogs after the
+   * executable allowlist check. An array skips only commands matching one of
+   * the supplied executable/argument rules. Omitted/false preserves the
+   * interactive approval flow.
+   */
+  hostExecAutoApprove?: HostExecAutoApproveConfig;
   /**
    * Active-task context, populated by the agent-daemon path. When set,
    * `moltnet_create_entry` enforces `diaryId === taskContext.diaryId` and
@@ -89,6 +117,43 @@ function ensureConnected(config: MoltNetToolsConfig) {
   const diaryId = config.getDiaryId();
   if (!agent || !diaryId) throw new Error('MoltNet not connected');
   return { agent, diaryId, teamId: config.getTeamId() ?? '' };
+}
+
+function hostExecMatchesAutoApproveRule(
+  params: { executable: string; args: string[] },
+  rule: HostExecAutoApproveRule,
+): boolean {
+  if (params.executable !== rule.executable) return false;
+  if (rule.argsExcludes?.some((arg) => params.args.includes(arg))) {
+    return false;
+  }
+  if (
+    rule.argsPrefix &&
+    !rule.argsPrefix.every((arg, index) => params.args[index] === arg)
+  ) {
+    return false;
+  }
+  if (
+    rule.argsContains &&
+    !rule.argsContains.every((arg) => params.args.includes(arg))
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function shouldAutoApproveHostExec(
+  params: { executable: string; args: string[] },
+  config: MoltNetToolsConfig,
+): boolean {
+  const policy =
+    config.autoApproveHostExec === true
+      ? true
+      : (config.hostExecAutoApprove ?? false);
+
+  if (policy === true) return true;
+  if (!Array.isArray(policy)) return false;
+  return policy.some((rule) => hostExecMatchesAutoApproveRule(params, rule));
 }
 
 interface TaskFilterShorthand {
@@ -884,7 +949,7 @@ export function createMoltNetTools(
 
       // Require explicit user approval via UI dialog when available.
       // Falls back to proceeding when running headless (no UI context).
-      if (ctx?.ui) {
+      if (ctx?.ui && !shouldAutoApproveHostExec(params, config)) {
         const cmdDisplay = [params.executable, ...params.args].join(' ');
         const approved = await ctx.ui.confirm(
           'Allow host command?',

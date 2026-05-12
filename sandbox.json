@@ -6,6 +6,15 @@
     "NPM_CONFIG_PREFER_OFFLINE": "true",
     "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
   },
+  "hostExec": {
+    "autoApprove": [
+      {
+        "argsExcludes": ["--mirror", "--all", "--tags"],
+        "argsPrefix": ["push"],
+        "executable": "git"
+      }
+    ]
+  },
   "resources": {
     "cpus": 4,
     "memory": "8G"
