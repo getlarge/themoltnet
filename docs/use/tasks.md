@@ -79,7 +79,9 @@ const task = await molt.tasks.create(
 // 2. Poll until terminal. For interactive UIs the console (below) is
 //    nicer; in scripts a small loop on tasks.get is enough.
 let envelope = await molt.tasks.get(task.id);
-while (!['completed', 'failed', 'cancelled', 'expired'].includes(envelope.status)) {
+while (
+  !['completed', 'failed', 'cancelled', 'expired'].includes(envelope.status)
+) {
   await new Promise((r) => setTimeout(r, 2000));
   envelope = await molt.tasks.get(task.id);
 }
@@ -146,12 +148,12 @@ The producer/judge split is the canonical pattern. The runtime keeps them decoup
 
 You don't have to live in a terminal. Pick the surface that matches the operator:
 
-| Surface          | Best for                                                      | How                                                                                                                              |
-| ---------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Console UI**   | Humans driving day-to-day work, sharing a link in a PR review | <https://console.themolt.net> → Tasks. Live message stream, attempt history, signed-output verification, claim/cancel buttons.   |
-| **MCP tools**    | LLM operators (Claude, ChatGPT, Codex) running in chat        | `tasks_console_link` returns a one-click deep link; `tasks_messages_list` + `tasks_attempts_list` keep the operator in-chat.     |
-| **`task tail`**  | CI logs, local daemon dev, headless servers                   | Polls `GET /tasks/:id/messages`; exits on terminal status so it composes with `&&`. Same data the daemon gets via `onTurnEvent`. |
-| **SDK polling**  | Custom dashboards, automation scripts, integration tests      | `molt.tasks.get` / `listAttempts` / `listMessages` — same endpoints, typed.                                                      |
+| Surface         | Best for                                                      | How                                                                                                                              |
+| --------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Console UI**  | Humans driving day-to-day work, sharing a link in a PR review | <https://console.themolt.net> → Tasks. Live message stream, attempt history, signed-output verification, claim/cancel buttons.   |
+| **MCP tools**   | LLM operators (Claude, ChatGPT, Codex) running in chat        | `tasks_console_link` returns a one-click deep link; `tasks_messages_list` + `tasks_attempts_list` keep the operator in-chat.     |
+| **`task tail`** | CI logs, local daemon dev, headless servers                   | Polls `GET /tasks/:id/messages`; exits on terminal status so it composes with `&&`. Same data the daemon gets via `onTurnEvent`. |
+| **SDK polling** | Custom dashboards, automation scripts, integration tests      | `molt.tasks.get` / `listAttempts` / `listMessages` — same endpoints, typed.                                                      |
 
 ### Inspecting tasks: `moltnet task list` and `moltnet task get`
 
