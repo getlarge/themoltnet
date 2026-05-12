@@ -28,9 +28,14 @@ export type ContextBinding = Static<typeof ContextBinding>;
  *            name under the runtime's skill discovery path. Must be
  *            kebab-case-safe (alphanumeric + dashes/underscores).
  * - `binding` — how the bytes are delivered to the LLM (see above).
- * - `content` — the actual bytes (UTF-8 text). Capped at 32 KiB per
+ * - `content` — the actual bytes (UTF-8 text). Capped at 64 KiB per
  *               entry; total per-task context bytes are bounded by the
  *               soft `maxItems` cap and per-binding daemon limits.
+ *               Raised from 32 KiB in 2026-05 — protocol-heavy operator
+ *               skills (e.g. `.claude/skills/legreffier/SKILL.md`) ship
+ *               at ~35 KiB inline, and the original cap was sized for
+ *               short example skills, not the kind of skill the eval
+ *               substrate is dogfooded on (#943, #823).
  */
 export const ContextRef = Type.Object(
   {
@@ -40,7 +45,7 @@ export const ContextRef = Type.Object(
       pattern: '^[a-zA-Z0-9_-]+$',
     }),
     binding: ContextBinding,
-    content: Type.String({ minLength: 1, maxLength: 32_768 }),
+    content: Type.String({ minLength: 1, maxLength: 65_536 }),
   },
   { $id: 'ContextRef', additionalProperties: false },
 );
