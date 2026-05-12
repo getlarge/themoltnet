@@ -60,6 +60,12 @@ export async function finalizeTask(
       message: 'Task execution failed before producing a valid output.',
       retryable: false,
     };
+  const heartbeat = await agent.tasks.heartbeat(
+    output.taskId,
+    output.attemptN,
+    {},
+  );
+  if (heartbeat.cancelled) return;
   await agent.tasks.fail(output.taskId, output.attemptN, { error });
 }
 

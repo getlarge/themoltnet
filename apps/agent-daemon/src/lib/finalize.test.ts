@@ -39,14 +39,29 @@ type FailMock = (
   attemptN: number,
   body: FailBody,
 ) => Promise<void>;
+type HeartbeatMock = (
+  taskId: string,
+  attemptN: number,
+  body: Record<string, never>,
+) => Promise<{
+  claimExpiresAt: string;
+  cancelled: boolean;
+  cancelReason: string | null;
+}>;
 
 function makeAgent() {
   const complete = vi.fn<CompleteMock>().mockResolvedValue(undefined);
   const fail = vi.fn<FailMock>().mockResolvedValue(undefined);
+  const heartbeat = vi.fn<HeartbeatMock>().mockResolvedValue({
+    claimExpiresAt: new Date(0).toISOString(),
+    cancelled: false,
+    cancelReason: null,
+  });
   return {
     complete,
     fail,
-    agent: { tasks: { complete, fail } } as unknown as Agent,
+    heartbeat,
+    agent: { tasks: { complete, fail, heartbeat } } as unknown as Agent,
   };
 }
 
@@ -102,13 +117,27 @@ describe('finalizeTask', () => {
     failed.error = { code: 'oops', message: 'broke' };
     await finalizeTask(stub.agent, failed);
 
+    expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
     expect(stub.fail).toHaveBeenCalledTimes(1);
     const error = stub.fail.mock.calls[0][2].error;
     expect(error.code).toBe('oops');
   });
 
+  it('does not call /fail when the startup heartbeat observes cancellation', async () => {
+    stub.heartbeat.mockResolvedValueOnce({
+      claimExpiresAt: new Date(0).toISOString(),
+      cancelled: true,
+      cancelReason: 'cancelled before fail landed',
+    });
+    await finalizeTask(stub.agent, makeOutput('failed', null));
+
+    expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
+    expect(stub.fail).not.toHaveBeenCalled();
+  });
+
   it('is a no-op for cancelled outputs', async () => {
     await finalizeTask(stub.agent, makeOutput('cancelled', null));
+    expect(stub.heartbeat).not.toHaveBeenCalled();
     expect(stub.fail).not.toHaveBeenCalled();
     expect(stub.complete).not.toHaveBeenCalled();
   });
