@@ -1,7 +1,7 @@
 {
   "criteria": [
     {
-      "description": "PASS if the PR's total changed lines (added + removed, across all non-generated files) is ≤ 400. FAIL if the count exceeds 400. EXCLUDE the following from the count: lockfiles (`pnpm-lock.yaml`, `go.sum`, `go.work.sum`, `package-lock.json`), generated code (`*.gen.ts`, `*.gen.go`, files under any path containing `/generated/` or `/__generated__/`), embedded schema artifacts (`*.schema.json`, `schemas/*.json`), and OpenAPI specs (`openapi.json`). Start from `gh pr diff <num> | wc -l` and subtract the lines belonging to excluded paths. Cite both the raw count and the excluded subtotal in your evidence.",
+      "description": "PASS if the PR's total changed lines (added + removed, across all non-generated files) is ≤ 300. FAIL if the count exceeds 300. EXCLUDE the following from the count: lockfiles (`pnpm-lock.yaml`, `go.sum`, `go.work.sum`, `package-lock.json`), generated code (`*.gen.ts`, `*.gen.go`, files under any path containing `/generated/` or `/__generated__/`), embedded schema artifacts (`*.schema.json`, `schemas/*.json`), and OpenAPI specs (`openapi.json`). Start from `gh pr diff <num> | wc -l` and subtract the lines belonging to excluded paths. Cite both the raw count and the excluded subtotal in your evidence.",
       "id": "gate_line_count",
       "scoring": "boolean",
       "weight": 0.1666
@@ -13,13 +13,7 @@
       "weight": 0.1666
     },
     {
-      "description": "PASS if no files under `libs/database/drizzle/` are added or modified. FAIL if any database migration is touched. Migrations are forward-only and need human review for ordering, rollback strategy, and data-loss risk; never auto-merge them. Also FAIL if the schema definition at `libs/database/src/schema.ts` is modified without a corresponding migration (drift is its own problem).",
-      "id": "gate_no_migrations",
-      "scoring": "boolean",
-      "weight": 0.1666
-    },
-    {
-      "description": "PASS if the diff does not touch deployment, container, or CI surface. FAIL if any of these paths are modified: `infra/`, `docker-compose*.yaml`, `Dockerfile*`, `.github/workflows/`, `.github/actions/`, `fly.toml`, `.fly/`, or `nx.json`. These changes affect what runs in production and how — they need a human reviewer who understands the deployment topology.",
+      "description": "PASS if the diff does not touch deployment, container, or CI surface. FAIL if any of these paths are modified: `infra/`, `docker-compose*.yaml`, `Dockerfile*`, `.github/workflows/`, `.github/actions/`, `fly.toml`, `.fly/`, `nx.json`, or release-please configuration (`release-please-config.json`, `.release-please-manifest.json`). These changes affect what runs in production, how releases are cut, or how CI orchestrates the build — they need a human reviewer who understands the deployment topology.",
       "id": "gate_no_infra",
       "scoring": "boolean",
       "weight": 0.1666
@@ -34,10 +28,16 @@
       "description": "PASS if the diff does not modify the diary-write or accountable-commit audit pipeline. FAIL if any of these are touched: `libs/diary-service/`, `apps/rest-api/src/routes/diary-entries*`, `apps/rest-api/src/routes/signing*`, the `moltnet_create_entry` custom tool in `libs/pi-extension/src/moltnet/tools.ts`, or the diary-entry signing flow in `libs/crypto-service/`. The audit trail is how MoltNet proves what an agent did; changes here must be reviewed.",
       "id": "gate_no_audit_logging",
       "scoring": "boolean",
+      "weight": 0.1666
+    },
+    {
+      "description": "PASS if the diff does not modify the rules that govern how every future agent task runs. FAIL if any of these are touched: `AGENTS.md` and its `CLAUDE.md` symlink at the repo root, any nested `AGENTS.md` / `CLAUDE.md` in subdirectories, `libs/pi-extension/src/runtime/runtime-instructor.ts`, `.claude/rules/`, `.claude/skills/legreffier/`, or `.agents/skills/legreffier/`. These define the operating-context every agent inherits — a bad change here propagates silently to all subsequent task runs and corrupts the audit trail's reliability. Must be reviewed by someone who runs agents regularly.",
+      "id": "gate_no_agent_runtime_rules",
+      "scoring": "boolean",
       "weight": 0.167
     }
   ],
-  "preamble": "You are evaluating whether a GitHub pull request meets the **objective gates** for low-risk auto-merge in this repository. Each criterion is a deterministic boolean: PASS if the gate is satisfied, FAIL if it is not. There are no fractional scores. Do NOT score reviewability or code quality here — that's the job of a separate rubric. Stick to mechanical inspection of the diff and the file paths it touches.\n\nUse `gh pr diff <number>` and `gh pr view <number>` to inspect the diff. Read individual files in the workspace if a path inspection requires confirmation. Don't run tests, don't push commits, don't modify anything.\n\nFor each gate, report PASS or FAIL with concrete evidence: a file path that triggered FAIL, a line count number, the result of a substring search. Vague answers (\"looks clean\") are not useful. When the diff is ambiguous (e.g. a renamed file might or might not be a migration), favor FAIL — the gate exists to prevent unsupervised merges through paths that need human eyes.\n\nThe composite score this rubric produces is purely informational; auto-merge consumers should AND-gate on every PASS, not on a weighted sum.",
+  "preamble": "You are evaluating whether a GitHub pull request meets the **objective gates** for low-risk auto-merge in this repository. Each criterion is a deterministic boolean: PASS if the gate is satisfied, FAIL if it is not. There are no fractional scores. Do NOT score reviewability or code quality here — that's the job of a separate rubric. Stick to mechanical inspection of the diff and the file paths it touches.\n\nUse `gh pr diff <number>` and `gh pr view <number>` to inspect the diff. Read individual files in the workspace if a path inspection requires confirmation. Don't run tests, don't push commits, don't modify anything.\n\nFor each gate, report PASS or FAIL with concrete evidence: a file path that triggered FAIL, a line count number, the result of a substring search. Vague answers (\"looks clean\") are not useful. When the diff is ambiguous (e.g. a renamed file might or might not be agent-facing rules), favor FAIL — the gate exists to prevent unsupervised merges through paths that need human eyes.\n\nThe composite score this rubric produces is purely informational; auto-merge consumers should AND-gate on every PASS, not on a weighted sum.\n\n**After** you submit your structured judgment via the submit tool, post a PR comment on the target PR summarizing each gate's PASS/FAIL verdict with one-line evidence. Use `gh pr comment <number>` from the bash tool — the guest VM has `gh` on PATH with a valid `GH_TOKEN` from the agent's GitHub App, so this works without host_exec. Format the comment as a markdown checklist (`- [x]` for PASS, `- [ ]` for FAIL), titled `## Auto-merge gate evaluation (pr-merge-gates-v1)`. End with a single-line composite verdict (`Verdict: <all gates pass | N gate(s) failed>`). Do NOT include the rubric's full criterion descriptions in the comment — link to `rubrics/pr-merge-gates.json` instead.",
   "rubricId": "pr-merge-gates-v1",
   "scope": "pull_request",
   "version": "v1"
