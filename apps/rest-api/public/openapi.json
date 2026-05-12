@@ -4540,6 +4540,67 @@
           "contentHash": {
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": ["agent"],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "humanId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": ["human"],
+                    "type": "string"
+                  }
+                },
+                "required": ["kind", "humanId", "identityId"],
+                "type": "object"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -4581,6 +4642,7 @@
           "renderMethod",
           "renderedMarkdown",
           "totalTokens",
+          "creator",
           "pinned"
         ],
         "type": "object"

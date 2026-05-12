@@ -18809,21 +18809,27 @@ func (*RenderedPackPreview) previewRenderedPackRes() {}
 
 // Ref: #/components/schemas/RenderedPackResult
 type RenderedPackResult struct {
-	ContentHash      string    `json:"contentHash"`
-	DiaryId          uuid.UUID `json:"diaryId"`
-	ID               uuid.UUID `json:"id"`
-	PackCid          string    `json:"packCid"`
-	Pinned           bool      `json:"pinned"`
-	RenderMethod     string    `json:"renderMethod"`
-	RenderedMarkdown string    `json:"renderedMarkdown"`
-	SourcePackCid    string    `json:"sourcePackCid"`
-	SourcePackId     uuid.UUID `json:"sourcePackId"`
-	TotalTokens      int       `json:"totalTokens"`
+	ContentHash      string                    `json:"contentHash"`
+	Creator          RenderedPackResultCreator `json:"creator"`
+	DiaryId          uuid.UUID                 `json:"diaryId"`
+	ID               uuid.UUID                 `json:"id"`
+	PackCid          string                    `json:"packCid"`
+	Pinned           bool                      `json:"pinned"`
+	RenderMethod     string                    `json:"renderMethod"`
+	RenderedMarkdown string                    `json:"renderedMarkdown"`
+	SourcePackCid    string                    `json:"sourcePackCid"`
+	SourcePackId     uuid.UUID                 `json:"sourcePackId"`
+	TotalTokens      int                       `json:"totalTokens"`
 }
 
 // GetContentHash returns the value of ContentHash.
 func (s *RenderedPackResult) GetContentHash() string {
 	return s.ContentHash
+}
+
+// GetCreator returns the value of Creator.
+func (s *RenderedPackResult) GetCreator() RenderedPackResultCreator {
+	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -18876,6 +18882,11 @@ func (s *RenderedPackResult) SetContentHash(val string) {
 	s.ContentHash = val
 }
 
+// SetCreator sets the value of Creator.
+func (s *RenderedPackResult) SetCreator(val RenderedPackResultCreator) {
+	s.Creator = val
+}
+
 // SetDiaryId sets the value of DiaryId.
 func (s *RenderedPackResult) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
@@ -18922,6 +18933,74 @@ func (s *RenderedPackResult) SetTotalTokens(val int) {
 }
 
 func (*RenderedPackResult) renderContextPackRes() {}
+
+// RenderedPackResultCreator represents sum type.
+type RenderedPackResultCreator struct {
+	Type           RenderedPackResultCreatorType // switch on this field
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// RenderedPackResultCreatorType is oneOf type of RenderedPackResultCreator.
+type RenderedPackResultCreatorType string
+
+// Possible values for RenderedPackResultCreatorType.
+const (
+	AgentPrincipalRenderedPackResultCreator RenderedPackResultCreatorType = "agent"
+	HumanPrincipalRenderedPackResultCreator RenderedPackResultCreatorType = "human"
+)
+
+// IsAgentPrincipal reports whether RenderedPackResultCreator is AgentPrincipal.
+func (s RenderedPackResultCreator) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalRenderedPackResultCreator
+}
+
+// IsHumanPrincipal reports whether RenderedPackResultCreator is HumanPrincipal.
+func (s RenderedPackResultCreator) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalRenderedPackResultCreator
+}
+
+// SetAgentPrincipal sets RenderedPackResultCreator to AgentPrincipal.
+func (s *RenderedPackResultCreator) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalRenderedPackResultCreator
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if RenderedPackResultCreator is AgentPrincipal.
+func (s RenderedPackResultCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalRenderedPackResultCreator returns new RenderedPackResultCreator from AgentPrincipal.
+func NewAgentPrincipalRenderedPackResultCreator(v AgentPrincipal) RenderedPackResultCreator {
+	var s RenderedPackResultCreator
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets RenderedPackResultCreator to HumanPrincipal.
+func (s *RenderedPackResultCreator) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalRenderedPackResultCreator
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if RenderedPackResultCreator is HumanPrincipal.
+func (s RenderedPackResultCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalRenderedPackResultCreator returns new RenderedPackResultCreator from HumanPrincipal.
+func NewHumanPrincipalRenderedPackResultCreator(v HumanPrincipal) RenderedPackResultCreator {
+	var s RenderedPackResultCreator
+	s.SetHumanPrincipal(v)
+	return s
+}
 
 // Ref: #/components/schemas/RenderedPackWithContent
 type RenderedPackWithContent struct {

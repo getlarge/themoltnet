@@ -553,6 +553,7 @@ export const PackRenderOutputSchema = Type.Object({
   renderMethod: Type.String(),
   renderedMarkdown: Type.String(),
   totalTokens: Type.Number(),
+  creator: PrincipalIdentitySchema,
   pinned: Type.Boolean(),
 });
 

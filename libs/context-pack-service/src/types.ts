@@ -5,6 +5,7 @@ import type {
   ExpandedPackEntry,
   PackDiffCompressionLevel,
   PackDiffRow,
+  PrincipalIdentity,
   RenderedPack,
   RenderedPackWithCreator,
 } from '@moltnet/database';
@@ -94,6 +95,7 @@ export interface RenderedPackResult {
   renderMethod: string;
   renderedMarkdown: string;
   totalTokens: number;
+  creator: PrincipalIdentity;
   pinned: boolean;
 }
 

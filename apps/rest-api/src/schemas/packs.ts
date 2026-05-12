@@ -507,6 +507,7 @@ export const RenderedPackResultSchema = Type.Object(
     renderMethod: Type.String(),
     renderedMarkdown: Type.String(),
     totalTokens: Type.Integer(),
+    creator: PrincipalIdentitySchema,
     pinned: Type.Boolean(),
   },
   { $id: 'RenderedPackResult' },

@@ -3591,6 +3591,23 @@
           "contentHash": {
             "type": "string"
           },
+          "creator": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/components/schemas/AgentPrincipal",
+                "human": "#/components/schemas/HumanPrincipal"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentPrincipal"
+              },
+              {
+                "$ref": "#/components/schemas/HumanPrincipal"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -3632,6 +3649,7 @@
           "renderMethod",
           "renderedMarkdown",
           "totalTokens",
+          "creator",
           "pinned"
         ],
         "type": "object"

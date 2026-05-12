@@ -10621,6 +10621,46 @@ func (s *RenderedPackList) Validate() error {
 	return nil
 }
 
+func (s *RenderedPackResult) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Creator.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "creator",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RenderedPackResultCreator) Validate() error {
+	switch s.Type {
+	case AgentPrincipalRenderedPackResultCreator:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalRenderedPackResultCreator:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
 func (s *RenderedPackWithContent) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer

@@ -31,8 +31,16 @@ func (h *stubRenderPackHandler) RenderContextPack(_ context.Context, req *moltne
 	}
 
 	h.persistCalls++
+	creator := moltnetapi.RenderedPackResultCreator{Type: moltnetapi.AgentPrincipalRenderedPackResultCreator}
+	creator.SetAgentPrincipal(moltnetapi.AgentPrincipal{
+		Kind:        moltnetapi.AgentPrincipalKindAgent,
+		IdentityId:  uuid.MustParse("dd000000-0000-0000-0000-000000000001"),
+		Fingerprint: "A1B2-C3D4-E5F6-A7B8",
+		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+	})
 	return &moltnetapi.RenderedPackResult{
 		ContentHash:      "bafkreiresult",
+		Creator:          creator,
 		DiaryId:          uuid.MustParse("00000000-0000-0000-0000-000000000002"),
 		ID:               uuid.MustParse("00000000-0000-0000-0000-000000000003"),
 		PackCid:          "bafy-rendered",
