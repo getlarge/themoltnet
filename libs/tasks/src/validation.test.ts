@@ -339,8 +339,11 @@ describe('taskTypeWorkspaceMode', () => {
     expect(taskTypeWorkspaceMode('fulfill_brief')).toBe('dedicated_worktree');
   });
 
+  it('marks assess_brief as dedicated_worktree', () => {
+    expect(taskTypeWorkspaceMode('assess_brief')).toBe('dedicated_worktree');
+  });
+
   it('keeps non-mutating built-ins on shared_mount', () => {
-    expect(taskTypeWorkspaceMode('assess_brief')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('curate_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('render_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('judge_pack')).toBe('shared_mount');

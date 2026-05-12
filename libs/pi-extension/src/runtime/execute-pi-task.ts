@@ -1015,7 +1015,7 @@ export function resolveTaskWorktreeBranch(
     return `feat/${scopeHint || 'task'}-${slug}`;
   }
 
-  return `task/${task.taskType}-${task.id.slice(0, 8)}`;
+  return `task/${slugifyBranchComponent(task.taskType) || 'task'}-${task.id.slice(0, 8)}`;
 }
 
 export function slugifyBranchComponent(input: string): string {

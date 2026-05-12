@@ -93,6 +93,7 @@ export function buildTaskUserPrompt(
       return buildAssessBriefUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+        workspace: ctx.workspace,
       });
     }
 

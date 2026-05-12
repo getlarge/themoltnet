@@ -216,6 +216,7 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: AssessBriefInput,
     outputSchema: AssessBriefOutput,
     outputKind: 'judgment',
+    workspaceMode: 'dedicated_worktree',
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateInputAsync: validateAssessBriefInputAsync,

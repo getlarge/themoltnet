@@ -394,6 +394,17 @@ describe('resolveTaskWorktreeBranch', () => {
       }),
     ).toBeNull();
   });
+
+  it('creates a disposable task branch for assess_brief', () => {
+    expect(
+      resolveTaskWorktreeBranch({
+        id: '11111111-2222-4333-8444-555555555555',
+        taskType: 'assess_brief',
+        correlationId: null,
+        input: {},
+      }),
+    ).toBe('task/assess-brief-11111111');
+  });
 });
 
 describe('slugifyBranchComponent', () => {
