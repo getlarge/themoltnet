@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -47,7 +48,13 @@ func runAgentsLookupCmd(apiURL, credPath, fingerprint string) error {
 
 // printJSON marshals v to indented JSON and writes to stdout.
 func printJSON(v interface{}) error {
-	enc := json.NewEncoder(os.Stdout)
+	return printJSONTo(os.Stdout, v)
+}
+
+// printJSONTo marshals v to indented JSON and writes to w. Used by
+// commands whose tests inject a buffer instead of stdout.
+func printJSONTo(w io.Writer, v interface{}) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
 }

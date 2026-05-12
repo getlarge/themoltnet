@@ -245,6 +245,132 @@ func runTaskGetWithClient(ctx context.Context, client *moltnetapi.Client, taskID
 	return printJSON(task)
 }
 
+type taskAttemptsOpts struct {
+	apiURL       string
+	credPath     string
+	taskID       string
+	acceptedOnly bool
+	field        string
+	out          io.Writer
+}
+
+func runTaskAttemptsCmd(opts taskAttemptsOpts) error {
+	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	if err != nil {
+		return err
+	}
+	return runTaskAttemptsWithClient(context.Background(), client, opts)
+}
+
+// runTaskAttemptsWithClient is the testable inner loop. The cobra wrapper
+// loads credentials and constructs the client; tests inject their own
+// stub-server-backed client directly.
+func runTaskAttemptsWithClient(ctx context.Context, client *moltnetapi.Client, opts taskAttemptsOpts) error {
+	taskUUID, err := uuid.Parse(opts.taskID)
+	if err != nil {
+		return fmt.Errorf("invalid task ID %q: %w", opts.taskID, err)
+	}
+
+	// `--field` without `--accepted-only` is rejected when there are
+	// multiple attempts (ambiguous which one to project). We don't know
+	// the count yet, but disallowing it up-front keeps the contract
+	// predictable: `--field` always operates on a single attempt picked
+	// by `--accepted-only`. The single-attempt convenience is covered by
+	// the `--accepted-only` flag.
+	if opts.field != "" && !opts.acceptedOnly {
+		return fmt.Errorf("--field requires --accepted-only")
+	}
+	if opts.field != "" {
+		if !validAttemptField(opts.field) {
+			return fmt.Errorf("--field: unknown field %q (one of: output, outputCid, error, status, attemptN)", opts.field)
+		}
+	}
+
+	res, err := client.ListTaskAttempts(ctx, moltnetapi.ListTaskAttemptsParams{ID: taskUUID})
+	if err != nil {
+		return fmt.Errorf("task attempts: %w", formatTransportError(err))
+	}
+	list, ok := res.(*moltnetapi.ListTaskAttemptsOKApplicationJSON)
+	if !ok {
+		return formatAPIError(res)
+	}
+	attempts := []moltnetapi.TaskAttempt(*list)
+
+	if !opts.acceptedOnly {
+		return printJSONTo(opts.out, attempts)
+	}
+
+	// `--accepted-only` requires looking up the task to discover which
+	// attempt was accepted. The attempts list itself doesn't carry that
+	// pointer — the task envelope owns `acceptedAttemptN`.
+	taskRes, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: taskUUID})
+	if err != nil {
+		return fmt.Errorf("get task: %w", formatTransportError(err))
+	}
+	task, ok := taskRes.(*moltnetapi.Task)
+	if !ok {
+		return formatAPIError(taskRes)
+	}
+	if task.AcceptedAttemptN.Null {
+		return fmt.Errorf("task %s has no accepted attempt yet (status=%s)", taskUUID, task.Status)
+	}
+	wantN := int(task.AcceptedAttemptN.Value)
+	var accepted *moltnetapi.TaskAttempt
+	for i := range attempts {
+		if int(attempts[i].AttemptN) == wantN {
+			accepted = &attempts[i]
+			break
+		}
+	}
+	if accepted == nil {
+		return fmt.Errorf("task %s reports acceptedAttemptN=%d but attempts list does not contain it", taskUUID, wantN)
+	}
+
+	if opts.field == "" {
+		return printJSONTo(opts.out, accepted)
+	}
+	return printAttemptField(opts.out, accepted, opts.field)
+}
+
+func validAttemptField(name string) bool {
+	switch name {
+	case "output", "outputCid", "error", "status", "attemptN":
+		return true
+	}
+	return false
+}
+
+// printAttemptField projects a single field of the accepted attempt onto
+// stdout. Nullable fields are emitted as the JSON literal `null` so the
+// output is always valid JSON and safe to pipe into jq.
+func printAttemptField(out io.Writer, a *moltnetapi.TaskAttempt, field string) error {
+	switch field {
+	case "output":
+		if a.Output.Null {
+			_, err := fmt.Fprintln(out, "null")
+			return err
+		}
+		return printJSONTo(out, a.Output.Value)
+	case "outputCid":
+		if a.OutputCid.Null {
+			_, err := fmt.Fprintln(out, "null")
+			return err
+		}
+		return printJSONTo(out, a.OutputCid.Value)
+	case "error":
+		if a.Error.Null {
+			_, err := fmt.Fprintln(out, "null")
+			return err
+		}
+		return printJSONTo(out, a.Error.Value)
+	case "status":
+		return printJSONTo(out, string(a.Status))
+	case "attemptN":
+		return printJSONTo(out, int(a.AttemptN))
+	}
+	return fmt.Errorf("printAttemptField: unhandled field %q", field)
+}
+
 func runTaskTailCmd(opts taskTailOpts) error {
 	if opts.format != "human" && opts.format != "json" {
 		return fmt.Errorf("--format: unsupported value %q (one of: human, json)", opts.format)
