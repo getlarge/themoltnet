@@ -226,6 +226,32 @@ describe('moltnet_host_exec UI approval', () => {
     ).rejects.toThrow(/user declined/);
   });
 
+  it('skips ctx.ui.confirm when autoApproveHostExec is true', async () => {
+    let confirmCalls = 0;
+    const tool = getHostExecTool({
+      ...makeConfig('/tmp'),
+      autoApproveHostExec: true,
+    });
+    const ctx = {
+      ui: {
+        confirm: async () => {
+          confirmCalls += 1;
+          return false;
+        },
+      },
+    };
+
+    const result = await callTool(
+      tool,
+      { executable: 'git', args: ['--version'] },
+      ctx,
+    );
+    const parsed = JSON.parse(getText(result));
+    expect(parsed.host_exec).toBe(true);
+    expect(parsed.stdout).toMatch(/git version/);
+    expect(confirmCalls).toBe(0);
+  });
+
   it('proceeds without dialog when ctx has no ui (headless)', async () => {
     const tool = getHostExecTool(makeConfig('/tmp'));
     const result = await callTool(

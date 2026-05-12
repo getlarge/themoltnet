@@ -162,6 +162,11 @@ export interface ExecutePiTaskOptions {
    * Default `3`. Set to `0` to disable. Closes part of #1094.
    */
   maxBashTimeouts?: number;
+  /**
+   * Skip per-call UI approval for `moltnet_host_exec`. Keep false for
+   * interactive consumers; daemon automation enables this explicitly.
+   */
+  autoApproveHostExec?: boolean;
 }
 
 /**
@@ -448,6 +453,7 @@ export async function executePiTask(
         },
         getHostCwd: () => mountPath,
         hostExecBaseEnv,
+        autoApproveHostExec: opts.autoApproveHostExec,
         // Daemon path is always inside an active task — wire the task
         // context so moltnet_create_entry forces the task diary and
         // injects provenance tags (issue #979).

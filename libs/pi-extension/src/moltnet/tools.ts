@@ -55,6 +55,12 @@ export interface MoltNetToolsConfig {
    */
   hostExecBaseEnv?: ReadonlySet<string>;
   /**
+   * When true, `moltnet_host_exec` skips the per-call UI approval dialog.
+   * Intended for non-interactive daemon automation only; interactive
+   * consumers should keep the default false behavior.
+   */
+  autoApproveHostExec?: boolean;
+  /**
    * Active-task context, populated by the agent-daemon path. When set,
    * `moltnet_create_entry` enforces `diaryId === taskContext.diaryId` and
    * injects provenance tags. When absent (interactive pi-extension / TUI),
@@ -884,7 +890,7 @@ export function createMoltNetTools(
 
       // Require explicit user approval via UI dialog when available.
       // Falls back to proceeding when running headless (no UI context).
-      if (ctx?.ui) {
+      if (ctx?.ui && !config.autoApproveHostExec) {
         const cmdDisplay = [params.executable, ...params.args].join(' ');
         const approved = await ctx.ui.confirm(
           'Allow host command?',
