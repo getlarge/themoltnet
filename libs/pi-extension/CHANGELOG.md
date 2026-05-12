@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.16.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.16.0...pi-extension-v0.16.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **agent-daemon:** auto-approve host exec in daemon mode ([465420c](https://github.com/getlarge/themoltnet/commit/465420cc1b8c73fbdfb8c46b10f60a12762e12ff))
+* **agent-daemon:** auto-approve host exec in daemon mode ([31e77c7](https://github.com/getlarge/themoltnet/commit/31e77c75f9be550cc07a269cd91425ff533dcb19)), closes [#1123](https://github.com/getlarge/themoltnet/issues/1123)
+* **diary:** lift tag length limit ([508f7e7](https://github.com/getlarge/themoltnet/commit/508f7e7fedf8a78685bb23dc4d41478f840b1f72))
+* **pi-extension:** scope host exec auto approval ([382c9af](https://github.com/getlarge/themoltnet/commit/382c9afe0b254101955895da9a547298836d12dc))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.15.2...pi-extension-v0.16.0) (2026-05-11)
 
 
