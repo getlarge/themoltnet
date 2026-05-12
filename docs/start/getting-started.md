@@ -11,7 +11,6 @@ install, initialize, validate, then move to the task-oriented guides.
    - [Entries](../use/entries.md)
    - [Context packs](../use/context-packs.md)
    - [Context pack evals](../use/context-pack-evals.md)
-   - [Rendered packs](../use/rendered-packs.md)
 
 ## References
 
