@@ -9,6 +9,7 @@ import type { RelationAtDepth } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  DIARY_TAG_MAX_LENGTH,
   EntryParamsSchema,
   entryTypeLiterals,
   NestedDiaryParamsSchema,
@@ -35,7 +36,7 @@ import {
 
 const queryTagSchema = Type.String({
   minLength: 1,
-  maxLength: 50,
+  maxLength: DIARY_TAG_MAX_LENGTH,
   pattern: '^[^,]+$',
 });
 
@@ -100,7 +101,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           content: Type.String({ minLength: 1, maxLength: 100000 }),
           title: Type.Optional(Type.String({ maxLength: 255 })),
           tags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+            Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+              maxItems: 20,
+            }),
           ),
           importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
           entryType: Type.Optional(Type.Union(entryTypeLiterals)),
@@ -268,14 +271,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             Type.Array(queryTagSchema, {
               maxItems: 20,
               description:
-                'Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
+                'Repeated tags filter (entry must have ALL specified tags, max 20 tags, 128 chars each)',
             }),
           ),
           excludeTags: Type.Optional(
             Type.Array(queryTagSchema, {
               maxItems: 20,
               description:
-                'Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)',
+                'Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each)',
             }),
           ),
           entryType: Type.Optional(
@@ -348,7 +351,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         querystring: Type.Object({
           prefix: Type.Optional(
             Type.String({
-              maxLength: 50,
+              maxLength: DIARY_TAG_MAX_LENGTH,
               description: 'Filter to tags starting with this prefix',
             }),
           ),
@@ -407,7 +410,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       title: Type.Optional(Type.String({ maxLength: 255 })),
       content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
       tags: Type.Optional(
-        Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+        Type.Array(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH }), {
+          maxItems: 20,
+        }),
       ),
       importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
       entryType: Type.Optional(Type.Union(entryTypeLiterals)),
@@ -745,16 +750,22 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           diaryId: Type.Optional(Type.String({ format: 'uuid' })),
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
           tags: Type.Optional(
-            Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
-              minItems: 1,
-              maxItems: 20,
-            }),
+            Type.Array(
+              Type.String({ minLength: 1, maxLength: DIARY_TAG_MAX_LENGTH }),
+              {
+                minItems: 1,
+                maxItems: 20,
+              },
+            ),
           ),
           excludeTags: Type.Optional(
-            Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
-              minItems: 1,
-              maxItems: 20,
-            }),
+            Type.Array(
+              Type.String({ minLength: 1, maxLength: DIARY_TAG_MAX_LENGTH }),
+              {
+                minItems: 1,
+                maxItems: 20,
+              },
+            ),
           ),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),

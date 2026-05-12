@@ -2483,11 +2483,11 @@ export type ListDiaryEntriesData = {
      */
     ids?: Array<string>;
     /**
-     * Repeated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
+     * Repeated tags filter (entry must have ALL specified tags, max 20 tags, 128 chars each)
      */
     tags?: Array<string>;
     /**
-     * Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)
+     * Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each)
      */
     excludeTags?: Array<string>;
     /**
