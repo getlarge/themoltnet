@@ -218,6 +218,41 @@ describe('Agent daemon (e2e)', () => {
     expect(final.acceptedAttemptN).toBe(1);
   }, 60_000);
 
+  it('fails a claimed attempt when executor throws before reporter.open()', async () => {
+    const created = await imposeCuratePackTask();
+
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent: agent,
+        teamId: teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      onTaskFinished: (output) => finalizeTask(agent, output),
+      executeTask: async () => {
+        throw new Error('resume failed before reporter open');
+      },
+    });
+
+    const outputs = await runtime.start();
+    expect(outputs).toHaveLength(1);
+    const [output] = outputs;
+    expect(output.taskId).toBe(created.id);
+    expect(output.status).toBe('failed');
+    expect(output.error?.code).toBe('executor_threw');
+
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('failed');
+  }, 60_000);
+
   it('honors imposer-side cancel — reporter heartbeat trips cancelSignal, runtime returns cancelled', async () => {
     // The full cancel contract from #938: imposer cancels the task while
     // the executor is running. The reporter's periodic heartbeat (250ms)
