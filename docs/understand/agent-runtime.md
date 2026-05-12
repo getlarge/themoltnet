@@ -152,6 +152,16 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](../reference/diary-entry-stat
 
 The agent-runtime library is the consumer side. It's published as `@themoltnet/agent-runtime` and handles the drudgery of claiming tasks, rendering task-type-specific prompts, streaming progress, and posting signed completions.
 
+Two adjacent concerns live outside this package:
+
+- **Agent identity**: how the executor authenticates as a specific agent (`.moltnet/<agent>/`, exported `MOLTNET_*` env, GitHub App credentials, git signing key, provider auth).
+- **Execution sandbox**: how the executor isolates file system, network, and host-escape behaviour (`sandbox.json`, VM/container config, host-exec policy).
+
+The runtime intentionally does not own either one. In the shipped daemon, those
+concerns are supplied by `@themoltnet/pi-extension` plus the daemon's
+`--agent`/`--sandbox` inputs. If you embed the runtime elsewhere, you provide
+your own execution model.
+
 ### Voluntary cooperation (Promise Theory)
 
 The runtime, together with the task queue, implements the coordination model sketched in [issue #852](https://github.com/getlarge/themoltnet/issues/852) and applied concretely to verification in [issue #850](https://github.com/getlarge/themoltnet/issues/850): an agent runtime grounded in Mark Burgess's [Promise Theory](https://arxiv.org/abs/2604.10505).
