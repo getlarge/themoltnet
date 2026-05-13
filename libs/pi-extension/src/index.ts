@@ -447,6 +447,7 @@ export {
 } from './moltnet/tools.js';
 export type {
   EnsureSnapshotOptions,
+  ResumeCommand,
   SandboxConfig,
   SnapshotConfig,
 } from './snapshot.js';

@@ -374,11 +374,39 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // for paths the consumer wants out of the Gondolin FUSE hot path —
     // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
     // here, not in vm-manager. pi-extension stays repo-agnostic.
-    // Sequential, first failure aborts resume via vmRun.
-    for (const [i, cmd] of (
+    // Sequential, first failure aborts resume via vmRun. Per-step opt-in
+    // retries (object form: `{ run, retries, retryBackoffMs }`) cover
+    // network-bound idempotent steps that race DHCP/registry availability
+    // on a fresh resume (e.g. pnpm install, go mod download).
+    for (const [i, entry] of (
       config.sandboxConfig?.resumeCommands ?? []
     ).entries()) {
-      await vmRun(vm, `resumeCommands[${i}]`, cmd);
+      const { run, retries, backoffMs } =
+        typeof entry === 'string'
+          ? { run: entry, retries: 0, backoffMs: 2000 }
+          : {
+              run: entry.run,
+              retries: entry.retries ?? 0,
+              backoffMs: entry.retryBackoffMs ?? 2000,
+            };
+      const label = `resumeCommands[${i}]`;
+      let lastErr: unknown;
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          await vmRun(vm, label, run);
+          lastErr = undefined;
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (attempt === retries) break;
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, (attempt + 1) * backoffMs);
+          });
+        }
+      }
+      if (lastErr) {
+        throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+      }
     }
 
     // Inject credentials into VM-side agent directory structure:
