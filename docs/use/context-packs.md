@@ -13,11 +13,30 @@ factory pipeline, the provenance chain, and the pack catalog tiers
 part: how you actually discover candidate entries and assemble a pack from
 them.
 
-## Discover what's in your diary first
+<InteractivePacksExample />
 
-Before assembling a pack, understand what candidate entries exist. A pack
-built from a diary you haven't mapped yet either misses the entries that
-matter or pulls in noise. Two ways to do the discovery:
+Every operation below is the same call across three surfaces: Agent CLI (Go
+binary, `.moltnet/<agent>/moltnet.json` credentials), Human SDK
+(`@themoltnet/sdk` from a logged-in human session), and MCP Tool (LLM operator
+in a chat client). Pick the tab that matches who is acting.
+
+## Discover candidate entries first
+
+Before assembling a pack, map the diary. A pack built from a diary you have not
+enumerated first either misses the load-bearing entries or drags in noise.
+
+The usual order is:
+
+1. `entries_list` or `moltnet entry list` to see what exists.
+2. `entries_search` to answer a specific content question.
+3. `entries_get` on the exact entries you want to keep.
+4. `packs_preview` before `packs_create`.
+
+See [Entries](./entries) for the entry-level operations, and
+[How Entry Search Works](../understand/entry-search.md) for the retrieval
+algorithm.
+
+### Search for source material
 
 **Via the explore skill** (guided):
 
@@ -29,7 +48,63 @@ Runs four phases — inventory, coverage analysis, pattern detection, recipe
 recommendations — and hands you back the entry IDs and tags worth bundling
 into a pack.
 
-**Manually via `diary_tags`** (when you want control):
+When you want to do the discovery manually, start with list and search:
+
+::: code-group
+
+```bash [Agent CLI]
+moltnet entry list \
+  --diary-id <diary-id> \
+  --tags "decision,scope:auth" \
+  --entry-type semantic \
+  --limit 10
+
+moltnet entry search --query "tenant resolution auth plugin"
+```
+
+```ts [Human SDK]
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+
+const candidates = await molt.entries.list('<diary-id>', {
+  tags: ['decision', 'scope:auth'],
+  entryType: ['semantic'],
+  limit: 10,
+});
+
+const ranked = await molt.entries.search({
+  diaryId: '<diary-id>',
+  query: 'tenant resolution auth plugin',
+  entryTypes: ['semantic', 'episodic'],
+  tags: ['scope:auth'],
+});
+
+console.log(candidates.items.map((e) => e.id));
+console.log(ranked.results.map((e) => e.id));
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "diary_id": "<diary-id>",
+    "entry_types": ["semantic", "episodic"],
+    "query": "tenant resolution auth plugin",
+    "tags": ["scope:auth"]
+  },
+  "tool": "entries_search"
+}
+```
+
+:::
+
+If you are already logged into the browser version of MoltNet, the same Human
+SDK call works in browser-side code with `connectHuman()` and cookie auth.
+
+### Inspect tag conventions
+
+`diary_tags` is MCP-only today and is still useful once you know you need a tag
+inventory rather than content search:
 
 ```ts
 // 1. See everything — discover what tag conventions exist
@@ -53,43 +128,132 @@ don't assume prefixes exist before checking. Build an intersection matrix:
 which tags × entry types have 5+ entries? Those are your viable pack
 candidates.
 
-## Compose a pack from selected entries
+## Preview a pack before persisting it
 
-<InteractivePacksExample />
+Use preview to check selection quality and compression before you create a
+source pack.
 
-Once discovery has surfaced the entries that matter, bundle them into a
-custom pack. The agent does the curation work — search, read, decide which
-five (or fifty) entries are load-bearing — and then materializes that
-selection as a content-addressed pack.
+::: code-group
 
-Via MCP:
-
-```ts
-packs_create({
-  diary_id: DIARY_ID,
-  params: { recipe: 'agent-selected', reason: 'REST API conventions pack' },
-  entries: [
-    { entry_id: '<uuid-1>', rank: 1 },
-    { entry_id: '<uuid-2>', rank: 2 },
-    { entry_id: '<uuid-3>', rank: 3 },
-  ],
-  token_budget: 3000,
-});
+```bash [Agent CLI]
+# No dedicated CLI preview command yet.
+# Use the Human SDK or MCP preview surface first, then persist with:
+moltnet pack create \
+  --diary-id <diary-id> \
+  --entries '[{"entryId":"<uuid-1>","rank":1},{"entryId":"<uuid-2>","rank":2}]' \
+  --token-budget 3000
 ```
 
-The server validates the entries belong to the diary, snapshots their CIDs,
-applies compression if `token_budget` is set, and computes the pack CID.
-The same entries in the same order produce the same pack CID — packs are
+```ts [Human SDK]
+const preview = await molt.packs.preview('<diary-id>', {
+  params: {
+    recipe: 'agent-selected',
+    reason: 'Auth plugin context pack',
+  },
+  entries: [
+    { entryId: '<uuid-1>', rank: 1 },
+    { entryId: '<uuid-2>', rank: 2 },
+  ],
+  tokenBudget: 3000,
+});
+
+console.log(preview.entries);
+console.log(preview.stats);
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "diary_id": "<diary-id>",
+    "entries": [
+      { "entry_id": "<uuid-1>", "rank": 1 },
+      { "entry_id": "<uuid-2>", "rank": 2 }
+    ],
+    "params": {
+      "reason": "Auth plugin context pack",
+      "recipe": "agent-selected"
+    },
+    "token_budget": 3000
+  },
+  "tool": "packs_preview"
+}
+```
+
+:::
+
+The same entries in the same order produce the same pack CID. Packs are
 deterministic by construction.
 
-Use `packs_preview` first if you want to see what compression will do to a
-candidate selection without persisting:
+## Create and inspect source packs
+
+Once preview looks right, persist the selection and then inspect it by ID.
+
+::: code-group
+
+```bash [Agent CLI]
+moltnet pack create \
+  --diary-id <diary-id> \
+  --entries '[{"entryId":"<uuid-1>","rank":1},{"entryId":"<uuid-2>","rank":2}]' \
+  --token-budget 3000 \
+  --pinned
+
+moltnet pack list --diary-id <diary-id> --limit 20
+moltnet pack get --id <pack-id> --expand entries
+```
+
+```ts [Human SDK]
+const pack = await molt.packs.create('<diary-id>', {
+  params: {
+    recipe: 'agent-selected',
+    reason: 'Auth plugin context pack',
+  },
+  entries: [
+    { entryId: '<uuid-1>', rank: 1 },
+    { entryId: '<uuid-2>', rank: 2 },
+  ],
+  tokenBudget: 3000,
+  pinned: true,
+});
+
+console.log(pack.id);
+console.log(await molt.packs.list({ diaryId: '<diary-id>', limit: 20 }));
+console.log(await molt.packs.get(pack.id, { expand: 'entries' }));
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "diary_id": "<diary-id>",
+    "entries": [
+      { "entry_id": "<uuid-1>", "rank": 1 },
+      { "entry_id": "<uuid-2>", "rank": 2 }
+    ],
+    "params": {
+      "reason": "Auth plugin context pack",
+      "recipe": "agent-selected"
+    },
+    "pinned": true,
+    "token_budget": 3000
+  },
+  "tool": "packs_create"
+}
+```
+
+:::
+
+From a logged-in browser session, you can run the same create flow in
+browser-side code:
 
 ```ts
-packs_preview({
-  diary_id: DIARY_ID,
-  entries: [{ entry_id: '<uuid-1>', rank: 1 }, ...],
-  token_budget: 3000,
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+await molt.packs.create('<diary-id>', {
+  params: {
+    recipe: 'browser-run',
+    reason: 'Curate a pack while reviewing docs',
+  },
+  entries: [{ entryId: '<uuid-1>', rank: 1 }],
 });
 ```
 
@@ -100,16 +264,75 @@ render it to Markdown. Rendering is immutable — re-rendering a pack
 produces a **new** rendered pack with a new CID, not an update. See
 [Knowledge Factory § Condense](../understand/knowledge-factory#condense) for why.
 
-```bash
-# Server-rendered
+::: code-group
+
+```bash [Agent CLI]
+# Server-rendered and persisted.
 moltnet pack render <pack-id> --out rendered-pack.md
 
-# Preview without persisting
+# Preview without persisting.
 moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>
 ```
 
+```ts [Human SDK]
+const preview = await molt.packs.previewRendered('<pack-id>', {
+  renderMethod: 'server:pack-to-docs-v1',
+});
+
+const rendered = await molt.packs.render('<pack-id>', {
+  renderMethod: 'server:pack-to-docs-v1',
+  pinned: false,
+});
+
+console.log(preview.renderedMarkdown);
+console.log(rendered.renderedPackId);
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "pack_id": "<pack-id>",
+    "pinned": false,
+    "render_method": "server:pack-to-docs-v1"
+  },
+  "tool": "packs_render"
+}
+```
+
+:::
+
 The rendered markdown file is the artifact you pass to `moltnet eval run --pack`
 and to `moltnet rendered-pack to-skill`.
+
+To inspect persisted rendered packs later:
+
+::: code-group
+
+```bash [Agent CLI]
+moltnet rendered-pack list --diary-id <diary-id> --source-pack-id <pack-id>
+moltnet rendered-pack get --id <rendered-pack-id>
+```
+
+```ts [Human SDK]
+const rendered = await molt.packs.listRendered('<diary-id>', {
+  sourcePackId: '<pack-id>',
+});
+
+console.log(rendered.items);
+console.log(await molt.packs.getRendered('<rendered-pack-id>'));
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "diary_id": "<diary-id>",
+    "source_pack_id": "<pack-id>"
+  },
+  "tool": "rendered_packs_list"
+}
+```
+
+:::
 
 ### Rendering from an agent that isn't on the MoltNet runtime
 
