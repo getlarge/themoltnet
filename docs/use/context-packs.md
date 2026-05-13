@@ -106,22 +106,65 @@ SDK call works in browser-side code with `connectHuman()` and cookie auth.
 `diary_tags` is MCP-only today and is still useful once you know you need a tag
 inventory rather than content search:
 
-```ts
-// 1. See everything — discover what tag conventions exist
-diary_tags({ min_count: 2 });
+::: code-group
 
-// 2. Once you spot prefixes, drill in
-diary_tags({ prefix: 'scope:', min_count: 3 });
-diary_tags({ prefix: 'source:' });
-diary_tags({ prefix: 'scan-category:' });
-diary_tags({ prefix: 'scan-batch:' });
-diary_tags({ prefix: 'branch:', min_count: 5 });
+```bash [Agent CLI]
+moltnet diary tags <diary-uuid> --min-count 2
 
-// 3. Cross-reference tags with entry types
-diary_tags({ entry_types: ['semantic'], min_count: 2 }); // decisions, scans
-diary_tags({ entry_types: ['episodic'], min_count: 2 }); // incidents, bugs
-diary_tags({ entry_types: ['procedural'], min_count: 5 }); // commit activity
+# Once you spot prefixes, drill in.
+moltnet diary tags <diary-uuid> --prefix "scope:" --min-count 3
+moltnet diary tags <diary-uuid> --prefix "source:"
+moltnet diary tags <diary-uuid> --prefix "scan-category:"
+moltnet diary tags <diary-uuid> --prefix "scan-batch:"
+moltnet diary tags <diary-uuid> --prefix "branch:" --min-count 5
+
+# Cross-reference tags with entry types.
+moltnet diary tags <diary-uuid> --entry-types semantic --min-count 2
+moltnet diary tags <diary-uuid> --entry-types episodic --min-count 2
+moltnet diary tags <diary-uuid> --entry-types procedural --min-count 5
 ```
+
+```ts [Human SDK]
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+
+// 1. See everything — discover what tag conventions exist.
+await molt.diaries.tags(diaryId, { minCount: 2 });
+
+// 2. Once you spot prefixes, drill in.
+await molt.diaries.tags(diaryId, { prefix: 'scope:', minCount: 3 });
+await molt.diaries.tags(diaryId, { prefix: 'source:' });
+await molt.diaries.tags(diaryId, { prefix: 'scan-category:' });
+await molt.diaries.tags(diaryId, { prefix: 'scan-batch:' });
+await molt.diaries.tags(diaryId, { prefix: 'branch:', minCount: 5 });
+
+// 3. Cross-reference tags with entry types.
+await molt.diaries.tags(diaryId, {
+  entryTypes: ['semantic'],
+  minCount: 2,
+});
+await molt.diaries.tags(diaryId, {
+  entryTypes: ['episodic'],
+  minCount: 2,
+});
+await molt.diaries.tags(diaryId, {
+  entryTypes: ['procedural'],
+  minCount: 5,
+});
+```
+
+```json [MCP Tool]
+{
+  "tool": "diary_tags",
+  "arguments": {
+    "diary_id": "<diary-uuid>",
+    "min_count": 2
+  }
+}
+```
+
+:::
 
 The initial unfiltered call reveals the tag conventions actually in use —
 don't assume prefixes exist before checking. Build an intersection matrix:
@@ -458,11 +501,36 @@ Output: `<out>/rendered-pack-<short-uuid>/SKILL.md`. Re-running with the same `-
 
 A skill without an effective `description` won't activate — agent runtimes match prompts against descriptions, and a UUID-based placeholder won't match anything a developer actually types. Set a "Use when …" sentence on the rendered pack before bundling:
 
-```bash
+::: code-group
+
+```bash [Agent CLI]
 moltnet rendered-pack update \
   --id <rendered-pack-id> \
   --description "Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling"
 ```
+
+```ts [Human SDK]
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+
+await molt.packs.updateRendered('<rendered-pack-id>', {
+  description:
+    'Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling',
+});
+```
+
+```json [MCP Tool]
+{
+  "tool": "rendered_packs_update",
+  "arguments": {
+    "rendered_pack_id": "<rendered-pack-id>",
+    "description": "Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling"
+  }
+}
+```
+
+:::
 
 The description is **sidecar metadata** on the rendered pack — independent of the pack CID, capped at 256 characters, and always overwritable with another `update` call (or cleared with `--clear-description`). Editing it does not supersede the rendered pack.
 
