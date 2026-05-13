@@ -50,6 +50,7 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 - `--lease-ttl-sec` — daemon-set sliding liveness window. Silence longer than this ends the attempt with `lease_expired`. Also written to `task.claim_expires_at` for external observability. Default 300s.
 - `--heartbeat-interval-ms` — reporter heartbeat cadence. Default 60_000.
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
+- `--warm-session-ttl-sec` — how long resumable daemon slots stay in local daemon state after use. A slot owns any persisted Pi session plus any reusable worktree for one agent/provider/model/slot-key combination. `0` disables slot reuse. Default 1800s.
 
 `poll` and `drain` add:
 
@@ -75,11 +76,11 @@ next to each task type's schemas.
 
 Policy dimensions:
 
-- `resumable`: whether the task type is eligible for warm-session reuse at all
+- `resumable`: whether the task type is eligible for daemon-slot reuse at all
 - `workspaceMode`: `shared_mount` or `dedicated_worktree`
 - `workspaceScope`: whether the workspace belongs to one `attempt` or to a
   daemon-local `session`
-- `sessionScope`: whether warm-session reuse keys by `correlation`, by a
+- `sessionScope`: whether slot reuse keys by `correlation`, by a
   narrower task-type-specific `custom` discriminator, or not at all (`none`)
 
 Current built-in policy:
@@ -94,14 +95,19 @@ Current built-in policy:
 Current daemon behavior:
 
 - `correlationId` remains the task-system audit/query key. The daemon derives
-  its own local `sessionKey` for reuse and does not treat "one correlation
-  group" as the primitive directly.
-- For resumable task types, the daemon creates a Pi session store under
-  `.moltnet/d/pi-sessions/<encoded-sessionKey>/` in the mounted repo and reopens
-  the most recent Pi session from there on follow-up tasks.
+  its own local `slotKey` for reuse and scopes the durable slot by agent,
+  provider, and model before mapping it to runtime state.
+- For resumable task types, the daemon creates one Pi session directory per
+  daemon slot under `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopens the
+  most recent Pi session file from there on follow-up tasks.
+- The daemon tracks those slots in a local SQLite database at
+  `.moltnet/d/daemon-state.sqlite`, with separate slot, slot-session, and
+  slot-workspace records plus expiry metadata for cleanup.
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
-  stable worktree path under `.worktrees/session-<encoded-sessionKey>` instead
+  stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
+- Expired registry rows are reaped before the next task run, which also removes
+  the persisted Pi session directory and the reusable session-scoped worktree.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
   attempt-scoped workspace cleanup behavior.
 

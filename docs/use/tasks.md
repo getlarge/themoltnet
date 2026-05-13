@@ -28,13 +28,15 @@ Current built-in policy:
 
 Current daemon behavior:
 
-- `correlationId` stays the audit/query key. Warm reuse is driven by a daemon
-  `sessionKey`, not by correlation rows directly.
+- `correlationId` stays the audit/query key. Local reuse is driven by a daemon
+  `slotKey`, then scoped by agent/provider/model into one durable daemon slot.
 - Resumable task types may persist Pi conversation history under
-  `.moltnet/d/pi-sessions/<encoded-sessionKey>/` and reopen the most recent
-  session on follow-up tasks.
+  `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopen the most recent
+  session file on follow-up tasks.
+- The daemon also records slot metadata in `.moltnet/d/daemon-state.sqlite`,
+  including dedicated slot-session rows with the persisted Pi session path.
 - `workspaceScope: session` means the daemon may keep a dedicated worktree
-  alive across related tasks, keyed by the same `sessionKey`.
+  alive across related tasks, keyed by the same daemon slot.
 - Task types with `resumable: no` still run as cold attempt-scoped sessions.
 
 ## Operations
