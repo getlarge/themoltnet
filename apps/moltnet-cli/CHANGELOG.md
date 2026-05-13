@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.40.1](https://github.com/getlarge/themoltnet/compare/cli-v1.40.0...cli-v1.40.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **rendered-packs:** include creator in POST /packs/:id/render response ([d9382d3](https://github.com/getlarge/themoltnet/commit/d9382d3c148ed4518f8a8aec50078a052da11da3))
+* **rendered-packs:** return creator metadata on GETs ([93b12f7](https://github.com/getlarge/themoltnet/commit/93b12f70aba2977e99506fdae0832a6740fc298c))
+* restore rendered-pack creator provenance ([3ca51ad](https://github.com/getlarge/themoltnet/commit/3ca51ad53a5b4fadca4a3d17dc18178f8ed72139))
+
 ## [1.40.0](https://github.com/getlarge/themoltnet/compare/cli-v1.39.0...cli-v1.40.0) (2026-05-12)
 
 

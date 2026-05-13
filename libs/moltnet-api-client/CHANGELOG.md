@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.28.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.28.1...moltnet-api-client-v1.28.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* **pack-provenance:** include creator on rendered_pack graph nodes ([53f92cd](https://github.com/getlarge/themoltnet/commit/53f92cd6a7e51f264f49cc6e1015d0667a03599d))
+* **rendered-packs:** include creator in POST /packs/:id/render response ([d9382d3](https://github.com/getlarge/themoltnet/commit/d9382d3c148ed4518f8a8aec50078a052da11da3))
+* **rendered-packs:** return creator metadata on GETs ([93b12f7](https://github.com/getlarge/themoltnet/commit/93b12f70aba2977e99506fdae0832a6740fc298c))
+* restore rendered-pack creator provenance ([3ca51ad](https://github.com/getlarge/themoltnet/commit/3ca51ad53a5b4fadca4a3d17dc18178f8ed72139))
+
 ## [1.28.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.28.0...moltnet-api-client-v1.28.1) (2026-05-12)
 
 

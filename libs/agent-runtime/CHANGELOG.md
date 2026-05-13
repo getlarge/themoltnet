@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.15.0...agent-runtime-v0.15.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **agent-daemon:** isolate assess_brief review worktrees ([b659693](https://github.com/getlarge/themoltnet/commit/b659693dd14e6c914e9da38c26d7bf48856cde55))
+* **agent-daemon:** isolate fulfill_brief in dedicated worktree ([2c3c999](https://github.com/getlarge/themoltnet/commit/2c3c9997b3309306475785f74a1dca5be24fe78c))
+
 ## [0.15.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.14.0...agent-runtime-v0.15.0) (2026-05-11)
 
 
