@@ -81,10 +81,33 @@ function buildCustomSessionKey(task: TaskKeyInput): string | null {
 }
 
 function slugifySessionComponent(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 64);
+  return slugifyAsciiLower(input.trim(), 64);
+}
+
+function slugifyAsciiLower(input: string, maxLen: number): string {
+  let out = '';
+  let pendingDash = false;
+
+  for (const rawChar of input) {
+    const char = rawChar.toLowerCase();
+    const isAlphaNum =
+      (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9');
+
+    if (isAlphaNum) {
+      if (pendingDash && out.length > 0 && out.length < maxLen) {
+        out += '-';
+      }
+      pendingDash = false;
+      if (out.length < maxLen) {
+        out += char;
+      } else {
+        break;
+      }
+      continue;
+    }
+
+    pendingDash = out.length > 0;
+  }
+
+  return out;
 }

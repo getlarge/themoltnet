@@ -56,12 +56,35 @@ export function resolveTaskWorktreeBranch(
 }
 
 export function slugifyBranchComponent(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-    .replace(/-+$/g, '');
+  return slugifyAsciiLower(input, 60);
+}
+
+function slugifyAsciiLower(input: string, maxLen: number): string {
+  let out = '';
+  let pendingDash = false;
+
+  for (const rawChar of input) {
+    const char = rawChar.toLowerCase();
+    const isAlphaNum =
+      (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9');
+
+    if (isAlphaNum) {
+      if (pendingDash && out.length > 0 && out.length < maxLen) {
+        out += '-';
+      }
+      pendingDash = false;
+      if (out.length < maxLen) {
+        out += char;
+      } else {
+        break;
+      }
+      continue;
+    }
+
+    pendingDash = out.length > 0;
+  }
+
+  return out;
 }
 
 export function prepareTaskWorkspace(
