@@ -41,6 +41,7 @@ export {
   NetworkError,
   problemToError,
   RegistrationError,
+  type ValidationError,
 } from './errors.js';
 export {
   connectHuman,
