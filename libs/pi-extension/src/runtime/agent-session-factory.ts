@@ -120,6 +120,8 @@ async function resolvePersistentSessionManager(args: {
   cwd: string;
   sessionDir: string;
 }): Promise<SessionManager> {
+  // Pi populates its session manifest during list(); continueRecent() relies
+  // on that state to resolve the session path inside the daemon-owned store.
   await SessionManager.list(args.cwd, args.sessionDir);
   return SessionManager.continueRecent(args.cwd, args.sessionDir);
 }

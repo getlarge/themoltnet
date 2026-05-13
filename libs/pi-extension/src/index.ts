@@ -479,6 +479,7 @@ export {
   type PiTaskExecutionPlanFactory,
   resolveTaskWorkspaceId,
   resolveTaskWorktreeBranch,
+  resolveTaskWorktreePath,
   slugifyBranchComponent,
   type TurnEventHandler,
   type TurnEventHandlerFactory,

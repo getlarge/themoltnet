@@ -7,17 +7,14 @@ import {
   resolveTaskWorktreeBranch,
 } from '@themoltnet/pi-extension';
 
+import type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 import {
   deriveTaskSessionDescriptor,
   type TaskSessionDescriptor,
 } from './session-policy.js';
 import type { DaemonStateDirs } from './state-dir.js';
 
-export interface DaemonSlotIdentity {
-  agentName: string;
-  provider: string;
-  model: string;
-}
+export type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 
 export interface DaemonTaskExecutionPlan extends PiTaskExecutionPlan {
   descriptor: TaskSessionDescriptor;
@@ -83,8 +80,24 @@ export function buildDaemonSlotId(
 }
 
 function slugSlotIdentityComponent(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-');
+  let out = '';
+  let pendingDash = false;
+
+  for (const rawChar of input.trim()) {
+    const char = rawChar.toLowerCase();
+    const isAlphaNum =
+      (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9');
+    const isLiteral = char === '.' || char === '_' || char === '-';
+
+    if (isAlphaNum || isLiteral) {
+      if (pendingDash && out.length > 0) out += '-';
+      pendingDash = false;
+      out += char;
+      continue;
+    }
+
+    pendingDash = out.length > 0;
+  }
+
+  return out;
 }

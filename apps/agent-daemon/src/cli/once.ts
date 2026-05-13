@@ -4,11 +4,13 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
+  type ClaimedTask,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   findMainWorktree,
+  resolveTaskWorktreePath,
 } from '@themoltnet/pi-extension';
 
 import { loadConfig } from '../config.js';
@@ -36,6 +38,7 @@ import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import {
   buildDaemonTaskExecutionPlan,
   type DaemonSlotIdentity,
+  type DaemonTaskExecutionPlan,
 } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
@@ -81,6 +84,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     model: opts.model,
   };
   const mainRepo = findMainWorktree();
+  const executionPlans = new Map<string, DaemonTaskExecutionPlan>();
   const ctx = await resolveAgentContext(opts.agent);
 
   const cfg = loadConfig();
@@ -151,8 +155,9 @@ export async function runOnce(argv: string[]): Promise<number> {
       model: opts.model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
-        buildDaemonTaskExecutionPlan(
-          claimedTask.task,
+        getOrCreateExecutionPlan(
+          claimedTask,
+          executionPlans,
           stateDirs,
           slotIdentity,
           opts.warmSessionTtlSec,
@@ -172,8 +177,9 @@ export async function runOnce(argv: string[]): Promise<number> {
           'agent-daemon.daemon_slots_reaped',
         );
       }
-      const executionPlan = buildDaemonTaskExecutionPlan(
-        claimedTask.task,
+      const executionPlan = getOrCreateExecutionPlan(
+        claimedTask,
+        executionPlans,
         stateDirs,
         slotIdentity,
         opts.warmSessionTtlSec,
@@ -189,7 +195,7 @@ export async function runOnce(argv: string[]): Promise<number> {
           ),
           workspaceId: executionPlan.workspaceId,
           worktreePath: executionPlan.workspaceId
-            ? `${mainRepo}/.worktrees/${executionPlan.workspaceId}`
+            ? resolveTaskWorktreePath(mainRepo, executionPlan.workspaceId)
             : null,
           worktreeBranch: executionPlan.worktreeBranch,
           lastTaskId: claimedTask.task.id,
@@ -200,6 +206,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       try {
         return await rawExecuteTask(claimedTask, reporter);
       } finally {
+        executionPlans.delete(buildClaimedTaskKey(claimedTask));
         if (executionPlan.slotKey) {
           slotRegistry.finishSlot(
             slotIdentity,
@@ -261,4 +268,31 @@ export async function runOnce(argv: string[]): Promise<number> {
     await otelShutdown();
     await shutdownLogger();
   }
+}
+
+function buildClaimedTaskKey(
+  task: Pick<ClaimedTask, 'task' | 'attemptN'>,
+): string {
+  return `${task.task.id}:${task.attemptN}`;
+}
+
+function getOrCreateExecutionPlan(
+  claimedTask: Pick<ClaimedTask, 'task' | 'attemptN'>,
+  executionPlans: Map<string, DaemonTaskExecutionPlan>,
+  stateDirs: ReturnType<typeof ensureDaemonStateDirs>,
+  slotIdentity: DaemonSlotIdentity,
+  warmSessionTtlSec: number,
+): DaemonTaskExecutionPlan {
+  const key = buildClaimedTaskKey(claimedTask);
+  const existing = executionPlans.get(key);
+  if (existing) return existing;
+
+  const plan = buildDaemonTaskExecutionPlan(
+    claimedTask.task,
+    stateDirs,
+    slotIdentity,
+    warmSessionTtlSec,
+  );
+  executionPlans.set(key, plan);
+  return plan;
 }

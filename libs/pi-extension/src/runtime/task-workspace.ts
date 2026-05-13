@@ -104,7 +104,7 @@ export function prepareTaskWorkspace(
 
   const mainRepo = findMainWorktree();
   const workspaceId = resolveTaskWorkspaceId(task, executionPlan);
-  const worktreeDir = join(mainRepo, '.worktrees', workspaceId);
+  const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
   const relMount = relative(mainRepo, requestedMountPath);
   const mountPath =
@@ -149,6 +149,13 @@ export function resolveTaskWorkspaceId(
     return `session-${encodeURIComponent(executionPlan.sessionKey)}`;
   }
   return `task-${task.id}`;
+}
+
+export function resolveTaskWorktreePath(
+  mainRepo: string,
+  workspaceId: string,
+): string {
+  return join(mainRepo, '.worktrees', workspaceId);
 }
 
 function ensureReusableTaskWorktree(

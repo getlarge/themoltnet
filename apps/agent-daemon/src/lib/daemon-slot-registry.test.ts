@@ -77,8 +77,8 @@ describe('DaemonSlotRegistry', () => {
     tempRoots.push(root);
     const sessionDir = join(root, 'pi-sessions', 'slot-1');
     mkdirSync(sessionDir, { recursive: true });
-    const older = join(sessionDir, 'older.jsonl');
-    const newer = join(sessionDir, 'newer.jsonl');
+    const older = join(sessionDir, '20260513T171700.jsonl');
+    const newer = join(sessionDir, '20260513T171701.jsonl');
     writeFileSync(older, '[]\n', 'utf8');
     writeFileSync(newer, '[]\n', 'utf8');
 

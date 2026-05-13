@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync, rmSync, statSync } from 'node:fs';
+import { readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -240,94 +240,101 @@ export class DaemonSlotRegistry {
   }
 
   reapExpiredSlots(now = Date.now()): ReapedDaemonSlot[] {
-    const slots = this.db
-      .prepare(
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const slots = this.db
+        .prepare(
+          `SELECT
+             agent_name as agentName,
+             provider,
+             model,
+             slot_key as slotKey,
+             task_type as taskType,
+             state,
+             last_task_id as lastTaskId,
+             last_attempt_n as lastAttemptN,
+             created_at_ms as createdAtMs,
+             last_used_at_ms as lastUsedAtMs,
+             expires_at_ms as expiresAtMs
+           FROM daemon_slots
+           WHERE expires_at_ms <= ?`,
+        )
+        .all(now) as unknown as DaemonSlotRecord[];
+
+      if (slots.length < 1) {
+        this.db.exec('COMMIT');
+        return [];
+      }
+
+      const selectSession = this.db.prepare(
         `SELECT
            agent_name as agentName,
            provider,
            model,
            slot_key as slotKey,
-           task_type as taskType,
-           state,
-           last_task_id as lastTaskId,
-           last_attempt_n as lastAttemptN,
-           created_at_ms as createdAtMs,
-           last_used_at_ms as lastUsedAtMs,
-           expires_at_ms as expiresAtMs
-         FROM daemon_slots
-         WHERE expires_at_ms <= ?`,
-      )
-      .all(now) as DaemonSlotRecord[];
+           session_dir as sessionDir,
+           session_path as sessionPath
+         FROM daemon_slot_sessions
+         WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      );
+      const selectWorkspace = this.db.prepare(
+        `SELECT
+           agent_name as agentName,
+           provider,
+           model,
+           slot_key as slotKey,
+           workspace_id as workspaceId,
+           worktree_path as worktreePath,
+           worktree_branch as worktreeBranch
+         FROM daemon_slot_workspaces
+         WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      );
+      const deleteStmt = this.db.prepare(
+        'DELETE FROM daemon_slots WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?',
+      );
 
-    if (slots.length < 1) return [];
+      const out: ReapedDaemonSlot[] = [];
+      for (const slot of slots) {
+        const session = (selectSession.get(
+          slot.agentName,
+          slot.provider,
+          slot.model,
+          slot.slotKey,
+        ) ?? null) as unknown as DaemonSlotSessionRecord | null;
+        const workspace = (selectWorkspace.get(
+          slot.agentName,
+          slot.provider,
+          slot.model,
+          slot.slotKey,
+        ) ?? null) as unknown as DaemonSlotWorkspaceRecord | null;
+        out.push({ slot, session, workspace });
+        deleteStmt.run(slot.agentName, slot.provider, slot.model, slot.slotKey);
+      }
 
-    const selectSession = this.db.prepare(
-      `SELECT
-         agent_name as agentName,
-         provider,
-         model,
-         slot_key as slotKey,
-         session_dir as sessionDir,
-         session_path as sessionPath
-       FROM daemon_slot_sessions
-       WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
-    );
-    const selectWorkspace = this.db.prepare(
-      `SELECT
-         agent_name as agentName,
-         provider,
-         model,
-         slot_key as slotKey,
-         workspace_id as workspaceId,
-         worktree_path as worktreePath,
-         worktree_branch as worktreeBranch
-       FROM daemon_slot_workspaces
-       WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
-    );
+      this.db.exec('COMMIT');
 
-    const out: ReapedDaemonSlot[] = [];
-    for (const slot of slots) {
-      const session = (selectSession.get(
-        slot.agentName,
-        slot.provider,
-        slot.model,
-        slot.slotKey,
-      ) ?? null) as DaemonSlotSessionRecord | null;
-      const workspace = (selectWorkspace.get(
-        slot.agentName,
-        slot.provider,
-        slot.model,
-        slot.slotKey,
-      ) ?? null) as DaemonSlotWorkspaceRecord | null;
-      if (session) cleanupPiSessionDir(session.sessionDir);
-      if (workspace) cleanupReusableWorktree(workspace.worktreePath);
-      out.push({ slot, session, workspace });
+      for (const item of out) {
+        if (item.session) cleanupPiSessionDir(item.session.sessionDir);
+        if (item.workspace)
+          cleanupReusableWorktree(item.workspace.worktreePath);
+      }
+
+      return out;
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      throw error;
     }
-
-    const deleteStmt = this.db.prepare(
-      'DELETE FROM daemon_slots WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?',
-    );
-    for (const slot of slots) {
-      deleteStmt.run(slot.agentName, slot.provider, slot.model, slot.slotKey);
-    }
-    return out;
   }
 }
 
 export function resolveLatestPiSessionPath(sessionDir: string): string | null {
   try {
-    let latestPath: string | null = null;
-    let latestMtimeMs = -1;
-    for (const entry of readdirSync(sessionDir, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      const candidate = join(sessionDir, entry.name);
-      const stat = statSync(candidate);
-      if (stat.mtimeMs > latestMtimeMs) {
-        latestMtimeMs = stat.mtimeMs;
-        latestPath = candidate;
-      }
-    }
-    return latestPath;
+    const latestEntry = readdirSync(sessionDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.jsonl'))
+      .map((entry) => entry.name)
+      .sort()
+      .at(-1);
+    return latestEntry ? join(sessionDir, latestEntry) : null;
   } catch {
     return null;
   }

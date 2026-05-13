@@ -79,6 +79,7 @@ export type {
 export {
   resolveTaskWorkspaceId,
   resolveTaskWorktreeBranch,
+  resolveTaskWorktreePath,
   slugifyBranchComponent,
 } from './task-workspace.js';
 

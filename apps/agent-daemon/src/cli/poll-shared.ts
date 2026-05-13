@@ -5,11 +5,13 @@ import type { TaskOutput } from '@moltnet/tasks';
 import {
   AgentRuntime,
   ApiTaskReporter,
+  type ClaimedTask,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   findMainWorktree,
+  resolveTaskWorktreePath,
 } from '@themoltnet/pi-extension';
 
 import { loadConfig } from '../config.js';
@@ -38,6 +40,7 @@ import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import {
   buildDaemonTaskExecutionPlan,
   type DaemonSlotIdentity,
+  type DaemonTaskExecutionPlan,
 } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
@@ -124,6 +127,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     model: common.model,
   };
   const mainRepo = findMainWorktree();
+  const executionPlans = new Map<string, DaemonTaskExecutionPlan>();
   const ctx = await resolveAgentContext(common.agent);
 
   const cfg = loadConfig();
@@ -183,8 +187,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       model: common.model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
-        buildDaemonTaskExecutionPlan(
-          claimedTask.task,
+        getOrCreateExecutionPlan(
+          claimedTask,
+          executionPlans,
           stateDirs,
           slotIdentity,
           common.warmSessionTtlSec,
@@ -240,8 +245,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
-        const executionPlan = buildDaemonTaskExecutionPlan(
-          claimedTask.task,
+        const executionPlan = getOrCreateExecutionPlan(
+          claimedTask,
+          executionPlans,
           stateDirs,
           slotIdentity,
           common.warmSessionTtlSec,
@@ -333,7 +339,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             ),
             workspaceId: executionPlan.workspaceId,
             worktreePath: executionPlan.workspaceId
-              ? `${mainRepo}/.worktrees/${executionPlan.workspaceId}`
+              ? resolveTaskWorktreePath(mainRepo, executionPlan.workspaceId)
               : null,
             worktreeBranch: executionPlan.worktreeBranch,
             lastTaskId: claimedTask.task.id,
@@ -344,6 +350,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         try {
           return await executeTask(claimedTask, reporter);
         } finally {
+          executionPlans.delete(buildClaimedTaskKey(claimedTask));
           if (executionPlan.slotKey) {
             slotRegistry.finishSlot(
               slotIdentity,
@@ -370,6 +377,33 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     await otelShutdown();
     await shutdownLogger();
   }
+}
+
+function buildClaimedTaskKey(
+  task: Pick<ClaimedTask, 'task' | 'attemptN'>,
+): string {
+  return `${task.task.id}:${task.attemptN}`;
+}
+
+function getOrCreateExecutionPlan(
+  claimedTask: Pick<ClaimedTask, 'task' | 'attemptN'>,
+  executionPlans: Map<string, DaemonTaskExecutionPlan>,
+  stateDirs: ReturnType<typeof ensureDaemonStateDirs>,
+  slotIdentity: DaemonSlotIdentity,
+  warmSessionTtlSec: number,
+): DaemonTaskExecutionPlan {
+  const key = buildClaimedTaskKey(claimedTask);
+  const existing = executionPlans.get(key);
+  if (existing) return existing;
+
+  const plan = buildDaemonTaskExecutionPlan(
+    claimedTask.task,
+    stateDirs,
+    slotIdentity,
+    warmSessionTtlSec,
+  );
+  executionPlans.set(key, plan);
+  return plan;
 }
 
 function parseCsv(raw: string | undefined): string[] {
