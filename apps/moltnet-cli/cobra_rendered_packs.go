@@ -32,8 +32,8 @@ collision against a different ID.`,
 		Example: `  moltnet rendered-pack to-skill --id <rendered-pack-uuid> --out .claude/skills
   moltnet rendered-pack to-skill --id <rendered-pack-uuid> --out .codex/skills`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			id, _ := cmd.Flags().GetString("id")
 			out, _ := cmd.Flags().GetString("out")
 			return runRenderedPackToSkill(apiURL, credPath, id, out)
@@ -54,8 +54,8 @@ func newRenderedPacksListCmd() *cobra.Command {
   moltnet rendered-pack list --diary-id <uuid> --source-pack-id <uuid>
   moltnet rendered-pack list --diary-id <uuid> --render-method agent-refined --limit 10`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
@@ -79,8 +79,8 @@ func newRenderedPacksGetCmd() *cobra.Command {
 		Short:   "Get a rendered pack by ID",
 		Example: `  moltnet rendered-pack get --id <rendered-pack-uuid>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			id, _ := cmd.Flags().GetString("id")
 			return runRenderedPacksGet(apiURL, credPath, id)
 		},
@@ -105,8 +105,8 @@ the pack CID — editing it does not supersede the rendered pack.`,
   moltnet rendered-pack update --id <uuid> --description "Use when working on auth flows"
   moltnet rendered-pack update --id <uuid> --clear-description`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			id, _ := cmd.Flags().GetString("id")
 			expiresAt, _ := cmd.Flags().GetString("expires-at")
 

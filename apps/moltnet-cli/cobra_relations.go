@@ -25,8 +25,8 @@ func newRelationsCreateCmd() *cobra.Command {
 		Example: `  moltnet relations create --entry-id <uuid> --target-id <uuid> --relation supersedes
   moltnet relations create --entry-id <uuid> --target-id <uuid> --relation elaborates --status proposed`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			entryID, _ := cmd.Flags().GetString("entry-id")
 			targetID, _ := cmd.Flags().GetString("target-id")
 			relation, _ := cmd.Flags().GetString("relation")
@@ -51,8 +51,8 @@ func newRelationsListCmd() *cobra.Command {
 		Example: `  moltnet relations list --entry-id <uuid>
   moltnet relations list --entry-id <uuid> --relation supersedes --status accepted --direction as_source --limit 20`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			entryID, _ := cmd.Flags().GetString("entry-id")
 			relation, _ := cmd.Flags().GetString("relation")
 			status, _ := cmd.Flags().GetString("status")
@@ -77,8 +77,8 @@ func newRelationsUpdateCmd() *cobra.Command {
 		Example: `  moltnet relations update --relation-id <uuid> --status accepted
   moltnet relations update --relation-id <uuid> --status rejected`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			relationID, _ := cmd.Flags().GetString("relation-id")
 			status, _ := cmd.Flags().GetString("status")
 			return runRelationsUpdateCmd(apiURL, credPath, relationID, status)
@@ -97,8 +97,8 @@ func newRelationsDeleteCmd() *cobra.Command {
 		Short:   "Delete a relation by ID",
 		Example: `  moltnet relations delete --relation-id <uuid>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			relationID, _ := cmd.Flags().GetString("relation-id")
 			return runRelationsDeleteCmd(apiURL, credPath, relationID)
 		},

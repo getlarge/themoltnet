@@ -31,8 +31,8 @@ func newPackListCmd() *cobra.Command {
   moltnet pack list --contains-entry <uuid> --include-rendered
   moltnet pack list --contains-entry <uuid> --expand entries`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			containsEntry, _ := cmd.Flags().GetString("contains-entry")
 			includeRendered, _ := cmd.Flags().GetBool("include-rendered")
@@ -67,8 +67,8 @@ func newPackGetCmd() *cobra.Command {
 		Example: `  moltnet pack get --id <pack-uuid>
   moltnet pack get --id <pack-uuid> --expand entries`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			packID, _ := cmd.Flags().GetString("id")
 			expand, _ := cmd.Flags().GetString("expand")
 			return runPackGetCmd(apiURL, credPath, packID, expand)
@@ -98,8 +98,8 @@ Use --preview to return the rendered markdown without persisting.`,
   moltnet pack render --out rendered.md --preview <pack-uuid>`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			renderMethod, _ := cmd.Flags().GetString("render-method")
 			preview, _ := cmd.Flags().GetBool("preview")
 			out, _ := cmd.Flags().GetString("out")
@@ -145,8 +145,8 @@ The --entries flag takes a JSON array of objects with entryId and rank fields.`,
 			`[{"entryId":"<uuid>","rank":1}]`,
 			`[{"entryId":"<uuid>","rank":1},{"entryId":"<uuid>","rank":2}]`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			entries, _ := cmd.Flags().GetString("entries")
 			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
@@ -178,8 +178,8 @@ func newPackUpdateCmd() *cobra.Command {
   moltnet pack update --pack-id <uuid> --no-pinned
   moltnet pack update --pack-id <uuid> --expires-at 2026-04-01T00:00:00Z`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			packID, _ := cmd.Flags().GetString("pack-id")
 			expiresAt, _ := cmd.Flags().GetString("expires-at")
 
@@ -212,8 +212,8 @@ Provide exactly one of --pack-id or --pack-cid.`,
 		Example: `  moltnet pack provenance --pack-id <uuid>
   moltnet pack provenance --pack-cid <cid> --share-url https://themolt.net/labs/provenance`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			packID, _ := cmd.Flags().GetString("pack-id")
 			packCID, _ := cmd.Flags().GetString("pack-cid")
 			depth, _ := cmd.Flags().GetInt("depth")

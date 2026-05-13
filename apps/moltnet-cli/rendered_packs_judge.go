@@ -35,8 +35,8 @@ completed judge_pack task ID to record verification.`,
   # Run with custom rubric file
   moltnet rendered-pack judge --id <rp-uuid> --rubric-file rubric.md --provider anthropic`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			if !cmd.Flags().Changed("model") {
 				model = defaultModelForProvider(provider)
 			}

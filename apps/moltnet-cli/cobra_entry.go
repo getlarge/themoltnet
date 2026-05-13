@@ -35,8 +35,8 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
   moltnet entry create --diary-id <uuid> --content "Entry text" \
     --type semantic --tags "tag1,tag2" --title "Title" --importance 6`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			content, _ := cmd.Flags().GetString("content")
 			title, _ := cmd.Flags().GetString("title")
@@ -76,8 +76,8 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
 		Example: `  moltnet entry create-signed --diary-id <uuid> --content "Entry text" --type semantic --tags "tag1,tag2"
   moltnet entry create-signed --diary-id <uuid> --content "..." --type semantic --importance 8`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			content, _ := cmd.Flags().GetString("content")
 			title, _ := cmd.Flags().GetString("title")
@@ -113,8 +113,8 @@ func newEntryListCmd() *cobra.Command {
   moltnet entry list --diary-id <uuid> --tags "tag1,tag2" --entry-type semantic --limit 10
   moltnet entry list --diary-id <uuid> --ids "<uuid1>,<uuid2>,<uuid3>"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			ids, _ := cmd.Flags().GetString("ids")
 			tags, _ := cmd.Flags().GetString("tags")
@@ -144,8 +144,8 @@ func newEntryGetCmd() *cobra.Command {
   moltnet entry get <entry-uuid> --expand relations --depth 2`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			expand, _ := cmd.Flags().GetString("expand")
 			depth, _ := cmd.Flags().GetInt("depth")
 			return runEntryGetCmd(apiURL, credPath, args[0], expand, depth)
@@ -164,8 +164,8 @@ func newEntryUpdateCmd() *cobra.Command {
   moltnet entry update <entry-uuid> --title "New title" --tags "tag1,tag2" --importance 7`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			content, _ := cmd.Flags().GetString("content")
 			title, _ := cmd.Flags().GetString("title")
 			entryType, _ := cmd.Flags().GetString("type")
@@ -190,8 +190,8 @@ func newEntryDeleteCmd() *cobra.Command {
 		Example: `  moltnet entry delete <entry-uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runEntryDeleteCmd(apiURL, credPath, args[0])
 		},
 	}
@@ -203,8 +203,8 @@ func newEntrySearchCmd() *cobra.Command {
 		Short:   "Search diary entries using semantic or keyword search",
 		Example: `  moltnet entry search --query "authentication decisions"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			query, _ := cmd.Flags().GetString("query")
 			return runEntrySearchCmd(apiURL, credPath, query)
 		},
@@ -221,8 +221,8 @@ func newEntryVerifyCmd() *cobra.Command {
 		Example: `  moltnet entry verify <entry-uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runEntryVerifyCmd(apiURL, credPath, args[0])
 		},
 	}
@@ -236,8 +236,8 @@ func newEntryCommitCmd() *cobra.Command {
 Auto-derives git metadata from staged changes.`,
 		Example: `  moltnet entry commit --diary-id <uuid> --rationale "What and why" --risk low --scope cli --operator edouard --tool claude`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			rationale, _ := cmd.Flags().GetString("rationale")
 			risk, _ := cmd.Flags().GetString("risk")

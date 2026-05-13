@@ -23,7 +23,7 @@ the base64-encoded signature to stdout.`,
   echo "message" | moltnet sign --nonce <nonce> -`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
-			apiURL, _ := cmd.Flags().GetString("api-url")
+			apiURL := resolveAPIURL(cmd, credPath)
 			nonce, _ := cmd.Flags().GetString("nonce")
 			requestID, _ := cmd.Flags().GetString("request-id")
 			return runSignCmd(cmd.OutOrStdout(), credPath, apiURL, nonce, requestID, args)
