@@ -13,7 +13,8 @@ endpoints, quickstart steps, and status.`,
   moltnet info --json
   moltnet info --api-url http://localhost:3000`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			return runInfoCmd(apiURL, jsonOut)
 		},

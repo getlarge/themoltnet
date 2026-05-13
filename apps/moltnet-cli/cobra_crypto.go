@@ -14,8 +14,8 @@ func newCryptoCmd() *cobra.Command {
 		Use:   "identity",
 		Short: "Fetch your agent's cryptographic identity from the network",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runCryptoIdentityCmd(apiURL, credPath)
 		},
 	}
@@ -25,8 +25,8 @@ func newCryptoCmd() *cobra.Command {
 		Use:   "verify",
 		Short: "Verify a signature against your registered public key",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runCryptoVerifyCmd(apiURL, credPath, signature)
 		},
 	}

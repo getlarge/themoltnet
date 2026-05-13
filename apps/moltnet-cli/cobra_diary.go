@@ -38,8 +38,8 @@ func newDiaryGrantsListCmd() *cobra.Command {
 		Example: `  moltnet diary grants list 6e4d9948-8ec5-4f59-b82a-3acbc4bbc396`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runDiaryGrantsListCmd(apiURL, credPath, args[0])
 		},
 	}
@@ -53,8 +53,8 @@ func newDiaryGrantsCreateCmd() *cobra.Command {
     --subject-id 1a2b3c4d-... --subject-ns Agent --role writer`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			subjectID, _ := cmd.Flags().GetString("subject-id")
 			subjectNs, _ := cmd.Flags().GetString("subject-ns")
 			role, _ := cmd.Flags().GetString("role")
@@ -78,8 +78,8 @@ func newDiaryGrantsRevokeCmd() *cobra.Command {
     --subject-id 1a2b3c4d-... --subject-ns Agent --role writer`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			subjectID, _ := cmd.Flags().GetString("subject-id")
 			subjectNs, _ := cmd.Flags().GetString("subject-ns")
 			role, _ := cmd.Flags().GetString("role")
@@ -101,8 +101,8 @@ func newDiaryListCmd() *cobra.Command {
 		Short:   "List all agent's diaries",
 		Example: `  moltnet diary list`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runDiaryListCmd(apiURL, credPath)
 		},
 	}
@@ -114,8 +114,8 @@ func newDiaryCreateCmd() *cobra.Command {
 		Short:   "Create a new diary",
 		Example: `  moltnet diary create --name "My Diary" --visibility moltnet`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			name, _ := cmd.Flags().GetString("name")
 			visibility, _ := cmd.Flags().GetString("visibility")
 			teamID, _ := cmd.Flags().GetString("team-id")
@@ -137,8 +137,8 @@ func newDiaryGetCmd() *cobra.Command {
 		Example: `  moltnet diary get <diary-uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runDiaryGetCmd(apiURL, credPath, args[0])
 		},
 	}
@@ -151,8 +151,8 @@ func newDiaryTagsCmd() *cobra.Command {
 		Example: `  moltnet diary tags <diary-uuid> --prefix "scope:" --min-count 2`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			prefix, _ := cmd.Flags().GetString("prefix")
 			entryTypes, _ := cmd.Flags().GetString("entry-types")
 			minCount, _ := cmd.Flags().GetInt("min-count")
@@ -173,8 +173,8 @@ func newDiaryCompileCmd() *cobra.Command {
   moltnet diary compile <diary-uuid> --token-budget 8000 --task-prompt "Summarize auth decisions" --include-tags "auth"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
 			taskPrompt, _ := cmd.Flags().GetString("task-prompt")
 			includeTags, _ := cmd.Flags().GetString("include-tags")

@@ -40,9 +40,10 @@ without spinning up a one-off SDK script.`,
   moltnet task attempts <task-uuid> --accepted-only --field output`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
 			return runTaskAttemptsCmd(taskAttemptsOpts{
-				apiURL:       flagString(cmd, "api-url"),
-				credPath:     flagString(cmd, "credentials"),
+				apiURL:       resolveAPIURL(cmd, credPath),
+				credPath:     credPath,
 				taskID:       args[0],
 				acceptedOnly: flagBool(cmd, "accepted-only"),
 				field:        flagString(cmd, "field"),
@@ -65,9 +66,10 @@ func newTaskListCmd() *cobra.Command {
   moltnet task list --team-id <uuid> --provider openai --model gpt-5.1 --has-attempts=false`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
 			opts := taskListOpts{
-				apiURL:              flagString(cmd, "api-url"),
-				credPath:            flagString(cmd, "credentials"),
+				apiURL:              resolveAPIURL(cmd, credPath),
+				credPath:            credPath,
 				teamID:              flagString(cmd, "team-id"),
 				taskTypes:           flagStringSlice(cmd, "task-types"),
 				taskTypeAliases:     flagStringArray(cmd, "task-type"),
@@ -136,9 +138,10 @@ func newTaskGetCmd() *cobra.Command {
 		Example: `  moltnet task get <task-uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
 			return runTaskGetCmd(
-				flagString(cmd, "api-url"),
-				flagString(cmd, "credentials"),
+				resolveAPIURL(cmd, credPath),
+				credPath,
 				args[0],
 			)
 		},
@@ -166,8 +169,8 @@ Suppresses text_delta by default to keep the output readable; pass
   moltnet task tail <id> --format json | jq 'select(.kind == "error")'`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			attempt, _ := cmd.Flags().GetInt("attempt")
 			since, _ := cmd.Flags().GetInt("since")
 			sinceChanged := cmd.Flags().Changed("since")

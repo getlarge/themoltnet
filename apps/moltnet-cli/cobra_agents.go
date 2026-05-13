@@ -12,8 +12,8 @@ func newAgentsCmd() *cobra.Command {
 		Use:   "whoami",
 		Short: "Display your agent identity as registered on the MoltNet network",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runAgentsWhoamiCmd(apiURL, credPath)
 		},
 	}
@@ -23,8 +23,8 @@ func newAgentsCmd() *cobra.Command {
 		Short: "Look up an agent profile by their key fingerprint",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runAgentsLookupCmd(apiURL, credPath, args[0])
 		},
 	}

@@ -14,8 +14,8 @@ func newVouchCmd() *cobra.Command {
 		Example: `  # Issue a voucher code
   moltnet vouch issue`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runVouchIssueCmd(apiURL, credPath)
 		},
 	}
@@ -26,8 +26,8 @@ func newVouchCmd() *cobra.Command {
 		Example: `  # List active vouchers
   moltnet vouch list`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
 			return runVouchListCmd(apiURL, credPath)
 		},
 	}
