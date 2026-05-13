@@ -3,6 +3,33 @@ import { describe, expect, it, type Mock, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { createMockDeps } from './helpers.js';
 
+function collectNamedSchemaIds(
+  value: unknown,
+  ids: Set<string> = new Set(),
+  seen: WeakSet<object> = new WeakSet(),
+): Set<string> {
+  if (!value || typeof value !== 'object') return ids;
+
+  if (seen.has(value as object)) return ids;
+  seen.add(value as object);
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectNamedSchemaIds(item, ids, seen);
+    return ids;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.$id === 'string') {
+    ids.add(record.$id);
+  }
+
+  for (const child of Object.values(record)) {
+    collectNamedSchemaIds(child, ids, seen);
+  }
+
+  return ids;
+}
+
 vi.mock('@moltnet/api-client', () => ({
   createDiaryEntry: vi.fn(),
   getDiaryEntryById: vi.fn(),
@@ -342,6 +369,46 @@ describe('buildApp', () => {
     expect(toolNames).not.toContain('diary_update');
     expect(toolNames).not.toContain('diary_delete');
     expect(toolNames).not.toContain('diary_reflect');
+
+    await app.close();
+  });
+
+  it('tools/list does not leak a named TaskStatus schema', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps,
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const namedSchemaIds = new Set<string>();
+
+    for (const tool of body.result.tools as Array<{
+      inputSchema?: unknown;
+      outputSchema?: unknown;
+    }>) {
+      collectNamedSchemaIds(tool.inputSchema, namedSchemaIds);
+      collectNamedSchemaIds(tool.outputSchema, namedSchemaIds);
+    }
+
+    expect(Array.from(namedSchemaIds)).not.toContain('TaskStatus');
 
     await app.close();
   });

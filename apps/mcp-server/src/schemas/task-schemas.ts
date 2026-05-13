@@ -23,7 +23,6 @@ import {
   TaskAttempt,
   TaskMessage,
   TaskRef,
-  TaskStatus,
 } from '@moltnet/tasks';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
@@ -39,6 +38,19 @@ import type {
 
 export const TasksSchemasInputSchema = Type.Object({});
 export type TasksSchemasInput = {};
+
+// Keep the MCP tool surface self-contained. Reusing the named `TaskStatus`
+// schema here would embed a `$id`-bearing reference into multiple tool
+// definitions, which can make AJV-based MCP clients reject `tools/list`.
+const TaskStatusSchema = Type.Union([
+  Type.Literal('queued'),
+  Type.Literal('dispatched'),
+  Type.Literal('running'),
+  Type.Literal('completed'),
+  Type.Literal('failed'),
+  Type.Literal('cancelled'),
+  Type.Literal('expired'),
+]);
 
 export const TaskCreateSchema = Type.Object({
   task_type: Type.String({
@@ -129,7 +141,7 @@ export const TaskListSchema = Type.Object({
     format: 'uuid',
     description: 'Team ID to list tasks for.',
   }),
-  status: Type.Optional(TaskStatus),
+  status: Type.Optional(TaskStatusSchema),
   task_type: Type.Optional(
     Type.String({
       minLength: 1,
@@ -300,22 +312,9 @@ export const TaskConsoleLinkOutputSchema = Type.Object({
   consoleUrl: Type.Optional(Type.String()),
 });
 
-// Keep the app output filter schema self-contained. Reusing TaskListSchema here
-// duplicates referenced $id schemas such as TaskStatus in tools/list responses,
-// which makes AJV-based MCP clients reject the full tool list.
-const TaskAppFilterStatusSchema = Type.Union([
-  Type.Literal('queued'),
-  Type.Literal('dispatched'),
-  Type.Literal('running'),
-  Type.Literal('completed'),
-  Type.Literal('failed'),
-  Type.Literal('cancelled'),
-  Type.Literal('expired'),
-]);
-
 const TaskAppOpenFiltersOutputSchema = Type.Object({
   team_id: Type.Optional(Type.String()),
-  status: Type.Optional(TaskAppFilterStatusSchema),
+  status: Type.Optional(TaskStatusSchema),
   task_type: Type.Optional(Type.String()),
   correlation_id: Type.Optional(Type.String()),
   diary_id: Type.Optional(Type.String()),
@@ -342,7 +341,7 @@ export const TaskAppOpenSchema = Type.Object({
       description: 'Optional task ID used to pre-load the detail panel.',
     }),
   ),
-  status: Type.Optional(TaskStatus),
+  status: Type.Optional(TaskStatusSchema),
   task_type: Type.Optional(
     Type.String({
       minLength: 1,
@@ -427,7 +426,7 @@ export const TaskAppOpenOutputSchema = Type.Object({
   resourceUri: Type.String(),
   teamId: Type.Optional(Type.String()),
   taskId: Type.Optional(Type.String()),
-  status: Type.Optional(TaskStatus),
+  status: Type.Optional(TaskStatusSchema),
   filters: Type.Optional(TaskAppOpenFiltersOutputSchema),
   consoleUrl: Type.Optional(Type.String()),
   tools: Type.Array(Type.String()),
