@@ -60,6 +60,13 @@ export interface BuildAgentSessionArgs {
   otelSpanAttrs: Record<string, string | number | boolean>;
   /** Agent name for `gen_ai.agent.name` on the root span. */
   agentName: string;
+  /**
+   * Parent sessions may persist their conversation history in a daemon-owned
+   * directory. Subagents should leave this unset and stay in-memory.
+   */
+  sessionPersistence?: {
+    sessionDir: string;
+  };
 }
 
 const NO_SKILLS: () => LoadSkillsResult = () => ({
@@ -68,9 +75,11 @@ const NO_SKILLS: () => LoadSkillsResult = () => ({
 });
 
 /**
- * Construct an in-memory `AgentSession`. The caller is responsible for
- * eventually invoking `session.prompt(...)` and for tearing down — the
- * helper does no lifecycle management beyond construction.
+ * Construct an `AgentSession`. By default it is in-memory; callers may opt
+ * parent sessions into daemon-owned file persistence via `sessionPersistence`.
+ * The caller is responsible for eventually invoking `session.prompt(...)` and
+ * for tearing down — the helper does no lifecycle management beyond
+ * construction.
  */
 export async function buildAgentSession(
   args: BuildAgentSessionArgs,
@@ -89,13 +98,28 @@ export async function buildAgentSession(
   });
   await resourceLoader.reload();
 
+  const sessionManager = args.sessionPersistence
+    ? await resolvePersistentSessionManager({
+        cwd: args.mountPath,
+        sessionDir: args.sessionPersistence.sessionDir,
+      })
+    : SessionManager.inMemory(args.mountPath);
+
   const created = await createAgentSession({
     agentDir: args.piAuthDir,
     cwd: args.mountPath,
     model: args.modelHandle,
     customTools: args.customTools,
-    sessionManager: SessionManager.inMemory(),
+    sessionManager,
     resourceLoader,
   });
   return created.session;
+}
+
+async function resolvePersistentSessionManager(args: {
+  cwd: string;
+  sessionDir: string;
+}): Promise<SessionManager> {
+  await SessionManager.list(args.cwd, args.sessionDir);
+  return SessionManager.continueRecent(args.cwd, args.sessionDir);
 }

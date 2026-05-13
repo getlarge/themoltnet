@@ -26,11 +26,16 @@ Current built-in policy:
 | `run_eval`           | no        | `shared_mount`       | `attempt`       | `custom`      |
 | `judge_eval_variant` | no        | `shared_mount`       | `attempt`       | `custom`      |
 
-Important current-state note: this is groundwork for warm daemon sessions, not
-the finished feature. The daemon still cold-starts one executor session per
-attempt today. The new policy surface exists so warm-session retention can be
-implemented later without overloading `correlationId` or guessing per-task
-isolation rules in ad hoc daemon code.
+Current daemon behavior:
+
+- `correlationId` stays the audit/query key. Warm reuse is driven by a daemon
+  `sessionKey`, not by correlation rows directly.
+- Resumable task types may persist Pi conversation history under
+  `.moltnet/d/pi-sessions/<encoded-sessionKey>/` and reopen the most recent
+  session on follow-up tasks.
+- `workspaceScope: session` means the daemon may keep a dedicated worktree
+  alive across related tasks, keyed by the same `sessionKey`.
+- Task types with `resumable: no` still run as cold attempt-scoped sessions.
 
 ## Operations
 

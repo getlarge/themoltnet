@@ -27,7 +27,8 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
-import { deriveTaskSessionDescriptor } from '../lib/session-policy.js';
+import { ensureDaemonStateDirs } from '../lib/state-dir.js';
+import { buildDaemonTaskExecutionPlan } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
@@ -105,6 +106,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const ctx = await resolveAgentContext(common.agent);
 
   const cfg = loadConfig();
@@ -163,6 +165,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       provider: common.provider,
       model: common.model,
       sandboxConfig: sandbox.config,
+      makeExecutionPlan: (claimedTask) =>
+        buildDaemonTaskExecutionPlan(claimedTask.task, stateDirs),
       // Factory: pi-extension calls this once per task with the
       // claimed task; binds taskId+attemptN into the pino child so
       // turn events are correlatable per task in poll mode (#1078).
@@ -214,7 +218,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
-        const sessionDescriptor = deriveTaskSessionDescriptor(claimedTask.task);
+        const executionPlan = buildDaemonTaskExecutionPlan(
+          claimedTask.task,
+          stateDirs,
+        );
+        const sessionDescriptor = executionPlan.descriptor;
         rootLogger.debug(
           {
             taskId: claimedTask.task.id,
@@ -224,6 +232,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             workspaceScope: sessionDescriptor.policy.workspaceScope,
             sessionScope: sessionDescriptor.policy.sessionScope,
             sessionKey: sessionDescriptor.sessionKey,
+            piSessionDir: executionPlan.sessionPersistence?.sessionDir ?? null,
           },
           'agent-daemon.task_execution_policy',
         );

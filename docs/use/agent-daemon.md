@@ -91,14 +91,19 @@ Current built-in policy:
 | `run_eval`           | no        | shared mount       | attempt         | custom        |
 | `judge_eval_variant` | no        | shared mount       | attempt         | custom        |
 
-Two important caveats:
+Current daemon behavior:
 
-- This policy layer is shipped before warm-session retention itself. The daemon
-  still runs one cold executor session per attempt today.
-- `correlationId` remains the task-system audit/query key. When warm-session
-  reuse is implemented, the daemon will derive its own local `sessionKey`
-  rather than treating one correlation group as one executor context by
-  default.
+- `correlationId` remains the task-system audit/query key. The daemon derives
+  its own local `sessionKey` for reuse and does not treat "one correlation
+  group" as the primitive directly.
+- For resumable task types, the daemon creates a Pi session store under
+  `.moltnet/d/pi-sessions/<encoded-sessionKey>/` in the mounted repo and reopens
+  the most recent Pi session from there on follow-up tasks.
+- For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
+  stable worktree path under `.worktrees/session-<encoded-sessionKey>` instead
+  of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
+- Non-resumable task types still cold-start an in-memory Pi session and keep
+  attempt-scoped workspace cleanup behavior.
 
 ## Identity and sandbox model
 

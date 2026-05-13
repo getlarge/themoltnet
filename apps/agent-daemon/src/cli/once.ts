@@ -24,6 +24,8 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { ensureDaemonStateDirs } from '../lib/state-dir.js';
+import { buildDaemonTaskExecutionPlan } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
@@ -60,6 +62,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     throw err;
   }
   const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const ctx = await resolveAgentContext(opts.agent);
 
   const cfg = loadConfig();
@@ -129,6 +132,8 @@ export async function runOnce(argv: string[]): Promise<number> {
       provider: opts.provider,
       model: opts.model,
       sandboxConfig: sandbox.config,
+      makeExecutionPlan: (claimedTask) =>
+        buildDaemonTaskExecutionPlan(claimedTask.task, stateDirs),
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
       maxTurns: opts.maxTurns,
       maxBashTimeouts: opts.maxBashTimeouts,

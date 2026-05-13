@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   isBashTimeoutResult,
+  resolveTaskWorkspaceId,
   resolveTaskWorktreeBranch,
   slugifyBranchComponent,
   wireSessionAbort,
@@ -404,6 +405,33 @@ describe('resolveTaskWorktreeBranch', () => {
         input: {},
       }),
     ).toBe('task/assess-brief-11111111');
+  });
+});
+
+describe('resolveTaskWorkspaceId', () => {
+  it('uses a stable session-scoped worktree id when the daemon provides a session key', () => {
+    expect(
+      resolveTaskWorkspaceId(
+        { id: '11111111-2222-4333-8444-555555555555' },
+        {
+          sessionKey:
+            'fulfill_brief:correlation:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+          workspaceScope: 'session',
+          sessionPersistence: { sessionDir: '/tmp/pi-sessions/example' },
+        },
+      ),
+    ).toBe(
+      'session-fulfill_brief%3Acorrelation%3Aaaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+    );
+  });
+
+  it('falls back to attempt-scoped task ids without a reusable session key', () => {
+    expect(
+      resolveTaskWorkspaceId(
+        { id: '11111111-2222-4333-8444-555555555555' },
+        null,
+      ),
+    ).toBe('task-11111111-2222-4333-8444-555555555555');
   });
 });
 
