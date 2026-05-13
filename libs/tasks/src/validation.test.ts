@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getTaskExecutionPolicy,
+  taskTypeResumable,
+  taskTypeSessionScope,
   taskTypeUsesSubagents,
   taskTypeWorkspaceMode,
+  taskTypeWorkspaceScope,
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
@@ -348,5 +352,79 @@ describe('taskTypeWorkspaceMode', () => {
     expect(taskTypeWorkspaceMode('render_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('judge_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('run_eval')).toBe('shared_mount');
+  });
+});
+
+describe('taskTypeResumable', () => {
+  it('defaults unknown task types to false', () => {
+    expect(taskTypeResumable('totally_made_up')).toBe(false);
+  });
+
+  it('marks fulfill_brief as resumable', () => {
+    expect(taskTypeResumable('fulfill_brief')).toBe(true);
+  });
+
+  it('keeps assessment and eval built-ins non-resumable by default', () => {
+    expect(taskTypeResumable('assess_brief')).toBe(false);
+    expect(taskTypeResumable('run_eval')).toBe(false);
+    expect(taskTypeResumable('judge_eval_variant')).toBe(false);
+  });
+});
+
+describe('taskTypeWorkspaceScope', () => {
+  it('defaults unknown task types to attempt scope', () => {
+    expect(taskTypeWorkspaceScope('totally_made_up')).toBe('attempt');
+  });
+
+  it('keeps fulfill_brief worktrees session-scoped', () => {
+    expect(taskTypeWorkspaceScope('fulfill_brief')).toBe('session');
+  });
+
+  it('keeps other built-ins attempt-scoped', () => {
+    expect(taskTypeWorkspaceScope('assess_brief')).toBe('attempt');
+    expect(taskTypeWorkspaceScope('run_eval')).toBe('attempt');
+    expect(taskTypeWorkspaceScope('judge_eval_variant')).toBe('attempt');
+  });
+});
+
+describe('taskTypeSessionScope', () => {
+  it('defaults unknown task types to none', () => {
+    expect(taskTypeSessionScope('totally_made_up')).toBe('none');
+  });
+
+  it('uses correlation scope for fulfill_brief warm reuse', () => {
+    expect(taskTypeSessionScope('fulfill_brief')).toBe('correlation');
+  });
+
+  it('keeps review tasks non-reusable by default', () => {
+    expect(taskTypeSessionScope('assess_brief')).toBe('none');
+    expect(taskTypeSessionScope('judge_pack')).toBe('none');
+  });
+
+  it('reserves custom scope for eval isolation planning', () => {
+    expect(taskTypeSessionScope('run_eval')).toBe('custom');
+    expect(taskTypeSessionScope('judge_eval_variant')).toBe('custom');
+  });
+});
+
+describe('getTaskExecutionPolicy', () => {
+  it('returns the declared fulfill_brief policy', () => {
+    expect(getTaskExecutionPolicy('fulfill_brief')).toEqual({
+      resumable: true,
+      workspaceMode: 'dedicated_worktree',
+      workspaceScope: 'session',
+      sessionScope: 'correlation',
+      usesSubagents: false,
+    });
+  });
+
+  it('returns safe defaults for unknown task types', () => {
+    expect(getTaskExecutionPolicy('totally_made_up')).toEqual({
+      resumable: false,
+      workspaceMode: 'shared_mount',
+      workspaceScope: 'attempt',
+      sessionScope: 'none',
+      usesSubagents: false,
+    });
   });
 });

@@ -16,7 +16,10 @@ export type { TaskValidationError } from './async-validation.js';
 interface TaskTypeDefinition {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
+  readonly resumable?: boolean;
   readonly workspaceMode?: 'shared_mount' | 'dedicated_worktree';
+  readonly workspaceScope?: 'attempt' | 'session';
+  readonly sessionScope?: 'none' | 'correlation' | 'custom';
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
   readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
@@ -152,6 +155,65 @@ export function taskTypeWorkspaceMode(
   taskType: string,
 ): 'shared_mount' | 'dedicated_worktree' {
   return getTaskTypeEntry(taskType)?.workspaceMode ?? 'shared_mount';
+}
+
+/**
+ * Whether the daemon may keep a warm executor session alive after one
+ * attempt completes and reuse it for later related tasks.
+ *
+ * Unknown task types default to `false`.
+ */
+export function taskTypeResumable(taskType: string): boolean {
+  return getTaskTypeEntry(taskType)?.resumable === true;
+}
+
+/**
+ * Lifetime of the task type's workspace.
+ *
+ * Unknown task types and task types without an explicit policy default to the
+ * disposable per-attempt behavior.
+ */
+export function taskTypeWorkspaceScope(
+  taskType: string,
+): 'attempt' | 'session' {
+  return getTaskTypeEntry(taskType)?.workspaceScope ?? 'attempt';
+}
+
+/**
+ * Granularity of daemon-local warm-session reuse.
+ *
+ * Unknown task types and task types without an explicit policy default to no
+ * reuse.
+ */
+export function taskTypeSessionScope(
+  taskType: string,
+): 'none' | 'correlation' | 'custom' {
+  return getTaskTypeEntry(taskType)?.sessionScope ?? 'none';
+}
+
+export interface TaskExecutionPolicy {
+  resumable: boolean;
+  workspaceMode: 'shared_mount' | 'dedicated_worktree';
+  workspaceScope: 'attempt' | 'session';
+  sessionScope: 'none' | 'correlation' | 'custom';
+  usesSubagents: boolean;
+}
+
+/**
+ * Resolve the daemon-relevant execution policy declared by a task type.
+ *
+ * This is the single read path for "may this task reuse a warm session?" and
+ * "does its workspace belong to the attempt or the session?" so daemon code
+ * doesn't need to hand-roll defaults or peek at the raw registry shape.
+ */
+export function getTaskExecutionPolicy(taskType: string): TaskExecutionPolicy {
+  return {
+    resumable: taskTypeResumable(taskType),
+    workspaceMode: taskTypeWorkspaceMode(taskType),
+    workspaceScope: taskTypeWorkspaceScope(taskType),
+    sessionScope: taskTypeSessionScope(taskType),
+    usesSubagents: taskTypeUsesSubagents(taskType),
+  };
 }
 
 export function validateTaskCreateRequest(args: {

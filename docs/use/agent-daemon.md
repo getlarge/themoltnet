@@ -67,6 +67,39 @@ Constraints today:
 
 The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeTask` helper, which calls `/complete` or `/fail` on the wire — except for `cancelled` outputs, where it's a no-op (the row is already terminal).
 
+## Task execution policy
+
+The daemon does not infer reuse and workspace rules from task-type names
+anymore. Those rules now live in `@moltnet/tasks` as execution policy metadata
+next to each task type's schemas.
+
+Policy dimensions:
+
+- `resumable`: whether the task type is eligible for warm-session reuse at all
+- `workspaceMode`: `shared_mount` or `dedicated_worktree`
+- `workspaceScope`: whether the workspace belongs to one `attempt` or to a
+  daemon-local `session`
+- `sessionScope`: whether warm-session reuse keys by `correlation`, by a
+  narrower task-type-specific `custom` discriminator, or not at all (`none`)
+
+Current built-in policy:
+
+| Type                 | Resumable | Workspace mode     | Workspace scope | Session scope |
+| -------------------- | --------- | ------------------ | --------------- | ------------- |
+| `fulfill_brief`      | yes       | dedicated worktree | session         | correlation   |
+| `assess_brief`       | no        | dedicated worktree | attempt         | none          |
+| `run_eval`           | no        | shared mount       | attempt         | custom        |
+| `judge_eval_variant` | no        | shared mount       | attempt         | custom        |
+
+Two important caveats:
+
+- This policy layer is shipped before warm-session retention itself. The daemon
+  still runs one cold executor session per attempt today.
+- `correlationId` remains the task-system audit/query key. When warm-session
+  reuse is implemented, the daemon will derive its own local `sessionKey`
+  rather than treating one correlation group as one executor context by
+  default.
+
 ## Identity and sandbox model
 
 The daemon always combines two separate local inputs:

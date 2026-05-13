@@ -27,6 +27,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { deriveTaskSessionDescriptor } from '../lib/session-policy.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
@@ -213,6 +214,19 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
+        const sessionDescriptor = deriveTaskSessionDescriptor(claimedTask.task);
+        rootLogger.debug(
+          {
+            taskId: claimedTask.task.id,
+            taskType: claimedTask.task.taskType,
+            resumable: sessionDescriptor.policy.resumable,
+            workspaceMode: sessionDescriptor.policy.workspaceMode,
+            workspaceScope: sessionDescriptor.policy.workspaceScope,
+            sessionScope: sessionDescriptor.policy.sessionScope,
+            sessionKey: sessionDescriptor.sessionKey,
+          },
+          'agent-daemon.task_execution_policy',
+        );
         // Belt-and-braces: refuse a task whose type isn't in the configured
         // whitelist (e.g. server filter race after config change). The
         // task requeues for someone else.
