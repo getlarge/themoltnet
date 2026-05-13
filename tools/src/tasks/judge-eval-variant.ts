@@ -37,7 +37,7 @@ import {
   JUDGE_EVAL_VARIANT_TYPE,
   type JudgeEvalVariantInput,
 } from '@moltnet/tasks';
-import { connect } from '@themoltnet/sdk';
+import { connect, MoltNetError } from '@themoltnet/sdk';
 
 import { buildRubricFromCriteria, readScenario } from './scenario.js';
 
@@ -203,5 +203,11 @@ async function main() {
 
 main().catch((err) => {
   console.error('[fatal]', err instanceof Error ? err.message : String(err));
+  if (err instanceof MoltNetError && err.validationErrors?.length) {
+    console.error('[validation-errors]');
+    for (const e of err.validationErrors) {
+      console.error(`  - ${e.field}: ${e.message}`);
+    }
+  }
   process.exit(1);
 });

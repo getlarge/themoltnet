@@ -199,21 +199,35 @@ export function buildRubricFromCriteria(
  * root by convention. Callers may override the search root for testing.
  */
 export function resolveSkillBinding(
-  slug: string,
+  skillPath: string,
   repoRoot: string,
 ): ContextRef {
-  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) {
-    throw new Error(
-      `Skill slug "${slug}" must match /^[a-zA-Z0-9_-]+$/ (alphanumeric + dashes/underscores) per ContextRef schema`,
-    );
-  }
-  const skillPath = join(repoRoot, '.claude', 'skills', slug, 'SKILL.md');
+  // Relative paths resolve against the repo root so operators can pass
+  // `.claude/skills/legreffier/SKILL.md` from any shell CWD (matches the
+  // resolution semantics of --scenario).
+  const absPath = isAbsolute(skillPath) ? skillPath : join(repoRoot, skillPath);
+
   let content: string;
   try {
-    content = readFileSync(skillPath, 'utf8');
+    content = readFileSync(absPath, 'utf8');
   } catch (err) {
     throw new Error(
-      `Could not read skill "${slug}" at ${skillPath}: ${asMessage(err)}`,
+      `Could not read skill file at ${absPath}: ${asMessage(err)}`,
+    );
+  }
+
+  // Derive slug from the parent directory name (Claude-style skills live
+  // at `<root>/<slug>/SKILL.md`). Single-flag API; the server still wants
+  // a slug on ContextRef and we want it bound to a real on-disk identity,
+  // not silently slugified from arbitrary text. Fail loudly if the parent
+  // dir name doesn't match the pattern so the operator notices.
+  const segments = absPath.split(/[/\\]/);
+  const slug = segments[segments.length - 2] ?? '';
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) {
+    throw new Error(
+      `Could not derive a valid skill slug from path ${absPath}: parent directory ` +
+        `"${slug}" must match /^[a-zA-Z0-9_-]+$/. Place SKILL.md inside a directory ` +
+        `whose name is the skill slug (e.g. .../legreffier/SKILL.md).`,
     );
   }
   return { slug, binding: 'skill', content };

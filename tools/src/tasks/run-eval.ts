@@ -16,7 +16,7 @@
  *     --scenario evals/legreffier/scenario-0 \
  *     --variant with-legreffier-skill \
  *     --correlation-id "$CORR" \
- *     --skill legreffier \
+ *     --skill-path .claude/skills/legreffier/SKILL.md \
  *     --prompt-prefix "MARKER: prompt_prefix sanity" \
  *     --user-inline "MARKER: user_inline sanity"
  *
@@ -58,7 +58,7 @@ import {
   RUN_EVAL_TYPE,
   type RunEvalInput,
 } from '@moltnet/tasks';
-import { connect } from '@themoltnet/sdk';
+import { connect, MoltNetError } from '@themoltnet/sdk';
 
 import {
   buildRubricFromCriteria,
@@ -71,7 +71,7 @@ const { values: args } = parseArgs({
     scenario: { type: 'string', short: 's' },
     variant: { type: 'string', short: 'v' },
     'correlation-id': { type: 'string', short: 'c' },
-    skill: { type: 'string', short: 'k', multiple: true },
+    'skill-path': { type: 'string', short: 'k', multiple: true },
     'prompt-prefix': { type: 'string' },
     'user-inline': { type: 'string' },
     agent: { type: 'string', short: 'a', default: 'legreffier' },
@@ -84,7 +84,7 @@ function usage(msg?: string): never {
   console.error(
     'Usage: tsx tools/src/tasks/run-eval.ts \\\n' +
       '         --scenario <path> --variant <label> --correlation-id <uuid> \\\n' +
-      '         [--skill <slug> ...] [--prompt-prefix <text>] [--user-inline <text>] \\\n' +
+      '         [--skill-path <path/to/SKILL.md> ...] [--prompt-prefix <text>] [--user-inline <text>] \\\n' +
       '         [--agent <name>] [--dry-run]\n\n' +
       '       --correlation-id is REQUIRED. Use `uuidgen` to mint a fresh one\n' +
       '       and reuse it for every variant in the same eval run so the judge\n' +
@@ -100,7 +100,7 @@ if (!args['correlation-id']) usage('Missing required flag: --correlation-id');
 const scenarioPath = args.scenario!;
 const variantLabel = args.variant!;
 const correlationId = args['correlation-id']!;
-const skillSlugs = (args.skill ?? []) as string[];
+const skillPaths = (args['skill-path'] ?? []) as string[];
 const promptPrefix = args['prompt-prefix'];
 const userInline = args['user-inline'];
 const agentName = args.agent!;
@@ -166,8 +166,8 @@ async function main() {
   // emit skill bindings first (largest payloads, most expensive to
   // truncate at the 64 KiB cap), then the small prefix/suffix bindings.
   const context: ContextRef[] = [];
-  for (const slug of skillSlugs) {
-    context.push(resolveSkillBinding(slug, mainRepo));
+  for (const p of skillPaths) {
+    context.push(resolveSkillBinding(p, mainRepo));
   }
   if (promptPrefix) {
     context.push({
@@ -271,5 +271,13 @@ async function main() {
 
 main().catch((err) => {
   console.error('[fatal]', err instanceof Error ? err.message : String(err));
+  // Surface server-side field-level validation errors when present
+  // (populated by the SDK from VALIDATION_FAILED ProblemDetails.errors).
+  if (err instanceof MoltNetError && err.validationErrors?.length) {
+    console.error('[validation-errors]');
+    for (const e of err.validationErrors) {
+      console.error(`  - ${e.field}: ${e.message}`);
+    }
+  }
   process.exit(1);
 });
