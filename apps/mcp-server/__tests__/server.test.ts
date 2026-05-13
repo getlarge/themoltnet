@@ -373,7 +373,7 @@ describe('buildApp', () => {
     await app.close();
   });
 
-  it('tools/list does not leak a named TaskStatus schema', async () => {
+  it('tasks_list and tasks_app_open do not leak a named TaskStatus schema', async () => {
     const deps = createMockDeps();
     const app = await buildApp({
       config: {
@@ -398,15 +398,22 @@ describe('buildApp', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    const namedSchemaIds = new Set<string>();
-
-    for (const tool of body.result.tools as Array<{
+    const tools = body.result.tools as Array<{
+      name: string;
       inputSchema?: unknown;
       outputSchema?: unknown;
-    }>) {
-      collectNamedSchemaIds(tool.inputSchema, namedSchemaIds);
-      collectNamedSchemaIds(tool.outputSchema, namedSchemaIds);
-    }
+    }>;
+
+    const taskListTool = tools.find((tool) => tool.name === 'tasks_list');
+    const taskAppTool = tools.find((tool) => tool.name === 'tasks_app_open');
+
+    expect(taskListTool).toBeDefined();
+    expect(taskAppTool).toBeDefined();
+
+    const namedSchemaIds = new Set<string>();
+    collectNamedSchemaIds(taskListTool?.inputSchema, namedSchemaIds);
+    collectNamedSchemaIds(taskAppTool?.inputSchema, namedSchemaIds);
+    collectNamedSchemaIds(taskAppTool?.outputSchema, namedSchemaIds);
 
     expect(Array.from(namedSchemaIds)).not.toContain('TaskStatus');
 
