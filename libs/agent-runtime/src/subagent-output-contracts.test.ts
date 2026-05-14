@@ -43,9 +43,9 @@ describe('subagent contract registry', () => {
   });
 
   it('rejects an empty name', () => {
-    expect(() =>
-      createSubagentContractRegistry([make({ name: '' })]),
-    ).toThrow('name is required');
+    expect(() => createSubagentContractRegistry([make({ name: '' })])).toThrow(
+      'name is required',
+    );
   });
 
   it('rejects names that are not lower_snake_case', () => {
@@ -86,7 +86,7 @@ describe('subagent contract registry', () => {
     const registry = createSubagentContractRegistry(contracts);
     const listed = registry.list();
     // Mutating the returned array should not affect subsequent list() calls.
-    (listed as SubagentOutputContract[]).length = 0;
+    listed.length = 0;
     expect(registry.list()).toHaveLength(1);
   });
 });
