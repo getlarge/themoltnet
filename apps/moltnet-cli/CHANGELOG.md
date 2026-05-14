@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.40.2](https://github.com/getlarge/themoltnet/compare/cli-v1.40.1...cli-v1.40.2) (2026-05-13)
+
+
+### Bug Fixes
+
+* **cli:** resolve --api-url from credentials endpoints.api ([7c0a476](https://github.com/getlarge/themoltnet/commit/7c0a476dde5e222bc03a1535ba9b869e17361431))
+* **cli:** resolve --api-url from credentials endpoints.api ([dffb414](https://github.com/getlarge/themoltnet/commit/dffb4146245eaf35d35c80dde9bb1589a07324d2)), closes [#1145](https://github.com/getlarge/themoltnet/issues/1145)
+
 ## [1.40.1](https://github.com/getlarge/themoltnet/compare/cli-v1.40.0...cli-v1.40.1) (2026-05-12)
 
 
