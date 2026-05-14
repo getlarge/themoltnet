@@ -1,27 +1,24 @@
-import { join } from 'node:path';
-
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
-import {
-  type PiTaskExecutionPlan,
-  resolveTaskWorkspaceId,
-  resolveTaskWorktreeBranch,
-} from '@themoltnet/pi-extension';
 
 import type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 import {
   deriveTaskSessionDescriptor,
   type TaskSessionDescriptor,
 } from './session-policy.js';
+import { slugifyAsciiLower } from './slugify.js';
 import type { DaemonStateDirs } from './state-dir.js';
 
 export type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 
-export interface DaemonTaskExecutionPlan extends PiTaskExecutionPlan {
+export interface DaemonTaskExecutionPlan {
   descriptor: TaskSessionDescriptor;
   slotKey: string | null;
   slotId: string | null;
   workspaceId: string | null;
   worktreeBranch: string | null;
+  sessionKey: string | null;
+  workspaceScope: 'attempt' | 'session';
+  sessionPersistence?: { sessionDir: string } | null;
 }
 
 export function buildDaemonTaskExecutionPlan(
@@ -39,9 +36,9 @@ export function buildDaemonTaskExecutionPlan(
     slotKey !== null ? descriptor.policy.workspaceScope : 'attempt';
   const slotId = slotKey ? buildDaemonSlotId(identity, slotKey) : null;
   const sessionDir = slotId
-    ? join(stateDirs.piSessionsDir, encodeURIComponent(slotId))
+    ? `${stateDirs.piSessionsDir}/${encodeURIComponent(slotId)}`
     : null;
-  const worktreeBranch = resolveTaskWorktreeBranch(task);
+  const worktreeBranch = resolveTaskWorktreeBranch(task, descriptor.policy);
   const workspaceId =
     worktreeBranch !== null
       ? resolveTaskWorkspaceId(task, {
@@ -80,24 +77,61 @@ export function buildDaemonSlotId(
 }
 
 function slugSlotIdentityComponent(input: string): string {
-  let out = '';
-  let pendingDash = false;
+  return slugifyAsciiLower(input.trim(), 64, ['.', '_', '-']);
+}
 
-  for (const rawChar of input.trim()) {
-    const char = rawChar.toLowerCase();
-    const isAlphaNum =
-      (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9');
-    const isLiteral = char === '.' || char === '_' || char === '-';
-
-    if (isAlphaNum || isLiteral) {
-      if (pendingDash && out.length > 0) out += '-';
-      pendingDash = false;
-      out += char;
-      continue;
-    }
-
-    pendingDash = out.length > 0;
+function resolveTaskWorktreeBranch(
+  task: Pick<
+    ClaimedTask['task'],
+    'taskType' | 'correlationId' | 'id' | 'input'
+  >,
+  policy: { workspaceMode: 'shared_mount' | 'dedicated_worktree' },
+): string | null {
+  if (policy.workspaceMode !== 'dedicated_worktree') {
+    return null;
   }
 
-  return out;
+  if (task.taskType === 'fulfill_brief') {
+    const input = task.input as {
+      brief?: unknown;
+      title?: unknown;
+      scopeHint?: unknown;
+    };
+    const title =
+      typeof input.title === 'string' && input.title.trim().length > 0
+        ? input.title
+        : typeof input.brief === 'string' && input.brief.trim().length > 0
+          ? input.brief
+          : task.taskType;
+    const slug = slugifyAsciiLower(title, 60) || 'task';
+
+    if (task.correlationId) {
+      return `moltnet/${task.correlationId}/${slug}`;
+    }
+
+    const scopeHint =
+      typeof input.scopeHint === 'string' && input.scopeHint.trim().length > 0
+        ? slugifyAsciiLower(input.scopeHint, 60)
+        : 'task';
+    return `feat/${scopeHint || 'task'}-${slug}`;
+  }
+
+  return `task/${slugifyAsciiLower(task.taskType, 60) || 'task'}-${task.id.slice(0, 8)}`;
+}
+
+function resolveTaskWorkspaceId(
+  task: Pick<ClaimedTask['task'], 'id'>,
+  executionPlan: {
+    sessionKey: string | null;
+    workspaceScope: 'attempt' | 'session';
+    sessionPersistence?: { sessionDir: string } | null;
+  },
+): string {
+  if (
+    executionPlan.workspaceScope === 'session' &&
+    executionPlan.sessionKey !== null
+  ) {
+    return `session-${encodeURIComponent(executionPlan.sessionKey)}`;
+  }
+  return `task-${task.id}`;
 }

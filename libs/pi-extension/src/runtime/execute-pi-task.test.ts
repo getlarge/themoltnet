@@ -14,13 +14,7 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  isBashTimeoutResult,
-  resolveTaskWorkspaceId,
-  resolveTaskWorktreeBranch,
-  slugifyBranchComponent,
-  wireSessionAbort,
-} from './execute-pi-task.js';
+import { isBashTimeoutResult, wireSessionAbort } from './execute-pi-task.js';
 import {
   __resetTaskOutputCounterForTests,
   extractJsonObject,
@@ -350,96 +344,6 @@ describe('wireSessionAbort', () => {
       setTimeout(resolve, 10);
     });
     expect(abort).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('resolveTaskWorktreeBranch', () => {
-  it('uses the correlationId branch shape for fulfill_brief', () => {
-    expect(
-      resolveTaskWorktreeBranch({
-        id: '11111111-2222-4333-8444-555555555555',
-        taskType: 'fulfill_brief',
-        correlationId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        input: {
-          brief: 'Implement rendered pack creator support',
-          title: 'Rendered Pack Creator',
-        },
-      }),
-    ).toBe(
-      'moltnet/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/rendered-pack-creator',
-    );
-  });
-
-  it('falls back to a feat branch when fulfill_brief has no correlationId', () => {
-    expect(
-      resolveTaskWorktreeBranch({
-        id: '11111111-2222-4333-8444-555555555555',
-        taskType: 'fulfill_brief',
-        correlationId: null,
-        input: {
-          brief: 'Implement rendered pack creator support',
-          title: 'Rendered Pack Creator',
-          scopeHint: 'agent-runtime',
-        },
-      }),
-    ).toBe('feat/agent-runtime-rendered-pack-creator');
-  });
-
-  it('returns null for shared-mount task types', () => {
-    expect(
-      resolveTaskWorktreeBranch({
-        id: '11111111-2222-4333-8444-555555555555',
-        taskType: 'judge_pack',
-        correlationId: null,
-        input: {},
-      }),
-    ).toBeNull();
-  });
-
-  it('creates a disposable task branch for assess_brief', () => {
-    expect(
-      resolveTaskWorktreeBranch({
-        id: '11111111-2222-4333-8444-555555555555',
-        taskType: 'assess_brief',
-        correlationId: null,
-        input: {},
-      }),
-    ).toBe('task/assess-brief-11111111');
-  });
-});
-
-describe('resolveTaskWorkspaceId', () => {
-  it('uses a stable session-scoped worktree id when the daemon provides a session key', () => {
-    expect(
-      resolveTaskWorkspaceId(
-        { id: '11111111-2222-4333-8444-555555555555' },
-        {
-          sessionKey:
-            'fulfill_brief:correlation:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-          workspaceScope: 'session',
-          sessionPersistence: { sessionDir: '/tmp/pi-sessions/example' },
-        },
-      ),
-    ).toBe(
-      'session-fulfill_brief%3Acorrelation%3Aaaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-    );
-  });
-
-  it('falls back to attempt-scoped task ids without a reusable session key', () => {
-    expect(
-      resolveTaskWorkspaceId(
-        { id: '11111111-2222-4333-8444-555555555555' },
-        null,
-      ),
-    ).toBe('task-11111111-2222-4333-8444-555555555555');
-  });
-});
-
-describe('slugifyBranchComponent', () => {
-  it('normalizes punctuation and trims trailing separators', () => {
-    expect(slugifyBranchComponent(' Rendered Pack Creator!!! ')).toBe(
-      'rendered-pack-creator',
-    );
   });
 });
 

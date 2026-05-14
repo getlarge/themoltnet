@@ -2,10 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import {
-  type ClaimedTask,
-  taskTypeWorkspaceMode,
-} from '@themoltnet/agent-runtime';
+import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import { findMainWorktree } from '../vm-manager.js';
 import type { PiTaskExecutionPlan } from './execution-plan.js';
@@ -17,82 +14,12 @@ export interface PreparedTaskWorkspace {
   cleanup: () => void;
 }
 
-export function resolveTaskWorktreeBranch(
-  task: Pick<
-    ClaimedTask['task'],
-    'taskType' | 'correlationId' | 'id' | 'input'
-  >,
-): string | null {
-  if (taskTypeWorkspaceMode(task.taskType) !== 'dedicated_worktree') {
-    return null;
-  }
-
-  if (task.taskType === 'fulfill_brief') {
-    const input = task.input as {
-      brief?: unknown;
-      title?: unknown;
-      scopeHint?: unknown;
-    };
-    const title =
-      typeof input.title === 'string' && input.title.trim().length > 0
-        ? input.title
-        : typeof input.brief === 'string' && input.brief.trim().length > 0
-          ? input.brief
-          : task.taskType;
-    const slug = slugifyBranchComponent(title) || 'task';
-
-    if (task.correlationId) {
-      return `moltnet/${task.correlationId}/${slug}`;
-    }
-
-    const scopeHint =
-      typeof input.scopeHint === 'string' && input.scopeHint.trim().length > 0
-        ? slugifyBranchComponent(input.scopeHint)
-        : 'task';
-    return `feat/${scopeHint || 'task'}-${slug}`;
-  }
-
-  return `task/${slugifyBranchComponent(task.taskType) || 'task'}-${task.id.slice(0, 8)}`;
-}
-
-export function slugifyBranchComponent(input: string): string {
-  return slugifyAsciiLower(input, 60);
-}
-
-function slugifyAsciiLower(input: string, maxLen: number): string {
-  let out = '';
-  let pendingDash = false;
-
-  for (const rawChar of input) {
-    const char = rawChar.toLowerCase();
-    const isAlphaNum =
-      (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9');
-
-    if (isAlphaNum) {
-      if (pendingDash && out.length > 0 && out.length < maxLen) {
-        out += '-';
-      }
-      pendingDash = false;
-      if (out.length < maxLen) {
-        out += char;
-      } else {
-        break;
-      }
-      continue;
-    }
-
-    pendingDash = out.length > 0;
-  }
-
-  return out;
-}
-
 export function prepareTaskWorkspace(
   task: ClaimedTask['task'],
   requestedMountPath: string,
   executionPlan: PiTaskExecutionPlan | null,
 ): PreparedTaskWorkspace {
-  const branch = resolveTaskWorktreeBranch(task);
+  const branch = executionPlan?.worktreeBranch ?? null;
   if (!branch) {
     return {
       mountPath: requestedMountPath,
@@ -103,7 +30,7 @@ export function prepareTaskWorkspace(
   }
 
   const mainRepo = findMainWorktree();
-  const workspaceId = resolveTaskWorkspaceId(task, executionPlan);
+  const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
   const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
   const relMount = relative(mainRepo, requestedMountPath);
@@ -136,19 +63,6 @@ export function prepareTaskWorkspace(
           );
         },
   };
-}
-
-export function resolveTaskWorkspaceId(
-  task: Pick<ClaimedTask['task'], 'id'>,
-  executionPlan: PiTaskExecutionPlan | null,
-): string {
-  if (
-    executionPlan?.workspaceScope === 'session' &&
-    executionPlan.sessionKey !== null
-  ) {
-    return `session-${encodeURIComponent(executionPlan.sessionKey)}`;
-  }
-  return `task-${task.id}`;
 }
 
 export function resolveTaskWorktreePath(

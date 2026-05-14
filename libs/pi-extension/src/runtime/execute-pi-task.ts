@@ -76,12 +76,7 @@ export type {
   PiTaskExecutionPlan,
   PiTaskExecutionPlanFactory,
 } from './execution-plan.js';
-export {
-  resolveTaskWorkspaceId,
-  resolveTaskWorktreeBranch,
-  resolveTaskWorktreePath,
-  slugifyBranchComponent,
-} from './task-workspace.js';
+export { resolveTaskWorktreePath } from './task-workspace.js';
 
 // Wire-level kind union. Matches `TaskMessageKind` in libs/tasks; reusing
 // `Parameters<TaskReporter['record']>[0]['kind']` keeps the two surfaces

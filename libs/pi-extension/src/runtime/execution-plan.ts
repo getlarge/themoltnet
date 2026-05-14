@@ -11,6 +11,16 @@ export interface PiTaskExecutionPlan {
    */
   sessionKey: string | null;
   /**
+   * Workspace identity selected by the daemon. `null` means the task should
+   * run against the shared mount path.
+   */
+  workspaceId: string | null;
+  /**
+   * Branch to create or reopen for the workspace. `null` means no dedicated
+   * worktree is required.
+   */
+  worktreeBranch: string | null;
+  /**
    * Lifetime of the task workspace from the daemon's point of view.
    * `attempt` = disposable; `session` = keep stable for the reuse key.
    */
