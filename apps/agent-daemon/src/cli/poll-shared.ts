@@ -5,7 +5,6 @@ import type { TaskOutput } from '@moltnet/tasks';
 import {
   AgentRuntime,
   ApiTaskReporter,
-  type ClaimedTask,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import {
@@ -24,6 +23,7 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from '../lib/daemon-slot-registry.js';
+import { createExecutionPlanCache } from '../lib/execution-plan-cache.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -37,11 +37,7 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
-import {
-  buildDaemonTaskExecutionPlan,
-  type DaemonSlotIdentity,
-  type DaemonTaskExecutionPlan,
-} from '../lib/task-execution-plan.js';
+import { type DaemonSlotIdentity } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
@@ -127,7 +123,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     model: common.model,
   };
   const mainRepo = findMainWorktree();
-  const executionPlans = new Map<string, DaemonTaskExecutionPlan>();
+  const executionPlans = createExecutionPlanCache({
+    stateDirs,
+    slotIdentity,
+    warmSessionTtlSec: common.warmSessionTtlSec,
+  });
   const ctx = await resolveAgentContext(common.agent);
 
   const cfg = loadConfig();
@@ -187,13 +187,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       model: common.model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
-        getOrCreateExecutionPlan(
-          claimedTask,
-          executionPlans,
-          stateDirs,
-          slotIdentity,
-          common.warmSessionTtlSec,
-        ),
+        executionPlans.getOrCreate(claimedTask),
       // Factory: pi-extension calls this once per task with the
       // claimed task; binds taskId+attemptN into the pino child so
       // turn events are correlatable per task in poll mode (#1078).
@@ -245,13 +239,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
-        const executionPlan = getOrCreateExecutionPlan(
-          claimedTask,
-          executionPlans,
-          stateDirs,
-          slotIdentity,
-          common.warmSessionTtlSec,
-        );
+        const executionPlan = executionPlans.getOrCreate(claimedTask);
         const sessionDescriptor = executionPlan.descriptor;
         const expired = slotRegistry.reapExpiredSlots();
         if (expired.length > 0) {
@@ -350,7 +338,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         try {
           return await executeTask(claimedTask, reporter);
         } finally {
-          executionPlans.delete(buildClaimedTaskKey(claimedTask));
+          executionPlans.delete(claimedTask);
           if (executionPlan.slotKey) {
             slotRegistry.finishSlot(
               slotIdentity,
@@ -377,33 +365,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     await otelShutdown();
     await shutdownLogger();
   }
-}
-
-function buildClaimedTaskKey(
-  task: Pick<ClaimedTask, 'task' | 'attemptN'>,
-): string {
-  return `${task.task.id}:${task.attemptN}`;
-}
-
-function getOrCreateExecutionPlan(
-  claimedTask: Pick<ClaimedTask, 'task' | 'attemptN'>,
-  executionPlans: Map<string, DaemonTaskExecutionPlan>,
-  stateDirs: ReturnType<typeof ensureDaemonStateDirs>,
-  slotIdentity: DaemonSlotIdentity,
-  warmSessionTtlSec: number,
-): DaemonTaskExecutionPlan {
-  const key = buildClaimedTaskKey(claimedTask);
-  const existing = executionPlans.get(key);
-  if (existing) return existing;
-
-  const plan = buildDaemonTaskExecutionPlan(
-    claimedTask.task,
-    stateDirs,
-    slotIdentity,
-    warmSessionTtlSec,
-  );
-  executionPlans.set(key, plan);
-  return plan;
 }
 
 function parseCsv(raw: string | undefined): string[] {

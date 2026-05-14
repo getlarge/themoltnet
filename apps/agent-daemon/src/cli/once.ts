@@ -4,7 +4,6 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
-  type ClaimedTask,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
@@ -23,6 +22,7 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from '../lib/daemon-slot-registry.js';
+import { createExecutionPlanCache } from '../lib/execution-plan-cache.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -35,11 +35,7 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
-import {
-  buildDaemonTaskExecutionPlan,
-  type DaemonSlotIdentity,
-  type DaemonTaskExecutionPlan,
-} from '../lib/task-execution-plan.js';
+import { type DaemonSlotIdentity } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
@@ -84,7 +80,11 @@ export async function runOnce(argv: string[]): Promise<number> {
     model: opts.model,
   };
   const mainRepo = findMainWorktree();
-  const executionPlans = new Map<string, DaemonTaskExecutionPlan>();
+  const executionPlans = createExecutionPlanCache({
+    stateDirs,
+    slotIdentity,
+    warmSessionTtlSec: opts.warmSessionTtlSec,
+  });
   const ctx = await resolveAgentContext(opts.agent);
 
   const cfg = loadConfig();
@@ -155,13 +155,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       model: opts.model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
-        getOrCreateExecutionPlan(
-          claimedTask,
-          executionPlans,
-          stateDirs,
-          slotIdentity,
-          opts.warmSessionTtlSec,
-        ),
+        executionPlans.getOrCreate(claimedTask),
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
       maxTurns: opts.maxTurns,
       maxBashTimeouts: opts.maxBashTimeouts,
@@ -177,13 +171,7 @@ export async function runOnce(argv: string[]): Promise<number> {
           'agent-daemon.daemon_slots_reaped',
         );
       }
-      const executionPlan = getOrCreateExecutionPlan(
-        claimedTask,
-        executionPlans,
-        stateDirs,
-        slotIdentity,
-        opts.warmSessionTtlSec,
-      );
+      const executionPlan = executionPlans.getOrCreate(claimedTask);
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
         slotRegistry.beginSlot({
           ...slotIdentity,
@@ -206,7 +194,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       try {
         return await rawExecuteTask(claimedTask, reporter);
       } finally {
-        executionPlans.delete(buildClaimedTaskKey(claimedTask));
+        executionPlans.delete(claimedTask);
         if (executionPlan.slotKey) {
           slotRegistry.finishSlot(
             slotIdentity,
@@ -268,31 +256,4 @@ export async function runOnce(argv: string[]): Promise<number> {
     await otelShutdown();
     await shutdownLogger();
   }
-}
-
-function buildClaimedTaskKey(
-  task: Pick<ClaimedTask, 'task' | 'attemptN'>,
-): string {
-  return `${task.task.id}:${task.attemptN}`;
-}
-
-function getOrCreateExecutionPlan(
-  claimedTask: Pick<ClaimedTask, 'task' | 'attemptN'>,
-  executionPlans: Map<string, DaemonTaskExecutionPlan>,
-  stateDirs: ReturnType<typeof ensureDaemonStateDirs>,
-  slotIdentity: DaemonSlotIdentity,
-  warmSessionTtlSec: number,
-): DaemonTaskExecutionPlan {
-  const key = buildClaimedTaskKey(claimedTask);
-  const existing = executionPlans.get(key);
-  if (existing) return existing;
-
-  const plan = buildDaemonTaskExecutionPlan(
-    claimedTask.task,
-    stateDirs,
-    slotIdentity,
-    warmSessionTtlSec,
-  );
-  executionPlans.set(key, plan);
-  return plan;
 }

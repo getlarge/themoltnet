@@ -5,6 +5,16 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { findMainWorktree } from '@themoltnet/pi-extension';
 
+export class DaemonSlotRegistryError extends Error {
+  constructor(
+    public readonly operation: string,
+    cause: unknown,
+  ) {
+    super(`Daemon slot registry failed during ${operation}`, { cause });
+    this.name = 'DaemonSlotRegistryError';
+  }
+}
+
 export interface DaemonSlotIdentity {
   agentName: string;
   provider: string;
@@ -58,8 +68,10 @@ export class DaemonSlotRegistry {
   private readonly db: DatabaseSync;
 
   constructor(dbPath: string) {
-    this.db = new DatabaseSync(dbPath);
-    this.db.exec(`
+    try {
+      this.db = new DatabaseSync(dbPath);
+      this.withDb('initialize schema', () => {
+        this.db.exec(`
       PRAGMA journal_mode = WAL;
 
       CREATE TABLE IF NOT EXISTS daemon_slots (
@@ -106,20 +118,29 @@ export class DaemonSlotRegistry {
 
       CREATE INDEX IF NOT EXISTS daemon_slots_expires_idx
         ON daemon_slots (expires_at_ms);
-    `);
+        `);
+      });
+    } catch (error) {
+      throw new DaemonSlotRegistryError('open database', error);
+    }
   }
 
   close(): void {
-    this.db.close();
+    try {
+      this.db.close();
+    } catch (error) {
+      throw new DaemonSlotRegistryError('close database', error);
+    }
   }
 
   beginSlot(input: DaemonSlotStartInput): void {
     const now = Date.now();
     const expiresAtMs = now + input.ttlSec * 1000;
 
-    this.db
-      .prepare(
-        `INSERT INTO daemon_slots (
+    this.withDb('upsert slot', () =>
+      this.db
+        .prepare(
+          `INSERT INTO daemon_slots (
            agent_name, provider, model, slot_key, task_type, state,
            last_task_id, last_attempt_n, created_at_ms, last_used_at_ms,
            expires_at_ms
@@ -135,24 +156,26 @@ export class DaemonSlotRegistry {
            last_attempt_n = excluded.last_attempt_n,
            last_used_at_ms = excluded.last_used_at_ms,
            expires_at_ms = excluded.expires_at_ms`,
-      )
-      .run({
-        agentName: input.agentName,
-        provider: input.provider,
-        model: input.model,
-        slotKey: input.slotKey,
-        taskType: input.taskType,
-        lastTaskId: input.lastTaskId,
-        lastAttemptN: input.lastAttemptN,
-        createdAtMs: now,
-        lastUsedAtMs: now,
-        expiresAtMs,
-      });
+        )
+        .run({
+          agentName: input.agentName,
+          provider: input.provider,
+          model: input.model,
+          slotKey: input.slotKey,
+          taskType: input.taskType,
+          lastTaskId: input.lastTaskId,
+          lastAttemptN: input.lastAttemptN,
+          createdAtMs: now,
+          lastUsedAtMs: now,
+          expiresAtMs,
+        }),
+    );
 
     if (input.sessionDir) {
-      this.db
-        .prepare(
-          `INSERT INTO daemon_slot_sessions (
+      this.withDb('upsert slot session', () =>
+        this.db
+          .prepare(
+            `INSERT INTO daemon_slot_sessions (
              agent_name, provider, model, slot_key, session_dir, session_path
            ) VALUES (
              :agentName, :provider, :model, :slotKey, :sessionDir, :sessionPath
@@ -160,21 +183,23 @@ export class DaemonSlotRegistry {
            ON CONFLICT(agent_name, provider, model, slot_key) DO UPDATE SET
              session_dir = excluded.session_dir,
              session_path = excluded.session_path`,
-        )
-        .run({
-          agentName: input.agentName,
-          provider: input.provider,
-          model: input.model,
-          slotKey: input.slotKey,
-          sessionDir: input.sessionDir,
-          sessionPath: input.sessionPath,
-        });
+          )
+          .run({
+            agentName: input.agentName,
+            provider: input.provider,
+            model: input.model,
+            slotKey: input.slotKey,
+            sessionDir: input.sessionDir,
+            sessionPath: input.sessionPath,
+          }),
+      );
     }
 
     if (input.workspaceId && input.worktreePath) {
-      this.db
-        .prepare(
-          `INSERT INTO daemon_slot_workspaces (
+      this.withDb('upsert slot workspace', () =>
+        this.db
+          .prepare(
+            `INSERT INTO daemon_slot_workspaces (
              agent_name, provider, model, slot_key, workspace_id, worktree_path,
              worktree_branch
            ) VALUES (
@@ -185,16 +210,17 @@ export class DaemonSlotRegistry {
              workspace_id = excluded.workspace_id,
              worktree_path = excluded.worktree_path,
              worktree_branch = excluded.worktree_branch`,
-        )
-        .run({
-          agentName: input.agentName,
-          provider: input.provider,
-          model: input.model,
-          slotKey: input.slotKey,
-          workspaceId: input.workspaceId,
-          worktreePath: input.worktreePath,
-          worktreeBranch: input.worktreeBranch,
-        });
+          )
+          .run({
+            agentName: input.agentName,
+            provider: input.provider,
+            model: input.model,
+            slotKey: input.slotKey,
+            workspaceId: input.workspaceId,
+            worktreePath: input.worktreePath,
+            worktreeBranch: input.worktreeBranch,
+          }),
+      );
     }
   }
 
@@ -205,46 +231,55 @@ export class DaemonSlotRegistry {
     sessionPath: string | null,
   ): void {
     const now = Date.now();
-    this.db
-      .prepare(
-        `UPDATE daemon_slots
+    this.withDb('finish slot', () =>
+      this.db
+        .prepare(
+          `UPDATE daemon_slots
            SET state = 'idle',
                last_used_at_ms = ?,
                expires_at_ms = ?
          WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
-      )
-      .run(
-        now,
-        now + ttlSec * 1000,
-        identity.agentName,
-        identity.provider,
-        identity.model,
-        slotKey,
-      );
-
-    if (sessionPath !== null) {
-      this.db
-        .prepare(
-          `UPDATE daemon_slot_sessions
-             SET session_path = ?
-           WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
         )
         .run(
-          sessionPath,
+          now,
+          now + ttlSec * 1000,
           identity.agentName,
           identity.provider,
           identity.model,
           slotKey,
-        );
+        ),
+    );
+
+    if (sessionPath !== null) {
+      this.withDb('update slot session path', () =>
+        this.db
+          .prepare(
+            `UPDATE daemon_slot_sessions
+             SET session_path = ?
+           WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+          )
+          .run(
+            sessionPath,
+            identity.agentName,
+            identity.provider,
+            identity.model,
+            slotKey,
+          ),
+      );
     }
   }
 
   reapExpiredSlots(now = Date.now()): ReapedDaemonSlot[] {
-    this.db.exec('BEGIN IMMEDIATE');
+    this.withDb('begin reap transaction', () =>
+      this.db.exec('BEGIN IMMEDIATE'),
+    );
     try {
-      const slots = this.db
-        .prepare(
-          `SELECT
+      const slots = this.withDb(
+        'select expired slots',
+        () =>
+          this.db
+            .prepare(
+              `SELECT
              agent_name as agentName,
              provider,
              model,
@@ -258,60 +293,84 @@ export class DaemonSlotRegistry {
              expires_at_ms as expiresAtMs
            FROM daemon_slots
            WHERE expires_at_ms <= ?`,
-        )
-        .all(now) as unknown as DaemonSlotRecord[];
+            )
+            .all(now) as unknown as DaemonSlotRecord[],
+      );
 
       if (slots.length < 1) {
-        this.db.exec('COMMIT');
+        this.withDb('commit empty reap transaction', () =>
+          this.db.exec('COMMIT'),
+        );
         return [];
       }
 
-      const selectSession = this.db.prepare(
-        `SELECT
-           agent_name as agentName,
-           provider,
-           model,
-           slot_key as slotKey,
-           session_dir as sessionDir,
-           session_path as sessionPath
-         FROM daemon_slot_sessions
-         WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      const selectSession = this.withDb('prepare slot session lookup', () =>
+        this.db.prepare(
+          `SELECT
+             agent_name as agentName,
+             provider,
+             model,
+             slot_key as slotKey,
+             session_dir as sessionDir,
+             session_path as sessionPath
+           FROM daemon_slot_sessions
+           WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+        ),
       );
-      const selectWorkspace = this.db.prepare(
-        `SELECT
-           agent_name as agentName,
-           provider,
-           model,
-           slot_key as slotKey,
-           workspace_id as workspaceId,
-           worktree_path as worktreePath,
-           worktree_branch as worktreeBranch
-         FROM daemon_slot_workspaces
-         WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      const selectWorkspace = this.withDb('prepare slot workspace lookup', () =>
+        this.db.prepare(
+          `SELECT
+               agent_name as agentName,
+               provider,
+               model,
+               slot_key as slotKey,
+               workspace_id as workspaceId,
+               worktree_path as worktreePath,
+               worktree_branch as worktreeBranch
+             FROM daemon_slot_workspaces
+             WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+        ),
       );
-      const deleteStmt = this.db.prepare(
-        'DELETE FROM daemon_slots WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?',
+      const deleteStmt = this.withDb('prepare expired slot delete', () =>
+        this.db.prepare(
+          'DELETE FROM daemon_slots WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?',
+        ),
       );
 
       const out: ReapedDaemonSlot[] = [];
       for (const slot of slots) {
-        const session = (selectSession.get(
-          slot.agentName,
-          slot.provider,
-          slot.model,
-          slot.slotKey,
-        ) ?? null) as unknown as DaemonSlotSessionRecord | null;
-        const workspace = (selectWorkspace.get(
-          slot.agentName,
-          slot.provider,
-          slot.model,
-          slot.slotKey,
-        ) ?? null) as unknown as DaemonSlotWorkspaceRecord | null;
+        const session = this.withDb(
+          'select slot session',
+          () =>
+            (selectSession.get(
+              slot.agentName,
+              slot.provider,
+              slot.model,
+              slot.slotKey,
+            ) ?? null) as unknown as DaemonSlotSessionRecord | null,
+        );
+        const workspace = this.withDb(
+          'select slot workspace',
+          () =>
+            (selectWorkspace.get(
+              slot.agentName,
+              slot.provider,
+              slot.model,
+              slot.slotKey,
+            ) ?? null) as unknown as DaemonSlotWorkspaceRecord | null,
+        );
         out.push({ slot, session, workspace });
-        deleteStmt.run(slot.agentName, slot.provider, slot.model, slot.slotKey);
+        this.withDb('delete expired slot', () =>
+          deleteStmt.run(
+            slot.agentName,
+            slot.provider,
+            slot.model,
+            slot.slotKey,
+          ),
+        );
       }
 
-      this.db.exec('COMMIT');
+      this.withDb('commit reap transaction', () => this.db.exec('COMMIT'));
 
       for (const item of out) {
         if (item.session) cleanupPiSessionDir(item.session.sessionDir);
@@ -321,8 +380,22 @@ export class DaemonSlotRegistry {
 
       return out;
     } catch (error) {
-      this.db.exec('ROLLBACK');
-      throw error;
+      try {
+        this.db.exec('ROLLBACK');
+      } catch {
+        // Ignore rollback failures and surface the original error.
+      }
+      throw error instanceof DaemonSlotRegistryError
+        ? error
+        : new DaemonSlotRegistryError('reap expired slots', error);
+    }
+  }
+
+  private withDb<T>(operation: string, fn: () => T): T {
+    try {
+      return fn();
+    } catch (error) {
+      throw new DaemonSlotRegistryError(operation, error);
     }
   }
 }
