@@ -8,17 +8,42 @@
  * without booting a VM.
  */
 
+import { randomUUID } from 'node:crypto';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   AgentRuntime,
   type AgentRuntimeLogger,
   ApiTaskReporter,
+  ApiTaskSource,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
+import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import {
+  DaemonSlotRegistry,
+  resolveLatestPiSessionPath,
+} from '../src/lib/daemon-slot-registry.js';
 import { finalizeTask } from '../src/lib/finalize.js';
+import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
+import {
+  buildDaemonTaskExecutionPlan,
+  type DaemonSlotIdentity,
+} from '../src/lib/task-execution-plan.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const silentLogger: AgentRuntimeLogger = {
@@ -41,6 +66,7 @@ describe('Agent daemon (e2e)', () => {
   let agent: Agent;
   let teamId: string;
   let diaryId: string;
+  const tempRoots: string[] = [];
 
   beforeAll(async () => {
     harness = await createDaemonTestHarness();
@@ -54,6 +80,12 @@ describe('Agent daemon (e2e)', () => {
     diaryId = creds.privateDiaryId;
   }, 120_000);
 
+  afterEach(() => {
+    for (const root of tempRoots.splice(0)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   afterAll(async () => {
     await harness?.teardown();
   });
@@ -66,6 +98,20 @@ describe('Agent daemon (e2e)', () => {
       input: {
         diaryId,
         taskPrompt: 'e2e daemon smoke',
+      },
+    });
+  }
+
+  function imposeFulfillBriefTask(correlationId: string) {
+    return agent.tasks.create({
+      taskType: 'fulfill_brief',
+      teamId,
+      diaryId,
+      correlationId,
+      input: {
+        brief: 'Exercise daemon slot persistence in e2e',
+        title: 'Warm session e2e',
+        scopeHint: 'daemon-e2e',
       },
     });
   }
@@ -349,6 +395,97 @@ describe('Agent daemon (e2e)', () => {
     expect(final.cancelReason).toBe('e2e test cancellation');
   }, 30_000);
 
+  it('reuses daemon slot resources across fulfill_brief tasks and reaps them on expiry', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-slot-e2e-'));
+    tempRoots.push(mountRoot);
+
+    const stateDirs = ensureDaemonStateDirs(mountRoot);
+    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    const slotIdentity: DaemonSlotIdentity = {
+      agentName: 'e2e-daemon',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+    };
+    const correlationId = randomUUID();
+    const warmSessionTtlSec = 60;
+
+    try {
+      const first = await imposeFulfillBriefTask(correlationId);
+      const firstOutput = await runStubbedSlotAwareTask({
+        agent,
+        taskId: first.id,
+        mountRoot,
+        stateDirs,
+        slotRegistry,
+        slotIdentity,
+        warmSessionTtlSec,
+      });
+      expect(firstOutput.status).toBe('completed');
+
+      const afterFirst = readDaemonSlotState(stateDirs.registryDbPath);
+      expect(afterFirst.slots).toHaveLength(1);
+      expect(afterFirst.sessions).toHaveLength(1);
+      expect(afterFirst.workspaces).toHaveLength(1);
+      expect(afterFirst.slots[0]?.taskType).toBe('fulfill_brief');
+      expect(afterFirst.slots[0]?.state).toBe('idle');
+      expect(afterFirst.slots[0]?.lastTaskId).toBe(first.id);
+
+      const firstSessionDir = afterFirst.sessions[0]?.sessionDir;
+      const firstSessionPath = afterFirst.sessions[0]?.sessionPath;
+      const firstWorktreePath = afterFirst.workspaces[0]?.worktreePath;
+      expect(firstSessionDir).toBeTruthy();
+      expect(firstSessionPath).toBeTruthy();
+      expect(firstWorktreePath).toBeTruthy();
+      expect(existsSync(firstSessionDir!)).toBe(true);
+      expect(existsSync(firstSessionPath!)).toBe(true);
+      expect(existsSync(firstWorktreePath!)).toBe(true);
+
+      const second = await imposeFulfillBriefTask(correlationId);
+      const secondOutput = await runStubbedSlotAwareTask({
+        agent,
+        taskId: second.id,
+        mountRoot,
+        stateDirs,
+        slotRegistry,
+        slotIdentity,
+        warmSessionTtlSec,
+      });
+      expect(secondOutput.status).toBe('completed');
+
+      const afterSecond = readDaemonSlotState(stateDirs.registryDbPath);
+      expect(afterSecond.slots).toHaveLength(1);
+      expect(afterSecond.sessions).toHaveLength(1);
+      expect(afterSecond.workspaces).toHaveLength(1);
+      expect(afterSecond.slots[0]?.slotKey).toBe(afterFirst.slots[0]?.slotKey);
+      expect(afterSecond.sessions[0]?.sessionDir).toBe(firstSessionDir);
+      expect(afterSecond.sessions[0]?.sessionPath).toBe(firstSessionPath);
+      expect(afterSecond.workspaces[0]?.worktreePath).toBe(firstWorktreePath);
+      expect(afterSecond.slots[0]?.lastTaskId).toBe(second.id);
+
+      const persistedSessionLog = readFileSync(firstSessionPath!, 'utf8');
+      expect(persistedSessionLog).toContain(first.id);
+      expect(persistedSessionLog).toContain(second.id);
+
+      const finalFirst = await agent.tasks.get(first.id);
+      const finalSecond = await agent.tasks.get(second.id);
+      expect(finalFirst.status).toBe('completed');
+      expect(finalSecond.status).toBe('completed');
+
+      const expired = slotRegistry.reapExpiredSlots(Date.now() + 120_000);
+      expect(expired).toHaveLength(1);
+      expect(expired[0]?.slot.slotKey).toBe(afterSecond.slots[0]?.slotKey);
+      expect(existsSync(firstSessionDir!)).toBe(false);
+      expect(existsSync(firstWorktreePath!)).toBe(false);
+
+      const afterReap = readDaemonSlotState(stateDirs.registryDbPath);
+      expect(afterReap.slots).toHaveLength(0);
+      expect(afterReap.sessions).toHaveLength(0);
+      expect(afterReap.workspaces).toHaveLength(0);
+    } finally {
+      slotRegistry.close();
+    }
+  }, 60_000);
+
   describe('Task.allowedExecutors filter', () => {
     // Empty allowlist tasks remain visible to every daemon. A pinned
     // task is only listed for daemons whose `(provider, model)` is in
@@ -451,3 +588,159 @@ describe('Agent daemon (e2e)', () => {
     });
   });
 });
+
+interface StubbedSlotAwareTaskArgs {
+  agent: Agent;
+  taskId: string;
+  mountRoot: string;
+  stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
+  slotRegistry: DaemonSlotRegistry;
+  slotIdentity: DaemonSlotIdentity;
+  warmSessionTtlSec: number;
+}
+
+async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
+  const runtime = new AgentRuntime({
+    source: new ApiTaskSource({
+      agent: args.agent,
+      taskId: args.taskId,
+      leaseTtlSec: 60,
+    }),
+    makeReporter: () =>
+      new ApiTaskReporter({
+        tasks: args.agent.tasks,
+        leaseTtlSec: 60,
+        heartbeatIntervalMs: 0,
+      }),
+    executeTask: async (claimedTask, reporter) => {
+      args.slotRegistry.reapExpiredSlots();
+      const executionPlan = buildDaemonTaskExecutionPlan(
+        claimedTask.task,
+        args.stateDirs,
+        args.slotIdentity,
+        args.warmSessionTtlSec,
+      );
+      const worktreePath = executionPlan.workspaceId
+        ? resolveTaskWorktreePath(args.mountRoot, executionPlan.workspaceId)
+        : null;
+
+      if (executionPlan.slotKey && executionPlan.sessionPersistence) {
+        mkdirSync(executionPlan.sessionPersistence.sessionDir, {
+          recursive: true,
+        });
+        if (worktreePath) mkdirSync(worktreePath, { recursive: true });
+
+        const sessionPath =
+          resolveLatestPiSessionPath(
+            executionPlan.sessionPersistence.sessionDir,
+          ) ??
+          join(
+            executionPlan.sessionPersistence.sessionDir,
+            '20260514T000000.jsonl',
+          );
+        if (existsSync(sessionPath)) {
+          appendFileSync(sessionPath, `${claimedTask.task.id}\n`, 'utf8');
+        } else {
+          writeFileSync(sessionPath, `${claimedTask.task.id}\n`, 'utf8');
+        }
+        if (worktreePath) {
+          writeFileSync(
+            join(worktreePath, 'task-marker.txt'),
+            claimedTask.task.id,
+            'utf8',
+          );
+        }
+
+        args.slotRegistry.beginSlot({
+          ...args.slotIdentity,
+          slotKey: executionPlan.slotKey,
+          taskType: claimedTask.task.taskType,
+          sessionDir: executionPlan.sessionPersistence.sessionDir,
+          sessionPath,
+          workspaceId: executionPlan.workspaceId,
+          worktreePath,
+          worktreeBranch: executionPlan.worktreeBranch,
+          lastTaskId: claimedTask.task.id,
+          lastAttemptN: claimedTask.attemptN,
+          ttlSec: args.warmSessionTtlSec,
+        });
+      }
+
+      await reporter.open({
+        taskId: claimedTask.task.id,
+        attemptN: claimedTask.attemptN,
+      });
+
+      const fulfillOutput = {
+        branch: executionPlan.worktreeBranch ?? 'feat/daemon-e2e',
+        commits: [],
+        pullRequestUrl: null,
+        diaryEntryIds: [],
+        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+      };
+      const output = {
+        taskId: claimedTask.task.id,
+        attemptN: claimedTask.attemptN,
+        status: 'completed' as const,
+        output: fulfillOutput,
+        outputCid: await computeJsonCid(fulfillOutput),
+        usage: { inputTokens: 1, outputTokens: 1 },
+        durationMs: 1,
+      };
+      await reporter.finalize(output.usage);
+      await reporter.close();
+
+      if (executionPlan.slotKey) {
+        args.slotRegistry.finishSlot(
+          args.slotIdentity,
+          executionPlan.slotKey,
+          args.warmSessionTtlSec,
+          executionPlan.sessionPersistence
+            ? resolveLatestPiSessionPath(
+                executionPlan.sessionPersistence.sessionDir,
+              )
+            : null,
+        );
+      }
+
+      return output;
+    },
+  });
+
+  const outputs = await runtime.start();
+  expect(outputs).toHaveLength(1);
+  const [output] = outputs;
+  await finalizeTask(args.agent, output);
+  return output;
+}
+
+interface DaemonSlotState {
+  slots: Array<Record<string, unknown>>;
+  sessions: Array<Record<string, unknown>>;
+  workspaces: Array<Record<string, unknown>>;
+}
+
+function readDaemonSlotState(dbPath: string): DaemonSlotState {
+  const db = new DatabaseSync(dbPath);
+  try {
+    return {
+      slots: db
+        .prepare(
+          'SELECT slot_key as slotKey, task_type as taskType, state, last_task_id as lastTaskId FROM daemon_slots',
+        )
+        .all() as unknown as Array<Record<string, unknown>>,
+      sessions: db
+        .prepare(
+          'SELECT slot_key as slotKey, session_dir as sessionDir, session_path as sessionPath FROM daemon_slot_sessions',
+        )
+        .all() as unknown as Array<Record<string, unknown>>,
+      workspaces: db
+        .prepare(
+          'SELECT slot_key as slotKey, workspace_id as workspaceId, worktree_path as worktreePath FROM daemon_slot_workspaces',
+        )
+        .all() as unknown as Array<Record<string, unknown>>,
+    };
+  } finally {
+    db.close();
+  }
+}
