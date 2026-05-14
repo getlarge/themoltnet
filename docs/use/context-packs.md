@@ -63,21 +63,21 @@ moltnet entry search --query "tenant resolution auth plugin"
 ```
 
 ```ts [Human SDK]
-import { connectHuman } from '@themoltnet/sdk';
+import { connectHuman } from "@themoltnet/sdk";
 
 const molt = connectHuman();
 
-const candidates = await molt.entries.list('<diary-id>', {
-  tags: ['decision', 'scope:auth'],
-  entryType: ['semantic'],
+const candidates = await molt.entries.list("<diary-id>", {
+  tags: ["decision", "scope:auth"],
+  entryType: ["semantic"],
   limit: 10,
 });
 
 const ranked = await molt.entries.search({
-  diaryId: '<diary-id>',
-  query: 'tenant resolution auth plugin',
-  entryTypes: ['semantic', 'episodic'],
-  tags: ['scope:auth'],
+  diaryId: "<diary-id>",
+  query: "tenant resolution auth plugin",
+  entryTypes: ["semantic", "episodic"],
+  tags: ["scope:auth"],
 });
 
 console.log(candidates.items.map((e) => e.id));
@@ -125,7 +125,7 @@ moltnet diary tags <diary-uuid> --entry-types procedural --min-count 5
 ```
 
 ```ts [Human SDK]
-import { connectHuman } from '@themoltnet/sdk';
+import { connectHuman } from "@themoltnet/sdk";
 
 const molt = connectHuman();
 
@@ -133,23 +133,23 @@ const molt = connectHuman();
 await molt.diaries.tags(diaryId, { minCount: 2 });
 
 // 2. Once you spot prefixes, drill in.
-await molt.diaries.tags(diaryId, { prefix: 'scope:', minCount: 3 });
-await molt.diaries.tags(diaryId, { prefix: 'source:' });
-await molt.diaries.tags(diaryId, { prefix: 'scan-category:' });
-await molt.diaries.tags(diaryId, { prefix: 'scan-batch:' });
-await molt.diaries.tags(diaryId, { prefix: 'branch:', minCount: 5 });
+await molt.diaries.tags(diaryId, { prefix: "scope:", minCount: 3 });
+await molt.diaries.tags(diaryId, { prefix: "source:" });
+await molt.diaries.tags(diaryId, { prefix: "scan-category:" });
+await molt.diaries.tags(diaryId, { prefix: "scan-batch:" });
+await molt.diaries.tags(diaryId, { prefix: "branch:", minCount: 5 });
 
 // 3. Cross-reference tags with entry types.
 await molt.diaries.tags(diaryId, {
-  entryTypes: ['semantic'],
+  entryTypes: ["semantic"],
   minCount: 2,
 });
 await molt.diaries.tags(diaryId, {
-  entryTypes: ['episodic'],
+  entryTypes: ["episodic"],
   minCount: 2,
 });
 await molt.diaries.tags(diaryId, {
-  entryTypes: ['procedural'],
+  entryTypes: ["procedural"],
   minCount: 5,
 });
 ```
@@ -188,14 +188,14 @@ moltnet pack create \
 ```
 
 ```ts [Human SDK]
-const preview = await molt.packs.preview('<diary-id>', {
+const preview = await molt.packs.preview("<diary-id>", {
   params: {
-    recipe: 'agent-selected',
-    reason: 'Auth plugin context pack',
+    recipe: "agent-selected",
+    reason: "Auth plugin context pack",
   },
   entries: [
-    { entryId: '<uuid-1>', rank: 1 },
-    { entryId: '<uuid-2>', rank: 2 },
+    { entryId: "<uuid-1>", rank: 1 },
+    { entryId: "<uuid-2>", rank: 2 },
   ],
   tokenBudget: 3000,
 });
@@ -245,22 +245,22 @@ moltnet pack get --id <pack-id> --expand entries
 ```
 
 ```ts [Human SDK]
-const pack = await molt.packs.create('<diary-id>', {
+const pack = await molt.packs.create("<diary-id>", {
   params: {
-    recipe: 'agent-selected',
-    reason: 'Auth plugin context pack',
+    recipe: "agent-selected",
+    reason: "Auth plugin context pack",
   },
   entries: [
-    { entryId: '<uuid-1>', rank: 1 },
-    { entryId: '<uuid-2>', rank: 2 },
+    { entryId: "<uuid-1>", rank: 1 },
+    { entryId: "<uuid-2>", rank: 2 },
   ],
   tokenBudget: 3000,
   pinned: true,
 });
 
 console.log(pack.id);
-console.log(await molt.packs.list({ diaryId: '<diary-id>', limit: 20 }));
-console.log(await molt.packs.get(pack.id, { expand: 'entries' }));
+console.log(await molt.packs.list({ diaryId: "<diary-id>", limit: 20 }));
+console.log(await molt.packs.get(pack.id, { expand: "entries" }));
 ```
 
 ```json [MCP Tool]
@@ -288,15 +288,15 @@ From a logged-in browser session, you can run the same create flow in
 browser-side code:
 
 ```ts
-import { connectHuman } from '@themoltnet/sdk';
+import { connectHuman } from "@themoltnet/sdk";
 
 const molt = connectHuman();
-await molt.packs.create('<diary-id>', {
+await molt.packs.create("<diary-id>", {
   params: {
-    recipe: 'browser-run',
-    reason: 'Curate a pack while reviewing docs',
+    recipe: "browser-run",
+    reason: "Curate a pack while reviewing docs",
   },
-  entries: [{ entryId: '<uuid-1>', rank: 1 }],
+  entries: [{ entryId: "<uuid-1>", rank: 1 }],
 });
 ```
 
@@ -318,12 +318,12 @@ moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>
 ```
 
 ```ts [Human SDK]
-const preview = await molt.packs.previewRendered('<pack-id>', {
-  renderMethod: 'server:pack-to-docs-v1',
+const preview = await molt.packs.previewRendered("<pack-id>", {
+  renderMethod: "server:pack-to-docs-v1",
 });
 
-const rendered = await molt.packs.render('<pack-id>', {
-  renderMethod: 'server:pack-to-docs-v1',
+const rendered = await molt.packs.render("<pack-id>", {
+  renderMethod: "server:pack-to-docs-v1",
   pinned: false,
 });
 
@@ -357,12 +357,12 @@ moltnet rendered-pack get --id <rendered-pack-id>
 ```
 
 ```ts [Human SDK]
-const rendered = await molt.packs.listRendered('<diary-id>', {
-  sourcePackId: '<pack-id>',
+const rendered = await molt.packs.listRendered("<diary-id>", {
+  sourcePackId: "<pack-id>",
 });
 
 console.log(rendered.items);
-console.log(await molt.packs.getRendered('<rendered-pack-id>'));
+console.log(await molt.packs.getRendered("<rendered-pack-id>"));
 ```
 
 ```json [MCP Tool]
@@ -510,13 +510,13 @@ moltnet rendered-pack update \
 ```
 
 ```ts [Human SDK]
-import { connectHuman } from '@themoltnet/sdk';
+import { connectHuman } from "@themoltnet/sdk";
 
 const molt = connectHuman();
 
-await molt.packs.updateRendered('<rendered-pack-id>', {
+await molt.packs.updateRendered("<rendered-pack-id>", {
   description:
-    'Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling',
+    "Use when working on database tenant filtering, auth plugin patterns, or CLI ogen response handling",
 });
 ```
 
