@@ -134,6 +134,17 @@ export interface ExecutePiTaskOptions {
    */
   checkpointPath?: string;
   /**
+   * Lazy checkpoint resolver used by `createPiTaskExecutor` so snapshot
+   * creation can happen after the reporter has been opened and can surface
+   * setup failures as task messages.
+   */
+  resolveCheckpointPath?: () => Promise<string>;
+  /**
+   * Set when the caller already opened the reporter before handing control
+   * to `executePiTask`.
+   */
+  reporterAlreadyOpened?: boolean;
+  /**
    * Optional callback invoked alongside every `reporter.record()` so
    * the daemon can mirror task messages into its local logger.
    * Bound at executor-construction time — use when one task runs per
@@ -206,19 +217,30 @@ export function createPiTaskExecutor(
   let cachedCheckpoint: string | null = opts.checkpointPath ?? null;
 
   return async (claimedTask, reporter) => {
-    if (!cachedCheckpoint) {
-      cachedCheckpoint = await ensureSnapshot({
-        config: opts.sandboxConfig?.snapshot,
-        onProgress:
-          opts.onSnapshotProgress ??
-          ((m) => {
-            process.stderr.write(`[snapshot] ${m}\n`);
-          }),
+    const reporterWasOpened = !reporter.cancelSignal.aborted;
+    if (reporterWasOpened) {
+      await reporter.open({
+        taskId: claimedTask.task.id,
+        attemptN: claimedTask.attemptN,
       });
     }
     return executePiTask(claimedTask, reporter, {
       ...opts,
       checkpointPath: cachedCheckpoint,
+      resolveCheckpointPath: async () => {
+        if (!cachedCheckpoint) {
+          cachedCheckpoint = await ensureSnapshot({
+            config: opts.sandboxConfig?.snapshot,
+            onProgress:
+              opts.onSnapshotProgress ??
+              ((m) => {
+                process.stderr.write(`[snapshot] ${m}\n`);
+              }),
+          });
+        }
+        return cachedCheckpoint;
+      },
+      reporterAlreadyOpened: reporterWasOpened,
     });
   };
 }
@@ -239,12 +261,8 @@ export async function executePiTask(
   const startTime = Date.now();
   const requestedMountPath = opts.mountPath ?? process.cwd();
   const executionPlan = opts.makeExecutionPlan?.(claimedTask) ?? null;
-  const workspace = prepareTaskWorkspace(
-    task,
-    requestedMountPath,
-    executionPlan,
-  );
-  const mountPath = workspace.mountPath;
+  let workspace: Awaited<ReturnType<typeof prepareTaskWorkspace>> | null = null;
+  let mountPath = requestedMountPath;
 
   // Pre-execute cancel guard. If the reporter's cancel signal is already
   // aborted (the imposer cancelled between claim and executor entry), don't
@@ -269,46 +287,8 @@ export async function executePiTask(
     };
   }
 
-  const checkpointPath =
-    opts.checkpointPath ??
-    (await ensureSnapshot({
-      config: opts.sandboxConfig?.snapshot,
-      onProgress:
-        opts.onSnapshotProgress ??
-        ((m) => {
-          process.stderr.write(`[snapshot] ${m}\n`);
-        }),
-    }));
-
-  // Repair worktree pointers on the host before the VM mounts the tree.
-  // Mirrors the interactive extension (libs/pi-extension/src/index.ts):
-  // rewrites each worktree's `.git` pointer and backlink to relative form
-  // so the VM (which sees the tree at `/workspace`) can still follow them,
-  // provided the worktree's relative depth from the main repo matches the
-  // VM's layout. No-op if nothing needs fixing.
-  const mainRepoForRepair = findMainWorktree();
-  try {
-    execFileSync(
-      'git',
-      ['-C', mainRepoForRepair, 'worktree', 'repair', '--relative-paths'],
-      { stdio: 'pipe' },
-    );
-  } catch {
-    // Best-effort — older git versions lack --relative-paths.
-  }
-
+  let reporterOpen = opts.reporterAlreadyOpened ?? false;
   let managed: Awaited<ReturnType<typeof resumeVm>> | null = null;
-  managed = await resumeVm({
-    checkpointPath,
-    agentName: opts.agentName,
-    mountPath,
-    extraAllowedHosts: opts.extraAllowedHosts,
-    sandboxConfig: opts.sandboxConfig,
-  });
-
-  const diaryId = task.diaryId ?? '';
-  const taskTeamId = task.teamId ?? '';
-  let reporterOpen = false;
   let session: AgentSession | null = null;
   // Tracked at function scope so the post-prompt summary block can
   // read the call counter even though the handle is only constructed
@@ -335,48 +315,137 @@ export async function executePiTask(
     error: { code, message, retryable: false },
   });
 
-  try {
-    const mainRepo = findMainWorktree();
-    activateAgentEnv(managed.credentials.agentEnv, mainRepo);
+  // Resolve the handler once per task. The factory wins when set so
+  // poll-mode callers can bind per-task context (taskId, attemptN);
+  // factory throws are caught and downgraded to a stderr line so a
+  // misbehaving caller can't sink the executor.
+  let onTurnEvent: TurnEventHandler;
+  if (opts.makeOnTurnEvent) {
+    try {
+      onTurnEvent = opts.makeOnTurnEvent(claimedTask);
+    } catch (err) {
+      process.stderr.write(
+        `[emit] makeOnTurnEvent threw: ` +
+          `${err instanceof Error ? err.message : String(err)}\n`,
+      );
+      onTurnEvent = noopTurnEventHandler;
+    }
+  } else {
+    onTurnEvent = opts.onTurnEvent ?? noopTurnEventHandler;
+  }
+  const emit = (
+    kind: TurnEventKind,
+    payload: Record<string, unknown>,
+  ): Promise<void> => {
+    // Local mirror first; surface any throw on stderr so callback
+    // bugs don't go silent, but never let them propagate — the
+    // reporter side is what matters for task semantics.
+    try {
+      onTurnEvent(kind, summarizePayloadForLog(kind, payload));
+    } catch (err) {
+      process.stderr.write(
+        `[emit] onTurnEvent threw for kind="${kind}": ` +
+          `${err instanceof Error ? err.message : String(err)}\n`,
+      );
+    }
+    return reporter.record({ kind, payload });
+  };
+  const emitError = async (
+    phase: string,
+    message: string,
+    extra: Record<string, unknown> = {},
+  ): Promise<void> => {
+    await emit('error', { phase, message, ...extra });
+  };
 
-    await reporter.open({ taskId: task.id, attemptN });
+  try {
+    if (!opts.reporterAlreadyOpened) {
+      await reporter.open({ taskId: task.id, attemptN });
+    }
     reporterOpen = true;
 
-    // Resolve the handler once per task. The factory wins when set so
-    // poll-mode callers can bind per-task context (taskId, attemptN);
-    // factory throws are caught and downgraded to a stderr line so a
-    // misbehaving caller can't sink the executor.
-    let onTurnEvent: TurnEventHandler;
-    if (opts.makeOnTurnEvent) {
-      try {
-        onTurnEvent = opts.makeOnTurnEvent(claimedTask);
-      } catch (err) {
-        process.stderr.write(
-          `[emit] makeOnTurnEvent threw: ` +
-            `${err instanceof Error ? err.message : String(err)}\n`,
-        );
-        onTurnEvent = noopTurnEventHandler;
-      }
-    } else {
-      onTurnEvent = opts.onTurnEvent ?? noopTurnEventHandler;
+    // Resolve the snapshot after the reporter has been opened so build
+    // failures can surface as task messages instead of only daemon logs.
+    let checkpointPath: string;
+    try {
+      checkpointPath =
+        opts.checkpointPath ??
+        (opts.resolveCheckpointPath
+          ? await opts.resolveCheckpointPath()
+          : await ensureSnapshot({
+              config: opts.sandboxConfig?.snapshot,
+              onProgress:
+                opts.onSnapshotProgress ??
+                ((m) => {
+                  process.stderr.write(`[snapshot] ${m}\n`);
+                }),
+            }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emitError('snapshot', message);
+      return makeFailedOutput('snapshot_failed', message);
     }
-    const emit = (
-      kind: TurnEventKind,
-      payload: Record<string, unknown>,
-    ): Promise<void> => {
-      // Local mirror first; surface any throw on stderr so callback
-      // bugs don't go silent, but never let them propagate — the
-      // reporter side is what matters for task semantics.
+
+    // Resolve the dedicated worktree after the reporter is live so path
+    // collisions / git metadata errors also reach the task attempt stream.
+    try {
+      workspace = prepareTaskWorkspace(
+        task,
+        requestedMountPath,
+        executionPlan,
+      );
+      mountPath = workspace.mountPath;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emitError('worktree_setup', message);
+      return makeFailedOutput('worktree_setup_failed', message);
+    }
+
+    // Repair worktree pointers on the host before the VM mounts the tree.
+    // Mirrors the interactive extension (libs/pi-extension/src/index.ts):
+    // rewrites each worktree's `.git` pointer and backlink to relative form
+    // so the VM (which sees the tree at `/workspace`) can still follow them,
+    // provided the worktree's relative depth from the main repo matches the
+    // VM's layout. No-op if nothing needs fixing.
+    try {
+      const mainRepoForRepair = findMainWorktree();
       try {
-        onTurnEvent(kind, summarizePayloadForLog(kind, payload));
-      } catch (err) {
-        process.stderr.write(
-          `[emit] onTurnEvent threw for kind="${kind}": ` +
-            `${err instanceof Error ? err.message : String(err)}\n`,
+        execFileSync(
+          'git',
+          ['-C', mainRepoForRepair, 'worktree', 'repair', '--relative-paths'],
+          { stdio: 'pipe' },
         );
+      } catch {
+        // Best-effort — older git versions lack --relative-paths.
       }
-      return reporter.record({ kind, payload });
-    };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emitError('worktree_setup', message);
+      return makeFailedOutput('worktree_setup_failed', message);
+    }
+
+    try {
+      managed = await resumeVm({
+        checkpointPath,
+        agentName: opts.agentName,
+        mountPath,
+        extraAllowedHosts: opts.extraAllowedHosts,
+        sandboxConfig: opts.sandboxConfig,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emitError('vm_resume', message);
+      return makeFailedOutput('vm_resume_failed', message);
+    }
+
+    const diaryId = task.diaryId ?? '';
+    const taskTeamId = task.teamId ?? '';
+    const mainRepo = findMainWorktree();
+    activateAgentEnv(managed.credentials.agentEnv, mainRepo);
+    const activeWorkspace = workspace;
+    if (!activeWorkspace) {
+      throw new Error('task workspace not prepared');
+    }
 
     await emit('info', {
       event: 'execute_start',
@@ -384,8 +453,8 @@ export async function executePiTask(
       teamId: task.teamId,
       provider: opts.provider,
       model: opts.model,
-      workspaceMode: workspace.mode,
-      workspaceBranch: workspace.branch,
+      workspaceMode: activeWorkspace.mode,
+      workspaceBranch: activeWorkspace.branch,
     });
 
     let taskPrompt: string;
@@ -393,7 +462,10 @@ export async function executePiTask(
       const promptCtx: TaskUserPromptContext = {
         diaryId,
         taskId: task.id,
-        workspace: { mode: workspace.mode, branch: workspace.branch },
+        workspace: {
+          mode: activeWorkspace.mode,
+          branch: activeWorkspace.branch,
+        },
         extras: opts.promptExtras,
       };
       taskPrompt = buildTaskUserPrompt(task, promptCtx);
@@ -682,6 +754,18 @@ export async function executePiTask(
             result: event.isError ? truncateForWire(event.result) : undefined,
           }),
         );
+        if (event.isError) {
+          track(
+            emitError(
+              'tool_call_error',
+              describeToolErrorMessage(event.result),
+              {
+                tool: event.toolName,
+                result: truncateForWire(event.result),
+              },
+            ),
+          );
+        }
         // Bash-timeout cap. pi's bash tool wraps timeout errors with the
         // text "Command timed out after <N> seconds" (see
         // @earendil-works/pi-coding-agent's bash.js error path). We
@@ -990,14 +1074,16 @@ export async function executePiTask(
     if (managed) {
       await managed.vm.close();
     }
-    try {
-      workspace.cleanup();
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
-      console.error(
-        `executePiTask: workspace cleanup failed for task ${task.id} ` +
-          `attempt ${attemptN}: ${detail}`,
-      );
+    if (workspace) {
+      try {
+        workspace.cleanup();
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error(
+          `executePiTask: workspace cleanup failed for task ${task.id} ` +
+            `attempt ${attemptN}: ${detail}`,
+        );
+      }
     }
   }
 }
@@ -1157,5 +1243,31 @@ function truncateForWire(value: unknown): unknown {
     };
   } catch {
     return { truncated: '[unserializable]', original_size: -1 };
+  }
+}
+
+export function describeToolErrorMessage(result: unknown): string {
+  if (typeof result === 'string' && result.trim().length > 0) {
+    return result.trim();
+  }
+  if (result && typeof result === 'object') {
+    const content = (result as { content?: unknown }).content;
+    if (Array.isArray(content)) {
+      for (const item of content) {
+        if (
+          item &&
+          typeof item === 'object' &&
+          typeof (item as { text?: unknown }).text === 'string'
+        ) {
+          const text = (item as { text: string }).text.trim();
+          if (text.length > 0) return text;
+        }
+      }
+    }
+  }
+  try {
+    return JSON.stringify(truncateForWire(result));
+  } catch {
+    return 'Tool call failed';
   }
 }

@@ -14,7 +14,11 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { isBashTimeoutResult, wireSessionAbort } from './execute-pi-task.js';
+import {
+  describeToolErrorMessage,
+  isBashTimeoutResult,
+  wireSessionAbort,
+} from './execute-pi-task.js';
 import {
   __resetTaskOutputCounterForTests,
   extractJsonObject,
@@ -409,5 +413,30 @@ describe('isBashTimeoutResult', () => {
         ],
       }),
     ).toBe(true);
+  });
+});
+
+describe('describeToolErrorMessage', () => {
+  it('prefers the first text chunk in a structured tool error', () => {
+    expect(
+      describeToolErrorMessage({
+        content: [
+          { type: 'text', text: 'gitdir missing from guest workspace' },
+          { type: 'text', text: 'secondary context' },
+        ],
+      }),
+    ).toBe('gitdir missing from guest workspace');
+  });
+
+  it('falls back to a trimmed string payload', () => {
+    expect(describeToolErrorMessage('  Command exited with code 1  ')).toBe(
+      'Command exited with code 1',
+    );
+  });
+
+  it('serializes unknown structured results safely', () => {
+    expect(describeToolErrorMessage({ ok: false, code: 128 })).toContain(
+      '"code":128',
+    );
   });
 });
