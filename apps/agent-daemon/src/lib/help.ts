@@ -26,6 +26,10 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               this, the pi session aborts and the attempt
                               fails with code 'max_bash_timeouts_exceeded'.
                               0 = disabled. Default: 3.
+  --warm-session-ttl-sec <n>  Retain resumable daemon slots (Pi sessions +
+                              reusable worktrees) in local daemon state for
+                              this many seconds after use. 0 = disable reuse.
+                              Default: 1800.
   --debug                     Verbose logging: also log successful list/claim
                               outcomes (candidate counts, claim attempts).`;
 

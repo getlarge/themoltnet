@@ -24,6 +24,11 @@ export interface CommonOptions {
    * See issue #1094.
    */
   maxBashTimeouts: number;
+  /**
+   * Local daemon-slot retention TTL, independent of task claim lease.
+   * `0` disables resumable slot persistence/reuse entirely.
+   */
+  warmSessionTtlSec: number;
   debug: boolean;
 }
 
@@ -37,6 +42,7 @@ export interface CommonRawArgs {
   'flush-interval-ms'?: string;
   'max-turns'?: string;
   'max-bash-timeouts'?: string;
+  'warm-session-ttl-sec'?: string;
   debug?: boolean;
 }
 
@@ -53,6 +59,7 @@ const DEFAULTS = {
   // complete within reasonable bounds. Either way, terminating is
   // cheaper than letting the host job timeout fire.
   maxBashTimeouts: 3,
+  warmSessionTtlSec: 1800,
 } as const;
 
 export class MissingRequiredOptionError extends Error {
@@ -106,6 +113,11 @@ export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
       'max-bash-timeouts',
       DEFAULTS.maxBashTimeouts,
     ),
+    warmSessionTtlSec: parseNonNegativeInt(
+      args['warm-session-ttl-sec'],
+      'warm-session-ttl-sec',
+      DEFAULTS.warmSessionTtlSec,
+    ),
     debug: args.debug === true,
   };
   return opts;
@@ -150,6 +162,7 @@ export function commonOptionDefs() {
     'flush-interval-ms': { type: 'string' },
     'max-turns': { type: 'string' },
     'max-bash-timeouts': { type: 'string' },
+    'warm-session-ttl-sec': { type: 'string' },
     debug: { type: 'boolean' },
   } as const;
 }

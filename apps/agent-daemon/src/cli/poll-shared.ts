@@ -7,7 +7,11 @@ import {
   ApiTaskReporter,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
-import { createPiTaskExecutor } from '@themoltnet/pi-extension';
+import {
+  createPiTaskExecutor,
+  findMainWorktree,
+  resolveTaskWorktreePath,
+} from '@themoltnet/pi-extension';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
@@ -15,6 +19,11 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import {
+  DaemonSlotRegistry,
+  resolveLatestPiSessionPath,
+} from '../lib/daemon-slot-registry.js';
+import { createExecutionPlanCache } from '../lib/execution-plan-cache.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -27,6 +36,8 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { ensureDaemonStateDirs } from '../lib/state-dir.js';
+import { type DaemonSlotIdentity } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
@@ -104,6 +115,19 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
+  const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+  const slotIdentity: DaemonSlotIdentity = {
+    agentName: common.agent,
+    provider: common.provider,
+    model: common.model,
+  };
+  const mainRepo = findMainWorktree();
+  const executionPlans = createExecutionPlanCache({
+    stateDirs,
+    slotIdentity,
+    warmSessionTtlSec: common.warmSessionTtlSec,
+  });
   const ctx = await resolveAgentContext(common.agent);
 
   const cfg = loadConfig();
@@ -162,6 +186,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       provider: common.provider,
       model: common.model,
       sandboxConfig: sandbox.config,
+      makeExecutionPlan: (claimedTask) =>
+        executionPlans.getOrCreate(claimedTask),
       // Factory: pi-extension calls this once per task with the
       // claimed task; binds taskId+attemptN into the pino child so
       // turn events are correlatable per task in poll mode (#1078).
@@ -213,6 +239,34 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
+        const executionPlan = executionPlans.getOrCreate(claimedTask);
+        const sessionDescriptor = executionPlan.descriptor;
+        const expired = slotRegistry.reapExpiredSlots();
+        if (expired.length > 0) {
+          rootLogger.info(
+            {
+              expiredCount: expired.length,
+              slotKeys: expired.map((item) => item.slot.slotKey),
+            },
+            'agent-daemon.daemon_slots_reaped',
+          );
+        }
+        rootLogger.debug(
+          {
+            taskId: claimedTask.task.id,
+            taskType: claimedTask.task.taskType,
+            resumable: sessionDescriptor.policy.resumable,
+            workspaceMode: sessionDescriptor.policy.workspaceMode,
+            workspaceScope: sessionDescriptor.policy.workspaceScope,
+            sessionScope: sessionDescriptor.policy.sessionScope,
+            slotKey: executionPlan.slotKey,
+            slotId: executionPlan.slotId,
+            sessionKey: executionPlan.sessionKey,
+            piSessionDir: executionPlan.sessionPersistence?.sessionDir ?? null,
+            workspaceId: executionPlan.workspaceId,
+          },
+          'agent-daemon.task_execution_policy',
+        );
         // Belt-and-braces: refuse a task whose type isn't in the configured
         // whitelist (e.g. server filter race after config change). The
         // task requeues for someone else.
@@ -262,7 +316,42 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             },
           };
         }
-        return executeTask(claimedTask, reporter);
+        if (executionPlan.slotKey && executionPlan.sessionPersistence) {
+          slotRegistry.beginSlot({
+            ...slotIdentity,
+            slotKey: executionPlan.slotKey,
+            taskType: claimedTask.task.taskType,
+            sessionDir: executionPlan.sessionPersistence.sessionDir,
+            sessionPath: resolveLatestPiSessionPath(
+              executionPlan.sessionPersistence.sessionDir,
+            ),
+            workspaceId: executionPlan.workspaceId,
+            worktreePath: executionPlan.workspaceId
+              ? resolveTaskWorktreePath(mainRepo, executionPlan.workspaceId)
+              : null,
+            worktreeBranch: executionPlan.worktreeBranch,
+            lastTaskId: claimedTask.task.id,
+            lastAttemptN: claimedTask.attemptN,
+            ttlSec: common.warmSessionTtlSec,
+          });
+        }
+        try {
+          return await executeTask(claimedTask, reporter);
+        } finally {
+          executionPlans.delete(claimedTask);
+          if (executionPlan.slotKey) {
+            slotRegistry.finishSlot(
+              slotIdentity,
+              executionPlan.slotKey,
+              common.warmSessionTtlSec,
+              executionPlan.sessionPersistence
+                ? resolveLatestPiSessionPath(
+                    executionPlan.sessionPersistence.sessionDir,
+                  )
+                : null,
+            );
+          }
+        }
       },
     });
 
@@ -272,6 +361,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
+    slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();
   }

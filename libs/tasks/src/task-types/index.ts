@@ -66,6 +66,7 @@ interface TaskTypeEntry {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
   readonly outputKind: OutputKind;
+  readonly resumable?: boolean;
   /**
    * Filesystem isolation policy requested by the task type.
    *
@@ -76,6 +77,25 @@ interface TaskTypeEntry {
    * Default: undefined (== `shared_mount`).
    */
   readonly workspaceMode?: 'shared_mount' | 'dedicated_worktree';
+  /**
+   * Lifetime of the task type's local workspace.
+   *
+   * `attempt` = disposable workspace torn down when the attempt ends.
+   * `session` = workspace stays attached to a daemon-local warm session.
+   *
+   * Default: undefined (== `attempt`).
+   */
+  readonly workspaceScope?: 'attempt' | 'session';
+  /**
+   * Granularity of daemon-local session reuse for this task type.
+   *
+   * `none` = always cold-start a fresh executor context.
+   * `correlation` = one warm session per `correlationId`.
+   * `custom` = task type needs a narrower daemon-computed reuse key.
+   *
+   * Default: undefined (== `none`).
+   */
+  readonly sessionScope?: 'none' | 'correlation' | 'custom';
   readonly requiresReferences: boolean;
   /**
    * Optional cross-field validator run AFTER `Value.Check(inputSchema)`
@@ -207,7 +227,10 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: FulfillBriefInput,
     outputSchema: FulfillBriefOutput,
     outputKind: 'artifact',
+    resumable: true,
     workspaceMode: 'dedicated_worktree',
+    workspaceScope: 'session',
+    sessionScope: 'correlation',
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
   },
@@ -217,6 +240,8 @@ export const BUILT_IN_TASK_TYPES = {
     outputSchema: AssessBriefOutput,
     outputKind: 'judgment',
     workspaceMode: 'dedicated_worktree',
+    workspaceScope: 'attempt',
+    sessionScope: 'none',
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateInputAsync: validateAssessBriefInputAsync,
@@ -226,6 +251,8 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: CuratePackInput,
     outputSchema: CuratePackOutput,
     outputKind: 'artifact',
+    workspaceScope: 'attempt',
+    sessionScope: 'none',
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
   },
@@ -234,6 +261,8 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: RenderPackInput,
     outputSchema: RenderPackOutput,
     outputKind: 'artifact',
+    workspaceScope: 'attempt',
+    sessionScope: 'none',
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
     validateInputAsync: validateRenderPackInputAsync,
@@ -243,6 +272,8 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: JudgePackInput,
     outputSchema: JudgePackOutput,
     outputKind: 'judgment',
+    workspaceScope: 'attempt',
+    sessionScope: 'none',
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateOutput: validateJudgePackOutput,
@@ -253,6 +284,8 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: RunEvalInput,
     outputSchema: RunEvalOutput,
     outputKind: 'artifact',
+    workspaceScope: 'attempt',
+    sessionScope: 'custom',
     requiresReferences: false,
     validateOutput: validateRunEvalOutput,
   },
@@ -261,6 +294,8 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: JudgeEvalVariantInput,
     outputSchema: JudgeEvalVariantOutput,
     outputKind: 'judgment',
+    workspaceScope: 'attempt',
+    sessionScope: 'custom',
     requiresReferences: false,
     validateInput: validateJudgeEvalVariantInput,
     validateOutput: validateJudgeEvalVariantOutput,

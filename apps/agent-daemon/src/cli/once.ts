@@ -4,8 +4,13 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
+  type TaskExecutor,
 } from '@themoltnet/agent-runtime';
-import { createPiTaskExecutor } from '@themoltnet/pi-extension';
+import {
+  createPiTaskExecutor,
+  findMainWorktree,
+  resolveTaskWorktreePath,
+} from '@themoltnet/pi-extension';
 
 import { loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
@@ -13,6 +18,11 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import {
+  DaemonSlotRegistry,
+  resolveLatestPiSessionPath,
+} from '../lib/daemon-slot-registry.js';
+import { createExecutionPlanCache } from '../lib/execution-plan-cache.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -24,6 +34,8 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { ensureDaemonStateDirs } from '../lib/state-dir.js';
+import { type DaemonSlotIdentity } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
@@ -60,6 +72,19 @@ export async function runOnce(argv: string[]): Promise<number> {
     throw err;
   }
   const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
+  const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+  const slotIdentity: DaemonSlotIdentity = {
+    agentName: opts.agent,
+    provider: opts.provider,
+    model: opts.model,
+  };
+  const mainRepo = findMainWorktree();
+  const executionPlans = createExecutionPlanCache({
+    stateDirs,
+    slotIdentity,
+    warmSessionTtlSec: opts.warmSessionTtlSec,
+  });
   const ctx = await resolveAgentContext(opts.agent);
 
   const cfg = loadConfig();
@@ -123,16 +148,67 @@ export async function runOnce(argv: string[]): Promise<number> {
   });
 
   try {
-    const executeTask = createPiTaskExecutor({
+    const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
       mountPath: sandbox.rootDir,
       provider: opts.provider,
       model: opts.model,
       sandboxConfig: sandbox.config,
+      makeExecutionPlan: (claimedTask) =>
+        executionPlans.getOrCreate(claimedTask),
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
       maxTurns: opts.maxTurns,
       maxBashTimeouts: opts.maxBashTimeouts,
     });
+    const executeTask: TaskExecutor = async (claimedTask, reporter) => {
+      const expired = slotRegistry.reapExpiredSlots();
+      if (expired.length > 0) {
+        rootLogger.info(
+          {
+            expiredCount: expired.length,
+            slotKeys: expired.map((item) => item.slot.slotKey),
+          },
+          'agent-daemon.daemon_slots_reaped',
+        );
+      }
+      const executionPlan = executionPlans.getOrCreate(claimedTask);
+      if (executionPlan.slotKey && executionPlan.sessionPersistence) {
+        slotRegistry.beginSlot({
+          ...slotIdentity,
+          slotKey: executionPlan.slotKey,
+          taskType: claimedTask.task.taskType,
+          sessionDir: executionPlan.sessionPersistence.sessionDir,
+          sessionPath: resolveLatestPiSessionPath(
+            executionPlan.sessionPersistence.sessionDir,
+          ),
+          workspaceId: executionPlan.workspaceId,
+          worktreePath: executionPlan.workspaceId
+            ? resolveTaskWorktreePath(mainRepo, executionPlan.workspaceId)
+            : null,
+          worktreeBranch: executionPlan.worktreeBranch,
+          lastTaskId: claimedTask.task.id,
+          lastAttemptN: claimedTask.attemptN,
+          ttlSec: opts.warmSessionTtlSec,
+        });
+      }
+      try {
+        return await rawExecuteTask(claimedTask, reporter);
+      } finally {
+        executionPlans.delete(claimedTask);
+        if (executionPlan.slotKey) {
+          slotRegistry.finishSlot(
+            slotIdentity,
+            executionPlan.slotKey,
+            opts.warmSessionTtlSec,
+            executionPlan.sessionPersistence
+              ? resolveLatestPiSessionPath(
+                  executionPlan.sessionPersistence.sessionDir,
+                )
+              : null,
+          );
+        }
+      }
+    };
 
     const writeCorrelationAnchors = makePrBodyAnchorWriter({
       gh: createGhCliClient(),
@@ -176,6 +252,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     console.log(JSON.stringify(output, null, 2));
     return output.status === 'completed' ? 0 : 1;
   } finally {
+    slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();
   }
