@@ -34,8 +34,7 @@ import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
-  createSubagentContractRegistry,
-  JudgeEvalVariantResult,
+  type SubagentContractRegistry,
   TaskContext,
   type TaskOutput,
   type TaskReporter,
@@ -186,6 +185,14 @@ export interface ExecutePiTaskOptions {
    * file-backed Pi sessions for selected task classes.
    */
   makeExecutionPlan?: PiTaskExecutionPlanFactory;
+
+  /**
+   * Immutable subagent contract registry used to resolve `output_schema`
+   * names at subagent tool call time. Constructed by the daemon (or
+   * tests) from static built-in schemas — `execute-pi-task` never hardcodes
+   * contracts. See #1106.
+   */
+  subagentContractRegistry?: SubagentContractRegistry;
 }
 
 /**
@@ -546,23 +553,6 @@ export async function executePiTask(
       }
       const injectedSkills = injectedContext.skills;
 
-      // Built-in subagent output contracts — the only consumer is the
-      // subagent tool, constructed from a static list of schemas.
-      // No process-global registry needed; each session gets its own
-      // handle on construction (see #1106).
-      const builtinContracts = [
-        {
-          name: 'judge_eval_variant_result',
-          description:
-            'Per-variant grading result produced by a subagent of ' +
-            'judge_eval_variant: scores against the shared rubric, ' +
-            'composite, and a 1-3 sentence verdict for a single variant.',
-          parametersSchema: JudgeEvalVariantResult,
-        },
-      ];
-      const subagentContractRegistry =
-        createSubagentContractRegistry(builtinContracts);
-
       // Subagent custom tool — registered only when the task type opts
       // in via TaskTypeEntry.usesSubagents (#1087). The subagent
       // inherits Gondolin + moltnet_* tools but NOT this task's
@@ -580,7 +570,7 @@ export async function executePiTask(
           parentTaskId: task.id,
           parentTaskType: task.taskType,
           parentAttemptN: attemptN,
-          contractRegistry: subagentContractRegistry,
+          contractRegistry: opts.subagentContractRegistry!,
           // Propagate parent cancel (operator cancel + task-level
           // runningTimeoutSec expiry already flow through this signal
           // for the parent session via `wireSessionAbort`) to every
