@@ -12,7 +12,7 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
 import { createSubagentContractRegistry } from '@themoltnet/agent-runtime';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { BuildAgentSessionArgs } from './agent-session-factory.js';
 import { createSubagentTool } from './subagent-tool.js';
@@ -337,18 +337,22 @@ describe('createSubagentTool', () => {
           parametersSchema: SubagentResult,
         },
       ]);
+      const payload = { verdict: 'ok', score: 0.5 };
+      const factory = makeFakeSessionFactory(payload);
       const handle = createSubagentTool({
-        ...stubArgs({ contractRegistry: customRegistry }),
+        ...stubArgs({
+          contractRegistry: customRegistry,
+          buildAgentSession: factory.build,
+        }),
       });
       // Custom contract is known.
       const result = await callOuter(handle.tool, {
-        task: 'go',
+        task: 'work',
         output_schema: 'custom_contract',
       });
-      expect(result.isError).toBe(true); // submit never called
-      // But the contract name appeared in the error listing, confirming
-      // the custom registry was used.
-      expect(result.content[0].text).toMatch(/custom_contract/);
+      // Should succeed because the custom registry has 'custom_contract'.
+      expect(result.isError).toBeFalsy();
+      expect(JSON.parse(result.content[0].text)).toEqual(payload);
     });
 
     it('uses a custom registry and errors on unknown names from that registry', async () => {
@@ -359,15 +363,20 @@ describe('createSubagentTool', () => {
           parametersSchema: SubagentResult,
         },
       ]);
+      const factory = makeFakeSessionFactory(null);
       const handle = createSubagentTool({
-        ...stubArgs({ contractRegistry: customRegistry }),
+        ...stubArgs({
+          contractRegistry: customRegistry,
+          buildAgentSession: factory.build,
+        }),
       });
       const result = await callOuter(handle.tool, {
         task: 'go',
-        output_schema: 'sample', // not registered in custom registry
+        output_schema: 'phantom', // not registered in custom registry
       });
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toMatch(/only_contract/); // should list the only one
+      expect(result.content[0].text).toMatch(/phantom/); // lists the unknown request name
+      expect(result.content[0].text).toMatch(/only_contract/); // lists the only real one
       expect(result.content[0].text).not.toMatch(/sample/); // sample is NOT in this registry
     });
   });

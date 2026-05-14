@@ -34,14 +34,14 @@ import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  createSubagentContractRegistry,
+  JudgeEvalVariantResult,
   TaskContext,
   type TaskOutput,
   type TaskReporter,
   taskTypeUsesSubagents,
   type TaskUsage,
   type TaskUserPromptContext,
-  createSubagentContractRegistry,
-  JudgeEvalVariantResult,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
 
@@ -581,31 +581,6 @@ export async function executePiTask(
           parentTaskType: task.taskType,
           parentAttemptN: attemptN,
           contractRegistry: subagentContractRegistry,
-          // Propagate parent cancel (operator cancel + task-level
-          // runningTimeoutSec expiry already flow through this signal
-          // for the parent session via `wireSessionAbort`) to every
-          // in-flight subagent's inner session.abort(). Closes #1090.
-          parentCancelSignal: reporter.cancelSignal,
-        });
-        parentSubagentTools.push(subagentHandle.tool);
-      }
-      // Subagent custom tool — registered only when the task type opts
-      // in via TaskTypeEntry.usesSubagents (#1087). The subagent
-      // inherits Gondolin + moltnet_* tools but NOT this task's
-      // submit-output tool (different schema) nor the subagent tool
-      // itself (no nested delegation in v1).
-      const parentSubagentTools: ToolDefinition[] = [];
-      if (taskTypeUsesSubagents(task.taskType)) {
-        subagentHandle = createSubagentTool({
-          mountPath,
-          piAuthDir,
-          modelHandle,
-          agentName: opts.agentName,
-          inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
-          parentRuntimeInstructor: runtimeInstructor,
-          parentTaskId: task.id,
-          parentTaskType: task.taskType,
-          parentAttemptN: attemptN,
           // Propagate parent cancel (operator cancel + task-level
           // runningTimeoutSec expiry already flow through this signal
           // for the parent session via `wireSessionAbort`) to every
