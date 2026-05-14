@@ -40,6 +40,8 @@ import {
   taskTypeUsesSubagents,
   type TaskUsage,
   type TaskUserPromptContext,
+  createSubagentContractRegistry,
+  JudgeEvalVariantResult,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
 
@@ -544,6 +546,49 @@ export async function executePiTask(
       }
       const injectedSkills = injectedContext.skills;
 
+      // Built-in subagent output contracts — the only consumer is the
+      // subagent tool, constructed from a static list of schemas.
+      // No process-global registry needed; each session gets its own
+      // handle on construction (see #1106).
+      const builtinContracts = [
+        {
+          name: 'judge_eval_variant_result',
+          description:
+            'Per-variant grading result produced by a subagent of ' +
+            'judge_eval_variant: scores against the shared rubric, ' +
+            'composite, and a 1-3 sentence verdict for a single variant.',
+          parametersSchema: JudgeEvalVariantResult,
+        },
+      ];
+      const subagentContractRegistry =
+        createSubagentContractRegistry(builtinContracts);
+
+      // Subagent custom tool — registered only when the task type opts
+      // in via TaskTypeEntry.usesSubagents (#1087). The subagent
+      // inherits Gondolin + moltnet_* tools but NOT this task's
+      // submit-output tool (different schema) nor the subagent tool
+      // itself (no nested delegation in v1).
+      const parentSubagentTools: ToolDefinition[] = [];
+      if (taskTypeUsesSubagents(task.taskType)) {
+        subagentHandle = createSubagentTool({
+          mountPath,
+          piAuthDir,
+          modelHandle,
+          agentName: opts.agentName,
+          inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
+          parentRuntimeInstructor: runtimeInstructor,
+          parentTaskId: task.id,
+          parentTaskType: task.taskType,
+          parentAttemptN: attemptN,
+          contractRegistry: subagentContractRegistry,
+          // Propagate parent cancel (operator cancel + task-level
+          // runningTimeoutSec expiry already flow through this signal
+          // for the parent session via `wireSessionAbort`) to every
+          // in-flight subagent's inner session.abort(). Closes #1090.
+          parentCancelSignal: reporter.cancelSignal,
+        });
+        parentSubagentTools.push(subagentHandle.tool);
+      }
       // Subagent custom tool — registered only when the task type opts
       // in via TaskTypeEntry.usesSubagents (#1087). The subagent
       // inherits Gondolin + moltnet_* tools but NOT this task's

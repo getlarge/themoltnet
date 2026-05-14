@@ -11,10 +11,7 @@ import type {
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
-import {
-  __resetSubagentOutputContractsForTests,
-  registerSubagentOutputContract,
-} from '@themoltnet/agent-runtime';
+import { createSubagentContractRegistry } from '@themoltnet/agent-runtime';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BuildAgentSessionArgs } from './agent-session-factory.js';
@@ -24,6 +21,15 @@ const SubagentResult = Type.Object({
   verdict: Type.String({ minLength: 1 }),
   score: Type.Number({ minimum: 0, maximum: 1 }),
 });
+
+// Default test registry with a single "sample" contract.
+const defaultRegistry = createSubagentContractRegistry([
+  {
+    name: 'sample',
+    description: 'Sample contract for tests.',
+    parametersSchema: SubagentResult,
+  },
+]);
 
 const stubArgs = (
   overrides: Partial<Parameters<typeof createSubagentTool>[0]> = {},
@@ -37,6 +43,7 @@ const stubArgs = (
   parentTaskId: 'parent-task-id',
   parentTaskType: 'judge_eval_variant',
   parentAttemptN: 1,
+  contractRegistry: defaultRegistry,
   ...overrides,
 });
 
@@ -143,15 +150,6 @@ async function callOuter(
 }
 
 describe('createSubagentTool', () => {
-  beforeEach(() => {
-    __resetSubagentOutputContractsForTests();
-    registerSubagentOutputContract({
-      name: 'sample',
-      description: 'Sample contract for tests.',
-      parametersSchema: SubagentResult,
-    });
-  });
-
   it('returns a tool with the expected shape', () => {
     const factory = makeFakeSessionFactory(null);
     const handle = createSubagentTool({
@@ -175,6 +173,7 @@ describe('createSubagentTool', () => {
     });
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toMatch(/unknown output_schema/);
+    expect(result.content[0].text).toMatch(/sample/); // listing the known contracts
     expect(handle.getCallCount()).toBe(0);
     expect(factory.capturedBuildArgs).toBeNull();
   });
@@ -327,6 +326,50 @@ describe('createSubagentTool', () => {
     // Inner tool returned isError:true; capture stayed null; outer
     // surfaces "never submitted" because no successful capture happened.
     expect(result.isError).toBe(true);
+  });
+
+  describe('contractRegistry injection — tests that a custom registry works', () => {
+    it('uses a custom registry with a single contract', async () => {
+      const customRegistry = createSubagentContractRegistry([
+        {
+          name: 'custom_contract',
+          description: 'A custom test contract.',
+          parametersSchema: SubagentResult,
+        },
+      ]);
+      const handle = createSubagentTool({
+        ...stubArgs({ contractRegistry: customRegistry }),
+      });
+      // Custom contract is known.
+      const result = await callOuter(handle.tool, {
+        task: 'go',
+        output_schema: 'custom_contract',
+      });
+      expect(result.isError).toBe(true); // submit never called
+      // But the contract name appeared in the error listing, confirming
+      // the custom registry was used.
+      expect(result.content[0].text).toMatch(/custom_contract/);
+    });
+
+    it('uses a custom registry and errors on unknown names from that registry', async () => {
+      const customRegistry = createSubagentContractRegistry([
+        {
+          name: 'only_contract',
+          description: 'The only available contract.',
+          parametersSchema: SubagentResult,
+        },
+      ]);
+      const handle = createSubagentTool({
+        ...stubArgs({ contractRegistry: customRegistry }),
+      });
+      const result = await callOuter(handle.tool, {
+        task: 'go',
+        output_schema: 'sample', // not registered in custom registry
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/only_contract/); // should list the only one
+      expect(result.content[0].text).not.toMatch(/sample/); // sample is NOT in this registry
+    });
   });
 
   describe('cancel + timeout (#1090)', () => {
