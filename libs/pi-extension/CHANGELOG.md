@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.16.2...pi-extension-v0.17.0) (2026-05-14)
+
+
+### Features
+
+* **agent-daemon:** persist Pi sessions for resumable tasks ([63f3cf6](https://github.com/getlarge/themoltnet/commit/63f3cf6ee59249f131bd324ec7c47aa2fcf484f8))
+* **agent-daemon:** track reusable daemon slots ([42bc563](https://github.com/getlarge/themoltnet/commit/42bc563fce841b0dc175d722e5973ece545489de))
+
+
+### Bug Fixes
+
+* **agent-daemon:** address PR review follow-up ([669eb77](https://github.com/getlarge/themoltnet/commit/669eb7715d39cbb200e2972243144c184fc43b5e))
+* **agent-daemon:** remove regex slugifiers ([dc4190d](https://github.com/getlarge/themoltnet/commit/dc4190df608b62b4abab801fe5aa0d8055052b2f))
+
 ## [0.16.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.16.1...pi-extension-v0.16.2) (2026-05-12)
 
 
