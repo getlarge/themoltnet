@@ -11,9 +11,9 @@ import type {
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
+import { createSubagentContractRegistry } from '@themoltnet/agent-runtime';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 import type { BuildAgentSessionArgs } from './agent-session-factory.js';
 import { createSubagentTool } from './subagent-tool.js';
 

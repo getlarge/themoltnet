@@ -34,6 +34,7 @@ import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  type SubagentContractRegistry,
   TaskContext,
   type TaskOutput,
   type TaskReporter,
@@ -43,7 +44,6 @@ import {
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
 
-import type { SubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,

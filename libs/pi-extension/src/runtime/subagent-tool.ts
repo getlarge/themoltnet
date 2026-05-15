@@ -40,8 +40,8 @@ import type {
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { type Static, type TObject, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
+import type { SubagentContractRegistry } from '@themoltnet/agent-runtime';
 
-import type { SubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 import {
   buildAgentSession as defaultBuildAgentSession,
   type BuildAgentSessionArgs,
