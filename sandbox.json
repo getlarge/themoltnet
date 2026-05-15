@@ -9,8 +9,28 @@
   "hostExec": {
     "autoApprove": [
       {
-        "argsExcludes": ["--mirror", "--all", "--tags"],
+        "argsExcludes": [
+          "origin/main",
+          "upstream/main",
+          "main",
+          "origin/master",
+          "upstream/master",
+          "master",
+          "--mirror",
+          "--all",
+          "--tags"
+        ],
         "argsPrefix": ["push"],
+        "executable": "git"
+      },
+      {
+        "argsExcludes": [
+          "main",
+          "master",
+          "refs/heads/main",
+          "refs/heads/master"
+        ],
+        "argsPrefix": ["push", "origin"],
         "executable": "git"
       }
     ]
@@ -41,8 +61,5 @@
       "mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store"
     ]
   },
-  "vfs": {
-    "shadow": ["node_modules"],
-    "shadowMode": "tmpfs"
-  }
+  "vfs": {}
 }
