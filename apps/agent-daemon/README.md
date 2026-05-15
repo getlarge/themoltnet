@@ -254,6 +254,41 @@ moltnet entry list --diary-id "$MOLTNET_DIARY_ID" --limit 10 \
   --credentials "$PWD/.moltnet/local-dev/moltnet.json"
 ```
 
+### 4b. Create a `pr_review` smoke task
+
+Use this path when you want to exercise the generic `pr_review` task type
+against the local e2e stack before the new schema exists on a deployed API.
+
+Start the daemon with `--task-types pr_review`:
+
+```bash
+pnpm --filter @themoltnet/agent-daemon dev poll \
+  --agent local-dev \
+  --team "$MOLTNET_TEAM_ID" \
+  --task-types pr_review \
+  --provider openai-codex \
+  --model gpt-5.4-codex \
+  --debug
+```
+
+Then, in another terminal, create the task:
+
+```bash
+pnpm exec tsx tools/src/tasks/create-pr-review.ts \
+  --agent local-dev \
+  --pr <number> \
+  --repo <owner/repo>
+```
+
+This helper stays imposer-only. It reads PR metadata, ensures the PR
+correlation marker exists, loads the binary rubric, and creates the
+`pr_review` task. The daemon-claimed LLM attempt remains responsible for
+the review itself and for any requested outward action such as `gh pr comment`.
+
+If you want an automated local check without real GitHub mutation, use the
+stubbed `pr_review` lifecycle coverage in
+`apps/agent-daemon/e2e/daemon.e2e.test.ts` instead of this manual smoke path.
+
 ### What to verify
 
 After the task completes, every entry produced **during the attempt** should:
