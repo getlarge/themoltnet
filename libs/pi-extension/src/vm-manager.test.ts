@@ -329,33 +329,39 @@ describe('loadCredentials Pi auth optionality', () => {
     const dir = makeMinimalAgentDir();
     const fakeHome = mkdtempSync(path.join(tmpdir(), 'pi-home-noauth-'));
     const oldHome = process.env.HOME;
-    const oldPath = process.env.PI_AUTH_PATH;
+    const oldAgentDir = process.env.PI_CODING_AGENT_DIR;
     process.env.HOME = fakeHome;
-    delete process.env.PI_AUTH_PATH;
+    delete process.env.PI_CODING_AGENT_DIR;
     try {
       const creds = loadCredentials(dir);
       expect(creds.piAuthJson).toBeNull();
     } finally {
       process.env.HOME = oldHome;
-      if (oldPath !== undefined) process.env.PI_AUTH_PATH = oldPath;
+      if (oldAgentDir !== undefined)
+        process.env.PI_CODING_AGENT_DIR = oldAgentDir;
+      else delete process.env.PI_CODING_AGENT_DIR;
       rmSync(fakeHome, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it('honors PI_AUTH_PATH override when set', () => {
+  it('honors PI_CODING_AGENT_DIR override when set', () => {
     const dir = makeMinimalAgentDir();
-    const altDir = mkdtempSync(path.join(tmpdir(), 'pi-altauth-'));
-    const altPath = path.join(altDir, 'custom-auth.json');
-    writeFileSync(altPath, '{"anthropic":{"type":"api_key","key":"sk-x"}}');
-    const oldPath = process.env.PI_AUTH_PATH;
-    process.env.PI_AUTH_PATH = altPath;
+    const altDir = mkdtempSync(path.join(tmpdir(), 'pi-altagent-'));
+    mkdirSync(path.join(altDir, '.pi', 'agent'), { recursive: true });
+    writeFileSync(
+      path.join(altDir, '.pi', 'agent', 'auth.json'),
+      '{"anthropic":{"type":"api_key","key":"sk-x"}}',
+    );
+    const oldAgentDir = process.env.PI_CODING_AGENT_DIR;
+    process.env.PI_CODING_AGENT_DIR = path.join(altDir, '.pi', 'agent');
     try {
       const creds = loadCredentials(dir);
       expect(creds.piAuthJson).toContain('sk-x');
     } finally {
-      if (oldPath !== undefined) process.env.PI_AUTH_PATH = oldPath;
-      else delete process.env.PI_AUTH_PATH;
+      if (oldAgentDir !== undefined)
+        process.env.PI_CODING_AGENT_DIR = oldAgentDir;
+      else delete process.env.PI_CODING_AGENT_DIR;
       rmSync(altDir, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
     }
@@ -370,15 +376,17 @@ describe('loadCredentials Pi auth optionality', () => {
       '{"openai":{"type":"api_key","key":"sk-default"}}',
     );
     const oldHome = process.env.HOME;
-    const oldPath = process.env.PI_AUTH_PATH;
+    const oldAgentDir = process.env.PI_CODING_AGENT_DIR;
     process.env.HOME = fakeHome;
-    delete process.env.PI_AUTH_PATH;
+    delete process.env.PI_CODING_AGENT_DIR;
     try {
       const creds = loadCredentials(dir);
       expect(creds.piAuthJson).toContain('sk-default');
     } finally {
       process.env.HOME = oldHome;
-      if (oldPath !== undefined) process.env.PI_AUTH_PATH = oldPath;
+      if (oldAgentDir !== undefined)
+        process.env.PI_CODING_AGENT_DIR = oldAgentDir;
+      else delete process.env.PI_CODING_AGENT_DIR;
       rmSync(fakeHome, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
     }
