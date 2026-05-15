@@ -9,8 +9,8 @@
 //
 // Tiers map % of affected projects → agent count:
 //   none   : 0 affected   → 0 agents (skip DTE entirely)
-//   small  : 1–32%        → 1 agent
-//   medium : 33–66%       → 2 agents
+//   small  : 1–32%        → 2 agents
+//   medium : 33–66%       → 3 agents
 //   large  : 67–100%      → 4 agents
 //
 // Agents are 1-indexed contiguous ranges. The matrix shape is
@@ -35,13 +35,31 @@ function range(start, end) {
 }
 
 const tiers = [
-  { name: 'small', max: 32, agents: 1 },
-  { name: 'medium', max: 66, agents: 2 },
+  // A single DTE agent leaves long-running affected slices underutilized.
+  { name: 'small', max: 32, agents: 2 },
+  { name: 'medium', max: 66, agents: 3 },
   { name: 'large', max: 100, agents: 4 },
 ];
 
 function pickTier(percent) {
   return tiers.find((t) => percent <= t.max) ?? tiers[tiers.length - 1];
+}
+
+function computeMatrixOutputs(totalCount, affectedCount) {
+  const percent = totalCount === 0 ? 0 : (affectedCount / totalCount) * 100;
+  const tier =
+    affectedCount === 0 ? { name: 'none', agents: 0 } : pickTier(percent);
+  const agentIds = range(1, tier.agents);
+
+  return {
+    'affected-count': affectedCount,
+    'total-count': totalCount,
+    percent: percent.toFixed(1),
+    tier: tier.name,
+    'agent-count': tier.agents,
+    matrix: JSON.stringify({ agent: agentIds }),
+    'has-agents': agentIds.length > 0 ? 'true' : 'false',
+  };
 }
 
 function main() {
@@ -58,21 +76,7 @@ function main() {
 
   const totalCount = total.length;
   const affectedCount = affected.length;
-  const percent = totalCount === 0 ? 0 : (affectedCount / totalCount) * 100;
-  const tier =
-    affectedCount === 0 ? { name: 'none', agents: 0 } : pickTier(percent);
-
-  const agentIds = range(1, tier.agents);
-
-  const out = {
-    'affected-count': affectedCount,
-    'total-count': totalCount,
-    percent: percent.toFixed(1),
-    tier: tier.name,
-    'agent-count': tier.agents,
-    matrix: JSON.stringify({ agent: agentIds }),
-    'has-agents': agentIds.length > 0 ? 'true' : 'false',
-  };
+  const out = computeMatrixOutputs(totalCount, affectedCount);
 
   const githubOutput = process.env.GITHUB_OUTPUT;
   if (githubOutput) {
@@ -85,4 +89,6 @@ function main() {
   process.stderr.write(`[agents-matrix] ${JSON.stringify(out)}\n`);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
