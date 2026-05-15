@@ -159,11 +159,34 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(git log *)');
     expect(perms).toContain('Bash(git rev-parse *)');
     expect(perms).toContain('Bash(moltnet sign *)');
+    expect(perms).toContain('Bash(moltnet entry commit *)');
+    expect(perms).toContain('Bash(moltnet entry create-signed *)');
+    expect(perms).toContain('Bash(moltnet entry verify *)');
     expect(perms).toContain('Bash(moltnet github token *)');
     expect(perms).toContain('Bash(moltnet agents activation *)');
+    expect(perms).toContain('Bash(moltnet task list *)');
+    expect(perms).toContain('Bash(moltnet task get *)');
+    expect(perms).toContain('Bash(moltnet task attempts *)');
+    expect(perms).toContain('Bash(moltnet task tail *)');
+    expect(perms).toContain('Bash(moltnet pack list *)');
+    expect(perms).toContain('Bash(moltnet pack get *)');
+    expect(perms).toContain('Bash(moltnet rendered-pack list *)');
+    expect(perms).toContain('Bash(moltnet rendered-pack get *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli sign *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli entry commit *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli entry create-signed *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli entry verify *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli github token *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli agents activation *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli task list *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli task get *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli task attempts *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli task tail *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli pack list *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli pack get *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli rendered-pack list *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli rendered-pack get *)');
     expect(perms).toContain('Bash(ln -s *)');
     expect(perms).toContain('Bash(echo "GIT_CONFIG_GLOBAL=*")');
   });
@@ -255,20 +278,53 @@ describe('buildCodexRules', () => {
     expect(rules).toContain('pattern = ["git", "diff"]');
     expect(rules).toContain('pattern = ["git", "log"]');
     expect(rules).toContain('pattern = ["git", "rev-parse"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli"]');
     expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
     expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "diary", "commit"]',
+      'pattern = ["npx", "@themoltnet/cli", "entry", "commit"]',
     );
     expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "diary", "create-signed"]',
+      'pattern = ["npx", "@themoltnet/cli", "entry", "create-signed"]',
     );
     expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "diary", "verify"]',
+      'pattern = ["npx", "@themoltnet/cli", "entry", "verify"]',
     );
     expect(rules).toContain('pattern = ["moltnet", "agents", "activation"]');
-    expect(rules).toContain('pattern = ["moltnet", "diary", "commit"]');
-    expect(rules).toContain('pattern = ["moltnet", "diary", "create-signed"]');
-    expect(rules).toContain('pattern = ["moltnet", "diary", "verify"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "commit"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "create-signed"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "verify"]');
+    expect(rules).toContain('pattern = ["moltnet", "task", "list"]');
+    expect(rules).toContain('pattern = ["moltnet", "task", "get"]');
+    expect(rules).toContain('pattern = ["moltnet", "task", "attempts"]');
+    expect(rules).toContain('pattern = ["moltnet", "task", "tail"]');
+    expect(rules).toContain('pattern = ["moltnet", "pack", "list"]');
+    expect(rules).toContain('pattern = ["moltnet", "pack", "get"]');
+    expect(rules).toContain('pattern = ["moltnet", "rendered-pack", "list"]');
+    expect(rules).toContain('pattern = ["moltnet", "rendered-pack", "get"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "get"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "attempts"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "tail"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "pack", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "pack", "get"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "rendered-pack", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "rendered-pack", "get"]',
+    );
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
     );
@@ -321,19 +377,56 @@ describe('writeSettingsLocal', () => {
     expect(parsed.permissions.allow).toContain('mcp__my-agent__*');
     expect(parsed.permissions.allow).toContain('Bash(git config *)');
     expect(parsed.permissions.allow).toContain('Bash(moltnet sign *)');
-    expect(parsed.permissions.allow).toContain('Bash(moltnet diary commit *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet entry commit *)');
     expect(parsed.permissions.allow).toContain(
-      'Bash(moltnet diary create-signed *)',
+      'Bash(moltnet entry create-signed *)',
     );
-    expect(parsed.permissions.allow).toContain('Bash(moltnet diary verify *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet entry verify *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet task list *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet task get *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet task attempts *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet task tail *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet pack list *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet pack get *)');
     expect(parsed.permissions.allow).toContain(
-      'Bash(npx @themoltnet/cli diary commit *)',
+      'Bash(moltnet rendered-pack list *)',
     );
     expect(parsed.permissions.allow).toContain(
-      'Bash(npx @themoltnet/cli diary create-signed *)',
+      'Bash(moltnet rendered-pack get *)',
+    );
+    expect(parsed.permissions.allow).toContain('Bash(npx @themoltnet/cli *)');
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli entry commit *)',
     );
     expect(parsed.permissions.allow).toContain(
-      'Bash(npx @themoltnet/cli diary verify *)',
+      'Bash(npx @themoltnet/cli entry create-signed *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli entry verify *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli task list *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli task get *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli task attempts *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli task tail *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli pack list *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli pack get *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli rendered-pack list *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli rendered-pack get *)',
     );
   });
 
