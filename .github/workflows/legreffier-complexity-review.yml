@@ -1,0 +1,157 @@
+name: LeGreffier Complexity Review
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [ready_for_review]
+
+permissions: {}
+
+jobs:
+  complexity-review:
+    if: |
+      (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '@legreffier /complexity-review') &&
+        !endsWith(github.event.comment.user.login, '[bot]')) ||
+      (github.event_name == 'pull_request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: legreffier
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_AGENT_PROVIDER: ${{ vars.MOLTNET_AGENT_PROVIDER }}
+      MOLTNET_AGENT_MODEL: ${{ vars.MOLTNET_AGENT_MODEL }}
+      MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+      MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
+      MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
+      MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install gondolin dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
+
+      - name: Materialize MoltNet agent dir from env
+        run: |
+          set -euo pipefail
+          npx -y @themoltnet/cli config init-from-env \
+            --dir "$GITHUB_WORKSPACE" \
+            --agent "$MOLTNET_AGENT_NAME"
+          AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
+          {
+            echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
+            echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
+          } >> "$GITHUB_ENV"
+
+      - name: Materialize Pi auth.json
+        if: ${{ env.PI_AUTH_JSON != '' }}
+        run: |
+          set -euo pipefail
+          PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
+          mkdir -p "$PI_AGENT_DIR"
+          printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
+          chmod 600 "$PI_AGENT_DIR/auth.json"
+          echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR" >> "$GITHUB_ENV"
+
+      - name: Start LeGreffier daemon
+        run: |
+          set -euo pipefail
+          pnpm --filter @themoltnet/agent-daemon cli -- \
+            poll \
+            --team "$MOLTNET_TEAM_ID" \
+            --task-types pr_review \
+            --agent "$MOLTNET_AGENT_NAME" \
+            --provider "$MOLTNET_AGENT_PROVIDER" \
+            --model "$MOLTNET_AGENT_MODEL" \
+            > "$RUNNER_TEMP/legreffier-daemon.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/legreffier-daemon.pid"
+
+      - name: Create pr_review task
+        id: create
+        env:
+          PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          json=$(pnpm --filter @moltnet/tools task:create-pr-review \
+            --pr "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY")
+          echo "$json"
+          echo "task_id=$(printf '%s' "$json" | jq -r '.id')" >> "$GITHUB_OUTPUT"
+          echo "correlation_id=$(printf '%s' "$json" | jq -r '.correlationId')" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for task completion
+        env:
+          TASK_ID: ${{ steps.create.outputs.task_id }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'EOF'
+          import { connect } from '@themoltnet/sdk';
+
+          const taskId = process.env.TASK_ID;
+          const agentDir = process.env.MOLTNET_AGENT_DIR;
+          if (!taskId) throw new Error('TASK_ID is required');
+          if (!agentDir) throw new Error('MOLTNET_AGENT_DIR is required');
+
+          const agent = await connect({ configDir: agentDir });
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const terminal = new Set(['completed', 'failed', 'cancelled']);
+
+          for (let i = 0; i < 360; i++) {
+            const task = await agent.tasks.get(taskId);
+            console.log(`[wait] status=${task.status} acceptedAttemptN=${task.acceptedAttemptN}`);
+            if (terminal.has(task.status)) {
+              if (task.status !== 'completed') {
+                process.exit(1);
+              }
+              process.exit(0);
+            }
+            await sleep(5000);
+          }
+
+          throw new Error(`Timed out waiting for task ${taskId}`);
+          EOF
+
+      - name: Stop daemon and print logs
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          if [ -f "$RUNNER_TEMP/legreffier-daemon.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/legreffier-daemon.pid")" || true
+          fi
+          if [ -f "$RUNNER_TEMP/legreffier-daemon.log" ]; then
+            cat "$RUNNER_TEMP/legreffier-daemon.log"
+          fi
