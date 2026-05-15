@@ -1,48 +1,75 @@
 {
-  "env": {
-    "GOPATH": "/home/agent/go",
-    "GOROOT": "/usr/lib/go",
-    "NODE_OPTIONS": "--dns-result-order=ipv4first",
-    "NPM_CONFIG_PREFER_OFFLINE": "true",
-    "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
-  },
-  "hostExec": {
-    "autoApprove": [
-      {
-        "argsExcludes": ["--mirror", "--all", "--tags"],
-        "argsPrefix": ["push"],
-        "executable": "git"
-      }
-    ]
-  },
-  "resources": {
-    "cpus": 4,
-    "memory": "8G"
-  },
-  "resumeCommands": [
-    "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done"
-  ],
-  "snapshot": {
-    "allowedHosts": [
-      "unofficial-builds.nodejs.org",
-      "proxy.golang.org",
-      "sum.golang.org",
-      "golang.org",
-      "*.googlesource.com",
-      "api.github.com",
-      "*.githubusercontent.com"
+    "env": {
+        "GOPATH": "/home/agent/go",
+        "GOROOT": "/usr/lib/go",
+        "NODE_OPTIONS": "--dns-result-order=ipv4first",
+        "NPM_CONFIG_PREFER_OFFLINE": "true",
+        "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
+    },
+    "hostExec": {
+        "autoApprove": [
+            {
+                "executable": "git",
+                "argsPrefix": [
+                    "push"
+                ],
+                "argsExcludes": [
+                    "origin/main",
+                    "upstream/main",
+                    "main",
+                    "origin/master",
+                    "upstream/master",
+                    "master",
+                    "--mirror",
+                    "--all",
+                    "--tags"
+                ]
+            },
+            {
+                "executable": "git",
+                "argsPrefix": [
+                    "push",
+                    "origin"
+                ],
+                "argsExcludes": [
+                    "main",
+                    "master",
+                    "refs/heads/main",
+                    "refs/heads/master"
+                ]
+            }
+        ]
+    },
+    "resources": {
+        "cpus": 4,
+        "memory": "8G"
+    },
+    "resumeCommands": [
+        "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done"
     ],
-    "overlaySize": "8G",
-    "setupCommands": [
-      "apk add --no-cache libgcc libstdc++ python3 go",
-      "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz && node --version'",
-      "npm install -g tsx 2>/dev/null",
-      "corepack enable && corepack install --global pnpm@10.29.3",
-      "mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store"
-    ]
-  },
-  "vfs": {
-    "shadow": ["node_modules"],
-    "shadowMode": "tmpfs"
-  }
+    "snapshot": {
+        "allowedHosts": [
+            "unofficial-builds.nodejs.org",
+            "proxy.golang.org",
+            "sum.golang.org",
+            "golang.org",
+            "*.googlesource.com",
+            "api.github.com",
+            "*.githubusercontent.com"
+        ],
+        "overlaySize": "8G",
+        "setupCommands": [
+            "apk add --no-cache libgcc libstdc++ python3 go",
+            "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz && node --version'",
+            "npm install -g tsx 2>/dev/null",
+            "corepack enable && corepack install --global pnpm@10.29.3",
+            "mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store"
+        ]
+    },
+    "vfs": {
+        "shadow": [
+            "node_modules"
+        ],
+        "shadowMode": "tmpfs"
+    }
 }
