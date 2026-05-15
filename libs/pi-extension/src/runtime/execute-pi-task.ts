@@ -390,11 +390,7 @@ export async function executePiTask(
     // Resolve the dedicated worktree after the reporter is live so path
     // collisions / git metadata errors also reach the task attempt stream.
     try {
-      workspace = prepareTaskWorkspace(
-        task,
-        requestedMountPath,
-        executionPlan,
-      );
+      workspace = prepareTaskWorkspace(task, requestedMountPath, executionPlan);
       mountPath = workspace.mountPath;
       cwdPath = workspace.cwdPath;
     } catch (err) {

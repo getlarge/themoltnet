@@ -9,8 +9,8 @@ import {
   cpSync,
   mkdirSync,
   mkdtempSync,
-  realpathSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -19,12 +19,12 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
   ensureRelativeWorktreePaths,
   loadCredentials,
   rewriteMoltnetJsonPaths,
 } from './vm-manager.js';
-import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 
 // ---------------------------------------------------------------------------
 // rewriteMoltnetJsonPaths
@@ -455,18 +455,18 @@ describe('dedicated worktree mount topology', () => {
     const prefix = 'gitdir: ';
     expect(gitdirPointer.startsWith(prefix)).toBe(true);
     const target = gitdirPointer.slice(prefix.length).trim();
-    return path.isAbsolute(target)
-      ? target
-      : path.resolve(worktreeDir, target);
+    return path.isAbsolute(target) ? target : path.resolve(worktreeDir, target);
   }
 
   it('keeps worktree git metadata reachable when mounting the repo root', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-repro-'));
     const guestRoot = mkdtempSync(path.join(tmpdir(), 'pi-guest-mount-'));
     const oldCwd = process.cwd();
-    let workspace:
-      | { mountPath: string; cwdPath: string; cleanup: () => void }
-      | null = null;
+    let workspace: {
+      mountPath: string;
+      cwdPath: string;
+      cleanup: () => void;
+    } | null = null;
 
     try {
       runGit(repoRoot, ['init']);
@@ -505,7 +505,10 @@ describe('dedicated worktree mount topology', () => {
       const gitdirPointer = readFileSync(path.join(guestWorkspace, '.git'), {
         encoding: 'utf8',
       }).trim();
-      const resolvedGitdir = resolveGitdirPointer(guestWorkspace, gitdirPointer);
+      const resolvedGitdir = resolveGitdirPointer(
+        guestWorkspace,
+        gitdirPointer,
+      );
 
       expect(resolvedGitdir.startsWith(guestRoot)).toBe(true);
       expect(resolvedGitdir).toContain(
