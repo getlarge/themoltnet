@@ -156,7 +156,7 @@ const TASK_FIXTURES: Array<{
 ];
 
 describe('buildFinalOutputBlock', () => {
-  it('mentions submit tool first, JSON-fallback second, and the schema name', () => {
+  it('requires the submit tool and names the schema', () => {
     const block = buildFinalOutputBlock({
       taskType: 'fulfill_brief',
       outputSchemaName: 'FulfillBriefOutput',
@@ -165,13 +165,9 @@ describe('buildFinalOutputBlock', () => {
     expect(block).toMatch(/Final output \(read this carefully\)/);
     expect(block).toMatch(/submit_fulfill_brief_output/);
     expect(block).toMatch(/FulfillBriefOutput/);
-    const submitIdx = block.indexOf('submit_fulfill_brief_output');
-    const fallbackIdx = block.indexOf('Fallback');
-    expect(submitIdx).toBeGreaterThan(-1);
-    expect(fallbackIdx).toBeGreaterThan(submitIdx);
-    expect(block).toMatch(
-      /Failing to report structured output as the very last action means the/,
-    );
+    expect(block).toMatch(/Do NOT emit the output as plain assistant text/);
+    expect(block).not.toMatch(/Fallback/);
+    expect(block).not.toMatch(/single JSON object matching/);
   });
 
   it('appends extra notes verbatim when provided', () => {
@@ -193,7 +189,7 @@ describe('every task-type prompt ends with the strict final-output block', () =>
       expect(prompt).toContain(fx.submitTool);
       expect(prompt).toContain(fx.schema);
       expect(prompt).toContain(
-        'Failing to report structured output as the very last action means the',
+        'Do NOT emit the output as plain assistant text.',
       );
       // The block must be at the tail of the prompt — nothing else
       // overrides the closing instruction.
