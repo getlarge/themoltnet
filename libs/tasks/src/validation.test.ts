@@ -95,6 +95,21 @@ describe('validateTaskCreateRequest', () => {
       },
     ]);
   });
+
+  it('rejects fulfill_brief acceptanceCriteria as an unknown field', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'fulfill_brief',
+      input: {
+        brief: 'Implement feature X',
+        title: 'Feature X',
+        acceptanceCriteria: ['match existing module tone'],
+      },
+    });
+
+    expect(errors.some((e) => e.field.includes('acceptanceCriteria'))).toBe(
+      true,
+    );
+  });
 });
 
 describe('validateTaskOutput', () => {

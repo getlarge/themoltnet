@@ -4,12 +4,22 @@
  *   - loadCredentials: PEM reading and filename extraction
  *   - ensureRelativeWorktreePaths: gitconfig mutation (pre-existing)
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
   ensureRelativeWorktreePaths,
   loadCredentials,
@@ -425,5 +435,103 @@ describe('ensureRelativeWorktreePaths', () => {
     const out = ensureRelativeWorktreePaths(gc);
     expect((out.match(/useRelativePaths/g) ?? []).length).toBe(1);
     expect(out).toContain('useRelativePaths = true');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Dedicated worktree mount topology
+// ---------------------------------------------------------------------------
+
+describe('dedicated worktree mount topology', () => {
+  function runGit(cwd: string, args: string[]): string {
+    return execFileSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).trim();
+  }
+
+  function resolveGitdirPointer(worktreeDir: string, gitdirPointer: string) {
+    const prefix = 'gitdir: ';
+    expect(gitdirPointer.startsWith(prefix)).toBe(true);
+    const target = gitdirPointer.slice(prefix.length).trim();
+    return path.isAbsolute(target) ? target : path.resolve(worktreeDir, target);
+  }
+
+  it('keeps worktree git metadata reachable when mounting the repo root', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-repro-'));
+    const guestRoot = mkdtempSync(path.join(tmpdir(), 'pi-guest-mount-'));
+    const oldCwd = process.cwd();
+    let workspace: {
+      mountPath: string;
+      cwdPath: string;
+      cleanup: () => void;
+    } | null = null;
+
+    try {
+      runGit(repoRoot, ['init']);
+      runGit(repoRoot, ['config', 'user.name', 'Test User']);
+      runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
+      writeFileSync(path.join(repoRoot, 'README.md'), 'seed\n', 'utf8');
+      runGit(repoRoot, ['add', 'README.md']);
+      runGit(repoRoot, ['commit', '-m', 'seed']);
+
+      process.chdir(repoRoot);
+      const task = {
+        id: 'task-1',
+        taskType: 'fulfill_brief',
+        correlationId: 'correlation-1',
+        input: {
+          brief: 'demo task',
+          title: 'demo task',
+        },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      workspace = prepareTaskWorkspace(task, repoRoot, {
+        sessionKey: 'slot-1',
+        workspaceId: 'session-slot-1',
+        worktreeBranch: 'moltnet/correlation-1/demo-task',
+        workspaceScope: 'session',
+      });
+      runGit(repoRoot, ['worktree', 'repair', '--relative-paths']);
+
+      const guestMountRoot = path.join(guestRoot, 'workspace');
+      cpSync(workspace.mountPath, guestMountRoot, { recursive: true });
+      const guestWorkspace = path.join(
+        guestMountRoot,
+        path.relative(workspace.mountPath, workspace.cwdPath),
+      );
+
+      const gitdirPointer = readFileSync(path.join(guestWorkspace, '.git'), {
+        encoding: 'utf8',
+      }).trim();
+      const resolvedGitdir = resolveGitdirPointer(
+        guestWorkspace,
+        gitdirPointer,
+      );
+
+      expect(resolvedGitdir.startsWith(guestRoot)).toBe(true);
+      expect(resolvedGitdir).toContain(
+        `${path.sep}.git${path.sep}worktrees${path.sep}session-slot-1`,
+      );
+      const adminBacklink = readFileSync(
+        path.join(resolvedGitdir, 'gitdir'),
+        'utf8',
+      ).trim();
+      expect(path.resolve(resolvedGitdir, adminBacklink)).toBe(
+        path.join(guestWorkspace, '.git'),
+      );
+      expect(
+        realpathSync(runGit(guestWorkspace, ['rev-parse', '--git-dir'])),
+      ).toBe(realpathSync(resolvedGitdir));
+      expect(
+        realpathSync(runGit(guestWorkspace, ['rev-parse', '--show-toplevel'])),
+      ).toBe(realpathSync(guestWorkspace));
+    } finally {
+      process.chdir(oldCwd);
+      workspace?.cleanup();
+      rmSync(repoRoot, { recursive: true, force: true });
+      rmSync(guestRoot, { recursive: true, force: true });
+    }
   });
 });

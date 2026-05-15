@@ -3,10 +3,10 @@
  * complementary places.
  *
  * Before this envelope existed, criteria were scattered: a vestigial
- * `criteriaCid` column nobody resolved, an `acceptanceCriteria: string[]`
- * field on `fulfill_brief.input` that was "interpreted by the claiming
- * agent," and inline `rubric` / `criteria[]` fields on judgment-task
- * inputs. None of those were machine-verifiable end-to-end.
+ * `criteriaCid` column nobody resolved, free-form prose on
+ * `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
+ * judgment-task inputs. None of those were machine-verifiable
+ * end-to-end.
  *
  * This module defines a single, content-addressable envelope an imposer
  * attaches to any task type. It has four orthogonal sections — pick

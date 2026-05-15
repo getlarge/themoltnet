@@ -32,16 +32,7 @@ export function buildFulfillBriefUserPrompt(
   input: FulfillBriefInput,
   ctx: Ctx,
 ): string {
-  const { brief, title, acceptanceCriteria, seedFiles, scopeHint } = input;
-
-  const criteriaSection = acceptanceCriteria?.length
-    ? [
-        '### Acceptance criteria',
-        '',
-        ...acceptanceCriteria.map((c) => `- ${c}`),
-        '',
-      ].join('\n')
-    : '';
+  const { brief, title, seedFiles, scopeHint } = input;
 
   const seedSection = seedFiles?.length
     ? [
@@ -107,7 +98,6 @@ export function buildFulfillBriefUserPrompt(
     '',
     brief,
     '',
-    criteriaSection,
     seedSection,
     correlationSection,
     workspaceSection,

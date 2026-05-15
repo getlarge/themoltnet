@@ -255,14 +255,25 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       executeTask: async (claimedTask, reporter) => {
         const executionPlan = executionPlans.getOrCreate(claimedTask);
         const sessionDescriptor = executionPlan.descriptor;
-        const expired = slotRegistry.reapExpiredSlots();
-        if (expired.length > 0) {
-          rootLogger.info(
+        let expired: ReturnType<typeof slotRegistry.reapExpiredSlots>;
+        try {
+          expired = slotRegistry.reapExpiredSlots();
+          if (expired.length > 0) {
+            rootLogger.info(
+              {
+                expiredCount: expired.length,
+                slotKeys: expired.map((item) => item.slot.slotKey),
+              },
+              'agent-daemon.daemon_slots_reaped',
+            );
+          }
+        } catch (err) {
+          rootLogger.error(
             {
-              expiredCount: expired.length,
-              slotKeys: expired.map((item) => item.slot.slotKey),
+              phase: 'daemon_slot_reap',
+              err: err instanceof Error ? err.message : String(err),
             },
-            'agent-daemon.daemon_slots_reaped',
+            'agent-daemon.daemon_slot_reap_failed',
           );
         }
         rootLogger.debug(

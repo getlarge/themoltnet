@@ -175,14 +175,24 @@ export async function runOnce(argv: string[]): Promise<number> {
       maxBashTimeouts: opts.maxBashTimeouts,
     });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
-      const expired = slotRegistry.reapExpiredSlots();
-      if (expired.length > 0) {
-        rootLogger.info(
+      try {
+        const expired = slotRegistry.reapExpiredSlots();
+        if (expired.length > 0) {
+          rootLogger.info(
+            {
+              expiredCount: expired.length,
+              slotKeys: expired.map((item) => item.slot.slotKey),
+            },
+            'agent-daemon.daemon_slots_reaped',
+          );
+        }
+      } catch (err) {
+        rootLogger.error(
           {
-            expiredCount: expired.length,
-            slotKeys: expired.map((item) => item.slot.slotKey),
+            phase: 'daemon_slot_reap',
+            err: err instanceof Error ? err.message : String(err),
           },
-          'agent-daemon.daemon_slots_reaped',
+          'agent-daemon.daemon_slot_reap_failed',
         );
       }
       const executionPlan = executionPlans.getOrCreate(claimedTask);
