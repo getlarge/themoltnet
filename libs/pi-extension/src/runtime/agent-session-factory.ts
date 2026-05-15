@@ -8,11 +8,10 @@
  *
  * Invariants this helper enforces (NOT configurable):
  *
- *   - `sessionManager: SessionManager.inMemory()` — every session is
- *     conversation-isolated. Persistent sessions would require a
- *     different abstraction.
- *   - `cwd: mountPath` — sessions run against the VM's `/workspace`
- *     mount via Gondolin-routed customTools.
+ *   - Parent sessions may opt into daemon-owned file persistence;
+ *     subagents remain conversation-isolated in-memory sessions.
+ *   - `cwd: cwdPath` — sessions start in the dedicated worktree (or
+ *     shared mount) while tools still resolve through the VM mount.
  *   - `agentDir: piAuthDir` — pi auth directory the caller resolved.
  *   - `extensionFactories: [piOtelExtension]` — telemetry is always
  *     wired; the caller picks the span attributes.
@@ -45,6 +44,8 @@ import { createPiOtelExtension } from '../otel/index.js';
 export interface BuildAgentSessionArgs {
   /** Host directory mounted at /workspace inside the VM. */
   mountPath: string;
+  /** Host working directory where the agent session should start. */
+  cwdPath: string;
   /** pi auth directory (resolved from `PI_CODING_AGENT_DIR` or `~/.pi/agent`). */
   piAuthDir: string;
   /** Resolved pi model handle (provider + model id). */
@@ -90,7 +91,7 @@ export async function buildAgentSession(
   });
 
   const resourceLoader = new DefaultResourceLoader({
-    cwd: args.mountPath,
+    cwd: args.cwdPath,
     agentDir: args.piAuthDir,
     extensionFactories: [piOtelExtension],
     appendSystemPrompt: args.appendSystemPrompt,
@@ -100,14 +101,14 @@ export async function buildAgentSession(
 
   const sessionManager = args.sessionPersistence
     ? await resolvePersistentSessionManager({
-        cwd: args.mountPath,
+        cwd: args.cwdPath,
         sessionDir: args.sessionPersistence.sessionDir,
       })
-    : SessionManager.inMemory(args.mountPath);
+    : SessionManager.inMemory(args.cwdPath);
 
   const created = await createAgentSession({
     agentDir: args.piAuthDir,
-    cwd: args.mountPath,
+    cwd: args.cwdPath,
     model: args.modelHandle,
     customTools: args.customTools,
     sessionManager,

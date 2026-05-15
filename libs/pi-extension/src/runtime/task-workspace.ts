@@ -9,6 +9,7 @@ import type { PiTaskExecutionPlan } from './execution-plan.js';
 
 export interface PreparedTaskWorkspace {
   mountPath: string;
+  cwdPath: string;
   mode: 'shared_mount' | 'dedicated_worktree';
   branch: string | null;
   cleanup: () => void;
@@ -23,6 +24,7 @@ export function prepareTaskWorkspace(
   if (!branch) {
     return {
       mountPath: requestedMountPath,
+      cwdPath: requestedMountPath,
       mode: 'shared_mount',
       branch: null,
       cleanup: () => {},
@@ -34,7 +36,7 @@ export function prepareTaskWorkspace(
   const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
   const relMount = relative(mainRepo, requestedMountPath);
-  const mountPath =
+  const cwdPath =
     relMount === '' || relMount.startsWith('..')
       ? worktreeDir
       : join(worktreeDir, relMount);
@@ -50,7 +52,8 @@ export function prepareTaskWorkspace(
   }
 
   return {
-    mountPath,
+    mountPath: mainRepo,
+    cwdPath,
     mode: 'dedicated_worktree',
     branch,
     cleanup: keepWorkspace

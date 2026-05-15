@@ -263,6 +263,7 @@ export async function executePiTask(
   const executionPlan = opts.makeExecutionPlan?.(claimedTask) ?? null;
   let workspace: Awaited<ReturnType<typeof prepareTaskWorkspace>> | null = null;
   let mountPath = requestedMountPath;
+  let cwdPath = requestedMountPath;
 
   // Pre-execute cancel guard. If the reporter's cancel signal is already
   // aborted (the imposer cancelled between claim and executor entry), don't
@@ -395,6 +396,7 @@ export async function executePiTask(
         executionPlan,
       );
       mountPath = workspace.mountPath;
+      cwdPath = workspace.cwdPath;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emitError('worktree_setup', message);
@@ -560,7 +562,7 @@ export async function executePiTask(
         clearSessionErrors: () => {
           /* no-op in headless mode */
         },
-        getHostCwd: () => mountPath,
+        getHostCwd: () => cwdPath,
         hostExecBaseEnv,
         hostExecAutoApprove:
           opts.hostExecAutoApprove ??
@@ -634,6 +636,7 @@ export async function executePiTask(
       if (taskTypeUsesSubagents(task.taskType)) {
         subagentHandle = createSubagentTool({
           mountPath,
+          cwdPath,
           piAuthDir,
           modelHandle,
           agentName: opts.agentName,
@@ -654,6 +657,7 @@ export async function executePiTask(
 
       session = await buildAgentSession({
         mountPath,
+        cwdPath,
         piAuthDir,
         modelHandle,
         agentName: opts.agentName,

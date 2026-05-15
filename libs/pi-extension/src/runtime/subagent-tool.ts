@@ -82,6 +82,8 @@ export type SubagentToolParameters = Static<typeof SubagentToolParameters>;
 export interface CreateSubagentToolArgs {
   /** Host directory mounted at /workspace inside the VM. */
   mountPath: string;
+  /** Host working directory the subagent should start in. Defaults to mountPath. */
+  cwdPath?: string;
   /** pi auth directory the parent resolved. */
   piAuthDir: string;
   /** Resolved pi model handle — subagents share it. */
@@ -264,6 +266,7 @@ export function createSubagentTool(
 
       const session = await buildSession({
         mountPath: args.mountPath,
+        cwdPath: args.cwdPath ?? args.mountPath,
         piAuthDir: args.piAuthDir,
         modelHandle: args.modelHandle,
         agentName: args.agentName,

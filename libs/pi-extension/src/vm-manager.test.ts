@@ -9,6 +9,7 @@ import {
   cpSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -459,11 +460,13 @@ describe('dedicated worktree mount topology', () => {
       : path.resolve(worktreeDir, target);
   }
 
-  it('points outside the mounted subtree when only the nested worktree is mounted', () => {
+  it('keeps worktree git metadata reachable when mounting the repo root', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-repro-'));
     const guestRoot = mkdtempSync(path.join(tmpdir(), 'pi-guest-mount-'));
     const oldCwd = process.cwd();
-    let workspace: { mountPath: string; cleanup: () => void } | null = null;
+    let workspace:
+      | { mountPath: string; cwdPath: string; cleanup: () => void }
+      | null = null;
 
     try {
       runGit(repoRoot, ['init']);
@@ -490,25 +493,37 @@ describe('dedicated worktree mount topology', () => {
         worktreeBranch: 'moltnet/correlation-1/demo-task',
         workspaceScope: 'session',
       });
+      runGit(repoRoot, ['worktree', 'repair', '--relative-paths']);
 
-      const guestWorkspace = path.join(guestRoot, 'workspace');
-      cpSync(workspace.mountPath, guestWorkspace, { recursive: true });
+      const guestMountRoot = path.join(guestRoot, 'workspace');
+      cpSync(workspace.mountPath, guestMountRoot, { recursive: true });
+      const guestWorkspace = path.join(
+        guestMountRoot,
+        path.relative(workspace.mountPath, workspace.cwdPath),
+      );
 
       const gitdirPointer = readFileSync(path.join(guestWorkspace, '.git'), {
         encoding: 'utf8',
       }).trim();
       const resolvedGitdir = resolveGitdirPointer(guestWorkspace, gitdirPointer);
 
-      expect(resolvedGitdir.startsWith(guestRoot)).toBe(false);
+      expect(resolvedGitdir.startsWith(guestRoot)).toBe(true);
       expect(resolvedGitdir).toContain(
         `${path.sep}.git${path.sep}worktrees${path.sep}session-slot-1`,
       );
+      const adminBacklink = readFileSync(
+        path.join(resolvedGitdir, 'gitdir'),
+        'utf8',
+      ).trim();
+      expect(path.resolve(resolvedGitdir, adminBacklink)).toBe(
+        path.join(guestWorkspace, '.git'),
+      );
       expect(
-        readFileSync(path.join(resolvedGitdir, 'gitdir'), 'utf8').trim(),
-      ).not.toBe(guestWorkspace);
+        realpathSync(runGit(guestWorkspace, ['rev-parse', '--git-dir'])),
+      ).toBe(realpathSync(resolvedGitdir));
       expect(
-        path.relative(guestRoot, resolvedGitdir).startsWith('..'),
-      ).toBe(true);
+        realpathSync(runGit(guestWorkspace, ['rev-parse', '--show-toplevel'])),
+      ).toBe(realpathSync(guestWorkspace));
     } finally {
       process.chdir(oldCwd);
       workspace?.cleanup();
