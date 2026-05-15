@@ -50,15 +50,6 @@ jobs:
             fi
           done < <(find "$CLAUDE_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
 
-          # Skills in .agents but not in .claude
-          while IFS= read -r -d '' skill_dir; do
-            skill=$(basename "$skill_dir")
-            if [ ! -d "$CLAUDE_DIR/$skill" ]; then
-              echo "::error::Skill '$skill' exists in $AGENTS_DIR but not in $CLAUDE_DIR"
-              failed=1
-            fi
-          done < <(find "$AGENTS_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
-
           # Diff all common skills
           while IFS= read -r -d '' skill_dir; do
             skill=$(basename "$skill_dir")
@@ -73,11 +64,11 @@ jobs:
 
           if [ "$failed" -ne 0 ]; then
             echo ""
-            echo "Skill sync failed. Source of truth is .claude/skills/ — copy changes to .agents/skills/ to fix."
+            echo "Skill sync failed. Source of truth is .claude/skills/ — copy shared skills to .agents/skills/ to fix. Extra .agents/skills entries are allowed for Codex-only or plugin-provided skills."
             exit 1
           fi
 
-          echo "OK: .claude/skills and .agents/skills are in sync."
+          echo "OK: all .claude/skills are mirrored in .agents/skills. Extra .agents/skills entries are allowed."
 
       - name: Check tile skills are in sync with .claude/skills
         shell: bash
