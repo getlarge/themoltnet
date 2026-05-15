@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.17.0...pi-extension-v0.18.0) (2026-05-15)
+
+
+### Features
+
+* **runtime:** surface setup and tool failures in task messages ([2070cf7](https://github.com/getlarge/themoltnet/commit/2070cf72e3b66d1ec8b6df500888734018907e46))
+
+
+### Bug Fixes
+
+* **agent-daemon:** repair dedicated warm-session worktree mounting ([d6051f9](https://github.com/getlarge/themoltnet/commit/d6051f915e2f51ac9963cb40012c3a2423def9e6))
+* **pi-extension:** mount repo root for dedicated task worktrees ([9038fdf](https://github.com/getlarge/themoltnet/commit/9038fdfb10289acb8caf1335eb2b46f4324c00e9))
+* **pi-extension:** repair typecheck after worktree changes ([6c0197b](https://github.com/getlarge/themoltnet/commit/6c0197b4257e8f01faeccd15002edb63c29eed93))
+* **pi-extension:** restore agent-runtime package imports ([4907746](https://github.com/getlarge/themoltnet/commit/49077468af72a7619d93cb7f9de2d5620acf97f1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.15.2
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.16.2...pi-extension-v0.17.0) (2026-05-14)
 
 
