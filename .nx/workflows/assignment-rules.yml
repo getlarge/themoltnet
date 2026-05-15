@@ -11,6 +11,16 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
+  # rest-api's atomized route suites are still expensive per file, and
+  # multiple co-scheduled vitest tasks can starve the parent RPC loop on
+  # 4-vCPU agents. Keep only this project's test-ci shards at 2-way
+  # parallelism while preserving the denser default for the rest.
+  - projects: ['@moltnet/rest-api']
+    targets: ['test-ci--*']
+    run-on:
+      - agent: linux-medium
+        parallelism: 2
+
   # Atomized per-file vitest tasks (test-ci--<file>). Each is a single
   # vitest invocation on one file with bounded RPC pressure, so we can
   # safely co-schedule a few per agent — one of the main reasons we
