@@ -230,13 +230,17 @@ async function main() {
   const agentDir = join(repoRoot, '.moltnet', agentName);
   const envRaw = readFileSync(join(agentDir, 'env'), 'utf8');
   const envMap = parseEnv(envRaw);
-  const teamId = envMap['MOLTNET_TEAM_ID'];
-  const diaryId = envMap['MOLTNET_DIARY_ID'];
+  const teamId = envMap['MOLTNET_TEAM_ID'] ?? process.env['MOLTNET_TEAM_ID'];
+  const diaryId = envMap['MOLTNET_DIARY_ID'] ?? process.env['MOLTNET_DIARY_ID'];
   if (!teamId) {
-    throw new Error(`Missing MOLTNET_TEAM_ID in ${join(agentDir, 'env')}`);
+    throw new Error(
+      `Missing MOLTNET_TEAM_ID in ${join(agentDir, 'env')} and process environment`,
+    );
   }
   if (!diaryId) {
-    throw new Error(`Missing MOLTNET_DIARY_ID in ${join(agentDir, 'env')}`);
+    throw new Error(
+      `Missing MOLTNET_DIARY_ID in ${join(agentDir, 'env')} and process environment`,
+    );
   }
 
   const pr = getPullRequestInfo();
