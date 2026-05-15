@@ -337,7 +337,8 @@ describe('loadCredentials Pi auth optionality', () => {
       expect(creds.piAuthJson).toBeNull();
     } finally {
       process.env.HOME = oldHome;
-      if (oldAgentDir !== undefined) process.env.PI_CODING_AGENT_DIR = oldAgentDir;
+      if (oldAgentDir !== undefined)
+        process.env.PI_CODING_AGENT_DIR = oldAgentDir;
       else delete process.env.PI_CODING_AGENT_DIR;
       rmSync(fakeHome, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
@@ -358,7 +359,8 @@ describe('loadCredentials Pi auth optionality', () => {
       const creds = loadCredentials(dir);
       expect(creds.piAuthJson).toContain('sk-x');
     } finally {
-      if (oldAgentDir !== undefined) process.env.PI_CODING_AGENT_DIR = oldAgentDir;
+      if (oldAgentDir !== undefined)
+        process.env.PI_CODING_AGENT_DIR = oldAgentDir;
       else delete process.env.PI_CODING_AGENT_DIR;
       rmSync(altDir, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
@@ -382,7 +384,8 @@ describe('loadCredentials Pi auth optionality', () => {
       expect(creds.piAuthJson).toContain('sk-default');
     } finally {
       process.env.HOME = oldHome;
-      if (oldAgentDir !== undefined) process.env.PI_CODING_AGENT_DIR = oldAgentDir;
+      if (oldAgentDir !== undefined)
+        process.env.PI_CODING_AGENT_DIR = oldAgentDir;
       else delete process.env.PI_CODING_AGENT_DIR;
       rmSync(fakeHome, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
