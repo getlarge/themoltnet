@@ -40,12 +40,12 @@ import type {
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { type Static, type TObject, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
-import type { SubagentContractRegistry } from '@themoltnet/agent-runtime';
 
 import {
   buildAgentSession as defaultBuildAgentSession,
   type BuildAgentSessionArgs,
 } from './agent-session-factory.js';
+import type { SubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 
 const SUBAGENT_SUBMIT_TOOL_NAME = 'submit_subagent_output';
 

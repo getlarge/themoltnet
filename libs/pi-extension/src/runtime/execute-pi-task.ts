@@ -34,7 +34,6 @@ import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
-  type SubagentContractRegistry,
   TaskContext,
   type TaskOutput,
   type TaskReporter,
@@ -43,6 +42,7 @@ import {
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
+import type { SubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 
 import {
   createMoltNetTools,
@@ -226,7 +226,7 @@ export function createPiTaskExecutor(
     }
     return executePiTask(claimedTask, reporter, {
       ...opts,
-      checkpointPath: cachedCheckpoint,
+      checkpointPath: cachedCheckpoint ?? undefined,
       resolveCheckpointPath: async () => {
         if (!cachedCheckpoint) {
           cachedCheckpoint = await ensureSnapshot({

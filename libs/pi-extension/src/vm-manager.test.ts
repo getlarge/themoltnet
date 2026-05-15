@@ -485,7 +485,7 @@ describe('dedicated worktree mount topology', () => {
           brief: 'demo task',
           title: 'demo task',
         },
-      } as Parameters<typeof prepareTaskWorkspace>[0];
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
 
       workspace = prepareTaskWorkspace(task, repoRoot, {
         sessionKey: 'slot-1',
