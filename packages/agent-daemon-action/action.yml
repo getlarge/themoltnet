@@ -236,7 +236,8 @@ runs:
         # `~/.pi/agent/auth.json` produced by `pi /login` against
         # subscription providers — Anthropic Pro/Max, ChatGPT
         # Plus/Pro Codex, GitHub Copilot), write it to a runner-local
-        # path and point pi-extension at it via PI_AUTH_PATH.
+        # Pi agent dir and point pi-extension at it via
+        # PI_CODING_AGENT_DIR.
         #
         # If PI_AUTH_JSON is absent the daemon falls back to env-var
         # providers (ANTHROPIC_API_KEY etc.) which Pi reads natively.
@@ -249,26 +250,21 @@ runs:
         # the secret. See:
         # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
         if [ -n "${PI_AUTH_JSON:-}" ]; then
-          # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or, when
-          # that env is unset, $HOME/.pi/agent/auth.json (see
+          # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or,
+          # when that env is unset, $HOME/.pi/agent/auth.json (see
           # @earendil-works/pi-coding-agent's config.ts:getAgentDir()).
           # We write to a runner-local dir and point pi at it via
           # PI_CODING_AGENT_DIR — keeps the secret out of the home
           # tree (so it doesn't leak into action caches that include
           # `~`) while staying inside what pi can read directly.
-          # `PI_AUTH_PATH` is also exported for vm-manager.ts's
-          # loadCredentials, which uses it on the daemon-host side to
-          # inject the auth blob INTO the gondolin VM at boot.
           PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
-          PI_AUTH_PATH="$PI_AGENT_DIR/auth.json"
           mkdir -p "$PI_AGENT_DIR"
-          printf '%s' "$PI_AUTH_JSON" > "$PI_AUTH_PATH"
-          chmod 600 "$PI_AUTH_PATH"
+          printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
+          chmod 600 "$PI_AGENT_DIR/auth.json"
           {
-            echo "PI_AUTH_PATH=$PI_AUTH_PATH"
             echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
           } >> "$GITHUB_ENV"
-          echo "::notice::Pi auth.json materialized at $PI_AUTH_PATH (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
+          echo "::notice::Pi auth.json materialized at $PI_AGENT_DIR/auth.json (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
 
           # Best-effort staleness check (#1040). Pi writes per-provider
           # entries with shape:
@@ -293,7 +289,7 @@ runs:
             min_expires=$(jq -r '
               [.[] | select(type == "object" and .expires != null) | .expires]
               | if length == 0 then empty else min end
-            ' "$PI_AUTH_PATH" 2>/dev/null || true)
+            ' "$PI_AGENT_DIR/auth.json" 2>/dev/null || true)
             if [ -n "${min_expires:-}" ] && [ "$min_expires" -gt 0 ] 2>/dev/null; then
               if [ "$min_expires" -lt $(( now_ms - grace_ms )) ]; then
                 days_past=$(( (now_ms - min_expires) / 86400000 ))
@@ -376,6 +372,51 @@ runs:
         if [ -z "$MODEL" ]; then
           echo "::error::model is required (set the action's \`model\` input or MOLTNET_AGENT_MODEL env)" >&2
           exit 1
+        fi
+        PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
+        if [ "$PROVIDER" = "ollama" ]; then
+          # Ollama CI runs need a model registry entry as well as an API
+          # key. Pi reads the key from env, and this host-side registry is
+          # what makes the cloud models available to `--model`.
+          if [ -z "${OLLAMA_API_KEY:-}" ]; then
+            echo "::error::OLLAMA_API_KEY is required when provider is ollama" >&2
+            exit 1
+          fi
+          export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
+          mkdir -p "$PI_AGENT_DIR"
+          PI_MODELS_PATH="$PI_AGENT_DIR/models.json"
+          cat > "$PI_MODELS_PATH" <<'JSON'
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "https://ollama.com/v1",
+      "api": "openai-completions",
+      "apiKey": "OLLAMA_API_KEY",
+      "models": [
+        {
+          "id": "qwen3.5:cloud"
+        },
+        {
+          "id": "qwen3-coder:480b-cloud"
+        }
+      ]
+    }
+  }
+}
+JSON
+          chmod 600 "$PI_MODELS_PATH"
+          echo "::notice::Pi models.json materialized at $PI_MODELS_PATH for ollama"
+          PI_SETTINGS_PATH="$PI_AGENT_DIR/settings.json"
+          cat > "$PI_SETTINGS_PATH" <<'JSON'
+{
+  "enabledModels": [
+    "ollama-cloud/qwen3.5:cloud",
+    "ollama-cloud/qwen3-coder:480b-cloud"
+  ]
+}
+JSON
+          chmod 600 "$PI_SETTINGS_PATH"
+          echo "::notice::Pi settings.json materialized at $PI_SETTINGS_PATH for ollama"
         fi
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
         npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \

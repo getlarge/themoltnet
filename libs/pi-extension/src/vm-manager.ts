@@ -56,9 +56,10 @@ export interface VmCredentials {
   agentEnvRaw: string;
   /**
    * Pi OAuth/API-key auth blob. Null when neither `~/.pi/agent/auth.json`
-   * (or its `PI_AUTH_PATH` override) is present — in that case the daemon
-   * relies on Pi's env-var providers (`ANTHROPIC_API_KEY`, etc.) carried
-   * via `agentEnv` and the host environment instead. CI uses this path.
+   * (resolved via `PI_CODING_AGENT_DIR` when set) is present — in that
+   * case the daemon relies on Pi's env-var providers (`ANTHROPIC_API_KEY`,
+   * etc.) carried via `agentEnv` and the host environment instead. CI uses
+   * this path.
    */
   piAuthJson: string | null;
   agentEnv: Record<string, string | undefined>;
@@ -101,14 +102,13 @@ export function loadCredentials(agentDir: string): VmCredentials {
   const moltnetJson = readFileSync(path.join(agentDir, 'moltnet.json'), 'utf8');
   const agentEnvRaw = readFileSync(path.join(agentDir, 'env'), 'utf8');
 
-  // Pi auth resolution: explicit PI_AUTH_PATH override wins, else default
-  // `~/.pi/agent/auth.json`. When neither exists we leave piAuthJson null;
-  // pi-headless then resolves provider creds from env vars
-  // (ANTHROPIC_API_KEY, OPENAI_API_KEY, …) at runtime. This is the path
-  // CI uses — the daemon never materialises an auth.json there.
-  const piAuthPath =
-    process.env.PI_AUTH_PATH ??
-    path.join(process.env.HOME ?? '', '.pi', 'agent', 'auth.json');
+  // Pi auth resolution: use the agent dir Pi already expects. CI writes
+  // `auth.json` under `PI_CODING_AGENT_DIR`; local runs fall back to the
+  // canonical `~/.pi/agent` dir when the override is unset.
+  const piAgentDir =
+    process.env.PI_CODING_AGENT_DIR ??
+    path.join(process.env.HOME ?? '', '.pi', 'agent');
+  const piAuthPath = path.join(piAgentDir, 'auth.json');
   const piAuthJson = existsSync(piAuthPath)
     ? readFileSync(piAuthPath, 'utf8')
     : null;
@@ -388,6 +388,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
 
     if (creds.piAuthJson !== null) {
+      // See MoltNet diary entry 09336c5e-e45a-475f-b9cd-1e0ab635e093.
       await vm.fs.writeFile(
         '/home/agent/.pi/agent/auth.json',
         creds.piAuthJson,

@@ -57,7 +57,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 # https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts
 ```
 
-To use an alternate auth-file path: `PI_AUTH_PATH=/abs/path/to/auth.json`.
+To use a non-default auth directory: `PI_CODING_AGENT_DIR=/abs/path/to/.pi/agent`.
 
 ### Observability
 
