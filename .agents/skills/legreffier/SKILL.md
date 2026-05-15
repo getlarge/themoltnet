@@ -383,12 +383,21 @@ Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` 
 **Mode-dependent behavior:**
 
 - **`agent` and `coauthor` modes**: use the agent's GitHub App token for all `gh` calls.
-- **`human` mode**: skip `GH_TOKEN` only for user-visible **write** actions
+- **`human` mode**: still default to the agent's GitHub App token. Skip `GH_TOKEN` only for user-visible **write** actions
   (`gh pr create`, `gh pr comment`, `gh pr edit`, `gh pr close`, `gh pr merge`, `gh pr ready`,
   `gh issue create`, `gh issue comment`, `gh issue edit`, `gh issue close`) so they appear as
-  the human. Use the agent token for read-only `gh` calls (`gh pr view`, `gh pr list`,
+  the human, and only when the user explicitly wants human GitHub authorship. Use the agent token for read-only `gh` calls (`gh pr view`, `gh pr list`,
   `gh issue view`, etc.), for `git push`, and for content API calls
   (`gh api repos/{owner}/{repo}/contents/...`). The human must have `gh auth login` configured.
+
+**Hard default:** do not run bare `gh ...` commands when a GitHub App is configured. Source
+`GH_TOKEN` from MoltNet first and wrap the command unless you are intentionally using the narrow
+human-authorship exception above.
+
+Decision rule:
+
+1. If `MOLTNET_COMMIT_AUTHORSHIP=human` **and** the user explicitly wants a visible human-authored `gh pr ...` or `gh issue ...` write action, run that narrow write action bare.
+2. Otherwise, for any `gh` command in legreffier mode, use the exact wrapped form below.
 
 When using the agent token:
 
@@ -397,8 +406,13 @@ CFG="$GIT_CONFIG_GLOBAL"
 case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
 CREDS="$(dirname "$CFG")/moltnet.json"
 [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
-GH_TOKEN=$($MOLTNET_CLI github token --credentials "$CREDS") gh <command>
+GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
+# or, if `moltnet` is not installed:
+GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
+
+Use that exact wrapper for `gh pr ...`, `gh issue ...`, `gh repo ...`, and `gh api ...` whenever
+the agent token is in play.
 
 The `git rev-parse --show-toplevel` anchor is required because
 `GIT_CONFIG_GLOBAL` may be a relative path (e.g.
@@ -597,7 +611,8 @@ Both `human` and `coauthor` require `MOLTNET_HUMAN_GIT_IDENTITY` to be set (e.g.
 **`human` mode caveats:**
 
 - Commits are **unsigned** because the agent's gitconfig overrides the human's signing setup. The diary entry is the accountability layer.
-- `gh pr` and `gh issue` must NOT use `GH_TOKEN` — use the human's `gh auth` so the PR shows as authored by the human.
+- `gh pr` and `gh issue` may skip `GH_TOKEN` only when the user explicitly wants those write actions to appear as authored by the human on GitHub.
+- Otherwise, even in `human` mode, default to the MoltNet GitHub token wrapper for `gh` commands.
 - `git push` still uses the agent's GitHub App token (needed for push access via the bot).
 - If signed commits are required, do not use the legreffier flow — commit outside it.
 
