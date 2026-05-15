@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "analytics": false,
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -67,8 +68,13 @@
     },
     {
       "options": {
-        "build": { "configName": "tsconfig.lib.json", "targetName": "build" },
-        "typecheck": { "targetName": "typecheck" }
+        "build": {
+          "configName": "tsconfig.lib.json",
+          "targetName": "build"
+        },
+        "typecheck": {
+          "targetName": "typecheck"
+        }
       },
       "plugin": "@nx/js/typescript"
     },
