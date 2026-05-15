@@ -1,2 +1,35 @@
-pnpm exec dotenvx ext precommit
-pnpm exec lint-staged
+#!/bin/sh
+set -eu
+
+top_level="$(git rev-parse --show-toplevel)"
+common_dir="$(git rev-parse --git-common-dir)"
+main_checkout="$(cd "$common_dir/.." && pwd -P)"
+
+resolve_bin() {
+  tool_name="$1"
+
+  if [ -x "$top_level/node_modules/.bin/$tool_name" ]; then
+    printf '%s\n' "$top_level/node_modules/.bin/$tool_name"
+    return 0
+  fi
+
+  if [ -x "$main_checkout/node_modules/.bin/$tool_name" ]; then
+    printf '%s\n' "$main_checkout/node_modules/.bin/$tool_name"
+    return 0
+  fi
+
+  if command -v "$tool_name" >/dev/null 2>&1; then
+    command -v "$tool_name"
+    return 0
+  fi
+
+  printf 'pre-commit: could not find required tool "%s"\n' "$tool_name" >&2
+  return 1
+}
+
+dotenvx_bin="$(resolve_bin dotenvx)"
+lint_staged_bin="$(resolve_bin lint-staged)"
+
+cd "$top_level"
+"$dotenvx_bin" ext precommit
+"$lint_staged_bin" --cwd "$top_level"
