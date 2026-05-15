@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.15.1...agent-runtime-v0.15.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* **agent-daemon:** repair dedicated warm-session worktree mounting ([d6051f9](https://github.com/getlarge/themoltnet/commit/d6051f915e2f51ac9963cb40012c3a2423def9e6))
+* format subagent-output-contracts.test.ts (nx format) ([d931549](https://github.com/getlarge/themoltnet/commit/d931549bf3547bcf1c0e132a04f72911830a801b))
+
 ## [0.15.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.15.0...agent-runtime-v0.15.1) (2026-05-12)
 
 

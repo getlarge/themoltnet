@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.7.0...agent-daemon-v0.8.0) (2026-05-15)
+
+
+### Features
+
+* **runtime:** surface setup and tool failures in task messages ([2070cf7](https://github.com/getlarge/themoltnet/commit/2070cf72e3b66d1ec8b6df500888734018907e46))
+
+
+### Bug Fixes
+
+* **agent-daemon:** repair dedicated warm-session worktree mounting ([d6051f9](https://github.com/getlarge/themoltnet/commit/d6051f915e2f51ac9963cb40012c3a2423def9e6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.15.2
+    * @themoltnet/pi-extension bumped to 0.18.0
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.6.2...agent-daemon-v0.7.0) (2026-05-14)
 
 

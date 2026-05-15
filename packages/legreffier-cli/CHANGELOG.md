@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.5](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.4...legreffier-v0.33.5) (2026-05-15)
+
+
+### Bug Fixes
+
+* enhance hostExec auto-approval rules to block pushes to main branch ([8228606](https://github.com/getlarge/themoltnet/commit/822860675e00a92691e936970fb9a4c263384d6b))
+* **legreffier-cli:** sync generated CLI sandbox rules ([349c10c](https://github.com/getlarge/themoltnet/commit/349c10c5702efe7341bc2db4b20d3b6e9d268cbe))
+
 ## [0.33.4](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.3...legreffier-v0.33.4) (2026-05-11)
 
 
