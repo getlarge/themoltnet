@@ -9,6 +9,8 @@ import {
   JUDGE_PACK_TYPE,
   JudgeEvalVariantInput,
   JudgePackInput,
+  PR_REVIEW_TYPE,
+  PrReviewInput,
   RENDER_PACK_TYPE,
   RenderPackInput,
   RUN_EVAL_TYPE,
@@ -22,6 +24,7 @@ import { buildCuratePackUserPrompt } from './curate-pack.js';
 import { buildFulfillBriefUserPrompt } from './fulfill-brief.js';
 import { buildJudgeEvalVariantUserPrompt } from './judge-eval-variant.js';
 import { buildJudgePackUserPrompt } from './judge-pack.js';
+import { buildPrReviewUserPrompt } from './pr-review.js';
 import { buildRenderPackUserPrompt } from './render-pack.js';
 import { buildRunEvalUserPrompt } from './run-eval.js';
 
@@ -30,6 +33,7 @@ export * from './curate-pack.js';
 export * from './fulfill-brief.js';
 export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
+export * from './pr-review.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
 
@@ -133,6 +137,20 @@ export function buildTaskUserPrompt(
       return buildJudgePackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+      });
+    }
+
+    case PR_REVIEW_TYPE: {
+      if (!Value.Check(PrReviewInput, task.input)) {
+        const errors = [...Value.Errors(PrReviewInput, task.input)];
+        throw new Error(
+          `pr_review input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildPrReviewUserPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
+        workspace: ctx.workspace,
       });
     }
 

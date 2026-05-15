@@ -41,6 +41,13 @@ import {
   validateJudgePackOutput,
 } from './judge-pack.js';
 import {
+  PR_REVIEW_TYPE,
+  PrReviewInput,
+  PrReviewOutput,
+  validatePrReviewInput,
+  validatePrReviewOutput,
+} from './pr-review.js';
+import {
   RENDER_PACK_TYPE,
   RenderPackInput,
   RenderPackOutput,
@@ -58,6 +65,7 @@ export * from './curate-pack.js';
 export * from './fulfill-brief.js';
 export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
+export * from './pr-review.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
 
@@ -245,6 +253,18 @@ export const BUILT_IN_TASK_TYPES = {
     requiresReferences: true,
     validateInput: validateJudgmentInput,
     validateInputAsync: validateAssessBriefInputAsync,
+  },
+  [PR_REVIEW_TYPE]: {
+    name: PR_REVIEW_TYPE,
+    inputSchema: PrReviewInput,
+    outputSchema: PrReviewOutput,
+    outputKind: 'judgment',
+    workspaceMode: 'dedicated_worktree',
+    workspaceScope: 'attempt',
+    sessionScope: 'none',
+    requiresReferences: false,
+    validateInput: validatePrReviewInput,
+    validateOutput: validatePrReviewOutput,
   },
   [CURATE_PACK_TYPE]: {
     name: CURATE_PACK_TYPE,

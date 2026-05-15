@@ -1,0 +1,38 @@
+{
+  "criteria": [
+    {
+      "description": "Pass only when the change stays single-purpose, the concepts touched are coherent, and a reviewer does not need to juggle multiple intertwined concerns at once. Fail when the diff mixes unrelated refactor, behavior change, dependency churn, or otherwise forces high cognitive load.",
+      "id": "cognitive_load",
+      "scoring": "boolean",
+      "weight": 0.25
+    },
+    {
+      "description": "Pass only when the change is well isolated and a regression would have a small blast radius. Fail when it changes public contracts, schema, migrations, auth paths, shared utilities, or other surfaces where mistakes propagate broadly.",
+      "id": "blast_radius",
+      "scoring": "boolean",
+      "weight": 0.25
+    },
+    {
+      "description": "Pass only when tests are added or updated proportionally to the risk introduced by the change. Fail when meaningful behavior changes land without adequate tests, or when tests are weakened or removed to make the change pass.",
+      "id": "test_coverage_delta",
+      "scoring": "boolean",
+      "weight": 0.2
+    },
+    {
+      "description": "Pass only when the change does not materially increase security review surface or when the security-sensitive parts remain obviously low-risk and well-contained. Fail when it touches authentication, authorization, cryptography, secrets, or external egress in a way that demands deeper review.",
+      "id": "security_surface",
+      "scoring": "boolean",
+      "weight": 0.2
+    },
+    {
+      "description": "Pass only when the reviewer is well oriented by the title, description, commits, and any supporting rationale. Fail when the change lacks a clear explanation of what changed and why, leaving the reviewer to reconstruct intent from the diff alone.",
+      "id": "reviewer_orientation",
+      "scoring": "boolean",
+      "weight": 0.1
+    }
+  ],
+  "preamble": "You are reviewing a change artifact for complexity: how hard it is to review safely, not whether the feature is desirable. Use binary scoring only. When evidence is ambiguous, fail the criterion and explain why.",
+  "rubricId": "pr-complexity-binary-v1",
+  "scope": "change_review",
+  "version": "v1"
+}
