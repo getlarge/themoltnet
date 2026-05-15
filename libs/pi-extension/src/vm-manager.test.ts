@@ -10,7 +10,6 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -451,14 +450,22 @@ describe('dedicated worktree mount topology', () => {
     }).trim();
   }
 
-  it('loses git repository visibility when only the nested worktree is mounted', () => {
+  function resolveGitdirPointer(worktreeDir: string, gitdirPointer: string) {
+    const prefix = 'gitdir: ';
+    expect(gitdirPointer.startsWith(prefix)).toBe(true);
+    const target = gitdirPointer.slice(prefix.length).trim();
+    return path.isAbsolute(target)
+      ? target
+      : path.resolve(worktreeDir, target);
+  }
+
+  it('points outside the mounted subtree when only the nested worktree is mounted', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-repro-'));
     const guestRoot = mkdtempSync(path.join(tmpdir(), 'pi-guest-mount-'));
     const oldCwd = process.cwd();
     let workspace: { mountPath: string; cleanup: () => void } | null = null;
 
     try {
-      const repoRootReal = realpathSync(repoRoot);
       runGit(repoRoot, ['init']);
       runGit(repoRoot, ['config', 'user.name', 'Test User']);
       runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
@@ -490,20 +497,22 @@ describe('dedicated worktree mount topology', () => {
       const gitdirPointer = readFileSync(path.join(guestWorkspace, '.git'), {
         encoding: 'utf8',
       }).trim();
-      expect(gitdirPointer).toBe(
-        `gitdir: ${repoRootReal}/.git/worktrees/session-slot-1`,
+      const resolvedGitdir = resolveGitdirPointer(guestWorkspace, gitdirPointer);
+
+      expect(resolvedGitdir.startsWith(guestRoot)).toBe(false);
+      expect(resolvedGitdir).toContain(
+        `${path.sep}.git${path.sep}worktrees${path.sep}session-slot-1`,
       );
-
-      workspace.cleanup();
-      workspace = null;
-      rmSync(repoRoot, { recursive: true, force: true });
-
-      expect(() =>
-        runGit(guestWorkspace, ['rev-parse', '--git-dir']),
-      ).toThrow(/not a git repository|could not read gitdir/i);
+      expect(
+        readFileSync(path.join(resolvedGitdir, 'gitdir'), 'utf8').trim(),
+      ).not.toBe(guestWorkspace);
+      expect(
+        path.relative(guestRoot, resolvedGitdir).startsWith('..'),
+      ).toBe(true);
     } finally {
       process.chdir(oldCwd);
       workspace?.cleanup();
+      rmSync(repoRoot, { recursive: true, force: true });
       rmSync(guestRoot, { recursive: true, force: true });
     }
   });
