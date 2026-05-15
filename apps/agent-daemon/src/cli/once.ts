@@ -4,6 +4,8 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
+  createSubagentContractRegistry,
+  JudgeEvalVariantResult,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
@@ -147,9 +149,21 @@ export async function runOnce(argv: string[]): Promise<number> {
     onSignal('SIGTERM');
   });
 
+  const subagentContractRegistry = createSubagentContractRegistry([
+    {
+      name: 'judge_eval_variant_result',
+      description:
+        'Per-variant grading result produced by a subagent of ' +
+        'judge_eval_variant: scores against the shared rubric, ' +
+        'composite, and a 1-3 sentence verdict for a single variant.',
+      parametersSchema: JudgeEvalVariantResult,
+    },
+  ]);
+
   try {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
+      subagentContractRegistry,
       mountPath: sandbox.rootDir,
       provider: opts.provider,
       model: opts.model,

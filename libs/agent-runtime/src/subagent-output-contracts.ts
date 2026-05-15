@@ -1,11 +1,11 @@
 /**
- * Subagent output contract registry.
+ * Subagent output contract.
  *
  * A "subagent output contract" is the schema a parent task's spawned
  * subagent must produce when it calls `submit_subagent_output`. Parents
  * pick the contract by **name** when invoking the `subagent` custom
  * tool (e.g. `subagent({ task, output_schema: 'judge_eval_variant_result' })`),
- * and the executor resolves the name to a TypeBox schema here.
+ * and the executor resolves the name to a TypeBox schema.
  *
  * Why a registry separate from task-type output schemas:
  *
@@ -23,11 +23,11 @@
  *     (string lookup) and never imports concrete task type schema
  *     modules. Adding new contracts is a one-line registration here.
  *
- * Layering note: `agent-runtime` can and does import from
- * `@moltnet/tasks` (e.g. for `Task`, `TaskOutput` types and the
- * existing `getTaskOutputSchema` helper). The constraint is that
- * `pi-extension` never hardcodes task-type names — and reading
- * contracts by name from this registry preserves that.
+ * The registry is **immutable at runtime**: it is constructed once
+ * at session-setup time via `createSubagentContractRegistry([...])`
+ * and injected into the subagent tool. This eliminates the previous
+ * process-global Map and the accompanying reset hatch that exposed
+ * test asymmetry (see #1106).
  */
 import type { TSchema } from '@sinclair/typebox';
 
@@ -47,78 +47,47 @@ export interface SubagentOutputContract {
   readonly parametersSchema: TSchema;
 }
 
-const REGISTRY = new Map<string, SubagentOutputContract>();
+export interface SubagentContractRegistry {
+  /** Resolve a contract by name. Returns `null` for unknown names. */
+  get(name: string): SubagentOutputContract | null;
+  /** List all registered contracts. */
+  list(): SubagentOutputContract[];
+}
 
 /**
- * Register a subagent output contract. Idempotent: re-registering the
- * same name with a different schema throws — contracts are meant to
- * be stable. Re-registering with the identical contract object (same
- * reference) is a no-op for HMR and test convenience.
+ * Construct an immutable contract registry from a static list.
  *
- * Typically called at module-init time alongside task-type
- * registration. See task-types/index.ts in @moltnet/tasks for the
- * conventional pattern.
+ * The resulting registry is safe to share across sessions and
+ * invocations — no mutation is possible after construction.
  */
-export function registerSubagentOutputContract(
-  contract: SubagentOutputContract,
-): void {
-  if (!contract.name || contract.name.trim().length === 0) {
-    throw new Error('subagent output contract name is required');
-  }
-  if (!/^[a-z][a-z0-9_]*$/.test(contract.name)) {
-    throw new Error(
-      `subagent output contract name '${contract.name}' must be lower_snake_case ` +
-        '(starts with a letter, then [a-z0-9_]+)',
-    );
-  }
-  const existing = REGISTRY.get(contract.name);
-  if (existing && existing !== contract) {
-    if (existing.parametersSchema !== contract.parametersSchema) {
+export function createSubagentContractRegistry(
+  contracts: readonly SubagentOutputContract[],
+): SubagentContractRegistry {
+  const lookup = new Map<string, SubagentOutputContract>();
+  for (const c of contracts) {
+    if (!c.name || c.name.trim().length === 0) {
+      throw new Error('subagent output contract name is required');
+    }
+    if (!/^[a-z][a-z0-9_]*$/.test(c.name)) {
       throw new Error(
-        `subagent output contract '${contract.name}' is already registered ` +
-          `with a different schema; refusing to override`,
+        `subagent output contract name '${c.name}' must be lower_snake_case ` +
+          '(starts with a letter, then [a-z0-9_]+)',
       );
     }
-    // Same schema, different object instance (e.g. HMR reload). Replace
-    // silently; consumers reading by name are unaffected.
+    if (lookup.has(c.name)) {
+      throw new Error(
+        `duplicate subagent output contract name '${c.name}' in constructor args`,
+      );
+    }
+    lookup.set(c.name, c);
   }
-  REGISTRY.set(contract.name, contract);
-}
 
-/**
- * Resolve a subagent output contract by name. Returns `null` for
- * unknown names — callers (the subagent custom tool) decide whether
- * that's a tool error the parent LLM can recover from or a hard fail.
- */
-export function getSubagentOutputContract(
-  name: string,
-): SubagentOutputContract | null {
-  return REGISTRY.get(name) ?? null;
-}
-
-/**
- * List all registered contracts. Useful for diagnostics and for the
- * subagent tool's parameter description so a parent LLM can see what
- * contracts are available without enumerating them in its prompt.
- */
-export function listSubagentOutputContracts(): SubagentOutputContract[] {
-  return [...REGISTRY.values()];
-}
-
-/**
- * Test hook: clear all registered contracts.
- *
- * Re-exported from the package index so vitest in sibling packages
- * (e.g. `@themoltnet/pi-extension`) can call it through the public
- * entry — Nx's `enforce-module-boundaries` rule blocks reaching into
- * source via relative paths. Production code MUST NOT call this:
- * registered contracts are process-global and clearing them mid-run
- * silently breaks every consumer that has already resolved by name.
- *
- * The `__` prefix and `ForTests` suffix are deliberate stylistic
- * markers — any production call site that uses this name should
- * trigger code-review pushback on sight.
- */
-export function __resetSubagentOutputContractsForTests(): void {
-  REGISTRY.clear();
+  return {
+    get(name: string): SubagentOutputContract | null {
+      return lookup.get(name) ?? null;
+    },
+    list(): SubagentOutputContract[] {
+      return [...lookup.values()];
+    },
+  };
 }

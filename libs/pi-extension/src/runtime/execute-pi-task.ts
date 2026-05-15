@@ -34,6 +34,7 @@ import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  type SubagentContractRegistry,
   TaskContext,
   type TaskOutput,
   type TaskReporter,
@@ -184,6 +185,14 @@ export interface ExecutePiTaskOptions {
    * file-backed Pi sessions for selected task classes.
    */
   makeExecutionPlan?: PiTaskExecutionPlanFactory;
+
+  /**
+   * Immutable subagent contract registry used to resolve `output_schema`
+   * names at subagent tool call time. Constructed by the daemon (or
+   * tests) from static built-in schemas — `execute-pi-task` never hardcodes
+   * contracts. See #1106.
+   */
+  subagentContractRegistry?: SubagentContractRegistry;
 }
 
 /**
@@ -561,6 +570,7 @@ export async function executePiTask(
           parentTaskId: task.id,
           parentTaskType: task.taskType,
           parentAttemptN: attemptN,
+          contractRegistry: opts.subagentContractRegistry!,
           // Propagate parent cancel (operator cancel + task-level
           // runningTimeoutSec expiry already flow through this signal
           // for the parent session via `wireSessionAbort`) to every

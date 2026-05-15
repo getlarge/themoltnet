@@ -17,7 +17,7 @@
  *     discipline still apply IF the subagent does anything that
  *     would normally trigger them)
  *   - its own submit-tool, `submit_subagent_output`, whose schema is
- *     resolved from the contract name via the agent-runtime registry
+ *     resolved from the contract name via the injected registry
  *
  * Failure modes (each surfaced as `isError: true` to the parent so
  * the parent LLM can recover mid-conversation):
@@ -40,10 +40,7 @@ import type {
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { type Static, type TObject, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
-import {
-  getSubagentOutputContract,
-  listSubagentOutputContracts,
-} from '@themoltnet/agent-runtime';
+import type { SubagentContractRegistry } from '@themoltnet/agent-runtime';
 
 import {
   buildAgentSession as defaultBuildAgentSession,
@@ -147,6 +144,17 @@ export interface CreateSubagentToolArgs {
    * exercise the tool's logic without booting a VM.
    */
   buildAgentSession?: (args: BuildAgentSessionArgs) => Promise<AgentSession>;
+
+  /**
+   * Contract registry for resolving output_schema names to TypeBox
+   * schemas at call time. The subagent tool reads ONLY via `.get()`
+   * and `.list()` — the registry is immutable after construction.
+   *
+   * Production callers (executePiTask) create the registry with
+   * built-in contracts at session-setup; tests inject a registry
+   * with whatever stubs they need.
+   */
+  contractRegistry: SubagentContractRegistry;
 }
 
 const DEFAULT_SUBAGENT_TIMEOUT_MS = 5 * 60 * 1000;
@@ -167,6 +175,7 @@ export function createSubagentTool(
   args: CreateSubagentToolArgs,
 ): SubagentToolHandle {
   const buildSession = args.buildAgentSession ?? defaultBuildAgentSession;
+  const { contractRegistry } = args;
   let callCount = 0;
 
   const tool = defineTool({
@@ -187,9 +196,10 @@ export function createSubagentTool(
       }
 
       const { task, output_schema } = params;
-      const contract = getSubagentOutputContract(output_schema);
+      const contract = contractRegistry.get(output_schema);
       if (!contract) {
-        const known = listSubagentOutputContracts()
+        const known = contractRegistry
+          .list()
           .map((c) => c.name)
           .join(', ');
         return toolError(
@@ -212,7 +222,7 @@ export function createSubagentTool(
           `Submit your structured output for this subagent task. ` +
           `Call exactly once when done. Args MUST match the ` +
           `${output_schema} contract; mismatches return a tool error ` +
-          `you can recover from in the same session.`,
+          'you can recover from in the same session.',
         parameters: contract.parametersSchema as TObject,
         async execute(_innerId, innerParams) {
           if (!Value.Check(contract.parametersSchema, innerParams)) {
@@ -326,7 +336,7 @@ export function createSubagentTool(
       if (abortReason !== null) {
         // Capture may or may not be set depending on whether the inner
         // submit landed before abort; we always surface the abort as a
-        // recoverable tool error so the parent can decide to retry vs
+        // recoverable tool error so the parent can decide to retry vs.
         // fail the task.
         const reasonText =
           abortReason === 'subagent_timed_out'
