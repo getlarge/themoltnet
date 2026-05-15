@@ -13,9 +13,9 @@ import type {
 import { Type } from '@sinclair/typebox';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createSubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 import type { BuildAgentSessionArgs } from './agent-session-factory.js';
 import { createSubagentTool } from './subagent-tool.js';
-import { createSubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 
 const SubagentResult = Type.Object({
   verdict: Type.String({ minLength: 1 }),

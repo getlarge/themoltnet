@@ -42,8 +42,8 @@ import {
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
-import type { SubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 
+import type { SubagentContractRegistry } from '../../../agent-runtime/src/subagent-output-contracts.js';
 import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
