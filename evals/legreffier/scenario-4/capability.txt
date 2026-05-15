@@ -1,1 +1,1 @@
-Multi-commit task shaping and pre-push checklist
+LeGreffier routing: authenticated GitHub write path

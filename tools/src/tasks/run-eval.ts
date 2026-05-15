@@ -189,6 +189,10 @@ async function main() {
       prompt: scenario.taskPrompt,
     },
     variantLabel,
+    execution: {
+      mode: scenario.evalMode,
+      workspace: scenario.evalWorkspace,
+    },
     context,
     successCriteria: {
       version: 1,
@@ -225,6 +229,7 @@ async function main() {
             scenarioPath: scenario.scenarioPath,
             scenarioId: scenario.scenarioId,
             evalMode: scenario.evalMode,
+            evalWorkspace: scenario.evalWorkspace,
             rubricCriteriaCount: rubric.criteria.length,
             contextBindings: context.map((c) => ({
               slug: c.slug,

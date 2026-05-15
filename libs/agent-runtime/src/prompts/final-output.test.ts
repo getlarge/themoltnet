@@ -147,6 +147,7 @@ const TASK_FIXTURES: Array<{
           input: {
             scenario: { prompt: 'List 3 risks.' },
             variantLabel: 'baseline',
+            execution: { mode: 'vitro', workspace: 'none' },
             context: [],
           },
         }),

@@ -281,7 +281,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             taskId: claimedTask.task.id,
             taskType: claimedTask.task.taskType,
             resumable: sessionDescriptor.policy.resumable,
-            workspaceMode: sessionDescriptor.policy.workspaceMode,
+            workspaceMode: executionPlan.workspaceMode,
             workspaceScope: sessionDescriptor.policy.workspaceScope,
             sessionScope: sessionDescriptor.policy.sessionScope,
             slotKey: executionPlan.slotKey,

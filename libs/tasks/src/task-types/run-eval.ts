@@ -14,6 +14,41 @@ import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const RUN_EVAL_TYPE = 'run_eval' as const;
 
+export const RunEvalMode = Type.Union(
+  [Type.Literal('vitro'), Type.Literal('vivo')],
+  { $id: 'RunEvalMode' },
+);
+export type RunEvalMode = Static<typeof RunEvalMode>;
+
+export const RunEvalWorkspace = Type.Union(
+  [
+    Type.Literal('none'),
+    Type.Literal('shared_mount'),
+    Type.Literal('dedicated_worktree'),
+  ],
+  { $id: 'RunEvalWorkspace' },
+);
+export type RunEvalWorkspace = Static<typeof RunEvalWorkspace>;
+
+export const RunEvalExecution = Type.Object(
+  {
+    /**
+     * `vitro` = proctored eval in an isolated runner context whose main
+     * comparison target is prompt/context behavior.
+     * `vivo` = live-repo eval against a real checkout/worktree.
+     */
+    mode: RunEvalMode,
+    /**
+     * Workspace shape selected by the task creator for this variant run.
+     * `none` means the runner should not expose the repository checkout at
+     * all; it receives an empty scratch workspace instead.
+     */
+    workspace: RunEvalWorkspace,
+  },
+  { $id: 'RunEvalExecution', additionalProperties: false },
+);
+export type RunEvalExecution = Static<typeof RunEvalExecution>;
+
 export const RunEvalInput = Type.Object(
   {
     scenario: Type.Object(
@@ -25,6 +60,12 @@ export const RunEvalInput = Type.Object(
     ),
     /** Variant identity. Joins variants under a correlation_id. */
     variantLabel: Type.String({ minLength: 1, maxLength: 64 }),
+    /**
+     * Per-task execution shape. The task creator, not the task type
+     * registry, decides whether this eval runs in vitro or vivo and
+     * whether it needs no repo, the shared mount, or a dedicated worktree.
+     */
+    execution: RunEvalExecution,
     /** Empty array IS the baseline. */
     context: TaskContext,
     /**

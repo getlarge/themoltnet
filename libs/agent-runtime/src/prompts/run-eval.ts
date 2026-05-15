@@ -30,7 +30,7 @@ interface Ctx {
  * builder does NOT inline `input.context[]` itself.
  */
 export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
-  const { scenario, variantLabel, successCriteria } = input;
+  const { scenario, variantLabel, execution, successCriteria } = input;
 
   const inputFilesSection = scenario.inputFiles?.length
     ? [
@@ -58,6 +58,19 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
       ].join('\n')
     : '';
 
+  const executionSection = [
+    '### Execution mode',
+    '',
+    `Mode: \`${execution.mode}\``,
+    `Workspace: \`${execution.workspace}\``,
+    execution.workspace === 'none'
+      ? 'You are running in a scratch workspace with no repository checkout mounted. Do not assume git history or repo files are present unless the scenario provided them explicitly.'
+      : execution.workspace === 'shared_mount'
+        ? 'You are running against the daemon shared mount. Treat any repository mutations as affecting the mounted checkout directly.'
+        : 'You are running in a dedicated disposable git worktree isolated from the daemon shared checkout.',
+    '',
+  ].join('\n');
+
   const finalOutputBlock = buildFinalOutputBlock({
     taskType: 'run_eval',
     outputSchemaName: 'RunEvalOutput',
@@ -79,6 +92,7 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
     '# Run Eval Agent\n',
     `You are running an evaluation scenario as variant \`${variantLabel}\`.\nTask id: \`${ctx.taskId}\`\n`,
     correlationSection,
+    executionSection,
     `### Scenario\n\n${scenario.prompt}\n`,
     inputFilesSection,
     verificationSection,

@@ -72,6 +72,7 @@ function runEvalInput() {
   return {
     scenario: { prompt: 'p' },
     variantLabel: 'baseline',
+    execution: { mode: 'vitro' as const, workspace: 'none' as const },
     context: [],
     successCriteria: rubric(),
   };

@@ -8,10 +8,11 @@
  *                      on a `run_eval` task input
  *   - `criteria.json`  `{ checklist: [{ name, description, max_score }] }`
  *                      compiled into a `successCriteria.rubric`
- *   - `eval.json`      `{ mode: "vitro" | "vivo" }`. Today the field is
- *                      recorded only for human reference; the task runtime
- *                      has no `mode` discriminator yet. Future wiring will
- *                      surface it on the task or in trust-level routing.
+ *   - `eval.json`      `{ mode: "vitro" | "vivo", workspace?: "none" |
+ *                      "shared_mount" | "dedicated_worktree" }`
+ *                      `mode` is required; `workspace` is optional and
+ *                      defaults from the mode (`vitro -> none`,
+ *                      `vivo -> dedicated_worktree`).
  *
  * Helpers here are intentionally minimal — composition belongs to the
  * imposer scripts (`run-eval.ts`, `judge-eval-variant.ts`) which import
@@ -28,6 +29,7 @@ import { isAbsolute, join } from 'node:path';
 import type { ContextRef, Rubric } from '@moltnet/tasks';
 
 export type EvalMode = 'vitro' | 'vivo';
+export type EvalWorkspace = 'none' | 'shared_mount' | 'dedicated_worktree';
 
 export interface ScenarioCriterion {
   /** Free-text name; slugified into `rubric.criteria[].id`. */
@@ -53,6 +55,8 @@ export interface Scenario {
   criteria: ScenarioCriteria;
   /** Parsed `eval.json.mode`. */
   evalMode: EvalMode;
+  /** Effective workspace mode for the task creator to use. */
+  evalWorkspace: EvalWorkspace;
 }
 
 /**
@@ -117,12 +121,13 @@ export function readScenario(scenarioPath: string, repoRoot: string): Scenario {
     }
   }
 
-  const evalCfg = JSON.parse(evalRaw) as { mode?: string };
+  const evalCfg = JSON.parse(evalRaw) as { mode?: string; workspace?: string };
   if (evalCfg.mode !== 'vitro' && evalCfg.mode !== 'vivo') {
     throw new Error(
       `Scenario ${absPath}/eval.json must declare "mode": "vitro" | "vivo" (got ${JSON.stringify(evalCfg.mode)})`,
     );
   }
+  const evalWorkspace = resolveEvalWorkspace(evalCfg.mode, evalCfg.workspace);
 
   return {
     scenarioPath: absPath,
@@ -130,6 +135,7 @@ export function readScenario(scenarioPath: string, repoRoot: string): Scenario {
     taskPrompt,
     criteria,
     evalMode: evalCfg.mode,
+    evalWorkspace,
   };
 }
 
@@ -247,4 +253,23 @@ function round6(n: number): number {
 
 function asMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function resolveEvalWorkspace(
+  mode: EvalMode,
+  workspace: string | undefined,
+): EvalWorkspace {
+  if (
+    workspace === 'none' ||
+    workspace === 'shared_mount' ||
+    workspace === 'dedicated_worktree'
+  ) {
+    return workspace;
+  }
+  if (workspace !== undefined) {
+    throw new Error(
+      `eval.json workspace must be "none" | "shared_mount" | "dedicated_worktree" (got ${JSON.stringify(workspace)})`,
+    );
+  }
+  return mode === 'vitro' ? 'none' : 'dedicated_worktree';
 }

@@ -102,4 +102,64 @@ describe('buildDaemonTaskExecutionPlan', () => {
     expect(out.workspaceScope).toBe('attempt');
     expect(out.workspaceId).toBe('task-11111111-1111-4111-8111-111111111111');
   });
+
+  it('honors run_eval dedicated_worktree requested by the task creator', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        taskType: 'run_eval',
+        correlationId: '66666666-6666-4666-8666-666666666666',
+        input: {
+          scenario: { prompt: 'Evaluate this' },
+          variantLabel: 'With Skill',
+          execution: {
+            mode: 'vivo',
+            workspace: 'dedicated_worktree',
+          },
+          context: [],
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
+      },
+      identity,
+      1800,
+    );
+
+    expect(out.workspaceMode).toBe('dedicated_worktree');
+    expect(out.workspaceId).toBe('task-55555555-5555-4555-8555-555555555555');
+    expect(out.worktreeBranch).toBe('task/run-eval-55555555');
+  });
+
+  it('maps run_eval workspace:none to a scratch mount instead of the repo', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '77777777-7777-4777-8777-777777777777',
+        taskType: 'run_eval',
+        correlationId: '88888888-8888-4888-8888-888888888888',
+        input: {
+          scenario: { prompt: 'Evaluate this' },
+          variantLabel: 'Baseline',
+          execution: {
+            mode: 'vitro',
+            workspace: 'none',
+          },
+          context: [],
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
+      },
+      identity,
+      1800,
+    );
+
+    expect(out.workspaceMode).toBe('scratch_mount');
+    expect(out.workspaceId).toBe('task-77777777-7777-4777-8777-777777777777');
+    expect(out.worktreeBranch).toBeNull();
+  });
 });

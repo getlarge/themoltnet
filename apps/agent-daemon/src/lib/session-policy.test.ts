@@ -75,6 +75,7 @@ describe('deriveTaskSessionDescriptor', () => {
       input: {
         scenario: { prompt: 'Evaluate this' },
         variantLabel: 'Baseline Variant',
+        execution: { mode: 'vitro', workspace: 'none' },
         context: [],
       },
     });

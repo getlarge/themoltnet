@@ -162,6 +162,7 @@ describe('createSubmitOutputTool', () => {
       input: {
         scenario: { prompt: 'do it' },
         variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
         context: [],
         successCriteria: { version: 1 as const },
       },
@@ -184,6 +185,7 @@ describe('createSubmitOutputTool', () => {
       input: {
         scenario: { prompt: 'do it' },
         variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
         context: [],
         successCriteria: { version: 1 as const },
       },

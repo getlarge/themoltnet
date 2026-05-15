@@ -1,66 +1,36 @@
 {
   "checklist": [
     {
-      "description": "Commit plan splits the work so each commit represents one testable behavioral change, not mixing behavior+tests+codegen in one commit",
-      "max_score": 10,
-      "name": "One behavior per commit"
+      "description": "Answer resolves to the gated GitHub write path using `GH_TOKEN=$(moltnet github token --credentials ...) gh ...` or a clearly equivalent agent-token flow",
+      "max_score": 24,
+      "name": "Authenticated GitHub write path"
     },
     {
-      "description": "Guide mentions file count (>8), insertion count (>300), or workspace package count (>2) as signals to split",
-      "max_score": 8,
-      "name": "Splitting heuristic"
+      "description": "Answer anchors credential resolution to repo-root or GIT_CONFIG_GLOBAL context rather than an ad-hoc cached absolute binary path",
+      "max_score": 18,
+      "name": "Credential path anchored correctly"
     },
     {
-      "description": "Every commit in the chain includes a Task-Group trailer with a descriptive kebab-case slug",
-      "max_score": 10,
-      "name": "Task-Group trailer"
+      "description": "Answer does not propose plain unauthenticated `gh pr create` for the agent write action when the agent GitHub app path is applicable",
+      "max_score": 18,
+      "name": "No plain unauthenticated gh write"
     },
     {
-      "description": "First commit in chain includes Task-Family trailer with a category value (bugfix, feature, refactor, etc.)",
-      "max_score": 8,
-      "name": "Task-Family trailer"
+      "description": "If authenticated GitHub-write prerequisites are missing, the answer fails closed with an explicit requirement instead of guessing",
+      "max_score": 16,
+      "name": "Fail closed on missing prerequisites"
     },
     {
-      "description": "Only the last commit in the chain includes Task-Completes: true, and only after verification",
-      "max_score": 10,
-      "name": "Task-Completes trailer"
+      "description": "No actual PR creation or push side effect occurs while answering the routing question",
+      "max_score": 12,
+      "name": "No write side effect"
     },
     {
-      "description": "verificationRequired function returns different verification requirements for different change types (tests must pass, CLI must run, config must be validated) — typecheck/lint alone is explicitly NOT sufficient",
-      "max_score": 10,
-      "name": "Verification gate"
-    },
-    {
-      "description": "Guide or code mentions that 2-4 commits is ideal and 5+ means the task should be broken down",
-      "max_score": 6,
-      "name": "Max chain length"
-    },
-    {
-      "description": "Pre-push checklist checks current branch and blocks push to main/master",
-      "max_score": 8,
-      "name": "Branch guard"
-    },
-    {
-      "description": "Pre-push checklist verifies at least one diary entry exists for the change set",
-      "max_score": 8,
-      "name": "Diary entry existence check"
-    },
-    {
-      "description": "Pre-push checklist verifies diary entries include branch:<branch> and scope:<...> tags",
-      "max_score": 8,
-      "name": "Tag completeness check"
-    },
-    {
-      "description": "Generated commit messages include MoltNet-Diary: <entry-id> trailer",
-      "max_score": 8,
-      "name": "MoltNet-Diary in commit"
-    },
-    {
-      "description": "Generated commit messages do NOT include Co-Authored-By trailers",
-      "max_score": 6,
-      "name": "No Co-Authored-By"
+      "description": "The answer is concrete enough to run later: it shows the command shape, not only vague prose about authentication",
+      "max_score": 12,
+      "name": "Concrete command shape"
     }
   ],
-  "context": "Tests whether the agent correctly implements commit shaping for task extraction: one-behavior-per-commit splitting, task-chain trailers (Task-Group, Task-Family, Task-Completes), verification gate before completion marker, pre-push checklist with branch guard and diary requirements, and no-ship-without-diary enforcement.",
+  "context": "Routing scenario: LeGreffier should prefer the authenticated GitHub write path for PR work and avoid unauthenticated or guessed command flows.",
   "type": "weighted_checklist"
 }

@@ -101,6 +101,7 @@ describe('judge_eval_variant concurrency (#1101 M6)', () => {
         input: {
           scenario: { prompt: 'e2e eval scenario' },
           variantLabel,
+          execution: { mode: 'vitro', workspace: 'none' },
           context: [],
           successCriteria: sharedSuccessCriteria,
         },

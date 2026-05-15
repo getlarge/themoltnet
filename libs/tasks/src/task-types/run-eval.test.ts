@@ -11,6 +11,7 @@ import {
 const minimalInput = {
   scenario: { prompt: 'Summarize the file.' },
   variantLabel: 'baseline',
+  execution: { mode: 'vitro' as const, workspace: 'none' as const },
   context: [],
 };
 
@@ -75,6 +76,30 @@ describe('RunEvalInput', () => {
         successCriteria: stubCriteria,
       }),
     ).toBe(true);
+  });
+
+  it('accepts vivo runs with a dedicated worktree', () => {
+    expect(
+      Value.Check(RunEvalInput, {
+        ...minimalInput,
+        execution: {
+          mode: 'vivo' as const,
+          workspace: 'dedicated_worktree' as const,
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects unknown execution workspace values', () => {
+    expect(
+      Value.Check(RunEvalInput, {
+        ...minimalInput,
+        execution: {
+          mode: 'vitro' as const,
+          workspace: 'sandbox' as unknown as 'none',
+        },
+      }),
+    ).toBe(false);
   });
 });
 

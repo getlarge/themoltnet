@@ -6,6 +6,12 @@ export interface PiSessionPersistencePlan {
 
 export interface PiTaskExecutionPlan {
   /**
+   * Effective workspace mode for this task instance.
+   * `scratch_mount` means mount an empty scratch directory rather than the
+   * daemon checkout.
+   */
+  workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  /**
    * Daemon-local reuse key. When set alongside `workspaceScope: 'session'`,
    * dedicated worktrees may be retained and reopened across related tasks.
    */

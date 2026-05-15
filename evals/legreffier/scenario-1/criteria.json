@@ -1,71 +1,41 @@
 {
   "checklist": [
     {
-      "description": "Script checks for staged changes (git diff --cached) and exits if nothing is staged",
-      "max_score": 6,
-      "name": "Staged change check"
+      "description": "Attempt messages show diary, audit-trail, git-history, or task-history lookup behavior before the final explanation",
+      "max_score": 16,
+      "name": "History lookup before conclusion"
     },
     {
-      "description": "Script checks staged diff breadth (file count, insertion count, or workspace package count) and refuses to proceed if too broad",
-      "max_score": 8,
-      "name": "Scope gate enforcement"
+      "description": "Answer distinguishes verified evidence from inference instead of presenting speculation as certainty",
+      "max_score": 16,
+      "name": "Evidence vs inference"
     },
     {
-      "description": "Risk matrix lists crypto, CI/automation, dependency lockfiles, and auth/secrets as high risk",
-      "max_score": 8,
-      "name": "High risk classification"
+      "description": "When evidence exists, the answer cites at least one concrete artifact such as a diary entry id, task id, commit hash, or file path",
+      "max_score": 14,
+      "name": "Concrete evidence cited"
     },
     {
-      "description": "Risk matrix lists new files, config changes, and UI as medium risk",
-      "max_score": 8,
-      "name": "Medium risk classification"
+      "description": "If no diary or audit evidence is found, the answer explicitly says so instead of implying that the diary confirmed the explanation",
+      "max_score": 14,
+      "name": "Explicit gap note"
     },
     {
-      "description": "Risk matrix lists tests-only, comments, and formatting as low risk",
-      "max_score": 8,
-      "name": "Low risk classification"
+      "description": "Answer does not claim that code alone proves historical intent when diary or audit evidence is absent",
+      "max_score": 12,
+      "name": "No code-only certainty"
     },
     {
-      "description": "Script extracts files-changed count, file paths for refs, branch name, and timestamp from the staged diff and git state",
-      "max_score": 8,
-      "name": "Metadata extraction"
+      "description": "Answer summarizes both what changed and why it changed, not only one of those dimensions",
+      "max_score": 14,
+      "name": "What and why"
     },
     {
-      "description": "The produced diary entry payload includes operator, tool, risk-level, refs, branch, scope, and timestamp metadata fields",
-      "max_score": 8,
-      "name": "Diary entry payload"
-    },
-    {
-      "description": "Commit message format includes a MoltNet-Diary: <entry-id> trailer in a separate -m block",
-      "max_score": 8,
-      "name": "MoltNet-Diary trailer"
-    },
-    {
-      "description": "Commit message uses conventional commit format: type(scope): description",
-      "max_score": 6,
-      "name": "Conventional commit format"
-    },
-    {
-      "description": "Script stops and reports unavailability when diary tools are unreachable — does NOT skip or offer to skip",
-      "max_score": 8,
-      "name": "Unavailable diary handling"
-    },
-    {
-      "description": "Script or specification mentions checking for architectural decisions and writing a semantic entry before the procedural commit entry",
-      "max_score": 6,
-      "name": "Semantic entry before procedural"
-    },
-    {
-      "description": "Script or specification treats high-risk commits differently by making the diary entry cryptographically immutable (e.g. a signing flag) and verifying the result",
-      "max_score": 10,
-      "name": "High-risk immutable signing"
-    },
-    {
-      "description": "Commit format spec does NOT include Co-Authored-By trailers",
-      "max_score": 8,
-      "name": "No Co-Authored-By"
+      "description": "No new diary entry is created merely because the agent investigated the breakage",
+      "max_score": 14,
+      "name": "No investigative write side effect"
     }
   ],
-  "context": "Tests whether the agent implements the accountable commit workflow correctly: scope gate, risk classification, metadata gathering, diary entry structure, commit message format with MoltNet-Diary trailer, high-risk signing, and behavior when diary tools are unavailable.",
+  "context": "Positive activation scenario: investigate a breakage using LeGreffier diary, audit, and task-history behavior rather than unsupported code-only guesswork.",
   "type": "weighted_checklist"
 }

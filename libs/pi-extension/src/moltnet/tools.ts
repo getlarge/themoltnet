@@ -852,6 +852,58 @@ export function createMoltNetTools(
     },
   });
 
+  const listTaskMessages = defineTool({
+    name: 'moltnet_list_task_messages',
+    label: 'List MoltNet Task Attempt Messages',
+    description:
+      'List messages for a specific task attempt. Use this when you need ' +
+      'the turn-by-turn execution record behind an accepted attempt — ' +
+      'tool calls, text deltas, and error/info events that do not appear ' +
+      'in the attempt output alone.',
+    parameters: Type.Object({
+      taskId: Type.String({ description: 'Task ID (UUID).' }),
+      attemptN: Type.Integer({
+        minimum: 1,
+        description: 'Attempt number to inspect.',
+      }),
+      afterSeq: Type.Optional(
+        Type.Integer({
+          minimum: 0,
+          description:
+            'Optional cursor: only return messages with seq > afterSeq.',
+        }),
+      ),
+      limit: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: 500,
+          description:
+            'Optional maximum messages to return. Defaults to the API value.',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
+      const messages = await agent.tasks.listMessages(
+        params.taskId,
+        params.attemptN,
+        {
+          afterSeq: params.afterSeq,
+          limit: params.limit,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(messages, null, 2),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const reviewSessionErrors = defineTool({
     name: 'moltnet_review_session_errors',
     label: 'Review Session Tool Errors',
@@ -1020,6 +1072,7 @@ export function createMoltNetTools(
     createEntry,
     getTask,
     listTaskAttempts,
+    listTaskMessages,
     reviewSessionErrors,
     hostExec,
   ];

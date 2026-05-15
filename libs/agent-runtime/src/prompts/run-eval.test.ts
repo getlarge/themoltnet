@@ -5,6 +5,7 @@ import { buildRunEvalUserPrompt } from './run-eval.js';
 const baseInput = {
   scenario: { prompt: 'List the top 3 risks in this code.' },
   variantLabel: 'with-skill',
+  execution: { mode: 'vitro' as const, workspace: 'none' as const },
   context: [],
 };
 
@@ -51,6 +52,14 @@ describe('buildRunEvalUserPrompt', () => {
 
   it('always emits the final-output block', () => {
     expect(buildRunEvalUserPrompt(baseInput, ctx)).toContain('RunEvalOutput');
+  });
+
+  it('describes the requested execution mode and workspace', () => {
+    const out = buildRunEvalUserPrompt(baseInput, ctx);
+    expect(out).toContain('### Execution mode');
+    expect(out).toContain('Mode: `vitro`');
+    expect(out).toContain('Workspace: `none`');
+    expect(out).toContain('no repository checkout mounted');
   });
 
   it('omits the correlation section when correlationId is null/absent', () => {
