@@ -386,35 +386,35 @@ runs:
           mkdir -p "$PI_AGENT_DIR"
           PI_MODELS_PATH="$PI_AGENT_DIR/models.json"
           cat > "$PI_MODELS_PATH" <<'JSON'
-{
-  "providers": {
-    "ollama": {
-      "baseUrl": "https://ollama.com/v1",
-      "api": "openai-completions",
-      "apiKey": "OLLAMA_API_KEY",
-      "models": [
-        {
-          "id": "qwen3.5:cloud"
-        },
-        {
-          "id": "qwen3-coder:480b-cloud"
-        }
-      ]
-    }
-  }
-}
-JSON
+          {
+            "providers": {
+              "ollama": {
+                "baseUrl": "https://ollama.com/v1",
+                "api": "openai-completions",
+                "apiKey": "OLLAMA_API_KEY",
+                "models": [
+                  {
+                    "id": "qwen3.5:cloud"
+                  },
+                  {
+                    "id": "qwen3-coder:480b-cloud"
+                  }
+                ]
+              }
+            }
+          }
+          JSON
           chmod 600 "$PI_MODELS_PATH"
           echo "::notice::Pi models.json materialized at $PI_MODELS_PATH for ollama"
           PI_SETTINGS_PATH="$PI_AGENT_DIR/settings.json"
           cat > "$PI_SETTINGS_PATH" <<'JSON'
-{
-  "enabledModels": [
-    "ollama-cloud/qwen3.5:cloud",
-    "ollama-cloud/qwen3-coder:480b-cloud"
-  ]
-}
-JSON
+          {
+            "enabledModels": [
+              "ollama-cloud/qwen3.5:cloud",
+              "ollama-cloud/qwen3-coder:480b-cloud"
+            ]
+          }
+          JSON
           chmod 600 "$PI_SETTINGS_PATH"
           echo "::notice::Pi settings.json materialized at $PI_SETTINGS_PATH for ollama"
         fi
