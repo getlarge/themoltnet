@@ -96,6 +96,40 @@ describe('validateTaskCreateRequest', () => {
     ]);
   });
 
+  it('rejects pr_review rubrics that are not boolean-only', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'pr_review',
+      input: {
+        subject: {
+          title: 'Review X',
+          summary: 'Review this change.',
+        },
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'pr-complexity',
+            version: 'v1',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'desc',
+                weight: 1,
+                scoring: 'llm_score',
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(errors).toEqual([
+      {
+        field: 'input',
+        message:
+          'pr_review requires boolean scoring for every rubric criterion; criterion "c1" uses "llm_score"',
+      },
+    ]);
+  });
+
   it('rejects fulfill_brief acceptanceCriteria as an unknown field', () => {
     const errors = validateTaskCreateRequest({
       taskType: 'fulfill_brief',
@@ -330,6 +364,119 @@ describe('validateTaskOutput', () => {
       expect(errors).toEqual([]);
     });
   });
+
+  describe('pr_review output validation', () => {
+    const input = {
+      subject: {
+        title: 'PR review',
+        summary: 'Inspect the change.',
+      },
+      successCriteria: {
+        version: 1,
+        rubric: {
+          rubricId: 'pr-complexity-binary',
+          version: 'v1',
+          criteria: [
+            {
+              id: 'cognitive_load',
+              description: 'desc',
+              weight: 0.6,
+              scoring: 'boolean' as const,
+            },
+            {
+              id: 'blast_radius',
+              description: 'desc',
+              weight: 0.4,
+              scoring: 'boolean' as const,
+            },
+          ],
+        },
+      },
+    };
+
+    it('accepts valid binary weighted output', () => {
+      const errors = validateTaskOutput(
+        'pr_review',
+        {
+          scores: [
+            {
+              criterionId: 'cognitive_load',
+              score: 1,
+              rationale: 'Focused change.',
+            },
+            {
+              criterionId: 'blast_radius',
+              score: 0,
+              rationale: 'Touches shared API.',
+            },
+          ],
+          composite: 0.6,
+          verdict: 'Moderate review cost.',
+        },
+        input,
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it('rejects criterion order mismatches', () => {
+      const errors = validateTaskOutput(
+        'pr_review',
+        {
+          scores: [
+            {
+              criterionId: 'blast_radius',
+              score: 1,
+              rationale: 'wrong order',
+            },
+            {
+              criterionId: 'cognitive_load',
+              score: 1,
+              rationale: 'wrong order',
+            },
+          ],
+          composite: 1,
+          verdict: 'Bad ordering.',
+        },
+        input,
+      );
+      expect(errors).toEqual([
+        {
+          field: 'output',
+          message:
+            'scores[0] has criterionId "blast_radius" but rubric expects "cognitive_load" in that position',
+        },
+      ]);
+    });
+
+    it('rejects composite mismatches', () => {
+      const errors = validateTaskOutput(
+        'pr_review',
+        {
+          scores: [
+            {
+              criterionId: 'cognitive_load',
+              score: 1,
+              rationale: 'ok',
+            },
+            {
+              criterionId: 'blast_radius',
+              score: 1,
+              rationale: 'ok',
+            },
+          ],
+          composite: 0.5,
+          verdict: 'Wrong composite.',
+        },
+        input,
+      );
+      expect(errors).toEqual([
+        {
+          field: 'output',
+          message: 'composite 0.5 does not match weighted sum 1.000000',
+        },
+      ]);
+    });
+  });
 });
 
 describe('taskTypeUsesSubagents', () => {
@@ -367,6 +514,7 @@ describe('taskTypeWorkspaceMode', () => {
     expect(taskTypeWorkspaceMode('render_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('judge_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('run_eval')).toBe('shared_mount');
+    expect(taskTypeWorkspaceMode('pr_review')).toBe('dedicated_worktree');
   });
 });
 
@@ -397,6 +545,7 @@ describe('taskTypeWorkspaceScope', () => {
 
   it('keeps other built-ins attempt-scoped', () => {
     expect(taskTypeWorkspaceScope('assess_brief')).toBe('attempt');
+    expect(taskTypeWorkspaceScope('pr_review')).toBe('attempt');
     expect(taskTypeWorkspaceScope('run_eval')).toBe('attempt');
     expect(taskTypeWorkspaceScope('judge_eval_variant')).toBe('attempt');
   });
@@ -413,6 +562,7 @@ describe('taskTypeSessionScope', () => {
 
   it('keeps review tasks non-reusable by default', () => {
     expect(taskTypeSessionScope('assess_brief')).toBe('none');
+    expect(taskTypeSessionScope('pr_review')).toBe('none');
     expect(taskTypeSessionScope('judge_pack')).toBe('none');
   });
 

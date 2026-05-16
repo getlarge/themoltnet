@@ -116,6 +116,46 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
+  function imposePrReviewTask() {
+    return agent.tasks.create({
+      taskType: 'pr_review',
+      teamId,
+      diaryId,
+      input: {
+        subject: {
+          title: 'PR #1: Complexity review smoke',
+          summary:
+            'Judge the complexity and reviewability of a change under a binary rubric.',
+          inspectionHints: ['Use the local workspace if needed.'],
+        },
+        taskPrompt:
+          'Treat this as a local smoke test. Do not attempt any network mutation.',
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'pr-complexity-binary-e2e',
+            version: 'v1',
+            preamble: 'Assess reviewability and complexity only.',
+            criteria: [
+              {
+                id: 'cognitive_load',
+                description: 'The change is easy to review in one pass.',
+                weight: 0.6,
+                scoring: 'boolean',
+              },
+              {
+                id: 'blast_radius',
+                description: 'The change is narrowly scoped.',
+                weight: 0.4,
+                scoring: 'boolean',
+              },
+            ],
+          },
+        },
+      },
+    });
+  }
+
   it('PollingApiTaskSource claims a queued task and exits drain mode when empty', async () => {
     const created = await imposeCuratePackTask();
 
@@ -257,6 +297,74 @@ describe('Agent daemon (e2e)', () => {
 
     // The runtime hands the output off; the daemon is responsible for
     // reporting it. Use the daemon's actual finalize helper.
+    await finalizeTask(agent, output);
+
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('completed');
+    expect(final.acceptedAttemptN).toBe(1);
+  }, 60_000);
+
+  it('runtime.start() can drive a full pr_review judgment loop with a stub executor', async () => {
+    const created = await imposePrReviewTask();
+
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent: agent,
+        teamId: teamId,
+        taskTypes: ['pr_review'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+
+        const stubOutput = {
+          scores: [
+            {
+              criterionId: 'cognitive_load',
+              score: 1,
+              rationale: 'The diff stays focused and reviewer-oriented.',
+            },
+            {
+              criterionId: 'blast_radius',
+              score: 0,
+              rationale: 'The change still touches a shared path.',
+            },
+          ],
+          composite: 0.6,
+          verdict: 'Moderate review cost with one clear risk axis.',
+        };
+        const output = {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: stubOutput,
+          outputCid: await computeJsonCid(stubOutput),
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+        await reporter.finalize(output.usage);
+        await reporter.close();
+        return output;
+      },
+    });
+
+    const outputs = await runtime.start();
+    expect(outputs).toHaveLength(1);
+    const [output] = outputs;
+    expect(output.taskId).toBe(created.id);
+    expect(output.status).toBe('completed');
+
     await finalizeTask(agent, output);
 
     const final = await agent.tasks.get(created.id);

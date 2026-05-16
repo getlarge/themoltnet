@@ -1,6 +1,10 @@
 import type { AssessBriefInput } from '@moltnet/tasks';
 
 import { buildFinalOutputBlock } from './final-output.js';
+import {
+  renderRubricCriteriaList,
+  renderRubricPreambleSection,
+} from './rubric-common.js';
 
 interface Ctx {
   diaryId: string;
@@ -41,16 +45,8 @@ export function buildAssessBriefUserPrompt(
   // judgment tasks — narrow safely.
   const rubric = input.successCriteria.rubric!;
 
-  const criteriaList = rubric.criteria
-    .map(
-      (c, i) =>
-        `${i + 1}. **${c.id}** (weight ${c.weight}, scoring: \`${c.scoring}\`) — ${c.description}`,
-    )
-    .join('\n');
-
-  const preambleSection = rubric.preamble
-    ? ['### Rubric preamble', '', rubric.preamble, ''].join('\n')
-    : '';
+  const criteriaList = renderRubricCriteriaList(rubric);
+  const preambleSection = renderRubricPreambleSection(rubric) ?? '';
 
   const workspaceSection =
     ctx.workspace?.mode === 'dedicated_worktree'

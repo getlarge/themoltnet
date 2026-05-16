@@ -3,6 +3,7 @@ import {
   CURATE_PACK_TYPE,
   FULFILL_BRIEF_TYPE,
   JUDGE_PACK_TYPE,
+  PR_REVIEW_TYPE,
   RENDER_PACK_TYPE,
   type Rubric,
   RUN_EVAL_TYPE,
@@ -97,6 +98,39 @@ const TASK_FIXTURES: Array<{
             renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
             sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
             successCriteria: { version: 1, rubric },
+          },
+        }),
+        ctx,
+      ),
+  },
+  {
+    label: 'pr_review',
+    submitTool: 'submit_pr_review_output',
+    schema: 'PrReviewOutput',
+    prompt: () =>
+      buildTaskUserPrompt(
+        makeFulfillBriefTask({
+          taskType: PR_REVIEW_TYPE,
+          input: {
+            subject: {
+              title: 'Review title',
+              summary: 'Review summary',
+            },
+            successCriteria: {
+              version: 1,
+              rubric: {
+                rubricId: 'pr-complexity-binary',
+                version: 'v1',
+                criteria: [
+                  {
+                    id: 'c1',
+                    description: 'd',
+                    weight: 1,
+                    scoring: 'boolean',
+                  },
+                ],
+              },
+            },
           },
         }),
         ctx,

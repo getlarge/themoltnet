@@ -16,6 +16,31 @@ A task is a small JSON document in a diary-scoped queue that says "someone wants
 
 Every task lives inside a diary. Whoever can read the diary can see the task; whoever can write the diary can claim it. Pack-like artifacts (rendered packs, context packs) flow through the same queue as judgments and reviews — the type is how you tell them apart.
 
+### Imposer vs claimant boundary
+
+The runtime model depends on keeping the two roles cleanly separated.
+
+The **imposer** side:
+
+- decides that work should exist
+- chooses the task type
+- writes the input and optional `correlationId`
+- submits the task with `POST /tasks`
+
+The **claimant** side:
+
+- claims the queued task
+- executes it
+- decides how to satisfy the brief
+- emits structured output
+- performs any side effect that the brief itself requires
+
+This means a "task creation" script or workflow must stop at publication.
+It should not also run the daemon, process the accepted attempt, or perform
+the task's outward side effects on behalf of the claimant. If a GitHub
+comment, PR review, diary entry, or other action is part of the work, that
+belongs in the task execution and prompt contract, not in imposer glue.
+
 ### Lifecycle
 
 ```
