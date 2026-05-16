@@ -103,7 +103,39 @@ export async function bootstrapGenesisAgents(
       agents.push(agent);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      // Incident reference: b18deb14-f275-4cf7-85b8-0e632b1dd730
+      // Keep the richer bootstrap logging here. During daemon e2e triage,
+      // Drizzle only exposed SQL text while the underlying cause was a
+      // localhost/transport refusal hidden on `err.cause`.
+      const detail =
+        err instanceof Error && err.stack
+          ? err.stack
+          : (() => {
+              try {
+                return JSON.stringify(err);
+              } catch {
+                return String(err);
+              }
+            })();
+      const cause =
+        err instanceof Error && 'cause' in err
+          ? (() => {
+              try {
+                return JSON.stringify(
+                  (err as Error & { cause?: unknown }).cause,
+                  null,
+                  2,
+                );
+              } catch {
+                return String((err as Error & { cause?: unknown }).cause);
+              }
+            })()
+          : null;
       log(`  ERROR: ${message}`);
+      log(`  ERROR_DETAIL: ${detail}`);
+      if (cause) {
+        log(`  ERROR_CAUSE: ${cause}`);
+      }
       errors.push({ name, error: message });
     }
   }
