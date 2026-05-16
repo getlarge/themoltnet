@@ -104,12 +104,14 @@ jobs:
           PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}
         run: |
           set -euo pipefail
-          json=$(pnpm --filter @moltnet/tools task:create-pr-review \
+          task_json_path="$RUNNER_TEMP/pr-review-task.json"
+          node --import tsx tools/src/tasks/create-pr-review.ts \
             --pr "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY")
-          echo "$json"
-          task_id=$(printf '%s' "$json" | jq -r '.id // empty')
-          correlation_id=$(printf '%s' "$json" | jq -r '.correlationId // empty')
+            --repo "$GITHUB_REPOSITORY" \
+            > "$task_json_path"
+          cat "$task_json_path"
+          task_id=$(jq -r '.id // empty' "$task_json_path")
+          correlation_id=$(jq -r '.correlationId // empty' "$task_json_path")
           if [ -z "$task_id" ]; then
             echo "::error::task:create-pr-review returned no task id"
             exit 1
