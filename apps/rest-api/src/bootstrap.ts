@@ -30,6 +30,7 @@ import {
   createDiaryEntryRepository,
   createDiaryRepository,
   createDiaryTransferRepository,
+  createDrizzleTransactionRunner,
   createEntryRelationRepository,
   createGroupRepository,
   createHumanRepository,
@@ -341,6 +342,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           renderedPackRepository,
           taskRepository,
           dataSource: getDataSource(),
+          transactionRunner: createDrizzleTransactionRunner(dbConnection.db),
           relationshipWriter,
           logger: app.log,
         });

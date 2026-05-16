@@ -113,6 +113,9 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   const dataSource = {
     runTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
   };
+  const transactionRunner = {
+    runInTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+  };
   const relationshipWriter = {
     removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
   };
@@ -122,6 +125,7 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     renderedPackRepository: {} as unknown,
     taskRepository,
     dataSource,
+    transactionRunner,
     relationshipWriter,
     logger,
   } as unknown as MaintenanceDeps;
@@ -219,6 +223,8 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         error: expect.objectContaining({ code: 'orphaned' }),
       }),
     );
+    expect(deps.transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(deps.dataSource.runTransaction).not.toHaveBeenCalled();
     // Backstop emitted a warn log so production occurrences stay visible.
     const warnCall = logger.warn.mock.calls.find(
       ([, msg]) =>

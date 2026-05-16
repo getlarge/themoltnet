@@ -18,6 +18,7 @@ import {
   type NonceRepository,
   type RenderedPackRepository,
   type TaskRepository,
+  type TransactionRunner,
 } from '@moltnet/database';
 import type { FastifyBaseLogger } from 'fastify';
 
@@ -31,6 +32,7 @@ export interface MaintenanceDeps {
   renderedPackRepository: RenderedPackRepository;
   taskRepository: TaskRepository;
   dataSource: DataSource;
+  transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: FastifyBaseLogger;
 }
@@ -270,7 +272,7 @@ export function initMaintenanceWorkflows(
       attemptN: number;
       claimedByAgentId: string;
     }): Promise<void> => {
-      const { dataSource, taskRepository, relationshipWriter, logger } =
+      const { transactionRunner, taskRepository, relationshipWriter, logger } =
         getDeps();
       // Mirror the in-workflow timeout transaction shape: write the
       // attempt as timed_out + decide task fate based on retry budget.
@@ -291,32 +293,33 @@ export function initMaintenanceWorkflows(
           taskNow.status === 'failed' ||
           taskNow.status === 'expired');
 
-      await dataSource.runTransaction(
-        async () => {
-          await taskRepository.updateAttempt(input.taskId, input.attemptN, {
-            status: 'timed_out',
-            completedAt: now,
-            error: {
-              code: 'orphaned',
-              message:
-                'Workflow process did not resume; row force-released by orphan sweeper.',
-            } as unknown,
+      // DBOS rejects nested `runTransaction()` calls from inside a
+      // registered step. Use a plain Drizzle transaction here instead:
+      // repositories join it through AsyncLocalStorage, and the DBOS
+      // step wrapper still gives us per-orphan retry semantics.
+      await transactionRunner.runInTransaction(async () => {
+        await taskRepository.updateAttempt(input.taskId, input.attemptN, {
+          status: 'timed_out',
+          completedAt: now,
+          error: {
+            code: 'orphaned',
+            message:
+              'Workflow process did not resume; row force-released by orphan sweeper.',
+          } as unknown,
+        });
+        if (!externalTerminal) {
+          await taskRepository.updateStatus(
+            input.taskId,
+            canRetry ? 'queued' : 'failed',
+            { claimAgentId: null, claimExpiresAt: null },
+          );
+        } else {
+          await taskRepository.updateStatus(input.taskId, taskNow.status, {
+            claimAgentId: null,
+            claimExpiresAt: null,
           });
-          if (!externalTerminal) {
-            await taskRepository.updateStatus(
-              input.taskId,
-              canRetry ? 'queued' : 'failed',
-              { claimAgentId: null, claimExpiresAt: null },
-            );
-          } else {
-            await taskRepository.updateStatus(input.taskId, taskNow.status, {
-              claimAgentId: null,
-              claimExpiresAt: null,
-            });
-          }
-        },
-        { name: 'maintenance.taskOrphanSweeper.tx.forceRelease' },
-      );
+        }
+      });
 
       await relationshipWriter
         .removeTaskClaimant(input.taskId, input.claimedByAgentId)
