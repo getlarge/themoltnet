@@ -128,9 +128,17 @@ describe('buildDaemonTaskExecutionPlan', () => {
       1800,
     );
 
+    expect(out.slotKey).toBe(
+      'run_eval:correlation:66666666-6666-4666-8666-666666666666:variant:with-skill',
+    );
+    expect(out.sessionPersistence).toEqual({
+      sessionDir:
+        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
+    });
     expect(out.workspaceMode).toBe('dedicated_worktree');
     expect(out.workspaceId).toBe('task-55555555-5555-4555-8555-555555555555');
     expect(out.worktreeBranch).toBe('task/run-eval-55555555');
+    expect(out.workspaceScope).toBe('attempt');
   });
 
   it('maps run_eval workspace:none to a scratch mount instead of the repo', () => {
@@ -158,8 +166,16 @@ describe('buildDaemonTaskExecutionPlan', () => {
       1800,
     );
 
+    expect(out.slotKey).toBe(
+      'run_eval:correlation:88888888-8888-4888-8888-888888888888:variant:baseline',
+    );
+    expect(out.sessionPersistence).toEqual({
+      sessionDir:
+        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
+    });
     expect(out.workspaceMode).toBe('scratch_mount');
     expect(out.workspaceId).toBe('task-77777777-7777-4777-8777-777777777777');
     expect(out.worktreeBranch).toBeNull();
+    expect(out.workspaceScope).toBe('attempt');
   });
 });

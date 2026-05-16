@@ -67,7 +67,7 @@ describe('deriveTaskSessionDescriptor', () => {
     expect(out.sessionKey).toBeNull();
   });
 
-  it('reserves custom eval isolation keys without making the task resumable yet', () => {
+  it('assigns run_eval a custom resumable session key per correlation and variant', () => {
     const out = deriveTaskSessionDescriptor({
       id: '55555555-5555-4555-8555-555555555555',
       taskType: 'run_eval',
@@ -81,11 +81,13 @@ describe('deriveTaskSessionDescriptor', () => {
     });
 
     expect(out.policy).toMatchObject({
-      resumable: false,
+      resumable: true,
       workspaceMode: 'shared_mount',
       workspaceScope: 'attempt',
       sessionScope: 'custom',
     });
-    expect(out.sessionKey).toBeNull();
+    expect(out.sessionKey).toBe(
+      'run_eval:correlation:66666666-6666-4666-8666-666666666666:variant:baseline-variant',
+    );
   });
 });

@@ -526,9 +526,9 @@ describe('taskTypeResumable', () => {
     expect(taskTypeResumable('fulfill_brief')).toBe(true);
   });
 
-  it('keeps assessment and eval built-ins non-resumable by default', () => {
+  it('keeps assessment/judge built-ins non-resumable but lets run_eval persist producer context', () => {
     expect(taskTypeResumable('assess_brief')).toBe(false);
-    expect(taskTypeResumable('run_eval')).toBe(false);
+    expect(taskTypeResumable('run_eval')).toBe(true);
     expect(taskTypeResumable('judge_eval_attempt')).toBe(false);
   });
 });
