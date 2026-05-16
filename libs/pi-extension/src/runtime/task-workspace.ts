@@ -22,6 +22,18 @@ export function prepareTaskWorkspace(
 ): PreparedTaskWorkspace {
   const branch = executionPlan?.worktreeBranch ?? null;
   const workspaceMode = executionPlan?.workspaceMode ?? 'shared_mount';
+  const attachedWorkspace = executionPlan?.workspaceAttachment ?? null;
+
+  if (attachedWorkspace) {
+    return {
+      mountPath: attachedWorkspace.mountPath,
+      cwdPath: attachedWorkspace.cwdPath,
+      mode: workspaceMode,
+      branch,
+      cleanup: () => {},
+    };
+  }
+
   if (workspaceMode === 'scratch_mount') {
     const mainRepo = findMainWorktree();
     const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;

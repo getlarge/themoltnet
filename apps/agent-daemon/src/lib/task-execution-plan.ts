@@ -19,7 +19,15 @@ export interface DaemonTaskExecutionPlan {
   worktreeBranch: string | null;
   sessionKey: string | null;
   workspaceScope: 'attempt' | 'session';
-  sessionPersistence?: { sessionDir: string } | null;
+  workspaceAttachment?: {
+    mountPath: string;
+    cwdPath: string;
+    shadowWrites?: 'deny' | 'tmpfs';
+  } | null;
+  sessionPersistence?: {
+    sessionDir: string;
+    forkFromSessionPath?: string | null;
+  } | null;
 }
 
 export function buildDaemonTaskExecutionPlan(

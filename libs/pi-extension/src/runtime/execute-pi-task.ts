@@ -423,13 +423,17 @@ export async function executePiTask(
     }
 
     try {
+      const sandboxConfig = applyExecutionPlanSandboxOverrides(
+        opts.sandboxConfig,
+        executionPlan,
+      );
       managed = await resumeVm({
         checkpointPath,
         agentName: opts.agentName,
         mountPath,
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
-        sandboxConfig: opts.sandboxConfig,
+        sandboxConfig,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1102,6 +1106,27 @@ export async function executePiTask(
       }
     }
   }
+}
+
+function applyExecutionPlanSandboxOverrides(
+  sandboxConfig: SandboxConfig | undefined,
+  executionPlan: ReturnType<
+    NonNullable<ExecutePiTaskOptions['makeExecutionPlan']>
+  >,
+): SandboxConfig | undefined {
+  const shadowWrites = executionPlan?.workspaceAttachment?.shadowWrites;
+  if (!shadowWrites) {
+    return sandboxConfig;
+  }
+
+  return {
+    ...sandboxConfig,
+    vfs: {
+      ...sandboxConfig?.vfs,
+      shadow: ['**'],
+      shadowMode: shadowWrites,
+    },
+  };
 }
 
 function emptyUsage(provider: string, model: string): TaskUsage {

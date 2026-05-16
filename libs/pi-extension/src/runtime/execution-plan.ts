@@ -2,6 +2,13 @@ import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 export interface PiSessionPersistencePlan {
   sessionDir: string;
+  forkFromSessionPath?: string | null;
+}
+
+export interface PiWorkspaceAttachmentPlan {
+  mountPath: string;
+  cwdPath: string;
+  shadowWrites?: 'deny' | 'tmpfs';
 }
 
 export interface PiTaskExecutionPlan {
@@ -31,6 +38,12 @@ export interface PiTaskExecutionPlan {
    * `attempt` = disposable; `session` = keep stable for the reuse key.
    */
   workspaceScope: 'attempt' | 'session';
+  /**
+   * Optional existing workspace root to attach instead of creating a fresh
+   * shared/worktree/scratch workspace. Used for read-only-ish producer
+   * inspection by applying VFS shadowing on top of the mounted path.
+   */
+  workspaceAttachment?: PiWorkspaceAttachmentPlan | null;
   /**
    * Optional location for file-backed Pi session history. When omitted,
    * the executor keeps the conversation in memory for this attempt only.

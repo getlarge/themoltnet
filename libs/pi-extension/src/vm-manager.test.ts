@@ -656,4 +656,49 @@ describe('dedicated worktree mount topology', () => {
       rmSync(repoRoot, { recursive: true, force: true });
     }
   });
+
+  it('reuses an attached workspace root without creating a new worktree', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-attach-repro-'));
+    const producerWorkspace = mkdtempSync(path.join(tmpdir(), 'pi-producer-'));
+    const oldCwd = process.cwd();
+
+    try {
+      runGit(repoRoot, ['init']);
+      process.chdir(repoRoot);
+
+      const task = {
+        id: 'task-3',
+        taskType: 'judge_eval_attempt',
+        correlationId: 'correlation-3',
+        input: {
+          targetTaskId: 'producer-task',
+          targetAttemptN: 1,
+          successCriteria: { version: 1 },
+        },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      const workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'scratch_mount',
+        sessionKey: null,
+        workspaceId: null,
+        worktreeBranch: null,
+        workspaceScope: 'attempt',
+        workspaceAttachment: {
+          mountPath: producerWorkspace,
+          cwdPath: producerWorkspace,
+          shadowWrites: 'tmpfs',
+        },
+      });
+
+      expect(workspace.mountPath).toBe(producerWorkspace);
+      expect(workspace.cwdPath).toBe(producerWorkspace);
+      expect(workspace.mode).toBe('scratch_mount');
+      workspace.cleanup();
+      expect(existsSync(producerWorkspace)).toBe(true);
+    } finally {
+      process.chdir(oldCwd);
+      rmSync(repoRoot, { recursive: true, force: true });
+      rmSync(producerWorkspace, { recursive: true, force: true });
+    }
+  });
 });

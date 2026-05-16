@@ -103,7 +103,7 @@ export function createTaskRepository(db: Database) {
         notInArray(tasks.status, ['failed', 'cancelled', 'expired']),
       ];
       for (const match of args.inputMatches) {
-        let expr: SQL = tasks.input;
+        let expr = sql`${tasks.input}`;
         for (let i = 0; i < match.path.length - 1; i += 1) {
           expr = sql`${expr} -> ${match.path[i]}`;
         }
