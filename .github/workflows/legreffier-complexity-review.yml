@@ -108,40 +108,39 @@ jobs:
             --pr "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY")
           echo "$json"
-          echo "task_id=$(printf '%s' "$json" | jq -r '.id')" >> "$GITHUB_OUTPUT"
-          echo "correlation_id=$(printf '%s' "$json" | jq -r '.correlationId')" >> "$GITHUB_OUTPUT"
+          task_id=$(printf '%s' "$json" | jq -r '.id // empty')
+          correlation_id=$(printf '%s' "$json" | jq -r '.correlationId // empty')
+          if [ -z "$task_id" ]; then
+            echo "::error::task:create-pr-review returned no task id"
+            exit 1
+          fi
+          echo "task_id=$task_id" >> "$GITHUB_OUTPUT"
+          echo "correlation_id=$correlation_id" >> "$GITHUB_OUTPUT"
 
       - name: Wait for task completion
         env:
           TASK_ID: ${{ steps.create.outputs.task_id }}
+          MOLTNET_AGENT_DIR: ${{ env.MOLTNET_AGENT_DIR }}
         run: |
           set -euo pipefail
-          node --input-type=module <<'EOF'
-          import { connect } from '@themoltnet/sdk';
-
-          const taskId = process.env.TASK_ID;
-          const agentDir = process.env.MOLTNET_AGENT_DIR;
-          if (!taskId) throw new Error('TASK_ID is required');
-          if (!agentDir) throw new Error('MOLTNET_AGENT_DIR is required');
-
-          const agent = await connect({ configDir: agentDir });
-          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-          const terminal = new Set(['completed', 'failed', 'cancelled']);
-
-          for (let i = 0; i < 360; i++) {
-            const task = await agent.tasks.get(taskId);
-            console.log(`[wait] status=${task.status} acceptedAttemptN=${task.acceptedAttemptN}`);
-            if (terminal.has(task.status)) {
-              if (task.status !== 'completed') {
-                process.exit(1);
-              }
-              process.exit(0);
-            }
-            await sleep(5000);
-          }
-
-          throw new Error(`Timed out waiting for task ${taskId}`);
-          EOF
+          if [ -z "$TASK_ID" ]; then
+            echo "::error::TASK_ID is required"
+            exit 1
+          fi
+          if [ -z "$MOLTNET_AGENT_DIR" ]; then
+            echo "::error::MOLTNET_AGENT_DIR is required"
+            exit 1
+          fi
+          node packages/cli/bin/moltnet.js task tail "$TASK_ID" \
+            --credentials "$MOLTNET_AGENT_DIR/moltnet.json"
+          task_json=$(node packages/cli/bin/moltnet.js task get "$TASK_ID" \
+            --credentials "$MOLTNET_AGENT_DIR/moltnet.json")
+          echo "$task_json"
+          task_status=$(printf '%s' "$task_json" | jq -r '.status // empty')
+          if [ "$task_status" != "completed" ]; then
+            echo "::error::task $TASK_ID finished with status ${task_status:-unknown}"
+            exit 1
+          fi
 
       - name: Stop daemon and print logs
         if: ${{ always() }}
