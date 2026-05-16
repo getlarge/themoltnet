@@ -25,6 +25,7 @@ import {
   ensureRelativeWorktreePaths,
   loadCredentials,
   rewriteMoltnetJsonPaths,
+  shouldRunResumeCommand,
 } from './vm-manager.js';
 
 // ---------------------------------------------------------------------------
@@ -185,6 +186,53 @@ describe('rewriteMoltnetJsonPaths', () => {
     );
     expect(output.github.app_id).toBe('2878569');
     expect(output.github.installation_id).toBe('110518607');
+  });
+});
+
+describe('shouldRunResumeCommand', () => {
+  it('always runs raw string commands', () => {
+    expect(
+      shouldRunResumeCommand('corepack enable', {
+        workspaceMode: 'scratch_mount',
+      }),
+    ).toBe(true);
+  });
+
+  it('runs object commands when no predicate is present', () => {
+    expect(
+      shouldRunResumeCommand(
+        { run: 'pnpm install --frozen-lockfile' },
+        { workspaceMode: 'scratch_mount' },
+      ),
+    ).toBe(true);
+  });
+
+  it('runs commands when workspaceMode matches the predicate', () => {
+    expect(
+      shouldRunResumeCommand(
+        {
+          run: 'pnpm install --frozen-lockfile',
+          when: {
+            workspaceMode: ['shared_mount', 'dedicated_worktree'],
+          },
+        },
+        { workspaceMode: 'shared_mount' },
+      ),
+    ).toBe(true);
+  });
+
+  it('skips commands when workspaceMode does not match the predicate', () => {
+    expect(
+      shouldRunResumeCommand(
+        {
+          run: 'pnpm install --frozen-lockfile',
+          when: {
+            workspaceMode: ['shared_mount', 'dedicated_worktree'],
+          },
+        },
+        { workspaceMode: 'scratch_mount' },
+      ),
+    ).toBe(false);
   });
 });
 

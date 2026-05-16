@@ -16,17 +16,13 @@
  *  - All are `run_eval`, `status=completed`, with a non-null
  *    `acceptedAttemptN`.
  *  - All share one non-null `correlationId`.
- *  - All have byte-identical `input.successCriteria`.
  *  - The shared correlation is not already sealed by a previous
  *    `judge_eval_variant` create.
  *
  * Rubric source-of-truth: this script rebuilds the rubric from the
  * scenario's `criteria.json` and passes it as the judge's
- * `successCriteria`. Producer tasks created via `run-eval.ts` against
- * the same scenario produce the same rubric, so byte-identity holds
- * by construction. Passing a different scenario here than the
- * producers used will fail server-side with the
- * non-identical-successCriteria error.
+ * `successCriteria`. Producer `run_eval` tasks do NOT receive that
+ * rubric — the judge is the only task that should see the scoring key.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';

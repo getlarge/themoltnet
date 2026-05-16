@@ -185,6 +185,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         checkpointPath,
         agentName,
         mountPath,
+        workspaceMode: 'shared_mount',
         sandboxConfig,
       });
 

@@ -36,7 +36,7 @@ const GUEST_WORKSPACE = '/workspace';
  */
 export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
 
-import type { SandboxConfig } from './snapshot.js';
+import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
@@ -45,6 +45,8 @@ export interface VmConfig {
   agentName: string;
   /** Host directory to mount at /workspace in the VM. */
   mountPath: string;
+  /** Effective workspace shape selected by the caller. */
+  workspaceMode?: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   /** Additional hosts to allow in egress policy. */
   extraAllowedHosts?: string[];
   /** Full sandbox config (vfs shadows, env overrides). */
@@ -79,6 +81,22 @@ export interface ManagedVm {
   mountPath: string;
   guestWorkspace: string;
   agentDir: string;
+}
+
+export function shouldRunResumeCommand(
+  entry: string | ResumeCommand,
+  ctx: {
+    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  },
+): boolean {
+  if (typeof entry === 'string') {
+    return true;
+  }
+  const workspaceModes = entry.when?.workspaceMode;
+  if (workspaceModes && !workspaceModes.includes(ctx.workspaceMode)) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -302,6 +320,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   };
 
   const resources = config.sandboxConfig?.resources;
+  const workspaceMode = config.workspaceMode ?? 'shared_mount';
   const cp = VmCheckpoint.load(config.checkpointPath);
   const vm = await cp.resume({
     httpHooks,
@@ -381,6 +400,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     for (const [i, entry] of (
       config.sandboxConfig?.resumeCommands ?? []
     ).entries()) {
+      if (!shouldRunResumeCommand(entry, { workspaceMode })) {
+        continue;
+      }
       const { run, retries, backoffMs } =
         typeof entry === 'string'
           ? { run: entry, retries: 0, backoffMs: 2000 }

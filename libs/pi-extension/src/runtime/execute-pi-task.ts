@@ -427,6 +427,7 @@ export async function executePiTask(
         checkpointPath,
         agentName: opts.agentName,
         mountPath,
+        workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
         sandboxConfig: opts.sandboxConfig,
       });

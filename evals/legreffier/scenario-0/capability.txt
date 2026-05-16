@@ -1,1 +1,1 @@
-LeGreffier activation: verify bot identity and signing
+LeGreffier activation from a real checkout: verify bot identity and signing

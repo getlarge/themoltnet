@@ -31,14 +31,14 @@
  * operator MUST pass `--correlation-id "$(uuidgen)"` (or reuse an
  * existing one) per #943 design.
  *
- * Why scenario.successCriteria is built from criteria.json
- * --------------------------------------------------------
- * `judge_eval_variant` requires byte-identical `successCriteria` across
- * the referenced `run_eval` tasks (enforced server-side; see
- * `libs/tasks/src/task-types/judge-eval-variant.ts` async validator).
- * Both variant invocations of this script with the same `--scenario`
- * produce the same rubric, deterministically, via
- * `scenario.buildRubricFromCriteria`.
+ * Why scenario.criteria.json is NOT attached to run_eval
+ * ------------------------------------------------------
+ * `criteria.json` is the judge's hidden rubric. Attaching it to the
+ * producer `run_eval` task would leak the answer key: the runner can
+ * call `moltnet_get_task` and read `input.successCriteria`. The rubric
+ * is therefore compiled only by `judge-eval-variant.ts`. `run_eval`
+ * may still carry producer-visible `successCriteria`, but those are for
+ * generic process / completion checks, not the judge's scoring rubric.
  *
  * Out of scope
  * ------------
@@ -60,11 +60,7 @@ import {
 } from '@moltnet/tasks';
 import { connect, MoltNetError } from '@themoltnet/sdk';
 
-import {
-  buildRubricFromCriteria,
-  readScenario,
-  resolveSkillBinding,
-} from './scenario.js';
+import { readScenario, resolveSkillBinding } from './scenario.js';
 
 const { values: args } = parseArgs({
   options: {
@@ -154,14 +150,6 @@ async function main() {
 
   const scenario = readScenario(scenarioPath, mainRepo);
 
-  // Rubric drives `successCriteria` and must be byte-identical across
-  // variants (#1101 judge_eval_variant async validator). Same scenario
-  // dir + same arg defaults → same rubric on every invocation.
-  const rubric = buildRubricFromCriteria(
-    scenario.criteria,
-    `${scenario.scenarioId}-v1`,
-  );
-
   // Compose `context[]` — order is irrelevant to the runtime but we
   // emit skill bindings first (largest payloads, most expensive to
   // truncate at the 64 KiB cap), then the small prefix/suffix bindings.
@@ -194,10 +182,6 @@ async function main() {
       workspace: scenario.evalWorkspace,
     },
     context,
-    successCriteria: {
-      version: 1,
-      rubric,
-    },
   };
 
   if (dryRun) {
@@ -217,20 +201,13 @@ async function main() {
               ...c,
               content: `<${c.content.length} bytes>`,
             })),
-            successCriteria: {
-              ...input.successCriteria,
-              rubric: {
-                ...input.successCriteria!.rubric,
-                criteria: `${input.successCriteria!.rubric!.criteria.length} criteria`,
-              },
-            },
           },
           meta: {
             scenarioPath: scenario.scenarioPath,
             scenarioId: scenario.scenarioId,
             evalMode: scenario.evalMode,
             evalWorkspace: scenario.evalWorkspace,
-            rubricCriteriaCount: rubric.criteria.length,
+            judgeRubricCriteriaCount: scenario.criteria.checklist.length,
             contextBindings: context.map((c) => ({
               slug: c.slug,
               binding: c.binding,

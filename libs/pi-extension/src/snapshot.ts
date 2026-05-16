@@ -33,9 +33,20 @@ import {
 // ---------------------------------------------------------------------------
 
 /** Structured form of a resume command with optional retry policy. */
+export interface ResumeCommandWhen {
+  /**
+   * Effective workspace mode(s) that should run this command.
+   * Evaluated by the runtime from the mounted workspace shape rather than
+   * from task type semantics.
+   */
+  workspaceMode?: ('shared_mount' | 'dedicated_worktree' | 'scratch_mount')[];
+}
+
 export interface ResumeCommand {
   /** Shell command, same semantics as the string form. */
   run: string;
+  /** Optional generic runtime predicate for whether this step should run. */
+  when?: ResumeCommandWhen;
   /** Additional attempts on non-zero exit. Default 0. */
   retries?: number;
   /** Linear backoff between attempts in ms. Delay before attempt N+1 is
@@ -65,11 +76,14 @@ export interface SandboxConfig {
    *  resume with the failing command's stderr/stdout tail.
    *
    *  Each entry is either a raw string (no retries) or an object
-   *  `{ run, retries?, retryBackoffMs? }`. `retries` is the number of
-   *  ADDITIONAL attempts after the first failure (default 0 = no retry).
-   *  Use for steps that hit the network and may legitimately race
-   *  DHCP/registry availability on a fresh resume (e.g. `pnpm install`).
-   *  The wrapped command must be idempotent. */
+   *  `{ run, when?, retries?, retryBackoffMs? }`. `when` gates the
+   *  command on generic runtime properties such as effective
+   *  `workspaceMode`; this keeps sandbox policy decoupled from task
+   *  types. `retries` is the number of ADDITIONAL attempts after the
+   *  first failure (default 0 = no retry). Use for steps that hit the
+   *  network and may legitimately race DHCP/registry availability on a
+   *  fresh resume (e.g. `pnpm install`). The wrapped command must be
+   *  idempotent. */
   resumeCommands?: (string | ResumeCommand)[];
   /** VFS shadow settings — hide host paths from the guest. */
   vfs?: {

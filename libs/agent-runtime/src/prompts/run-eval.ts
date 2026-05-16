@@ -20,7 +20,8 @@ interface Ctx {
  *
  * Free-form: no git workflow, no commit ceremony. The executor produces
  * a textual response (and optional file artifacts) that a later
- * `judge_eval_variant` task (Slice 2) grades against the rubric.
+ * `judge_eval_variant` task (Slice 2) grades against its own hidden
+ * rubric.
  *
  * Context delivery is handled by `resolveTaskContext` (see
  * libs/agent-runtime/src/context-bindings.ts) and runs BEFORE this
@@ -81,7 +82,13 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
       '  "totalTokens": <int>,',
       '  "durationMs": <int>,',
       '  "traceparent": "<from claim>",',
-      '  "verification": <required iff input.successCriteria; see Self-verification>',
+      '  "verification": {',
+      '    "inputCid": "<task inputCid>",',
+      '    "results": [',
+      '      { "id": "<criterion id>", "kind": "rubric", "status": "pass|fail|skip", "detail": "<optional one-liner>" }',
+      '    ],',
+      '    "passed": <boolean>',
+      '  } // required iff input.successCriteria; must be an object, never a string',
       '}',
     ].join('\n'),
   });

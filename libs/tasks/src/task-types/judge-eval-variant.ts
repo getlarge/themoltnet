@@ -24,7 +24,7 @@
  *
  * Cross-task input invariants — "all targets share the same
  * correlation_id, all are `run_eval`, all are completed with an
- * accepted attempt, all share byte-identical `input.successCriteria`"
+ * accepted attempt"
  * — REQUIRE async DB lookups and live in `validateInputAsync` below,
  * which the task service runs at create time (#1096 wiring). The
  * TypeBox layer here only enforces shape: UUID format,
@@ -55,8 +55,7 @@ export const JudgeEvalVariantInput = Type.Object(
      * maxItems: 10 caps subagent fan-out cost.
      *
      * Cross-task validators (all are `run_eval`, all completed, share
-     * `correlation_id`, byte-identical `input.successCriteria`) live
-     * in the rest-api task-create handler.
+     * one `correlation_id`) live in the rest-api task-create handler.
      */
     runTaskIds: Type.Array(Type.String({ format: 'uuid' }), {
       minItems: 2,
@@ -64,11 +63,11 @@ export const JudgeEvalVariantInput = Type.Object(
     }),
 
     /**
-     * Required rubric envelope — duplicated from each variant
-     * producer's `input.successCriteria` for clarity and to permit a
-     * stricter judge-only rubric (e.g. spot-checking criteria the
-     * producer was not asked to self-assess against). After #881 lands
-     * this becomes a `rubricCid` lookup.
+     * Required judge rubric envelope. This is intentionally judge-only:
+     * producer `run_eval` tasks may carry their own `successCriteria`,
+     * but those are producer-visible completion checks, not the hidden
+     * scoring key used for cross-variant grading. After #881 lands this
+     * becomes a `rubricCid` lookup.
      */
     successCriteria: SuccessCriteriaSchema,
   },
@@ -154,7 +153,7 @@ export type JudgeEvalVariantOutput = Static<typeof JudgeEvalVariantOutput>;
  * must sum to 1.
  *
  * Cross-task invariants (all targets are `run_eval`, all completed,
- * share `correlation_id`, byte-identical `input.successCriteria`)
+ * share one `correlation_id`)
  * are NOT checked here — they require async DB lookups against
  * `runTaskIds` and live in `validateJudgeEvalVariantInputAsync`
  * below, invoked by the task service at create time (#1096).
@@ -309,31 +308,6 @@ export function validateJudgeEvalVariantOutput(
 }
 
 /**
- * Local stable-stringify for cross-variant `successCriteria` byte-
- * equality. Recursively sorts object keys; arrays preserve order
- * (intentional — rubric criteria order is semantically meaningful).
- * Mirrors the canonical-JSON shape `crypto-service` uses for CIDs,
- * without taking on a crypto-service dep just for this comparison.
- */
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return '[' + value.map(stableStringify).join(',') + ']';
-  }
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return (
-    '{' +
-    keys
-      .map((k) => JSON.stringify(k) + ':' + stableStringify(obj[k]))
-      .join(',') +
-    '}'
-  );
-}
-
-/**
  * Async preflight for `judge_eval_variant` (#1096 + #943):
  *
  *  1. Every `runTaskIds[i]` resolves to a task the caller can read.
@@ -348,9 +322,6 @@ function stableStringify(value: unknown): string {
  *     judge_eval_variant against the same group is final; produce a
  *     fresh correlation_id for a new judging round rather than
  *     adding contradictory verdicts to a sealed group.
- *  6. Every variant's `input.successCriteria` is byte-identical (via
- *     stable-stringify). Different rubrics across "variants" makes
- *     the comparison meaningless.
  */
 export async function validateJudgeEvalVariantInputAsync(
   input: unknown,
@@ -428,24 +399,6 @@ export async function validateJudgeEvalVariantInputAsync(
       field: 'runTaskIds',
       message: `correlation_id ${correlationId} is already sealed by ${seal.sealedByTaskType}/${seal.sealedByTaskId} at ${seal.sealedAt}; use a fresh correlation_id for a new judging round`,
     });
-  }
-
-  // (6) byte-identical successCriteria across variants.
-  const first = stableStringify(
-    (presentTargets[0].input as { successCriteria?: unknown }).successCriteria,
-  );
-  for (let i = 1; i < presentTargets.length; i++) {
-    const next = stableStringify(
-      (presentTargets[i].input as { successCriteria?: unknown })
-        .successCriteria,
-    );
-    if (next !== first) {
-      errors.push({
-        field: `runTaskIds[${i}]`,
-        message: `runTaskIds[${i}] has a different input.successCriteria than runTaskIds[0]; all variants must share the rubric and gates`,
-      });
-      break;
-    }
   }
 
   return errors;

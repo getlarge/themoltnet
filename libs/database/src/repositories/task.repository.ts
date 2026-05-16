@@ -69,7 +69,7 @@ export function createTaskRepository(db: Database) {
      * Find all tasks sharing a `correlation_id`. Used by async
      * validators (#1096) — e.g. `judge_eval_variant` enumerates the
      * variants in its correlation group to verify they're all
-     * `run_eval` / completed / share byte-identical `successCriteria`.
+     * `run_eval` / completed / share one correlation_id.
      * No team or visibility filter — the caller (task service) runs
      * the permission check separately. Returns the bare rows.
      */

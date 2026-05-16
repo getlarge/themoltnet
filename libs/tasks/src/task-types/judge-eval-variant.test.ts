@@ -65,7 +65,7 @@ function variantInput(overrides: Record<string, unknown> = {}) {
     variantLabel: 'baseline',
     execution: { mode: 'vitro' as const, workspace: 'none' as const },
     context: [],
-    successCriteria: rubric(),
+    successCriteria: { version: 1 as const },
     ...overrides,
   };
 }
@@ -191,7 +191,7 @@ describe('validateJudgeEvalVariantInput (sync)', () => {
 });
 
 describe('validateJudgeEvalVariantInputAsync', () => {
-  it('passes when all targets resolve, share correlation, identical successCriteria, no seal', async () => {
+  it('passes when all targets resolve, share correlation, and no seal exists', async () => {
     const ctx = makeCtx({
       tasks: { [TASK_A]: makeTask(), [TASK_B]: makeTask({ id: TASK_B }) },
     });
@@ -295,28 +295,6 @@ describe('validateJudgeEvalVariantInputAsync', () => {
       ctx,
     );
     expect(errors.some((e) => /already sealed/.test(e.message))).toBe(true);
-  });
-
-  it('rejects when variants have non-identical successCriteria', async () => {
-    const taskBInput = variantInput();
-    // Reorder the criteria — semantic-different rubric.
-    taskBInput.successCriteria.rubric.criteria.reverse();
-    const ctx = makeCtx({
-      tasks: {
-        [TASK_A]: makeTask(),
-        [TASK_B]: makeTask({
-          id: TASK_B,
-          input: taskBInput as unknown as Record<string, unknown>,
-        }),
-      },
-    });
-    const errors = await validateJudgeEvalVariantInputAsync(
-      { runTaskIds: [TASK_A, TASK_B], successCriteria: rubric() },
-      ctx,
-    );
-    expect(
-      errors.some((e) => /different input.successCriteria/.test(e.message)),
-    ).toBe(true);
   });
 });
 

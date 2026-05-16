@@ -144,10 +144,8 @@ export function readScenario(scenarioPath: string, repoRoot: string): Scenario {
  *
  * Weight normalization: `max_score` values are summed across the
  * checklist and each criterion's weight is `max_score / total`. Rounded
- * to 6 decimals for canonical equality across `run_eval` invocations
- * (the judge's async validator demands byte-identical `successCriteria`
- * across variant tasks; rounding eliminates FP drift between consecutive
- * arithmetic paths that happen to be different in different runs).
+ * to 6 decimals for canonical stability so repeated task creation and
+ * dry-runs produce the same judge rubric bytes.
  *
  * The criterion id is slugified from `name` so it's safe inside JSON
  * paths and stable across runs. The `description` is preserved verbatim

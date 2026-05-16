@@ -147,6 +147,13 @@ primitive, not a performance recipe. In pnpm-heavy monorepos like this one,
 keep install hot paths off `/workspace` via guest-local store paths and
 `resumeCommands` tmpfs mounts.
 
+If a resume step assumes `/workspace` is a repo checkout, gate it on
+`resumeCommands[].when.workspaceMode` rather than on task type. Use:
+
+- `shared_mount` / `dedicated_worktree` for repo-aware bootstrap
+- `scratch_mount` to skip repo-specific steps when the task runs in an empty
+  scratch workspace
+
 ### 1. Start the local stack
 
 The e2e Compose file ships everything the daemon needs (Postgres, Ory, REST

@@ -40,6 +40,8 @@ describe('buildRunEvalUserPrompt', () => {
       ctx,
     );
     expect(out).toContain('## Self-verification');
+    expect(out).toContain('`verification` MUST be a JSON object');
+    expect(out).toContain('Minimal valid example:');
   });
 
   it('lists scenario inputFiles when present', () => {
@@ -52,6 +54,15 @@ describe('buildRunEvalUserPrompt', () => {
 
   it('always emits the final-output block', () => {
     expect(buildRunEvalUserPrompt(baseInput, ctx)).toContain('RunEvalOutput');
+  });
+
+  it('shows verification as an object in the final output sketch', () => {
+    const out = buildRunEvalUserPrompt(
+      { ...baseInput, successCriteria: { version: 1 as const } },
+      ctx,
+    );
+    expect(out).toContain('"verification": {');
+    expect(out).toContain('must be an object, never a string');
   });
 
   it('describes the requested execution mode and workspace', () => {
