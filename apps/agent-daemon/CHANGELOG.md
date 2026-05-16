@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.8.0...agent-daemon-v0.9.0) (2026-05-16)
+
+
+### Features
+
+* add LeGreffier PR complexity review flow ([800cd4f](https://github.com/getlarge/themoltnet/commit/800cd4f23f01e22e903861910e2832ac806ef179))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.16.0
+    * @themoltnet/pi-extension bumped to 0.18.1
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.7.0...agent-daemon-v0.8.0) (2026-05-15)
 
 
