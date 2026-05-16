@@ -5,8 +5,6 @@ import type { TaskOutput } from '@moltnet/tasks';
 import {
   AgentRuntime,
   ApiTaskReporter,
-  createSubagentContractRegistry,
-  JudgeEvalVariantResult,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import {
@@ -181,21 +179,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
 
   const outputs: TaskOutput[] = [];
-  const subagentContractRegistry = createSubagentContractRegistry([
-    {
-      name: 'judge_eval_variant_result',
-      description:
-        'Per-variant grading result produced by a subagent of ' +
-        'judge_eval_variant: scores against the shared rubric, ' +
-        'composite, and a 1-3 sentence verdict for a single variant.',
-      parametersSchema: JudgeEvalVariantResult,
-    },
-  ]);
-
   try {
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
-      subagentContractRegistry,
       mountPath: sandbox.rootDir,
       provider: common.provider,
       model: common.model,

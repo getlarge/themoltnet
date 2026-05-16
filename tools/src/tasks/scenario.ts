@@ -1,6 +1,6 @@
 /**
  * scenario.ts — read an eval scenario dir and project it into the shape
- * the `run_eval` / `judge_eval_variant` task input schemas expect.
+ * the `run_eval` / `judge_eval_attempt` task input schemas expect.
  *
  * Eval scenarios live as triplets under `evals/<skill>/scenario-<n>/`:
  *
@@ -15,7 +15,7 @@
  *                      `vivo -> dedicated_worktree`).
  *
  * Helpers here are intentionally minimal — composition belongs to the
- * imposer scripts (`run-eval.ts`, `judge-eval-variant.ts`) which import
+ * imposer scripts (`run-eval.ts`, `judge-eval-attempt.ts`) which import
  * `buildRubricFromCriteria` + `resolveSkillBinding` and assemble the
  * full task input themselves.
  *

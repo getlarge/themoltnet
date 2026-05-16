@@ -90,7 +90,7 @@ Current built-in policy:
 | `fulfill_brief`      | yes       | dedicated worktree | session         | correlation   |
 | `assess_brief`       | no        | dedicated worktree | attempt         | none          |
 | `run_eval`           | no        | shared mount       | attempt         | custom        |
-| `judge_eval_variant` | no        | shared mount       | attempt         | custom        |
+| `judge_eval_attempt` | no        | shared mount       | attempt         | none          |
 
 Current daemon behavior:
 

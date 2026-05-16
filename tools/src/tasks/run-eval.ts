@@ -20,7 +20,8 @@
  *     --prompt-prefix "MARKER: prompt_prefix sanity" \
  *     --user-inline "MARKER: user_inline sanity"
  *
- * After both complete, `task:judge-eval-variant` references them.
+ * After variants complete, one `task:judge-eval-attempt` can be created per
+ * produced attempt. Cross-variant deltas are derived later at query time.
  *
  * Why `--correlation-id` is required
  * ----------------------------------
@@ -36,7 +37,7 @@
  * `criteria.json` is the judge's hidden rubric. Attaching it to the
  * producer `run_eval` task would leak the answer key: the runner can
  * call `moltnet_get_task` and read `input.successCriteria`. The rubric
- * is therefore compiled only by `judge-eval-variant.ts`. `run_eval`
+ * is therefore compiled only by `judge-eval-attempt.ts`. `run_eval`
  * may still carry producer-visible `successCriteria`, but those are for
  * generic process / completion checks, not the judge's scoring rubric.
  *
@@ -113,16 +114,15 @@ if (!UUID_RE.test(correlationId)) {
 if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
   usage(`Invalid --agent "${agentName}": must match /^[a-zA-Z0-9_-]+$/`);
 }
-// `variantLabel` is also exercised by the server's pattern check via
-// JudgeEvalVariantResult — same constraint we apply here so divergent
-// labels can't be created on a `run_eval` that the judge later rejects.
+// Judge outputs surface `variantLabel` for query-time deltas, so keep the
+// same delimiter restriction here to avoid ambiguous downstream keys.
 if (variantLabel.length === 0 || variantLabel.length > 64) {
   usage(`Invalid --variant "${variantLabel}": length must be 1..64 chars.`);
 }
 if (/ - /.test(variantLabel)) {
   usage(
     `Invalid --variant "${variantLabel}": must not contain " - " (space-hyphen-space) — ` +
-      'reserved as the delimiter in judge_eval_variant deltas keys.',
+      'reserved as the delimiter in downstream eval delta keys.',
   );
 }
 

@@ -9,7 +9,7 @@ interface Ctx {
   taskId: string;
   /**
    * MoltNet correlationId. For eval scenarios this groups the N variant
-   * `run_eval` tasks plus the eventual `judge_eval_variant` task under a
+   * `run_eval` tasks plus any eventual `judge_eval_attempt` tasks under a
    * single id. May be null for ad-hoc single-variant runs.
    */
   correlationId?: string | null;
@@ -19,8 +19,8 @@ interface Ctx {
  * Build the first user-message prompt for a `run_eval` task.
  *
  * Free-form: no git workflow, no commit ceremony. The executor produces
- * a textual response (and optional file artifacts) that a later
- * `judge_eval_variant` task (Slice 2) grades against its own hidden
+ * a textual response (and optional file artifacts) that later
+ * `judge_eval_attempt` task(s) grade against their own hidden
  * rubric.
  *
  * Context delivery is handled by `resolveTaskContext` (see
@@ -52,9 +52,9 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
         '',
         `This task carries correlationId \`${ctx.correlationId}\`. It joins`,
         'this variant to its sibling `run_eval` tasks (other variants of the',
-        'same scenario) and to the eventual `judge_eval_variant` task that',
-        'will grade them together. You do not need to act on it directly —',
-        'it is recorded for cross-variant aggregation at query time.',
+        'same scenario and to any later `judge_eval_attempt` tasks created',
+        'against those variants. You do not need to act on it directly — it',
+        'is recorded for cross-variant aggregation at query time.',
         '',
       ].join('\n')
     : '';

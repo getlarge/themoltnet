@@ -1,11 +1,11 @@
 /**
  * `run_eval` — execute a scenario prompt under a named variant for
- * later cross-variant grading by `judge_eval_variant` (Slice 2).
+ * later per-attempt grading by `judge_eval_attempt` tasks.
  *
  * output_kind: artifact
  * criteria: optional producer-only checks (when set,
  *   output.verification is required — the judge rubric remains hidden
- *   on the downstream `judge_eval_variant` task)
+ *   on downstream `judge_eval_attempt` tasks)
  * references: not required (scenario lives entirely in input)
  */
 import { type Static, Type } from '@sinclair/typebox';

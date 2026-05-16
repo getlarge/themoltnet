@@ -58,8 +58,9 @@ export interface ResolvedRenderedPack {
 
 /**
  * Correlation seal record. A correlation_id is sealed when a
- * `judge_eval_variant` (or any future task type that needs a
- * monotonic-add-only group snapshot) is created against it.
+ * task type that wants a monotonic add-only correlation snapshot
+ * (historically `judge_eval_variant`, potentially future tasks too)
+ * is created against it.
  * Subsequent task-create calls in the same correlation group reject
  * with a clear error.
  */
@@ -90,16 +91,14 @@ export interface AsyncTaskValidationContext {
 
   /**
    * List tasks sharing a `correlation_id`. Same caller-bound
-   * visibility as `resolveTask`. Used by `judge_eval_variant` to
-   * enumerate the variants it claims to be grading.
+   * visibility as `resolveTask`. Used by eval tasks to inspect
+   * sibling runs or judges in the same correlation group.
    */
   listTasksByCorrelation(correlationId: string): Promise<Task[]>;
 
   /**
    * Find the existing seal for a correlation_id, or null. Used by
-   * `run_eval` to reject creates against sealed groups, and by
-   * `judge_eval_variant` to surface a clean error if the group has
-   * already been sealed by another judge task.
+   * task types that reject creates against sealed groups.
    */
   findCorrelationSeal(correlationId: string): Promise<CorrelationSeal | null>;
 
@@ -117,11 +116,21 @@ export interface AsyncTaskValidationContext {
  * read-side; effects are applied by the task service after the task
  * row is inserted, in the same transaction).
  *
- * v1: only `sealCorrelation` is supported. Future side-effects
- * (e.g. notify a webhook, kick off a follow-up task) would extend
- * this union.
+ * v1 supports correlation sealing and transactional uniqueness guards.
+ * Future side-effects (e.g. notify a webhook, kick off a follow-up task)
+ * would extend this union.
  */
-export type TaskCreateSideEffect = {
-  readonly kind: 'sealCorrelation';
-  readonly correlationId: string;
-};
+export type TaskCreateSideEffect =
+  | {
+      readonly kind: 'sealCorrelation';
+      readonly correlationId: string;
+    }
+  | {
+      readonly kind: 'guardTaskUniqueness';
+      readonly taskType: string;
+      readonly lockKey: string;
+      readonly inputMatches: ReadonlyArray<{
+        readonly path: readonly string[];
+        readonly value: string | number | boolean;
+      }>;
+    };

@@ -1107,7 +1107,7 @@ export type NewTask = typeof tasks.$inferInsert;
 //
 // A correlation_id is "sealed" when a task type that demands a
 // monotonic-add-only snapshot of its correlation group is created
-// against it (`judge_eval_variant` is the first user). Sealing
+// against it. Sealing
 // rejects subsequent task-create calls in the same correlation_id
 // so the snapshot the judge captured stays canonical.
 //

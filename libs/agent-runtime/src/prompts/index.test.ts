@@ -1,4 +1,8 @@
-import { ASSESS_BRIEF_TYPE, PR_REVIEW_TYPE } from '@moltnet/tasks';
+import {
+  ASSESS_BRIEF_TYPE,
+  JUDGE_EVAL_ATTEMPT_TYPE,
+  PR_REVIEW_TYPE,
+} from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
@@ -58,6 +62,34 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('moltnet_list_task_attempts');
   });
 
+  it('builds judge_eval_attempt prompt with attempt-message inspection instructions', () => {
+    const task = makeFulfillBriefTask({
+      taskType: JUDGE_EVAL_ATTEMPT_TYPE,
+      input: {
+        targetTaskId: '11111111-1111-4111-8111-111111111111',
+        targetAttemptN: 1,
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'r',
+            version: 'v1',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'Uses the right command path',
+                weight: 1,
+                scoring: 'llm_checklist',
+              },
+            ],
+          },
+        },
+      },
+    });
+    const prompt = buildTaskUserPrompt(task, ctx);
+    expect(prompt).toContain('moltnet_list_task_attempts');
+    expect(prompt).toContain('moltnet_list_task_messages');
+    expect(prompt).toContain('Do not delegate');
+  });
   it('mentions the dedicated review worktree for assess_brief when provided by the executor', () => {
     const task = makeFulfillBriefTask({
       taskType: ASSESS_BRIEF_TYPE,
