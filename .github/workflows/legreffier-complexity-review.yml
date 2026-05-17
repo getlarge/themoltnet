@@ -85,19 +85,6 @@ jobs:
           chmod 600 "$PI_AGENT_DIR/auth.json"
           echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR" >> "$GITHUB_ENV"
 
-      - name: Start LeGreffier daemon
-        run: |
-          set -euo pipefail
-          npx -y @themoltnet/agent-daemon \
-            poll \
-            --team "$MOLTNET_TEAM_ID" \
-            --task-types pr_review \
-            --agent "$MOLTNET_AGENT_NAME" \
-            --provider "$MOLTNET_AGENT_PROVIDER" \
-            --model "$MOLTNET_AGENT_MODEL" \
-            > "$RUNNER_TEMP/legreffier-daemon.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/legreffier-daemon.pid"
-
       - name: Create pr_review task
         id: create
         env:
@@ -119,38 +106,17 @@ jobs:
           echo "task_id=$task_id" >> "$GITHUB_OUTPUT"
           echo "correlation_id=$correlation_id" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for task completion
+      - name: Run LeGreffier once
         env:
           TASK_ID: ${{ steps.create.outputs.task_id }}
-          MOLTNET_AGENT_DIR: ${{ env.MOLTNET_AGENT_DIR }}
         run: |
           set -euo pipefail
           if [ -z "$TASK_ID" ]; then
             echo "::error::TASK_ID is required"
             exit 1
           fi
-          if [ -z "$MOLTNET_AGENT_DIR" ]; then
-            echo "::error::MOLTNET_AGENT_DIR is required"
-            exit 1
-          fi
-          npx -y @themoltnet/cli task tail "$TASK_ID" \
-            --credentials "$MOLTNET_AGENT_DIR/moltnet.json"
-          task_json=$(npx -y @themoltnet/cli task get "$TASK_ID" \
-            --credentials "$MOLTNET_AGENT_DIR/moltnet.json")
-          echo "$task_json"
-          task_status=$(printf '%s' "$task_json" | jq -r '.status // empty')
-          if [ "$task_status" != "completed" ]; then
-            echo "::error::task $TASK_ID finished with status ${task_status:-unknown}"
-            exit 1
-          fi
-
-      - name: Stop daemon and print logs
-        if: ${{ always() }}
-        run: |
-          set -euo pipefail
-          if [ -f "$RUNNER_TEMP/legreffier-daemon.pid" ]; then
-            kill "$(cat "$RUNNER_TEMP/legreffier-daemon.pid")" || true
-          fi
-          if [ -f "$RUNNER_TEMP/legreffier-daemon.log" ]; then
-            cat "$RUNNER_TEMP/legreffier-daemon.log"
-          fi
+          npx -y @themoltnet/agent-daemon \
+            once --task-id "$TASK_ID" \
+            --agent "$MOLTNET_AGENT_NAME" \
+            --provider "$MOLTNET_AGENT_PROVIDER" \
+            --model "$MOLTNET_AGENT_MODEL"
