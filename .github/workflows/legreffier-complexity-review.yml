@@ -88,7 +88,7 @@ jobs:
       - name: Start LeGreffier daemon
         run: |
           set -euo pipefail
-          pnpm --filter @themoltnet/agent-daemon cli -- \
+          npx -y @themoltnet/agent-daemon \
             poll \
             --team "$MOLTNET_TEAM_ID" \
             --task-types pr_review \
@@ -104,12 +104,14 @@ jobs:
           PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}
         run: |
           set -euo pipefail
-          json=$(pnpm --filter @moltnet/tools task:create-pr-review \
+          task_json_path="$RUNNER_TEMP/pr-review-task.json"
+          node --import tsx tools/src/tasks/create-pr-review.ts \
             --pr "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY")
-          echo "$json"
-          task_id=$(printf '%s' "$json" | jq -r '.id // empty')
-          correlation_id=$(printf '%s' "$json" | jq -r '.correlationId // empty')
+            --repo "$GITHUB_REPOSITORY" \
+            > "$task_json_path"
+          cat "$task_json_path"
+          task_id=$(jq -r '.id // empty' "$task_json_path")
+          correlation_id=$(jq -r '.correlationId // empty' "$task_json_path")
           if [ -z "$task_id" ]; then
             echo "::error::task:create-pr-review returned no task id"
             exit 1
@@ -131,9 +133,9 @@ jobs:
             echo "::error::MOLTNET_AGENT_DIR is required"
             exit 1
           fi
-          node packages/cli/bin/moltnet.js task tail "$TASK_ID" \
+          npx -y @themoltnet/cli task tail "$TASK_ID" \
             --credentials "$MOLTNET_AGENT_DIR/moltnet.json"
-          task_json=$(node packages/cli/bin/moltnet.js task get "$TASK_ID" \
+          task_json=$(npx -y @themoltnet/cli task get "$TASK_ID" \
             --credentials "$MOLTNET_AGENT_DIR/moltnet.json")
           echo "$task_json"
           task_status=$(printf '%s' "$task_json" | jq -r '.status // empty')
