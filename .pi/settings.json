@@ -4,10 +4,7 @@
     "ollama-cloud/qwen3.5:cloud",
     "ollama-cloud/qwen3-coder:480b-cloud"
   ],
-  "packages": [
-    "npm:@ollama/pi-web-search",
-    "npm:@themoltnet/pi-extension"
-  ],
+  "packages": ["npm:@ollama/pi-web-search", "npm:@themoltnet/pi-extension"],
   "transport": "sse",
   "treeFilterMode": "default"
 }
