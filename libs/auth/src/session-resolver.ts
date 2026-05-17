@@ -44,6 +44,61 @@ const DEFAULT_SESSION_SCOPES = [
   'team:read',
 ];
 
+function summarizeCookieHeader(cookie: string | undefined): {
+  present: boolean;
+  cookieCount: number;
+  kratosCookiePresent: boolean;
+} {
+  if (!cookie) {
+    return {
+      present: false,
+      cookieCount: 0,
+      kratosCookiePresent: false,
+    };
+  }
+
+  const cookieNames = cookie
+    .split(';')
+    .map((part) => part.trim().split('=')[0]?.trim())
+    .filter((name): name is string => Boolean(name));
+
+  return {
+    present: true,
+    cookieCount: cookieNames.length,
+    kratosCookiePresent: cookieNames.some(
+      (name) =>
+        name === 'ory_kratos_session' || name.startsWith('ory_session_'),
+    ),
+  };
+}
+
+function extractErrorStatus(err: unknown): number | undefined {
+  return typeof err === 'object' && err !== null && 'status' in err
+    ? ((err as { status?: unknown }).status as number | undefined)
+    : undefined;
+}
+
+function extractErrorBody(err: unknown): unknown {
+  if (typeof err !== 'object' || err === null || !('response' in err)) {
+    return undefined;
+  }
+
+  const response = (err as { response?: unknown }).response;
+  if (typeof response !== 'object' || response === null) {
+    return undefined;
+  }
+
+  if ('body' in response) {
+    return (response as { body?: unknown }).body;
+  }
+
+  if ('statusText' in response) {
+    return { statusText: (response as { statusText?: unknown }).statusText };
+  }
+
+  return undefined;
+}
+
 export interface SessionResolverConfig {
   /** Scopes to assign to session-authenticated humans */
   scopes?: string[];
@@ -135,15 +190,20 @@ export function createSessionResolver(
         // 5xx, network timeouts, and unknown errors indicate Kratos is
         // degraded and MUST be observable, otherwise cookie-auth silently
         // degrades to 401 with no signal.
-        const status =
-          typeof err === 'object' && err !== null && 'status' in err
-            ? (err as { status?: unknown }).status
-            : undefined;
+        const status = extractErrorStatus(err);
         const isClientError =
           typeof status === 'number' && status >= 400 && status < 500;
         if (!isClientError) {
+          const cookieSummary = summarizeCookieHeader(cookie);
           logger.warn(
-            { err, status },
+            {
+              err,
+              status,
+              responseBody: extractErrorBody(err),
+              authTransport: sessionToken ? 'x-session-token' : 'cookie',
+              sessionTokenPresent: Boolean(sessionToken),
+              cookie: cookieSummary,
+            },
             'session-resolver: Kratos toSession error',
           );
         }

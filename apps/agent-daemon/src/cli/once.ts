@@ -226,7 +226,11 @@ export async function runOnce(argv: string[]): Promise<number> {
             executionPlan.sessionPersistence.sessionDir,
           ),
           workspaceId: executionPlan.workspaceId,
-          worktreePath: resolveRecordedWorkspacePath(mainRepo, executionPlan),
+          worktreePath: resolveRecordedWorkspacePath(
+            mainRepo,
+            stateDirs.rootDir,
+            executionPlan,
+          ),
           worktreeBranch: executionPlan.worktreeBranch,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
@@ -302,6 +306,7 @@ export async function runOnce(argv: string[]): Promise<number> {
 
 function resolveRecordedWorkspacePath(
   mainRepo: string,
+  stateRootDir: string,
   executionPlan: {
     workspaceId: string | null;
     workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
@@ -309,12 +314,6 @@ function resolveRecordedWorkspacePath(
 ): string | null {
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
-    ? join(
-        mainRepo,
-        '.moltnet',
-        'd',
-        'task-workspaces',
-        executionPlan.workspaceId,
-      )
+    ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
     : join(mainRepo, '.worktrees', executionPlan.workspaceId);
 }

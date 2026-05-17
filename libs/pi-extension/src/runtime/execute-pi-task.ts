@@ -468,6 +468,7 @@ export async function executePiTask(
         workspace: {
           mode: activeWorkspace.mode,
           branch: activeWorkspace.branch,
+          attached: executionPlan?.workspaceAttachment !== undefined,
         },
         extras: opts.promptExtras,
       };

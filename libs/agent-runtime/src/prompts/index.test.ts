@@ -90,6 +90,44 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('moltnet_list_task_messages');
     expect(prompt).toContain('Do not delegate');
   });
+
+  it('tells judge_eval_attempt to inspect attached producer artifacts directly from the mounted workspace', () => {
+    const task = makeFulfillBriefTask({
+      taskType: JUDGE_EVAL_ATTEMPT_TYPE,
+      input: {
+        targetTaskId: '11111111-1111-4111-8111-111111111111',
+        targetAttemptN: 1,
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'r',
+            version: 'v1',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'Inspects producer artifacts correctly',
+                weight: 1,
+                scoring: 'llm_checklist',
+              },
+            ],
+          },
+        },
+      },
+    });
+    const prompt = buildTaskUserPrompt(task, {
+      ...ctx,
+      workspace: {
+        mode: 'scratch_mount',
+        attached: true,
+      },
+    });
+    expect(prompt).toContain('### Workspace');
+    expect(prompt).toContain('already attached to the producer attempt');
+    expect(prompt).toContain('artifact_<taskId>');
+    expect(prompt).toContain(
+      'producer scratch workspace mounted with shadow writes',
+    );
+  });
   it('mentions the dedicated review worktree for assess_brief when provided by the executor', () => {
     const task = makeFulfillBriefTask({
       taskType: ASSESS_BRIEF_TYPE,

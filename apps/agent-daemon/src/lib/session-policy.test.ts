@@ -83,7 +83,7 @@ describe('deriveTaskSessionDescriptor', () => {
     expect(out.policy).toMatchObject({
       resumable: true,
       workspaceMode: 'shared_mount',
-      workspaceScope: 'attempt',
+      workspaceScope: 'session',
       sessionScope: 'custom',
     });
     expect(out.sessionKey).toBe(

@@ -306,7 +306,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputSchema: RunEvalOutput,
     outputKind: 'artifact',
     resumable: true,
-    workspaceScope: 'attempt',
+    workspaceScope: 'session',
     sessionScope: 'custom',
     requiresReferences: false,
     validateOutput: validateRunEvalOutput,

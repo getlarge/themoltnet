@@ -5,6 +5,11 @@ import { buildFinalOutputBlock } from './final-output.js';
 interface Ctx {
   diaryId: string;
   taskId: string;
+  workspace?: {
+    mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+    branch?: string | null;
+    attached?: boolean;
+  };
 }
 
 export function buildJudgeEvalAttemptUserPrompt(
@@ -44,6 +49,26 @@ export function buildJudgeEvalAttemptUserPrompt(
     ].join('\n'),
   });
 
+  const workspaceSection =
+    ctx.workspace?.attached === true
+      ? [
+          '### Workspace',
+          '',
+          'Your current workspace is already attached to the producer attempt',
+          'you are judging. Inspect files directly from the current workspace',
+          'root instead of inventing synthetic `artifact_<taskId>` paths.',
+          'If the accepted attempt output lists `artifacts[].path`, treat those',
+          'paths as relative to the current workspace root unless the output',
+          'explicitly says otherwise.',
+          ctx.workspace.mode === 'dedicated_worktree'
+            ? `This attachment is a dedicated producer worktree${ctx.workspace.branch ? ` on branch \`${ctx.workspace.branch}\`` : ''}.`
+            : ctx.workspace.mode === 'scratch_mount'
+              ? 'This attachment is the producer scratch workspace mounted with shadow writes for safe inspection.'
+              : 'This attachment is the producer shared workspace mounted with shadow writes for safe inspection.',
+          '',
+        ].join('\n')
+      : '';
+
   return [
     '# Judge Eval Attempt\n',
     'You are grading one accepted `run_eval` producer attempt against a hidden',
@@ -61,8 +86,11 @@ export function buildJudgeEvalAttemptUserPrompt(
     `3. Call \`moltnet_list_task_messages\` with taskId=\`${input.targetTaskId}\`, attemptN=\`${input.targetAttemptN}\` to inspect the producer's turn-by-turn behavior.`,
     '4. Use the accepted attempt output, attempt messages, and any accessible',
     '   artifacts or workspace evidence available in your environment.',
+    '   Read artifact files from the mounted producer workspace when present;',
+    '   do not assume detached `artifact_<taskId>` directories exist.',
     '5. Score strictly against the rubric below.',
     '',
+    workspaceSection,
     '### Rubric',
     '',
     rubric.preamble ? `${rubric.preamble}\n` : '',

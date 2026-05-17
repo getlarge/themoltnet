@@ -48,8 +48,9 @@ export interface TaskUserPromptContext {
   diaryId: string;
   taskId: string;
   workspace?: {
-    mode: 'shared_mount' | 'dedicated_worktree';
+    mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
     branch?: string | null;
+    attached?: boolean;
   };
   extras?: Record<string, unknown>;
 }
@@ -150,6 +151,7 @@ export function buildTaskUserPrompt(
       return buildJudgeEvalAttemptUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
+        workspace: ctx.workspace,
       });
     }
 

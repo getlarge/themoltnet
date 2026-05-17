@@ -243,7 +243,37 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
-        const executionPlan = executionPlans.getOrCreate(claimedTask);
+        let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
+        try {
+          executionPlan = executionPlans.getOrCreate(claimedTask);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          rootLogger.warn(
+            {
+              taskId: claimedTask.task.id,
+              attemptN: claimedTask.attemptN,
+              err: message,
+            },
+            'agent-daemon.execution_plan_failed',
+          );
+          return {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            status: 'failed',
+            output: null,
+            outputCid: null,
+            usage: { inputTokens: 0, outputTokens: 0 },
+            durationMs: 0,
+            error: {
+              code:
+                err instanceof ProducerContextResolutionError
+                  ? 'producer_context_missing'
+                  : 'execution_plan_failed',
+              message,
+              retryable: false,
+            },
+          };
+        }
         const sessionDescriptor = executionPlan.descriptor;
         let expired: ReturnType<typeof slotRegistry.reapExpiredSlots>;
         try {
@@ -331,37 +361,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             },
           };
         }
-        let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
-        try {
-          executionPlan = executionPlans.getOrCreate(claimedTask);
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          rootLogger.warn(
-            {
-              taskId: claimedTask.task.id,
-              attemptN: claimedTask.attemptN,
-              err: message,
-            },
-            'agent-daemon.execution_plan_failed',
-          );
-          return {
-            taskId: claimedTask.task.id,
-            attemptN: claimedTask.attemptN,
-            status: 'failed',
-            output: null,
-            outputCid: null,
-            usage: { inputTokens: 0, outputTokens: 0 },
-            durationMs: 0,
-            error: {
-              code:
-                err instanceof ProducerContextResolutionError
-                  ? 'producer_context_missing'
-                  : 'execution_plan_failed',
-              message,
-              retryable: false,
-            },
-          };
-        }
         if (executionPlan.slotKey && executionPlan.sessionPersistence) {
           slotRegistry.beginSlot({
             ...slotIdentity,
@@ -372,7 +371,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               executionPlan.sessionPersistence.sessionDir,
             ),
             workspaceId: executionPlan.workspaceId,
-            worktreePath: resolveRecordedWorkspacePath(mainRepo, executionPlan),
+            worktreePath: resolveRecordedWorkspacePath(
+              mainRepo,
+              stateDirs.rootDir,
+              executionPlan,
+            ),
             worktreeBranch: executionPlan.worktreeBranch,
             lastTaskId: claimedTask.task.id,
             lastAttemptN: claimedTask.attemptN,
@@ -413,6 +416,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
 function resolveRecordedWorkspacePath(
   mainRepo: string,
+  stateRootDir: string,
   executionPlan: {
     workspaceId: string | null;
     workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
@@ -420,13 +424,7 @@ function resolveRecordedWorkspacePath(
 ): string | null {
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
-    ? join(
-        mainRepo,
-        '.moltnet',
-        'd',
-        'task-workspaces',
-        executionPlan.workspaceId,
-      )
+    ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
     : join(mainRepo, '.worktrees', executionPlan.workspaceId);
 }
 

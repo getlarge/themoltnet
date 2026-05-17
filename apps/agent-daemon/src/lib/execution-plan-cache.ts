@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
@@ -157,19 +157,28 @@ function resolveProducerWorkspaceAttachment(
 } {
   const workspacePath = producer.workspace?.worktreePath ?? null;
   if (workspacePath) {
-    if (!existsSync(workspacePath)) {
-      throw new ProducerContextResolutionError(
-        `Producer workspace path is missing on disk: ${workspacePath}`,
-      );
+    if (existsSync(workspacePath)) {
+      return {
+        mountPath: workspacePath,
+        cwdPath: workspacePath,
+        mode: producer.workspace?.worktreeBranch
+          ? 'dedicated_worktree'
+          : 'scratch_mount',
+        branch: producer.workspace?.worktreeBranch ?? null,
+      };
     }
-    return {
-      mountPath: workspacePath,
-      cwdPath: workspacePath,
-      mode: producer.workspace?.worktreeBranch
-        ? 'dedicated_worktree'
-        : 'scratch_mount',
-      branch: producer.workspace?.worktreeBranch ?? null,
-    };
+    const recoveredPath = recoverScratchWorkspacePath(producer, stateDirs);
+    if (recoveredPath) {
+      return {
+        mountPath: recoveredPath,
+        cwdPath: recoveredPath,
+        mode: 'scratch_mount',
+        branch: null,
+      };
+    }
+    throw new ProducerContextResolutionError(
+      `Producer workspace path is missing on disk: ${workspacePath}`,
+    );
   }
 
   const sharedMountRoot = dirname(dirname(stateDirs.rootDir));
@@ -184,4 +193,19 @@ function resolveProducerWorkspaceAttachment(
     mode: 'shared_mount',
     branch: null,
   };
+}
+
+function recoverScratchWorkspacePath(
+  producer: ResolvedProducerDaemonSlot,
+  stateDirs: DaemonStateDirs,
+): string | null {
+  if (producer.workspace?.worktreeBranch) return null;
+  if (!producer.workspace?.workspaceId) return null;
+
+  const fallback = join(
+    stateDirs.rootDir,
+    'task-workspaces',
+    producer.workspace.workspaceId,
+  );
+  return existsSync(fallback) ? fallback : null;
 }
