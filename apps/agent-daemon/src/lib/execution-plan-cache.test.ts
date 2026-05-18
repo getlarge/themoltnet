@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { Task } from '@moltnet/tasks';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { DaemonSlotRegistry } from './daemon-slot-registry.js';
@@ -106,7 +107,7 @@ describe('createExecutionPlanCache', () => {
             },
           },
         },
-      },
+      } as unknown as Task,
     });
 
     expect(plan.workspaceMode).toBe('scratch_mount');
@@ -159,7 +160,7 @@ describe('createExecutionPlanCache', () => {
             targetAttemptN: 1,
             successCriteria: { version: 1, rubric: null },
           },
-        },
+        } as unknown as Task,
       }),
     ).toThrow(ProducerContextResolutionError);
 
