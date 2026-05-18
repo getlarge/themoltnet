@@ -1,4 +1,6 @@
 {
+  "defaultModel": "qwen3-coder:480b-cloud",
+  "defaultProvider": "ollama-cloud",
   "enableInstallTelemetry": false,
   "enabledModels": [
     "ollama-cloud/qwen3.5:cloud",
