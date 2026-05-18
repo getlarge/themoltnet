@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"sync"
-
-	"github.com/go-faster/jx"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
@@ -90,10 +87,6 @@ func runTaskSchemasGetWithClient(ctx context.Context, client *moltnetapi.Client,
 	return fmt.Errorf("unknown task type %q; known: %v", taskType, known)
 }
 
-// fetchTaskSchemas calls GET /tasks/schemas and unwraps the typed response.
-// The result is cached by inputSchemaCid across calls in the same process —
-// schema validation (PR 2) needs that same cache for the compiled validator,
-// so the fetch and the cache live together here.
 func fetchTaskSchemas(ctx context.Context, client *moltnetapi.Client) ([]moltnetapi.TaskTypeDescriptor, error) {
 	res, err := client.ListTaskSchemas(ctx)
 	if err != nil {
@@ -103,37 +96,21 @@ func fetchTaskSchemas(ctx context.Context, client *moltnetapi.Client) ([]moltnet
 	if !ok {
 		return nil, formatAPIError(res)
 	}
-	for i := range list.Items {
-		schemaCache.Store(list.Items[i].InputSchemaCid, schemaAsMap(list.Items[i].InputSchema))
-	}
 	return list.Items, nil
 }
-
-// schemaCache is a process-scoped map keyed by inputSchemaCid. Storing the
-// JSON-Schema bytes (rather than a compiled validator) keeps this file free
-// of the validation lib that lands in PR 2; the validator there will pull
-// from the same cache and compile lazily on first use.
-var schemaCache sync.Map // key: string (cid), value: map[string]any
 
 func schemaAsMap(in moltnetapi.TaskTypeDescriptorInputSchema) map[string]any {
 	out := make(map[string]any, len(in))
 	for k, raw := range in {
-		out[k] = jxRawToAny(raw)
+		var v any
+		// jx.Raw is already JSON bytes; encoding/json is enough and avoids
+		// pulling jx's decoding surface into the CLI. A malformed fragment is
+		// a server bug — surface the raw string so the operator can file it.
+		if err := json.Unmarshal(raw, &v); err != nil {
+			out[k] = string(raw)
+			continue
+		}
+		out[k] = v
 	}
 	return out
-}
-
-// jxRawToAny round-trips a jx.Raw into a generic any. The descriptor stores
-// schema fragments as opaque JSON tokens; for display and (in PR 2) for
-// validator compilation we want plain map/slice/scalar shapes.
-func jxRawToAny(r jx.Raw) any {
-	var v any
-	// jx.Raw is already JSON bytes; encoding/json is enough and avoids
-	// pulling jx's decoding surface into the CLI.
-	if err := json.Unmarshal(r, &v); err != nil {
-		// A malformed schema fragment is a server bug, not a CLI bug —
-		// surface the raw string so the operator can file it.
-		return string(r)
-	}
-	return v
 }

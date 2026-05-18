@@ -96,24 +96,6 @@ func TestRunTaskSchemasList_ReturnsSortedDescriptors(t *testing.T) {
 	}
 }
 
-func TestRunTaskSchemasList_PopulatesProcessCache(t *testing.T) {
-	// Clear the cache between cases so this test is independent of run order.
-	schemaCache = sync.Map{}
-
-	h := &stubSchemasHandler{descriptors: newSchemaDescriptors()}
-	_, _, client := newTestServer(t, h)
-
-	var out bytes.Buffer
-	if err := runTaskSchemasListWithClient(context.Background(), client, &out); err != nil {
-		t.Fatalf("runTaskSchemasListWithClient: %v", err)
-	}
-	for _, cid := range []string{"bafy-fulfill", "bafy-assess"} {
-		if _, ok := schemaCache.Load(cid); !ok {
-			t.Errorf("expected schemaCache entry for cid=%q after list", cid)
-		}
-	}
-}
-
 func TestRunTaskSchemasGet_KnownType(t *testing.T) {
 	h := &stubSchemasHandler{descriptors: newSchemaDescriptors()}
 	_, _, client := newTestServer(t, h)
