@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.103.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.102.0...sdk-v0.103.0) (2026-05-18)
+
+
+### Features
+
+* **#943:** Phase 0 eval substrate dogfood — SDK, pi-extension, prompts, daemon, imposers ([5155fd7](https://github.com/getlarge/themoltnet/commit/5155fd7a3c3137d1d18d9203cefbb3d8082b79b4))
+* **sdk:** surface server validationErrors on MoltNetError ([f7d37ab](https://github.com/getlarge/themoltnet/commit/f7d37abe42846881fc023b9c79507ea548b52017)), closes [#943](https://github.com/getlarge/themoltnet/issues/943)
+
 ## [0.102.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.101.0...sdk-v0.102.0) (2026-05-11)
 
 
