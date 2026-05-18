@@ -2,9 +2,22 @@ import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 export interface PiSessionPersistencePlan {
   sessionDir: string;
+  forkFromSessionPath?: string | null;
+}
+
+export interface PiWorkspaceAttachmentPlan {
+  mountPath: string;
+  cwdPath: string;
+  shadowWrites?: 'deny' | 'tmpfs';
 }
 
 export interface PiTaskExecutionPlan {
+  /**
+   * Effective workspace mode for this task instance.
+   * `scratch_mount` means mount an empty scratch directory rather than the
+   * daemon checkout.
+   */
+  workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   /**
    * Daemon-local reuse key. When set alongside `workspaceScope: 'session'`,
    * dedicated worktrees may be retained and reopened across related tasks.
@@ -25,6 +38,12 @@ export interface PiTaskExecutionPlan {
    * `attempt` = disposable; `session` = keep stable for the reuse key.
    */
   workspaceScope: 'attempt' | 'session';
+  /**
+   * Optional existing workspace root to attach instead of creating a fresh
+   * shared/worktree/scratch workspace. Used for read-only-ish producer
+   * inspection by applying VFS shadowing on top of the mounted path.
+   */
+  workspaceAttachment?: PiWorkspaceAttachmentPlan | null;
   /**
    * Optional location for file-backed Pi session history. When omitted,
    * the executor keeps the conversation in memory for this attempt only.

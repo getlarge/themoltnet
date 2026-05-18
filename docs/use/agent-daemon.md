@@ -90,7 +90,7 @@ Current built-in policy:
 | `fulfill_brief`      | yes       | dedicated worktree | session         | correlation   |
 | `assess_brief`       | no        | dedicated worktree | attempt         | none          |
 | `run_eval`           | no        | shared mount       | attempt         | custom        |
-| `judge_eval_variant` | no        | shared mount       | attempt         | custom        |
+| `judge_eval_attempt` | no        | shared mount       | attempt         | none          |
 
 Current daemon behavior:
 
@@ -143,7 +143,14 @@ Minimal schema example:
       }
     ]
   },
-  "resumeCommands": ["corepack enable"]
+  "resumeCommands": [
+    {
+      "run": "corepack enable",
+      "when": {
+        "workspaceMode": ["shared_mount", "dedicated_worktree"]
+      }
+    }
+  ]
 }
 ```
 
@@ -155,6 +162,7 @@ Use it for:
 
 - `snapshot.setupCommands` / `snapshot.allowedHosts`: what gets baked into the cached base snapshot
 - `resumeCommands`: per-task bootstrap that should run every VM resume without invalidating the snapshot cache
+- `resumeCommands[].when.workspaceMode`: generic gating based on the effective mounted workspace shape, not task type
 - `vfs`: hide host paths such as `node_modules` from the guest mount
 - `env`: guest-only env fixes such as `NODE_OPTIONS=--dns-result-order=ipv4first`
 - `resources`: guest CPU / memory sizing
@@ -195,8 +203,18 @@ Current repo example:
     "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
   },
   "resumeCommands": [
-    "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done",
-    "cd /workspace && pnpm install --frozen-lockfile"
+    {
+      "run": "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done",
+      "when": {
+        "workspaceMode": ["shared_mount", "dedicated_worktree"]
+      }
+    },
+    {
+      "run": "cd /workspace && pnpm install --frozen-lockfile",
+      "when": {
+        "workspaceMode": ["shared_mount", "dedicated_worktree"]
+      }
+    }
   ]
 }
 ```
@@ -204,6 +222,14 @@ Current repo example:
 This is deliberately repo-specific. `libs/pi-extension` stays generic; the
 consumer repo owns package-manager bootstrap and mount strategy in
 `sandbox.json`.
+
+The important layering rule is that `sandbox.json` should not branch on task
+types. If a bootstrap step assumes a repo exists under `/workspace`, gate it on
+`when.workspaceMode` instead:
+
+- `shared_mount` or `dedicated_worktree`: repo-aware bootstrap is allowed
+- `scratch_mount`: skip repo-specific resume commands because `/workspace` is an
+  empty scratch directory
 
 ### Host-exec policy
 

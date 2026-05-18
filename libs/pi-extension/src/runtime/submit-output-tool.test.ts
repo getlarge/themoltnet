@@ -58,6 +58,18 @@ const validFulfillBriefOutput = {
   summary: 's',
 };
 
+const verification = {
+  inputCid: 'bafy-input',
+  results: [
+    {
+      id: 'criterion-1',
+      kind: 'assertion' as const,
+      status: 'pass' as const,
+    },
+  ],
+  passed: true,
+};
+
 describe('createSubmitOutputTool', () => {
   it('throws UnknownTaskTypeForSubmitToolError on unknown task types', () => {
     expect(() => createSubmitOutputTool('not_a_real_type')).toThrow(
@@ -143,6 +155,58 @@ describe('createSubmitOutputTool', () => {
     expect(good.terminate).toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
+  });
+
+  it('rejects producer output missing verification when input.successCriteria is set', async () => {
+    const handle = createSubmitOutputTool('run_eval', {
+      input: {
+        scenario: { prompt: 'do it' },
+        variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 as const },
+      },
+    });
+    const result = await callExecute(handle)({
+      response: 'done',
+      totalTokens: 10,
+      durationMs: 100,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.terminate).not.toBe(true);
+    expect(result.content[0].text).toMatch(/verification is required/i);
+    expect(handle.getCaptured()).toBeNull();
+  });
+
+  it('accepts producer output with verification when input.successCriteria is set', async () => {
+    const handle = createSubmitOutputTool('run_eval', {
+      input: {
+        scenario: { prompt: 'do it' },
+        variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 as const },
+      },
+    });
+    const result = await callExecute(handle)({
+      response: 'done',
+      totalTokens: 10,
+      durationMs: 100,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      verification,
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.terminate).toBe(true);
+    expect(handle.getCaptured()).toEqual({
+      response: 'done',
+      totalTokens: 10,
+      durationMs: 100,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      verification,
+    });
   });
 
   it('keeps the latest valid capture when called more than once', async () => {

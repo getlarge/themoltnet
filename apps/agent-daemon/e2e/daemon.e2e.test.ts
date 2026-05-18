@@ -38,12 +38,10 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from '../src/lib/daemon-slot-registry.js';
+import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
-import {
-  buildDaemonTaskExecutionPlan,
-  type DaemonSlotIdentity,
-} from '../src/lib/task-execution-plan.js';
+import { type DaemonSlotIdentity } from '../src/lib/task-execution-plan.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const silentLogger: AgentRuntimeLogger = {
@@ -112,6 +110,54 @@ describe('Agent daemon (e2e)', () => {
         brief: 'Exercise daemon slot persistence in e2e',
         title: 'Warm session e2e',
         scopeHint: 'daemon-e2e',
+      },
+    });
+  }
+
+  function imposeRunEvalTask(correlationId: string, variantLabel = 'baseline') {
+    return agent.tasks.create({
+      taskType: 'run_eval',
+      teamId,
+      diaryId,
+      correlationId,
+      input: {
+        scenario: { prompt: 'e2e eval scenario' },
+        variantLabel,
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 },
+      },
+    });
+  }
+
+  function imposeJudgeEvalAttemptTask(
+    correlationId: string,
+    targetTaskId: string,
+  ) {
+    return agent.tasks.create({
+      taskType: 'judge_eval_attempt',
+      teamId,
+      diaryId,
+      correlationId,
+      input: {
+        targetTaskId,
+        targetAttemptN: 1,
+        successCriteria: {
+          version: 1,
+          rubric: {
+            rubricId: 'e2e-judge-attach',
+            version: 'v1',
+            scope: 'eval',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'judge can inspect the attempt',
+                weight: 1,
+                scoring: 'llm_score',
+              },
+            ],
+          },
+        },
       },
     });
   }
@@ -528,7 +574,7 @@ describe('Agent daemon (e2e)', () => {
         slotIdentity,
         warmSessionTtlSec,
       });
-      expect(firstOutput.status).toBe('completed');
+      expect(firstOutput.output.status).toBe('completed');
 
       const afterFirst = readDaemonSlotState(stateDirs.registryDbPath);
       expect(afterFirst.slots).toHaveLength(1);
@@ -558,7 +604,7 @@ describe('Agent daemon (e2e)', () => {
         slotIdentity,
         warmSessionTtlSec,
       });
-      expect(secondOutput.status).toBe('completed');
+      expect(secondOutput.output.status).toBe('completed');
 
       const afterSecond = readDaemonSlotState(stateDirs.registryDbPath);
       expect(afterSecond.slots).toHaveLength(1);
@@ -589,6 +635,75 @@ describe('Agent daemon (e2e)', () => {
       expect(afterReap.slots).toHaveLength(0);
       expect(afterReap.sessions).toHaveLength(0);
       expect(afterReap.workspaces).toHaveLength(0);
+    } finally {
+      slotRegistry.close();
+    }
+  }, 60_000);
+
+  it('attaches judge_eval_attempt to the producer session and scratch workspace', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-judge-attach-e2e-'));
+    tempRoots.push(mountRoot);
+
+    const stateDirs = ensureDaemonStateDirs(mountRoot);
+    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    const slotIdentity: DaemonSlotIdentity = {
+      agentName: 'e2e-daemon',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+    };
+    const correlationId = randomUUID();
+    const warmSessionTtlSec = 60;
+
+    try {
+      const producer = await imposeRunEvalTask(correlationId);
+      const producerRun = await runStubbedSlotAwareTask({
+        agent,
+        taskId: producer.id,
+        mountRoot,
+        stateDirs,
+        slotRegistry,
+        slotIdentity,
+        warmSessionTtlSec,
+      });
+      expect(producerRun.output.status).toBe('completed');
+      expect(producerRun.executionPlan.workspaceMode).toBe('scratch_mount');
+
+      const afterProducer = readDaemonSlotState(stateDirs.registryDbPath);
+      expect(afterProducer.slots).toHaveLength(1);
+      expect(afterProducer.sessions).toHaveLength(1);
+      expect(afterProducer.workspaces).toHaveLength(1);
+
+      const producerSessionPath = afterProducer.sessions[0]?.sessionPath;
+      const producerWorkspacePath = afterProducer.workspaces[0]?.worktreePath;
+      expect(producerSessionPath).toBeTruthy();
+      expect(producerWorkspacePath).toBeTruthy();
+      expect(existsSync(producerSessionPath!)).toBe(true);
+      expect(existsSync(producerWorkspacePath!)).toBe(true);
+
+      const judge = await imposeJudgeEvalAttemptTask(
+        correlationId,
+        producer.id,
+      );
+      const judgeRun = await runStubbedSlotAwareTask({
+        agent,
+        taskId: judge.id,
+        mountRoot,
+        stateDirs,
+        slotRegistry,
+        slotIdentity,
+        warmSessionTtlSec,
+      });
+
+      expect(judgeRun.output.status).toBe('completed');
+      expect(judgeRun.executionPlan.workspaceAttachment).toEqual({
+        mountPath: producerWorkspacePath,
+        cwdPath: producerWorkspacePath,
+        shadowWrites: 'tmpfs',
+      });
+      expect(judgeRun.executionPlan.sessionPersistence).toEqual({
+        sessionDir: `${stateDirs.piSessionsDir}/judge-${judge.id}-attempt-1`,
+        forkFromSessionPath: producerSessionPath,
+      });
     } finally {
       slotRegistry.close();
     }
@@ -708,6 +823,15 @@ interface StubbedSlotAwareTaskArgs {
 }
 
 async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
+  const executionPlans = createExecutionPlanCache({
+    stateDirs: args.stateDirs,
+    slotIdentity: args.slotIdentity,
+    warmSessionTtlSec: args.warmSessionTtlSec,
+    slotRegistry: args.slotRegistry,
+  });
+  let usedExecutionPlan: ReturnType<typeof executionPlans.getOrCreate> | null =
+    null;
+
   const runtime = new AgentRuntime({
     source: new ApiTaskSource({
       agent: args.agent,
@@ -722,15 +846,12 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
       }),
     executeTask: async (claimedTask, reporter) => {
       args.slotRegistry.reapExpiredSlots();
-      const executionPlan = buildDaemonTaskExecutionPlan(
-        claimedTask.task,
-        args.stateDirs,
-        args.slotIdentity,
-        args.warmSessionTtlSec,
+      const executionPlan = executionPlans.getOrCreate(claimedTask);
+      usedExecutionPlan = executionPlan;
+      const worktreePath = resolveRecordedWorkspacePath(
+        args.mountRoot,
+        executionPlan,
       );
-      const worktreePath = executionPlan.workspaceId
-        ? resolveTaskWorktreePath(args.mountRoot, executionPlan.workspaceId)
-        : null;
 
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
         mkdirSync(executionPlan.sessionPersistence.sessionDir, {
@@ -779,19 +900,16 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
         attemptN: claimedTask.attemptN,
       });
 
-      const fulfillOutput = {
-        branch: executionPlan.worktreeBranch ?? 'feat/daemon-e2e',
-        commits: [],
-        pullRequestUrl: null,
-        diaryEntryIds: [],
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
-      };
+      const taskOutput = await buildStubbedTaskOutput(
+        claimedTask,
+        executionPlan,
+      );
       const output = {
         taskId: claimedTask.task.id,
         attemptN: claimedTask.attemptN,
         status: 'completed' as const,
-        output: fulfillOutput,
-        outputCid: await computeJsonCid(fulfillOutput),
+        output: taskOutput,
+        outputCid: await computeJsonCid(taskOutput),
         usage: { inputTokens: 1, outputTokens: 1 },
         durationMs: 1,
       };
@@ -819,7 +937,61 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
   await finalizeTask(args.agent, output);
-  return output;
+  expect(usedExecutionPlan).not.toBeNull();
+  return {
+    output,
+    executionPlan: usedExecutionPlan!,
+  };
+}
+
+async function buildStubbedTaskOutput(
+  claimedTask: {
+    task: {
+      id: string;
+      taskType: string;
+      input: Record<string, unknown>;
+    };
+    attemptN: number;
+  },
+  executionPlan: {
+    worktreeBranch: string | null;
+  },
+): Promise<Record<string, unknown>> {
+  switch (claimedTask.task.taskType) {
+    case 'run_eval':
+      return {
+        response: `stubbed run_eval output for ${claimedTask.task.id}`,
+        totalTokens: 10,
+        durationMs: 100,
+        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+        verification: {
+          inputCid: 'bafye2eeval',
+          results: [],
+          passed: true,
+        },
+      };
+    case 'judge_eval_attempt':
+      return {
+        targetTaskId:
+          (claimedTask.task.input.targetTaskId as string | undefined) ??
+          'missing-target',
+        targetAttemptN:
+          (claimedTask.task.input.targetAttemptN as number | undefined) ?? 1,
+        variantLabel: 'baseline',
+        scores: [{ criterionId: 'c1', score: 1, rationale: 'stubbed pass' }],
+        composite: 1,
+        verdict: 'judge attached producer context successfully',
+        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      };
+    default:
+      return {
+        branch: executionPlan.worktreeBranch ?? 'feat/daemon-e2e',
+        commits: [],
+        pullRequestUrl: null,
+        diaryEntryIds: [],
+        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+      };
+  }
 }
 
 interface DaemonSlotState {
@@ -851,4 +1023,23 @@ function readDaemonSlotState(dbPath: string): DaemonSlotState {
   } finally {
     db.close();
   }
+}
+
+function resolveRecordedWorkspacePath(
+  mountRoot: string,
+  executionPlan: {
+    workspaceId: string | null;
+    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  },
+): string | null {
+  if (!executionPlan.workspaceId) return null;
+  return executionPlan.workspaceMode === 'scratch_mount'
+    ? join(
+        mountRoot,
+        '.moltnet',
+        'd',
+        'task-workspaces',
+        executionPlan.workspaceId,
+      )
+    : resolveTaskWorktreePath(mountRoot, executionPlan.workspaceId);
 }

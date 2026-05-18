@@ -7,9 +7,11 @@ import {
 
 function mockDeliverer(): ContextDeliverer & {
   skill: ReturnType<typeof vi.fn>;
+  contextFile: ReturnType<typeof vi.fn>;
 } {
   const skill = vi.fn(async () => undefined);
-  return { skill };
+  const contextFile = vi.fn(async () => undefined);
+  return { skill, contextFile };
 }
 
 describe('resolveTaskContext', () => {
@@ -21,6 +23,7 @@ describe('resolveTaskContext', () => {
     });
     expect(out.injected).toHaveLength(0);
     expect(deliverer.skill).not.toHaveBeenCalled();
+    expect(deliverer.contextFile).not.toHaveBeenCalled();
     expect(out.systemPromptPrefix).toBe('');
     expect(out.userInlineSuffix).toBe('');
   });
@@ -51,6 +54,32 @@ describe('resolveTaskContext', () => {
       deliver: mockDeliverer(),
     });
     expect(out.systemPromptPrefix).toBe('AAA\n\n---\n\nBBB');
+  });
+
+  it('persists context_inline content and injects a named prompt block', async () => {
+    const deliverer = mockDeliverer();
+    const out = await resolveTaskContext({
+      context: [
+        {
+          slug: 'dbos-pack',
+          binding: 'context_inline',
+          content: '# Pack\nDo not start workflows inside transactions.',
+        },
+      ],
+      deliver: deliverer,
+    });
+    expect(deliverer.contextFile).toHaveBeenCalledWith({
+      slug: 'dbos-pack',
+      content: '# Pack\nDo not start workflows inside transactions.',
+      suggestedFileName: 'dbos-pack.md',
+    });
+    expect(out.systemPromptPrefix).toContain('### Injected Task Context');
+    expect(out.systemPromptPrefix).toContain('`dbos-pack`');
+    expect(out.systemPromptPrefix).toContain(
+      'Do not start workflows inside transactions.',
+    );
+    expect(out.systemPromptPrefix).toContain('/workspace/context-pack.md');
+    expect(out.systemPromptPrefix).toContain('AGENTS.md');
   });
 
   it('concatenates user_inline items in declared order', async () => {
@@ -92,28 +121,32 @@ describe('resolveTaskContext', () => {
     expect(out.injected).toHaveLength(2);
   });
 
-  it('exercises all three bindings end-to-end', async () => {
+  it('exercises all four bindings end-to-end', async () => {
     const deliverer = mockDeliverer();
     const out = await resolveTaskContext({
       context: [
         { slug: 'a', binding: 'skill', content: '# Skill' },
-        { slug: 'b', binding: 'prompt_prefix', content: 'PREFIX' },
-        { slug: 'c', binding: 'user_inline', content: 'INLINE' },
+        { slug: 'b', binding: 'context_inline', content: '# Context' },
+        { slug: 'c', binding: 'prompt_prefix', content: 'PREFIX' },
+        { slug: 'd', binding: 'user_inline', content: 'INLINE' },
       ],
       deliver: deliverer,
     });
 
     expect(out.injected.map((r) => r.binding)).toEqual([
       'skill',
+      'context_inline',
       'prompt_prefix',
       'user_inline',
     ]);
     expect(deliverer.skill).toHaveBeenCalledTimes(1);
+    expect(deliverer.contextFile).toHaveBeenCalledTimes(1);
     expect(deliverer.skill).toHaveBeenCalledWith({
       slug: 'a',
       content: '# Skill',
     });
-    expect(out.systemPromptPrefix).toBe('PREFIX');
+    expect(out.systemPromptPrefix).toContain('### Injected Task Context');
+    expect(out.systemPromptPrefix).toContain('PREFIX');
     expect(out.userInlineSuffix).toBe('INLINE');
   });
 });

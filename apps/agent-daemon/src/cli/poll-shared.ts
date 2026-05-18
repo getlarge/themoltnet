@@ -1,18 +1,16 @@
 // Shared poll-loop runner for `poll` and `drain` (only difference: stopWhenEmpty).
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import type { TaskOutput } from '@moltnet/tasks';
 import {
   AgentRuntime,
   ApiTaskReporter,
-  createSubagentContractRegistry,
-  JudgeEvalVariantResult,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   findMainWorktree,
-  resolveTaskWorktreePath,
 } from '@themoltnet/pi-extension';
 
 import { loadConfig } from '../config.js';
@@ -25,7 +23,10 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from '../lib/daemon-slot-registry.js';
-import { createExecutionPlanCache } from '../lib/execution-plan-cache.js';
+import {
+  createExecutionPlanCache,
+  ProducerContextResolutionError,
+} from '../lib/execution-plan-cache.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -129,6 +130,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     stateDirs,
     slotIdentity,
     warmSessionTtlSec: common.warmSessionTtlSec,
+    slotRegistry,
   });
   const ctx = await resolveAgentContext(common.agent);
 
@@ -181,21 +183,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
 
   const outputs: TaskOutput[] = [];
-  const subagentContractRegistry = createSubagentContractRegistry([
-    {
-      name: 'judge_eval_variant_result',
-      description:
-        'Per-variant grading result produced by a subagent of ' +
-        'judge_eval_variant: scores against the shared rubric, ' +
-        'composite, and a 1-3 sentence verdict for a single variant.',
-      parametersSchema: JudgeEvalVariantResult,
-    },
-  ]);
-
   try {
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
-      subagentContractRegistry,
       mountPath: sandbox.rootDir,
       provider: common.provider,
       model: common.model,
@@ -253,7 +243,37 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           log: (msg, err) => rootLogger.warn({ err }, msg),
         }),
       executeTask: async (claimedTask, reporter) => {
-        const executionPlan = executionPlans.getOrCreate(claimedTask);
+        let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
+        try {
+          executionPlan = executionPlans.getOrCreate(claimedTask);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          rootLogger.warn(
+            {
+              taskId: claimedTask.task.id,
+              attemptN: claimedTask.attemptN,
+              err: message,
+            },
+            'agent-daemon.execution_plan_failed',
+          );
+          return {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            status: 'failed',
+            output: null,
+            outputCid: null,
+            usage: { inputTokens: 0, outputTokens: 0 },
+            durationMs: 0,
+            error: {
+              code:
+                err instanceof ProducerContextResolutionError
+                  ? 'producer_context_missing'
+                  : 'execution_plan_failed',
+              message,
+              retryable: false,
+            },
+          };
+        }
         const sessionDescriptor = executionPlan.descriptor;
         let expired: ReturnType<typeof slotRegistry.reapExpiredSlots>;
         try {
@@ -281,7 +301,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             taskId: claimedTask.task.id,
             taskType: claimedTask.task.taskType,
             resumable: sessionDescriptor.policy.resumable,
-            workspaceMode: sessionDescriptor.policy.workspaceMode,
+            workspaceMode: executionPlan.workspaceMode,
             workspaceScope: sessionDescriptor.policy.workspaceScope,
             sessionScope: sessionDescriptor.policy.sessionScope,
             slotKey: executionPlan.slotKey,
@@ -351,9 +371,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               executionPlan.sessionPersistence.sessionDir,
             ),
             workspaceId: executionPlan.workspaceId,
-            worktreePath: executionPlan.workspaceId
-              ? resolveTaskWorktreePath(mainRepo, executionPlan.workspaceId)
-              : null,
+            worktreePath: resolveRecordedWorkspacePath(
+              mainRepo,
+              stateDirs.rootDir,
+              executionPlan,
+            ),
             worktreeBranch: executionPlan.worktreeBranch,
             lastTaskId: claimedTask.task.id,
             lastAttemptN: claimedTask.attemptN,
@@ -390,6 +412,20 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     await otelShutdown();
     await shutdownLogger();
   }
+}
+
+function resolveRecordedWorkspacePath(
+  mainRepo: string,
+  stateRootDir: string,
+  executionPlan: {
+    workspaceId: string | null;
+    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  },
+): string | null {
+  if (!executionPlan.workspaceId) return null;
+  return executionPlan.workspaceMode === 'scratch_mount'
+    ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
+    : join(mainRepo, '.worktrees', executionPlan.workspaceId);
 }
 
 function parseCsv(raw: string | undefined): string[] {

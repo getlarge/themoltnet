@@ -84,4 +84,58 @@ describe('DaemonSlotRegistry', () => {
 
     expect(resolveLatestPiSessionPath(sessionDir)).toBe(newer);
   });
+
+  it('finds the latest producer slot context by task id and attempt number', () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-slot-producer-'));
+    tempRoots.push(root);
+    const dbPath = join(root, 'daemon-state.sqlite');
+    const sessionDir = join(root, 'pi-sessions', 'slot-1');
+    const worktreePath = join(root, 'worktrees', 'task-1');
+    mkdirSync(sessionDir, { recursive: true });
+    mkdirSync(worktreePath, { recursive: true });
+    const sessionPath = join(sessionDir, 'session-a.jsonl');
+    writeFileSync(sessionPath, '[]\n', 'utf8');
+
+    const registry = new DaemonSlotRegistry(dbPath);
+    registry.beginSlot({
+      agentName: 'local-eval-943',
+      provider: 'ollama-cloud',
+      model: 'qwen3.5',
+      slotKey: 'run_eval:correlation:test:variant:baseline',
+      taskType: 'run_eval',
+      sessionDir,
+      sessionPath,
+      workspaceId: 'task-aaaaaaaa',
+      worktreePath,
+      worktreeBranch: null,
+      lastTaskId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      lastAttemptN: 1,
+      ttlSec: 60,
+    });
+    registry.finishSlot(
+      {
+        agentName: 'local-eval-943',
+        provider: 'ollama-cloud',
+        model: 'qwen3.5',
+      },
+      'run_eval:correlation:test:variant:baseline',
+      60,
+      sessionPath,
+    );
+
+    const resolved = registry.findLatestProducerSlotByTaskAttempt(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      1,
+    );
+    registry.close();
+
+    expect(resolved?.slot.slotKey).toBe(
+      'run_eval:correlation:test:variant:baseline',
+    );
+    expect(resolved?.slot.taskType).toBe('run_eval');
+    expect(resolved?.session?.sessionDir).toBe(sessionDir);
+    expect(resolved?.session?.sessionPath).toBe(sessionPath);
+    expect(resolved?.workspace?.workspaceId).toBe('task-aaaaaaaa');
+    expect(resolved?.workspace?.worktreePath).toBe(worktreePath);
+  });
 });

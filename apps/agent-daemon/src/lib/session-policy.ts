@@ -65,18 +65,6 @@ function buildCustomSessionKey(task: TaskKeyInput): string | null {
       return `run_eval:correlation:${task.correlationId}:variant:${slugifySessionComponent(variantLabel)}`;
     }
 
-    case 'judge_eval_variant': {
-      const runTaskIds = Array.isArray(
-        (task.input as { runTaskIds?: unknown }).runTaskIds,
-      )
-        ? (task.input as { runTaskIds: unknown[] }).runTaskIds.filter(
-            (value): value is string => typeof value === 'string',
-          )
-        : [];
-      if (runTaskIds.length < 1) return null;
-      return `judge_eval_variant:run_tasks:${[...runTaskIds].sort().join(',')}`;
-    }
-
     default:
       return null;
   }

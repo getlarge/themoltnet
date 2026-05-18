@@ -29916,12 +29916,20 @@ var MoltNetError = class extends Error {
 	code;
 	statusCode;
 	detail;
+	/**
+	* Populated when the server returned a `VALIDATION_FAILED` problem
+	* (status 400) with field-level errors. Empty / undefined for every
+	* other problem kind. Imposer scripts surface these to operators so
+	* they don't have to re-run with curl to see what was rejected.
+	*/
+	validationErrors;
 	constructor(message, options) {
 		super(message);
 		this.name = "MoltNetError";
 		this.code = options.code;
 		this.statusCode = options.statusCode;
 		this.detail = options.detail;
+		this.validationErrors = options.validationErrors;
 	}
 };
 var NetworkError = class extends MoltNetError {
@@ -29945,10 +29953,14 @@ var AuthenticationError = class extends MoltNetError {
 };
 function problemToError(problem, statusCode) {
 	const title = problem.title ?? "Request failed";
-	return new MoltNetError(problem.detail ? `${title}: ${problem.detail}` : title, {
+	const message = problem.detail ? `${title}: ${problem.detail}` : title;
+	const rawErrors = problem.errors;
+	const validationErrors = Array.isArray(rawErrors) ? rawErrors.filter((e) => typeof e === "object" && e !== null && typeof e.field === "string" && typeof e.message === "string") : void 0;
+	return new MoltNetError(message, {
 		code: problem.type ?? problem.code ?? "UNKNOWN",
 		statusCode,
-		detail: problem.detail
+		detail: problem.detail,
+		validationErrors
 	});
 }
 //#endregion

@@ -114,6 +114,48 @@ describe('injectTaskContext', () => {
     expect(fs.writeFile).not.toHaveBeenCalled();
   });
 
+  it('writes context_inline bytes into the workspace and injects a named prompt block', async () => {
+    const fs = mockFs();
+    const out = await injectTaskContext({
+      context: [
+        {
+          slug: 'dbos-pack',
+          binding: 'context_inline',
+          content: '# Pack\nDo not start workflows inside transactions.',
+        },
+      ],
+      fs,
+    });
+    expect(fs.mkdir).toHaveBeenCalledWith('/workspace/.moltnet/context', {
+      recursive: true,
+    });
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      '/workspace/.moltnet/context/dbos-pack.md',
+      '# Pack\nDo not start workflows inside transactions.',
+      { mode: 0o644 },
+    );
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      '/workspace/context-pack.md',
+      expect.stringContaining('## dbos-pack'),
+      { mode: 0o644 },
+    );
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      '/workspace/AGENTS.md',
+      expect.stringContaining('## dbos-pack'),
+      { mode: 0o644 },
+    );
+    expect(fs.mkdir).toHaveBeenCalledWith('/workspace/.claude', {
+      recursive: true,
+    });
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      '/workspace/.claude/CLAUDE.md',
+      '@../context-pack.md\n',
+      { mode: 0o644 },
+    );
+    expect(out.systemPromptPrefix).toContain('### Injected Task Context');
+    expect(out.systemPromptPrefix).toContain('`dbos-pack`');
+  });
+
   it('concatenates user_inline entries into userInlineSuffix', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
@@ -124,11 +166,12 @@ describe('injectTaskContext', () => {
     expect(out.systemPromptPrefix).toBe('');
   });
 
-  it('exercises all three bindings end-to-end', async () => {
+  it('exercises all four bindings end-to-end', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
       context: [
         { slug: 's1', binding: 'skill', content: '# Skill' },
+        { slug: 'c1', binding: 'context_inline', content: '# Context' },
         { slug: 'p1', binding: 'prompt_prefix', content: 'PREFIX' },
         { slug: 'u1', binding: 'user_inline', content: 'INLINE' },
       ],
@@ -136,11 +179,13 @@ describe('injectTaskContext', () => {
     });
     expect(out.injected.map((r) => r.binding)).toEqual([
       'skill',
+      'context_inline',
       'prompt_prefix',
       'user_inline',
     ]);
-    expect(fs.writeFile).toHaveBeenCalledTimes(1);
-    expect(out.systemPromptPrefix).toBe('PREFIX');
+    expect(fs.writeFile).toHaveBeenCalledTimes(5);
+    expect(out.systemPromptPrefix).toContain('### Injected Task Context');
+    expect(out.systemPromptPrefix).toContain('PREFIX');
     expect(out.userInlineSuffix).toBe('INLINE');
     expect(out.skills).toHaveLength(1);
   });

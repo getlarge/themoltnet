@@ -25,14 +25,14 @@ import {
   FulfillBriefOutput,
 } from './fulfill-brief.js';
 import {
-  JUDGE_EVAL_VARIANT_TYPE,
-  JudgeEvalVariantInput,
-  JudgeEvalVariantOutput,
-  onCreateJudgeEvalVariant,
-  validateJudgeEvalVariantInput,
-  validateJudgeEvalVariantInputAsync,
-  validateJudgeEvalVariantOutput,
-} from './judge-eval-variant.js';
+  JUDGE_EVAL_ATTEMPT_TYPE,
+  JudgeEvalAttemptInput,
+  JudgeEvalAttemptOutput,
+  onCreateJudgeEvalAttempt,
+  validateJudgeEvalAttemptInput,
+  validateJudgeEvalAttemptInputAsync,
+  validateJudgeEvalAttemptOutput,
+} from './judge-eval-attempt.js';
 import {
   JUDGE_PACK_TYPE,
   JudgePackInput,
@@ -63,6 +63,7 @@ import {
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
+export * from './judge-eval-attempt.js';
 export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
 export * from './pr-review.js';
@@ -131,7 +132,7 @@ interface TaskTypeEntry {
    *
    * Default: undefined (== false). Most task types do not delegate;
    * only types whose execution is naturally fan-out-and-collect
-   * (e.g. judge_eval_variant) opt in. Keeping it opt-in prevents
+   * (e.g. a future fan-out judgment task) opt in. Keeping it opt-in prevents
    * task-type LLMs from spuriously delegating work that should stay
    * in their own session.
    */
@@ -161,7 +162,7 @@ interface TaskTypeEntry {
    * the task insert. Runs only after `validateInput` and
    * `validateInputAsync` both pass.
    *
-   * v1: only `sealCorrelation` is supported (see #1096).
+   * v1 supports correlation sealing and transactional uniqueness guards.
    */
   readonly onCreate?: (
     input: unknown,
@@ -304,24 +305,24 @@ export const BUILT_IN_TASK_TYPES = {
     inputSchema: RunEvalInput,
     outputSchema: RunEvalOutput,
     outputKind: 'artifact',
-    workspaceScope: 'attempt',
+    resumable: true,
+    workspaceScope: 'session',
     sessionScope: 'custom',
     requiresReferences: false,
     validateOutput: validateRunEvalOutput,
   },
-  [JUDGE_EVAL_VARIANT_TYPE]: {
-    name: JUDGE_EVAL_VARIANT_TYPE,
-    inputSchema: JudgeEvalVariantInput,
-    outputSchema: JudgeEvalVariantOutput,
+  [JUDGE_EVAL_ATTEMPT_TYPE]: {
+    name: JUDGE_EVAL_ATTEMPT_TYPE,
+    inputSchema: JudgeEvalAttemptInput,
+    outputSchema: JudgeEvalAttemptOutput,
     outputKind: 'judgment',
     workspaceScope: 'attempt',
-    sessionScope: 'custom',
+    sessionScope: 'none',
     requiresReferences: false,
-    validateInput: validateJudgeEvalVariantInput,
-    validateOutput: validateJudgeEvalVariantOutput,
-    validateInputAsync: validateJudgeEvalVariantInputAsync,
-    onCreate: onCreateJudgeEvalVariant,
-    usesSubagents: true,
+    validateInput: validateJudgeEvalAttemptInput,
+    validateOutput: validateJudgeEvalAttemptOutput,
+    validateInputAsync: validateJudgeEvalAttemptInputAsync,
+    onCreate: onCreateJudgeEvalAttempt,
   },
 } as const satisfies Record<string, TaskTypeEntry>;
 

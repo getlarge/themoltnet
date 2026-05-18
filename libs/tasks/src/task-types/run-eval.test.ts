@@ -11,6 +11,7 @@ import {
 const minimalInput = {
   scenario: { prompt: 'Summarize the file.' },
   variantLabel: 'baseline',
+  execution: { mode: 'vitro' as const, workspace: 'none' as const },
   context: [],
 };
 
@@ -22,10 +23,9 @@ const minimalOutput = {
 };
 
 /**
- * Stub successCriteria. Schema-valid (`version: 1`) and includes the
- * minimal optional that satisfies the cross-field validator below; we
- * don't exercise rubric validation here — that's covered by
- * `success-criteria.test.ts`.
+ * Stub producer-visible successCriteria. Schema-valid (`version: 1`) and
+ * intentionally rubric-free: `run_eval` must not expose the downstream
+ * judge rubric to the producer.
  */
 const stubCriteria = { version: 1 as const };
 const stubVerification = {
@@ -75,6 +75,53 @@ describe('RunEvalInput', () => {
         successCriteria: stubCriteria,
       }),
     ).toBe(true);
+  });
+
+  it('rejects rubric-bearing successCriteria', () => {
+    expect(
+      Value.Check(RunEvalInput, {
+        ...minimalInput,
+        successCriteria: {
+          version: 1 as const,
+          rubric: {
+            rubricId: 'r1',
+            version: 'v1',
+            criteria: [
+              {
+                id: 'c1',
+                description: 'hidden judge key',
+                weight: 1,
+                scoring: 'llm_checklist' as const,
+              },
+            ],
+          },
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('accepts vivo runs with a dedicated worktree', () => {
+    expect(
+      Value.Check(RunEvalInput, {
+        ...minimalInput,
+        execution: {
+          mode: 'vivo' as const,
+          workspace: 'dedicated_worktree' as const,
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects unknown execution workspace values', () => {
+    expect(
+      Value.Check(RunEvalInput, {
+        ...minimalInput,
+        execution: {
+          mode: 'vitro' as const,
+          workspace: 'sandbox' as unknown as 'none',
+        },
+      }),
+    ).toBe(false);
   });
 });
 

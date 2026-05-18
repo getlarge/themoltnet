@@ -1,16 +1,12 @@
 /**
  * Build the closing "final output" block that every task-type prompt ends
- * with. Two affordances are described in the same order, with explicit
- * preference for the submit-tool path:
+ * with. The submit-tool path is the only supported completion path for
+ * built-in task types:
  *
  *   1. Call `submit_<task_type>_output` exactly once with the structured
  *      payload. This is the preferred path. The runtime captures the
  *      validated args and ends the session via pi-coding-agent's
  *      `terminate: true`.
- *   2. As a fallback, emit the same JSON object as the agent's very last
- *      assistant message. The runtime parses it with
- *      `parseStructuredTaskOutput`. This path is being deprecated; use it
- *      only if the submit-tool is unavailable for any reason.
  *
  * The wording is intentionally absolute ("MUST", "even if the work
  * succeeded") because the failure mode the issue tracks (#986) is models
@@ -46,20 +42,16 @@ export function buildFinalOutputBlock(opts: FinalOutputBlockOptions): string {
     '## Final output (read this carefully)',
     '',
     `Your VERY LAST action in this conversation MUST report the structured`,
-    `output matching \`${outputSchemaName}\`. Two ways to do it, in order of`,
-    `preference:`,
+    `output matching \`${outputSchemaName}\`.`,
     '',
-    `1. **Preferred — call \`${submitTool}\` exactly once** with the payload.`,
-    `   The runtime captures the validated arguments and ends the session.`,
-    `   If the tool is registered, prefer this path.`,
-    `2. **Fallback** — if the submit tool is unavailable, your very last`,
-    `   assistant message MUST be a single JSON object matching`,
-    `   \`${outputSchemaName}\`. No prose before or after. No code fences.`,
-    `   No "ok" or "done". The runtime parses the last balanced top-level`,
-    `   JSON object as the output.`,
+    `Call \`${submitTool}\` exactly once with the payload.`,
+    `The runtime captures the validated arguments and ends the session.`,
+    `Do NOT emit the output as plain assistant text. Do NOT rely on a`,
+    `JSON-in-message fallback. If you do not call \`${submitTool}\`, the`,
+    `attempt fails even if the underlying work succeeded.`,
     '',
-    `Failing to report structured output as the very last action means the`,
-    `attempt is marked failed even if the underlying work succeeded.`,
+    `Your final assistant text before that tool call may explain your work,`,
+    `but the submit-tool call itself must be your VERY LAST action.`,
     '',
     `Output shape:`,
     '',

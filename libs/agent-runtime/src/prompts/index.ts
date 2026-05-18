@@ -5,9 +5,9 @@ import {
   CuratePackInput,
   FULFILL_BRIEF_TYPE,
   FulfillBriefInput,
-  JUDGE_EVAL_VARIANT_TYPE,
+  JUDGE_EVAL_ATTEMPT_TYPE,
   JUDGE_PACK_TYPE,
-  JudgeEvalVariantInput,
+  JudgeEvalAttemptInput,
   JudgePackInput,
   PR_REVIEW_TYPE,
   PrReviewInput,
@@ -22,7 +22,7 @@ import { Value } from '@sinclair/typebox/value';
 import { buildAssessBriefUserPrompt } from './assess-brief.js';
 import { buildCuratePackUserPrompt } from './curate-pack.js';
 import { buildFulfillBriefUserPrompt } from './fulfill-brief.js';
-import { buildJudgeEvalVariantUserPrompt } from './judge-eval-variant.js';
+import { buildJudgeEvalAttemptUserPrompt } from './judge-eval-attempt.js';
 import { buildJudgePackUserPrompt } from './judge-pack.js';
 import { buildPrReviewUserPrompt } from './pr-review.js';
 import { buildRenderPackUserPrompt } from './render-pack.js';
@@ -31,7 +31,7 @@ import { buildRunEvalUserPrompt } from './run-eval.js';
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
-export * from './judge-eval-variant.js';
+export * from './judge-eval-attempt.js';
 export * from './judge-pack.js';
 export * from './pr-review.js';
 export * from './render-pack.js';
@@ -48,8 +48,9 @@ export interface TaskUserPromptContext {
   diaryId: string;
   taskId: string;
   workspace?: {
-    mode: 'shared_mount' | 'dedicated_worktree';
+    mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
     branch?: string | null;
+    attached?: boolean;
   };
   extras?: Record<string, unknown>;
 }
@@ -140,6 +141,20 @@ export function buildTaskUserPrompt(
       });
     }
 
+    case JUDGE_EVAL_ATTEMPT_TYPE: {
+      if (!Value.Check(JudgeEvalAttemptInput, task.input)) {
+        const errors = [...Value.Errors(JudgeEvalAttemptInput, task.input)];
+        throw new Error(
+          `judge_eval_attempt input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildJudgeEvalAttemptUserPrompt(task.input, {
+        diaryId: ctx.diaryId,
+        taskId: ctx.taskId,
+        workspace: ctx.workspace,
+      });
+    }
+
     case PR_REVIEW_TYPE: {
       if (!Value.Check(PrReviewInput, task.input)) {
         const errors = [...Value.Errors(PrReviewInput, task.input)];
@@ -151,19 +166,6 @@ export function buildTaskUserPrompt(
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         workspace: ctx.workspace,
-      });
-    }
-
-    case JUDGE_EVAL_VARIANT_TYPE: {
-      if (!Value.Check(JudgeEvalVariantInput, task.input)) {
-        const errors = [...Value.Errors(JudgeEvalVariantInput, task.input)];
-        throw new Error(
-          `judge_eval_variant input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
-        );
-      }
-      return buildJudgeEvalVariantUserPrompt(task.input, {
-        diaryId: ctx.diaryId,
-        taskId: ctx.taskId,
       });
     }
 

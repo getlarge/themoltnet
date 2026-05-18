@@ -485,8 +485,7 @@ describe('taskTypeUsesSubagents', () => {
   });
 
   it('returns false for built-in types that did not opt in', () => {
-    // None of the current built-ins use subagents (judge_eval_variant
-    // lands in PR-B and will set this to true).
+    // None of the current built-ins use subagents.
     expect(taskTypeUsesSubagents('fulfill_brief')).toBe(false);
     expect(taskTypeUsesSubagents('assess_brief')).toBe(false);
     expect(taskTypeUsesSubagents('curate_pack')).toBe(false);
@@ -527,10 +526,10 @@ describe('taskTypeResumable', () => {
     expect(taskTypeResumable('fulfill_brief')).toBe(true);
   });
 
-  it('keeps assessment and eval built-ins non-resumable by default', () => {
+  it('keeps assessment/judge built-ins non-resumable but lets run_eval persist producer context', () => {
     expect(taskTypeResumable('assess_brief')).toBe(false);
-    expect(taskTypeResumable('run_eval')).toBe(false);
-    expect(taskTypeResumable('judge_eval_variant')).toBe(false);
+    expect(taskTypeResumable('run_eval')).toBe(true);
+    expect(taskTypeResumable('judge_eval_attempt')).toBe(false);
   });
 });
 
@@ -543,11 +542,11 @@ describe('taskTypeWorkspaceScope', () => {
     expect(taskTypeWorkspaceScope('fulfill_brief')).toBe('session');
   });
 
-  it('keeps other built-ins attempt-scoped', () => {
+  it('keeps review/judge built-ins attempt-scoped while run_eval stays session-scoped', () => {
     expect(taskTypeWorkspaceScope('assess_brief')).toBe('attempt');
     expect(taskTypeWorkspaceScope('pr_review')).toBe('attempt');
-    expect(taskTypeWorkspaceScope('run_eval')).toBe('attempt');
-    expect(taskTypeWorkspaceScope('judge_eval_variant')).toBe('attempt');
+    expect(taskTypeWorkspaceScope('run_eval')).toBe('session');
+    expect(taskTypeWorkspaceScope('judge_eval_attempt')).toBe('attempt');
   });
 });
 
@@ -568,7 +567,7 @@ describe('taskTypeSessionScope', () => {
 
   it('reserves custom scope for eval isolation planning', () => {
     expect(taskTypeSessionScope('run_eval')).toBe('custom');
-    expect(taskTypeSessionScope('judge_eval_variant')).toBe('custom');
+    expect(taskTypeSessionScope('judge_eval_attempt')).toBe('none');
   });
 });
 

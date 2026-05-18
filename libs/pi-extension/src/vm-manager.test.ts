@@ -7,6 +7,7 @@
 import { execFileSync } from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -24,6 +25,7 @@ import {
   ensureRelativeWorktreePaths,
   loadCredentials,
   rewriteMoltnetJsonPaths,
+  shouldRunResumeCommand,
 } from './vm-manager.js';
 
 // ---------------------------------------------------------------------------
@@ -184,6 +186,53 @@ describe('rewriteMoltnetJsonPaths', () => {
     );
     expect(output.github.app_id).toBe('2878569');
     expect(output.github.installation_id).toBe('110518607');
+  });
+});
+
+describe('shouldRunResumeCommand', () => {
+  it('always runs raw string commands', () => {
+    expect(
+      shouldRunResumeCommand('corepack enable', {
+        workspaceMode: 'scratch_mount',
+      }),
+    ).toBe(true);
+  });
+
+  it('runs object commands when no predicate is present', () => {
+    expect(
+      shouldRunResumeCommand(
+        { run: 'pnpm install --frozen-lockfile' },
+        { workspaceMode: 'scratch_mount' },
+      ),
+    ).toBe(true);
+  });
+
+  it('runs commands when workspaceMode matches the predicate', () => {
+    expect(
+      shouldRunResumeCommand(
+        {
+          run: 'pnpm install --frozen-lockfile',
+          when: {
+            workspaceMode: ['shared_mount', 'dedicated_worktree'],
+          },
+        },
+        { workspaceMode: 'shared_mount' },
+      ),
+    ).toBe(true);
+  });
+
+  it('skips commands when workspaceMode does not match the predicate', () => {
+    expect(
+      shouldRunResumeCommand(
+        {
+          run: 'pnpm install --frozen-lockfile',
+          when: {
+            workspaceMode: ['shared_mount', 'dedicated_worktree'],
+          },
+        },
+        { workspaceMode: 'scratch_mount' },
+      ),
+    ).toBe(false);
   });
 });
 
@@ -488,6 +537,7 @@ describe('dedicated worktree mount topology', () => {
       } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
 
       workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'dedicated_worktree',
         sessionKey: 'slot-1',
         workspaceId: 'session-slot-1',
         worktreeBranch: 'moltnet/correlation-1/demo-task',
@@ -532,6 +582,123 @@ describe('dedicated worktree mount topology', () => {
       workspace?.cleanup();
       rmSync(repoRoot, { recursive: true, force: true });
       rmSync(guestRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('creates and cleans up scratch workspaces for repo-free eval runs', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-scratch-repro-'));
+    const oldCwd = process.cwd();
+    let workspace: {
+      mountPath: string;
+      cwdPath: string;
+      cleanup: () => void;
+    } | null = null;
+
+    try {
+      runGit(repoRoot, ['init']);
+      runGit(repoRoot, ['config', 'user.name', 'Test User']);
+      runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
+      writeFileSync(path.join(repoRoot, 'README.md'), 'seed\n', 'utf8');
+      runGit(repoRoot, ['add', 'README.md']);
+      runGit(repoRoot, ['commit', '-m', 'seed']);
+
+      process.chdir(repoRoot);
+      const task = {
+        id: 'task-2',
+        taskType: 'run_eval',
+        correlationId: 'correlation-2',
+        input: {
+          scenario: { prompt: 'Evaluate this workspace' },
+          variantLabel: 'baseline',
+          execution: { mode: 'vitro', workspace: 'none' },
+          context: [],
+        },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'scratch_mount',
+        sessionKey: null,
+        workspaceId: 'task-task-2',
+        worktreeBranch: null,
+        workspaceScope: 'attempt',
+      });
+
+      expect(realpathSync(workspace.mountPath)).toBe(
+        realpathSync(
+          path.join(
+            repoRoot,
+            '.moltnet',
+            'd',
+            'task-workspaces',
+            'task-task-2',
+          ),
+        ),
+      );
+      expect(workspace.cwdPath).toBe(workspace.mountPath);
+      expect(path.basename(workspace.mountPath)).toBe('task-task-2');
+      expect(realpathSync(path.dirname(workspace.mountPath))).toBe(
+        realpathSync(path.join(repoRoot, '.moltnet', 'd', 'task-workspaces')),
+      );
+      expect(workspace.mountPath).not.toBe(repoRoot);
+      expect(workspace.mountPath).not.toContain(
+        `${path.sep}.worktrees${path.sep}`,
+      );
+      expect(readFileSync(path.join(repoRoot, 'README.md'), 'utf8')).toBe(
+        'seed\n',
+      );
+    } finally {
+      process.chdir(oldCwd);
+      const scratchPath = workspace?.mountPath ?? null;
+      workspace?.cleanup();
+      if (scratchPath) {
+        expect(existsSync(scratchPath)).toBe(false);
+      }
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('reuses an attached workspace root without creating a new worktree', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-attach-repro-'));
+    const producerWorkspace = mkdtempSync(path.join(tmpdir(), 'pi-producer-'));
+    const oldCwd = process.cwd();
+
+    try {
+      runGit(repoRoot, ['init']);
+      process.chdir(repoRoot);
+
+      const task = {
+        id: 'task-3',
+        taskType: 'judge_eval_attempt',
+        correlationId: 'correlation-3',
+        input: {
+          targetTaskId: 'producer-task',
+          targetAttemptN: 1,
+          successCriteria: { version: 1 },
+        },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      const workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'scratch_mount',
+        sessionKey: null,
+        workspaceId: null,
+        worktreeBranch: null,
+        workspaceScope: 'attempt',
+        workspaceAttachment: {
+          mountPath: producerWorkspace,
+          cwdPath: producerWorkspace,
+          shadowWrites: 'tmpfs',
+        },
+      });
+
+      expect(workspace.mountPath).toBe(producerWorkspace);
+      expect(workspace.cwdPath).toBe(producerWorkspace);
+      expect(workspace.mode).toBe('scratch_mount');
+      workspace.cleanup();
+      expect(existsSync(producerWorkspace)).toBe(true);
+    } finally {
+      process.chdir(oldCwd);
+      rmSync(repoRoot, { recursive: true, force: true });
+      rmSync(producerWorkspace, { recursive: true, force: true });
     }
   });
 });

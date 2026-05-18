@@ -461,7 +461,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       // regardless of task type. Applies after task-type-specific
       // async validation so the seal check is the last gate. Task
       // types that themselves SEAL a correlation (e.g.
-      // judge_eval_variant) declare that via `onCreate`; the seal
+      // a future correlation-snapshot judge) declare that via `onCreate`; the seal
       // they write is for THEIR correlationId, so it does not block
       // their own create — there is no seal at validate time, only
       // at apply time.
@@ -565,12 +565,10 @@ export function createTaskService(deps: TaskServiceDeps) {
       // entire transaction — Postgres handles the rollback; we do
       // NOT run compensating writes for anything inside this block.
       //
-      // pg_advisory_xact_lock on each correlationId serializes
-      // concurrent judge_eval_variant creates against the same
-      // variant set. Without it, two creates that both saw "no
-      // seal" in their async validators could both pass the
-      // re-check and only collide on the PK insert — by which point
-      // the loser may have done unrelated work.
+      // Some task types also request transactional uniqueness guards
+      // via `onCreate` side effects. Those acquire an advisory lock
+      // and re-check their predicate inside the transaction so
+      // concurrent creates cannot slip past a preflight-only validator.
       let row: DbTask;
       try {
         row = await transactionRunner.runInTransaction(
@@ -618,6 +616,20 @@ export function createTaskService(deps: TaskServiceDeps) {
                     );
                   }
                   throw sealErr;
+                }
+              } else if (effect.kind === 'guardTaskUniqueness') {
+                await taskRepository.acquireTaskCreateGuardLock(effect.lockKey);
+                const existing =
+                  await taskRepository.findActiveTaskByInputMatch({
+                    taskType: effect.taskType,
+                    inputMatches: effect.inputMatches,
+                    excludeTaskId: inserted.id,
+                  });
+                if (existing) {
+                  throw new TaskServiceError(
+                    'conflict',
+                    `task uniqueness guard rejected duplicate ${effect.taskType} create for lockKey=${effect.lockKey}; existing task=${existing.id}`,
+                  );
                 }
               }
             }

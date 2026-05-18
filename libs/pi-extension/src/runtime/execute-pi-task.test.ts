@@ -148,6 +148,54 @@ describe('parseStructuredTaskOutput', () => {
       message: expect.stringContaining('Unknown task type'),
     });
   });
+
+  it('enforces verification when the caller passes input.successCriteria', async () => {
+    const result = await parseStructuredTaskOutput(
+      JSON.stringify({
+        response: 'done',
+        totalTokens: 10,
+        durationMs: 100,
+        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      }),
+      'run_eval',
+      {
+        input: {
+          scenario: { prompt: 'do it' },
+          variantLabel: 'baseline',
+          execution: { mode: 'vitro', workspace: 'none' },
+          context: [],
+          successCriteria: { version: 1 as const },
+        },
+      },
+    );
+
+    expect(result.output).toBeNull();
+    expect(result.outputCid).toBeNull();
+    expect(result.error).toEqual({
+      code: 'output_validation_failed',
+      message: expect.stringContaining('verification is required'),
+    });
+  });
+
+  it('still accepts the same payload when no input is available', async () => {
+    const output = {
+      response: 'done',
+      totalTokens: 10,
+      durationMs: 100,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    };
+
+    const result = await parseStructuredTaskOutput(
+      JSON.stringify(output),
+      'run_eval',
+    );
+
+    expect(result).toEqual({
+      output,
+      outputCid: await computeJsonCid(output),
+      error: null,
+    });
+  });
 });
 
 describe('agent_runtime.task_output.parse_result counter', () => {

@@ -67,6 +67,7 @@ export interface BuildAgentSessionArgs {
    */
   sessionPersistence?: {
     sessionDir: string;
+    forkFromSessionPath?: string | null;
   };
 }
 
@@ -103,6 +104,7 @@ export async function buildAgentSession(
     ? await resolvePersistentSessionManager({
         cwd: args.cwdPath,
         sessionDir: args.sessionPersistence.sessionDir,
+        forkFromSessionPath: args.sessionPersistence.forkFromSessionPath,
       })
     : SessionManager.inMemory(args.cwdPath);
 
@@ -120,7 +122,16 @@ export async function buildAgentSession(
 async function resolvePersistentSessionManager(args: {
   cwd: string;
   sessionDir: string;
+  forkFromSessionPath?: string | null;
 }): Promise<SessionManager> {
+  if (args.forkFromSessionPath) {
+    return SessionManager.forkFrom(
+      args.forkFromSessionPath,
+      args.cwd,
+      args.sessionDir,
+    );
+  }
+
   // Pi populates its session manifest during list(); continueRecent() relies
   // on that state to resolve the session path inside the daemon-owned store.
   await SessionManager.list(args.cwd, args.sessionDir);

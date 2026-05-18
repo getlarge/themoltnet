@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
@@ -10,7 +10,7 @@ import type { PiTaskExecutionPlan } from './execution-plan.js';
 export interface PreparedTaskWorkspace {
   mountPath: string;
   cwdPath: string;
-  mode: 'shared_mount' | 'dedicated_worktree';
+  mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   branch: string | null;
   cleanup: () => void;
 }
@@ -21,6 +21,47 @@ export function prepareTaskWorkspace(
   executionPlan: PiTaskExecutionPlan | null,
 ): PreparedTaskWorkspace {
   const branch = executionPlan?.worktreeBranch ?? null;
+  const workspaceMode = executionPlan?.workspaceMode ?? 'shared_mount';
+  const attachedWorkspace = executionPlan?.workspaceAttachment ?? null;
+
+  if (attachedWorkspace) {
+    return {
+      mountPath: attachedWorkspace.mountPath,
+      cwdPath: attachedWorkspace.cwdPath,
+      mode: workspaceMode,
+      branch,
+      cleanup: () => {},
+    };
+  }
+
+  if (workspaceMode === 'scratch_mount') {
+    const mainRepo = findMainWorktree();
+    const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
+    const scratchDir = resolveTaskScratchPath(mainRepo, workspaceId);
+    const keepWorkspace =
+      executionPlan?.workspaceScope === 'session' &&
+      executionPlan.sessionKey !== null;
+
+    if (keepWorkspace) {
+      mkdirSync(scratchDir, { recursive: true });
+    } else {
+      rmSync(scratchDir, { recursive: true, force: true });
+      mkdirSync(scratchDir, { recursive: true });
+    }
+
+    return {
+      mountPath: scratchDir,
+      cwdPath: scratchDir,
+      mode: 'scratch_mount',
+      branch: null,
+      cleanup: keepWorkspace
+        ? () => {}
+        : () => {
+            rmSync(scratchDir, { recursive: true, force: true });
+          },
+    };
+  }
+
   if (!branch) {
     return {
       mountPath: requestedMountPath,
@@ -73,6 +114,13 @@ export function resolveTaskWorktreePath(
   workspaceId: string,
 ): string {
   return join(mainRepo, '.worktrees', workspaceId);
+}
+
+export function resolveTaskScratchPath(
+  mainRepo: string,
+  workspaceId: string,
+): string {
+  return join(mainRepo, '.moltnet', 'd', 'task-workspaces', workspaceId);
 }
 
 function ensureReusableTaskWorktree(

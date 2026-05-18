@@ -36,7 +36,7 @@ const GUEST_WORKSPACE = '/workspace';
  */
 export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
 
-import type { SandboxConfig } from './snapshot.js';
+import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
@@ -45,6 +45,8 @@ export interface VmConfig {
   agentName: string;
   /** Host directory to mount at /workspace in the VM. */
   mountPath: string;
+  /** Effective workspace shape selected by the caller. */
+  workspaceMode?: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   /** Additional hosts to allow in egress policy. */
   extraAllowedHosts?: string[];
   /** Full sandbox config (vfs shadows, env overrides). */
@@ -79,6 +81,22 @@ export interface ManagedVm {
   mountPath: string;
   guestWorkspace: string;
   agentDir: string;
+}
+
+export function shouldRunResumeCommand(
+  entry: string | ResumeCommand,
+  ctx: {
+    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  },
+): boolean {
+  if (typeof entry === 'string') {
+    return true;
+  }
+  const workspaceModes = entry.when?.workspaceMode;
+  if (workspaceModes && !workspaceModes.includes(ctx.workspaceMode)) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -302,6 +320,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   };
 
   const resources = config.sandboxConfig?.resources;
+  const workspaceMode = config.workspaceMode ?? 'shared_mount';
   const cp = VmCheckpoint.load(config.checkpointPath);
   const vm = await cp.resume({
     httpHooks,
@@ -374,11 +393,42 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // for paths the consumer wants out of the Gondolin FUSE hot path —
     // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
     // here, not in vm-manager. pi-extension stays repo-agnostic.
-    // Sequential, first failure aborts resume via vmRun.
-    for (const [i, cmd] of (
+    // Sequential, first failure aborts resume via vmRun. Per-step opt-in
+    // retries (object form: `{ run, retries, retryBackoffMs }`) cover
+    // network-bound idempotent steps that race DHCP/registry availability
+    // on a fresh resume (e.g. pnpm install, go mod download).
+    for (const [i, entry] of (
       config.sandboxConfig?.resumeCommands ?? []
     ).entries()) {
-      await vmRun(vm, `resumeCommands[${i}]`, cmd);
+      if (!shouldRunResumeCommand(entry, { workspaceMode })) {
+        continue;
+      }
+      const { run, retries, backoffMs } =
+        typeof entry === 'string'
+          ? { run: entry, retries: 0, backoffMs: 2000 }
+          : {
+              run: entry.run,
+              retries: entry.retries ?? 0,
+              backoffMs: entry.retryBackoffMs ?? 2000,
+            };
+      const label = `resumeCommands[${i}]`;
+      let lastErr: unknown;
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          await vmRun(vm, label, run);
+          lastErr = undefined;
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (attempt === retries) break;
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, (attempt + 1) * backoffMs);
+          });
+        }
+      }
+      if (lastErr) {
+        throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+      }
     }
 
     // Inject credentials into VM-side agent directory structure:

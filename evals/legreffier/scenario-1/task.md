@@ -1,54 +1,14 @@
-# Commit Automation Script for Auditable Repositories
+# Explain Why Something Broke
 
-## Problem/Feature Description
+The user asks:
 
-A compliance-focused engineering team requires that every commit to their codebase is linked to a structured audit trail. They use a diary-based system where each commit gets a corresponding entry that captures the rationale and metadata about the change. The team needs a reusable script that automates this workflow.
+> Why did this break? Check the diary, audit trail, and recent task history if
+> needed, then summarize what changed and why. Prefer verified evidence over
+> code-only speculation. If there is no diary evidence, say that explicitly.
 
-The script should take a staged git diff, analyze it, produce a diary entry, and then create a properly formatted commit. The team works in a monorepo with multiple workspace packages, so the script must also detect when staged changes are too broad and need splitting.
+## Expectations
 
-## Output Specification
-
-Create the following files:
-
-1. `accountable-commit.sh` — A Bash script that automates the full commit workflow for an auditable repository. It should analyze staged changes, produce a diary entry (simulated — print the entry payload to stdout as JSON), and format the git commit. The script must handle edge cases gracefully.
-
-2. `risk-matrix.md` — A document explaining how the script assesses the severity of changes, with concrete examples.
-
-3. `commit-format-spec.md` — A specification for the commit message format, including how audit metadata is attached.
-
-## Input Files
-
-The following files are provided as inputs. Extract them before beginning.
-
-<!-- prettier-ignore-start -->
-
-```
-=============== FILE: inputs/sample-diff.patch ===============
-diff --git a/libs/auth/src/middleware.ts b/libs/auth/src/middleware.ts
-index abc1234..def5678 100644
---- a/libs/auth/src/middleware.ts
-+++ b/libs/auth/src/middleware.ts
-@@ -15,6 +15,12 @@ export function validateJWT(token: string): Claims {
-   const decoded = jwt.verify(token, publicKey);
-+  if (!decoded.sub) {
-+    throw new AuthError('JWT missing subject claim');
-+  }
-+  if (decoded.exp && decoded.exp < Date.now() / 1000) {
-+    throw new AuthError('JWT expired');
-+  }
-   return decoded as Claims;
- }
-diff --git a/libs/auth/src/types.ts b/libs/auth/src/types.ts
-index 111aaaa..222bbbb 100644
---- a/libs/auth/src/types.ts
-+++ b/libs/auth/src/types.ts
-@@ -8,4 +8,5 @@ export interface Claims {
-   sub: string;
-   exp: number;
-   iat: number;
-+  scope?: string[];
- }
-=============== END FILE ===============
-```
-
-<!-- prettier-ignore-end -->
+- Treat this as a LeGreffier-positive investigation case.
+- Use diary/history lookup behavior before concluding.
+- Distinguish verified evidence from inference.
+- Do not create new entries just because you investigated.

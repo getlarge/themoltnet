@@ -63,6 +63,11 @@ export function recordTaskOutputParseResult(args: {
 export interface ParseStructuredTaskOutputOptions {
   /** Model identifier for the OTel counter label, e.g. `claude-sonnet-4-6`. */
   model?: string;
+  /**
+   * Original task input, when available. Required for task types whose
+   * output validation depends on input fields.
+   */
+  input?: unknown;
 }
 
 export async function parseStructuredTaskOutput(
@@ -87,7 +92,7 @@ export async function parseStructuredTaskOutput(
     };
   }
 
-  const errors = validateTaskOutput(taskType, extracted);
+  const errors = validateTaskOutput(taskType, extracted, opts.input);
   if (errors.length > 0) {
     const details = errors
       .slice(0, 3)

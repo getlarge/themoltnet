@@ -140,7 +140,14 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     "cpus": 2,
     "memory": "6G"
   },
-  "resumeCommands": ["corepack enable"],
+  "resumeCommands": [
+    {
+      "run": "corepack enable",
+      "when": {
+        "workspaceMode": ["shared_mount", "dedicated_worktree"]
+      }
+    }
+  ],
   "snapshot": {
     "allowedHosts": ["unofficial-builds.nodejs.org"],
     "overlaySize": "8G",
@@ -191,9 +198,33 @@ Important properties:
 - not part of the snapshot cache key
 - each command runs in a fresh shell with `set -eu` and `set -o pipefail`
 - first non-zero exit aborts VM resume
+- object form supports `when.workspaceMode` so bootstrap can key off the
+  effective mounted workspace shape instead of task type
 
 This split exists so repo-specific bootstrap can live in `sandbox.json` while
 `pi-extension` stays consumer-agnostic.
+
+Object form:
+
+```json
+{
+  "retries": 2,
+  "retryBackoffMs": 5000,
+  "run": "cd /workspace && pnpm install --frozen-lockfile",
+  "when": {
+    "workspaceMode": ["shared_mount", "dedicated_worktree"]
+  }
+}
+```
+
+`when.workspaceMode` matches the executor's effective workspace shape:
+
+- `shared_mount`: task runs directly against the mounted checkout
+- `dedicated_worktree`: task runs in a disposable git worktree
+- `scratch_mount`: task runs in an empty scratch workspace with no repo checkout
+
+Use this when a resume step assumes a repository exists under `/workspace` and
+should be skipped for repo-free scratch runs.
 
 ### `vfs`
 

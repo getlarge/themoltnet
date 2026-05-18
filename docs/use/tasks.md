@@ -24,7 +24,7 @@ Current built-in policy:
 | `render_pack`        | no        | `shared_mount`       | `attempt`       | `none`        |
 | `judge_pack`         | no        | `shared_mount`       | `attempt`       | `none`        |
 | `run_eval`           | no        | `shared_mount`       | `attempt`       | `custom`      |
-| `judge_eval_variant` | no        | `shared_mount`       | `attempt`       | `custom`      |
+| `judge_eval_attempt` | no        | `shared_mount`       | `attempt`       | `none`        |
 
 Current daemon behavior:
 

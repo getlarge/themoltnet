@@ -12,13 +12,22 @@ export type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 
 export interface DaemonTaskExecutionPlan {
   descriptor: TaskSessionDescriptor;
+  workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   slotKey: string | null;
   slotId: string | null;
   workspaceId: string | null;
   worktreeBranch: string | null;
   sessionKey: string | null;
   workspaceScope: 'attempt' | 'session';
-  sessionPersistence?: { sessionDir: string } | null;
+  workspaceAttachment?: {
+    mountPath: string;
+    cwdPath: string;
+    shadowWrites?: 'deny' | 'tmpfs';
+  } | null;
+  sessionPersistence?: {
+    sessionDir: string;
+    forkFromSessionPath?: string | null;
+  } | null;
 }
 
 export function buildDaemonTaskExecutionPlan(
@@ -31,6 +40,7 @@ export function buildDaemonTaskExecutionPlan(
   warmSessionTtlSec: number,
 ): DaemonTaskExecutionPlan {
   const descriptor = deriveTaskSessionDescriptor(task);
+  const workspaceMode = resolveTaskWorkspaceMode(task, descriptor.policy);
   const slotKey = warmSessionTtlSec > 0 ? descriptor.sessionKey : null;
   const workspaceScope =
     slotKey !== null ? descriptor.policy.workspaceScope : 'attempt';
@@ -38,9 +48,9 @@ export function buildDaemonTaskExecutionPlan(
   const sessionDir = slotId
     ? `${stateDirs.piSessionsDir}/${encodeURIComponent(slotId)}`
     : null;
-  const worktreeBranch = resolveTaskWorktreeBranch(task, descriptor.policy);
+  const worktreeBranch = resolveTaskWorktreeBranch(task, workspaceMode);
   const workspaceId =
-    worktreeBranch !== null
+    workspaceMode !== 'shared_mount'
       ? resolveTaskWorkspaceId(task, {
           sessionKey: slotId,
           workspaceScope,
@@ -50,6 +60,7 @@ export function buildDaemonTaskExecutionPlan(
 
   return {
     descriptor,
+    workspaceMode,
     sessionKey: slotId,
     slotKey,
     slotId,
@@ -85,9 +96,9 @@ function resolveTaskWorktreeBranch(
     ClaimedTask['task'],
     'taskType' | 'correlationId' | 'id' | 'input'
   >,
-  policy: { workspaceMode: 'shared_mount' | 'dedicated_worktree' },
+  workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount',
 ): string | null {
-  if (policy.workspaceMode !== 'dedicated_worktree') {
+  if (workspaceMode !== 'dedicated_worktree') {
     return null;
   }
 
@@ -117,6 +128,35 @@ function resolveTaskWorktreeBranch(
   }
 
   return `task/${slugifyAsciiLower(task.taskType, 60) || 'task'}-${task.id.slice(0, 8)}`;
+}
+
+function resolveTaskWorkspaceMode(
+  task: Pick<ClaimedTask['task'], 'taskType' | 'input'>,
+  policy: { workspaceMode: 'shared_mount' | 'dedicated_worktree' },
+): 'shared_mount' | 'dedicated_worktree' | 'scratch_mount' {
+  if (task.taskType !== 'run_eval') {
+    return policy.workspaceMode;
+  }
+
+  const requestedWorkspace =
+    typeof (
+      task.input as {
+        execution?: { workspace?: unknown };
+      }
+    ).execution?.workspace === 'string'
+      ? (task.input as { execution: { workspace: string } }).execution.workspace
+      : null;
+
+  switch (requestedWorkspace) {
+    case 'none':
+      return 'scratch_mount';
+    case 'shared_mount':
+      return 'shared_mount';
+    case 'dedicated_worktree':
+      return 'dedicated_worktree';
+    default:
+      return policy.workspaceMode;
+  }
 }
 
 function resolveTaskWorkspaceId(

@@ -67,17 +67,65 @@ export function createTaskRepository(db: Database) {
 
     /**
      * Find all tasks sharing a `correlation_id`. Used by async
-     * validators (#1096) — e.g. `judge_eval_variant` enumerates the
-     * variants in its correlation group to verify they're all
-     * `run_eval` / completed / share byte-identical `successCriteria`.
-     * No team or visibility filter — the caller (task service) runs
-     * the permission check separately. Returns the bare rows.
+     * validators (#1096) to inspect related runs or judges in the
+     * same correlation group. No team or visibility filter — the
+     * caller (task service) runs the permission check separately.
+     * Returns the bare rows.
      */
     async findByCorrelationId(correlationId: string): Promise<Task[]> {
       return getExecutor(db)
         .select()
         .from(tasks)
         .where(eq(tasks.correlationId, correlationId));
+    },
+
+    async acquireTaskCreateGuardLock(lockKey: string): Promise<void> {
+      if (!hasActiveTransaction()) {
+        throw new Error(
+          'acquireTaskCreateGuardLock must be called inside a TransactionRunner-managed transaction; pg_advisory_xact_lock has no effect outside one',
+        );
+      }
+      await getExecutor(db).execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}::text, 0::bigint))`,
+      );
+    },
+
+    async findActiveTaskByInputMatch(args: {
+      taskType: string;
+      inputMatches: ReadonlyArray<{
+        path: readonly string[];
+        value: string | number | boolean;
+      }>;
+      excludeTaskId?: string;
+    }): Promise<Task | null> {
+      const filters: SQL[] = [
+        eq(tasks.taskType, args.taskType),
+        notInArray(tasks.status, ['failed', 'cancelled', 'expired']),
+      ];
+      for (const match of args.inputMatches) {
+        let expr = sql`${tasks.input}`;
+        for (let i = 0; i < match.path.length - 1; i += 1) {
+          expr = sql`${expr} -> ${match.path[i]}`;
+        }
+        const textExpr = sql`${expr} ->> ${match.path[match.path.length - 1]}`;
+        if (typeof match.value === 'number') {
+          filters.push(sql`(${textExpr})::numeric = ${match.value}`);
+        } else if (typeof match.value === 'boolean') {
+          filters.push(sql`(${textExpr})::boolean = ${match.value}`);
+        } else {
+          filters.push(sql`${textExpr} = ${match.value}`);
+        }
+      }
+      if (args.excludeTaskId) {
+        filters.push(sql`${tasks.id} <> ${args.excludeTaskId}::uuid`);
+      }
+      const [row] = await getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(and(...filters))
+        .orderBy(desc(tasks.createdAt))
+        .limit(1);
+      return row ?? null;
     },
 
     async list(opts: {

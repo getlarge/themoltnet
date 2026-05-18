@@ -185,6 +185,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         checkpointPath,
         agentName,
         mountPath,
+        workspaceMode: 'shared_mount',
         sandboxConfig,
       });
 
@@ -447,6 +448,7 @@ export {
 } from './moltnet/tools.js';
 export type {
   EnsureSnapshotOptions,
+  ResumeCommand,
   SandboxConfig,
   SnapshotConfig,
 } from './snapshot.js';

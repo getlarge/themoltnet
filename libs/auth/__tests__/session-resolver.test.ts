@@ -270,7 +270,16 @@ describe('createSessionResolver', () => {
       expect(result).toBeNull();
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 503 }),
+        expect.objectContaining({
+          status: 503,
+          authTransport: 'x-session-token',
+          sessionTokenPresent: true,
+          cookie: expect.objectContaining({
+            present: false,
+            cookieCount: 0,
+            kratosCookiePresent: false,
+          }),
+        }),
         expect.stringContaining('Kratos toSession error'),
       );
     });
@@ -288,6 +297,39 @@ describe('createSessionResolver', () => {
 
       expect(result).toBeNull();
       expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('summarizes cookie transport details in warning logs', async () => {
+      const warn = vi.fn();
+      const loggingResolver = createSessionResolver(mockFrontendApi as never, {
+        logger: { warn },
+      });
+      mockFrontendApi.toSession.mockRejectedValue(
+        Object.assign(new Error('boom'), {
+          status: 503,
+          response: { body: { reason: 'kratos_unavailable' } },
+        }),
+      );
+
+      const result = await loggingResolver.resolveSession({
+        cookie: 'ory_session_test=abc; csrf_token=def',
+      });
+
+      expect(result).toBeNull();
+      expect(warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 503,
+          responseBody: { reason: 'kratos_unavailable' },
+          authTransport: 'cookie',
+          sessionTokenPresent: false,
+          cookie: {
+            present: true,
+            cookieCount: 2,
+            kratosCookiePresent: true,
+          },
+        }),
+        expect.stringContaining('Kratos toSession error'),
+      );
     });
 
     it('no-ops when no logger is configured (default)', async () => {

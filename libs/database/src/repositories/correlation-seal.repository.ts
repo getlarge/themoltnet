@@ -22,12 +22,12 @@ export function createCorrelationSealRepository(db: Database) {
     /**
      * Acquire a transaction-scoped advisory lock on a correlation_id.
      *
-     * Two concurrent `judge_eval_variant` creates against the same
-     * variant set otherwise race: both see "no seal" in their async
-     * validator, both insert the task, both attempt to insert the
-     * seal. Without serialization, one wins the PK violation but the
-     * loser may have already done irreversible work elsewhere (e.g.
-     * a Keto grant in a parallel branch).
+     * Two concurrent creates that both intend to seal the same
+     * correlation group would otherwise race: both see "no seal" in
+     * their async validator, both insert the task, both attempt to
+     * insert the seal. Without serialization, one wins the PK
+     * violation but the loser may have already done irreversible work
+     * elsewhere (e.g. a Keto grant in a parallel branch).
      *
      * `pg_advisory_xact_lock(int8)` auto-releases on COMMIT or
      * ROLLBACK; it's strictly local to the current transaction. We
@@ -68,7 +68,7 @@ export function createCorrelationSealRepository(db: Database) {
      * caller is expected to have already checked via
      * `findByCorrelationId` inside the same transaction. The throw
      * is the last-line-of-defense for races where two concurrent
-     * judge creates target the same correlation_id.
+     * task creates target the same correlation_id.
      */
     async create(input: NewCorrelationSeal): Promise<CorrelationSeal> {
       const [row] = await getExecutor(db)

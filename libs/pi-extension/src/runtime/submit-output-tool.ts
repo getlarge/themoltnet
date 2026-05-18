@@ -53,6 +53,13 @@ export interface CreateSubmitOutputToolOptions {
    * cardinality.
    */
   model?: string;
+  /**
+   * Original task input, threaded into output validation so task types
+   * with cross-field rules (for example "verification required iff
+   * input.successCriteria exists") are enforced before the session can
+   * terminate.
+   */
+  input?: unknown;
 }
 
 export interface SubmitOutputToolHandle {
@@ -120,7 +127,7 @@ export function createSubmitOutputTool(
       // pollutes attestations. Returning isError:true lets the agent
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
-      const errors = validateTaskOutput(taskType, params);
+      const errors = validateTaskOutput(taskType, params, opts.input);
       if (errors.length > 0) {
         const detailMsg = errors
           .slice(0, 3)

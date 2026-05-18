@@ -423,12 +423,17 @@ export async function executePiTask(
     }
 
     try {
+      const sandboxConfig = applyExecutionPlanSandboxOverrides(
+        opts.sandboxConfig,
+        executionPlan,
+      );
       managed = await resumeVm({
         checkpointPath,
         agentName: opts.agentName,
         mountPath,
+        workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
-        sandboxConfig: opts.sandboxConfig,
+        sandboxConfig,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -463,6 +468,7 @@ export async function executePiTask(
         workspace: {
           mode: activeWorkspace.mode,
           branch: activeWorkspace.branch,
+          attached: executionPlan?.workspaceAttachment !== undefined,
         },
         extras: opts.promptExtras,
       };
@@ -534,11 +540,15 @@ export async function executePiTask(
 
     // Per-task-type submit-output tool. Captured payload (when the
     // model calls the tool with valid args) becomes the authoritative
-    // output; the parser fallback is only consulted when the model
-    // never calls the tool, OR when the task type has no registered
-    // output schema (resolveSubmitTools returns null).
+    // output. For task types with a registered submit tool, a valid
+    // submit call is required to complete the attempt; the legacy
+    // parser fallback is only consulted when the task type has no
+    // registered output schema (resolveSubmitTools returns null).
     const { handle: submitToolHandle, tools: submitToolDefs } =
-      resolveSubmitTools(task.taskType, { model: opts.model });
+      resolveSubmitTools(task.taskType, {
+        model: opts.model,
+        input: task.input,
+      });
     const submitTools: ToolDefinition[] =
       submitToolDefs as unknown as ToolDefinition[];
 
@@ -926,11 +936,22 @@ export async function executePiTask(
             phase: 'output_validation',
           });
         }
+      } else if (submitToolHandle) {
+        parseError = {
+          code: 'output_missing',
+          message:
+            'Agent did not submit output through the task submit tool. ' +
+            'A valid submit tool call is required to complete this task type.',
+        };
+        await emit('error', {
+          message: parseError.message,
+          phase: 'output_validation',
+        });
       } else {
         const parsed = await parseStructuredTaskOutput(
           assistantText,
           task.taskType,
-          { model: opts.model },
+          { model: opts.model, input: task.input },
         );
         parsedOutput = parsed.output;
         parsedOutputCid = parsed.outputCid;
@@ -1086,6 +1107,27 @@ export async function executePiTask(
       }
     }
   }
+}
+
+function applyExecutionPlanSandboxOverrides(
+  sandboxConfig: SandboxConfig | undefined,
+  executionPlan: ReturnType<
+    NonNullable<ExecutePiTaskOptions['makeExecutionPlan']>
+  >,
+): SandboxConfig | undefined {
+  const shadowWrites = executionPlan?.workspaceAttachment?.shadowWrites;
+  if (!shadowWrites) {
+    return sandboxConfig;
+  }
+
+  return {
+    ...sandboxConfig,
+    vfs: {
+      ...sandboxConfig?.vfs,
+      shadow: ['**'],
+      shadowMode: shadowWrites,
+    },
+  };
 }
 
 function emptyUsage(provider: string, model: string): TaskUsage {

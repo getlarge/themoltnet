@@ -51,6 +51,12 @@ export interface ReapedDaemonSlot {
   workspace: DaemonSlotWorkspaceRecord | null;
 }
 
+export interface ResolvedProducerDaemonSlot {
+  slot: DaemonSlotRecord;
+  session: DaemonSlotSessionRecord | null;
+  workspace: DaemonSlotWorkspaceRecord | null;
+}
+
 export interface DaemonSlotStartInput extends DaemonSlotIdentity {
   slotKey: string;
   taskType: string;
@@ -64,12 +70,40 @@ export interface DaemonSlotStartInput extends DaemonSlotIdentity {
   ttlSec: number;
 }
 
+type SqlPrimitive = string | number | null;
+type SqlNamedParams = Record<string, SqlPrimitive>;
+
+interface SqlStatement {
+  run(...params: SqlPrimitive[]): unknown;
+  run(namedParams: SqlNamedParams, ...params: SqlPrimitive[]): unknown;
+  get(...params: SqlPrimitive[]): Record<string, unknown> | undefined;
+  get(
+    namedParams: SqlNamedParams,
+    ...params: SqlPrimitive[]
+  ): Record<string, unknown> | undefined;
+  all(...params: SqlPrimitive[]): Record<string, unknown>[];
+  all(
+    namedParams: SqlNamedParams,
+    ...params: SqlPrimitive[]
+  ): Record<string, unknown>[];
+}
+
+interface SqlDatabase {
+  exec(sql: string): void;
+  close(): void;
+  prepare(sql: string): SqlStatement;
+}
+
+const SqliteDatabaseSync = DatabaseSync as unknown as new (
+  path: string,
+) => SqlDatabase;
+
 export class DaemonSlotRegistry {
-  private readonly db: DatabaseSync;
+  private readonly db: SqlDatabase;
 
   constructor(dbPath: string) {
     try {
-      this.db = new DatabaseSync(dbPath);
+      this.db = new SqliteDatabaseSync(dbPath);
       this.withDb('initialize schema', () => {
         this.db.exec(`
       PRAGMA journal_mode = WAL;
@@ -118,6 +152,9 @@ export class DaemonSlotRegistry {
 
       CREATE INDEX IF NOT EXISTS daemon_slots_expires_idx
         ON daemon_slots (expires_at_ms);
+
+      CREATE INDEX IF NOT EXISTS daemon_slots_task_attempt_idx
+        ON daemon_slots (last_task_id, last_attempt_n, last_used_at_ms DESC);
         `);
       });
     } catch (error) {
@@ -269,6 +306,44 @@ export class DaemonSlotRegistry {
     }
   }
 
+  findLatestProducerSlotByTaskAttempt(
+    taskId: string,
+    attemptN: number,
+  ): ResolvedProducerDaemonSlot | null {
+    const slot = this.withDb(
+      'find producer slot by task attempt',
+      () =>
+        (this.db
+          .prepare(
+            `SELECT
+               agent_name as agentName,
+               provider,
+               model,
+               slot_key as slotKey,
+               task_type as taskType,
+               state,
+               last_task_id as lastTaskId,
+               last_attempt_n as lastAttemptN,
+               created_at_ms as createdAtMs,
+               last_used_at_ms as lastUsedAtMs,
+               expires_at_ms as expiresAtMs
+             FROM daemon_slots
+             WHERE last_task_id = ? AND last_attempt_n = ?
+             ORDER BY last_used_at_ms DESC
+             LIMIT 1`,
+          )
+          .get(taskId, attemptN) ?? null) as DaemonSlotRecord | null,
+    );
+
+    if (!slot) return null;
+
+    return {
+      slot,
+      session: this.lookupSession(slot),
+      workspace: this.lookupWorkspace(slot),
+    };
+  }
+
   reapExpiredSlots(now = Date.now()): ReapedDaemonSlot[] {
     this.withDb('begin reap transaction', () =>
       this.db.exec('BEGIN IMMEDIATE'),
@@ -339,26 +414,8 @@ export class DaemonSlotRegistry {
 
       const out: ReapedDaemonSlot[] = [];
       for (const slot of slots) {
-        const session = this.withDb(
-          'select slot session',
-          () =>
-            (selectSession.get(
-              slot.agentName,
-              slot.provider,
-              slot.model,
-              slot.slotKey,
-            ) ?? null) as unknown as DaemonSlotSessionRecord | null,
-        );
-        const workspace = this.withDb(
-          'select slot workspace',
-          () =>
-            (selectWorkspace.get(
-              slot.agentName,
-              slot.provider,
-              slot.model,
-              slot.slotKey,
-            ) ?? null) as unknown as DaemonSlotWorkspaceRecord | null,
-        );
+        const session = this.lookupSession(slot, selectSession);
+        const workspace = this.lookupWorkspace(slot, selectWorkspace);
         out.push({ slot, session, workspace });
         this.withDb('delete expired slot', () =>
           deleteStmt.run(
@@ -397,6 +454,61 @@ export class DaemonSlotRegistry {
     } catch (error) {
       throw new DaemonSlotRegistryError(operation, error);
     }
+  }
+
+  private lookupSession(
+    slot: Pick<
+      DaemonSlotRecord,
+      'agentName' | 'provider' | 'model' | 'slotKey'
+    >,
+    stmt = this.withDb('prepare slot session lookup', () =>
+      this.db.prepare(
+        `SELECT
+           agent_name as agentName,
+           provider,
+           model,
+           slot_key as slotKey,
+           session_dir as sessionDir,
+           session_path as sessionPath
+         FROM daemon_slot_sessions
+         WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      ),
+    ),
+  ): DaemonSlotSessionRecord | null {
+    return this.withDb(
+      'select slot session',
+      () =>
+        (stmt.get(slot.agentName, slot.provider, slot.model, slot.slotKey) ??
+          null) as unknown as DaemonSlotSessionRecord | null,
+    );
+  }
+
+  private lookupWorkspace(
+    slot: Pick<
+      DaemonSlotRecord,
+      'agentName' | 'provider' | 'model' | 'slotKey'
+    >,
+    stmt = this.withDb('prepare slot workspace lookup', () =>
+      this.db.prepare(
+        `SELECT
+           agent_name as agentName,
+           provider,
+           model,
+           slot_key as slotKey,
+           workspace_id as workspaceId,
+           worktree_path as worktreePath,
+           worktree_branch as worktreeBranch
+         FROM daemon_slot_workspaces
+         WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      ),
+    ),
+  ): DaemonSlotWorkspaceRecord | null {
+    return this.withDb(
+      'select slot workspace',
+      () =>
+        (stmt.get(slot.agentName, slot.provider, slot.model, slot.slotKey) ??
+          null) as unknown as DaemonSlotWorkspaceRecord | null,
+    );
   }
 }
 

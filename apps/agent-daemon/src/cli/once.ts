@@ -1,17 +1,15 @@
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
-  createSubagentContractRegistry,
-  JudgeEvalVariantResult,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
   findMainWorktree,
-  resolveTaskWorktreePath,
 } from '@themoltnet/pi-extension';
 
 import { loadConfig } from '../config.js';
@@ -24,7 +22,10 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from '../lib/daemon-slot-registry.js';
-import { createExecutionPlanCache } from '../lib/execution-plan-cache.js';
+import {
+  createExecutionPlanCache,
+  ProducerContextResolutionError,
+} from '../lib/execution-plan-cache.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -86,6 +87,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     stateDirs,
     slotIdentity,
     warmSessionTtlSec: opts.warmSessionTtlSec,
+    slotRegistry,
   });
   const ctx = await resolveAgentContext(opts.agent);
 
@@ -149,21 +151,9 @@ export async function runOnce(argv: string[]): Promise<number> {
     onSignal('SIGTERM');
   });
 
-  const subagentContractRegistry = createSubagentContractRegistry([
-    {
-      name: 'judge_eval_variant_result',
-      description:
-        'Per-variant grading result produced by a subagent of ' +
-        'judge_eval_variant: scores against the shared rubric, ' +
-        'composite, and a 1-3 sentence verdict for a single variant.',
-      parametersSchema: JudgeEvalVariantResult,
-    },
-  ]);
-
   try {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
-      subagentContractRegistry,
       mountPath: sandbox.rootDir,
       provider: opts.provider,
       model: opts.model,
@@ -195,7 +185,37 @@ export async function runOnce(argv: string[]): Promise<number> {
           'agent-daemon.daemon_slot_reap_failed',
         );
       }
-      const executionPlan = executionPlans.getOrCreate(claimedTask);
+      let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
+      try {
+        executionPlan = executionPlans.getOrCreate(claimedTask);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        rootLogger.warn(
+          {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            err: message,
+          },
+          'agent-daemon.execution_plan_failed',
+        );
+        return {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'failed',
+          output: null,
+          outputCid: null,
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 0,
+          error: {
+            code:
+              err instanceof ProducerContextResolutionError
+                ? 'producer_context_missing'
+                : 'execution_plan_failed',
+            message,
+            retryable: false,
+          },
+        };
+      }
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
         slotRegistry.beginSlot({
           ...slotIdentity,
@@ -206,9 +226,11 @@ export async function runOnce(argv: string[]): Promise<number> {
             executionPlan.sessionPersistence.sessionDir,
           ),
           workspaceId: executionPlan.workspaceId,
-          worktreePath: executionPlan.workspaceId
-            ? resolveTaskWorktreePath(mainRepo, executionPlan.workspaceId)
-            : null,
+          worktreePath: resolveRecordedWorkspacePath(
+            mainRepo,
+            stateDirs.rootDir,
+            executionPlan,
+          ),
           worktreeBranch: executionPlan.worktreeBranch,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
@@ -280,4 +302,18 @@ export async function runOnce(argv: string[]): Promise<number> {
     await otelShutdown();
     await shutdownLogger();
   }
+}
+
+function resolveRecordedWorkspacePath(
+  mainRepo: string,
+  stateRootDir: string,
+  executionPlan: {
+    workspaceId: string | null;
+    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  },
+): string | null {
+  if (!executionPlan.workspaceId) return null;
+  return executionPlan.workspaceMode === 'scratch_mount'
+    ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
+    : join(mainRepo, '.worktrees', executionPlan.workspaceId);
 }

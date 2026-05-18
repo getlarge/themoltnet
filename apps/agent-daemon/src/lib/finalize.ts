@@ -1,5 +1,6 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
+import { MoltNetError } from '@themoltnet/sdk';
 
 // Forward a TaskOutput to /complete or /fail. Cancelled outputs are
 // dropped (server is already terminal — #938). Pure passthrough on the
@@ -42,14 +43,32 @@ export async function finalizeTask(
   if (output.status === 'cancelled') return;
 
   if (output.status === 'completed' && output.output && output.outputCid) {
-    await agent.tasks.complete(output.taskId, output.attemptN, {
-      output: output.output,
-      outputCid: output.outputCid,
-      usage: output.usage,
-      ...(output.contentSignature
-        ? { contentSignature: output.contentSignature }
-        : {}),
-    });
+    try {
+      await agent.tasks.complete(output.taskId, output.attemptN, {
+        output: output.output,
+        outputCid: output.outputCid,
+        usage: output.usage,
+        ...(output.contentSignature
+          ? { contentSignature: output.contentSignature }
+          : {}),
+      });
+    } catch (err) {
+      // The server rejected the structured output (most commonly
+      // VALIDATION_FAILED on a cross-field rule the LLM did not satisfy,
+      // e.g. `output.verification is required because input.successCriteria
+      // is set`). The reporter has already stopped heartbeats by the time
+      // we get here, so doing nothing would let the lease expire silently
+      // and the attempt would surface as `lease_expired` with no signal
+      // of the real cause. Convert into a terminal `tasks.fail` so the
+      // attempt carries the actual server-side reason — the next imposer
+      // (retry, judge, etc.) can read the failure code and act.
+      const reason = errorToFailReason(err);
+      ctx.log?.('complete-rejected-falling-back-to-fail', err);
+      await agent.tasks.fail(output.taskId, output.attemptN, {
+        error: reason,
+      });
+      return;
+    }
     await maybeWriteAnchors(output, ctx);
     return;
   }
@@ -67,6 +86,36 @@ export async function finalizeTask(
   );
   if (heartbeat.cancelled) return;
   await agent.tasks.fail(output.taskId, output.attemptN, { error });
+}
+
+function errorToFailReason(
+  err: unknown,
+): NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] {
+  if (err instanceof MoltNetError) {
+    // VALIDATION_FAILED from the server carries field-level details that
+    // are extremely useful for diagnosing a malformed output. Surface
+    // them in the `message` so the failure record is self-contained.
+    const fields = err.validationErrors?.length
+      ? '; ' +
+        err.validationErrors.map((e) => `${e.field}: ${e.message}`).join(' | ')
+      : '';
+    return {
+      code: 'output_rejected_by_server',
+      message:
+        `Server rejected tasks.complete (${err.code}, status ${err.statusCode ?? '?'}): ` +
+        `${err.detail ?? err.message}${fields}`,
+      // The model produced output that violated a server-side rule. A
+      // bare retry of the same attempt would hit the same rejection.
+      // Mark non-retryable so the next attempt (or imposer) has a clean
+      // signal that this isn't a transient transport failure.
+      retryable: false,
+    };
+  }
+  return {
+    code: 'complete_call_failed',
+    message: err instanceof Error ? err.message : String(err),
+    retryable: false,
+  };
 }
 
 async function maybeWriteAnchors(
