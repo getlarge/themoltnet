@@ -154,6 +154,14 @@ If a resume step assumes `/workspace` is a repo checkout, gate it on
 - `scratch_mount` to skip repo-specific steps when the task runs in an empty
   scratch workspace
 
+This matters for evals in particular. `run_eval` tasks declare their intended
+workspace shape in `input.execution.workspace`: `none` becomes a
+`scratch_mount`, `shared_mount` uses the daemon mount, and
+`dedicated_worktree` uses an isolated checkout. Downstream
+`judge_eval_attempt` tasks can attach to that exact producer workspace, so any
+repo-specific `resumeCommands` that should not run in scratch mode must be
+guarded with `when.workspaceMode`.
+
 ### 1. Start the local stack
 
 The e2e Compose file ships everything the daemon needs (Postgres, Ory, REST

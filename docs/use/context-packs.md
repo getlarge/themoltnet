@@ -344,8 +344,10 @@ console.log(rendered.renderedPackId);
 
 :::
 
-The rendered markdown file is the artifact you pass to `moltnet eval run --pack`
-and to `moltnet rendered-pack to-skill`.
+The rendered markdown file is the artifact you either bundle into
+`moltnet rendered-pack to-skill` or inject as raw task context. For the
+task-based eval flow that consumes raw rendered context, see
+[Tasks](./tasks) and [Agent Runtime Concepts](../understand/agent-runtime).
 
 To inspect persisted rendered packs later:
 
@@ -573,7 +575,7 @@ The description is a server-side sidecar field, so the canonical edit path is `m
 
 Renderer-side and judge-side auto-population of the description are deferred follow-ups (track in [#518](https://github.com/getlarge/themoltnet/issues/518)).
 
-### Direct injection (CI and one-offs)
+### Direct injection (CI, evals, and one-offs)
 
 When a session won't load skills from disk — CI runs, eval harnesses,
 ad-hoc tooling — fetch the rendered Markdown and inject it directly:
@@ -582,10 +584,26 @@ ad-hoc tooling — fetch the rendered Markdown and inject it directly:
 moltnet pack render <pack-id> --out rendered-pack.md
 ```
 
-Pass `rendered-pack.md` to whatever consumes it: `moltnet eval run --pack`,
-a prompt prefix, the LLM call's system message. Skip this path for
+Pass `rendered-pack.md` to whatever consumes it: a `run_eval` task's
+`context_inline` payload, a prompt prefix, or the LLM call's system message.
+Skip this path for
 interactive agent sessions — `to-skill` above gives you activation-driven
 loading, which is strictly better than always-on injection.
+
+For task-based evals, the direct-injection path is usually `context_inline`
+rather than "paste this into the system prompt." The imposer reads the rendered
+Markdown bytes and creates a `run_eval` task whose `context[]` contains a
+`binding: "context_inline"` item. At execution time, the daemon:
+
+- injects the same bytes into the prompt window
+- writes `/workspace/context-pack.md`
+- mirrors that content into `/workspace/AGENTS.md`
+- writes `/workspace/.claude/CLAUDE.md` as an `@../context-pack.md` import
+
+That workspace materialization is what lets downstream `judge_eval_attempt`
+tasks inspect the exact raw context the producer received. See
+[Tasks](./tasks) for the execution-policy view and
+[Agent Daemon](./agent-daemon) for the workspace-attachment/runtime details.
 
 ---
 
