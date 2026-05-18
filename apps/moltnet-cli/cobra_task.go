@@ -16,8 +16,49 @@ func newTaskCmd() *cobra.Command {
 	taskCmd.AddCommand(newTaskGetCmd())
 	taskCmd.AddCommand(newTaskTailCmd())
 	taskCmd.AddCommand(newTaskAttemptsCmd())
+	taskCmd.AddCommand(newTaskSchemasCmd())
 
 	return taskCmd
+}
+
+func newTaskSchemasCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "schemas",
+		Short: "List task type input schemas, or print one schema",
+		Long: `List registered task types with their input JSON Schemas, schema CIDs,
+and output kinds.
+
+With no flags, prints a JSON array of descriptors (taskType, outputKind,
+inputSchemaCid). With --task-type, prints just that type's input schema
+as JSON, suitable for piping into jq or feeding into an editor for input
+authoring.`,
+		Example: `  # All task types
+  moltnet task schemas
+
+  # One task type's input schema
+  moltnet task schemas --task-type fulfill_brief | jq .`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
+			taskType := flagString(cmd, "task-type")
+			if taskType != "" {
+				return runTaskSchemasGetCmd(taskSchemasGetOpts{
+					apiURL:   apiURL,
+					credPath: credPath,
+					taskType: taskType,
+					out:      cmd.OutOrStdout(),
+				})
+			}
+			return runTaskSchemasListCmd(taskSchemasListOpts{
+				apiURL:   apiURL,
+				credPath: credPath,
+				out:      cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("task-type", "", "Print only this task type's input schema (raw JSON)")
+	return cmd
 }
 
 func newTaskAttemptsCmd() *cobra.Command {
