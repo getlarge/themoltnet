@@ -10,37 +10,6 @@
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
 import { createDatabase } from '@moltnet/database';
 
-function assertNoLocalhostOverride(
-  variableName: string,
-  value: string | undefined,
-): void {
-  if (!value) {
-    return;
-  }
-  if (value.includes('localhost')) {
-    throw new Error(
-      `${variableName}=${value} is not supported for agent-daemon e2e. Use 127.0.0.1 instead of localhost.`,
-    );
-  }
-}
-
-assertNoLocalhostOverride('REST_API_URL', process.env.REST_API_URL);
-assertNoLocalhostOverride('DATABASE_URL', process.env.DATABASE_URL);
-assertNoLocalhostOverride('HYDRA_PUBLIC_URL', process.env.HYDRA_PUBLIC_URL);
-assertNoLocalhostOverride(
-  'ORY_HYDRA_ADMIN_URL',
-  process.env.ORY_HYDRA_ADMIN_URL,
-);
-assertNoLocalhostOverride(
-  'ORY_KETO_PUBLIC_URL',
-  process.env.ORY_KETO_PUBLIC_URL,
-);
-assertNoLocalhostOverride('ORY_KETO_ADMIN_URL', process.env.ORY_KETO_ADMIN_URL);
-assertNoLocalhostOverride(
-  'ORY_KRATOS_ADMIN_URL',
-  process.env.ORY_KRATOS_ADMIN_URL,
-);
-
 const REST_API_URL = process.env.REST_API_URL ?? 'http://127.0.0.1:8080';
 
 const DATABASE_URL =
