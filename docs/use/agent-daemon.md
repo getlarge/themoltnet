@@ -83,13 +83,13 @@ Policy dimensions:
 - `sessionScope`: whether slot reuse keys by `correlation`, by a
   narrower task-type-specific `custom` discriminator, or not at all (`none`)
 
-Current built-in policy:
+Current built-in policy from `@moltnet/tasks`:
 
 | Type                 | Resumable | Workspace mode     | Workspace scope | Session scope |
 | -------------------- | --------- | ------------------ | --------------- | ------------- |
 | `fulfill_brief`      | yes       | dedicated worktree | session         | correlation   |
 | `assess_brief`       | no        | dedicated worktree | attempt         | none          |
-| `run_eval`           | no        | shared mount       | attempt         | custom        |
+| `run_eval`           | yes       | shared mount       | session         | custom        |
 | `judge_eval_attempt` | no        | shared mount       | attempt         | none          |
 
 Current daemon behavior:
@@ -106,6 +106,16 @@ Current daemon behavior:
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
   stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
+- `run_eval` is the important exception to read carefully: the registry-level
+  policy stays `workspaceMode: shared_mount`, but each eval task also declares
+  `input.execution.workspace`. When that field is `none`, the daemon runs the
+  producer in a `scratch_mount`; when it is `dedicated_worktree`, the daemon
+  provisions an isolated worktree for that producer attempt.
+- `judge_eval_attempt` can then attach directly to the accepted producer
+  workspace. If the producer ran in scratch mode, the judge sees that same
+  scratch workspace mounted with shadow writes; if the producer used a
+  dedicated worktree, the judge attaches there instead. This is how the judge
+  inspects real artifacts without inventing detached `artifact_<taskId>` paths.
 - Expired registry rows are reaped before the next task run, which also removes
   the persisted Pi session directory and the reusable session-scoped worktree.
 - Non-resumable task types still cold-start an in-memory Pi session and keep

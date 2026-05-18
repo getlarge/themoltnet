@@ -139,9 +139,6 @@ Copy from these when writing new scenarios:
    ```bash
    # Dry-run validation (checks eval.json, criteria.json, fixture paths)
    moltnet eval validate --scenario evals/<suite>/<scenario>
-
-   # Run the eval
-   moltnet eval run --scenario evals/<suite>/<scenario> --pack <pack-path>
    ```
 
 #### Failure patterns to watch for
@@ -157,56 +154,93 @@ Copy from these when writing new scenarios:
 
 #### Current state: vitro vs vivo
 
-**Vitro (operational):** Agent receives `task.md` + optional context pack in a
-blank worktree with injected fixtures. Solver: Chain-of-Thought via dspy-go.
-The judge reads filesystem output and scores against the checklist.
+**Vitro (operational):** create one or more `run_eval` producer tasks from the
+scenario, then create a `judge_eval_attempt` task against each completed
+producer attempt. Vitro often uses `execution.workspace: "none"`, which means
+the daemon runs the producer in a `scratch_mount` rather than exposing a repo
+checkout.
 
-**Vivo (not yet operational):** Would use a real repo checkout with
-sparse-checkout and file neutralization. Requires the ReAct solver and tool
-registry (tracked in [#714](https://github.com/getlarge/themoltnet/issues/714)).
-Scenarios marked `"mode": "vivo"` are skipped by the eval runner. The
-`codegen-chain-go-client` scenario is parked waiting for this.
+**Vivo (partially wired, still limited):** scenario/task schemas support a real
+repo checkout plus `shared_mount` or `dedicated_worktree` execution, but the
+old one-shot `moltnet eval run` workflow is retired. Use the producer/judge
+task flow directly and treat repo-mutating vivo scenarios as an advanced path
+while the broader tooling catches up.
 
-## Run evals via CLI
+## Recommended workflow: producer first, judge soon after
+
+The current eval flow is task-based, not a single `moltnet eval run`
+invocation:
+
+1. Create one `run_eval` task per variant.
+2. Wait for each producer to complete.
+3. Create one `judge_eval_attempt` task per accepted producer attempt.
+4. Compare baseline vs. with-context later at read time using the shared
+   `correlationId`.
+
+This split is deliberate. The producer must not see `criteria.json`, so the
+scenario rubric is compiled only into the downstream judge task.
+
+Two practical rules:
+
+- Run the judge soon after the producer finishes. The daemon can attach the
+  judge to the producer's persisted workspace/session state, which is the most
+  reliable path for artifact inspection.
+- Keep all variants for the same comparison under one `correlationId`, or the
+  downstream query-time delta has nothing to group.
+
+## Create producer tasks
 
 ```bash
-# Run baseline only (no context)
-moltnet eval run --scenario evals/codegen-chain
+CORR="$(uuidgen)"
 
-# Run baseline + with-context (pass a rendered pack)
-moltnet eval run --scenario evals/codegen-chain --pack packs/practices.md
+# Baseline: same scenario, no injected context.
+pnpm exec tsx tools/src/tasks/run-eval.ts \
+  --scenario evals/codegen-chain/sql-function-return-type-change \
+  --variant baseline \
+  --correlation-id "$CORR"
 
-# Evaluate with Codex as agent and Codex as judge
-moltnet eval run \
-  --scenario evals/codegen-chain \
-  --pack packs/practices.md \
-  --agent codex \
-  --judge codex
-
-# Evaluate with Codex agent and Claude judge
-moltnet eval run \
-  --scenario evals/codegen-chain \
-  --pack packs/practices.md \
-  --agent codex \
-  --judge claude
-
-# Batch mode with config file
-moltnet eval run --config eval.yaml
+# With-context: inject raw rendered markdown as task context.
+pnpm exec tsx tools/src/tasks/run-eval.ts \
+  --scenario evals/codegen-chain/sql-function-return-type-change \
+  --variant with-context \
+  --correlation-id "$CORR" \
+  --context-path /tmp/rendered-preview.md
 ```
 
-The eval runner executes the agent twice — once without context, once with
-the rendered pack injected — and scores both runs against the criteria
-checklist. Requires `harbor` CLI (`uv tool install harbor`) and Docker.
+`run_eval` task creation is imposer-only. The script creates one task, prints
+its id, and exits; the daemon later claims and executes it.
 
-If Codex runs fail with:
+`--context-path` becomes `binding: "context_inline"`. The daemon materializes
+those bytes in three places:
 
-```text
-No Codex session directory found
+- `/workspace/context-pack.md`
+- `/workspace/AGENTS.md`
+- `/workspace/.claude/CLAUDE.md` as `@../context-pack.md`
+
+The runtime prompt also instructs the producer to read
+`/workspace/context-pack.md` before writing files.
+
+## Create judge tasks
+
+After a producer task completes with an accepted attempt:
+
+```bash
+pnpm exec tsx tools/src/tasks/judge-eval-attempt.ts \
+  --scenario evals/codegen-chain/sql-function-return-type-change \
+  --target-task-id <run-eval-task-id>
 ```
 
-that is an eval runtime setup issue (Codex session environment), not a pack
-quality signal. Fix the Codex runtime/session configuration first, then rerun
-the same eval to compare rendered markdown variants.
+The judge task:
+
+- targets exactly one accepted producer attempt
+- sees the hidden rubric compiled from `criteria.json`
+- can attach to the producer workspace instead of guessing where artifacts live
+
+That producer attachment is not fully durable yet. The remaining limitation is
+tracked in [#1174](https://github.com/getlarge/themoltnet/issues/1174): judge
+reliability still depends on the producer session/workspace state remaining
+available when the judge is claimed, which is why "run the judge soon after"
+is the current recommendation.
 
 ### 5.2.1 End-to-end flow from an existing source pack
 
@@ -223,19 +257,28 @@ moltnet pack get --id <source-pack-id> --expand entries
 # 3) Generate preview-only rendered markdown (no API persistence yet)
 moltnet pack render --preview --out /tmp/rendered-preview.md <source-pack-id>
 
-# 4) Evaluate using inline markdown file input (no rendered-pack ID)
-moltnet eval run \
-  --scenario <scenario-dir> \
-  --pack /tmp/rendered-preview.md \
-  --agent codex \
-  --judge codex
+# 4) Create baseline + with-context producer tasks that share one correlation id
+CORR="$(uuidgen)"
 
-# 5) Iterate on markdown and re-run eval until score is satisfactory
-moltnet eval run \
+pnpm exec tsx tools/src/tasks/run-eval.ts \
   --scenario <scenario-dir> \
-  --pack tiles/moltnet-practices/docs/incident-patterns.md \
-  --agent codex \
-  --judge codex
+  --variant baseline \
+  --correlation-id "$CORR"
+
+pnpm exec tsx tools/src/tasks/run-eval.ts \
+  --scenario <scenario-dir> \
+  --variant with-context \
+  --correlation-id "$CORR" \
+  --context-path /tmp/rendered-preview.md
+
+# 5) After each producer completes, create its judge task
+pnpm exec tsx tools/src/tasks/judge-eval-attempt.ts \
+  --scenario <scenario-dir> \
+  --target-task-id <baseline-task-id>
+
+pnpm exec tsx tools/src/tasks/judge-eval-attempt.ts \
+  --scenario <scenario-dir> \
+  --target-task-id <with-context-task-id>
 ```
 
 When you get a good score, persist the rendered markdown as an API rendered

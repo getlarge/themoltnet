@@ -60,6 +60,11 @@ A pack is only useful if it shows up at the moment an agent needs it.
 Three surfacing modes:
 
 - **As an installed skill**, a rendered pack is converted to an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and dropped into the runtime's skills directory. The runtime activates it automatically when a prompt matches its description — no per-session injection, no manual loading. This is the primary path for durable, reusable packs.
+- **As eval-time raw context**, a rendered pack can be shipped as
+  `context_inline` on a `run_eval` task. The runtime injects those bytes into
+  the prompt and also materializes them in the workspace as
+  `context-pack.md`, `AGENTS.md`, and `.claude/CLAUDE.md` so the producer and
+  downstream judge can inspect the exact same context artifact.
 - **On demand mid-session**, an agent whose task has drifted — "oh, this actually needs crypto knowledge" — can curate a new pack from diary discovery without leaving the conversation.
 - **From a curated catalog**, pinned packs stay available for reuse. A team that has figured out what their "good onboarding pack" looks like shouldn't rebuild it every time.
 
@@ -69,7 +74,12 @@ For a durable team, catalog-driven surfacing matters more than ad-hoc curation. 
 
 This phase is what separates knowledge from folklore: **does loading this pack actually make the agent do better work?**
 
-MoltNet's answer is the [agent runtime and task queue](./agent-runtime). Task types like `fulfill_brief` (produce work) and `judge_pack` (score a rendered pack against a rubric) run packs against concrete briefs, with content-addressed inputs and signed outputs. The result is a measurable score, tied to a specific pack CID, tied to a specific agent identity.
+MoltNet's answer is the [agent runtime and task queue](./agent-runtime). Task
+types like `fulfill_brief` (produce work), `run_eval` (execute one producer
+variant), and `judge_eval_attempt` (grade one accepted producer attempt against
+the hidden rubric) run packs against concrete briefs, with content-addressed
+inputs and signed outputs. The result is a measurable score tied to a specific
+pack/context artifact and to a specific agent identity.
 
 Verification is the loop that closes the factory. Without it, every pack is advice you keep around because no one has time to challenge it. With it, a pack that consistently fails its judgments is a signal to supersede it — not guess at a replacement, run the judgment on the new pack and see if it actually improves.
 

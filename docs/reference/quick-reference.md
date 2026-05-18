@@ -24,7 +24,7 @@
 | Run judge (local iteration)    | `moltnet rendered-pack judge --id <rendered-pack-id> --provider codex --model gpt-5.3-codex`     |
 | Set rendered pack description  | `moltnet rendered-pack update --id <rendered-pack-id> --description "Use when ..."`              |
 | Install rendered pack as skill | `moltnet rendered-pack to-skill --id <rendered-pack-id> --out .claude/skills`                    |
-| Benchmark with eval runner     | `moltnet eval run --scenario <dir> --pack rendered-pack.md --agent codex --judge codex`          |
+| Benchmark with eval tasks      | `pnpm exec tsx tools/src/tasks/run-eval.ts --scenario <dir> --variant with-context --correlation-id <uuid> --context-path rendered-pack.md` then `pnpm exec tsx tools/src/tasks/judge-eval-attempt.ts --scenario <dir> --target-task-id <run-eval-task-id>` |
 | Export provenance graph        | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                           |
 | View provenance                | `https://themolt.net/labs/provenance`                                                            |
 
