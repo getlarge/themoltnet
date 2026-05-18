@@ -67,7 +67,7 @@ describe('curate_pack prompt', () => {
 });
 
 describe('render_pack prompt', () => {
-  it('mentions the pack id, persist/pinned flags, and pack_render', () => {
+  it('mentions the pack id, persist/pinned flags, and fidelity rules', () => {
     const task = makeFulfillBriefTask({
       taskType: RENDER_PACK_TYPE,
       input: {
@@ -81,6 +81,10 @@ describe('render_pack prompt', () => {
     expect(prompt).toContain('moltnet_pack_render');
     expect(prompt).toContain('Persist**: `true`');
     expect(prompt).toContain('Pinned**: `false`');
+    expect(prompt).toContain('## Fidelity Discipline');
+    expect(prompt).toContain('Preserve hedges and qualifiers verbatim');
+    expect(prompt).toContain('Signal list truncation explicitly');
+    expect(prompt).toContain('Calibrate against fidelity scoring');
   });
 
   it('rejects render_pack with non-uuid pack id', () => {
