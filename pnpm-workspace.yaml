@@ -9,6 +9,16 @@ packages:
 enablePrePostScripts: true
 injectWorkspacePackages: false
 
+# Supply-chain guard: refuse to install package versions younger than 24h.
+# Catches yanked-within-hours incidents (chalk/debug Sept 2025, etc.) without
+# blocking legitimate same-day patches for more than a day.
+# Our own published packages are excluded so release-please flows don't stall.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@themoltnet/sdk'
+  - '@themoltnet/cli'
+  - '@themoltnet/github-agent'
+
 allowBuilds:
   cpu-features: false
   esbuild: true
