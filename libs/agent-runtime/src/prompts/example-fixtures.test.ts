@@ -27,6 +27,7 @@ describe('examples/tasks pack-pipeline fixtures', () => {
     expect(task.taskType).toBe('render_pack');
     const prompt = buildTaskUserPrompt(task, ctx);
     expect(prompt).toContain('moltnet_pack_render');
+    expect(prompt).toContain('## Fidelity Discipline');
   });
 
   it('judge-pack.json validates and builds a prompt', () => {
