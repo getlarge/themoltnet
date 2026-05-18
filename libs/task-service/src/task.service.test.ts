@@ -1,8 +1,4 @@
-import type {
-  DbTaskStatus,
-  Task as DbTask,
-  TransactionRunner,
-} from '@moltnet/database';
+import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import { FormatRegistry } from '@sinclair/typebox';
 import {
@@ -89,7 +85,10 @@ function makeRunEvalTask(id: string): DbTask {
   } as unknown as DbTask;
 }
 
-function makeJudgeTask(id: string, status: DbTaskStatus = 'queued'): DbTask {
+function makeJudgeTask(
+  id: string,
+  status: DbTask['status'] = 'queued',
+): DbTask {
   return {
     ...makeRunEvalTask(id),
     id,
@@ -100,7 +99,7 @@ function makeJudgeTask(id: string, status: DbTaskStatus = 'queued'): DbTask {
       targetAttemptN: 1,
       successCriteria: rubric(),
     },
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
     status,
     completedAt:
       status === 'completed' ? new Date('2026-05-11T00:02:00Z') : null,
@@ -230,7 +229,12 @@ function makeMocks(
         const row = makeJudgeTask(
           `j${insertedTasks.length}-0000-0000-0000-000000000000`,
         );
-        const merged = { ...row, ...newTask, id: row.id, status: 'queued' };
+        const merged: DbTask = {
+          ...row,
+          ...newTask,
+          id: row.id,
+          status: 'queued',
+        } as DbTask;
         insertedTasks.push(merged);
         return Promise.resolve(merged);
       }),

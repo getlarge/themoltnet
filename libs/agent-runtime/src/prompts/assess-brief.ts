@@ -10,8 +10,9 @@ interface Ctx {
   diaryId: string;
   taskId: string;
   workspace?: {
-    mode: 'shared_mount' | 'dedicated_worktree';
+    mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
     branch?: string | null;
+    attached?: boolean;
   };
 }
 
