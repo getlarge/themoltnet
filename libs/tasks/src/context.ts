@@ -8,6 +8,7 @@ import { type Static, Type } from '@sinclair/typebox';
 export const ContextBinding = Type.Union(
   [
     Type.Literal('skill'),
+    Type.Literal('context_inline'),
     Type.Literal('prompt_prefix'),
     Type.Literal('user_inline'),
   ],

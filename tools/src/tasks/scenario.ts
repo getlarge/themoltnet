@@ -24,7 +24,7 @@
  * on the imposer side.
  */
 import { readFileSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { basename, isAbsolute, join } from 'node:path';
 
 import type { ContextRef, Rubric } from '@moltnet/tasks';
 
@@ -235,6 +235,35 @@ export function resolveSkillBinding(
     );
   }
   return { slug, binding: 'skill', content };
+}
+
+/**
+ * Read an arbitrary file and project it into a prompt-delivery binding for
+ * `RunEvalInput.context[]`. Use this for eval variants where the content must
+ * be present in the prompt window, not merely advertised as an available skill.
+ */
+export function resolvePromptBinding(
+  filePath: string,
+  repoRoot: string,
+  binding: 'context_inline' | 'prompt_prefix' | 'user_inline',
+): ContextRef {
+  const absPath = isAbsolute(filePath) ? filePath : join(repoRoot, filePath);
+
+  let content: string;
+  try {
+    content = readFileSync(absPath, 'utf8');
+  } catch (err) {
+    throw new Error(
+      `Could not read context file at ${absPath}: ${asMessage(err)}`,
+    );
+  }
+
+  const base = basename(absPath).replace(/\.[^.]+$/, '') || 'context';
+  return {
+    slug: `${binding}-${slugify(base) || 'context'}`,
+    binding,
+    content,
+  };
 }
 
 function slugify(s: string): string {

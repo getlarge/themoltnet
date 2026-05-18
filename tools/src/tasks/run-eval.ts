@@ -17,6 +17,7 @@
  *     --variant with-legreffier-skill \
  *     --correlation-id "$CORR" \
  *     --skill-path .claude/skills/legreffier/SKILL.md \
+ *     --context-path .agents/skills/rendered-pack-6e1e24d4/SKILL.md \
  *     --prompt-prefix "MARKER: prompt_prefix sanity" \
  *     --user-inline "MARKER: user_inline sanity"
  *
@@ -61,7 +62,11 @@ import {
 } from '@moltnet/tasks';
 import { connect, MoltNetError } from '@themoltnet/sdk';
 
-import { readScenario, resolveSkillBinding } from './scenario.js';
+import {
+  readScenario,
+  resolvePromptBinding,
+  resolveSkillBinding,
+} from './scenario.js';
 
 const { values: args } = parseArgs({
   options: {
@@ -69,6 +74,9 @@ const { values: args } = parseArgs({
     variant: { type: 'string', short: 'v' },
     'correlation-id': { type: 'string', short: 'c' },
     'skill-path': { type: 'string', short: 'k', multiple: true },
+    'context-path': { type: 'string', multiple: true },
+    'prompt-prefix-path': { type: 'string', multiple: true },
+    'user-inline-path': { type: 'string', multiple: true },
     'prompt-prefix': { type: 'string' },
     'user-inline': { type: 'string' },
     agent: { type: 'string', short: 'a', default: 'legreffier' },
@@ -81,7 +89,10 @@ function usage(msg?: string): never {
   console.error(
     'Usage: tsx tools/src/tasks/run-eval.ts \\\n' +
       '         --scenario <path> --variant <label> --correlation-id <uuid> \\\n' +
-      '         [--skill-path <path/to/SKILL.md> ...] [--prompt-prefix <text>] [--user-inline <text>] \\\n' +
+      '         [--skill-path <path/to/SKILL.md> ...] \\\n' +
+      '         [--context-path <path/to/context.md> ...] \\\n' +
+      '         [--prompt-prefix-path <path/to/context.txt> ...] [--user-inline-path <path/to/context.txt> ...] \\\n' +
+      '         [--prompt-prefix <text>] [--user-inline <text>] \\\n' +
       '         [--agent <name>] [--dry-run]\n\n' +
       '       --correlation-id is REQUIRED. Use `uuidgen` to mint a fresh one\n' +
       '       and reuse it for every variant in the same eval run so the judge\n' +
@@ -98,6 +109,9 @@ const scenarioPath = args.scenario!;
 const variantLabel = args.variant!;
 const correlationId = args['correlation-id']!;
 const skillPaths = (args['skill-path'] ?? []) as string[];
+const contextPaths = (args['context-path'] ?? []) as string[];
+const promptPrefixPaths = (args['prompt-prefix-path'] ?? []) as string[];
+const userInlinePaths = (args['user-inline-path'] ?? []) as string[];
 const promptPrefix = args['prompt-prefix'];
 const userInline = args['user-inline'];
 const agentName = args.agent!;
@@ -151,9 +165,15 @@ async function main() {
   const scenario = readScenario(scenarioPath, mainRepo);
 
   // Compose `context[]` — order is irrelevant to the runtime but we
-  // emit skill bindings first (largest payloads, most expensive to
-  // truncate at the 64 KiB cap), then the small prefix/suffix bindings.
+  // emit forced inline context first so it lands in the prompt window AND the
+  // workspace, then lower-level prompt bindings, skills, and suffixes.
   const context: ContextRef[] = [];
+  for (const p of contextPaths) {
+    context.push(resolvePromptBinding(p, mainRepo, 'context_inline'));
+  }
+  for (const p of promptPrefixPaths) {
+    context.push(resolvePromptBinding(p, mainRepo, 'prompt_prefix'));
+  }
   for (const p of skillPaths) {
     context.push(resolveSkillBinding(p, mainRepo));
   }
@@ -163,6 +183,9 @@ async function main() {
       binding: 'prompt_prefix',
       content: promptPrefix,
     });
+  }
+  for (const p of userInlinePaths) {
+    context.push(resolvePromptBinding(p, mainRepo, 'user_inline'));
   }
   if (userInline) {
     context.push({

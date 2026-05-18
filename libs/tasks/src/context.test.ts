@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { ContextBinding, ContextRef, TaskContext } from './context.js';
 
 describe('ContextBinding', () => {
-  it('accepts the three V1 binding kinds', () => {
+  it('accepts the four V1 binding kinds', () => {
     expect(Value.Check(ContextBinding, 'skill')).toBe(true);
+    expect(Value.Check(ContextBinding, 'context_inline')).toBe(true);
     expect(Value.Check(ContextBinding, 'prompt_prefix')).toBe(true);
     expect(Value.Check(ContextBinding, 'user_inline')).toBe(true);
   });

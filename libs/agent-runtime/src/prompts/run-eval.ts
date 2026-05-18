@@ -32,6 +32,10 @@ interface Ctx {
  */
 export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
   const { scenario, variantLabel, execution, successCriteria } = input;
+  const hasContext = input.context.length > 0;
+  const hasInlineContext = input.context.some(
+    (entry) => entry.binding === 'context_inline',
+  );
 
   const inputFilesSection = scenario.inputFiles?.length
     ? [
@@ -72,6 +76,26 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
     '',
   ].join('\n');
 
+  const contextDisciplineSection = hasContext
+    ? [
+        '### Injected context discipline',
+        '',
+        'This task includes extra injected context from the task creator.',
+        'You MUST inspect and use that context BEFORE you write solution',
+        'files or draft your final answer.',
+        'Do not solve first and only review the context afterward.',
+        hasInlineContext
+          ? 'For `context_inline`, your FIRST content-inspection step should be a `read` of `/workspace/context-pack.md` before your first `write` call. The same content is also mirrored in `/workspace/AGENTS.md` and may be referenced from `/workspace/.claude/CLAUDE.md`.'
+          : 'If injected context was provided as a skill, inspect that task-injected context before solving.',
+        hasInlineContext
+          ? 'If `/workspace/context-pack.md` exists and you skip reading it before writing solution files, you are not following the task instructions.'
+          : 'Do not rely on memory alone when task-injected context is available; inspect it first.',
+        'If the injected context contains repo- or workflow-specific rules,',
+        'those rules override your generic instincts.',
+        '',
+      ].join('\n')
+    : '';
+
   const finalOutputBlock = buildFinalOutputBlock({
     taskType: 'run_eval',
     outputSchemaName: 'RunEvalOutput',
@@ -100,6 +124,7 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
     `You are running an evaluation scenario as variant \`${variantLabel}\`.\nTask id: \`${ctx.taskId}\`\n`,
     correlationSection,
     executionSection,
+    contextDisciplineSection,
     `### Scenario\n\n${scenario.prompt}\n`,
     inputFilesSection,
     verificationSection,

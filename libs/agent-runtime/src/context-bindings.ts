@@ -9,6 +9,16 @@ export interface ContextDeliverer {
    * whether to write to a local FS, a sandbox VM, or somewhere else.
    */
   skill: (args: { slug: string; content: string }) => Promise<void>;
+  /**
+   * Persist raw context bytes into the task workspace for auditability.
+   * Used by `context_inline` so both the producer and downstream judge can
+   * inspect exactly what context was supplied.
+   */
+  contextFile: (args: {
+    slug: string;
+    content: string;
+    suggestedFileName: string;
+  }) => Promise<void>;
 }
 
 export interface ResolveContextArgs {
@@ -35,6 +45,11 @@ export interface ResolvedContext {
  *   - `skill`         → `deliver.skill({ slug, content })` once per ref.
  *                       Slug collisions on distinct contents are
  *                       refused loudly.
+ *   - `context_inline`→ persist raw bytes via `deliver.contextFile(...)`
+ *                       and inject them into the prompt in an explicit,
+ *                       named block. Intended for eval/context experiments
+ *                       where the content must be in the model context
+ *                       window, not merely discoverable as a skill.
  *   - `prompt_prefix` → content appended to `systemPromptPrefix` with
  *                       the canonical `\n\n---\n\n` separator (in
  *                       declared order).
@@ -76,6 +91,13 @@ export async function resolveTaskContext(
       }
       usedSlugs.set(ref.slug, ref.content);
       await args.deliver.skill({ slug: ref.slug, content: ref.content });
+    } else if (ref.binding === 'context_inline') {
+      await args.deliver.contextFile({
+        slug: ref.slug,
+        content: ref.content,
+        suggestedFileName: `${ref.slug}.md`,
+      });
+      promptParts.push(formatInlineContextBlock(ref.slug, ref.content));
     } else if (ref.binding === 'prompt_prefix') {
       promptParts.push(ref.content);
     } else {
@@ -89,4 +111,22 @@ export async function resolveTaskContext(
     systemPromptPrefix: promptParts.join(PROMPT_SEPARATOR),
     userInlineSuffix: userParts.join(PROMPT_SEPARATOR),
   };
+}
+
+function formatInlineContextBlock(slug: string, content: string): string {
+  return [
+    '### Injected Task Context',
+    '',
+    `Context id: \`${slug}\``,
+    'The following raw context was supplied by the task creator. Treat it',
+    'as task-relevant background that may override generic coding instincts',
+    'when it contains repo- or workflow-specific constraints.',
+    'The same content is also materialized in the workspace as',
+    '`/workspace/context-pack.md` and mirrored in `AGENTS.md` for',
+    'repo-context discovery.',
+    '',
+    '<context>',
+    content,
+    '</context>',
+  ].join('\n');
 }

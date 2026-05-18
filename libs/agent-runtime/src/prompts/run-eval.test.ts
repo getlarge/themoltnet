@@ -73,6 +73,40 @@ describe('buildRunEvalUserPrompt', () => {
     expect(out).toContain('no repository checkout mounted');
   });
 
+  it('omits injected-context discipline when no task context exists', () => {
+    const out = buildRunEvalUserPrompt(baseInput, ctx);
+    expect(out).not.toContain('### Injected context discipline');
+  });
+
+  it('requires inspecting context before solving when task context exists', () => {
+    const out = buildRunEvalUserPrompt(
+      {
+        ...baseInput,
+        context: [
+          {
+            slug: 'ctx-pack',
+            binding: 'context_inline' as const,
+            content: '# Context Pack',
+          },
+        ],
+      },
+      ctx,
+    );
+    expect(out).toContain('### Injected context discipline');
+    expect(out).toContain(
+      'MUST inspect and use that context BEFORE you write solution',
+    );
+    expect(out).toContain(
+      'Do not solve first and only review the context afterward.',
+    );
+    expect(out).toContain(
+      'your FIRST content-inspection step should be a `read` of `/workspace/context-pack.md` before your first `write` call',
+    );
+    expect(out).toContain('skip reading it before writing solution files');
+    expect(out).toContain('/workspace/context-pack.md');
+    expect(out).toContain('/workspace/AGENTS.md');
+  });
+
   it('omits the correlation section when correlationId is null/absent', () => {
     expect(buildRunEvalUserPrompt(baseInput, ctx)).not.toContain(
       '### Correlation',

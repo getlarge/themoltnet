@@ -68,6 +68,11 @@ export interface VmFsForContext {
  * paths under this mount via `toGuestPath` in `tool-operations.ts`.
  */
 const SKILL_ROOT_IN_VM = GUEST_TASK_SKILLS_MOUNT;
+const INLINE_CONTEXT_ROOT_IN_VM = '/workspace/.moltnet/context';
+const WORKSPACE_CONTEXT_PACK = '/workspace/context-pack.md';
+const WORKSPACE_AGENTS_MD = '/workspace/AGENTS.md';
+const WORKSPACE_CLAUDE_DIR = '/workspace/.claude';
+const WORKSPACE_CLAUDE_MD = '/workspace/.claude/CLAUDE.md';
 
 /** Bounds borrowed from pi's skill validation; conservative caps so a
  *  malformed SKILL.md doesn't bloat the system prompt. */
@@ -102,6 +107,7 @@ export async function injectTaskContext(
   args: InjectTaskContextArgs,
 ): Promise<InjectedTaskContext> {
   const skills: Skill[] = [];
+  const inlineContexts: Array<{ slug: string; content: string }> = [];
 
   const resolved = await resolveTaskContext({
     context: args.context,
@@ -113,8 +119,31 @@ export async function injectTaskContext(
         await args.fs.writeFile(filePath, content, { mode: 0o644 });
         skills.push(buildSyntheticSkill({ slug, content, filePath, dir }));
       },
+      contextFile: async ({ suggestedFileName, content }) => {
+        await args.fs.mkdir(INLINE_CONTEXT_ROOT_IN_VM, { recursive: true });
+        const filePath = `${INLINE_CONTEXT_ROOT_IN_VM}/${suggestedFileName}`;
+        await args.fs.writeFile(filePath, content, { mode: 0o644 });
+        inlineContexts.push({
+          slug: suggestedFileName.replace(/\.md$/u, ''),
+          content,
+        });
+      },
     },
   });
+
+  if (inlineContexts.length > 0) {
+    const packContent = buildWorkspaceContextPack(inlineContexts);
+    await args.fs.writeFile(WORKSPACE_CONTEXT_PACK, packContent, {
+      mode: 0o644,
+    });
+    await args.fs.writeFile(WORKSPACE_AGENTS_MD, packContent, {
+      mode: 0o644,
+    });
+    await args.fs.mkdir(WORKSPACE_CLAUDE_DIR, { recursive: true });
+    await args.fs.writeFile(WORKSPACE_CLAUDE_MD, '@../context-pack.md\n', {
+      mode: 0o644,
+    });
+  }
 
   return {
     injected: resolved.injected,
@@ -122,6 +151,15 @@ export async function injectTaskContext(
     systemPromptPrefix: resolved.systemPromptPrefix,
     userInlineSuffix: resolved.userInlineSuffix,
   };
+}
+
+function buildWorkspaceContextPack(
+  contexts: Array<{ slug: string; content: string }>,
+): string {
+  const blocks = contexts.map(({ slug, content }) =>
+    [`## ${slug}`, '', content.trimEnd()].join('\n'),
+  );
+  return ['# Context Pack', '', ...blocks].join('\n\n').trimEnd() + '\n';
 }
 
 /**
