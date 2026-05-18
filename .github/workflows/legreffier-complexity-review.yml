@@ -42,7 +42,7 @@ jobs:
       MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
       MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
       MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
     steps:
       - uses: actions/checkout@v6
@@ -73,30 +73,54 @@ jobs:
           {
             echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
             echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
+            echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
           } >> "$GITHUB_ENV"
 
       - name: Materialize Pi auth.json
-        if: ${{ env.PI_AUTH_JSON != '' }}
         run: |
           set -euo pipefail
-          PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
-          mkdir -p "$PI_AGENT_DIR"
-          printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
-          chmod 600 "$PI_AGENT_DIR/auth.json"
-          echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR" >> "$GITHUB_ENV"
+          if [ -n "${PI_AUTH_JSON:-}" ]; then
+            PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
+            mkdir -p "$PI_AGENT_DIR"
+            printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
+            chmod 600 "$PI_AGENT_DIR/auth.json"
+            echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR" >> "$GITHUB_ENV"
+            echo "::notice::Pi auth.json materialized at $PI_AGENT_DIR/auth.json (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
 
-      - name: Start LeGreffier daemon
+            if command -v jq >/dev/null 2>&1; then
+              now_ms=$(($(date +%s) * 1000))
+              grace_ms=$(( 30 * 86400 * 1000 ))
+              min_expires=$(jq -r '
+                [.[] | select(type == "object" and .expires != null) | .expires]
+                | if length == 0 then empty else min end
+              ' "$PI_AGENT_DIR/auth.json" 2>/dev/null || true)
+              if [ -n "${min_expires:-}" ] && [ "$min_expires" -gt 0 ] 2>/dev/null; then
+                if [ "$min_expires" -lt $(( now_ms - grace_ms )) ]; then
+                  days_past=$(( (now_ms - min_expires) / 86400000 ))
+                  echo "::error::PI_AUTH_JSON access token expired ${days_past} days ago — Pi's refresh window has almost certainly elapsed. Re-run \`pi /login\` and re-upload the secret. See https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working"
+                elif [ "$min_expires" -lt "$now_ms" ]; then
+                  hours_past=$(( (now_ms - min_expires) / 3600000 ))
+                  echo "::warning::PI_AUTH_JSON access token expired ${hours_past}h ago. Pi will try to refresh, but if you see a 401, re-run \`pi /login\` and re-upload the secret."
+                fi
+              fi
+            fi
+          else
+            echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
+          fi
+
+      - name: Compute gondolin snapshot cache key
+        if: runner.os == 'Linux'
+        id: gondolin-cache-key
         run: |
-          set -euo pipefail
-          npx -y @themoltnet/agent-daemon \
-            poll \
-            --team "$MOLTNET_TEAM_ID" \
-            --task-types pr_review \
-            --agent "$MOLTNET_AGENT_NAME" \
-            --provider "$MOLTNET_AGENT_PROVIDER" \
-            --model "$MOLTNET_AGENT_MODEL" \
-            > "$RUNNER_TEMP/legreffier-daemon.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/legreffier-daemon.pid"
+          echo "value=${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-${{ hashFiles('apps/agent-daemon/package.json', 'libs/pi-extension/src/snapshot.ts', 'libs/pi-extension/src/vm-manager.ts', 'pnpm-lock.yaml') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore gondolin snapshot cache
+        if: runner.os == 'Linux'
+        id: restore-gondolin-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/moltnet/gondolin
+          key: ${{ steps.gondolin-cache-key.outputs.value }}
 
       - name: Create pr_review task
         id: create
@@ -119,38 +143,75 @@ jobs:
           echo "task_id=$task_id" >> "$GITHUB_OUTPUT"
           echo "correlation_id=$correlation_id" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for task completion
+      - name: Run LeGreffier once
         env:
           TASK_ID: ${{ steps.create.outputs.task_id }}
-          MOLTNET_AGENT_DIR: ${{ env.MOLTNET_AGENT_DIR }}
         run: |
           set -euo pipefail
           if [ -z "$TASK_ID" ]; then
             echo "::error::TASK_ID is required"
             exit 1
           fi
-          if [ -z "$MOLTNET_AGENT_DIR" ]; then
-            echo "::error::MOLTNET_AGENT_DIR is required"
+          PROVIDER="${MOLTNET_AGENT_PROVIDER:-}"
+          MODEL="${MOLTNET_AGENT_MODEL:-}"
+          if [ -z "$PROVIDER" ]; then
+            echo "::error::MOLTNET_AGENT_PROVIDER is required" >&2
             exit 1
           fi
-          npx -y @themoltnet/cli task tail "$TASK_ID" \
-            --credentials "$MOLTNET_AGENT_DIR/moltnet.json"
-          task_json=$(npx -y @themoltnet/cli task get "$TASK_ID" \
-            --credentials "$MOLTNET_AGENT_DIR/moltnet.json")
-          echo "$task_json"
-          task_status=$(printf '%s' "$task_json" | jq -r '.status // empty')
-          if [ "$task_status" != "completed" ]; then
-            echo "::error::task $TASK_ID finished with status ${task_status:-unknown}"
+          if [ -z "$MODEL" ]; then
+            echo "::error::MOLTNET_AGENT_MODEL is required" >&2
             exit 1
           fi
+          PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
+          if [ "$PROVIDER" = "ollama" ]; then
+            if [ -z "${OLLAMA_API_KEY:-}" ]; then
+              echo "::error::OLLAMA_API_KEY is required when provider is ollama" >&2
+              exit 1
+            fi
+            export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
+            mkdir -p "$PI_AGENT_DIR"
+            PI_MODELS_PATH="$PI_AGENT_DIR/models.json"
+            jq -n '
+              {
+                providers: {
+                  ollama: {
+                    baseUrl: "https://ollama.com/v1",
+                    api: "openai-completions",
+                    apiKey: "OLLAMA_API_KEY",
+                    models: [
+                      { id: "qwen3.5:cloud" },
+                      { id: "qwen3-coder:480b-cloud" }
+                    ]
+                  }
+                }
+              }
+            ' > "$PI_MODELS_PATH"
+            chmod 600 "$PI_MODELS_PATH"
+            echo "::notice::Pi models.json materialized at $PI_MODELS_PATH for ollama"
+            PI_SETTINGS_PATH="$PI_AGENT_DIR/settings.json"
+            jq -n '
+              {
+                enabledModels: [
+                  "ollama/qwen3.5:cloud",
+                  "ollama/qwen3-coder:480b-cloud"
+                ]
+              }
+            ' > "$PI_SETTINGS_PATH"
+            chmod 600 "$PI_SETTINGS_PATH"
+            echo "::notice::Pi settings.json materialized at $PI_SETTINGS_PATH for ollama"
+          fi
+          npx -y @themoltnet/agent-daemon \
+            once --task-id "$TASK_ID" \
+            --agent "$MOLTNET_AGENT_NAME" \
+            --provider "$PROVIDER" \
+            --model "$MODEL"
 
-      - name: Stop daemon and print logs
-        if: ${{ always() }}
-        run: |
-          set -euo pipefail
-          if [ -f "$RUNNER_TEMP/legreffier-daemon.pid" ]; then
-            kill "$(cat "$RUNNER_TEMP/legreffier-daemon.pid")" || true
-          fi
-          if [ -f "$RUNNER_TEMP/legreffier-daemon.log" ]; then
-            cat "$RUNNER_TEMP/legreffier-daemon.log"
-          fi
+      - name: Save gondolin snapshot cache
+        if: |
+          always()
+          && runner.os == 'Linux'
+          && steps.restore-gondolin-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/moltnet/gondolin
+          key: ${{ steps.gondolin-cache-key.outputs.value }}
