@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.9.0...agent-daemon-v0.10.0) (2026-05-18)
+
+
+### Features
+
+* **#943:** Phase 0 eval substrate dogfood — SDK, pi-extension, prompts, daemon, imposers ([5155fd7](https://github.com/getlarge/themoltnet/commit/5155fd7a3c3137d1d18d9203cefbb3d8082b79b4))
+* **evals:** refresh legreffier scenarios and runner modes ([4f9a128](https://github.com/getlarge/themoltnet/commit/4f9a1282de40b03b84916c5217b54a2a7af15588))
+
+
+### Bug Fixes
+
+* **agent-daemon:** use local e2e fallback env in global setup ([41f3fe0](https://github.com/getlarge/themoltnet/commit/41f3fe0c6438249f7c9873c73a34cb485ecb45e3))
+* **agent-runtime,agent-daemon:** explicit verification consequence + complete-rejection fallback ([d954209](https://github.com/getlarge/themoltnet/commit/d95420997eb4690615586eb22ffe149a9a76884e)), closes [#943](https://github.com/getlarge/themoltnet/issues/943)
+* **ci:** restore agent-daemon typecheck ([017b713](https://github.com/getlarge/themoltnet/commit/017b713d4930ae7b5691c1159c7758c3b9bc0de4))
+* **eval:** attach judges to producer context ([0af04e0](https://github.com/getlarge/themoltnet/commit/0af04e084799394f02b492f1cfa6c1b3cde53144))
+* **eval:** harden local eval execution and judging ([3fb7a24](https://github.com/getlarge/themoltnet/commit/3fb7a24b599f9d7e02d4b0e880917b94937bd4db))
+* **eval:** persist producer context for attempt judging ([5d000f6](https://github.com/getlarge/themoltnet/commit/5d000f633f9652792b56c2faaba88f3ddaca8998))
+* **eval:** preserve producer workspaces for judging ([71b0b8a](https://github.com/getlarge/themoltnet/commit/71b0b8a39ac90f1c9587fe87d56b7a8de05acefe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.17.0
+    * @themoltnet/pi-extension bumped to 0.19.0
+    * @themoltnet/sdk bumped to 0.103.0
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.8.0...agent-daemon-v0.9.0) (2026-05-16)
 
 

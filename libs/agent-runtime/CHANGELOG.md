@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.16.0...agent-runtime-v0.17.0) (2026-05-18)
+
+
+### Features
+
+* **#943:** Phase 0 eval substrate dogfood — SDK, pi-extension, prompts, daemon, imposers ([5155fd7](https://github.com/getlarge/themoltnet/commit/5155fd7a3c3137d1d18d9203cefbb3d8082b79b4))
+* **evals:** refresh legreffier scenarios and runner modes ([4f9a128](https://github.com/getlarge/themoltnet/commit/4f9a1282de40b03b84916c5217b54a2a7af15588))
+
+
+### Bug Fixes
+
+* **agent-runtime,agent-daemon:** explicit verification consequence + complete-rejection fallback ([d954209](https://github.com/getlarge/themoltnet/commit/d95420997eb4690615586eb22ffe149a9a76884e)), closes [#943](https://github.com/getlarge/themoltnet/issues/943)
+* **ci:** restore eval PR checks ([75ddad6](https://github.com/getlarge/themoltnet/commit/75ddad652538afc0f0206aba9fb3677f175bedf5))
+* **eval:** enforce submit-tool completion for producer tasks ([e67abc0](https://github.com/getlarge/themoltnet/commit/e67abc06a76adcfc458cc885701a4eeab78bcaf4))
+* **eval:** harden local eval execution and judging ([3fb7a24](https://github.com/getlarge/themoltnet/commit/3fb7a24b599f9d7e02d4b0e880917b94937bd4db))
+* **eval:** preserve producer workspaces for judging ([71b0b8a](https://github.com/getlarge/themoltnet/commit/71b0b8a39ac90f1c9587fe87d56b7a8de05acefe))
+* **eval:** strengthen inline context delivery and prompt discipline ([a2b5f1e](https://github.com/getlarge/themoltnet/commit/a2b5f1eff1059efb6fc0937cab1a0cef2b598248))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.103.0
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.15.2...agent-runtime-v0.16.0) (2026-05-16)
 
 
