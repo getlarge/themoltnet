@@ -640,7 +640,7 @@ describe('Agent daemon (e2e)', () => {
     }
   }, 60_000);
 
-  it('copies producer context for judge_eval_attempt after warm-slot reap but before producer-context expiry', async () => {
+  it('fails judge_eval_attempt after producer warm-slot reap', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-judge-attach-e2e-'));
     tempRoots.push(mountRoot);
 
@@ -653,8 +653,6 @@ describe('Agent daemon (e2e)', () => {
     };
     const correlationId = randomUUID();
     const warmSessionTtlSec = 60;
-    const evalProducerContextTtlSec = 600;
-
     try {
       const producer = await imposeRunEvalTask(correlationId);
       const producerRun = await runStubbedSlotAwareTask({
@@ -665,7 +663,6 @@ describe('Agent daemon (e2e)', () => {
         slotRegistry,
         slotIdentity,
         warmSessionTtlSec,
-        evalProducerContextTtlSec,
       });
       expect(producerRun.output.status).toBe('completed');
       expect(producerRun.executionPlan.workspaceMode).toBe('scratch_mount');
@@ -698,19 +695,10 @@ describe('Agent daemon (e2e)', () => {
         slotRegistry,
         slotIdentity,
         warmSessionTtlSec,
-        evalProducerContextTtlSec,
       });
 
-      expect(judgeRun.output.status).toBe('completed');
-      expect(judgeRun.executionPlan.workspaceMode).toBe('scratch_mount');
-      expect(judgeRun.executionPlan.workspaceSeed).toEqual({
-        copyFromPath: producerWorkspacePath,
-        source: 'producer',
-      });
-      expect(judgeRun.executionPlan.sessionPersistence).toEqual({
-        sessionDir: `${stateDirs.piSessionsDir}/judge-${judge.id}-attempt-1`,
-        forkFromSessionPath: producerSessionPath,
-      });
+      expect(judgeRun.output.status).toBe('failed');
+      expect(judgeRun.output.error?.code).toBe('producer_context_missing');
     } finally {
       slotRegistry.close();
     }
@@ -827,7 +815,6 @@ interface StubbedSlotAwareTaskArgs {
   slotRegistry: DaemonSlotRegistry;
   slotIdentity: DaemonSlotIdentity;
   warmSessionTtlSec: number;
-  evalProducerContextTtlSec?: number;
 }
 
 async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
@@ -923,24 +910,6 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
       };
       await reporter.finalize(output.usage);
       await reporter.close();
-      if (claimedTask.task.taskType === 'run_eval') {
-        args.slotRegistry.persistProducerTaskAttemptContext({
-          taskId: claimedTask.task.id,
-          attemptN: claimedTask.attemptN,
-          taskType: claimedTask.task.taskType,
-          sessionDir: executionPlan.sessionPersistence?.sessionDir ?? null,
-          sessionPath: executionPlan.sessionPersistence
-            ? resolveLatestPiSessionPath(
-                executionPlan.sessionPersistence.sessionDir,
-              )
-            : null,
-          workspaceId: executionPlan.workspaceId,
-          worktreePath,
-          worktreeBranch: executionPlan.worktreeBranch,
-          ttlSec: args.evalProducerContextTtlSec ?? 86_400,
-        });
-      }
-
       if (executionPlan.slotKey) {
         args.slotRegistry.finishSlot(
           args.slotIdentity,

@@ -287,24 +287,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               'agent-daemon.daemon_slots_reaped',
             );
           }
-          const expiredProducerContexts =
-            slotRegistry.reapExpiredProducerTaskAttemptContexts();
-          if (expiredProducerContexts.length > 0) {
-            rootLogger.info(
-              {
-                expiredCount: expiredProducerContexts.length,
-                taskIds: expiredProducerContexts.map((item) => item.taskId),
-              },
-              'agent-daemon.producer_contexts_reaped',
-            );
-          }
         } catch (err) {
           rootLogger.error(
             {
-              phase: 'daemon_state_reap',
+              phase: 'daemon_slot_reap',
               err: err instanceof Error ? err.message : String(err),
             },
-            'agent-daemon.daemon_state_reap_failed',
+            'agent-daemon.daemon_slot_reap_failed',
           );
         }
         rootLogger.debug(
@@ -394,18 +383,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           });
         }
         try {
-          const output = await executeTask(claimedTask, reporter);
-          if (output.status === 'completed') {
-            persistProducerContext(
-              slotRegistry,
-              claimedTask,
-              executionPlan,
-              mainRepo,
-              stateDirs.rootDir,
-              common.evalProducerContextTtlSec,
-            );
-          }
-          return output;
+          return await executeTask(claimedTask, reporter);
         } finally {
           executionPlans.delete(claimedTask);
           if (executionPlan.slotKey) {
@@ -448,44 +426,6 @@ function resolveRecordedWorkspacePath(
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
     : join(mainRepo, '.worktrees', executionPlan.workspaceId);
-}
-
-function persistProducerContext(
-  slotRegistry: DaemonSlotRegistry,
-  claimedTask: {
-    task: { id: string; taskType: string };
-    attemptN: number;
-  },
-  executionPlan: {
-    sessionPersistence?: { sessionDir: string } | null;
-    workspaceId: string | null;
-    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
-    worktreeBranch: string | null;
-  },
-  mainRepo: string,
-  stateRootDir: string,
-  evalProducerContextTtlSec: number,
-): void {
-  if (claimedTask.task.taskType !== 'run_eval') return;
-  if (evalProducerContextTtlSec < 1) return;
-
-  slotRegistry.persistProducerTaskAttemptContext({
-    taskId: claimedTask.task.id,
-    attemptN: claimedTask.attemptN,
-    taskType: claimedTask.task.taskType,
-    sessionDir: executionPlan.sessionPersistence?.sessionDir ?? null,
-    sessionPath: executionPlan.sessionPersistence
-      ? resolveLatestPiSessionPath(executionPlan.sessionPersistence.sessionDir)
-      : null,
-    workspaceId: executionPlan.workspaceId,
-    worktreePath: resolveRecordedWorkspacePath(
-      mainRepo,
-      stateRootDir,
-      executionPlan,
-    ),
-    worktreeBranch: executionPlan.worktreeBranch,
-    ttlSec: evalProducerContextTtlSec,
-  });
 }
 
 function parseCsv(raw: string | undefined): string[] {

@@ -29,11 +29,6 @@ export interface CommonOptions {
    * `0` disables resumable slot persistence/reuse entirely.
    */
   warmSessionTtlSec: number;
-  /**
-   * Retention window for persisted eval producer context after producer
-   * completion. `0` disables bounded producer-context persistence.
-   */
-  evalProducerContextTtlSec: number;
   debug: boolean;
 }
 
@@ -48,7 +43,6 @@ export interface CommonRawArgs {
   'max-turns'?: string;
   'max-bash-timeouts'?: string;
   'warm-session-ttl-sec'?: string;
-  'eval-producer-context-ttl-sec'?: string;
   debug?: boolean;
 }
 
@@ -66,7 +60,6 @@ const DEFAULTS = {
   // cheaper than letting the host job timeout fire.
   maxBashTimeouts: 3,
   warmSessionTtlSec: 1800,
-  evalProducerContextTtlSec: 86_400,
 } as const;
 
 export class MissingRequiredOptionError extends Error {
@@ -125,11 +118,6 @@ export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
       'warm-session-ttl-sec',
       DEFAULTS.warmSessionTtlSec,
     ),
-    evalProducerContextTtlSec: parseNonNegativeInt(
-      args['eval-producer-context-ttl-sec'],
-      'eval-producer-context-ttl-sec',
-      DEFAULTS.evalProducerContextTtlSec,
-    ),
     debug: args.debug === true,
   };
   return opts;
@@ -175,7 +163,6 @@ export function commonOptionDefs() {
     'max-turns': { type: 'string' },
     'max-bash-timeouts': { type: 'string' },
     'warm-session-ttl-sec': { type: 'string' },
-    'eval-producer-context-ttl-sec': { type: 'string' },
     debug: { type: 'boolean' },
   } as const;
 }

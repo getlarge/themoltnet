@@ -69,17 +69,6 @@ describe('createExecutionPlanCache', () => {
       300,
       producerSessionPath,
     );
-    slotRegistry.persistProducerTaskAttemptContext({
-      taskId: '11111111-1111-4111-8111-111111111111',
-      attemptN: 1,
-      taskType: 'run_eval',
-      sessionDir: producerSessionDir,
-      sessionPath: producerSessionPath,
-      workspaceId: 'task-producer',
-      worktreePath: producerWorkspace,
-      worktreeBranch: null,
-      ttlSec: 300,
-    });
 
     const cache = createExecutionPlanCache({
       stateDirs,

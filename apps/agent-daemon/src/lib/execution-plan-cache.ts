@@ -5,7 +5,7 @@ import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import {
   type DaemonSlotRegistry,
-  type PersistedProducerTaskAttemptContext,
+  type ResolvedProducerDaemonSlot,
   resolveLatestPiSessionPath,
 } from './daemon-slot-registry.js';
 import type { DaemonStateDirs } from './state-dir.js';
@@ -95,20 +95,13 @@ function maybeAttachProducerContext(
     );
   }
 
-  const producerContext =
-    slotRegistry.findPersistedProducerTaskAttemptContext(
-      targetTaskId,
-      targetAttemptN,
-    ) ??
-    producerToPersistedContext(
-      slotRegistry.findLatestProducerSlotByTaskAttempt(
-        targetTaskId,
-        targetAttemptN,
-      ),
-    );
+  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
+    targetTaskId,
+    targetAttemptN,
+  );
   if (!producerContext) {
     throw new ProducerContextResolutionError(
-      `No persisted producer context found for task ${targetTaskId} attempt ${targetAttemptN}`,
+      `No persisted producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
     );
   }
 
@@ -140,12 +133,12 @@ function maybeAttachProducerContext(
 }
 
 function resolveProducerSessionPath(
-  producer: PersistedProducerTaskAttemptContext,
+  producer: ResolvedProducerDaemonSlot,
 ): string | null {
-  const explicit = producer.sessionPath ?? null;
+  const explicit = producer.session?.sessionPath ?? null;
   if (explicit && existsSync(explicit)) return explicit;
 
-  const sessionDir = producer.sessionDir ?? null;
+  const sessionDir = producer.session?.sessionDir ?? null;
   if (!sessionDir || !existsSync(sessionDir)) return null;
 
   const latest = resolveLatestPiSessionPath(sessionDir);
@@ -153,10 +146,10 @@ function resolveProducerSessionPath(
 }
 
 function resolveProducerWorkspaceCopySource(
-  producer: PersistedProducerTaskAttemptContext,
+  producer: ResolvedProducerDaemonSlot,
   stateDirs: DaemonStateDirs,
 ): string {
-  const workspacePath = producer.worktreePath ?? null;
+  const workspacePath = producer.workspace?.worktreePath ?? null;
   if (workspacePath) {
     if (existsSync(workspacePath)) {
       return workspacePath;
@@ -178,36 +171,16 @@ function resolveProducerWorkspaceCopySource(
 }
 
 function recoverScratchWorkspacePath(
-  producer: PersistedProducerTaskAttemptContext,
+  producer: ResolvedProducerDaemonSlot,
   stateDirs: DaemonStateDirs,
 ): string | null {
-  if (producer.worktreeBranch) return null;
-  if (!producer.workspaceId) return null;
+  if (producer.workspace?.worktreeBranch) return null;
+  if (!producer.workspace?.workspaceId) return null;
 
   const fallback = join(
     stateDirs.rootDir,
     'task-workspaces',
-    producer.workspaceId,
+    producer.workspace.workspaceId,
   );
   return existsSync(fallback) ? fallback : null;
-}
-
-function producerToPersistedContext(
-  producer: ReturnType<
-    DaemonSlotRegistry['findLatestProducerSlotByTaskAttempt']
-  >,
-): PersistedProducerTaskAttemptContext | null {
-  if (!producer) return null;
-  return {
-    taskId: producer.slot.lastTaskId,
-    attemptN: producer.slot.lastAttemptN,
-    taskType: producer.slot.taskType,
-    sessionDir: producer.session?.sessionDir ?? null,
-    sessionPath: producer.session?.sessionPath ?? null,
-    workspaceId: producer.workspace?.workspaceId ?? null,
-    worktreePath: producer.workspace?.worktreePath ?? null,
-    worktreeBranch: producer.workspace?.worktreeBranch ?? null,
-    recordedAtMs: producer.slot.lastUsedAtMs,
-    expiresAtMs: producer.slot.expiresAtMs,
-  };
 }

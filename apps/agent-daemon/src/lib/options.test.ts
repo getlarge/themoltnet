@@ -67,7 +67,6 @@ describe('parseCommonOptions', () => {
       maxTurns: 0,
       maxBashTimeouts: 3,
       warmSessionTtlSec: 1800,
-      evalProducerContextTtlSec: 86_400,
       debug: false,
     });
   });
@@ -82,7 +81,6 @@ describe('parseCommonOptions', () => {
       'max-turns': '30',
       'max-bash-timeouts': '5',
       'warm-session-ttl-sec': '90',
-      'eval-producer-context-ttl-sec': '7200',
     });
     expect(result.leaseTtlSec).toBe(60);
     expect(result.heartbeatIntervalMs).toBe(5_000);
@@ -91,7 +89,6 @@ describe('parseCommonOptions', () => {
     expect(result.maxTurns).toBe(30);
     expect(result.maxBashTimeouts).toBe(5);
     expect(result.warmSessionTtlSec).toBe(90);
-    expect(result.evalProducerContextTtlSec).toBe(7200);
   });
 
   it('accepts --max-turns=0 and --max-bash-timeouts=0 as "disabled"', () => {
