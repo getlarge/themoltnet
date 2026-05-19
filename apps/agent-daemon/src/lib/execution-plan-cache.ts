@@ -208,5 +208,6 @@ function producerToPersistedContext(
     worktreePath: producer.workspace?.worktreePath ?? null,
     worktreeBranch: producer.workspace?.worktreeBranch ?? null,
     recordedAtMs: producer.slot.lastUsedAtMs,
+    expiresAtMs: producer.slot.expiresAtMs,
   };
 }

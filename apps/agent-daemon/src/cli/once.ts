@@ -176,13 +176,24 @@ export async function runOnce(argv: string[]): Promise<number> {
             'agent-daemon.daemon_slots_reaped',
           );
         }
+        const expiredProducerContexts =
+          slotRegistry.reapExpiredProducerTaskAttemptContexts();
+        if (expiredProducerContexts.length > 0) {
+          rootLogger.info(
+            {
+              expiredCount: expiredProducerContexts.length,
+              taskIds: expiredProducerContexts.map((item) => item.taskId),
+            },
+            'agent-daemon.producer_contexts_reaped',
+          );
+        }
       } catch (err) {
         rootLogger.error(
           {
-            phase: 'daemon_slot_reap',
+            phase: 'daemon_state_reap',
             err: err instanceof Error ? err.message : String(err),
           },
-          'agent-daemon.daemon_slot_reap_failed',
+          'agent-daemon.daemon_state_reap_failed',
         );
       }
       let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
@@ -246,6 +257,7 @@ export async function runOnce(argv: string[]): Promise<number> {
             executionPlan,
             mainRepo,
             stateDirs.rootDir,
+            opts.evalProducerContextTtlSec,
           );
         }
         return output;
@@ -342,8 +354,10 @@ function persistProducerContext(
   },
   mainRepo: string,
   stateRootDir: string,
+  evalProducerContextTtlSec: number,
 ): void {
   if (claimedTask.task.taskType !== 'run_eval') return;
+  if (evalProducerContextTtlSec < 1) return;
 
   slotRegistry.persistProducerTaskAttemptContext({
     taskId: claimedTask.task.id,
@@ -360,5 +374,6 @@ function persistProducerContext(
       executionPlan,
     ),
     worktreeBranch: executionPlan.worktreeBranch,
+    ttlSec: evalProducerContextTtlSec,
   });
 }

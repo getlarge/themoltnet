@@ -139,7 +139,7 @@ describe('DaemonSlotRegistry', () => {
     expect(resolved?.workspace?.worktreePath).toBe(worktreePath);
   });
 
-  it('retains persisted producer context files after slot reap', () => {
+  it('retains persisted producer context files after slot reap until context expiry', () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-slot-producer-persist-'));
     tempRoots.push(root);
     const dbPath = join(root, 'daemon-state.sqlite');
@@ -186,6 +186,7 @@ describe('DaemonSlotRegistry', () => {
       workspaceId: 'task-aaaaaaaa',
       worktreePath,
       worktreeBranch: null,
+      ttlSec: 60,
     });
 
     const expired = registry.reapExpiredSlots(Date.now() + 2_000);
@@ -201,5 +202,47 @@ describe('DaemonSlotRegistry', () => {
     expect(readFileSync(join(worktreePath, 'artifact.txt'), 'utf8')).toBe(
       'producer\n',
     );
+  });
+
+  it('reaps expired persisted producer contexts and cleans their files', () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-slot-producer-expire-'));
+    tempRoots.push(root);
+    const dbPath = join(root, 'daemon-state.sqlite');
+    const sessionDir = join(root, 'pi-sessions', 'producer-context');
+    const worktreePath = join(root, 'task-workspaces', 'task-1');
+    mkdirSync(sessionDir, { recursive: true });
+    mkdirSync(worktreePath, { recursive: true });
+    const sessionPath = join(sessionDir, 'session-a.jsonl');
+    writeFileSync(sessionPath, '[]\n', 'utf8');
+    writeFileSync(join(worktreePath, 'artifact.txt'), 'producer\n', 'utf8');
+
+    const registry = new DaemonSlotRegistry(dbPath);
+    registry.persistProducerTaskAttemptContext({
+      taskId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      attemptN: 1,
+      taskType: 'run_eval',
+      sessionDir,
+      sessionPath,
+      workspaceId: 'task-aaaaaaaa',
+      worktreePath,
+      worktreeBranch: null,
+      ttlSec: 1,
+    });
+
+    const expired = registry.reapExpiredProducerTaskAttemptContexts(
+      Date.now() + 2_000,
+    );
+    const persisted = registry.findPersistedProducerTaskAttemptContext(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      1,
+    );
+    registry.close();
+
+    expect(expired).toHaveLength(1);
+    expect(persisted).toBeNull();
+    expect(() => readFileSync(sessionPath, 'utf8')).toThrow();
+    expect(() =>
+      readFileSync(join(worktreePath, 'artifact.txt'), 'utf8'),
+    ).toThrow();
   });
 });

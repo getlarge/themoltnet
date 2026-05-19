@@ -160,11 +160,12 @@ workspace shape in `input.execution.workspace`: `none` becomes a
 `dedicated_worktree` uses an isolated checkout. Downstream
 `judge_eval_attempt` tasks now run in a fresh scratch workspace copied from
 the persisted producer workspace and still fork the producer session. Producer
-task-attempt context is retained beyond warm-slot TTL so judging does not
-depend on the producer slot staying warm; slot reap drops slot metadata but
-intentionally keeps persisted producer session/workspace files for follow-on
-judging and forensic inspection. Repo-specific `resumeCommands` that should
-not run in scratch mode must still be guarded with `when.workspaceMode`.
+task-attempt context has its own bounded retention window, so judging does not
+depend on the producer slot staying warm but producer artifacts do not remain
+available forever. Slot reap drops warm-slot metadata; producer-context reap
+later removes the persisted session/workspace once that explicit retention
+window expires. Repo-specific `resumeCommands` that should not run in scratch
+mode must still be guarded with `when.workspaceMode`.
 
 ### 1. Start the local stack
 

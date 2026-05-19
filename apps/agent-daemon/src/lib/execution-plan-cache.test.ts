@@ -78,6 +78,7 @@ describe('createExecutionPlanCache', () => {
       workspaceId: 'task-producer',
       worktreePath: producerWorkspace,
       worktreeBranch: null,
+      ttlSec: 300,
     });
 
     const cache = createExecutionPlanCache({
