@@ -17,8 +17,107 @@ func newTaskCmd() *cobra.Command {
 	taskCmd.AddCommand(newTaskTailCmd())
 	taskCmd.AddCommand(newTaskAttemptsCmd())
 	taskCmd.AddCommand(newTaskSchemasCmd())
+	taskCmd.AddCommand(newTaskCreateCmd())
 
 	return taskCmd
+}
+
+func newTaskCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create and enqueue a task",
+		Long: `Create a task via POST /tasks.
+
+The schema-varying ` + "`input`" + ` blob is read from --input-file (a path, or "-"
+for stdin which is also the default). Every other field of CreateTaskReq is a
+flag.
+
+Before the POST, the CLI validates ` + "`input`" + ` against the server-published JSON
+Schema for the requested task type (GET /tasks/schemas). Pass --skip-validation
+to opt out (e.g. when developing a new task type whose schema isn't deployed
+yet). Validation errors are printed as JSON-Pointer-prefixed lines so you can
+fix the file quickly.
+
+--reference and --allowed-executor are repeatable; each value is a JSON object
+matching the respective wire schema. JSON-blob flags are ugly in the shell but
+lossless for the nested external object on TaskRef and the tightly-coupled
+provider+model pair on ExecutorRef.`,
+		Example: `  # Stdin input (default)
+  echo '{"brief":"Fix issue #123","title":"...","scopeHint":"misc"}' \
+    | moltnet task create --task-type fulfill_brief \
+        --team-id <uuid> --diary-id <uuid>
+
+  # File input
+  moltnet task create --task-type fulfill_brief \
+    --team-id <uuid> --diary-id <uuid> \
+    --input-file ./brief.json
+
+  # With a judged-work reference (assess_brief)
+  moltnet task create --task-type assess_brief \
+    --team-id <uuid> --diary-id <uuid> --correlation-id <uuid> \
+    --reference '{"taskId":"<uuid>","role":"judged_work","outputCid":"<cid>"}' \
+    --input-file ./assess-input.json
+
+  # Dry-run prints the canonical CreateTaskReq without posting
+  moltnet task create --task-type fulfill_brief \
+    --team-id <uuid> --diary-id <uuid> --dry-run \
+    --input-file ./brief.json
+
+  # Capture just the task id in a shell variable
+  TASK=$(moltnet task create --task-type fulfill_brief \
+    --team-id <uuid> --diary-id <uuid> \
+    --input-file ./brief.json --output id)`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			opts := taskCreateOpts{
+				apiURL:                        resolveAPIURL(cmd, credPath),
+				credPath:                      credPath,
+				taskType:                      flagString(cmd, "task-type"),
+				teamID:                        flagString(cmd, "team-id"),
+				diaryID:                       flagString(cmd, "diary-id"),
+				inputFile:                     flagString(cmd, "input-file"),
+				correlationID:                 flagString(cmd, "correlation-id"),
+				correlationIDSet:              cmd.Flags().Changed("correlation-id"),
+				references:                    flagStringArray(cmd, "reference"),
+				allowedExecutors:              flagStringArray(cmd, "allowed-executor"),
+				requiredExecutorTrustLevel:    flagString(cmd, "required-executor-trust-level"),
+				requiredExecutorTrustLevelSet: cmd.Flags().Changed("required-executor-trust-level"),
+				dispatchTimeoutSec:            flagInt(cmd, "dispatch-timeout-sec"),
+				dispatchTimeoutSecSet:         cmd.Flags().Changed("dispatch-timeout-sec"),
+				runningTimeoutSec:             flagInt(cmd, "running-timeout-sec"),
+				runningTimeoutSecSet:          cmd.Flags().Changed("running-timeout-sec"),
+				expiresInSec:                  flagInt(cmd, "expires-in-sec"),
+				expiresInSecSet:               cmd.Flags().Changed("expires-in-sec"),
+				maxAttempts:                   flagInt(cmd, "max-attempts"),
+				maxAttemptsSet:                cmd.Flags().Changed("max-attempts"),
+				skipValidation:                flagBool(cmd, "skip-validation"),
+				dryRun:                        flagBool(cmd, "dry-run"),
+				outputMode:                    flagString(cmd, "output"),
+				out:                           cmd.OutOrStdout(),
+			}
+			return runTaskCreateCmd(opts)
+		},
+	}
+	cmd.Flags().String("task-type", "", "Task type name (required)")
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
+	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)
+	cmd.Flags().String("correlation-id", "", "Correlation UUID — link this task to an existing chain")
+	cmd.Flags().StringArray("reference", nil, "TaskRef JSON object; repeatable")
+	cmd.Flags().StringArray("allowed-executor", nil, "ExecutorRef JSON object; repeatable")
+	cmd.Flags().String("required-executor-trust-level", "", "One of: selfDeclared, agentSigned, releaseVerifiedTool, sandboxAttested")
+	cmd.Flags().Int("dispatch-timeout-sec", 0, "Override dispatch timeout (seconds)")
+	cmd.Flags().Int("running-timeout-sec", 0, "Override running timeout (seconds)")
+	cmd.Flags().Int("expires-in-sec", 0, "Task expiry from enqueue (seconds)")
+	cmd.Flags().Int("max-attempts", 0, "Override max attempts")
+	cmd.Flags().Bool("skip-validation", false, "Skip client-side JSON Schema validation of --input-file")
+	cmd.Flags().Bool("dry-run", false, "Print the canonical CreateTaskReq and exit; no POST")
+	cmd.Flags().String("output", "json", `Result rendering: "json" (full task) or "id" (UUID only)`)
+	_ = cmd.MarkFlagRequired("task-type")
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("diary-id")
+	return cmd
 }
 
 func newTaskSchemasCmd() *cobra.Command {
