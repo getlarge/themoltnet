@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.17.0...agent-runtime-v0.18.0) (2026-05-19)
+
+
+### Features
+
+* **agent-runtime:** add render-pack fidelity discipline ([04f211f](https://github.com/getlarge/themoltnet/commit/04f211fef9568f965dcb7ffe849406257095de67))
+* **agent-runtime:** add render-pack fidelity discipline ([997a4dc](https://github.com/getlarge/themoltnet/commit/997a4dc9737e5100947fb3269628a1fe50289c35))
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.16.0...agent-runtime-v0.17.0) (2026-05-18)
 
 

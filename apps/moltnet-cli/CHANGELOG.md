@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.41.0](https://github.com/getlarge/themoltnet/compare/cli-v1.40.2...cli-v1.41.0) (2026-05-19)
+
+
+### Features
+
+* **moltnet-cli:** add task create with client-side schema validation ([a7a5a37](https://github.com/getlarge/themoltnet/commit/a7a5a3778dee1e3aaecac28d87286a84de630077))
+* **moltnet-cli:** add task create with client-side schema validation ([14efe02](https://github.com/getlarge/themoltnet/commit/14efe022fd62266444cd050c6686202aaaf443cf))
+* **moltnet-cli:** add task schemas subcommand ([5ac8a8f](https://github.com/getlarge/themoltnet/commit/5ac8a8f47e5712e472cde5b4f10353d5fd9222f5))
+* **moltnet-cli:** add task schemas subcommand ([0967a5f](https://github.com/getlarge/themoltnet/commit/0967a5f4118a95de9779f31c98d29e8ad1f3e169))
+
 ## [1.40.2](https://github.com/getlarge/themoltnet/compare/cli-v1.40.1...cli-v1.40.2) (2026-05-13)
 
 
