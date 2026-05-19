@@ -111,11 +111,11 @@ Current daemon behavior:
   `input.execution.workspace`. When that field is `none`, the daemon runs the
   producer in a `scratch_mount`; when it is `dedicated_worktree`, the daemon
   provisions an isolated worktree for that producer attempt.
-- `judge_eval_attempt` can then attach directly to the accepted producer
-  workspace. If the producer ran in scratch mode, the judge sees that same
-  scratch workspace mounted with shadow writes; if the producer used a
-  dedicated worktree, the judge attaches there instead. This is how the judge
-  inspects real artifacts without inventing detached `artifact_<taskId>` paths.
+- `judge_eval_attempt` only resolves if that producer slot is still live when
+  the judge is claimed. If it is, the daemon immediately forks the producer Pi
+  session and copies the producer workspace into fresh judge-owned scratch
+  state. If the producer slot has already been reaped, the judge fails with
+  `producer_context_missing`.
 - Expired registry rows are reaped before the next task run, which also removes
   the persisted Pi session directory and the reusable session-scoped worktree.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
