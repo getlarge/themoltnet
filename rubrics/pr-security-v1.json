@@ -1,0 +1,50 @@
+{
+  "criteria": [
+    {
+      "description": "Pass only when the change introduces no new injection vectors (SQL, command, path, prototype, XSS, template). Every user-controlled value reaching a sink (DB query, shell, fs, HTML, eval/Function, regex from input) is either parameterized, escaped, or validated by a TypeBox schema at the boundary. Fail when raw input is concatenated into a sink, when a TypeBox schema is bypassed, or when a new sink lacks any validation.",
+      "id": "injection_safety",
+      "scoring": "boolean",
+      "weight": 0.2
+    },
+    {
+      "description": "Pass only when authentication and authorization paths remain sound. Ory JWT validation, audience/issuer checks, Keto permission checks, and team-scoped diary ownership checks are preserved on every changed route. Fail when an endpoint is added without an explicit auth gate, when a Keto check is removed or weakened, when `optionalAuth` is used where required-auth was needed, or when team/diary scoping is missing on a multi-tenant resource.",
+      "id": "authn_authz_integrity",
+      "scoring": "boolean",
+      "weight": 0.2
+    },
+    {
+      "description": "Pass only when Ed25519 (or other crypto) usage stays safe: private keys never leave their boundary, signatures are verified before trust, nonces/timestamps prevent replay, and signature payloads are canonical. Fail when a private key is logged or returned over the wire, when verification is skipped or made optional, when a custom crypto primitive is introduced, or when signature input is not canonicalized.",
+      "id": "crypto_handling",
+      "scoring": "boolean",
+      "weight": 0.15
+    },
+    {
+      "description": "Pass only when no secret material is introduced into source, logs, error messages, or commit history. New env vars are documented and read via the established config layer; PII/JWTs/keys are redacted in Pino logs and OTel attributes. Fail when a token/key/connection string is hardcoded, when an unredacted secret appears in a log statement or error path, or when an env var bypasses dotenvx encryption for a sensitive value.",
+      "id": "secret_hygiene",
+      "scoring": "boolean",
+      "weight": 0.15
+    },
+    {
+      "description": "Pass only when every system-boundary input (HTTP body/query/params, MCP tool args, webhook payload, message queue event) is validated by a TypeBox schema with `additionalProperties: false` and explicit types. Fail when a new boundary handler accepts `unknown`/`any` and threads it inward, when a schema is intentionally loosened, or when validation is moved past the boundary into business logic.",
+      "id": "input_validation",
+      "scoring": "boolean",
+      "weight": 0.15
+    },
+    {
+      "description": "Pass only when new or upgraded dependencies are reputable, minimal, and don't expand the attack surface unnecessarily. Lockfile changes match the package.json edits; no postinstall scripts from unfamiliar packages; no duplicate/shadowed transitive deps that bypass catalog version policy. Fail when a heavyweight dep is added for a trivial need, when a package with known CVEs is pinned, or when `pnpm-workspace.yaml` catalog policy is circumvented.",
+      "id": "dependency_risk",
+      "scoring": "boolean",
+      "weight": 0.1
+    },
+    {
+      "description": "Pass only when error paths fail closed: failures don't leak stack traces or internal identifiers to clients, retries don't bypass auth, and fallbacks don't silently grant access. Deserialization of untrusted data uses a schema; no `JSON.parse` on attacker-controlled input without subsequent TypeBox validation. Fail when a catch block swallows a security-relevant error, when a fallback path skips an auth/permission check, or when a deserializer is invoked on raw external input.",
+      "id": "safe_failure_modes",
+      "scoring": "boolean",
+      "weight": 0.05
+    }
+  ],
+  "preamble": "You are performing a security-focused review of a GitHub pull request. Score risk introduced by the diff, not feature correctness or code style. Findings must be actionable and context-aware — complement Semgrep, do not duplicate it. Favor logic and data-flow issues a static analyzer misses.\n\nYou may run `gh pr view <n>`, `gh pr diff <n>`, and read files in the workspace. Do not run tests, push commits, or modify anything.\n\nFollow the `security-review` skill if it is advertised in `<available_skills>` — its pipeline (recon → hunt → self-validate → trace → dedup → report) is mandatory, not optional.\n\nWhen evidence is ambiguous, fail the criterion and explain the ambiguity. Each finding in your PR comment must carry a severity (critical / high / medium / low / info) and a concrete remediation. \"Looks fine\" is not useful; \"the new `/admin/replay` route reads `req.body.token` and calls `verifyEd25519` without checking the JWT audience, allowing cross-tenant replay\" is.",
+  "rubricId": "pr-security-v1",
+  "scope": "change_review",
+  "version": "v1"
+}

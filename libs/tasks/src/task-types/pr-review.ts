@@ -1,5 +1,6 @@
 import { type Static, Type } from '@sinclair/typebox';
 
+import { TaskContext } from '../context.js';
 import type { Rubric } from '../rubric.js';
 import { validateRubricWeights } from '../rubric.js';
 import { SuccessCriteria } from '../success-criteria.js';
@@ -22,6 +23,7 @@ export const PrReviewInput = Type.Object(
     subject: PrReviewSubject,
     taskPrompt: Type.Optional(Type.String({ minLength: 1 })),
     successCriteria: SuccessCriteria,
+    context: Type.Optional(TaskContext),
   },
   { $id: 'PrReviewInput', additionalProperties: false },
 );

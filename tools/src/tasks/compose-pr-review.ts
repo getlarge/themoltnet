@@ -1,39 +1,42 @@
 /**
- * create-pr-review.ts — impose a generic `pr_review` task for a GitHub PR.
+ * compose-pr-review.ts — build a `pr_review` (complexity) task spec for a
+ * GitHub PR. Pure composer: emits the task spec as JSON on stdout. Does
+ * NOT call the MoltNet API. The workflow pipes the output to
+ * `moltnet task create`.
  *
- * Scope boundary
- * --------------
- * This script is imposer-only. It MAY:
- * - inspect PR metadata needed to build task input
- * - recover or mint a correlationId
- * - persist the LeGreffier PR-body marker
- * - create the task via `agent.tasks.create(...)`
+ * Side effects
+ * ------------
+ * - Reads PR metadata via `gh` (needs GH_TOKEN in the env).
+ * - PATCHes the PR body to embed the `<!-- legreffier-correlation: -->`
+ *   marker if absent (also via `gh`, needs the same token).
  *
- * It MUST NOT:
- * - claim the task
- * - start the daemon
- * - execute the review
- * - post the review comment itself
+ * Output (stdout JSON)
+ * --------------------
+ *   {
+ *     "taskType":      "pr_review",
+ *     "correlationId": "<uuid>",
+ *     "input":         <PrReviewInput, TypeBox-validated locally>
+ *   }
  *
- * Any PR comment is part of the claimant's execution contract and is
- * delegated to the `pr_review` prompt via repo-specific `inspectionHints`.
+ * `teamId` and `diaryId` are intentionally NOT included — the composite
+ * action that runs `moltnet task create` resolves them from the agent's
+ * env at create time. Keeping creds-touching concerns out of the
+ * composer is the whole point of the split.
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { isAbsolute, join, resolve } from 'node:path';
-import { parseArgs, parseEnv } from 'node:util';
+import { isAbsolute, resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 
 import type { Rubric as RubricType } from '@moltnet/tasks';
-import { PR_REVIEW_TYPE, type PrReviewInput, Rubric } from '@moltnet/tasks';
+import { PR_REVIEW_TYPE, PrReviewInput, Rubric } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
-import { connect } from '@themoltnet/sdk';
 
 const { values: args } = parseArgs({
   options: {
     pr: { type: 'string', short: 'p' },
     repo: { type: 'string', short: 'r' },
-    agent: { type: 'string', short: 'a', default: 'legreffier' },
     rubric: {
       type: 'string',
       default: 'rubrics/pr-complexity-binary-v1.json',
@@ -44,7 +47,7 @@ const { values: args } = parseArgs({
 
 if (!args.pr || !args.repo) {
   console.error(
-    'Usage: tsx tools/src/tasks/create-pr-review.ts --pr <number> --repo <owner/repo> [--agent <name>] [--rubric <path>] [--dry-run]',
+    'Usage: tsx tools/src/tasks/compose-pr-review.ts --pr <number> --repo <owner/repo> [--rubric <path>] [--dry-run]',
   );
   process.exit(1);
 }
@@ -61,16 +64,8 @@ if (!/^[^/\s]+\/[^/\s]+$/.test(repoSlug)) {
   process.exit(1);
 }
 
-const agentName = args.agent!;
 const rubricArg = args.rubric!;
 const dryRun = args['dry-run']!;
-
-if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
-  console.error(
-    `Invalid --agent "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
-  );
-  process.exit(1);
-}
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -192,6 +187,16 @@ function readRubric(repoRoot: string): RubricType {
   return parsed;
 }
 
+function validateInput(input: unknown): void {
+  if (!Value.Check(PrReviewInput, input)) {
+    const errors = [...Value.Errors(PrReviewInput, input)].slice(0, 5);
+    throw new Error(
+      'Composed PrReviewInput failed TypeBox validation:\n' +
+        errors.map((e) => `  - ${e.path || '(root)'}: ${e.message}`).join('\n'),
+    );
+  }
+}
+
 function buildPrReviewInput(
   pr: PullRequestInfo,
   rubric: RubricType,
@@ -223,76 +228,34 @@ function buildPrReviewInput(
   };
 }
 
-async function main() {
+function main() {
   const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
   }).trim();
-  const agentDir = join(repoRoot, '.moltnet', agentName);
-  const envRaw = readFileSync(join(agentDir, 'env'), 'utf8');
-  const envMap = parseEnv(envRaw);
-  const teamId = envMap['MOLTNET_TEAM_ID'] ?? process.env['MOLTNET_TEAM_ID'];
-  const diaryId = envMap['MOLTNET_DIARY_ID'] ?? process.env['MOLTNET_DIARY_ID'];
-  if (!teamId) {
-    throw new Error(
-      `Missing MOLTNET_TEAM_ID in ${join(agentDir, 'env')} and process environment`,
-    );
-  }
-  if (!diaryId) {
-    throw new Error(
-      `Missing MOLTNET_DIARY_ID in ${join(agentDir, 'env')} and process environment`,
-    );
-  }
 
   const pr = getPullRequestInfo();
   const correlationId = resolveCorrelationId(pr);
   const nextBody = ensureLegreffierMarker(pr.body, correlationId);
   const rubric = readRubric(repoRoot);
   const input = buildPrReviewInput(pr, rubric);
+  validateInput(input);
 
   if (dryRun) {
-    console.log(
-      JSON.stringify(
-        {
-          taskType: PR_REVIEW_TYPE,
-          teamId,
-          diaryId,
-          correlationId,
-          input,
-          prBodyUpdateRequired: nextBody !== pr.body,
-        },
-        null,
-        2,
-      ),
+    console.error(
+      `[compose] dry-run — prBodyUpdateRequired=${nextBody !== pr.body}`,
     );
-    return;
-  }
-
-  if (nextBody !== pr.body) {
+  } else if (nextBody !== pr.body) {
     updatePrBody(nextBody);
   }
 
-  const agent = await connect({ configDir: agentDir });
-  const task = await agent.tasks.create({
-    taskType: PR_REVIEW_TYPE,
-    teamId,
-    diaryId,
-    correlationId,
-    input: input as unknown as Record<string, unknown>,
-  });
-
-  console.error(
-    `[task] created ${task.id} (status=${task.status}) correlationId=${correlationId}`,
-  );
-  console.log(
-    JSON.stringify(
-      { id: task.id, status: task.status, correlationId },
-      null,
-      2,
-    ),
+  process.stdout.write(
+    `${JSON.stringify({ taskType: PR_REVIEW_TYPE, correlationId, input }, null, 2)}\n`,
   );
 }
 
-main().catch((err) => {
+try {
+  main();
+} catch (err) {
   console.error('[fatal]', err instanceof Error ? err.message : String(err));
   process.exit(1);
-});
+}
