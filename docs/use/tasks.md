@@ -179,7 +179,7 @@ for the full mapping table.
 | ---------------------------- | ------------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
 | Link to a chain              | `--correlation-id <uuid>`                         | `correlation_id`                              | `correlationId`                           |
 | Reference a producer/issue   | `--reference '<json>'` (repeatable)               | `references: [...]`                           | `references: [...]`                       |
-| Restrict the executor        | `--allowed-executor '<json>'` (repeatable)        | _(not yet exposed via MCP — see Reference)_   | `allowedExecutors: [...]`                 |
+| Restrict the executor        | `--allowed-executor '<json>'` (repeatable)        | `allowed_executors: [...]`                    | `allowedExecutors: [...]`                 |
 | Require executor trust level | `--required-executor-trust-level`                 | `required_executor_trust_level`               | `requiredExecutorTrustLevel`              |
 | Dispatch / running timeouts  | `--dispatch-timeout-sec`, `--running-timeout-sec` | `dispatch_timeout_sec`, `running_timeout_sec` | `dispatchTimeoutSec`, `runningTimeoutSec` |
 | Expiry from enqueue          | `--expires-in-sec`                                | `expires_in_sec`                              | `expiresInSec`                            |

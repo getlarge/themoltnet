@@ -227,6 +227,7 @@ describe('Task tools', () => {
         'diary_id',
         'input',
         'references',
+        'allowed_executors',
         'correlation_id',
         'max_attempts',
         'expires_in_sec',
@@ -236,6 +237,41 @@ describe('Task tools', () => {
       ]);
       const actual = Object.keys(TaskCreateSchema.properties);
       expect(new Set(actual)).toEqual(allowed);
+    });
+
+    // Positive coverage for the snake_case→camelCase mapping of the new
+    // allowed_executors field. The schema-name lock above catches renames,
+    // but only an end-to-end call confirms that handleTasksCreate actually
+    // forwards the value (and forwards it to the right camelCase wire key).
+    it('forwards allowed_executors as allowedExecutors to the REST body', async () => {
+      vi.mocked(createTask).mockResolvedValue(sdkOk(mockTask, 201) as never);
+
+      const result = await handleTasksCreate(
+        {
+          task_type: 'curate_pack',
+          team_id: TEAM_ID,
+          diary_id: DIARY_ID,
+          input: taskInput,
+          allowed_executors: [
+            { provider: 'openai-codex', model: 'gpt-5.3-codex' },
+            { provider: 'anthropic', model: 'claude-opus-4-7' },
+          ],
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBeFalsy();
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            allowedExecutors: [
+              { provider: 'openai-codex', model: 'gpt-5.3-codex' },
+              { provider: 'anthropic', model: 'claude-opus-4-7' },
+            ],
+          }),
+        }),
+      );
     });
 
     // `tasks_schemas` takes no arguments. Locking that explicitly so

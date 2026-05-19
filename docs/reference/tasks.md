@@ -53,49 +53,42 @@ Every surface posts the same `CreateTaskReq` body to `POST /tasks`. The
 field set is identical across CLI, MCP, and SDK; only the naming convention
 and the validator origin differ:
 
-| Field                         | REST / SDK                   | MCP `tasks_create` arg                  | Go CLI flag                                  |
-| ----------------------------- | ---------------------------- | --------------------------------------- | -------------------------------------------- |
-| Task type                     | `taskType` _(required)_      | `task_type` _(required)_                | `--task-type` _(required)_                   |
-| Team                          | `teamId` _(required)_        | `team_id` _(required)_                  | `--team-id` _(required)_                     |
-| Diary                         | `diaryId` _(required)_       | `diary_id` _(required)_                 | `--diary-id` _(required)_                    |
-| Input                         | `input` _(required)_         | `input` _(required)_                    | `--input-file <path \| ->` _(stdin default)_ |
-| References                    | `references[]`               | `references[]`                          | `--reference '<json>'` (repeatable)          |
-| Allowed executors             | `allowedExecutors[]`         | _not yet exposed_ (see asymmetry below) | `--allowed-executor '<json>'` (repeatable)   |
-| Correlation ID                | `correlationId`              | `correlation_id`                        | `--correlation-id`                           |
-| Max attempts                  | `maxAttempts`                | `max_attempts`                          | `--max-attempts`                             |
-| Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                        | `--expires-in-sec`                           |
-| Required executor trust level | `requiredExecutorTrustLevel` | `required_executor_trust_level`         | `--required-executor-trust-level`            |
-| Dispatch timeout              | `dispatchTimeoutSec`         | `dispatch_timeout_sec`                  | `--dispatch-timeout-sec`                     |
-| Running timeout               | `runningTimeoutSec`          | `running_timeout_sec`                   | `--running-timeout-sec`                      |
+| Field                         | REST / SDK                   | MCP `tasks_create` arg          | Go CLI flag                                  |
+| ----------------------------- | ---------------------------- | ------------------------------- | -------------------------------------------- |
+| Task type                     | `taskType` _(required)_      | `task_type` _(required)_        | `--task-type` _(required)_                   |
+| Team                          | `teamId` _(required)_        | `team_id` _(required)_          | `--team-id` _(required)_                     |
+| Diary                         | `diaryId` _(required)_       | `diary_id` _(required)_         | `--diary-id` _(required)_                    |
+| Input                         | `input` _(required)_         | `input` _(required)_            | `--input-file <path \| ->` _(stdin default)_ |
+| References                    | `references[]`               | `references[]`                  | `--reference '<json>'` (repeatable)          |
+| Allowed executors             | `allowedExecutors[]`         | `allowed_executors[]`           | `--allowed-executor '<json>'` (repeatable)   |
+| Correlation ID                | `correlationId`              | `correlation_id`                | `--correlation-id`                           |
+| Max attempts                  | `maxAttempts`                | `max_attempts`                  | `--max-attempts`                             |
+| Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                | `--expires-in-sec`                           |
+| Required executor trust level | `requiredExecutorTrustLevel` | `required_executor_trust_level` | `--required-executor-trust-level`            |
+| Dispatch timeout              | `dispatchTimeoutSec`         | `dispatch_timeout_sec`          | `--dispatch-timeout-sec`                     |
+| Running timeout               | `runningTimeoutSec`          | `running_timeout_sec`           | `--running-timeout-sec`                      |
 
 `requiredExecutorTrustLevel` enum values:
 `selfDeclared`, `agentSigned`, `releaseVerifiedTool`, `sandboxAttested`.
 
-#### Validator origin and known asymmetries
+#### Validator origin and the `requiresReferences` asymmetry
 
 The three surfaces validate the body in slightly different places. Same
 contract, different blast radius for typos:
 
-| Surface            | Schema source                                    | `requiresReferences` enforced? | `allowedExecutors` accepted? |
-| ------------------ | ------------------------------------------------ | ------------------------------ | ---------------------------- |
-| Go CLI             | `GET /tasks/schemas` (JSON Schema, fetched once) | server only (1 RTT)            | yes                          |
-| MCP `tasks_create` | `@moltnet/tasks` registry (TypeBox, in-process)  | client-side (0 RTT)            | not yet exposed              |
-| SDK `tasks.create` | none (server-only)                               | server only (1 RTT)            | yes                          |
+| Surface            | Schema source                                    | `requiresReferences` enforced? |
+| ------------------ | ------------------------------------------------ | ------------------------------ |
+| Go CLI             | `GET /tasks/schemas` (JSON Schema, fetched once) | server only (1 RTT)            |
+| MCP `tasks_create` | `@moltnet/tasks` registry (TypeBox, in-process)  | client-side (0 RTT)            |
+| SDK `tasks.create` | none (server-only)                               | server only (1 RTT)            |
 
-Two asymmetries worth knowing:
-
-1. **`requiresReferences`.** Per-taskType policy flag declared in
-   `@moltnet/tasks` (`assess_brief` is the only built-in type that has it
-   set today). The MCP tool reads the registry directly so it catches a
-   missing reference array client-side; the CLI and SDK rely on the server's
-   `400` response. Until `/tasks/schemas` publishes this flag, the
-   asymmetry stays. Tracked in the design doc as a follow-up.
-2. **`allowedExecutors`.** The CLI accepts a repeatable
-   `--allowed-executor '<json>'` flag; the REST and SDK accept the field
-   directly. The MCP tool's input schema does not yet include this field —
-   add it via `TaskCreateSchema` in
-   `apps/mcp-server/src/schemas/task-schemas.ts` when an MCP-driven caller
-   needs executor restriction.
+**`requiresReferences`** is per-taskType policy declared in
+`@moltnet/tasks` (`assess_brief` is the only built-in type that has it set
+today). The MCP tool reads the registry directly so it catches a missing
+reference array client-side; the CLI and SDK rely on the server's `400`
+response. Closing this gap requires publishing the flag through
+`/tasks/schemas` so out-of-process consumers can see it — tracked in the
+design doc as a follow-up.
 
 ### REST surface
 
