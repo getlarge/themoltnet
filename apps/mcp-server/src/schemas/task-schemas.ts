@@ -18,6 +18,7 @@ import type {
   ListTasksResponses,
 } from '@moltnet/api-client';
 import {
+  ExecutorRef,
   ExecutorTrustLevel,
   Task,
   TaskAttempt,
@@ -73,6 +74,15 @@ export const TaskCreateSchema = Type.Object({
       description: 'References to prior tasks or external artifacts.',
     }),
   ),
+  allowed_executors: Type.Optional(
+    Type.Array(ExecutorRef, {
+      description:
+        'Restrict claim eligibility to these (provider, model) pairs. ' +
+        'Daemons whose executor identity does not match any entry will be ' +
+        'refused at claim time. Omit to allow any daemon meeting the trust ' +
+        'level.',
+    }),
+  ),
   correlation_id: Type.Optional(
     Type.String({
       format: 'uuid',
@@ -114,6 +124,7 @@ export type TaskCreateInput = {
   diary_id: CreateTaskBody['diaryId'];
   input: CreateTaskBody['input'];
   references?: CreateTaskBody['references'];
+  allowed_executors?: CreateTaskBody['allowedExecutors'];
   correlation_id?: CreateTaskBody['correlationId'];
   max_attempts?: CreateTaskBody['maxAttempts'];
   expires_in_sec?: CreateTaskBody['expiresInSec'];

@@ -243,9 +243,32 @@ Leave it running. It idles until a task lands in its queue.
 
 ### 4. Create a task
 
-In another terminal, with `.moltnet/local-dev/env` sourced:
+In another terminal, with `.moltnet/local-dev/env` sourced. Pick the CLI
+form (recommended — schema-validates locally, no Node dependency in the
+imposer path) or the template-driven TS form (legacy path that supports
+`{{placeholder}}` substitution via `--set`).
 
-```bash
+::: code-group
+
+```bash [CLI (recommended)]
+BRIEF="Create a feature branch named feat/smoke-hello, write \
+/workspace/demo/out/hello.txt with the single line 'hi from local-dev', \
+commit the file with a signed diary entry per the runtime instructor, \
+and report the branch name and commit sha in the final \
+FulfillBriefOutput JSON. There is no remote to push to — leave \
+pullRequestUrl null."
+
+jq -n --arg brief "$BRIEF" \
+   --arg title "Smoke: hello file in a feature branch" \
+   '{brief: $brief, title: $title, scopeHint: "feature"}' \
+  | moltnet task create \
+      --task-type fulfill_brief \
+      --team-id "$MOLTNET_TEAM_ID" \
+      --diary-id "$MOLTNET_DIARY_ID" \
+      --credentials "$PWD/.moltnet/local-dev/moltnet.json"
+```
+
+```bash [tsx (legacy)]
 pnpm exec tsx tools/src/tasks/create-task.ts \
   --agent local-dev \
   --task-file examples/tasks/api/fulfill-brief.create.template.json \
@@ -254,6 +277,8 @@ pnpm exec tsx tools/src/tasks/create-task.ts \
   --set title="Smoke: hello file in a feature branch" \
   --set brief="Create a feature branch named feat/smoke-hello, write /workspace/demo/out/hello.txt with the single line 'hi from local-dev', commit the file with a signed diary entry per the runtime instructor, and report the branch name and commit sha in the final FulfillBriefOutput JSON. There is no remote to push to — leave pullRequestUrl null."
 ```
+
+:::
 
 > **Why a real coding brief**: `fulfill_brief` requires the agent to emit a
 > structured `FulfillBriefOutput` JSON

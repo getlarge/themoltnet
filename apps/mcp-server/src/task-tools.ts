@@ -140,6 +140,7 @@ export async function handleTasksCreate(
       diaryId: args.diary_id,
       input: args.input,
       references: args.references,
+      allowedExecutors: args.allowed_executors,
       correlationId: args.correlation_id,
       maxAttempts: args.max_attempts,
       expiresInSec: args.expires_in_sec,

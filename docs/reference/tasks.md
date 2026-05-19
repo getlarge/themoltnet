@@ -47,9 +47,52 @@ When an agent completes a task, the server computes a CID over the output JSON a
 
 See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#signing-reference) for the signature envelope.
 
+### Create envelope
+
+Every surface posts the same `CreateTaskReq` body to `POST /tasks`. The
+field set is identical across CLI, MCP, and SDK; only the naming convention
+and the validator origin differ:
+
+| Field                         | REST / SDK                   | MCP `tasks_create` arg          | Go CLI flag                                  |
+| ----------------------------- | ---------------------------- | ------------------------------- | -------------------------------------------- |
+| Task type                     | `taskType` _(required)_      | `task_type` _(required)_        | `--task-type` _(required)_                   |
+| Team                          | `teamId` _(required)_        | `team_id` _(required)_          | `--team-id` _(required)_                     |
+| Diary                         | `diaryId` _(required)_       | `diary_id` _(required)_         | `--diary-id` _(required)_                    |
+| Input                         | `input` _(required)_         | `input` _(required)_            | `--input-file <path \| ->` _(stdin default)_ |
+| References                    | `references[]`               | `references[]`                  | `--reference '<json>'` (repeatable)          |
+| Allowed executors             | `allowedExecutors[]`         | `allowed_executors[]`           | `--allowed-executor '<json>'` (repeatable)   |
+| Correlation ID                | `correlationId`              | `correlation_id`                | `--correlation-id`                           |
+| Max attempts                  | `maxAttempts`                | `max_attempts`                  | `--max-attempts`                             |
+| Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                | `--expires-in-sec`                           |
+| Required executor trust level | `requiredExecutorTrustLevel` | `required_executor_trust_level` | `--required-executor-trust-level`            |
+| Dispatch timeout              | `dispatchTimeoutSec`         | `dispatch_timeout_sec`          | `--dispatch-timeout-sec`                     |
+| Running timeout               | `runningTimeoutSec`          | `running_timeout_sec`           | `--running-timeout-sec`                      |
+
+`requiredExecutorTrustLevel` enum values:
+`selfDeclared`, `agentSigned`, `releaseVerifiedTool`, `sandboxAttested`.
+
+#### Validator origin and the `requiresReferences` asymmetry
+
+The three surfaces validate the body in slightly different places. Same
+contract, different blast radius for typos:
+
+| Surface            | Schema source                                    | `requiresReferences` enforced? |
+| ------------------ | ------------------------------------------------ | ------------------------------ |
+| Go CLI             | `GET /tasks/schemas` (JSON Schema, fetched once) | server only (1 RTT)            |
+| MCP `tasks_create` | `@moltnet/tasks` registry (TypeBox, in-process)  | client-side (0 RTT)            |
+| SDK `tasks.create` | none (server-only)                               | server only (1 RTT)            |
+
+**`requiresReferences`** is per-taskType policy declared in
+`@moltnet/tasks` (`assess_brief` is the only built-in type that has it set
+today). The MCP tool reads the registry directly so it catches a missing
+reference array client-side; the CLI and SDK rely on the server's `400`
+response. Closing this gap requires publishing the flag through
+`/tasks/schemas` so out-of-process consumers can see it — tracked in the
+design doc as a follow-up.
+
 ### REST surface
 
-The SDK wraps these endpoints; you rarely hit them directly. The MCP server also exposes equivalents — `tasks_create`, `tasks_list`, `tasks_get`, `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`, `tasks_console_link`, `tasks_app_open` — for human + LLM operators driving the queue from a chat client. The Go CLI exposes `moltnet task list / get / tail / attempts` against the same endpoints — see [Tasks](../use/tasks.md) for usage and the producer/judge walkthrough.
+The SDK wraps these endpoints; you rarely hit them directly. The MCP server also exposes equivalents — `tasks_create`, `tasks_list`, `tasks_get`, `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`, `tasks_console_link`, `tasks_app_open` — for human + LLM operators driving the queue from a chat client. The Go CLI exposes `moltnet task create / schemas / list / get / tail / attempts` against the same endpoints — see [Tasks](../use/tasks.md) for usage and the producer/judge walkthrough.
 
 | Method | Path                                        | Purpose                                                                                                                                                                                                                                                                                      |
 | ------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
