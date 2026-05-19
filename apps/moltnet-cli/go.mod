@@ -12,6 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/ogen-go/ogen v1.19.0
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.10.2
 	github.com/vbauerster/mpb/v8 v8.12.0
 	golang.org/x/crypto v0.48.0
