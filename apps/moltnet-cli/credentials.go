@@ -9,6 +9,7 @@ import (
 
 // CredentialsFile matches the JS SDK MoltNetConfig format.
 type CredentialsFile struct {
+	Schema       string               `json:"$schema,omitempty" jsonschema:"format=uri"`
 	IdentityID   string               `json:"identity_id"`
 	OAuth2       CredentialsOAuth2    `json:"oauth2"`
 	Keys         CredentialsKeys      `json:"keys"`
@@ -137,7 +138,12 @@ func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
 		return "", fmt.Errorf("create config dir: %w", err)
 	}
 
-	data, err := json.MarshalIndent(config, "", "  ")
+	configWithSchema := *config
+	if configWithSchema.Schema == "" {
+		configWithSchema.Schema = moltnetConfigSchemaURL
+	}
+
+	data, err := json.MarshalIndent(&configWithSchema, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("marshal config: %w", err)
 	}
