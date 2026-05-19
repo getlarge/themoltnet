@@ -11,6 +11,11 @@ export interface PiWorkspaceAttachmentPlan {
   shadowWrites?: 'deny' | 'tmpfs';
 }
 
+export interface PiWorkspaceSeedPlan {
+  copyFromPath: string;
+  source: 'producer';
+}
+
 export interface PiTaskExecutionPlan {
   /**
    * Effective workspace mode for this task instance.
@@ -44,6 +49,10 @@ export interface PiTaskExecutionPlan {
    * inspection by applying VFS shadowing on top of the mounted path.
    */
   workspaceAttachment?: PiWorkspaceAttachmentPlan | null;
+  /**
+   * Optional seed content for a freshly created scratch workspace.
+   */
+  workspaceSeed?: PiWorkspaceSeedPlan | null;
   /**
    * Optional location for file-backed Pi session history. When omitted,
    * the executor keeps the conversation in memory for this attempt only.

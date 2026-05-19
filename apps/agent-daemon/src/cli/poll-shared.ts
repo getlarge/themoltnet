@@ -383,7 +383,17 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           });
         }
         try {
-          return await executeTask(claimedTask, reporter);
+          const output = await executeTask(claimedTask, reporter);
+          if (output.status === 'completed') {
+            persistProducerContext(
+              slotRegistry,
+              claimedTask,
+              executionPlan,
+              mainRepo,
+              stateDirs.rootDir,
+            );
+          }
+          return output;
         } finally {
           executionPlans.delete(claimedTask);
           if (executionPlan.slotKey) {
@@ -426,6 +436,41 @@ function resolveRecordedWorkspacePath(
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
     : join(mainRepo, '.worktrees', executionPlan.workspaceId);
+}
+
+function persistProducerContext(
+  slotRegistry: DaemonSlotRegistry,
+  claimedTask: {
+    task: { id: string; taskType: string };
+    attemptN: number;
+  },
+  executionPlan: {
+    sessionPersistence?: { sessionDir: string } | null;
+    workspaceId: string | null;
+    workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+    worktreeBranch: string | null;
+  },
+  mainRepo: string,
+  stateRootDir: string,
+): void {
+  if (claimedTask.task.taskType !== 'run_eval') return;
+
+  slotRegistry.persistProducerTaskAttemptContext({
+    taskId: claimedTask.task.id,
+    attemptN: claimedTask.attemptN,
+    taskType: claimedTask.task.taskType,
+    sessionDir: executionPlan.sessionPersistence?.sessionDir ?? null,
+    sessionPath: executionPlan.sessionPersistence
+      ? resolveLatestPiSessionPath(executionPlan.sessionPersistence.sessionDir)
+      : null,
+    workspaceId: executionPlan.workspaceId,
+    worktreePath: resolveRecordedWorkspacePath(
+      mainRepo,
+      stateRootDir,
+      executionPlan,
+    ),
+    worktreeBranch: executionPlan.worktreeBranch,
+  });
 }
 
 function parseCsv(raw: string | undefined): string[] {

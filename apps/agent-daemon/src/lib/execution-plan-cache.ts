@@ -5,7 +5,7 @@ import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import {
   type DaemonSlotRegistry,
-  type ResolvedProducerDaemonSlot,
+  type PersistedProducerTaskAttemptContext,
   resolveLatestPiSessionPath,
 } from './daemon-slot-registry.js';
 import type { DaemonStateDirs } from './state-dir.js';
@@ -95,36 +95,42 @@ function maybeAttachProducerContext(
     );
   }
 
-  const producer = slotRegistry.findLatestProducerSlotByTaskAttempt(
-    targetTaskId,
-    targetAttemptN,
-  );
-  if (!producer) {
+  const producerContext =
+    slotRegistry.findPersistedProducerTaskAttemptContext(
+      targetTaskId,
+      targetAttemptN,
+    ) ??
+    producerToPersistedContext(
+      slotRegistry.findLatestProducerSlotByTaskAttempt(
+        targetTaskId,
+        targetAttemptN,
+      ),
+    );
+  if (!producerContext) {
     throw new ProducerContextResolutionError(
-      `No persisted producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
+      `No persisted producer context found for task ${targetTaskId} attempt ${targetAttemptN}`,
     );
   }
 
-  const sourceSessionPath = resolveProducerSessionPath(producer);
+  const sourceSessionPath = resolveProducerSessionPath(producerContext);
   if (!sourceSessionPath) {
     throw new ProducerContextResolutionError(
       `Producer task ${targetTaskId} attempt ${targetAttemptN} has no persisted Pi session path`,
     );
   }
 
-  const attachedWorkspace = resolveProducerWorkspaceAttachment(
-    producer,
+  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
+    producerContext,
     stateDirs,
   );
 
   return {
     ...basePlan,
-    workspaceMode: attachedWorkspace.mode,
-    worktreeBranch: attachedWorkspace.branch,
-    workspaceAttachment: {
-      mountPath: attachedWorkspace.mountPath,
-      cwdPath: attachedWorkspace.cwdPath,
-      shadowWrites: 'tmpfs',
+    workspaceMode: 'scratch_mount',
+    worktreeBranch: null,
+    workspaceSeed: {
+      copyFromPath: copiedWorkspaceSource,
+      source: 'producer',
     },
     sessionPersistence: {
       sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
@@ -134,48 +140,29 @@ function maybeAttachProducerContext(
 }
 
 function resolveProducerSessionPath(
-  producer: ResolvedProducerDaemonSlot,
+  producer: PersistedProducerTaskAttemptContext,
 ): string | null {
-  const explicit = producer.session?.sessionPath ?? null;
+  const explicit = producer.sessionPath ?? null;
   if (explicit && existsSync(explicit)) return explicit;
 
-  const sessionDir = producer.session?.sessionDir ?? null;
+  const sessionDir = producer.sessionDir ?? null;
   if (!sessionDir || !existsSync(sessionDir)) return null;
 
   const latest = resolveLatestPiSessionPath(sessionDir);
   return latest && existsSync(latest) ? latest : null;
 }
 
-function resolveProducerWorkspaceAttachment(
-  producer: ResolvedProducerDaemonSlot,
+function resolveProducerWorkspaceCopySource(
+  producer: PersistedProducerTaskAttemptContext,
   stateDirs: DaemonStateDirs,
-): {
-  mountPath: string;
-  cwdPath: string;
-  mode: DaemonTaskExecutionPlan['workspaceMode'];
-  branch: string | null;
-} {
-  const workspacePath = producer.workspace?.worktreePath ?? null;
+): string {
+  const workspacePath = producer.worktreePath ?? null;
   if (workspacePath) {
     if (existsSync(workspacePath)) {
-      return {
-        mountPath: workspacePath,
-        cwdPath: workspacePath,
-        mode: producer.workspace?.worktreeBranch
-          ? 'dedicated_worktree'
-          : 'scratch_mount',
-        branch: producer.workspace?.worktreeBranch ?? null,
-      };
+      return workspacePath;
     }
     const recoveredPath = recoverScratchWorkspacePath(producer, stateDirs);
-    if (recoveredPath) {
-      return {
-        mountPath: recoveredPath,
-        cwdPath: recoveredPath,
-        mode: 'scratch_mount',
-        branch: null,
-      };
-    }
+    if (recoveredPath) return recoveredPath;
     throw new ProducerContextResolutionError(
       `Producer workspace path is missing on disk: ${workspacePath}`,
     );
@@ -187,25 +174,39 @@ function resolveProducerWorkspaceAttachment(
       `Shared producer mount root is missing on disk: ${sharedMountRoot}`,
     );
   }
-  return {
-    mountPath: sharedMountRoot,
-    cwdPath: sharedMountRoot,
-    mode: 'shared_mount',
-    branch: null,
-  };
+  return sharedMountRoot;
 }
 
 function recoverScratchWorkspacePath(
-  producer: ResolvedProducerDaemonSlot,
+  producer: PersistedProducerTaskAttemptContext,
   stateDirs: DaemonStateDirs,
 ): string | null {
-  if (producer.workspace?.worktreeBranch) return null;
-  if (!producer.workspace?.workspaceId) return null;
+  if (producer.worktreeBranch) return null;
+  if (!producer.workspaceId) return null;
 
   const fallback = join(
     stateDirs.rootDir,
     'task-workspaces',
-    producer.workspace.workspaceId,
+    producer.workspaceId,
   );
   return existsSync(fallback) ? fallback : null;
+}
+
+function producerToPersistedContext(
+  producer: ReturnType<
+    DaemonSlotRegistry['findLatestProducerSlotByTaskAttempt']
+  >,
+): PersistedProducerTaskAttemptContext | null {
+  if (!producer) return null;
+  return {
+    taskId: producer.slot.lastTaskId,
+    attemptN: producer.slot.lastAttemptN,
+    taskType: producer.slot.taskType,
+    sessionDir: producer.session?.sessionDir ?? null,
+    sessionPath: producer.session?.sessionPath ?? null,
+    workspaceId: producer.workspace?.workspaceId ?? null,
+    worktreePath: producer.workspace?.worktreePath ?? null,
+    worktreeBranch: producer.workspace?.worktreeBranch ?? null,
+    recordedAtMs: producer.slot.lastUsedAtMs,
+  };
 }

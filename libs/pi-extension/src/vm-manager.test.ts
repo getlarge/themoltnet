@@ -657,7 +657,7 @@ describe('dedicated worktree mount topology', () => {
     }
   });
 
-  it('reuses an attached workspace root without creating a new worktree', () => {
+  it('copies a producer workspace snapshot into a fresh judge scratch workspace', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-attach-repro-'));
     const producerWorkspace = mkdtempSync(path.join(tmpdir(), 'pi-producer-'));
     const oldCwd = process.cwd();
@@ -665,6 +665,11 @@ describe('dedicated worktree mount topology', () => {
     try {
       runGit(repoRoot, ['init']);
       process.chdir(repoRoot);
+      writeFileSync(
+        path.join(producerWorkspace, 'artifact.txt'),
+        'producer artifact\n',
+        'utf8',
+      );
 
       const task = {
         id: 'task-3',
@@ -680,18 +685,20 @@ describe('dedicated worktree mount topology', () => {
       const workspace = prepareTaskWorkspace(task, repoRoot, {
         workspaceMode: 'scratch_mount',
         sessionKey: null,
-        workspaceId: null,
+        workspaceId: 'task-task-3',
         worktreeBranch: null,
         workspaceScope: 'attempt',
-        workspaceAttachment: {
-          mountPath: producerWorkspace,
-          cwdPath: producerWorkspace,
-          shadowWrites: 'tmpfs',
+        workspaceSeed: {
+          copyFromPath: producerWorkspace,
+          source: 'producer',
         },
       });
 
-      expect(workspace.mountPath).toBe(producerWorkspace);
-      expect(workspace.cwdPath).toBe(producerWorkspace);
+      expect(workspace.mountPath).not.toBe(producerWorkspace);
+      expect(workspace.cwdPath).toBe(workspace.mountPath);
+      expect(
+        readFileSync(path.join(workspace.mountPath, 'artifact.txt'), 'utf8'),
+      ).toBe('producer artifact\n');
       expect(workspace.mode).toBe('scratch_mount');
       workspace.cleanup();
       expect(existsSync(producerWorkspace)).toBe(true);

@@ -57,6 +57,29 @@ export interface ResolvedProducerDaemonSlot {
   workspace: DaemonSlotWorkspaceRecord | null;
 }
 
+export interface PersistedProducerTaskAttemptContext {
+  taskId: string;
+  attemptN: number;
+  taskType: string;
+  sessionDir: string | null;
+  sessionPath: string | null;
+  workspaceId: string | null;
+  worktreePath: string | null;
+  worktreeBranch: string | null;
+  recordedAtMs: number;
+}
+
+export interface PersistProducerTaskAttemptContextInput {
+  taskId: string;
+  attemptN: number;
+  taskType: string;
+  sessionDir: string | null;
+  sessionPath: string | null;
+  workspaceId: string | null;
+  worktreePath: string | null;
+  worktreeBranch: string | null;
+}
+
 export interface DaemonSlotStartInput extends DaemonSlotIdentity {
   slotKey: string;
   taskType: string;
@@ -155,6 +178,19 @@ export class DaemonSlotRegistry {
 
       CREATE INDEX IF NOT EXISTS daemon_slots_task_attempt_idx
         ON daemon_slots (last_task_id, last_attempt_n, last_used_at_ms DESC);
+
+      CREATE TABLE IF NOT EXISTS producer_task_attempt_contexts (
+        task_id TEXT NOT NULL,
+        attempt_n INTEGER NOT NULL,
+        task_type TEXT NOT NULL,
+        session_dir TEXT,
+        session_path TEXT,
+        workspace_id TEXT,
+        worktree_path TEXT,
+        worktree_branch TEXT,
+        recorded_at_ms INTEGER NOT NULL,
+        PRIMARY KEY (task_id, attempt_n)
+      );
         `);
       });
     } catch (error) {
@@ -344,6 +380,69 @@ export class DaemonSlotRegistry {
     };
   }
 
+  persistProducerTaskAttemptContext(
+    input: PersistProducerTaskAttemptContextInput,
+  ): void {
+    this.withDb('upsert producer task attempt context', () =>
+      this.db
+        .prepare(
+          `INSERT INTO producer_task_attempt_contexts (
+             task_id, attempt_n, task_type, session_dir, session_path,
+             workspace_id, worktree_path, worktree_branch, recorded_at_ms
+           ) VALUES (
+             :taskId, :attemptN, :taskType, :sessionDir, :sessionPath,
+             :workspaceId, :worktreePath, :worktreeBranch, :recordedAtMs
+           )
+           ON CONFLICT(task_id, attempt_n) DO UPDATE SET
+             task_type = excluded.task_type,
+             session_dir = excluded.session_dir,
+             session_path = excluded.session_path,
+             workspace_id = excluded.workspace_id,
+             worktree_path = excluded.worktree_path,
+             worktree_branch = excluded.worktree_branch,
+             recorded_at_ms = excluded.recorded_at_ms`,
+        )
+        .run({
+          taskId: input.taskId,
+          attemptN: input.attemptN,
+          taskType: input.taskType,
+          sessionDir: input.sessionDir,
+          sessionPath: input.sessionPath,
+          workspaceId: input.workspaceId,
+          worktreePath: input.worktreePath,
+          worktreeBranch: input.worktreeBranch,
+          recordedAtMs: Date.now(),
+        }),
+    );
+  }
+
+  findPersistedProducerTaskAttemptContext(
+    taskId: string,
+    attemptN: number,
+  ): PersistedProducerTaskAttemptContext | null {
+    return this.withDb(
+      'find persisted producer task attempt context',
+      () =>
+        (this.db
+          .prepare(
+            `SELECT
+               task_id as taskId,
+               attempt_n as attemptN,
+               task_type as taskType,
+               session_dir as sessionDir,
+               session_path as sessionPath,
+               workspace_id as workspaceId,
+               worktree_path as worktreePath,
+               worktree_branch as worktreeBranch,
+               recorded_at_ms as recordedAtMs
+             FROM producer_task_attempt_contexts
+             WHERE task_id = ? AND attempt_n = ?`,
+          )
+          .get(taskId, attemptN) ??
+          null) as PersistedProducerTaskAttemptContext | null,
+    );
+  }
+
   reapExpiredSlots(now = Date.now()): ReapedDaemonSlot[] {
     this.withDb('begin reap transaction', () =>
       this.db.exec('BEGIN IMMEDIATE'),
@@ -430,8 +529,15 @@ export class DaemonSlotRegistry {
       this.withDb('commit reap transaction', () => this.db.exec('COMMIT'));
 
       for (const item of out) {
-        if (item.session) cleanupPiSessionDir(item.session.sessionDir);
-        if (item.workspace)
+        const retainProducerContext =
+          this.hasPersistedProducerTaskAttemptContext(
+            item.slot.lastTaskId,
+            item.slot.lastAttemptN,
+          );
+        if (item.session && !retainProducerContext) {
+          cleanupPiSessionDir(item.session.sessionDir);
+        }
+        if (item.workspace && !retainProducerContext)
           cleanupReusableWorktree(item.workspace.worktreePath);
       }
 
@@ -509,6 +615,25 @@ export class DaemonSlotRegistry {
         (stmt.get(slot.agentName, slot.provider, slot.model, slot.slotKey) ??
           null) as unknown as DaemonSlotWorkspaceRecord | null,
     );
+  }
+
+  private hasPersistedProducerTaskAttemptContext(
+    taskId: string,
+    attemptN: number,
+  ): boolean {
+    const row = this.withDb(
+      'check persisted producer task attempt context',
+      () =>
+        this.db
+          .prepare(
+            `SELECT 1 as present
+             FROM producer_task_attempt_contexts
+             WHERE task_id = ? AND attempt_n = ?
+             LIMIT 1`,
+          )
+          .get(taskId, attemptN),
+    );
+    return row !== undefined;
   }
 }
 

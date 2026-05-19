@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
@@ -47,6 +47,10 @@ export function prepareTaskWorkspace(
     } else {
       rmSync(scratchDir, { recursive: true, force: true });
       mkdirSync(scratchDir, { recursive: true });
+    }
+    const workspaceSeed = executionPlan?.workspaceSeed ?? null;
+    if (workspaceSeed) {
+      copyDirectoryContents(workspaceSeed.copyFromPath, scratchDir);
     }
 
     return {
@@ -197,5 +201,17 @@ function gitRefExists(mainRepo: string, ref: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+function copyDirectoryContents(sourceDir: string, targetDir: string): void {
+  if (!existsSync(sourceDir)) {
+    throw new Error(`Workspace seed source is missing: ${sourceDir}`);
+  }
+
+  for (const entry of readdirSync(sourceDir)) {
+    cpSync(join(sourceDir, entry), join(targetDir, entry), {
+      recursive: true,
+    });
   }
 }

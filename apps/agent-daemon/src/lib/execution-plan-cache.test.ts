@@ -20,7 +20,7 @@ describe('createExecutionPlanCache', () => {
     }
   });
 
-  it('attaches judge_eval_attempt to the producer scratch workspace and forks its session', () => {
+  it('copies producer scratch workspace into a fresh judge scratch workspace and forks its session', () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -69,6 +69,16 @@ describe('createExecutionPlanCache', () => {
       300,
       producerSessionPath,
     );
+    slotRegistry.persistProducerTaskAttemptContext({
+      taskId: '11111111-1111-4111-8111-111111111111',
+      attemptN: 1,
+      taskType: 'run_eval',
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      workspaceId: 'task-producer',
+      worktreePath: producerWorkspace,
+      worktreeBranch: null,
+    });
 
     const cache = createExecutionPlanCache({
       stateDirs,
@@ -111,10 +121,9 @@ describe('createExecutionPlanCache', () => {
     });
 
     expect(plan.workspaceMode).toBe('scratch_mount');
-    expect(plan.workspaceAttachment).toEqual({
-      mountPath: producerWorkspace,
-      cwdPath: producerWorkspace,
-      shadowWrites: 'tmpfs',
+    expect(plan.workspaceSeed).toEqual({
+      copyFromPath: producerWorkspace,
+      source: 'producer',
     });
     expect(plan.sessionPersistence).toEqual({
       sessionDir: `${stateDirs.piSessionsDir}/judge-22222222-2222-4222-8222-222222222222-attempt-1`,

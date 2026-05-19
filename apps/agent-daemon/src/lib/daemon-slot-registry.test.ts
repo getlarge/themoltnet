@@ -138,4 +138,68 @@ describe('DaemonSlotRegistry', () => {
     expect(resolved?.workspace?.workspaceId).toBe('task-aaaaaaaa');
     expect(resolved?.workspace?.worktreePath).toBe(worktreePath);
   });
+
+  it('retains persisted producer context files after slot reap', () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-slot-producer-persist-'));
+    tempRoots.push(root);
+    const dbPath = join(root, 'daemon-state.sqlite');
+    const sessionDir = join(root, 'pi-sessions', 'slot-1');
+    const worktreePath = join(root, 'task-workspaces', 'task-1');
+    mkdirSync(sessionDir, { recursive: true });
+    mkdirSync(worktreePath, { recursive: true });
+    const sessionPath = join(sessionDir, 'session-a.jsonl');
+    writeFileSync(sessionPath, '[]\n', 'utf8');
+    writeFileSync(join(worktreePath, 'artifact.txt'), 'producer\n', 'utf8');
+
+    const registry = new DaemonSlotRegistry(dbPath);
+    registry.beginSlot({
+      agentName: 'local-eval-943',
+      provider: 'ollama-cloud',
+      model: 'qwen3.5',
+      slotKey: 'run_eval:correlation:test:variant:baseline',
+      taskType: 'run_eval',
+      sessionDir,
+      sessionPath,
+      workspaceId: 'task-aaaaaaaa',
+      worktreePath,
+      worktreeBranch: null,
+      lastTaskId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      lastAttemptN: 1,
+      ttlSec: 1,
+    });
+    registry.finishSlot(
+      {
+        agentName: 'local-eval-943',
+        provider: 'ollama-cloud',
+        model: 'qwen3.5',
+      },
+      'run_eval:correlation:test:variant:baseline',
+      1,
+      sessionPath,
+    );
+    registry.persistProducerTaskAttemptContext({
+      taskId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      attemptN: 1,
+      taskType: 'run_eval',
+      sessionDir,
+      sessionPath,
+      workspaceId: 'task-aaaaaaaa',
+      worktreePath,
+      worktreeBranch: null,
+    });
+
+    const expired = registry.reapExpiredSlots(Date.now() + 2_000);
+    const persisted = registry.findPersistedProducerTaskAttemptContext(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      1,
+    );
+    registry.close();
+
+    expect(expired).toHaveLength(1);
+    expect(persisted?.sessionPath).toBe(sessionPath);
+    expect(readFileSync(sessionPath, 'utf8')).toBe('[]\n');
+    expect(readFileSync(join(worktreePath, 'artifact.txt'), 'utf8')).toBe(
+      'producer\n',
+    );
+  });
 });

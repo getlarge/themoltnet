@@ -640,7 +640,7 @@ describe('Agent daemon (e2e)', () => {
     }
   }, 60_000);
 
-  it('attaches judge_eval_attempt to the producer session and scratch workspace', async () => {
+  it('copies producer context for judge_eval_attempt even after the warm slot is reaped', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-judge-attach-e2e-'));
     tempRoots.push(mountRoot);
 
@@ -679,6 +679,10 @@ describe('Agent daemon (e2e)', () => {
       expect(producerWorkspacePath).toBeTruthy();
       expect(existsSync(producerSessionPath!)).toBe(true);
       expect(existsSync(producerWorkspacePath!)).toBe(true);
+      const expired = slotRegistry.reapExpiredSlots(Date.now() + 120_000);
+      expect(expired).toHaveLength(1);
+      expect(existsSync(producerSessionPath!)).toBe(true);
+      expect(existsSync(producerWorkspacePath!)).toBe(true);
 
       const judge = await imposeJudgeEvalAttemptTask(
         correlationId,
@@ -695,10 +699,10 @@ describe('Agent daemon (e2e)', () => {
       });
 
       expect(judgeRun.output.status).toBe('completed');
-      expect(judgeRun.executionPlan.workspaceAttachment).toEqual({
-        mountPath: producerWorkspacePath,
-        cwdPath: producerWorkspacePath,
-        shadowWrites: 'tmpfs',
+      expect(judgeRun.executionPlan.workspaceMode).toBe('scratch_mount');
+      expect(judgeRun.executionPlan.workspaceSeed).toEqual({
+        copyFromPath: producerWorkspacePath,
+        source: 'producer',
       });
       expect(judgeRun.executionPlan.sessionPersistence).toEqual({
         sessionDir: `${stateDirs.piSessionsDir}/judge-${judge.id}-attempt-1`,
@@ -915,6 +919,22 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
       };
       await reporter.finalize(output.usage);
       await reporter.close();
+      if (claimedTask.task.taskType === 'run_eval') {
+        args.slotRegistry.persistProducerTaskAttemptContext({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          taskType: claimedTask.task.taskType,
+          sessionDir: executionPlan.sessionPersistence?.sessionDir ?? null,
+          sessionPath: executionPlan.sessionPersistence
+            ? resolveLatestPiSessionPath(
+                executionPlan.sessionPersistence.sessionDir,
+              )
+            : null,
+          workspaceId: executionPlan.workspaceId,
+          worktreePath,
+          worktreeBranch: executionPlan.worktreeBranch,
+        });
+      }
 
       if (executionPlan.slotKey) {
         args.slotRegistry.finishSlot(

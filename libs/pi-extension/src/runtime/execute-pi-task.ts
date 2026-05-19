@@ -468,7 +468,15 @@ export async function executePiTask(
         workspace: {
           mode: activeWorkspace.mode,
           branch: activeWorkspace.branch,
-          attached: executionPlan?.workspaceAttachment !== undefined,
+          attached:
+            executionPlan?.workspaceAttachment !== undefined ||
+            executionPlan?.workspaceSeed?.source === 'producer',
+          source:
+            executionPlan?.workspaceSeed?.source === 'producer'
+              ? 'producer_copy'
+              : executionPlan?.workspaceAttachment !== undefined
+                ? 'producer_attachment'
+                : undefined,
         },
         extras: opts.promptExtras,
       };

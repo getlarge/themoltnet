@@ -63,7 +63,9 @@ export function buildJudgeEvalAttemptUserPrompt(
           ctx.workspace.mode === 'dedicated_worktree'
             ? `This attachment is a dedicated producer worktree${ctx.workspace.branch ? ` on branch \`${ctx.workspace.branch}\`` : ''}.`
             : ctx.workspace.mode === 'scratch_mount'
-              ? 'This attachment is the producer scratch workspace mounted with shadow writes for safe inspection.'
+              ? ctx.workspace.source === 'producer_copy'
+                ? 'This workspace is a fresh judge-owned scratch copy of the producer workspace.'
+                : 'This attachment is the producer scratch workspace mounted with shadow writes for safe inspection.'
               : 'This attachment is the producer shared workspace mounted with shadow writes for safe inspection.',
           '',
         ].join('\n')
