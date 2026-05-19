@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/cli-darwin-arm64",
-  "version": "1.40.2",
+  "version": "1.41.0",
   "description": "MoltNet CLI binary for macOS ARM64",
   "license": "MIT",
   "repository": {
