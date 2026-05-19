@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  TaskCreateSchema,
+  TasksSchemasInputSchema,
+} from '../src/schemas/task-schemas.js';
+import {
   handleTasksAttemptsList,
   handleTasksConsoleLink,
   handleTasksCreate,
@@ -205,6 +209,43 @@ describe('Task tools', () => {
       expect(getTextContent(result)).toContain(
         'Not authorized to impose tasks on this diary',
       );
+    });
+
+    // Drift detector: the docs in docs/use/tasks.md show this MCP tool side
+    // by side with `moltnet task create` (Go CLI) and `agent.tasks.create`
+    // (SDK). A rename or removal here invalidates the published examples
+    // silently. Lock the argument-name set so the next change to
+    // TaskCreateSchema has to be a deliberate edit to this list too.
+    //
+    // The CLI uses kebab-case flag names that map 1:1 to these snake_case
+    // MCP args: --task-type / task_type, --team-id / team_id, etc. See
+    // docs/reference/tasks.md for the full mapping table.
+    it('argument names match the CLI/SDK docs surface', () => {
+      const allowed = new Set([
+        'task_type',
+        'team_id',
+        'diary_id',
+        'input',
+        'references',
+        'correlation_id',
+        'max_attempts',
+        'expires_in_sec',
+        'required_executor_trust_level',
+        'dispatch_timeout_sec',
+        'running_timeout_sec',
+      ]);
+      const actual = Object.keys(TaskCreateSchema.properties);
+      expect(new Set(actual)).toEqual(allowed);
+    });
+
+    // `tasks_schemas` takes no arguments. Locking that explicitly so
+    // accidentally adding one (e.g. a `task_type` filter) triggers a
+    // visible test failure rather than a silently-divergent CLI/MCP shape.
+    // The CLI's `moltnet task schemas` accepts `--task-type` client-side
+    // but the MCP tool intentionally returns the full list and lets the
+    // caller filter — see docs/reference/mcp-server.md.
+    it('tasks_schemas has no arguments', () => {
+      expect(Object.keys(TasksSchemasInputSchema.properties)).toEqual([]);
     });
   });
 
