@@ -41,7 +41,7 @@ Current daemon behavior:
   means the producer Pi session and any producer workspace attachment can be
   reused by downstream judge flows.
 - `run_eval` is special: its registry policy stays `workspaceMode:
-  shared_mount`, but each task instance also carries `input.execution.workspace`
+shared_mount`, but each task instance also carries `input.execution.workspace`
   (`none`, `shared_mount`, or `dedicated_worktree`). The daemon turns `none`
   into a `scratch_mount` execution plan, and `judge_eval_attempt` may attach to
   the producer's scratch workspace, shared mount, or dedicated worktree.
