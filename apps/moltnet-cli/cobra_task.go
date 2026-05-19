@@ -58,6 +58,13 @@ provider+model pair on ExecutorRef.`,
     --reference '{"taskId":"<uuid>","role":"judged_work","outputCid":"<cid>"}' \
     --input-file ./assess-input.json
 
+  # Restrict executors (repeatable)
+  moltnet task create --task-type fulfill_brief \
+    --team-id <uuid> --diary-id <uuid> \
+    --allowed-executor '{"provider":"openai-codex","model":"gpt-5.3-codex"}' \
+    --allowed-executor '{"provider":"anthropic","model":"claude-opus-4-7"}' \
+    --input-file ./brief.json
+
   # Dry-run prints the canonical CreateTaskReq without posting
   moltnet task create --task-type fulfill_brief \
     --team-id <uuid> --diary-id <uuid> --dry-run \

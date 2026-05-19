@@ -144,12 +144,21 @@ func TestRunTaskCreate_DryRunPrintsCanonicalBody(t *testing.T) {
 	if createN != 0 {
 		t.Errorf("expected zero CreateTask calls in dry-run, got %d", createN)
 	}
-	// Body should be pretty-printed JSON containing the task type.
-	if !strings.Contains(out.String(), `"taskType": "fulfill_brief"`) {
-		t.Errorf("dry-run body missing taskType:\n%s", out.String())
+	// Parse the dry-run output rather than grepping for whitespace-sensitive
+	// substrings — the indent format is operator-facing but not a test invariant.
+	var body map[string]any
+	if err := json.Unmarshal(out.Bytes(), &body); err != nil {
+		t.Fatalf("dry-run output is not valid JSON: %v\n%s", err, out.String())
 	}
-	if !strings.Contains(out.String(), `"brief": "dry"`) {
-		t.Errorf("dry-run body missing input.brief:\n%s", out.String())
+	if body["taskType"] != "fulfill_brief" {
+		t.Errorf("dry-run taskType = %v, want fulfill_brief", body["taskType"])
+	}
+	inputObj, ok := body["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("dry-run input not an object: %v", body["input"])
+	}
+	if inputObj["brief"] != "dry" {
+		t.Errorf("dry-run input.brief = %v, want \"dry\"", inputObj["brief"])
 	}
 }
 
@@ -251,8 +260,8 @@ func TestRunTaskCreate_BadReferenceJSON(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid --reference JSON")
 	}
-	if !strings.Contains(err.Error(), "--reference[0]") {
-		t.Errorf("error should index the bad flag: %s", err.Error())
+	if !strings.Contains(err.Error(), "--reference #1") {
+		t.Errorf("error should index the bad flag (1-based): %s", err.Error())
 	}
 	_, createN := h.counts()
 	if createN != 0 {

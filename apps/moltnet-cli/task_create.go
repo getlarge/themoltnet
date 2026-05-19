@@ -164,7 +164,9 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 	for i, raw := range opts.references {
 		var ref moltnetapi.TaskRef
 		if err := json.Unmarshal([]byte(raw), &ref); err != nil {
-			return nil, fmt.Errorf("invalid --reference[%d] JSON: %w", i, err)
+			// 1-based for the user-facing index — repeated flags read more
+			// naturally as "1st, 2nd, 3rd" than "0-indexed".
+			return nil, fmt.Errorf("invalid --reference #%d JSON: %w", i+1, err)
 		}
 		req.References = append(req.References, ref)
 	}
@@ -172,7 +174,7 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 	for i, raw := range opts.allowedExecutors {
 		var ex moltnetapi.ExecutorRef
 		if err := json.Unmarshal([]byte(raw), &ex); err != nil {
-			return nil, fmt.Errorf("invalid --allowed-executor[%d] JSON: %w", i, err)
+			return nil, fmt.Errorf("invalid --allowed-executor #%d JSON: %w", i+1, err)
 		}
 		req.AllowedExecutors = append(req.AllowedExecutors, ex)
 	}
@@ -180,8 +182,9 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 	if opts.requiredExecutorTrustLevelSet {
 		var lvl moltnetapi.ExecutorTrustLevel
 		if err := lvl.UnmarshalText([]byte(opts.requiredExecutorTrustLevel)); err != nil {
-			allowed := make([]string, 0, len(lvl.AllValues()))
-			for _, v := range lvl.AllValues() {
+			values := lvl.AllValues()
+			allowed := make([]string, 0, len(values))
+			for _, v := range values {
 				allowed = append(allowed, string(v))
 			}
 			return nil, fmt.Errorf(
@@ -249,13 +252,13 @@ func readInputBlob(path string, stdin io.Reader) ([]byte, error) {
 // stray `[]` or `"string"` would otherwise sail past until the server
 // validator rejects it.
 func decodeInputAsObject(raw []byte) (moltnetapi.CreateTaskReqInput, error) {
-	var any json.RawMessage
-	if err := json.Unmarshal(raw, &any); err != nil {
+	var doc json.RawMessage
+	if err := json.Unmarshal(raw, &doc); err != nil {
 		return nil, fmt.Errorf("invalid --input-file JSON: %w", err)
 	}
-	trimmed := bytes.TrimSpace(any)
+	trimmed := bytes.TrimSpace(doc)
 	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return nil, fmt.Errorf("--input-file must be a JSON object; got %s", firstRune(trimmed))
+		return nil, fmt.Errorf("--input-file must be a JSON object; got %s", inputPreview(trimmed))
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err != nil {
@@ -268,7 +271,11 @@ func decodeInputAsObject(raw []byte) (moltnetapi.CreateTaskReqInput, error) {
 	return out, nil
 }
 
-func firstRune(b []byte) string {
+// inputPreview returns a quoted snippet of the user's input for use in shape
+// error messages. Truncates at 16 bytes — UTF-8 safety is not a concern here
+// because the caller only invokes this after json.Unmarshal succeeded, so the
+// first byte is always a JSON structural character ([, ", t, f, n, 0-9 or -).
+func inputPreview(b []byte) string {
 	if len(b) == 0 {
 		return "empty input"
 	}
