@@ -1,0 +1,328 @@
+name: LeGreffier — create and run task once
+description: |
+  Materializes the MoltNet agent + Pi auth, restores the Gondolin
+  snapshot cache, creates a task via `moltnet task create` from a
+  pre-built spec, then runs `@themoltnet/agent-daemon once` against it.
+
+  The caller is responsible for:
+    1. `actions/checkout`, `pnpm/action-setup`, `actions/setup-node` (so
+       the pnpm cache binds to the caller's lockfile) and
+       `pnpm install --frozen-lockfile` (needed for any composer that
+       imports from `@moltnet/tasks`).
+    2. Running a domain-specific composer to produce a task spec JSON
+       file with shape `{ taskType, correlationId, input }`, and passing
+       its path in `task-spec-path`. Composers MUST NOT touch MoltNet
+       creds.
+    3. Wiring credentials through the explicit inputs below — those are
+       what this action owns.
+
+inputs:
+  task-spec-path:
+    description: |
+      Path to a JSON file with shape `{ taskType, correlationId, input }`.
+      `teamId` and `diaryId` are taken from the action's inputs (which
+      mirror the agent's env), not from the spec — composers are
+      credential-free by design.
+    required: true
+  skip-validation:
+    description: |
+      Pass `--skip-validation` to `moltnet task create`. Useful while a
+      new task-input schema is rolling out to the API. Defaults to
+      false.
+    required: false
+    default: 'false'
+  agent-name:
+    description: MoltNet agent name (used for `.moltnet/<agent>/` paths).
+    required: true
+  provider:
+    description: Agent runtime provider (e.g. `ollama`, `openai`).
+    required: true
+  model:
+    description: Agent runtime model id.
+    required: true
+
+  # MoltNet credentials. Forwarded into the agent dir materialization step.
+  moltnet-identity-id:
+    description: MoltNet identity UUID.
+    required: true
+  moltnet-client-id:
+    description: OAuth client id.
+    required: true
+  moltnet-client-secret:
+    description: OAuth client secret.
+    required: true
+  moltnet-public-key:
+    description: Agent Ed25519 public key (base64 raw).
+    required: true
+  moltnet-private-key:
+    description: Agent Ed25519 private key (base64 raw).
+    required: true
+  moltnet-fingerprint:
+    description: Agent fingerprint.
+    required: true
+  moltnet-team-id:
+    description: Team UUID.
+    required: true
+  moltnet-diary-id:
+    description: Diary UUID.
+    required: true
+  moltnet-api-url:
+    description: MoltNet API base URL.
+    required: true
+
+  # GitHub App credentials for the agent's gh calls (optional — required if
+  # the imposer or the task itself uses `gh`).
+  moltnet-github-app-id:
+    description: GitHub App id.
+    required: false
+    default: ''
+  moltnet-github-app-installation-id:
+    description: GitHub App installation id.
+    required: false
+    default: ''
+  moltnet-github-app-slug:
+    description: GitHub App slug.
+    required: false
+    default: ''
+  moltnet-github-app-private-key:
+    description: GitHub App private key (PEM).
+    required: false
+    default: ''
+
+  # Provider-specific secrets.
+  ollama-api-key:
+    description: Ollama API key (required when provider=ollama).
+    required: false
+    default: ''
+  pi-auth-json:
+    description: |
+      Contents of `~/.pi/auth.json` for Codex/Pi providers. Optional — if
+      absent, Pi falls back to env-var providers.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Install gondolin dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
+
+    - name: Materialize MoltNet agent dir from env
+      shell: bash
+      env:
+        MOLTNET_AGENT_NAME: ${{ inputs.agent-name }}
+        MOLTNET_IDENTITY_ID: ${{ inputs.moltnet-identity-id }}
+        MOLTNET_CLIENT_ID: ${{ inputs.moltnet-client-id }}
+        MOLTNET_CLIENT_SECRET: ${{ inputs.moltnet-client-secret }}
+        MOLTNET_PUBLIC_KEY: ${{ inputs.moltnet-public-key }}
+        MOLTNET_PRIVATE_KEY: ${{ inputs.moltnet-private-key }}
+        MOLTNET_FINGERPRINT: ${{ inputs.moltnet-fingerprint }}
+        MOLTNET_TEAM_ID: ${{ inputs.moltnet-team-id }}
+        MOLTNET_DIARY_ID: ${{ inputs.moltnet-diary-id }}
+        MOLTNET_API_URL: ${{ inputs.moltnet-api-url }}
+        MOLTNET_GITHUB_APP_ID: ${{ inputs.moltnet-github-app-id }}
+        MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ inputs.moltnet-github-app-installation-id }}
+        MOLTNET_GITHUB_APP_SLUG: ${{ inputs.moltnet-github-app-slug }}
+        MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ inputs.moltnet-github-app-private-key }}
+      run: |
+        set -euo pipefail
+        AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
+        # Idempotent: a caller workflow that needs the agent dir earlier
+        # (e.g. to run an imposer script) may already have materialized it.
+        if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
+          npx -y @themoltnet/cli config init-from-env \
+            --dir "$GITHUB_WORKSPACE" \
+            --agent "$MOLTNET_AGENT_NAME"
+        fi
+        {
+          echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
+          echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
+          echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+        } >> "$GITHUB_ENV"
+
+    - name: Materialize Pi auth.json
+      shell: bash
+      env:
+        PI_AUTH_JSON: ${{ inputs.pi-auth-json }}
+      run: |
+        set -euo pipefail
+        if [ -n "${PI_AUTH_JSON:-}" ]; then
+          PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
+          mkdir -p "$PI_AGENT_DIR"
+          printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
+          chmod 600 "$PI_AGENT_DIR/auth.json"
+          echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR" >> "$GITHUB_ENV"
+          echo "::notice::Pi auth.json materialized at $PI_AGENT_DIR/auth.json (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
+
+          if command -v jq >/dev/null 2>&1; then
+            now_ms=$(($(date +%s) * 1000))
+            grace_ms=$(( 30 * 86400 * 1000 ))
+            min_expires=$(jq -r '
+              [.[] | select(type == "object" and .expires != null) | .expires]
+              | if length == 0 then empty else min end
+            ' "$PI_AGENT_DIR/auth.json" 2>/dev/null || true)
+            if [ -n "${min_expires:-}" ] && [ "$min_expires" -gt 0 ] 2>/dev/null; then
+              if [ "$min_expires" -lt $(( now_ms - grace_ms )) ]; then
+                days_past=$(( (now_ms - min_expires) / 86400000 ))
+                echo "::error::PI_AUTH_JSON access token expired ${days_past} days ago — Pi's refresh window has almost certainly elapsed. Re-run \`pi /login\` and re-upload the secret. See https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working"
+              elif [ "$min_expires" -lt "$now_ms" ]; then
+                hours_past=$(( (now_ms - min_expires) / 3600000 ))
+                echo "::warning::PI_AUTH_JSON access token expired ${hours_past}h ago. Pi will try to refresh, but if you see a 401, re-run \`pi /login\` and re-upload the secret."
+              fi
+            fi
+          fi
+        else
+          echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
+        fi
+
+    - name: Compute gondolin snapshot cache key
+      if: runner.os == 'Linux'
+      id: gondolin-cache-key
+      shell: bash
+      run: |
+        echo "value=${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-${{ hashFiles('apps/agent-daemon/package.json', 'libs/pi-extension/src/snapshot.ts', 'libs/pi-extension/src/vm-manager.ts', 'pnpm-lock.yaml') }}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore gondolin snapshot cache
+      if: runner.os == 'Linux'
+      id: restore-gondolin-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/moltnet/gondolin
+        key: ${{ steps.gondolin-cache-key.outputs.value }}
+
+    - name: Create task via moltnet CLI
+      id: create-task
+      shell: bash
+      env:
+        TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
+        SKIP_VALIDATION: ${{ inputs.skip-validation }}
+        MOLTNET_AGENT_NAME: ${{ inputs.agent-name }}
+        MOLTNET_TEAM_ID: ${{ inputs.moltnet-team-id }}
+        MOLTNET_DIARY_ID: ${{ inputs.moltnet-diary-id }}
+        MOLTNET_API_URL: ${{ inputs.moltnet-api-url }}
+      run: |
+        set -euo pipefail
+        if [ ! -f "$TASK_SPEC_PATH" ]; then
+          echo "::error::task-spec-path '$TASK_SPEC_PATH' does not exist"
+          exit 1
+        fi
+        TASK_TYPE=$(jq -r '.taskType // empty' "$TASK_SPEC_PATH")
+        CORRELATION_ID=$(jq -r '.correlationId // empty' "$TASK_SPEC_PATH")
+        if [ -z "$TASK_TYPE" ]; then
+          echo "::error::task spec at '$TASK_SPEC_PATH' is missing .taskType"
+          exit 1
+        fi
+        if [ -z "$CORRELATION_ID" ]; then
+          echo "::error::task spec at '$TASK_SPEC_PATH' is missing .correlationId"
+          exit 1
+        fi
+        # Extract the input blob so we can stream it via stdin to the CLI.
+        INPUT_PATH="$RUNNER_TEMP/moltnet-task-input.json"
+        jq '.input' "$TASK_SPEC_PATH" > "$INPUT_PATH"
+
+        CREDS="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
+        if [ ! -f "$CREDS" ]; then
+          echo "::error::moltnet credentials not found at $CREDS"
+          exit 1
+        fi
+
+        SKIP_FLAG=""
+        if [ "$SKIP_VALIDATION" = "true" ]; then
+          SKIP_FLAG="--skip-validation"
+        fi
+
+        TASK_ID=$(npx -y @themoltnet/cli task create \
+          --task-type "$TASK_TYPE" \
+          --team-id "$MOLTNET_TEAM_ID" \
+          --diary-id "$MOLTNET_DIARY_ID" \
+          --correlation-id "$CORRELATION_ID" \
+          --input-file "$INPUT_PATH" \
+          --output id \
+          --api-url "$MOLTNET_API_URL" \
+          --credentials "$CREDS" \
+          $SKIP_FLAG)
+        echo "::notice::Created task $TASK_ID (correlationId=$CORRELATION_ID)"
+        echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
+        echo "correlation-id=$CORRELATION_ID" >> "$GITHUB_OUTPUT"
+
+    - name: Run LeGreffier once
+      shell: bash
+      env:
+        TASK_ID: ${{ steps.create-task.outputs.task-id }}
+        MOLTNET_AGENT_NAME: ${{ inputs.agent-name }}
+        MOLTNET_AGENT_PROVIDER: ${{ inputs.provider }}
+        MOLTNET_AGENT_MODEL: ${{ inputs.model }}
+        OLLAMA_API_KEY: ${{ inputs.ollama-api-key }}
+      run: |
+        set -euo pipefail
+        if [ -z "$TASK_ID" ]; then
+          echo "::error::TASK_ID is empty after create-task step"
+          exit 1
+        fi
+        PROVIDER="$MOLTNET_AGENT_PROVIDER"
+        MODEL="$MOLTNET_AGENT_MODEL"
+        if [ -z "$PROVIDER" ]; then
+          echo "::error::provider input is required" >&2
+          exit 1
+        fi
+        if [ -z "$MODEL" ]; then
+          echo "::error::model input is required" >&2
+          exit 1
+        fi
+        PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
+        if [ "$PROVIDER" = "ollama" ]; then
+          if [ -z "${OLLAMA_API_KEY:-}" ]; then
+            echo "::error::ollama-api-key input is required when provider=ollama" >&2
+            exit 1
+          fi
+          export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
+          mkdir -p "$PI_AGENT_DIR"
+          PI_MODELS_PATH="$PI_AGENT_DIR/models.json"
+          jq -n '
+            {
+              providers: {
+                ollama: {
+                  baseUrl: "https://ollama.com/v1",
+                  api: "openai-completions",
+                  apiKey: "OLLAMA_API_KEY",
+                  models: [
+                    { id: "qwen3.5:cloud" },
+                    { id: "qwen3-coder:480b-cloud" }
+                  ]
+                }
+              }
+            }
+          ' > "$PI_MODELS_PATH"
+          chmod 600 "$PI_MODELS_PATH"
+          echo "::notice::Pi models.json materialized at $PI_MODELS_PATH for ollama"
+          PI_SETTINGS_PATH="$PI_AGENT_DIR/settings.json"
+          jq -n '
+            {
+              enabledModels: [
+                "ollama/qwen3.5:cloud",
+                "ollama/qwen3-coder:480b-cloud"
+              ]
+            }
+          ' > "$PI_SETTINGS_PATH"
+          chmod 600 "$PI_SETTINGS_PATH"
+          echo "::notice::Pi settings.json materialized at $PI_SETTINGS_PATH for ollama"
+        fi
+        npx -y @themoltnet/agent-daemon \
+          once --task-id "$TASK_ID" \
+          --agent "$MOLTNET_AGENT_NAME" \
+          --provider "$PROVIDER" \
+          --model "$MODEL"
+
+    - name: Save gondolin snapshot cache
+      if: |
+        always()
+        && runner.os == 'Linux'
+        && steps.restore-gondolin-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/moltnet/gondolin
+        key: ${{ steps.gondolin-cache-key.outputs.value }}

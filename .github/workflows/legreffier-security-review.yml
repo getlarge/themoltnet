@@ -1,21 +1,26 @@
-name: LeGreffier Complexity Review
+name: LeGreffier Security Review
 
 on:
   issue_comment:
     types: [created]
-  pull_request:
-    types: [ready_for_review]
 
 permissions: {}
 
+# Manually triggered only (issue #121). Drop a PR comment containing
+# `@legreffier /security-review` to kick off a security-focused review.
+# Reuses the legreffier-run-task composite action; the only difference
+# from the complexity workflow is the composer + rubric + skill.
+#
+# `skip-validation: 'true'` until the API has the updated `pr_review`
+# schema (with optional `context: TaskContext`). Flip to 'false' once
+# the schema is deployed.
 jobs:
-  complexity-review:
+  security-review:
     if: |
-      (github.event_name == 'issue_comment' &&
-        github.event.issue.pull_request != null &&
-        contains(github.event.comment.body, '@legreffier /complexity-review') &&
-        !endsWith(github.event.comment.user.login, '[bot]')) ||
-      (github.event_name == 'pull_request')
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '@legreffier /security-review') &&
+      !endsWith(github.event.comment.user.login, '[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: legreffier
@@ -37,14 +42,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Compose pr_review (complexity) task spec
+      - name: Compose pr_review (security) task spec
         id: compose
         env:
-          PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          task_spec_path="$RUNNER_TEMP/pr-review-task-spec.json"
-          node --import tsx tools/src/tasks/compose-pr-review.ts \
+          task_spec_path="$RUNNER_TEMP/pr-security-review-task-spec.json"
+          node --import tsx tools/src/tasks/compose-pr-security-review.ts \
             --pr "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
             > "$task_spec_path"
@@ -54,7 +59,7 @@ jobs:
         uses: ./.github/actions/legreffier-run-task
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
-          skip-validation: 'false'
+          skip-validation: 'true'
           agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
           provider: ${{ vars.MOLTNET_AGENT_PROVIDER }}
           model: ${{ vars.MOLTNET_AGENT_MODEL }}
