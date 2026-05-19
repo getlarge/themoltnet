@@ -6,13 +6,11 @@ on:
     paths:
       - '.claude/skills/**'
       - '.agents/skills/**'
-      - 'tiles/**/skills/**'
   pull_request:
     branches: [main]
     paths:
       - '.claude/skills/**'
       - '.agents/skills/**'
-      - 'tiles/**/skills/**'
   workflow_dispatch: {}
 
 jobs:
@@ -69,43 +67,3 @@ jobs:
           fi
 
           echo "OK: all .claude/skills are mirrored in .agents/skills. Extra .agents/skills entries are allowed."
-
-      - name: Check tile skills are in sync with .claude/skills
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          CLAUDE_DIR=".claude/skills"
-          TILES_DIR="tiles"
-          failed=0
-
-          if [ ! -d "$TILES_DIR" ]; then
-            echo "OK: no tiles directory found, skipping tile skill sync."
-            exit 0
-          fi
-
-          # Each tiles/<name>/skills/<skill-name>/ must match .claude/skills/<skill-name>/
-          while IFS= read -r -d '' tile_skill_dir; do
-            skill=$(basename "$tile_skill_dir")
-            canonical="$CLAUDE_DIR/$skill"
-
-            if [ ! -d "$canonical" ]; then
-              echo "::error::Tile skill '$skill' at $tile_skill_dir has no counterpart in $CLAUDE_DIR"
-              failed=1
-              continue
-            fi
-
-            if ! diff -rq "$canonical" "$tile_skill_dir"; then
-              echo "::error::Tile skill '$skill' differs between $canonical and $tile_skill_dir"
-              diff -r "$canonical" "$tile_skill_dir" || true
-              failed=1
-            fi
-          done < <(find "$TILES_DIR" -mindepth 3 -maxdepth 3 -type d -path "*/skills/*" -print0)
-
-          if [ "$failed" -ne 0 ]; then
-            echo ""
-            echo "Tile skill sync failed. Source of truth is .claude/skills/ — copy changes to the tile's skills/ directory to fix."
-            exit 1
-          fi
-
-          echo "OK: all tile skills are in sync with $CLAUDE_DIR."
