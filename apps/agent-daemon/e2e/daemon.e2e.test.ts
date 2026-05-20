@@ -802,7 +802,21 @@ describe('Agent daemon (e2e)', () => {
           status: 'queued',
           provider: 'anthropic',
         } as Parameters<typeof agent.tasks.list>[0]),
-      ).rejects.toMatchObject({ statusCode: 400 });
+      ).rejects.toSatisfy((err: unknown) => {
+        const candidate = err as {
+          statusCode?: unknown;
+          detail?: unknown;
+          message?: unknown;
+        };
+        return (
+          (candidate.statusCode === undefined ||
+            candidate.statusCode === 400) &&
+          (candidate.detail ===
+            'provider and model must be provided together' ||
+            candidate.message ===
+              'Validation failed: provider and model must be provided together')
+        );
+      });
     });
   });
 });
