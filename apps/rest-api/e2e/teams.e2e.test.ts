@@ -324,6 +324,62 @@ describe('Teams', () => {
       );
       expect(memberB!.role).toBe('members');
     });
+
+    it('downgrades an existing manager when joining with a member invite', async () => {
+      const { data: managerInvite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'manager' },
+      });
+
+      await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: managerInvite!.code },
+      });
+
+      const { data: memberInvite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'member' },
+      });
+
+      const { data, error, response } = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: memberInvite!.code },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.teamId).toBe(teamId);
+      expect(data!.role).toBe('member');
+
+      const { data: members } = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+
+      const memberB = members!.items.find(
+        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+      );
+      expect(memberB).toBeDefined();
+      expect(memberB!.role).toBe('members');
+    });
+
+    it('rejects owner role changes explicitly', async () => {
+      const { response } = await updateTeamMemberRole({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: agentA.identityId },
+        body: { role: 'manager' },
+      });
+
+      expect(response.status).toBe(409);
+    });
   });
 
   // ── Member Removal ──────────────────────────────────────────────
