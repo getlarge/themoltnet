@@ -101,7 +101,7 @@ function maybeAttachProducerContext(
   );
   if (!producerContext) {
     throw new ProducerContextResolutionError(
-      `No persisted producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
+      `No live producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
     );
   }
 
