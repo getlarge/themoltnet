@@ -467,6 +467,74 @@ describe('POST /teams/join role promotion', () => {
     expect(res.statusCode).toBe(409);
     expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
   });
+
+  it('downgrades an existing manager when a member invite is redeemed', async () => {
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'member',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.teamRepository.claimInvite.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'member',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OWNER_ID,
+        subjectNs: 'Agent',
+        relation: 'managers',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(
+      mocks.relationshipWriter.removeTeamMemberRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent');
+    expect(mocks.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
+      TEAM_ID,
+      OWNER_ID,
+      'Agent',
+    );
+  });
+
+  it('rejects owner role changes when a lower invite role is redeemed', async () => {
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'member',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OWNER_ID,
+        subjectNs: 'Agent',
+        relation: 'owners',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+    expect(
+      mocks.relationshipWriter.removeTeamMemberRelation,
+    ).not.toHaveBeenCalled();
+  });
 });
 
 // ── Suite 3: POST /diaries/:id/transfer ──────────────────────────
