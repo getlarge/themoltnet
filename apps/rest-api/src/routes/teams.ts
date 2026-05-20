@@ -43,7 +43,7 @@ import {
 } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
@@ -233,9 +233,17 @@ async function resolveMembers(
   });
 }
 
+function getAuthContext(request: FastifyRequest) {
+  const authContext = request.authContext;
+  if (!authContext) {
+    throw createProblem('unauthorized');
+  }
+  return authContext;
+}
+
 // ── Routes ─────────────────────────────────────────────────────
 
-export async function teamRoutes(fastify: FastifyInstance) {
+export function teamRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
@@ -260,7 +268,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name, foundingMembers } = request.body;
@@ -375,7 +383,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId } = request.authContext!;
+      const { identityId } = getAuthContext(request);
 
       // Single Keto call: get all team IDs + roles for this subject
       const teamRoles =
@@ -432,7 +440,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -486,7 +494,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -552,7 +560,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -594,7 +602,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -677,7 +685,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -739,7 +747,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -800,7 +808,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -849,7 +857,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, inviteId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -891,7 +899,8 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId } = request.authContext!;
+      const authContext = getAuthContext(request);
+      const { identityId } = authContext;
       const { code } = request.body;
 
       const invite = await fastify.teamRepository.findInviteByCode(code);
@@ -932,7 +941,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       const ns =
-        request.authContext!.subjectType === 'human'
+        authContext.subjectType === 'human'
           ? KetoNamespace.Human
           : KetoNamespace.Agent;
       try {
@@ -1001,7 +1010,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId } = getAuthContext(request);
 
       const team = await fastify.teamRepository.findById(id);
       if (!team) throw createProblem('not-found');
