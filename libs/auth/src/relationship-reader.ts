@@ -77,6 +77,13 @@ async function paginateTeamRoles(
   return results;
 }
 
+function teamRoleRank(relation: string): number {
+  if (relation === 'owners') return 3;
+  if (relation === 'managers') return 2;
+  if (relation === 'members') return 1;
+  return 0;
+}
+
 export function createRelationshipReader(
   relationshipApi: RelationshipApi,
 ): RelationshipReader {
@@ -105,20 +112,22 @@ export function createRelationshipReader(
           subjectSetRelation: '',
         }),
       ]);
-      // Deduplicate by teamId (prefer first occurrence)
-      const seen = new Set<string>();
-      const result: TeamIdWithRole[] = [];
+      // Deduplicate by teamId and keep the highest-privilege relation.
+      const bestByTeamId = new Map<string, TeamIdWithRole>();
       for (const entry of [...agentTeams, ...humanTeams]) {
-        if (!seen.has(entry.teamId)) {
-          seen.add(entry.teamId);
-          result.push(entry);
+        const existing = bestByTeamId.get(entry.teamId);
+        if (
+          !existing ||
+          teamRoleRank(entry.relation) > teamRoleRank(existing.relation)
+        ) {
+          bestByTeamId.set(entry.teamId, entry);
         }
       }
-      return result;
+      return [...bestByTeamId.values()];
     },
 
     async listTeamMembers(teamId: string): Promise<TeamMemberTuple[]> {
-      const members: TeamMemberTuple[] = [];
+      const members = new Map<string, TeamMemberTuple>();
       let pageToken: string | undefined;
 
       do {
@@ -129,17 +138,25 @@ export function createRelationshipReader(
         });
         for (const tuple of result.relation_tuples ?? []) {
           if (tuple.subject_set?.object && tuple.relation) {
-            members.push({
+            const member: TeamMemberTuple = {
               subjectId: tuple.subject_set.object,
               subjectNs: tuple.subject_set.namespace ?? '',
               relation: tuple.relation,
-            });
+            };
+            const key = `${member.subjectNs}:${member.subjectId}`;
+            const existing = members.get(key);
+            if (
+              !existing ||
+              teamRoleRank(member.relation) > teamRoleRank(existing.relation)
+            ) {
+              members.set(key, member);
+            }
           }
         }
         pageToken = result.next_page_token || undefined;
       } while (pageToken);
 
-      return members;
+      return [...members.values()];
     },
 
     async listGroupMembers(groupId: string): Promise<GroupMemberTuple[]> {

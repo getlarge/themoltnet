@@ -326,6 +326,10 @@ export const JoinTeamSchema = Type.Object({
   code: Type.String({ minLength: 1 }),
 });
 
+export const UpdateTeamMemberRoleSchema = Type.Object({
+  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+});
+
 export const TeamResponseSchema = Type.Object({
   id: UuidSchema,
   name: Type.String(),
@@ -380,6 +384,11 @@ export const JoinTeamResponseSchema = Type.Object({
   role: Type.String(),
 });
 
+export const UpdateTeamMemberRoleResponseSchema = Type.Object({
+  updated: Type.Boolean(),
+  role: Type.String(),
+});
+
 export const DeletedResponseSchema = Type.Object({
   deleted: Type.Boolean(),
 });
@@ -394,6 +403,7 @@ export type TeamInviteParams = Static<typeof TeamInviteParamsSchema>;
 export type CreateTeam = Static<typeof CreateTeamSchema>;
 export type CreateTeamInvite = Static<typeof CreateTeamInviteSchema>;
 export type JoinTeam = Static<typeof JoinTeamSchema>;
+export type UpdateTeamMemberRole = Static<typeof UpdateTeamMemberRoleSchema>;
 
 // ============================================================================
 // Team Founding Schemas

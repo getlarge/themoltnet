@@ -28,6 +28,8 @@ import {
   TeamMemberSchema,
   TeamParamsSchema,
   TeamResponseSchema,
+  UpdateTeamMemberRoleResponseSchema,
+  UpdateTeamMemberRoleSchema,
 } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
@@ -55,6 +57,58 @@ interface EnrichedMember {
   displayName: string;
   fingerprint?: string;
   email?: string;
+}
+
+type TeamInviteRole = 'member' | 'manager';
+
+function teamRoleRank(relation: string): number {
+  if (relation === 'owners') return 3;
+  if (relation === 'managers') return 2;
+  if (relation === 'members') return 1;
+  return 0;
+}
+
+function inviteRoleToTeamRelation(role: TeamInviteRole): TeamRelation {
+  return role === 'manager' ? TeamRelation.Managers : TeamRelation.Members;
+}
+
+function highestTeamRelation(relations: string[]): TeamRelation | null {
+  return relations.reduce<TeamRelation | null>((best, relation) => {
+    const candidate = relation as TeamRelation;
+    if (!best || teamRoleRank(candidate) > teamRoleRank(best)) {
+      return candidate;
+    }
+    return best;
+  }, null);
+}
+
+async function rewriteTeamRole(
+  fastify: FastifyInstance,
+  teamId: string,
+  subjectId: string,
+  subjectNs: KetoNamespace,
+  role: TeamInviteRole,
+): Promise<void> {
+  await fastify.relationshipWriter.removeTeamMemberRelation(
+    teamId,
+    subjectId,
+    subjectNs,
+  );
+
+  if (role === 'manager') {
+    await fastify.relationshipWriter.grantTeamManagers(
+      teamId,
+      subjectId,
+      subjectNs,
+    );
+    return;
+  }
+
+  await fastify.relationshipWriter.grantTeamMembers(
+    teamId,
+    subjectId,
+    subjectNs,
+  );
 }
 
 async function resolveMembers(
@@ -548,6 +602,75 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // ── Update Member Role ───────────────────────────────────────
+  server.patch(
+    '/teams/:id/members/:subjectId',
+    {
+      schema: {
+        operationId: 'updateTeamMemberRole',
+        tags: ['teams'],
+        description:
+          'Update a member role between member and manager. Requires manage_members permission.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        params: TeamMemberParamsSchema,
+        body: UpdateTeamMemberRoleSchema,
+        response: {
+          200: UpdateTeamMemberRoleResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id, subjectId } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const canManageMembers =
+        await fastify.permissionChecker.canManageTeamMembers(
+          id,
+          identityId,
+          subjectNs,
+        );
+      if (!canManageMembers) throw createProblem('forbidden');
+
+      const members = await fastify.relationshipReader.listTeamMembers(id);
+      const target = members.find((member) => member.subjectId === subjectId);
+      if (!target) throw createProblem('not-found');
+
+      const currentRole = highestTeamRelation(
+        members
+          .filter((member) => member.subjectId === subjectId)
+          .map((member) => member.relation),
+      );
+      if (!currentRole) throw createProblem('not-found');
+      if (currentRole === TeamRelation.Owners) {
+        throw createProblem(
+          'conflict',
+          'Owner role cannot be changed with this endpoint',
+        );
+      }
+
+      const nextRole = request.body.role;
+      const targetRelation = inviteRoleToTeamRelation(nextRole);
+      if (currentRole !== targetRelation) {
+        await rewriteTeamRole(
+          fastify,
+          id,
+          subjectId,
+          target.subjectNs as KetoNamespace,
+          nextRole,
+        );
+      }
+
+      return reply.status(200).send({ updated: true, role: nextRole });
+    },
+  );
+
   // ── Create Invite ────────────────────────────────────────────
   server.post(
     '/teams/:id/invites',
@@ -744,11 +867,19 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('team-not-active');
       }
 
+      const targetRelation = inviteRoleToTeamRelation(invite.role);
+
       // Check if already a member
       const existingMembers = await fastify.relationshipReader.listTeamMembers(
         invite.teamId,
       );
-      if (existingMembers.some((m) => m.subjectId === identityId)) {
+      const existingMember = existingMembers.find(
+        (member) => member.subjectId === identityId,
+      );
+      if (
+        existingMember &&
+        teamRoleRank(existingMember.relation) >= teamRoleRank(targetRelation)
+      ) {
         throw createProblem('conflict', 'Already a member of this team');
       }
 
@@ -764,7 +895,15 @@ export async function teamRoutes(fastify: FastifyInstance) {
           ? KetoNamespace.Human
           : KetoNamespace.Agent;
       try {
-        if (invite.role === 'manager') {
+        if (existingMember) {
+          await rewriteTeamRole(
+            fastify,
+            invite.teamId,
+            identityId,
+            ns,
+            invite.role,
+          );
+        } else if (invite.role === 'manager') {
           await fastify.relationshipWriter.grantTeamManagers(
             invite.teamId,
             identityId,

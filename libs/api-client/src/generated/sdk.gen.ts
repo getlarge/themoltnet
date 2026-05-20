@@ -289,6 +289,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackErrors,
   UpdateRenderedPackResponses,
+  UpdateTeamMemberRoleData,
+  UpdateTeamMemberRoleErrors,
+  UpdateTeamMemberRoleResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -1894,6 +1897,34 @@ export const removeTeamMember = <ThrowOnError extends boolean = false>(
     ],
     url: '/teams/{id}/members/{subjectId}',
     ...options,
+  });
+
+/**
+ * Update a member role between member and manager. Requires manage_members permission.
+ */
+export const updateTeamMemberRole = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateTeamMemberRoleData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateTeamMemberRoleResponses,
+    UpdateTeamMemberRoleErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/teams/{id}/members/{subjectId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

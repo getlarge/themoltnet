@@ -16,7 +16,10 @@ interface MemberRowProps {
   displayName: string;
   fingerprint?: string;
   email?: string;
+  roleActionLabel?: string;
+  roleActionPending?: boolean;
   canRemove: boolean;
+  onRoleAction?: () => void;
   onRemove: () => void;
 }
 
@@ -26,7 +29,10 @@ export function MemberRow({
   displayName,
   fingerprint,
   email,
+  roleActionLabel,
+  roleActionPending = false,
   canRemove,
+  onRoleAction,
   onRemove,
 }: MemberRowProps) {
   const theme = useTheme();
@@ -67,6 +73,16 @@ export function MemberRow({
 
         <Stack direction="row" gap={2} align="center">
           {role && <RoleBadge role={role} />}
+          {roleActionLabel && onRoleAction && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onRoleAction}
+              disabled={roleActionPending}
+            >
+              {roleActionPending ? 'Updating...' : roleActionLabel}
+            </Button>
+          )}
           {canRemove && (
             <Button variant="ghost" size="sm" onClick={onRemove}>
               Remove

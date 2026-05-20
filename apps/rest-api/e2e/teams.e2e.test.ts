@@ -19,6 +19,7 @@ import {
   listTeamMembers,
   listTeams,
   removeTeamMember,
+  updateTeamMemberRole,
 } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -240,6 +241,88 @@ describe('Teams', () => {
       });
 
       expect(response.status).toBe(409);
+    });
+  });
+
+  describe('role promotion', () => {
+    let teamId: string;
+
+    beforeAll(async () => {
+      const { data } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'promotion-team' },
+      });
+      teamId = data!.id;
+
+      const { data: memberInvite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'member' },
+      });
+
+      await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: memberInvite!.code },
+      });
+    });
+
+    it('promotes an existing member when joining with a manager invite', async () => {
+      const { data: managerInvite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'manager' },
+      });
+
+      const { data, error, response } = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: managerInvite!.code },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.teamId).toBe(teamId);
+      expect(data!.role).toBe('manager');
+
+      const { data: members } = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+
+      const memberB = members!.items.find(
+        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+      );
+      expect(memberB).toBeDefined();
+      expect(memberB!.role).toBe('managers');
+    });
+
+    it('updates member roles explicitly', async () => {
+      const { data, error, response } = await updateTeamMemberRole({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: agentB.identityId },
+        body: { role: 'member' },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.role).toBe('member');
+
+      const { data: members } = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+
+      const memberB = members!.items.find(
+        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+      );
+      expect(memberB!.role).toBe('members');
     });
   });
 

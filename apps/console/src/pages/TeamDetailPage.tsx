@@ -10,6 +10,7 @@ import {
   listTeamInvites,
   type ListTeamInvitesResponses,
   removeTeamMember,
+  updateTeamMemberRole,
 } from '@moltnet/api-client';
 import {
   Button,
@@ -45,7 +46,7 @@ type TeamGroup = ListGroupsResponses[200]['items'][number];
 type Tab = 'members' | 'invites' | 'groups' | 'diaries';
 
 export function TeamDetailPage({ id }: { id: string }) {
-  const { teams } = useTeam();
+  const { teams, refreshTeams } = useTeam();
   const [, navigate] = useLocation();
   const search = useSearch();
   const theme = useTheme();
@@ -58,6 +59,7 @@ export function TeamDetailPage({ id }: { id: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [memberQuery, setMemberQuery] = useState('');
 
   const [showCreateInvite, setShowCreateInvite] = useState(false);
@@ -160,6 +162,7 @@ export function TeamDetailPage({ id }: { id: string }) {
         client: getApiClient(),
         path: { id, subjectId: member.subjectId },
       });
+      await refreshTeams();
       void loadTeam();
     } catch (err) {
       setActionError(
@@ -199,6 +202,30 @@ export function TeamDetailPage({ id }: { id: string }) {
       );
     }
     setConfirmDeleteGroup(null);
+  };
+
+  const handleToggleMemberRole = async (member: TeamMember) => {
+    if (member.role === 'owners') return;
+
+    setActionError(null);
+    setUpdatingMemberId(member.subjectId);
+    const nextRole = member.role === 'managers' ? 'member' : 'manager';
+
+    try {
+      await updateTeamMemberRole({
+        client: getApiClient(),
+        path: { id, subjectId: member.subjectId },
+        body: { role: nextRole },
+      });
+      await refreshTeams();
+      await loadTeam();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to update member role',
+      );
+    } finally {
+      setUpdatingMemberId(null);
+    }
   };
 
   const filteredMembers = useMemo(() => {
@@ -270,6 +297,13 @@ export function TeamDetailPage({ id }: { id: string }) {
     const owners = team.members.filter((m) => m.role === 'owners');
     if (member.role === 'owners' && owners.length <= 1) return false;
     return true;
+  };
+
+  const roleActionLabel = (member: TeamMember) => {
+    if (!canManage || member.role === 'owners') return null;
+    return member.role === 'managers'
+      ? 'Demote to member'
+      : 'Promote to manager';
   };
 
   return (
@@ -362,7 +396,10 @@ export function TeamDetailPage({ id }: { id: string }) {
                   displayName={member.displayName}
                   fingerprint={member.fingerprint}
                   email={member.email}
+                  roleActionLabel={roleActionLabel(member) ?? undefined}
+                  roleActionPending={updatingMemberId === member.subjectId}
                   canRemove={canRemoveMember(member)}
+                  onRoleAction={() => void handleToggleMemberRole(member)}
                   onRemove={() => setConfirmRemove(member)}
                 />
               ))}

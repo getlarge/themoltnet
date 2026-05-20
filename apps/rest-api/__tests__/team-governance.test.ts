@@ -9,6 +9,7 @@ import {
   createMockServices,
   createTestApp,
   type MockServices,
+  OTHER_AGENT_ID,
   OWNER_ID,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
@@ -335,6 +336,136 @@ describe('POST /teams/:id/accept', () => {
     });
 
     expect(res.statusCode).toBe(401);
+  });
+});
+
+// ── Suite 3: Team role updates ─────────────────────────────────
+
+describe('PATCH /teams/:id/members/:subjectId', () => {
+  let app: FastifyInstance;
+  let mocks: MockServices;
+
+  beforeEach(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
+  });
+
+  it('promotes a member to manager', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'members',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'manager' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(
+      mocks.relationshipWriter.removeTeamMemberRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OTHER_AGENT_ID, 'Agent');
+    expect(mocks.relationshipWriter.grantTeamManagers).toHaveBeenCalledWith(
+      TEAM_ID,
+      OTHER_AGENT_ID,
+      'Agent',
+    );
+  });
+
+  it('rejects owner role changes', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'owners',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'manager' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(mocks.relationshipWriter.grantTeamManagers).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /teams/join role promotion', () => {
+  let app: FastifyInstance;
+  let mocks: MockServices;
+
+  beforeEach(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'manager',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.teamRepository.findById.mockResolvedValue(MOCK_ACTIVE_TEAM);
+    mocks.teamRepository.claimInvite.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'manager',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+  });
+
+  it('promotes an existing member when a manager invite is redeemed', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OWNER_ID,
+        subjectNs: 'Agent',
+        relation: 'members',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(
+      mocks.relationshipWriter.removeTeamMemberRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent');
+    expect(mocks.relationshipWriter.grantTeamManagers).toHaveBeenCalledWith(
+      TEAM_ID,
+      OWNER_ID,
+      'Agent',
+    );
+  });
+
+  it('keeps same-role joins as conflict', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OWNER_ID,
+        subjectNs: 'Agent',
+        relation: 'managers',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
   });
 });
 

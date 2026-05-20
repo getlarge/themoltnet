@@ -5377,6 +5377,59 @@ export type RemoveTeamMemberResponses = {
 export type RemoveTeamMemberResponse =
   RemoveTeamMemberResponses[keyof RemoveTeamMemberResponses];
 
+export type UpdateTeamMemberRoleData = {
+  body: {
+    role: 'manager' | 'member';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/members/{subjectId}';
+};
+
+export type UpdateTeamMemberRoleErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type UpdateTeamMemberRoleError =
+  UpdateTeamMemberRoleErrors[keyof UpdateTeamMemberRoleErrors];
+
+export type UpdateTeamMemberRoleResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    updated: boolean;
+    role: string;
+  };
+};
+
+export type UpdateTeamMemberRoleResponse =
+  UpdateTeamMemberRoleResponses[keyof UpdateTeamMemberRoleResponses];
+
 export type ListTeamInvitesData = {
   body?: never;
   path: {
