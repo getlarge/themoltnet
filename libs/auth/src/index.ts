@@ -63,8 +63,8 @@ export type { TeamInviteRole, TeamRole } from './team-role.js';
 export {
   highestTeamRole,
   normalizeTeamRelation,
+  TEAM_ROLE,
   teamRelationToRole,
-  TeamRole,
   teamRoleRank,
   teamRoleToRelation,
 } from './team-role.js';

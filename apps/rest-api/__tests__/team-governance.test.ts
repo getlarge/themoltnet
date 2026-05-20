@@ -368,14 +368,41 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(
-      mocks.relationshipWriter.removeTeamMemberRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OTHER_AGENT_ID, 'Agent');
     expect(mocks.relationshipWriter.grantTeamManagers).toHaveBeenCalledWith(
       TEAM_ID,
       OTHER_AGENT_ID,
       'Agent',
     );
+    expect(
+      mocks.relationshipWriter.removeTeamRoleRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OTHER_AGENT_ID, 'Agent', 'members');
+  });
+
+  it('demotes a manager to member', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'managers',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'member' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
+      TEAM_ID,
+      OTHER_AGENT_ID,
+      'Agent',
+    );
+    expect(
+      mocks.relationshipWriter.removeTeamRoleRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OTHER_AGENT_ID, 'Agent', 'managers');
   });
 
   it('rejects owner role changes', async () => {
@@ -396,6 +423,55 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
 
     expect(res.statusCode).toBe(409);
     expect(mocks.relationshipWriter.grantTeamManagers).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when caller cannot manage members', async () => {
+    mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(false);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'manager' },
+    });
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('returns 404 when target member does not exist', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'manager' },
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 200 without writes when role is already current', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'managers',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'manager' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.relationshipWriter.grantTeamManagers).not.toHaveBeenCalled();
+    expect(
+      mocks.relationshipWriter.removeTeamRoleRelation,
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -438,14 +514,14 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(
-      mocks.relationshipWriter.removeTeamMemberRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent');
     expect(mocks.relationshipWriter.grantTeamManagers).toHaveBeenCalledWith(
       TEAM_ID,
       OWNER_ID,
       'Agent',
     );
+    expect(
+      mocks.relationshipWriter.removeTeamRoleRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent', 'members');
   });
 
   it('keeps same-role joins as conflict', async () => {
@@ -497,14 +573,14 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(
-      mocks.relationshipWriter.removeTeamMemberRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent');
     expect(mocks.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
       TEAM_ID,
       OWNER_ID,
       'Agent',
     );
+    expect(
+      mocks.relationshipWriter.removeTeamRoleRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent', 'managers');
   });
 
   it('rejects owner role changes when a lower invite role is redeemed', async () => {
@@ -532,7 +608,7 @@ describe('POST /teams/join role promotion', () => {
     expect(res.statusCode).toBe(409);
     expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
     expect(
-      mocks.relationshipWriter.removeTeamMemberRelation,
+      mocks.relationshipWriter.removeTeamRoleRelation,
     ).not.toHaveBeenCalled();
   });
 });
