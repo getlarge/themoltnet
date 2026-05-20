@@ -680,8 +680,8 @@ describe('Agent daemon (e2e)', () => {
       expect(existsSync(producerWorkspacePath!)).toBe(true);
       const expired = slotRegistry.reapExpiredSlots(Date.now() + 120_000);
       expect(expired).toHaveLength(1);
-      expect(existsSync(producerSessionPath!)).toBe(true);
-      expect(existsSync(producerWorkspacePath!)).toBe(true);
+      expect(existsSync(producerSessionPath!)).toBe(false);
+      expect(existsSync(producerWorkspacePath!)).toBe(false);
 
       const judge = await imposeJudgeEvalAttemptTask(
         correlationId,
