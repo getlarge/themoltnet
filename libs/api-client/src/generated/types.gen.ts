@@ -5412,6 +5412,10 @@ export type UpdateTeamMemberRoleErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
 };
 
 export type UpdateTeamMemberRoleError =

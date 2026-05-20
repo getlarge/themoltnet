@@ -215,6 +215,7 @@ var (
 	}
 	rn110AllowedHeaders = map[string]string{
 		"DELETE": "Authorization,X-Moltnet-Session-Token",
+		"PATCH":  "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn94AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
@@ -2800,12 +2801,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 												args[0],
 												args[1],
 											}, elemIsEscaped, w, r)
+										case "PATCH":
+											s.handleUpdateTeamMemberRoleRequest([2]string{
+												args[0],
+												args[1],
+											}, elemIsEscaped, w, r)
 										default:
 											s.notAllowed(w, r, notAllowedParams{
-												allowedMethods: "DELETE",
+												allowedMethods: "DELETE,PATCH",
 												allowedHeaders: rn110AllowedHeaders,
 												acceptPost:     "",
-												acceptPatch:    "",
+												acceptPatch:    "application/json",
 											})
 										}
 
@@ -5659,6 +5665,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 											r.name = RemoveTeamMemberOperation
 											r.summary = ""
 											r.operationID = "removeTeamMember"
+											r.operationGroup = ""
+											r.pathPattern = "/teams/{id}/members/{subjectId}"
+											r.args = args
+											r.count = 2
+											return r, true
+										case "PATCH":
+											r.name = UpdateTeamMemberRoleOperation
+											r.summary = ""
+											r.operationID = "updateTeamMemberRole"
 											r.operationGroup = ""
 											r.pathPattern = "/teams/{id}/members/{subjectId}"
 											r.args = args

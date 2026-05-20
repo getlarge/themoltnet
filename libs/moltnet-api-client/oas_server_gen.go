@@ -617,6 +617,12 @@ type Handler interface {
 	//
 	// PATCH /rendered-packs/{id}
 	UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (UpdateRenderedPackRes, error)
+	// UpdateTeamMemberRole implements updateTeamMemberRole operation.
+	//
+	// Update a member role between member and manager. Requires manage_members permission.
+	//
+	// PATCH /teams/{id}/members/{subjectId}
+	UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.
