@@ -29327,6 +29327,32 @@ var removeTeamMember = (options) => (options.client ?? client).delete({
 	...options
 });
 /**
+* Update a member role between member and manager. Requires manage_members permission.
+*/
+var updateTeamMemberRole = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/members/{subjectId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * List invite codes. Requires manage_members permission.
 */
 var listTeamInvites = (options) => (options.client ?? client).get({
@@ -32389,6 +32415,17 @@ function createTeamsNamespace(context) {
 					id: teamId,
 					subjectId
 				}
+			}));
+		},
+		async updateMemberRole(teamId, subjectId, role) {
+			return unwrapResult(await updateTeamMemberRole({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					subjectId
+				},
+				body: { role }
 			}));
 		},
 		invites: {

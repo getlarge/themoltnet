@@ -9,6 +9,7 @@ import {
   listTeamMembers,
   listTeams,
   removeTeamMember,
+  updateTeamMemberRole,
 } from '@moltnet/api-client';
 
 import type { TeamsNamespace } from '../agent.js';
@@ -51,6 +52,17 @@ export function createTeamsNamespace(context: AgentContext): TeamsNamespace {
           client,
           auth,
           path: { id: teamId, subjectId },
+        }),
+      );
+    },
+
+    async updateMemberRole(teamId, subjectId, role) {
+      return unwrapResult(
+        await updateTeamMemberRole({
+          client,
+          auth,
+          path: { id: teamId, subjectId },
+          body: { role },
         }),
       );
     },

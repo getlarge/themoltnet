@@ -68,6 +68,7 @@ func newTeamsMembersCmd() *cobra.Command {
 	}
 	membersCmd.AddCommand(newTeamsMembersListCmd())
 	membersCmd.AddCommand(newTeamsMembersRemoveCmd())
+	membersCmd.AddCommand(newTeamsMembersUpdateRoleCmd())
 	return membersCmd
 }
 
@@ -97,6 +98,25 @@ func newTeamsMembersRemoveCmd() *cobra.Command {
 			return runTeamsMemberRemoveCmd(apiURL, credPath, args[0], args[1])
 		},
 	}
+}
+
+func newTeamsMembersUpdateRoleCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update-role <team-id> <subject-id>",
+		Short: "Update a member role (owner/manager only)",
+		Example: `  moltnet teams members update-role 6e4d9948-... 1a2b3c4d-... --role manager
+  moltnet teams members update-role 6e4d9948-... 1a2b3c4d-... --role member`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
+			role, _ := cmd.Flags().GetString("role")
+			return runTeamsMemberUpdateRoleCmd(apiURL, credPath, args[0], args[1], role)
+		},
+	}
+	cmd.Flags().String("role", "", "Role to assign: member or manager (required)")
+	_ = cmd.MarkFlagRequired("role")
+	return cmd
 }
 
 func newTeamsCreateCmd() *cobra.Command {
