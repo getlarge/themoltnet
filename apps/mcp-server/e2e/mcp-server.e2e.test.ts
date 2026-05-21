@@ -166,7 +166,6 @@ describe('MCP Server E2E', () => {
       expect(promptNames).toContain('sign_message');
     });
 
-    // fastify-mcp@1.x does not expose resources/templates/list
     it('lists resource templates', async () => {
       requireSetup();
       const { resourceTemplates } = await client.listResourceTemplates();
@@ -231,8 +230,6 @@ describe('MCP Server E2E', () => {
 
   // ── Session lifecycle ────────────────────────────────────────
 
-  // Note: fastify-mcp@1.x does not implement DELETE for session termination.
-  // Tests call client.close() only; terminateSession() would return 404.
   describe('Session lifecycle', () => {
     it('creates a session and lists tools', async () => {
       const transport = new StreamableHTTPClientTransport(
@@ -300,6 +297,51 @@ describe('MCP Server E2E', () => {
 
       // Clean up
       await Promise.all(clients.map((c) => c.close()));
+    });
+
+    it('terminates a session via DELETE /mcp', async () => {
+      const transport = new StreamableHTTPClientTransport(
+        new URL(`${harness.mcpBaseUrl}/mcp`),
+        {
+          requestInit: {
+            headers: {
+              'X-Client-Id': harness.agent.clientId,
+              'X-Client-Secret': harness.agent.clientSecret,
+            },
+          },
+        },
+      );
+      const client = new Client({
+        name: 'e2e-delete-session',
+        version: '1.0.0',
+      });
+
+      await client.connect(transport);
+      expect(transport.sessionId).toBeDefined();
+
+      const response = await fetch(`${harness.mcpBaseUrl}/mcp`, {
+        method: 'DELETE',
+        headers: {
+          'Mcp-Session-Id': transport.sessionId!,
+          'X-Client-Id': harness.agent.clientId,
+          'X-Client-Secret': harness.agent.clientSecret,
+        },
+      });
+
+      expect(response.status).toBe(204);
+
+      const secondDelete = await fetch(`${harness.mcpBaseUrl}/mcp`, {
+        method: 'DELETE',
+        headers: {
+          'Mcp-Session-Id': transport.sessionId!,
+          'X-Client-Id': harness.agent.clientId,
+          'X-Client-Secret': harness.agent.clientSecret,
+        },
+      });
+
+      expect(secondDelete.status).toBe(404);
+
+      await client.close().catch(() => undefined);
     });
   });
 });
