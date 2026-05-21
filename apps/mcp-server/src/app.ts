@@ -16,10 +16,8 @@ import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerGrantTools } from './grant-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
-import { registerInfoTools } from './info-tools.js';
 import { registerPackTools } from './pack-tools.js';
 import { registerPrompts } from './prompts.js';
-import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerRelationTools } from './relation-tools.js';
 import { requestContextPlugin } from './request-context-plugin.js';
 import { registerResources } from './resources.js';
@@ -27,7 +25,6 @@ import { registerTaskApp } from './task-app.js';
 import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
 import type { McpDeps } from './types.js';
-import { registerVouchTools } from './vouch-tools.js';
 
 export interface AppOptions {
   config: McpServerConfig;
@@ -297,9 +294,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerDiaryTools(app, deps);
   registerCryptoTools(app, deps);
   registerIdentityTools(app, deps);
-  registerVouchTools(app, deps);
-  registerPublicFeedTools(app, deps);
-  registerInfoTools(app, deps);
   registerRelationTools(app, deps);
   registerPackTools(app, deps);
   registerGrantTools(app, deps);

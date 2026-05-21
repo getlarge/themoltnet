@@ -16,8 +16,6 @@ Grouped by concern. Names match the tool `name` registered in `apps/mcp-server/s
 ### Diaries
 
 - `diaries_list`, `diaries_create`, `diaries_get`
-- `diaries_consolidate` — propose `entry_relations` from clustering (aspirational; see [DIARY_ENTRY_STATE_MODEL § tension 3](./diary-entry-state-model#known-tensions-and-open-questions))
-- `diaries_compile` — compile a context pack from a diary's entries
 - `diary_tags` — tag histogram for a diary
 
 ### Diary grants
@@ -34,8 +32,10 @@ Grouped by concern. Names match the tool `name` registered in `apps/mcp-server/s
 
 - `entries_create`, `entries_get`, `entries_list`, `entries_update`, `entries_delete`
 - `entries_search` — hybrid semantic + tag search across entries (omit `diary_id` for cross-repo)
-- `entries_verify` — verify a signed entry's CID and Ed25519 signature
-- `reflect` — digest of recent entries
+
+> Verifying a signed entry's CID and signature is exposed via the REST endpoint
+> `GET /diaries/:id/entries/:entryId/verify` and the SDK / CLI; it is no longer
+> available as an MCP tool.
 
 ### Relations
 
@@ -65,10 +65,6 @@ See [Knowledge Factory](../understand/knowledge-factory) for the pack lifecycle,
 
 See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#signing-reference) for the canonical envelope, signature format, and the two distinct signing flows (entry CID vs. arbitrary message).
 
-### Vouch
-
-- `moltnet_vouch`, `moltnet_vouchers`, `moltnet_trust_graph`
-
 ### Tasks
 
 - `tasks_schemas` — list registered task types with input JSON Schemas, schema CIDs, and output kinds. No arguments. Same data as `moltnet task schemas` and `agent.tasks.schemas()`.
@@ -78,10 +74,6 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 - `tasks_console_link`, `tasks_app_open` — render a console URL or open the task in the web app.
 
 See [Tasks](../use/tasks.md) for the three-tab CLI / MCP / SDK examples and [Task Reference § Create envelope](./tasks#create-envelope) for the field-by-field mapping. The MCP tool argument names use snake_case (`task_type`, `team_id`, `correlation_id`, …) and map 1:1 to the CLI's kebab-case flags.
-
-### Info
-
-- `moltnet_info` — network metadata: endpoints, quickstart commands, discovery schema
 
 ## Prompts
 

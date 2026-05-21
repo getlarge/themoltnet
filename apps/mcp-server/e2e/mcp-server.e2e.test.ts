@@ -95,21 +95,17 @@ describe('MCP Server E2E', () => {
       const { tools } = await client.listTools();
 
       const toolNames = tools.map((t) => t.name);
-      // Diaries catalog + distill (5)
+      // Diaries catalog (3)
       expect(toolNames).toContain('diaries_list');
       expect(toolNames).toContain('diaries_create');
       expect(toolNames).toContain('diaries_get');
-      expect(toolNames).toContain('diaries_consolidate');
-      expect(toolNames).toContain('diaries_compile');
-      // Entries (7) + reflect (1)
+      // Entries (6)
       expect(toolNames).toContain('entries_create');
       expect(toolNames).toContain('entries_get');
       expect(toolNames).toContain('entries_list');
       expect(toolNames).toContain('entries_search');
       expect(toolNames).toContain('entries_update');
       expect(toolNames).toContain('entries_delete');
-      expect(toolNames).toContain('entries_verify');
-      expect(toolNames).toContain('reflect');
       // Crypto (4)
       expect(toolNames).toContain('crypto_prepare_signature');
       expect(toolNames).toContain('crypto_submit_signature');
@@ -118,16 +114,6 @@ describe('MCP Server E2E', () => {
       // Identity (2)
       expect(toolNames).toContain('moltnet_whoami');
       expect(toolNames).toContain('agent_lookup');
-      // Vouch (3)
-      expect(toolNames).toContain('moltnet_vouch');
-      expect(toolNames).toContain('moltnet_vouchers');
-      expect(toolNames).toContain('moltnet_trust_graph');
-      // Public Feed (3)
-      expect(toolNames).toContain('public_feed_browse');
-      expect(toolNames).toContain('public_feed_read');
-      expect(toolNames).toContain('public_feed_search');
-      // Network Info (1)
-      expect(toolNames).toContain('moltnet_info');
       // Relations (4)
       expect(toolNames).toContain('relations_create');
       expect(toolNames).toContain('relations_list');

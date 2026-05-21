@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  handleDiariesCompile,
-  handleDiariesConsolidate,
   handleDiariesCreate,
   handleDiariesGet,
   handleDiariesList,
@@ -12,8 +10,6 @@ import {
   handleEntryList,
   handleEntrySearch,
   handleEntryUpdate,
-  handleEntryVerify,
-  handleReflect,
 } from '../src/diary-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
@@ -30,24 +26,18 @@ import {
 } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
-  compileDiary: vi.fn(),
-  consolidateDiary: vi.fn(),
   createDiaryEntry: vi.fn(),
   getDiaryEntryById: vi.fn(),
   listDiaryEntries: vi.fn(),
   searchDiary: vi.fn(),
   updateDiaryEntryById: vi.fn(),
   deleteDiaryEntryById: vi.fn(),
-  verifyDiaryEntryById: vi.fn(),
-  reflectDiary: vi.fn(),
   listDiaries: vi.fn(),
   createDiary: vi.fn(),
   getDiary: vi.fn(),
 }));
 
 import {
-  compileDiary,
-  consolidateDiary,
   createDiary,
   createDiaryEntry,
   deleteDiaryEntryById,
@@ -55,10 +45,8 @@ import {
   getDiaryEntryById,
   listDiaries,
   listDiaryEntries,
-  reflectDiary,
   searchDiary,
   updateDiaryEntryById,
-  verifyDiaryEntryById,
 } from '@moltnet/api-client';
 
 describe('Diary tools', () => {
@@ -591,67 +579,6 @@ describe('Diary tools', () => {
     });
   });
 
-  describe('reflect', () => {
-    it('generates a digest with defaults', async () => {
-      const digest = {
-        entries: [{ id: ENTRY_ID, content: 'A memory' }],
-        totalEntries: 1,
-        periodDays: 7,
-        generatedAt: '2025-01-01T00:00:00.000Z',
-      };
-      vi.mocked(reflectDiary).mockResolvedValue(sdkOk(digest) as never);
-
-      const result = await handleReflect({ diary_id: DIARY_ID }, deps, context);
-
-      expect(reflectDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: { diaryId: DIARY_ID, days: 7, maxEntries: 50 },
-        }),
-      );
-      const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('entries');
-    });
-
-    it('passes custom days and max_entries', async () => {
-      vi.mocked(reflectDiary).mockResolvedValue(
-        sdkOk({ entries: [], totalEntries: 0 }) as never,
-      );
-
-      await handleReflect(
-        { diary_id: DIARY_ID, days: 30, max_entries: 10 },
-        deps,
-        context,
-      );
-
-      expect(reflectDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: { diaryId: DIARY_ID, days: 30, maxEntries: 10 },
-        }),
-      );
-    });
-  });
-
-  describe('entries_verify', () => {
-    it('verifies an entry by ID', async () => {
-      vi.mocked(verifyDiaryEntryById).mockResolvedValue(
-        sdkOk({ signed: true, valid: true }) as never,
-      );
-
-      const result = await handleEntryVerify(
-        { entry_id: ENTRY_ID },
-        deps,
-        context,
-      );
-
-      expect(verifyDiaryEntryById).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { entryId: ENTRY_ID },
-        }),
-      );
-      expect(result.isError).toBeUndefined();
-    });
-  });
-
   describe('diaries_list', () => {
     it('returns list of diaries with both agent and human creators', async () => {
       const data = {
@@ -869,222 +796,6 @@ describe('Diary tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Not authenticated');
-    });
-  });
-
-  describe('diaries_consolidate', () => {
-    it('calls consolidate API and returns result', async () => {
-      vi.mocked(consolidateDiary).mockResolvedValue(
-        sdkOk({ clusters: [], total: 0 }) as never,
-      );
-
-      const result = await handleDiariesConsolidate(
-        {
-          diary_id: DIARY_ID,
-          threshold: 0.75,
-          strategy: 'hybrid',
-        },
-        deps,
-        context,
-      );
-
-      expect(consolidateDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { id: DIARY_ID },
-          body: {
-            threshold: 0.75,
-            strategy: 'hybrid',
-            entryIds: undefined,
-            excludeTags: undefined,
-          },
-        }),
-      );
-      expect(result.isError).toBeUndefined();
-    });
-
-    it('passes exclude_tags to consolidate API', async () => {
-      vi.mocked(consolidateDiary).mockResolvedValue(
-        sdkOk({ clusters: [], total: 0 }) as never,
-      );
-
-      await handleDiariesConsolidate(
-        {
-          diary_id: DIARY_ID,
-          tags: ['context'],
-          exclude_tags: ['incident'],
-        },
-        deps,
-        context,
-      );
-
-      expect(consolidateDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.objectContaining({
-            tags: ['context'],
-            excludeTags: ['incident'],
-          }),
-        }),
-      );
-    });
-  });
-
-  describe('diaries_compile', () => {
-    it('calls compile API and returns result', async () => {
-      vi.mocked(compileDiary).mockResolvedValue(
-        sdkOk({
-          id: 'pack-001',
-          diaryId: DIARY_ID,
-          packCid: 'bafytest',
-          packCodec: 'dag-cbor',
-          packType: 'compile',
-          params: {},
-          payload: {},
-          creator: agentCreator,
-          supersedesPackId: null,
-          pinned: false,
-          expiresAt: null,
-          createdAt: new Date().toISOString(),
-          entries: [],
-          compileStats: {
-            totalTokens: 0,
-            entriesIncluded: 0,
-            entriesCompressed: 0,
-            compressionRatio: 1,
-            budgetUtilization: 0,
-            elapsedMs: 1,
-          },
-          compileTrace: { lambdaUsed: 0.5, embeddingDim: 0 },
-        }) as never,
-      );
-
-      const result = await handleDiariesCompile(
-        {
-          diary_id: DIARY_ID,
-          token_budget: 1024,
-          task_prompt: 'prepare context for oauth bugfix',
-        },
-        deps,
-        context,
-      );
-
-      expect(compileDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { id: DIARY_ID },
-          body: {
-            tokenBudget: 1024,
-            taskPrompt: 'prepare context for oauth bugfix',
-            lambda: undefined,
-            includeTags: undefined,
-            excludeTags: undefined,
-            wRecency: undefined,
-            wImportance: undefined,
-            createdBefore: undefined,
-            createdAfter: undefined,
-            entryTypes: undefined,
-          },
-        }),
-      );
-      expect(result.isError).toBeUndefined();
-    });
-
-    it('passes exclude_tags to compile API', async () => {
-      vi.mocked(compileDiary).mockResolvedValue(
-        sdkOk({
-          id: 'pack-001',
-          diaryId: DIARY_ID,
-          packCid: 'bafytest',
-          packCodec: 'dag-cbor',
-          packType: 'compile',
-          params: {},
-          payload: {},
-          creator: agentCreator,
-          supersedesPackId: null,
-          pinned: false,
-          expiresAt: null,
-          createdAt: new Date().toISOString(),
-          entries: [],
-          compileStats: {
-            totalTokens: 0,
-            entriesIncluded: 0,
-            entriesCompressed: 0,
-            compressionRatio: 1,
-            budgetUtilization: 0,
-            elapsedMs: 1,
-          },
-          compileTrace: { lambdaUsed: 0.5, embeddingDim: 0 },
-        }) as never,
-      );
-
-      await handleDiariesCompile(
-        {
-          diary_id: DIARY_ID,
-          token_budget: 1024,
-          include_tags: ['context'],
-          exclude_tags: ['incident'],
-        },
-        deps,
-        context,
-      );
-
-      expect(compileDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.objectContaining({
-            includeTags: ['context'],
-            excludeTags: ['incident'],
-          }),
-        }),
-      );
-    });
-
-    it('passes temporal and entryType filters to compile API', async () => {
-      vi.mocked(compileDiary).mockResolvedValue(
-        sdkOk({
-          id: 'pack-001',
-          diaryId: DIARY_ID,
-          packCid: 'bafytest',
-          packCodec: 'dag-cbor',
-          packType: 'compile',
-          params: {},
-          payload: {},
-          creator: agentCreator,
-          supersedesPackId: null,
-          pinned: false,
-          expiresAt: null,
-          createdAt: new Date().toISOString(),
-          entries: [],
-          compileStats: {
-            totalTokens: 0,
-            entriesIncluded: 0,
-            entriesCompressed: 0,
-            compressionRatio: 1,
-            budgetUtilization: 0,
-            elapsedMs: 1,
-          },
-          compileTrace: { lambdaUsed: 0.5, embeddingDim: 0 },
-        }) as never,
-      );
-
-      await handleDiariesCompile(
-        {
-          diary_id: DIARY_ID,
-          token_budget: 1024,
-          created_before: '2026-03-01T00:00:00Z',
-          created_after: '2025-12-01T00:00:00Z',
-          entry_types: ['semantic', 'procedural'],
-        },
-        deps,
-        context,
-      );
-
-      expect(compileDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.objectContaining({
-            createdBefore: '2026-03-01T00:00:00Z',
-            createdAfter: '2025-12-01T00:00:00Z',
-            entryTypes: ['semantic', 'procedural'],
-          }),
-        }),
-      );
     });
   });
 });

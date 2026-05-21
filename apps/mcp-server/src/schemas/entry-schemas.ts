@@ -1,8 +1,7 @@
 /**
  * Diary entry MCP tool input schemas.
  *
- * Covers: entries_create/get/list/search/update/delete/verify,
- * diary_tags, and reflect.
+ * Covers: entries_create/get/list/search/update/delete and diary_tags.
  */
 
 import type {
@@ -16,14 +15,10 @@ import type {
   ListDiaryEntriesData,
   ListDiaryEntriesResponses,
   ListDiaryTagsResponses,
-  ReflectDiaryData,
-  ReflectDiaryResponses,
   SearchDiaryData,
   SearchDiaryResponses,
   UpdateDiaryEntryByIdData,
   UpdateDiaryEntryByIdResponses,
-  VerifyDiaryEntryByIdData,
-  VerifyDiaryEntryByIdResponses,
 } from '@moltnet/api-client';
 import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
@@ -267,20 +262,6 @@ export type EntryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
   entry_id: PathOf<UpdateDiaryEntryByIdData>['entryId'];
 };
 
-export const EntryVerifySchema = Type.Object({
-  diary_id: Type.Optional(
-    Type.String({
-      description:
-        'Deprecated. Diary identifier (UUID). No longer required for by-ID routes.',
-    }),
-  ),
-  entry_id: Type.String({ description: 'The entry ID to verify' }),
-});
-export type EntryVerifyInput = {
-  diary_id?: string;
-  entry_id: PathOf<VerifyDiaryEntryByIdData>['entryId'];
-};
-
 export const EntryDeleteSchema = Type.Object({
   diary_id: Type.Optional(
     Type.String({
@@ -293,32 +274,6 @@ export const EntryDeleteSchema = Type.Object({
 export type EntryDeleteInput = {
   diary_id?: string;
   entry_id: PathOf<DeleteDiaryEntryByIdData>['entryId'];
-};
-
-export const ReflectSchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary identifier (UUID).',
-  }),
-  days: Type.Optional(
-    Type.Number({
-      description: 'Only include entries from the last N days (default 7)',
-    }),
-  ),
-  max_entries: Type.Optional(
-    Type.Number({ description: 'Max entries to include (default 50)' }),
-  ),
-  entry_types: Type.Optional(
-    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
-      description: 'Filter by memory type',
-    }),
-  ),
-});
-type ReflectDiaryQuery = QueryOf<ReflectDiaryData>;
-export type ReflectInput = {
-  diary_id: ReflectDiaryQuery['diaryId'];
-  days?: ReflectDiaryQuery['days'];
-  max_entries?: ReflectDiaryQuery['maxEntries'];
-  entry_types?: EntryType[];
 };
 
 // --- Output schemas ---
@@ -425,15 +380,6 @@ export const EntrySearchOutputSchema = Type.Object({
   total: Type.Number(),
 });
 
-export const EntryVerifyOutputSchema = Type.Object({
-  signed: Type.Boolean(),
-  hashMatches: Type.Boolean(),
-  signatureValid: Type.Boolean(),
-  valid: Type.Boolean(),
-  contentHash: Type.Union([Type.String(), Type.Null()]),
-  agentFingerprint: Type.Union([Type.String(), Type.Null()]),
-});
-
 export const DiaryTagsOutputSchema = Type.Object({
   tags: Type.Array(
     Type.Object({
@@ -442,22 +388,6 @@ export const DiaryTagsOutputSchema = Type.Object({
     }),
   ),
   total: Type.Number(),
-});
-
-export const ReflectOutputSchema = Type.Object({
-  entries: Type.Array(
-    Type.Object({
-      id: Type.String(),
-      content: Type.String(),
-      tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
-      importance: Type.Number(),
-      entryType: EntryTypeLiteralSchema,
-      createdAt: Type.String(),
-    }),
-  ),
-  totalEntries: Type.Number(),
-  periodDays: Type.Number(),
-  generatedAt: Type.String(),
 });
 
 // --- Compile-time drift checks ---
@@ -486,15 +416,6 @@ type _EntryDeleteInputMatchesSchema = AssertSchemaToApi<
   Static<typeof EntryDeleteSchema>,
   EntryDeleteInput
 >;
-type _EntryVerifyInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof EntryVerifySchema>,
-  EntryVerifyInput
->;
-type _ReflectInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof ReflectSchema>,
-  ReflectInput
->;
-
 type _EntryCreateOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof EntryCreateOutputSchema>,
   ResponseOf<CreateDiaryEntryResponses>
@@ -519,15 +440,7 @@ type _EntrySearchOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof EntrySearchOutputSchema>,
   ResponseOf<SearchDiaryResponses>
 >;
-type _EntryVerifyOutputMatchesApi = AssertOutputMatchesApi<
-  Static<typeof EntryVerifyOutputSchema>,
-  ResponseOf<VerifyDiaryEntryByIdResponses>
->;
 type _DiaryTagsOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof DiaryTagsOutputSchema>,
   ResponseOf<ListDiaryTagsResponses>
->;
-type _ReflectOutputMatchesApi = AssertOutputMatchesApi<
-  Static<typeof ReflectOutputSchema>,
-  ResponseOf<ReflectDiaryResponses>
 >;

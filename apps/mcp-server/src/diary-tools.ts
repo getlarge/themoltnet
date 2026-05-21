@@ -6,8 +6,6 @@
  */
 
 import {
-  compileDiary,
-  consolidateDiary,
   createDiary,
   createDiaryEntry,
   deleteDiaryEntryById,
@@ -16,25 +14,17 @@ import {
   listDiaries,
   listDiaryEntries,
   listDiaryTags,
-  reflectDiary,
   searchDiary,
   updateDiaryEntryById,
-  verifyDiaryEntryById,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import type {
-  DiariesCompileInput,
-  DiariesConsolidateInput,
   DiariesCreateInput,
   DiariesGetInput,
   DiariesListInput,
 } from './schemas/diary-schemas.js';
 import {
-  DiariesCompileOutputSchema,
-  DiariesCompileSchema,
-  DiariesConsolidateOutputSchema,
-  DiariesConsolidateSchema,
   DiariesCreateOutputSchema,
   DiariesCreateSchema,
   DiariesGetOutputSchema,
@@ -50,8 +40,6 @@ import type {
   EntryListInput,
   EntrySearchInput,
   EntryUpdateInput,
-  EntryVerifyInput,
-  ReflectInput,
 } from './schemas/entry-schemas.js';
 import {
   DiaryTagsOutputSchema,
@@ -68,10 +56,6 @@ import {
   EntrySearchSchema,
   EntryUpdateOutputSchema,
   EntryUpdateSchema,
-  EntryVerifyOutputSchema,
-  EntryVerifySchema,
-  ReflectOutputSchema,
-  ReflectSchema,
 } from './schemas/entry-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
@@ -257,57 +241,6 @@ export async function handleEntryDelete(
   return structuredResult(data);
 }
 
-export async function handleReflect(
-  args: ReflectInput,
-  deps: McpDeps,
-  context: HandlerContext,
-): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'reflect' }, 'tool.invoked');
-  const token = getTokenFromContext(context);
-  if (!token) return errorResult('Not authenticated');
-
-  const { data, error } = await reflectDiary({
-    client: deps.client,
-    auth: () => token,
-    query: {
-      diaryId: args.diary_id,
-      days: args.days ?? 7,
-      maxEntries: args.max_entries ?? 50,
-      ...(args.entry_types && { entryTypes: args.entry_types }),
-    },
-  });
-
-  if (error || !data) {
-    deps.logger.error({ tool: 'reflect', err: error }, 'tool.error');
-    return errorResult(extractApiErrorMessage(error, 'Reflect failed'));
-  }
-
-  return structuredResult(data);
-}
-
-export async function handleEntryVerify(
-  args: EntryVerifyInput,
-  deps: McpDeps,
-  context: HandlerContext,
-): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'entries_verify' }, 'tool.invoked');
-  const token = getTokenFromContext(context);
-  if (!token) return errorResult('Not authenticated');
-
-  const { data, error } = await verifyDiaryEntryById({
-    client: deps.client,
-    auth: () => token,
-    path: { entryId: args.entry_id },
-  });
-
-  if (error || !data) {
-    deps.logger.error({ tool: 'entries_verify', err: error }, 'tool.error');
-    return errorResult(extractApiErrorMessage(error, 'Verification failed'));
-  }
-
-  return structuredResult(data);
-}
-
 export async function handleDiariesList(
   _args: DiariesListInput,
   deps: McpDeps,
@@ -377,88 +310,6 @@ export async function handleDiariesGet(
   return structuredResult(data);
 }
 
-export async function handleDiariesConsolidate(
-  args: DiariesConsolidateInput,
-  deps: McpDeps,
-  context: HandlerContext,
-): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'diaries_consolidate' }, 'tool.invoked');
-  const token = getTokenFromContext(context);
-  if (!token) return errorResult('Not authenticated');
-
-  const { diary_id, entry_ids, tags, exclude_tags, threshold, strategy } = args;
-  const { data, error } = await consolidateDiary({
-    client: deps.client,
-    auth: () => token,
-    path: { id: diary_id },
-    body: {
-      entryIds: entry_ids,
-      tags,
-      excludeTags: exclude_tags,
-      threshold,
-      strategy,
-    },
-  });
-
-  if (error || !data) {
-    deps.logger.error(
-      { tool: 'diaries_consolidate', err: error },
-      'tool.error',
-    );
-    return errorResult(extractApiErrorMessage(error, 'Consolidation failed'));
-  }
-
-  return structuredResult(data);
-}
-
-export async function handleDiariesCompile(
-  args: DiariesCompileInput,
-  deps: McpDeps,
-  context: HandlerContext,
-): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'diaries_compile' }, 'tool.invoked');
-  const token = getTokenFromContext(context);
-  if (!token) return errorResult('Not authenticated');
-
-  const {
-    diary_id,
-    token_budget,
-    task_prompt,
-    lambda,
-    include_tags,
-    exclude_tags,
-    w_recency,
-    w_importance,
-    created_before,
-    created_after,
-    entry_types,
-  } = args;
-  const { data, error } = await compileDiary({
-    client: deps.client,
-    auth: () => token,
-    path: { id: diary_id },
-    body: {
-      tokenBudget: token_budget,
-      taskPrompt: task_prompt,
-      lambda,
-      includeTags: include_tags,
-      excludeTags: exclude_tags,
-      wRecency: w_recency,
-      wImportance: w_importance,
-      createdBefore: created_before,
-      createdAfter: created_after,
-      entryTypes: entry_types,
-    },
-  });
-
-  if (error || !data) {
-    deps.logger.error({ tool: 'diaries_compile', err: error }, 'tool.error');
-    return errorResult(extractApiErrorMessage(error, 'Compile failed'));
-  }
-
-  return structuredResult(data);
-}
-
 // --- Tool registration ---
 
 export async function handleDiaryTags(
@@ -506,28 +357,6 @@ export function registerDiaryTools(
       outputSchema: DiariesListOutputSchema,
     },
     async (args, ctx) => handleDiariesList(args, deps, ctx),
-  );
-
-  fastify.mcpAddTool(
-    {
-      name: 'diaries_consolidate',
-      description:
-        '[DEPRECATED] Server-side consolidation is obsolete; compose consolidation suggestions client-side. Cluster semantically similar entries and return consolidation suggestions.',
-      inputSchema: DiariesConsolidateSchema,
-      outputSchema: DiariesConsolidateOutputSchema,
-    },
-    async (args, ctx) => handleDiariesConsolidate(args, deps, ctx),
-  );
-
-  fastify.mcpAddTool(
-    {
-      name: 'diaries_compile',
-      description:
-        '[DEPRECATED] Server-side compilation is obsolete; use packs_create with agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.',
-      inputSchema: DiariesCompileSchema,
-      outputSchema: DiariesCompileOutputSchema,
-    },
-    async (args, ctx) => handleDiariesCompile(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
@@ -634,29 +463,5 @@ export function registerDiaryTools(
       outputSchema: EntryDeleteOutputSchema,
     },
     async (args, ctx) => handleEntryDelete(args, deps, ctx),
-  );
-
-  fastify.mcpAddTool(
-    {
-      name: 'entries_verify',
-      description:
-        'Verify the content signature of a diary entry.' +
-        ' Checks that the content hash matches and the Ed25519 signature is valid.' +
-        ' Returns signed status, hash match, signature validity, and agent fingerprint.',
-      inputSchema: EntryVerifySchema,
-      outputSchema: EntryVerifyOutputSchema,
-    },
-    async (args, ctx) => handleEntryVerify(args, deps, ctx),
-  );
-
-  fastify.mcpAddTool(
-    {
-      name: 'reflect',
-      description:
-        'Get a curated summary of your memories. Use this after context compression to rebuild your sense of self.',
-      inputSchema: ReflectSchema,
-      outputSchema: ReflectOutputSchema,
-    },
-    async (args, ctx) => handleReflect(args, deps, ctx),
   );
 }

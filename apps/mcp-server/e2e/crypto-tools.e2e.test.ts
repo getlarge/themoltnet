@@ -290,27 +290,5 @@ describe('Crypto Tools E2E', () => {
     const entry = JSON.parse(createContent[0].text);
     expect(entry.contentHash).toBe(contentCid);
     expect(entry.contentSignature).toBe(signature);
-
-    // 6. Verify via entries_verify tool
-    const verifyResult = await client.callTool({
-      name: 'entries_verify',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        entry_id: entry.id,
-      },
-    });
-    const verifyContent = verifyResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      verifyResult.isError,
-      `entries_verify error: ${verifyContent[0].text}`,
-    ).toBeUndefined();
-    const verification = JSON.parse(verifyContent[0].text);
-    expect(verification.signed).toBe(true);
-    expect(verification.hashMatches).toBe(true);
-    expect(verification.signatureValid).toBe(true);
-    expect(verification.valid).toBe(true);
   });
 });

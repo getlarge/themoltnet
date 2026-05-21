@@ -1,8 +1,8 @@
 /**
  * E2E: Diary Tools — diary CRUD, entry CRUD, distill
  *
- * Tests diaries_list, diaries_create, diaries_get, diaries_consolidate,
- * diaries_compile, entries_create, entries_get, entries_list.
+ * Tests diaries_list, diaries_create, diaries_get,
+ * entries_create, entries_get, entries_list.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -139,89 +139,6 @@ describe('Diary Tools E2E', () => {
     const content = result.content as Array<{ type: string; text: string }>;
     expect(result.isError).toBe(true);
     expect(content[0].text).toMatch(/not found|Failed/i);
-  });
-
-  it('diaries_consolidate and diaries_compile return distill outputs', async () => {
-    requireSetup();
-    const createResult = await client.callTool({
-      name: 'diaries_create',
-      arguments: {
-        name: 'e2e-distill-diary',
-        team_id: harness.personalTeamId,
-      },
-    });
-    const createContent = createResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(createResult.isError).toBeUndefined();
-    const createdDiary = JSON.parse(createContent[0].text) as {
-      id: string;
-    };
-
-    const consolidateResult = await client.callTool({
-      name: 'diaries_consolidate',
-      arguments: { diary_id: createdDiary.id },
-    });
-    const consolidateContent = consolidateResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      consolidateResult.isError,
-      `diaries_consolidate error: ${consolidateContent[0].text}`,
-    ).toBeUndefined();
-    const consolidateParsed = JSON.parse(consolidateContent[0].text);
-    expect(consolidateParsed).toHaveProperty('workflowId');
-    expect(consolidateParsed).toHaveProperty('clusters');
-
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: { diary_id: createdDiary.id, token_budget: 4000 },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      compileResult.isError,
-      `diaries_compile error: ${compileContent[0].text}`,
-    ).toBeUndefined();
-    const compileParsed = JSON.parse(compileContent[0].text);
-    expect(compileParsed).toHaveProperty('packCid');
-    expect(compileParsed).toHaveProperty('entries');
-    expect(compileParsed).toHaveProperty('compileStats');
-  });
-
-  it('diaries_compile accepts temporal and entryType filter params', async () => {
-    requireSetup();
-
-    // Use a past cutoff so no entries qualify → compile returns empty pack
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        token_budget: 4000,
-        created_before: '2020-01-01T00:00:00Z',
-        entry_types: ['semantic', 'procedural'],
-      },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-
-    // Should succeed (not error) — the params are accepted by the schema
-    // The pack may have 0 entries since the cutoff is in the distant past
-    if (compileResult.isError) {
-      // If compile errors on empty input, that's acceptable — the point is
-      // the params were accepted and forwarded, not rejected as unknown
-      expect(compileContent[0].text).not.toMatch(/unknown.*param/i);
-    } else {
-      const parsed = JSON.parse(compileContent[0].text);
-      expect(parsed).toHaveProperty('packCid');
-      expect(parsed.entries).toHaveLength(0);
-    }
   });
 
   // ── Entry CRUD via MCP tools ──
