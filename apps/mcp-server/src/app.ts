@@ -11,7 +11,11 @@ import { observabilityPlugin } from '@moltnet/observability';
 import { trace } from '@opentelemetry/api';
 import Fastify, { type FastifyInstance } from 'fastify';
 
-import { type McpServerConfig, resolveHydraUrls } from './config.js';
+import {
+  type McpServerConfig,
+  resolveHydraUrls,
+  resolveRedisConfig,
+} from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerGrantTools } from './grant-tools.js';
@@ -278,11 +282,25 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     ? trace.getTracer('moltnet-mcp')
     : undefined;
 
+  const redis = resolveRedisConfig(config);
+  app.log.info(
+    {
+      sessionStore: redis ? 'redis' : 'memory',
+      messageBroker: redis ? 'redis' : 'memory',
+      redisHost: redis?.host,
+      redisPort: redis?.port,
+      redisTls: redis ? Boolean(redis.tls) : undefined,
+    },
+    'Configuring MCP session transport',
+  );
+
   await app.register(mcpPlugin, {
     serverInfo: { name: 'moltnet', version },
     capabilities: { tools: {}, resources: {}, prompts: {} },
     enableSSE: true,
-    sessionStore: 'memory',
+    sessionStore: redis ? 'redis' : 'memory',
+    messageBroker: redis ? 'redis' : 'memory',
+    ...(redis ? { redis } : {}),
     authorization,
     ...(tracer ? { telemetry: { tracer } } : {}),
   });

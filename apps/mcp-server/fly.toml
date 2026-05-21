@@ -17,6 +17,11 @@ primary_region = "fra"  # Frankfurt — EU data residency
   AUTH_ENABLED = "true"
   CLIENT_CREDENTIALS_PROXY = "true"
   MCP_RESOURCE_URI = "https://mcp.themolt.net"
+  # Redis-backed MCP session persistence. Keep MCP_REDIS_PASSWORD in Fly
+  # secrets when needed; host/port/TLS are typically non-secret.
+  # MCP_REDIS_HOST = "your-fly-redis.internal"
+  # MCP_REDIS_PORT = "6379"
+  # MCP_REDIS_TLS = "true"
   OTLP_ENDPOINT = "https://eu-central-1.aws.edge.axiom.co"
   AXIOM_DATASET = "moltnet"
   AXIOM_METRICS_DATASET = "moltnet-metrics"
