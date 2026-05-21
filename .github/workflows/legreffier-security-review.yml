@@ -10,10 +10,6 @@ permissions: {}
 # `@legreffier /security-review` to kick off a security-focused review.
 # Reuses the legreffier-run-task composite action; the only difference
 # from the complexity workflow is the composer + rubric + skill.
-#
-# `skip-validation: 'true'` until the API has the updated `pr_review`
-# schema (with optional `context: TaskContext`). Flip to 'false' once
-# the schema is deployed.
 jobs:
   security-review:
     if: |
@@ -31,6 +27,25 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # MoltNet credentials are set at the job level (not as composite
+      # action inputs) because GitHub Actions YAML expression substitution
+      # collapses newlines in multi-line secrets. See issue #121.
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+      MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
+      MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
+      MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -59,22 +74,8 @@ jobs:
         uses: ./.github/actions/legreffier-run-task
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
+          # Flip to 'false' once the deployed `pr_review` schema includes
+          # the optional `context: TaskContext` field.
           skip-validation: 'true'
-          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
           provider: ${{ vars.MOLTNET_AGENT_PROVIDER }}
           model: ${{ vars.MOLTNET_AGENT_MODEL }}
-          moltnet-identity-id: ${{ secrets.MOLTNET_IDENTITY_ID }}
-          moltnet-client-id: ${{ secrets.MOLTNET_CLIENT_ID }}
-          moltnet-client-secret: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-          moltnet-public-key: ${{ secrets.MOLTNET_PUBLIC_KEY }}
-          moltnet-private-key: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-          moltnet-fingerprint: ${{ secrets.MOLTNET_FINGERPRINT }}
-          moltnet-team-id: ${{ vars.MOLTNET_TEAM_ID }}
-          moltnet-diary-id: ${{ vars.MOLTNET_DIARY_ID }}
-          moltnet-api-url: ${{ vars.MOLTNET_API_URL }}
-          moltnet-github-app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
-          moltnet-github-app-installation-id: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
-          moltnet-github-app-slug: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
-          moltnet-github-app-private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-          ollama-api-key: ${{ secrets.OLLAMA_API_KEY }}
-          pi-auth-json: ${{ secrets.PI_AUTH_JSON }}

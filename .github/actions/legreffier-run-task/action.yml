@@ -13,15 +13,35 @@ description: |
        file with shape `{ taskType, correlationId, input }`, and passing
        its path in `task-spec-path`. Composers MUST NOT touch MoltNet
        creds.
-    3. Wiring credentials through the explicit inputs below — those are
-       what this action owns.
+    3. Setting the MoltNet credential env vars at the **job** level
+       (`env:` on the job, not as action inputs). This action reads them
+       directly from the process env. Passing them through composite
+       action `inputs:` round-trips multi-line secrets (notably
+       `MOLTNET_GITHUB_APP_PRIVATE_KEY`) through GitHub Actions YAML
+       expression substitution, which collapses newlines and produces an
+       unparseable PEM — see issue #121 for the discovery.
+
+       Required job env:
+         MOLTNET_AGENT_NAME, MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID,
+         MOLTNET_CLIENT_SECRET, MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY,
+         MOLTNET_FINGERPRINT, MOLTNET_TEAM_ID, MOLTNET_DIARY_ID,
+         MOLTNET_API_URL.
+
+       Optional job env (only if the agent uses `gh` from the VM):
+         MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
+         MOLTNET_GITHUB_APP_SLUG, MOLTNET_GITHUB_APP_PRIVATE_KEY.
+
+       Optional job env (provider-specific):
+         OLLAMA_API_KEY (when provider=ollama),
+         PI_AUTH_JSON (Pi/Codex auth dump, single-line JSON OK as input
+         but kept here for symmetry).
 
 inputs:
   task-spec-path:
     description: |
       Path to a JSON file with shape `{ taskType, correlationId, input }`.
-      `teamId` and `diaryId` are taken from the action's inputs (which
-      mirror the agent's env), not from the spec — composers are
+      `teamId` and `diaryId` are taken from MoltNet env vars (which mirror
+      the agent's config), not from the spec — composers are
       credential-free by design.
     required: true
   skip-validation:
@@ -31,75 +51,12 @@ inputs:
       false.
     required: false
     default: 'false'
-  agent-name:
-    description: MoltNet agent name (used for `.moltnet/<agent>/` paths).
-    required: true
   provider:
     description: Agent runtime provider (e.g. `ollama`, `openai`).
     required: true
   model:
     description: Agent runtime model id.
     required: true
-
-  # MoltNet credentials. Forwarded into the agent dir materialization step.
-  moltnet-identity-id:
-    description: MoltNet identity UUID.
-    required: true
-  moltnet-client-id:
-    description: OAuth client id.
-    required: true
-  moltnet-client-secret:
-    description: OAuth client secret.
-    required: true
-  moltnet-public-key:
-    description: Agent Ed25519 public key (base64 raw).
-    required: true
-  moltnet-private-key:
-    description: Agent Ed25519 private key (base64 raw).
-    required: true
-  moltnet-fingerprint:
-    description: Agent fingerprint.
-    required: true
-  moltnet-team-id:
-    description: Team UUID.
-    required: true
-  moltnet-diary-id:
-    description: Diary UUID.
-    required: true
-  moltnet-api-url:
-    description: MoltNet API base URL.
-    required: true
-
-  # GitHub App credentials for the agent's gh calls (optional — required if
-  # the imposer or the task itself uses `gh`).
-  moltnet-github-app-id:
-    description: GitHub App id.
-    required: false
-    default: ''
-  moltnet-github-app-installation-id:
-    description: GitHub App installation id.
-    required: false
-    default: ''
-  moltnet-github-app-slug:
-    description: GitHub App slug.
-    required: false
-    default: ''
-  moltnet-github-app-private-key:
-    description: GitHub App private key (PEM).
-    required: false
-    default: ''
-
-  # Provider-specific secrets.
-  ollama-api-key:
-    description: Ollama API key (required when provider=ollama).
-    required: false
-    default: ''
-  pi-auth-json:
-    description: |
-      Contents of `~/.pi/auth.json` for Codex/Pi providers. Optional — if
-      absent, Pi falls back to env-var providers.
-    required: false
-    default: ''
 
 runs:
   using: composite
@@ -113,23 +70,9 @@ runs:
 
     - name: Materialize MoltNet agent dir from env
       shell: bash
-      env:
-        MOLTNET_AGENT_NAME: ${{ inputs.agent-name }}
-        MOLTNET_IDENTITY_ID: ${{ inputs.moltnet-identity-id }}
-        MOLTNET_CLIENT_ID: ${{ inputs.moltnet-client-id }}
-        MOLTNET_CLIENT_SECRET: ${{ inputs.moltnet-client-secret }}
-        MOLTNET_PUBLIC_KEY: ${{ inputs.moltnet-public-key }}
-        MOLTNET_PRIVATE_KEY: ${{ inputs.moltnet-private-key }}
-        MOLTNET_FINGERPRINT: ${{ inputs.moltnet-fingerprint }}
-        MOLTNET_TEAM_ID: ${{ inputs.moltnet-team-id }}
-        MOLTNET_DIARY_ID: ${{ inputs.moltnet-diary-id }}
-        MOLTNET_API_URL: ${{ inputs.moltnet-api-url }}
-        MOLTNET_GITHUB_APP_ID: ${{ inputs.moltnet-github-app-id }}
-        MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ inputs.moltnet-github-app-installation-id }}
-        MOLTNET_GITHUB_APP_SLUG: ${{ inputs.moltnet-github-app-slug }}
-        MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ inputs.moltnet-github-app-private-key }}
       run: |
         set -euo pipefail
+        : "${MOLTNET_AGENT_NAME:?MOLTNET_AGENT_NAME must be set at the job level}"
         AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
         # Idempotent: a caller workflow that needs the agent dir earlier
         # (e.g. to run an imposer script) may already have materialized it.
@@ -141,13 +84,32 @@ runs:
         {
           echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
           echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
-          echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
         } >> "$GITHUB_ENV"
+
+    - name: Verify GitHub App PEM is well-formed
+      shell: bash
+      run: |
+        set -euo pipefail
+        # `config init-from-env` writes the PEM at <agent>.pem when the
+        # GitHub App secrets are present. Skip the check if the file is
+        # absent (the agent will just not call `gh`).
+        PEM="$MOLTNET_AGENT_DIR/$MOLTNET_AGENT_NAME.pem"
+        if [ ! -f "$PEM" ]; then
+          echo "::notice::No GitHub App PEM at $PEM — agent gh calls will fall back."
+          exit 0
+        fi
+        if ! head -1 "$PEM" | grep -q "^-----BEGIN .*PRIVATE KEY-----$"; then
+          echo "::error::GitHub App PEM at $PEM is not a valid PEM — first line is not a BEGIN header. This usually means MOLTNET_GITHUB_APP_PRIVATE_KEY was passed through a composite-action input, which collapses newlines. Set it as a JOB env var instead."
+          exit 1
+        fi
+        if ! tail -1 "$PEM" | grep -q "^-----END .*PRIVATE KEY-----$"; then
+          echo "::error::GitHub App PEM at $PEM is not a valid PEM — last line is not an END footer."
+          exit 1
+        fi
+        echo "::notice::GitHub App PEM at $PEM looks well-formed."
 
     - name: Materialize Pi auth.json
       shell: bash
-      env:
-        PI_AUTH_JSON: ${{ inputs.pi-auth-json }}
       run: |
         set -euo pipefail
         if [ -n "${PI_AUTH_JSON:-}" ]; then
@@ -200,10 +162,6 @@ runs:
       env:
         TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
         SKIP_VALIDATION: ${{ inputs.skip-validation }}
-        MOLTNET_AGENT_NAME: ${{ inputs.agent-name }}
-        MOLTNET_TEAM_ID: ${{ inputs.moltnet-team-id }}
-        MOLTNET_DIARY_ID: ${{ inputs.moltnet-diary-id }}
-        MOLTNET_API_URL: ${{ inputs.moltnet-api-url }}
       run: |
         set -euo pipefail
         if [ ! -f "$TASK_SPEC_PATH" ]; then
@@ -253,10 +211,8 @@ runs:
       shell: bash
       env:
         TASK_ID: ${{ steps.create-task.outputs.task-id }}
-        MOLTNET_AGENT_NAME: ${{ inputs.agent-name }}
         MOLTNET_AGENT_PROVIDER: ${{ inputs.provider }}
         MOLTNET_AGENT_MODEL: ${{ inputs.model }}
-        OLLAMA_API_KEY: ${{ inputs.ollama-api-key }}
       run: |
         set -euo pipefail
         if [ -z "$TASK_ID" ]; then
@@ -276,7 +232,7 @@ runs:
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
         if [ "$PROVIDER" = "ollama" ]; then
           if [ -z "${OLLAMA_API_KEY:-}" ]; then
-            echo "::error::ollama-api-key input is required when provider=ollama" >&2
+            echo "::error::OLLAMA_API_KEY env var is required when provider=ollama" >&2
             exit 1
           fi
           export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
