@@ -53,6 +53,7 @@ import {
   updateContextPack,
   updateDiary,
   updateDiaryEntryById,
+  updateTeamMemberRole,
   verifyAgentSignature,
   verifyCryptoSignature,
   verifyDiaryEntryById,
@@ -115,6 +116,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     joinTeam: vi.fn(),
     deleteTeam: vi.fn(),
     removeTeamMember: vi.fn(),
+    updateTeamMemberRole: vi.fn(),
     createTeamInvite: vi.fn(),
     listTeamInvites: vi.fn(),
     deleteTeamInvite: vi.fn(),
@@ -1314,6 +1316,29 @@ describe('Agent facade', () => {
       expect(deleteTeamInvite).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { id: 'team-1', inviteId: 'invite-1' },
+        }),
+      );
+    });
+
+    it('teams.updateMemberRole sends path params and role body', async () => {
+      const updated = { updated: true, role: 'manager' };
+      vi.mocked(updateTeamMemberRole).mockResolvedValueOnce({
+        data: updated,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.teams.updateMemberRole(
+        'team-1',
+        'subject-1',
+        'manager',
+      );
+
+      expect(result).toEqual(updated);
+      expect(updateTeamMemberRole).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'team-1', subjectId: 'subject-1' },
+          body: { role: 'manager' },
         }),
       );
     });

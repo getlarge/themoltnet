@@ -100,6 +100,8 @@ import type {
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
+  UpdateTeamMemberRoleData,
+  UpdateTeamMemberRoleResponse,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
@@ -386,6 +388,11 @@ export interface TeamsNamespace {
     teamId: string,
     subjectId: string,
   ): Promise<RemoveTeamMemberResponse>;
+  updateMemberRole(
+    teamId: string,
+    subjectId: string,
+    role: UpdateTeamMemberRoleData['body']['role'],
+  ): Promise<UpdateTeamMemberRoleResponse>;
   invites: {
     create(
       teamId: string,
