@@ -5,7 +5,7 @@ export {
   buildTimeline,
   distillEntries,
 } from './derive.js';
-export { ExploreSurface } from './surface.js';
+export { ExploreSurface, renderExploreSurfaceHtml } from './surface.js';
 export type {
   ExploreCluster,
   ExploreEntry,

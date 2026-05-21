@@ -5,6 +5,7 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { ExploreEntry, ExploreSurfaceState } from './types.js';
 
@@ -196,4 +197,8 @@ export function ExploreSurface({ state }: { state: ExploreSurfaceState }) {
       </div>
     </MoltThemeProvider>
   );
+}
+
+export function renderExploreSurfaceHtml(state: ExploreSurfaceState): string {
+  return renderToStaticMarkup(<ExploreSurface state={state} />);
 }

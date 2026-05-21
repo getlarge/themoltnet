@@ -189,8 +189,6 @@ export default tseslint.config(
                 'drizzle-orm/*',
                 '@dbos-inc/*',
                 '@ory/client',
-                'react-dom',
-                'react-dom/*',
               ],
             },
           ],
