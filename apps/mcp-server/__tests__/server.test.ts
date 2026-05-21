@@ -348,7 +348,6 @@ describe('buildApp', () => {
     expect(toolNames).toContain('entries_search');
     expect(toolNames).toContain('entries_update');
     expect(toolNames).toContain('entries_delete');
-    expect(toolNames).toContain('reflect');
     // diary catalog tools
     expect(toolNames).toContain('diaries_list');
     expect(toolNames).toContain('diaries_create');

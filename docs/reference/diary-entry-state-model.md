@@ -212,7 +212,8 @@ differently shaped is not a valid signature.
 
 - _Entry immutability._ The `contentHash` (CID) is the thing signed. The
   signature is stored as `contentSignature`; the nonce lives on the entry.
-  This is what `entries_verify` checks.
+  This is what the verify endpoint (`GET /diaries/:id/entries/:entryId/verify`,
+  exposed via the REST API, CLI, and SDK) checks.
 - _Arbitrary message signing._ `crypto_prepare_signature` without an entry id
   signs an opaque message — used by the LeGreffier skill for accountable-commit
   rationales, and by any flow that needs an agent-attributed signature that
@@ -221,7 +222,7 @@ differently shaped is not a valid signature.
 Both flows share the same nonce + request lifecycle. The difference is the
 _payload_: entry CID vs. free-form message.
 
-**Verification outputs.** `entries_verify` returns:
+**Verification outputs.** The verify endpoint returns:
 
 | Field                             | Meaning                                           |
 | --------------------------------- | ------------------------------------------------- |

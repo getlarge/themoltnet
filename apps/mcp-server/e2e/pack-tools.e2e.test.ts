@@ -2,7 +2,7 @@
  * E2E: Pack Tools — packs_list, packs_get, packs_provenance
  *
  * Tests pack listing, retrieval, and provenance graph queries.
- * Each test compiles a diary first to ensure a pack exists.
+ * Each test creates a pack from a freshly-seeded entry to ensure isolation.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -10,6 +10,45 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createMcpTestHarness, type McpTestHarness } from './setup.js';
+
+type McpTextContent = Array<{ type: string; text: string }>;
+
+async function createPack(
+  client: Client,
+  diaryId: string,
+): Promise<{ id: string; packCid: string }> {
+  const entryResult = await client.callTool({
+    name: 'entries_create',
+    arguments: {
+      diary_id: diaryId,
+      content: `pack-tools e2e seed ${Date.now()}`,
+      tags: ['pack-tools-e2e'],
+    },
+  });
+  const entryContent = entryResult.content as McpTextContent;
+  if (entryResult.isError) {
+    throw new Error(`entries_create error: ${entryContent[0].text}`);
+  }
+  const entry = JSON.parse(entryContent[0].text) as { id: string };
+
+  const createResult = await client.callTool({
+    name: 'packs_create',
+    arguments: {
+      diary_id: diaryId,
+      params: { source: 'pack-tools-e2e' },
+      entries: [{ entry_id: entry.id, rank: 1 }],
+    },
+  });
+  const createContent = createResult.content as McpTextContent;
+  if (createResult.isError) {
+    throw new Error(`packs_create error: ${createContent[0].text}`);
+  }
+  const pack = JSON.parse(createContent[0].text) as {
+    id: string;
+    packCid: string;
+  };
+  return pack;
+}
 
 describe('Pack Tools E2E', () => {
   let harness: McpTestHarness;
@@ -54,25 +93,7 @@ describe('Pack Tools E2E', () => {
   it('packs_list returns packs for a diary and packs_get returns pack details', async () => {
     requireSetup();
 
-    // Compile the diary to create a pack
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        token_budget: 2000,
-      },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      compileResult.isError,
-      `diaries_compile error: ${compileContent[0].text}`,
-    ).toBeUndefined();
-    const compileParsed = JSON.parse(compileContent[0].text);
-    expect(compileParsed.id).toBeDefined();
-    const packId = compileParsed.id as string;
+    const { id: packId } = await createPack(client, harness.privateDiaryId);
 
     // packs_list
     const listResult = await client.callTool({
@@ -114,24 +135,7 @@ describe('Pack Tools E2E', () => {
   it('packs_provenance returns provenance graph with nodes and edges', async () => {
     requireSetup();
 
-    // Compile to get a fresh pack
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        token_budget: 2000,
-      },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      compileResult.isError,
-      `diaries_compile error: ${compileContent[0].text}`,
-    ).toBeUndefined();
-    const compileParsed = JSON.parse(compileContent[0].text);
-    const packCid = compileParsed.packCid as string;
+    const { packCid } = await createPack(client, harness.privateDiaryId);
 
     // packs_provenance by pack_cid
     const provResult = await client.callTool({
@@ -154,24 +158,7 @@ describe('Pack Tools E2E', () => {
   it('packs_update pins and unpins a pack', async () => {
     requireSetup();
 
-    // Compile to get a pack
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        token_budget: 2000,
-      },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      compileResult.isError,
-      `diaries_compile error: ${compileContent[0].text}`,
-    ).toBeUndefined();
-    const compileParsed = JSON.parse(compileContent[0].text);
-    const packId = compileParsed.id as string;
+    const { id: packId } = await createPack(client, harness.privateDiaryId);
 
     // Pin the pack
     const pinResult = await client.callTool({
@@ -216,24 +203,10 @@ describe('Pack Tools E2E', () => {
   it('rendered_packs_update pins and unpins a rendered pack', async () => {
     requireSetup();
 
-    // Compile to get a source pack
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        token_budget: 2000,
-      },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      compileResult.isError,
-      `diaries_compile error: ${compileContent[0].text}`,
-    ).toBeUndefined();
-    const compileParsed = JSON.parse(compileContent[0].text);
-    const sourcePackId = compileParsed.id as string;
+    const { id: sourcePackId } = await createPack(
+      client,
+      harness.privateDiaryId,
+    );
 
     // Render the pack to get a rendered pack
     const renderResult = await client.callTool({
@@ -296,24 +269,10 @@ describe('Pack Tools E2E', () => {
   it('rendered_packs_get and rendered_packs_list expose persisted rendered packs', async () => {
     requireSetup();
 
-    // Compile to get a source pack
-    const compileResult = await client.callTool({
-      name: 'diaries_compile',
-      arguments: {
-        diary_id: harness.privateDiaryId,
-        token_budget: 2000,
-      },
-    });
-    const compileContent = compileResult.content as Array<{
-      type: string;
-      text: string;
-    }>;
-    expect(
-      compileResult.isError,
-      `diaries_compile error: ${compileContent[0].text}`,
-    ).toBeUndefined();
-    const compileParsed = JSON.parse(compileContent[0].text);
-    const sourcePackId = compileParsed.id as string;
+    const { id: sourcePackId } = await createPack(
+      client,
+      harness.privateDiaryId,
+    );
 
     // Render the pack to persist a rendered pack
     const renderResult = await client.callTool({
