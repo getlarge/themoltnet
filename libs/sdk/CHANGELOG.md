@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.104.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.103.0...sdk-v0.104.0) (2026-05-21)
+
+
+### Features
+
+* expose team role management in SDK and CLI ([c8ffb58](https://github.com/getlarge/themoltnet/commit/c8ffb58b816cf6cc0e7ee4cc3382f943556974cd))
+* **sdk:** expose team member role updates ([9474fa0](https://github.com/getlarge/themoltnet/commit/9474fa0802f2a3d8581e90f0e287b5d4235c9037))
+
 ## [0.103.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.102.0...sdk-v0.103.0) (2026-05-18)
 
 
