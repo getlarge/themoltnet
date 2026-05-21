@@ -5,6 +5,7 @@ import { Link, useLocation, useSearch } from 'wouter';
 
 import { EntryCard } from '../components/diaries/EntryCard.js';
 import { TagCloud, type TagCloudItem } from '../components/diaries/TagCloud.js';
+import { TransferDiaryDialog } from '../components/diaries/TransferDiaryDialog.js';
 import {
   fetchDiaryDetails,
   fetchDiaryEntries,
@@ -16,6 +17,7 @@ import {
   formatRelativeTime,
   getEntryTypeQuery,
 } from '../diaries/utils.js';
+import { useTeam } from '../team/useTeam.js';
 
 const PAGE_SIZE = 20;
 
@@ -31,6 +33,9 @@ export function DiaryDetailPage({ id }: { id: string }) {
 
   const [diaryName, setDiaryName] = useState<string>('Diary');
   const [diaryVisibility, setDiaryVisibility] = useState<string>('private');
+  const [diaryTeamId, setDiaryTeamId] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const { teams, callerRoleForTeam } = useTeam();
   const [entries, setEntries] = useState<Array<DiaryEntry>>([]);
   const [total, setTotal] = useState(0);
   const [tags, setTags] = useState<Array<TagCloudItem>>([]);
@@ -70,6 +75,7 @@ export function DiaryDetailPage({ id }: { id: string }) {
         if (cancelled) return;
         setDiaryName(diary.name);
         setDiaryVisibility(diary.visibility);
+        setDiaryTeamId(diary.teamId);
         setTags(diaryTags);
       } catch {
         if (!cancelled) setStatus('error');
@@ -131,20 +137,53 @@ export function DiaryDetailPage({ id }: { id: string }) {
     }
   }
 
+  const sourceTeamRole = diaryTeamId ? callerRoleForTeam(diaryTeamId) : null;
+  const canTransferDiary =
+    sourceTeamRole === 'owners' || sourceTeamRole === 'managers';
+
   return (
     <Stack gap={6}>
-      <Stack gap={2}>
-        <Link
-          href="/diaries"
-          style={{ color: theme.color.text.muted, textDecoration: 'none' }}
-        >
-          &larr; Diaries
-        </Link>
-        <Text variant="h2">{diaryName}</Text>
-        <Text color="muted">
-          {total} entries · {tags.length} tags · {diaryVisibility}
-        </Text>
+      <Stack
+        direction="row"
+        justify="space-between"
+        align="flex-start"
+        gap={4}
+        wrap
+      >
+        <Stack gap={2}>
+          <Link
+            href="/diaries"
+            style={{ color: theme.color.text.muted, textDecoration: 'none' }}
+          >
+            &larr; Diaries
+          </Link>
+          <Text variant="h2">{diaryName}</Text>
+          <Text color="muted">
+            {total} entries · {tags.length} tags · {diaryVisibility}
+          </Text>
+        </Stack>
+        {canTransferDiary && diaryTeamId && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setTransferOpen(true)}
+            data-testid="open-transfer-dialog"
+          >
+            Transfer to team
+          </Button>
+        )}
       </Stack>
+
+      {diaryTeamId && (
+        <TransferDiaryDialog
+          open={transferOpen}
+          onClose={() => setTransferOpen(false)}
+          diaryId={id}
+          diaryName={diaryName}
+          sourceTeamId={diaryTeamId}
+          teams={teams}
+        />
+      )}
 
       <Card variant="surface" padding="md">
         <Stack gap={3}>

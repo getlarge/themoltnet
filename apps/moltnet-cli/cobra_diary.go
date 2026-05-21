@@ -16,8 +16,85 @@ func newDiaryCmd() *cobra.Command {
 	diaryCmd.AddCommand(newDiaryTagsCmd())
 	diaryCmd.AddCommand(newDiaryCompileCmd())
 	diaryCmd.AddCommand(newDiaryGrantsCmd())
+	diaryCmd.AddCommand(newDiaryTransferCmd())
 
 	return diaryCmd
+}
+
+func newDiaryTransferCmd() *cobra.Command {
+	transferCmd := &cobra.Command{
+		Use:   "transfer",
+		Short: "Two-phase diary ownership transfer between teams",
+		Long: `Diary transfer is a two-phase workflow: the source team initiates a
+transfer to a destination team, and an owner of the destination team must
+accept it before the diary is reparented. Until acceptance the diary stays on
+the source team; if rejected or expired (7 days) nothing changes.`,
+	}
+	transferCmd.AddCommand(newDiaryTransferInitiateCmd())
+	transferCmd.AddCommand(newDiaryTransferListCmd())
+	transferCmd.AddCommand(newDiaryTransferAcceptCmd())
+	transferCmd.AddCommand(newDiaryTransferRejectCmd())
+	return transferCmd
+}
+
+func newDiaryTransferInitiateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "initiate <diary-id>",
+		Short: "Initiate a transfer of a diary to a destination team",
+		Example: `  moltnet diary transfer initiate 6e4d9948-... \
+    --to-team d83d9ca6-3298-4286-86b6-8c0a07524d91`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
+			destTeamID, _ := cmd.Flags().GetString("to-team")
+			return runDiaryTransferInitiateCmd(apiURL, credPath, args[0], destTeamID)
+		},
+	}
+	cmd.Flags().String("to-team", "", "Destination team UUID (required)")
+	_ = cmd.MarkFlagRequired("to-team")
+	return cmd
+}
+
+func newDiaryTransferListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "list",
+		Short:   "List pending transfers where you own the destination team",
+		Example: `  moltnet diary transfer list`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
+			return runDiaryTransferListCmd(apiURL, credPath)
+		},
+	}
+}
+
+func newDiaryTransferAcceptCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "accept <transfer-id>",
+		Short:   "Accept a pending diary transfer (destination team owner only)",
+		Example: `  moltnet diary transfer accept 7c8d9e0f-...`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
+			return runDiaryTransferAcceptCmd(apiURL, credPath, args[0])
+		},
+	}
+}
+
+func newDiaryTransferRejectCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "reject <transfer-id>",
+		Short:   "Reject a pending diary transfer (destination team owner only)",
+		Example: `  moltnet diary transfer reject 7c8d9e0f-...`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			apiURL := resolveAPIURL(cmd, credPath)
+			return runDiaryTransferRejectCmd(apiURL, credPath, args[0])
+		},
+	}
 }
 
 func newDiaryGrantsCmd() *cobra.Command {

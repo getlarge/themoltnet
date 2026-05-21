@@ -1,5 +1,6 @@
 import type { Client } from '@moltnet/api-client';
 import {
+  acceptTransfer,
   compileDiary,
   consolidateDiary,
   createDiary,
@@ -28,12 +29,14 @@ import {
   getTeam,
   getTrustGraph,
   getWhoami,
+  initiateTransfer,
   issueVoucher,
   joinTeam,
   listActiveVouchers,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
+  listPendingTransfers,
   listProblemTypes,
   listSigningRequests,
   listTasks,
@@ -42,6 +45,7 @@ import {
   listTeamMembers,
   listTeams,
   reflectDiary,
+  rejectTransfer,
   removeTeamMember,
   requestRecoveryChallenge,
   revokeDiaryGrant,
@@ -124,6 +128,10 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
     revokeDiaryGrant: vi.fn(),
+    initiateTransfer: vi.fn(),
+    listPendingTransfers: vi.fn(),
+    acceptTransfer: vi.fn(),
+    rejectTransfer: vi.fn(),
     listTaskSchemas: vi.fn(),
     listTasks: vi.fn(),
     createTask: vi.fn(),
@@ -1451,6 +1459,99 @@ describe('Agent facade', () => {
       const agent = makeAgent();
       await expect(
         agent.diaryGrants.create('diary-1', grantBody),
+      ).rejects.toThrow(MoltNetError);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // diaryTransfers
+  // -----------------------------------------------------------------------
+  describe('diaryTransfers', () => {
+    const transfer = {
+      id: 'transfer-1',
+      diaryId: 'diary-1',
+      sourceTeamId: 'team-source',
+      destinationTeamId: 'team-dest',
+      status: 'pending',
+      initiatedBy: 'agent-1',
+      expiresAt: '2026-12-01T00:00:00Z',
+      createdAt: '2026-05-21T00:00:00Z',
+    };
+
+    it('diaryTransfers.initiate passes diaryId as path and destination in body', async () => {
+      vi.mocked(initiateTransfer).mockResolvedValueOnce({
+        data: transfer,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryTransfers.initiate('diary-1', {
+        destinationTeamId: 'team-dest',
+      });
+
+      expect(result).toEqual(transfer);
+      expect(initiateTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          body: { destinationTeamId: 'team-dest' },
+        }),
+      );
+    });
+
+    it('diaryTransfers.listPending returns items array', async () => {
+      vi.mocked(listPendingTransfers).mockResolvedValueOnce({
+        data: { items: [transfer] },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryTransfers.listPending();
+
+      expect(result).toEqual({ items: [transfer] });
+      expect(listPendingTransfers).toHaveBeenCalled();
+    });
+
+    it('diaryTransfers.accept passes transferId as path param', async () => {
+      vi.mocked(acceptTransfer).mockResolvedValueOnce({
+        data: { ...transfer, status: 'accepted' },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryTransfers.accept('transfer-1');
+
+      expect(result.status).toBe('accepted');
+      expect(acceptTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { transferId: 'transfer-1' } }),
+      );
+    });
+
+    it('diaryTransfers.reject passes transferId as path param', async () => {
+      vi.mocked(rejectTransfer).mockResolvedValueOnce({
+        data: { ...transfer, status: 'rejected' },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaryTransfers.reject('transfer-1');
+
+      expect(result.status).toBe('rejected');
+      expect(rejectTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { transferId: 'transfer-1' } }),
+      );
+    });
+
+    it('diaryTransfers.initiate throws MoltNetError on error', async () => {
+      vi.mocked(initiateTransfer).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(
+        agent.diaryTransfers.initiate('diary-1', {
+          destinationTeamId: 'team-dest',
+        }),
       ).rejects.toThrow(MoltNetError);
     });
   });

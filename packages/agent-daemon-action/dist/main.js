@@ -28380,6 +28380,98 @@ var createDiaryGrant = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* Initiate a diary transfer to another team. Requires diary manage permission.
+*/
+var initiateTransfer = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/transfer",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List pending transfers where the caller is destination team owner.
+*/
+var listPendingTransfers = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/transfers",
+	...options
+});
+/**
+* Accept a pending diary transfer. Caller must be destination team owner.
+*/
+var acceptTransfer = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/transfers/{transferId}/accept",
+	...options
+});
+/**
+* Reject a pending diary transfer.
+*/
+var rejectTransfer = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/transfers/{transferId}/reject",
+	...options
+});
+/**
 * List diary entries for a specific diary.
 */
 var listDiaryEntries = (options) => (options.client ?? client).get({
@@ -30173,6 +30265,41 @@ function createDiaryGrantsNamespace(context) {
 				auth,
 				path: { id: diaryId },
 				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/diary-transfers.ts
+function createDiaryTransfersNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async initiate(diaryId, body) {
+			return unwrapResult(await initiateTransfer({
+				client,
+				auth,
+				path: { id: diaryId },
+				body
+			}));
+		},
+		async listPending() {
+			return unwrapResult(await listPendingTransfers({
+				client,
+				auth
+			}));
+		},
+		async accept(transferId) {
+			return unwrapResult(await acceptTransfer({
+				client,
+				auth,
+				path: { transferId }
+			}));
+		},
+		async reject(transferId) {
+			return unwrapResult(await rejectTransfer({
+				client,
+				auth,
+				path: { transferId }
 			}));
 		}
 	};
@@ -32493,6 +32620,7 @@ function createAgent(options) {
 	return {
 		diaries: createDiariesNamespace(context),
 		diaryGrants: createDiaryGrantsNamespace(context),
+		diaryTransfers: createDiaryTransfersNamespace(context),
 		packs: createPacksNamespace(context),
 		entries: createEntriesNamespace(context),
 		agents: createAgentsNamespace(context),

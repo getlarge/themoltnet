@@ -35,6 +35,7 @@ import {
 import { GroupCard } from '../components/teams/GroupCard.js';
 import { InviteCard } from '../components/teams/InviteCard.js';
 import { MemberRow } from '../components/teams/MemberRow.js';
+import { PendingTransfersPanel } from '../components/teams/PendingTransfersPanel.js';
 import { TeamDiaryCard } from '../components/teams/TeamDiaryCard.js';
 import { useTeam } from '../team/useTeam.js';
 
@@ -440,6 +441,7 @@ export function TeamDetailPage({ id }: { id: string }) {
 
       {activeTab === 'diaries' && (
         <Stack gap={4}>
+          {callerRole === 'owners' && <PendingTransfersPanel teamId={id} />}
           <Text variant="h4">Diaries ({diaries.length})</Text>
           {diaries.length === 0 ? (
             <Text color="muted">No diaries scoped to this team yet.</Text>

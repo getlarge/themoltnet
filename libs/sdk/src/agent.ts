@@ -1,4 +1,5 @@
 import type {
+  AcceptTransferResponses,
   AgentProfile,
   AppendTaskMessagesData,
   CancelTaskData,
@@ -49,6 +50,8 @@ import type {
   GetTrustGraphData,
   Health,
   HeartbeatResponse,
+  InitiateTransferData,
+  InitiateTransferResponses,
   JoinTeamResponse,
   ListContextPacksData,
   ListDiariesData,
@@ -57,6 +60,7 @@ import type {
   ListDiaryPacksData,
   ListDiaryRenderedPacksData,
   ListDiaryTagsData,
+  ListPendingTransfersResponses,
   ListProblemTypesResponse,
   ListSigningRequestsData,
   ListTaskMessagesData,
@@ -75,6 +79,7 @@ import type {
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
   ReflectDiaryData,
+  RejectTransferResponses,
   RemoveTeamMemberResponse,
   RenderContextPackData,
   RenderedPackList,
@@ -112,6 +117,7 @@ import { createAuthNamespace } from './namespaces/auth.js';
 import { createCryptoNamespace } from './namespaces/crypto.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
+import { createDiaryTransfersNamespace } from './namespaces/diary-transfers.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
 import { createLegreffierNamespace } from './namespaces/legreffier.js';
 import { createPacksNamespace } from './namespaces/packs.js';
@@ -417,6 +423,29 @@ export interface DiaryGrantsNamespace {
   ): Promise<RevokeDiaryGrantResponse>;
 }
 
+/**
+ * Two-phase diary transfer between teams. The source-team owner/manager
+ * initiates a transfer; the destination-team owner accepts or rejects. The
+ * diary stays on the source team until acceptance; rejection or 7-day expiry
+ * leaves it where it is. See {@link https://docs.themolt.net/use/teams.html#transferring-a-diary}.
+ */
+export interface DiaryTransfersNamespace {
+  /** Initiate a transfer of `diaryId` to `body.destinationTeamId`. */
+  initiate(
+    diaryId: string,
+    body: NonNullable<InitiateTransferData['body']>,
+  ): Promise<InitiateTransferResponses[202]>;
+
+  /** List pending transfers where the caller owns the destination team. */
+  listPending(): Promise<ListPendingTransfersResponses[200]>;
+
+  /** Accept a pending transfer. Caller must own the destination team. */
+  accept(transferId: string): Promise<AcceptTransferResponses[200]>;
+
+  /** Reject a pending transfer. Caller must own the destination team. */
+  reject(transferId: string): Promise<RejectTransferResponses[200]>;
+}
+
 export interface TasksNamespace {
   schemas(): Promise<ListTaskSchemasResponse>;
 
@@ -469,6 +498,7 @@ export interface TasksNamespace {
 export interface Agent {
   diaries: DiariesNamespace;
   diaryGrants: DiaryGrantsNamespace;
+  diaryTransfers: DiaryTransfersNamespace;
   packs: PacksNamespace;
   entries: EntriesNamespace;
   agents: AgentsNamespace;
@@ -505,6 +535,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
   const diaries = createDiariesNamespace(context);
   const diaryGrants = createDiaryGrantsNamespace(context);
+  const diaryTransfers = createDiaryTransfersNamespace(context);
   const packs = createPacksNamespace(context);
   const entries = createEntriesNamespace(context);
   const agents = createAgentsNamespace(context);
@@ -522,6 +553,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   return {
     diaries,
     diaryGrants,
+    diaryTransfers,
     packs,
     entries,
     agents,
