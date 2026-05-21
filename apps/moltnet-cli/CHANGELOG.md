@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.43.0](https://github.com/getlarge/themoltnet/compare/cli-v1.42.0...cli-v1.43.0) (2026-05-21)
+
+
+### Features
+
+* add diary transfer CLI + console UI (closes [#1193](https://github.com/getlarge/themoltnet/issues/1193)) ([ba1b7d9](https://github.com/getlarge/themoltnet/commit/ba1b7d974e601eb9f97ed5b6614d13c7231e3c43))
+* **moltnet-cli:** add diary transfer subcommand (initiate/list/accept/reject) ([d9695b5](https://github.com/getlarge/themoltnet/commit/d9695b5a967f09b152a754f0b9aa80ae83d477c2))
+
 ## [1.42.0](https://github.com/getlarge/themoltnet/compare/cli-v1.41.0...cli-v1.42.0) (2026-05-21)
 
 
