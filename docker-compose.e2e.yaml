@@ -114,6 +114,11 @@ services:
       file: docker-compose.base.yaml
       service: mailslurper
 
+  redis:
+    extends:
+      file: docker-compose.base.yaml
+      service: redis
+
   rest-api:
     build:
       context: .
@@ -202,10 +207,14 @@ services:
       AUTH_ENABLED: 'true'
       ORY_PROJECT_URL: http://hydra:4444
       CLIENT_CREDENTIALS_PROXY: 'true'
+      MCP_REDIS_HOST: redis
+      MCP_REDIS_PORT: '6379'
     depends_on:
       rest-api:
         condition: service_healthy
       hydra:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test:
