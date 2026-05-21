@@ -120,7 +120,9 @@ test('owner can demote a manager to member from the console', async ({
   await expect(ownerPage.getByText(manager.email)).toBeVisible();
   await ownerPage.getByRole('button', { name: 'Demote to member' }).click();
 
-  await expect(ownerPage.getByText('members')).toBeVisible();
+  await expect(
+    ownerPage.getByRole('button', { name: 'Promote to manager' }),
+  ).toBeVisible();
 
   await managerPage.goto(`${CONSOLE_URL}/teams/${team.id}`);
   await expect(managerPage.getByText('Invites')).not.toBeVisible();
