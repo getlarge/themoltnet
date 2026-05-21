@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.19.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.1...pi-extension-v0.19.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **agent-daemon:** judge from persisted producer context copy ([58d9bb1](https://github.com/getlarge/themoltnet/commit/58d9bb1e8583d5b1a08cadbf70cd3c8e3128be7a))
+* **pi-extension:** isolate judge scratch workspace copies ([b83e491](https://github.com/getlarge/themoltnet/commit/b83e4916576324d3f662fbc4d39a941281655eff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.18.1
+
 ## [0.19.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.0...pi-extension-v0.19.1) (2026-05-19)
 
 

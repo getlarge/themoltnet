@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.18.0...agent-runtime-v0.18.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **agent-daemon:** judge from persisted producer context copy ([58d9bb1](https://github.com/getlarge/themoltnet/commit/58d9bb1e8583d5b1a08cadbf70cd3c8e3128be7a))
+* **agent-runtime:** drop stale judge prompt source check ([a2d4b61](https://github.com/getlarge/themoltnet/commit/a2d4b61918298dd7463b62ac3ad79663801d0f20))
+
 ## [0.18.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.17.0...agent-runtime-v0.18.0) (2026-05-19)
 
 
