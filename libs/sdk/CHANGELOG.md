@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.105.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.104.0...sdk-v0.105.0) (2026-05-21)
+
+
+### Features
+
+* add diary transfer CLI + console UI (closes [#1193](https://github.com/getlarge/themoltnet/issues/1193)) ([ba1b7d9](https://github.com/getlarge/themoltnet/commit/ba1b7d974e601eb9f97ed5b6614d13c7231e3c43))
+* **sdk:** add diary transfer namespace ([1ab1b6e](https://github.com/getlarge/themoltnet/commit/1ab1b6efdbafdc7b2c2c344a9361513e7c2f4b83))
+
 ## [0.104.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.103.0...sdk-v0.104.0) (2026-05-21)
 
 
