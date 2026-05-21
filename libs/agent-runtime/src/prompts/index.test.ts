@@ -119,13 +119,14 @@ describe('buildTaskUserPrompt', () => {
       workspace: {
         mode: 'scratch_mount',
         attached: true,
+        source: 'producer_copy',
       },
     });
     expect(prompt).toContain('### Workspace');
     expect(prompt).toContain('already attached to the producer attempt');
     expect(prompt).toContain('artifact_<taskId>');
     expect(prompt).toContain(
-      'producer scratch workspace mounted with shadow writes',
+      'fresh judge-owned scratch copy of the producer workspace',
     );
   });
   it('mentions the dedicated review worktree for assess_brief when provided by the executor', () => {

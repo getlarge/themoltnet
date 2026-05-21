@@ -24,6 +24,10 @@ export interface DaemonTaskExecutionPlan {
     cwdPath: string;
     shadowWrites?: 'deny' | 'tmpfs';
   } | null;
+  workspaceSeed?: {
+    copyFromPath: string;
+    source: 'producer';
+  } | null;
   sessionPersistence?: {
     sessionDir: string;
     forkFromSessionPath?: string | null;

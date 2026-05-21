@@ -657,7 +657,7 @@ describe('dedicated worktree mount topology', () => {
     }
   });
 
-  it('reuses an attached workspace root without creating a new worktree', () => {
+  it('copies a producer workspace snapshot into a fresh judge scratch workspace', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-attach-repro-'));
     const producerWorkspace = mkdtempSync(path.join(tmpdir(), 'pi-producer-'));
     const oldCwd = process.cwd();
@@ -665,6 +665,11 @@ describe('dedicated worktree mount topology', () => {
     try {
       runGit(repoRoot, ['init']);
       process.chdir(repoRoot);
+      writeFileSync(
+        path.join(producerWorkspace, 'artifact.txt'),
+        'producer artifact\n',
+        'utf8',
+      );
 
       const task = {
         id: 'task-3',
@@ -680,18 +685,20 @@ describe('dedicated worktree mount topology', () => {
       const workspace = prepareTaskWorkspace(task, repoRoot, {
         workspaceMode: 'scratch_mount',
         sessionKey: null,
-        workspaceId: null,
+        workspaceId: 'task-task-3',
         worktreeBranch: null,
         workspaceScope: 'attempt',
-        workspaceAttachment: {
-          mountPath: producerWorkspace,
-          cwdPath: producerWorkspace,
-          shadowWrites: 'tmpfs',
+        workspaceSeed: {
+          copyFromPath: producerWorkspace,
+          source: 'producer',
         },
       });
 
-      expect(workspace.mountPath).toBe(producerWorkspace);
-      expect(workspace.cwdPath).toBe(producerWorkspace);
+      expect(workspace.mountPath).not.toBe(producerWorkspace);
+      expect(workspace.cwdPath).toBe(workspace.mountPath);
+      expect(
+        readFileSync(path.join(workspace.mountPath, 'artifact.txt'), 'utf8'),
+      ).toBe('producer artifact\n');
       expect(workspace.mode).toBe('scratch_mount');
       workspace.cleanup();
       expect(existsSync(producerWorkspace)).toBe(true);
@@ -699,6 +706,178 @@ describe('dedicated worktree mount topology', () => {
       process.chdir(oldCwd);
       rmSync(repoRoot, { recursive: true, force: true });
       rmSync(producerWorkspace, { recursive: true, force: true });
+    }
+  });
+
+  it('seeds a judge scratch workspace from the shared mount root without recursive self-copy', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-shared-judge-seed-'));
+    const oldCwd = process.cwd();
+    let workspace: ReturnType<typeof prepareTaskWorkspace> | null = null;
+
+    try {
+      runGit(repoRoot, ['init']);
+      runGit(repoRoot, ['config', 'user.name', 'Test User']);
+      runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
+      writeFileSync(path.join(repoRoot, 'README.md'), 'seed\n', 'utf8');
+      runGit(repoRoot, ['add', 'README.md']);
+      runGit(repoRoot, ['commit', '-m', 'seed']);
+      writeFileSync(
+        path.join(repoRoot, 'producer-artifact.txt'),
+        'producer artifact\n',
+        'utf8',
+      );
+
+      process.chdir(repoRoot);
+      const task = {
+        id: 'task-4',
+        taskType: 'judge_eval_attempt',
+        correlationId: 'correlation-4',
+        input: {
+          targetTaskId: 'producer-task',
+          targetAttemptN: 1,
+          successCriteria: { version: 1 },
+        },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'scratch_mount',
+        sessionKey: null,
+        workspaceId: 'task-task-4',
+        worktreeBranch: null,
+        workspaceScope: 'attempt',
+        workspaceSeed: {
+          copyFromPath: repoRoot,
+          source: 'producer',
+        },
+      });
+
+      expect(
+        readFileSync(path.join(workspace.mountPath, 'README.md'), 'utf8'),
+      ).toBe('seed\n');
+      expect(
+        readFileSync(
+          path.join(workspace.mountPath, 'producer-artifact.txt'),
+          'utf8',
+        ),
+      ).toBe('producer artifact\n');
+      expect(
+        realpathSync(
+          path.resolve(
+            workspace.mountPath,
+            runGit(workspace.mountPath, ['rev-parse', '--git-dir']),
+          ),
+        ),
+      ).toBe(realpathSync(path.join(workspace.mountPath, '.git')));
+      expect(
+        existsSync(
+          path.join(
+            workspace.mountPath,
+            '.moltnet',
+            'd',
+            'task-workspaces',
+            'task-task-4',
+          ),
+        ),
+      ).toBe(false);
+    } finally {
+      process.chdir(oldCwd);
+      workspace?.cleanup();
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps judge scratch git state isolated from a producer dedicated worktree', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-judge-git-copy-'));
+    const producerWorktreeParent = mkdtempSync(
+      path.join(tmpdir(), 'pi-producer-wt-parent-'),
+    );
+    const producerWorktree = path.join(
+      producerWorktreeParent,
+      'producer-worktree',
+    );
+    const oldCwd = process.cwd();
+    let workspace: ReturnType<typeof prepareTaskWorkspace> | null = null;
+
+    try {
+      runGit(repoRoot, ['init']);
+      runGit(repoRoot, ['config', 'user.name', 'Test User']);
+      runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
+      writeFileSync(path.join(repoRoot, 'README.md'), 'seed\n', 'utf8');
+      runGit(repoRoot, ['add', 'README.md']);
+      runGit(repoRoot, ['commit', '-m', 'seed']);
+      runGit(repoRoot, [
+        'worktree',
+        'add',
+        '-b',
+        'producer-branch',
+        producerWorktree,
+      ]);
+      writeFileSync(
+        path.join(producerWorktree, 'producer-artifact.txt'),
+        'producer artifact\n',
+        'utf8',
+      );
+
+      process.chdir(repoRoot);
+      const task = {
+        id: 'task-5',
+        taskType: 'judge_eval_attempt',
+        correlationId: 'correlation-5',
+        input: {
+          targetTaskId: 'producer-task',
+          targetAttemptN: 1,
+          successCriteria: { version: 1 },
+        },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'scratch_mount',
+        sessionKey: null,
+        workspaceId: 'task-task-5',
+        worktreeBranch: null,
+        workspaceScope: 'attempt',
+        workspaceSeed: {
+          copyFromPath: producerWorktree,
+          source: 'producer',
+        },
+      });
+
+      expect(
+        realpathSync(
+          path.resolve(
+            workspace.mountPath,
+            runGit(workspace.mountPath, ['rev-parse', '--git-dir']),
+          ),
+        ),
+      ).toBe(realpathSync(path.join(workspace.mountPath, '.git')));
+      expect(
+        readFileSync(
+          path.join(workspace.mountPath, 'producer-artifact.txt'),
+          'utf8',
+        ),
+      ).toBe('producer artifact\n');
+
+      writeFileSync(
+        path.join(workspace.mountPath, 'judge-only.txt'),
+        'judge output\n',
+        'utf8',
+      );
+      runGit(workspace.mountPath, ['add', 'judge-only.txt']);
+
+      expect(
+        runGit(workspace.mountPath, ['diff', '--cached', '--name-only']),
+      ).toContain('judge-only.txt');
+      expect(
+        runGit(producerWorktree, ['diff', '--cached', '--name-only']),
+      ).not.toContain('judge-only.txt');
+    } finally {
+      process.chdir(oldCwd);
+      workspace?.cleanup();
+      if (existsSync(producerWorktree)) {
+        runGit(repoRoot, ['worktree', 'remove', '--force', producerWorktree]);
+      }
+      rmSync(repoRoot, { recursive: true, force: true });
+      rmSync(producerWorktreeParent, { recursive: true, force: true });
     }
   });
 });

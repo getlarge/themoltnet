@@ -430,7 +430,9 @@ export class DaemonSlotRegistry {
       this.withDb('commit reap transaction', () => this.db.exec('COMMIT'));
 
       for (const item of out) {
-        if (item.session) cleanupPiSessionDir(item.session.sessionDir);
+        if (item.session) {
+          cleanupPiSessionDir(item.session.sessionDir);
+        }
         if (item.workspace)
           cleanupReusableWorktree(item.workspace.worktreePath);
       }

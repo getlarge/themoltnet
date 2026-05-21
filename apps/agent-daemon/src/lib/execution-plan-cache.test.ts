@@ -20,7 +20,7 @@ describe('createExecutionPlanCache', () => {
     }
   });
 
-  it('attaches judge_eval_attempt to the producer scratch workspace and forks its session', () => {
+  it('copies producer scratch workspace into a fresh judge scratch workspace and forks its session', () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -111,10 +111,9 @@ describe('createExecutionPlanCache', () => {
     });
 
     expect(plan.workspaceMode).toBe('scratch_mount');
-    expect(plan.workspaceAttachment).toEqual({
-      mountPath: producerWorkspace,
-      cwdPath: producerWorkspace,
-      shadowWrites: 'tmpfs',
+    expect(plan.workspaceSeed).toEqual({
+      copyFromPath: producerWorkspace,
+      source: 'producer',
     });
     expect(plan.sessionPersistence).toEqual({
       sessionDir: `${stateDirs.piSessionsDir}/judge-22222222-2222-4222-8222-222222222222-attempt-1`,
@@ -163,6 +162,81 @@ describe('createExecutionPlanCache', () => {
         } as unknown as Task,
       }),
     ).toThrow(ProducerContextResolutionError);
+
+    slotRegistry.close();
+  });
+
+  it('uses the shared mount root as the judge copy source for shared-mount producers', () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-shared-'));
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const producerSessionDir = join(stateDirs.piSessionsDir, 'producer-slot');
+    mkdirSync(producerSessionDir, { recursive: true });
+    const producerSessionPath = join(producerSessionDir, 'session-a.jsonl');
+    writeFileSync(producerSessionPath, '[]\n', 'utf8');
+
+    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    slotRegistry.beginSlot({
+      agentName: 'local-eval-943',
+      provider: 'ollama-cloud',
+      model: 'qwen3.5',
+      slotKey: 'run_eval:correlation:test:variant:baseline',
+      taskType: 'run_eval',
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      workspaceId: null,
+      worktreePath: null,
+      worktreeBranch: null,
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+      ttlSec: 300,
+    });
+    slotRegistry.finishSlot(
+      {
+        agentName: 'local-eval-943',
+        provider: 'ollama-cloud',
+        model: 'qwen3.5',
+      },
+      'run_eval:correlation:test:variant:baseline',
+      300,
+      producerSessionPath,
+    );
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: {
+        agentName: 'local-eval-943',
+        provider: 'ollama-cloud',
+        model: 'qwen3.5',
+      },
+      warmSessionTtlSec: 300,
+      slotRegistry,
+    });
+
+    const plan = cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        taskType: 'judge_eval_attempt',
+        correlationId: '33333333-3333-4333-8333-333333333333',
+        input: {
+          targetTaskId: '11111111-1111-4111-8111-111111111111',
+          targetAttemptN: 1,
+          successCriteria: { version: 1, rubric: null },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.workspaceSeed).toEqual({
+      copyFromPath: mountRoot,
+      source: 'producer',
+    });
 
     slotRegistry.close();
   });

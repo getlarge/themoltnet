@@ -95,36 +95,35 @@ function maybeAttachProducerContext(
     );
   }
 
-  const producer = slotRegistry.findLatestProducerSlotByTaskAttempt(
+  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
     targetTaskId,
     targetAttemptN,
   );
-  if (!producer) {
+  if (!producerContext) {
     throw new ProducerContextResolutionError(
-      `No persisted producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
+      `No live producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
     );
   }
 
-  const sourceSessionPath = resolveProducerSessionPath(producer);
+  const sourceSessionPath = resolveProducerSessionPath(producerContext);
   if (!sourceSessionPath) {
     throw new ProducerContextResolutionError(
       `Producer task ${targetTaskId} attempt ${targetAttemptN} has no persisted Pi session path`,
     );
   }
 
-  const attachedWorkspace = resolveProducerWorkspaceAttachment(
-    producer,
+  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
+    producerContext,
     stateDirs,
   );
 
   return {
     ...basePlan,
-    workspaceMode: attachedWorkspace.mode,
-    worktreeBranch: attachedWorkspace.branch,
-    workspaceAttachment: {
-      mountPath: attachedWorkspace.mountPath,
-      cwdPath: attachedWorkspace.cwdPath,
-      shadowWrites: 'tmpfs',
+    workspaceMode: 'scratch_mount',
+    worktreeBranch: null,
+    workspaceSeed: {
+      copyFromPath: copiedWorkspaceSource,
+      source: 'producer',
     },
     sessionPersistence: {
       sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
@@ -146,36 +145,17 @@ function resolveProducerSessionPath(
   return latest && existsSync(latest) ? latest : null;
 }
 
-function resolveProducerWorkspaceAttachment(
+function resolveProducerWorkspaceCopySource(
   producer: ResolvedProducerDaemonSlot,
   stateDirs: DaemonStateDirs,
-): {
-  mountPath: string;
-  cwdPath: string;
-  mode: DaemonTaskExecutionPlan['workspaceMode'];
-  branch: string | null;
-} {
+): string {
   const workspacePath = producer.workspace?.worktreePath ?? null;
   if (workspacePath) {
     if (existsSync(workspacePath)) {
-      return {
-        mountPath: workspacePath,
-        cwdPath: workspacePath,
-        mode: producer.workspace?.worktreeBranch
-          ? 'dedicated_worktree'
-          : 'scratch_mount',
-        branch: producer.workspace?.worktreeBranch ?? null,
-      };
+      return workspacePath;
     }
     const recoveredPath = recoverScratchWorkspacePath(producer, stateDirs);
-    if (recoveredPath) {
-      return {
-        mountPath: recoveredPath,
-        cwdPath: recoveredPath,
-        mode: 'scratch_mount',
-        branch: null,
-      };
-    }
+    if (recoveredPath) return recoveredPath;
     throw new ProducerContextResolutionError(
       `Producer workspace path is missing on disk: ${workspacePath}`,
     );
@@ -187,12 +167,7 @@ function resolveProducerWorkspaceAttachment(
       `Shared producer mount root is missing on disk: ${sharedMountRoot}`,
     );
   }
-  return {
-    mountPath: sharedMountRoot,
-    cwdPath: sharedMountRoot,
-    mode: 'shared_mount',
-    branch: null,
-  };
+  return sharedMountRoot;
 }
 
 function recoverScratchWorkspacePath(

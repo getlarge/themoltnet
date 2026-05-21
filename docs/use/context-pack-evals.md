@@ -182,9 +182,10 @@ scenario rubric is compiled only into the downstream judge task.
 
 Two practical rules:
 
-- Run the judge soon after the producer finishes. The daemon can attach the
-  judge to the producer's persisted workspace/session state, which is the most
-  reliable path for artifact inspection.
+- Run the judge soon after the producer finishes. The daemon only resolves a
+  judge against a still-live producer slot; if it claims in time, it
+  immediately forks the producer session and copies the producer workspace into
+  judge-owned scratch state for artifact inspection.
 - Keep all variants for the same comparison under one `correlationId`, or the
   downstream query-time delta has nothing to group.
 
@@ -234,13 +235,14 @@ The judge task:
 
 - targets exactly one accepted producer attempt
 - sees the hidden rubric compiled from `criteria.json`
-- can attach to the producer workspace instead of guessing where artifacts live
+- claims against the live producer slot, then forks/copies that producer state
+  into judge-owned runtime state before executing
 
-That producer attachment is not fully durable yet. The remaining limitation is
-tracked in [#1174](https://github.com/getlarge/themoltnet/issues/1174): judge
-reliability still depends on the producer session/workspace state remaining
-available when the judge is claimed, which is why "run the judge soon after"
-is the current recommendation.
+The remaining limitation is intentional: judge reliability depends on the
+producer slot still being available when the judge is claimed. Once the judge
+starts, it is independent; if the producer slot has already been reaped, the
+judge fails with `producer_context_missing`. That is why "run the judge soon
+after" remains the current recommendation.
 
 ### 5.2.1 End-to-end flow from an existing source pack
 

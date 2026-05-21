@@ -38,13 +38,15 @@ Current daemon behavior:
 - `workspaceScope: session` means the daemon may keep local runtime state alive
   across related tasks keyed by the same daemon slot. For
   `dedicated_worktree`, that means a reusable worktree; for `run_eval`, it
-  means the producer Pi session and any producer workspace attachment can be
-  reused by downstream judge flows.
+  means the producer Pi session and producer workspace remain available only as
+  long as that daemon slot stays live.
 - `run_eval` is special: its registry policy stays `workspaceMode:
 shared_mount`, but each task instance also carries `input.execution.workspace`
   (`none`, `shared_mount`, or `dedicated_worktree`). The daemon turns `none`
-  into a `scratch_mount` execution plan, and `judge_eval_attempt` may attach to
-  the producer's scratch workspace, shared mount, or dedicated worktree.
+  into a `scratch_mount` execution plan. `judge_eval_attempt` resolves only
+  against a still-live producer slot; if it claims in time, it immediately
+  forks the producer session and copies the producer workspace into
+  judge-owned scratch state before executing.
 - Task types with `resumable: no` still run as cold attempt-scoped sessions.
 
 ## Operations

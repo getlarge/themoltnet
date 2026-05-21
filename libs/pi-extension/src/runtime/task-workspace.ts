@@ -1,6 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+} from 'node:fs';
+import { join, relative, sep } from 'node:path';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
@@ -47,6 +54,10 @@ export function prepareTaskWorkspace(
     } else {
       rmSync(scratchDir, { recursive: true, force: true });
       mkdirSync(scratchDir, { recursive: true });
+    }
+    const workspaceSeed = executionPlan?.workspaceSeed ?? null;
+    if (workspaceSeed) {
+      copyDirectoryContents(workspaceSeed.copyFromPath, scratchDir);
     }
 
     return {
@@ -198,4 +209,76 @@ function gitRefExists(mainRepo: string, ref: string): boolean {
   } catch {
     return false;
   }
+}
+
+function copyDirectoryContents(sourceDir: string, targetDir: string): void {
+  if (!existsSync(sourceDir)) {
+    throw new Error(`Workspace seed source is missing: ${sourceDir}`);
+  }
+
+  if (existsSync(join(sourceDir, '.git'))) {
+    initializeScratchGitRepo(sourceDir, targetDir);
+  }
+
+  const resolvedTargetDir = realpathSync(targetDir);
+  for (const entry of readdirSync(sourceDir)) {
+    const sourceEntry = join(sourceDir, entry);
+    if (shouldSkipSeedEntry(sourceEntry, entry, resolvedTargetDir)) {
+      continue;
+    }
+
+    cpSync(sourceEntry, join(targetDir, entry), {
+      recursive: true,
+    });
+  }
+}
+
+function initializeScratchGitRepo(sourceDir: string, targetDir: string): void {
+  execFileSync('git', ['-C', targetDir, 'init'], { stdio: 'pipe' });
+
+  let headCommit: string | null = null;
+  try {
+    headCommit = execFileSync('git', ['-C', sourceDir, 'rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).trim();
+  } catch {
+    headCommit = null;
+  }
+
+  if (!headCommit) {
+    return;
+  }
+
+  execFileSync('git', ['-C', targetDir, 'remote', 'add', 'origin', sourceDir], {
+    stdio: 'pipe',
+  });
+  execFileSync(
+    'git',
+    ['-C', targetDir, 'fetch', '--quiet', '--depth=1', 'origin', headCommit],
+    { stdio: 'pipe' },
+  );
+  execFileSync(
+    'git',
+    ['-C', targetDir, 'checkout', '--quiet', '--detach', 'FETCH_HEAD'],
+    {
+      stdio: 'pipe',
+    },
+  );
+}
+
+function shouldSkipSeedEntry(
+  sourceEntry: string,
+  entryName: string,
+  resolvedTargetDir: string,
+): boolean {
+  if (entryName === '.git') {
+    return true;
+  }
+
+  const resolvedSourceEntry = realpathSync(sourceEntry);
+  return (
+    resolvedTargetDir === resolvedSourceEntry ||
+    resolvedTargetDir.startsWith(`${resolvedSourceEntry}${sep}`)
+  );
 }

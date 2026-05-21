@@ -640,7 +640,7 @@ describe('Agent daemon (e2e)', () => {
     }
   }, 60_000);
 
-  it('attaches judge_eval_attempt to the producer session and scratch workspace', async () => {
+  it('fails judge_eval_attempt after producer warm-slot reap', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-judge-attach-e2e-'));
     tempRoots.push(mountRoot);
 
@@ -653,7 +653,6 @@ describe('Agent daemon (e2e)', () => {
     };
     const correlationId = randomUUID();
     const warmSessionTtlSec = 60;
-
     try {
       const producer = await imposeRunEvalTask(correlationId);
       const producerRun = await runStubbedSlotAwareTask({
@@ -679,6 +678,10 @@ describe('Agent daemon (e2e)', () => {
       expect(producerWorkspacePath).toBeTruthy();
       expect(existsSync(producerSessionPath!)).toBe(true);
       expect(existsSync(producerWorkspacePath!)).toBe(true);
+      const expired = slotRegistry.reapExpiredSlots(Date.now() + 120_000);
+      expect(expired).toHaveLength(1);
+      expect(existsSync(producerSessionPath!)).toBe(false);
+      expect(existsSync(producerWorkspacePath!)).toBe(false);
 
       const judge = await imposeJudgeEvalAttemptTask(
         correlationId,
@@ -694,16 +697,12 @@ describe('Agent daemon (e2e)', () => {
         warmSessionTtlSec,
       });
 
-      expect(judgeRun.output.status).toBe('completed');
-      expect(judgeRun.executionPlan.workspaceAttachment).toEqual({
-        mountPath: producerWorkspacePath,
-        cwdPath: producerWorkspacePath,
-        shadowWrites: 'tmpfs',
-      });
-      expect(judgeRun.executionPlan.sessionPersistence).toEqual({
-        sessionDir: `${stateDirs.piSessionsDir}/judge-${judge.id}-attempt-1`,
-        forkFromSessionPath: producerSessionPath,
-      });
+      expect(judgeRun.output.status).toBe('failed');
+      expect(judgeRun.output.error?.code).toBe('executor_threw');
+      expect(judgeRun.output.error?.message).toContain(
+        'No live producer daemon slot found',
+      );
+      expect(judgeRun.executionPlan).toBeNull();
     } finally {
       slotRegistry.close();
     }
@@ -807,7 +806,21 @@ describe('Agent daemon (e2e)', () => {
           status: 'queued',
           provider: 'anthropic',
         } as Parameters<typeof agent.tasks.list>[0]),
-      ).rejects.toMatchObject({ statusCode: 400 });
+      ).rejects.toSatisfy((err: unknown) => {
+        const candidate = err as {
+          statusCode?: unknown;
+          detail?: unknown;
+          message?: unknown;
+        };
+        return (
+          (candidate.statusCode === undefined ||
+            candidate.statusCode === 400) &&
+          (candidate.detail ===
+            'provider and model must be provided together' ||
+            candidate.message ===
+              'Validation failed: provider and model must be provided together')
+        );
+      });
     });
   });
 });
@@ -915,7 +928,6 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
       };
       await reporter.finalize(output.usage);
       await reporter.close();
-
       if (executionPlan.slotKey) {
         args.slotRegistry.finishSlot(
           args.slotIdentity,
@@ -937,10 +949,9 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
   await finalizeTask(args.agent, output);
-  expect(usedExecutionPlan).not.toBeNull();
   return {
     output,
-    executionPlan: usedExecutionPlan!,
+    executionPlan: usedExecutionPlan,
   };
 }
 

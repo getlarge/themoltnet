@@ -51,6 +51,7 @@ export interface TaskUserPromptContext {
     mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
     branch?: string | null;
     attached?: boolean;
+    source?: 'producer_attachment' | 'producer_copy';
   };
   extras?: Record<string, unknown>;
 }
