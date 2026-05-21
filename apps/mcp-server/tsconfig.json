@@ -25,6 +25,9 @@
       "path": "../../libs/design-system"
     },
     {
+      "path": "../../libs/entry-explore-ui"
+    },
+    {
       "path": "../../libs/mcp-auth-proxy"
     },
     {

@@ -14,6 +14,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { type McpServerConfig, resolveHydraUrls } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
+import { registerEntryExploreApp } from './entry-explore-app.js';
 import { registerGrantTools } from './grant-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
 import { registerInfoTools } from './info-tools.js';
@@ -306,6 +307,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerTeamTools(app, deps);
   registerTaskTools(app, deps);
   registerTaskApp(app, deps);
+  registerEntryExploreApp(app, deps);
   registerResources(app, deps);
   registerPrompts(app, deps);
 

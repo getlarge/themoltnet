@@ -10,6 +10,7 @@
 import { colors, fontFamily, radius } from '@themoltnet/design-system/tokens';
 import type { FastifyInstance } from 'fastify';
 
+import { buildMcpAppHostBridgeScript } from './mcp-app-host-bridge-source.js';
 import type {
   TaskAppOpenInput,
   TaskAppOpenOutput,
@@ -67,6 +68,10 @@ function buildTaskAppThemeCss(): string {
 }
 
 function buildTaskAppHtml(): string {
+  const hostBridgeScript = buildMcpAppHostBridgeScript({
+    appName: 'MoltNet Tasks',
+  });
+
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -415,80 +420,7 @@ function buildTaskAppHtml(): string {
     </main>
 
     <script type="module">
-      function createHostBridge() {
-        let nextId = 1;
-        const pending = new Map();
-        const bridge = {
-          ontoolinput: undefined,
-          ontoolresult: undefined,
-          onerror: undefined,
-          async connect() {
-            window.addEventListener('message', (event) => {
-              const message = event.data;
-              if (!message || message.jsonrpc !== '2.0') return;
-              if (Object.prototype.hasOwnProperty.call(message, 'id')) {
-                const handler = pending.get(message.id);
-                if (handler) {
-                  pending.delete(message.id);
-                  if (message.error) {
-                    handler.reject(new Error(message.error.message ?? 'Host request failed'));
-                  } else {
-                    handler.resolve(message.result);
-                  }
-                  return;
-                }
-                window.parent.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
-                return;
-              }
-              if (message.method === 'ui/notifications/tool-input') {
-                bridge.ontoolinput?.(message.params ?? {});
-              } else if (message.method === 'ui/notifications/tool-result') {
-                bridge.ontoolresult?.(message.params ?? {});
-              }
-            });
-
-            await request('ui/initialize', {
-              appCapabilities: {},
-              appInfo: { name: 'MoltNet Tasks', version: '0.1.0' },
-              protocolVersion: '2026-01-26',
-            });
-            notify('ui/notifications/initialized', {});
-            notifySizeChanged();
-          },
-          callServerTool(params) {
-            return request('tools/call', params);
-          },
-          openLink(params) {
-            return request('ui/open-link', params);
-          },
-        };
-
-        function request(method, params) {
-          const id = nextId++;
-          const message = { jsonrpc: '2.0', id, method, params };
-          return new Promise((resolve, reject) => {
-            pending.set(id, { resolve, reject });
-            window.parent.postMessage(message, '*');
-          });
-        }
-
-        function notify(method, params) {
-          window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
-        }
-
-        function notifySizeChanged() {
-          const height = Math.ceil(document.documentElement.scrollHeight);
-          const width = Math.ceil(document.documentElement.scrollWidth);
-          notify('ui/notifications/size-changed', { height, width });
-        }
-
-        const resizeObserver = new ResizeObserver(() => notifySizeChanged());
-        resizeObserver.observe(document.documentElement);
-        resizeObserver.observe(document.body);
-
-        return bridge;
-      }
-
+      ${hostBridgeScript}
       const app = createHostBridge();
       const state = {
         teamId: '',

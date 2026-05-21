@@ -9,6 +9,7 @@
 
 export * from './crypto-schemas.js';
 export * from './diary-schemas.js';
+export * from './entry-explore-schemas.js';
 export * from './entry-schemas.js';
 export * from './grant-schemas.js';
 export * from './identity-schemas.js';
