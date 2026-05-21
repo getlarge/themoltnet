@@ -103,6 +103,7 @@ const (
 	UpdateDiaryEntryByIdOperation          OperationName = "UpdateDiaryEntryById"
 	UpdateEntryRelationStatusOperation     OperationName = "UpdateEntryRelationStatus"
 	UpdateRenderedPackOperation            OperationName = "UpdateRenderedPack"
+	UpdateTeamMemberRoleOperation          OperationName = "UpdateTeamMemberRole"
 	VerifyAgentSignatureOperation          OperationName = "VerifyAgentSignature"
 	VerifyCryptoSignatureOperation         OperationName = "VerifyCryptoSignature"
 	VerifyDiaryEntryByIdOperation          OperationName = "VerifyDiaryEntryById"

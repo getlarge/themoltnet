@@ -7,11 +7,17 @@
 
 import type { RelationshipApi } from '@ory/client-fetch';
 
+import type { TeamRelation } from './keto-constants.js';
 import {
   DiaryRelation,
   GroupRelation,
   KetoNamespace,
 } from './keto-constants.js';
+import {
+  normalizeTeamRelation,
+  teamRelationToRole,
+  teamRoleRank,
+} from './team-role.js';
 
 export interface GroupMemberTuple {
   subjectId: string;
@@ -21,12 +27,12 @@ export interface GroupMemberTuple {
 export interface TeamMemberTuple {
   subjectId: string;
   subjectNs: string;
-  relation: string;
+  relation: TeamRelation;
 }
 
 export interface TeamIdWithRole {
   teamId: string;
-  relation: string;
+  relation: TeamRelation;
 }
 
 export interface DiaryGrantTuple {
@@ -63,11 +69,14 @@ async function paginateTeamRoles(
       pageToken,
     });
     for (const tuple of result.relation_tuples ?? []) {
-      if (tuple.object && tuple.relation) {
-        const key = `${tuple.object}:${tuple.relation}`;
+      const relation = tuple.relation
+        ? normalizeTeamRelation(tuple.relation)
+        : null;
+      if (tuple.object && relation) {
+        const key = `${tuple.object}:${relation}`;
         if (!seen.has(key)) {
           seen.add(key);
-          results.push({ teamId: tuple.object, relation: tuple.relation });
+          results.push({ teamId: tuple.object, relation });
         }
       }
     }
@@ -105,20 +114,23 @@ export function createRelationshipReader(
           subjectSetRelation: '',
         }),
       ]);
-      // Deduplicate by teamId (prefer first occurrence)
-      const seen = new Set<string>();
-      const result: TeamIdWithRole[] = [];
+      // Deduplicate by teamId and keep the highest-privilege relation.
+      const bestByTeamId = new Map<string, TeamIdWithRole>();
       for (const entry of [...agentTeams, ...humanTeams]) {
-        if (!seen.has(entry.teamId)) {
-          seen.add(entry.teamId);
-          result.push(entry);
+        const existing = bestByTeamId.get(entry.teamId);
+        if (
+          !existing ||
+          teamRoleRank(teamRelationToRole(entry.relation)) >
+            teamRoleRank(teamRelationToRole(existing.relation))
+        ) {
+          bestByTeamId.set(entry.teamId, entry);
         }
       }
-      return result;
+      return [...bestByTeamId.values()];
     },
 
     async listTeamMembers(teamId: string): Promise<TeamMemberTuple[]> {
-      const members: TeamMemberTuple[] = [];
+      const members = new Map<string, TeamMemberTuple>();
       let pageToken: string | undefined;
 
       do {
@@ -128,18 +140,30 @@ export function createRelationshipReader(
           pageToken,
         });
         for (const tuple of result.relation_tuples ?? []) {
-          if (tuple.subject_set?.object && tuple.relation) {
-            members.push({
+          const relation = tuple.relation
+            ? normalizeTeamRelation(tuple.relation)
+            : null;
+          if (tuple.subject_set?.object && relation) {
+            const member: TeamMemberTuple = {
               subjectId: tuple.subject_set.object,
               subjectNs: tuple.subject_set.namespace ?? '',
-              relation: tuple.relation,
-            });
+              relation,
+            };
+            const key = `${member.subjectNs}:${member.subjectId}`;
+            const existing = members.get(key);
+            if (
+              !existing ||
+              teamRoleRank(teamRelationToRole(member.relation)) >
+                teamRoleRank(teamRelationToRole(existing.relation))
+            ) {
+              members.set(key, member);
+            }
           }
         }
         pageToken = result.next_page_token || undefined;
       } while (pageToken);
 
-      return members;
+      return [...members.values()];
     },
 
     async listGroupMembers(groupId: string): Promise<GroupMemberTuple[]> {

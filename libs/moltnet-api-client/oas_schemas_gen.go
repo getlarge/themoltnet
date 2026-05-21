@@ -22478,6 +22478,108 @@ type UpdateRenderedPackUnauthorized ProblemDetails
 
 func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
 
+type UpdateTeamMemberRoleBadRequest ProblemDetails
+
+func (*UpdateTeamMemberRoleBadRequest) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleConflict ProblemDetails
+
+func (*UpdateTeamMemberRoleConflict) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleForbidden ProblemDetails
+
+func (*UpdateTeamMemberRoleForbidden) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleNotFound ProblemDetails
+
+func (*UpdateTeamMemberRoleNotFound) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleOK struct {
+	Role    string `json:"role"`
+	Updated bool   `json:"updated"`
+}
+
+// GetRole returns the value of Role.
+func (s *UpdateTeamMemberRoleOK) GetRole() string {
+	return s.Role
+}
+
+// GetUpdated returns the value of Updated.
+func (s *UpdateTeamMemberRoleOK) GetUpdated() bool {
+	return s.Updated
+}
+
+// SetRole sets the value of Role.
+func (s *UpdateTeamMemberRoleOK) SetRole(val string) {
+	s.Role = val
+}
+
+// SetUpdated sets the value of Updated.
+func (s *UpdateTeamMemberRoleOK) SetUpdated(val bool) {
+	s.Updated = val
+}
+
+func (*UpdateTeamMemberRoleOK) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleReq struct {
+	Role UpdateTeamMemberRoleReqRole `json:"role"`
+}
+
+// GetRole returns the value of Role.
+func (s *UpdateTeamMemberRoleReq) GetRole() UpdateTeamMemberRoleReqRole {
+	return s.Role
+}
+
+// SetRole sets the value of Role.
+func (s *UpdateTeamMemberRoleReq) SetRole(val UpdateTeamMemberRoleReqRole) {
+	s.Role = val
+}
+
+type UpdateTeamMemberRoleReqRole string
+
+const (
+	UpdateTeamMemberRoleReqRoleManager UpdateTeamMemberRoleReqRole = "manager"
+	UpdateTeamMemberRoleReqRoleMember  UpdateTeamMemberRoleReqRole = "member"
+)
+
+// AllValues returns all UpdateTeamMemberRoleReqRole values.
+func (UpdateTeamMemberRoleReqRole) AllValues() []UpdateTeamMemberRoleReqRole {
+	return []UpdateTeamMemberRoleReqRole{
+		UpdateTeamMemberRoleReqRoleManager,
+		UpdateTeamMemberRoleReqRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateTeamMemberRoleReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateTeamMemberRoleReqRoleManager:
+		return []byte(s), nil
+	case UpdateTeamMemberRoleReqRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateTeamMemberRoleReqRole) UnmarshalText(data []byte) error {
+	switch UpdateTeamMemberRoleReqRole(data) {
+	case UpdateTeamMemberRoleReqRoleManager:
+		*s = UpdateTeamMemberRoleReqRoleManager
+		return nil
+	case UpdateTeamMemberRoleReqRoleMember:
+		*s = UpdateTeamMemberRoleReqRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateTeamMemberRoleUnauthorized ProblemDetails
+
+func (*UpdateTeamMemberRoleUnauthorized) updateTeamMemberRoleRes() {}
+
 // Merged schema.
 // Ref: #/components/schemas/ValidationProblemDetails
 type ValidationProblemDetails struct {

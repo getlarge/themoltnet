@@ -7,7 +7,17 @@
  */
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth, TeamRelation } from '@moltnet/auth';
+import {
+  KetoNamespace,
+  requireAuth,
+  TEAM_ROLE,
+  type TeamInviteRole,
+  TeamRelation,
+  teamRelationToRole,
+  type TeamRole,
+  teamRoleRank,
+  teamRoleToRelation,
+} from '@moltnet/auth';
 import { DBOS } from '@moltnet/database';
 import {
   AcceptFoundingResponseSchema,
@@ -28,10 +38,12 @@ import {
   TeamMemberSchema,
   TeamParamsSchema,
   TeamResponseSchema,
+  UpdateTeamMemberRoleResponseSchema,
+  UpdateTeamMemberRoleSchema,
 } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import { Type } from '@sinclair/typebox';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
@@ -45,7 +57,7 @@ import {
 interface KetoMember {
   subjectId: string;
   subjectNs: string;
-  relation: string;
+  relation: TeamRelation;
 }
 
 interface EnrichedMember {
@@ -55,6 +67,101 @@ interface EnrichedMember {
   displayName: string;
   fingerprint?: string;
   email?: string;
+}
+
+function toManagedSubjectNs(subjectNs: string): KetoNamespace | null {
+  switch (subjectNs) {
+    case 'Agent':
+      return KetoNamespace.Agent;
+    case 'Human':
+      return KetoNamespace.Human;
+    default:
+      return null;
+  }
+}
+
+function resolveManagedMember(
+  members: ReadonlyArray<KetoMember>,
+  subjectId: string,
+): { currentRole: TeamRole; subjectNs: KetoNamespace } | null {
+  let currentRole: TeamRole | null = null;
+  let currentNs: KetoNamespace | null = null;
+
+  for (const member of members) {
+    if (member.subjectId !== subjectId) continue;
+    const subjectNs = toManagedSubjectNs(member.subjectNs);
+    if (!subjectNs) continue;
+    const role = teamRelationToRole(member.relation);
+    if (!currentRole || teamRoleRank(role) > teamRoleRank(currentRole)) {
+      currentRole = role;
+      currentNs = subjectNs;
+    }
+  }
+
+  if (!currentRole || !currentNs) return null;
+  return { currentRole, subjectNs: currentNs };
+}
+
+async function grantTeamRole(
+  fastify: FastifyInstance,
+  teamId: string,
+  subjectId: string,
+  subjectNs: KetoNamespace,
+  role: TeamInviteRole,
+): Promise<void> {
+  if (role === TEAM_ROLE.Manager) {
+    await fastify.relationshipWriter.grantTeamManagers(
+      teamId,
+      subjectId,
+      subjectNs,
+    );
+    return;
+  }
+
+  await fastify.relationshipWriter.grantTeamMembers(
+    teamId,
+    subjectId,
+    subjectNs,
+  );
+}
+
+async function rewriteTeamRole(
+  fastify: FastifyInstance,
+  teamId: string,
+  subjectId: string,
+  subjectNs: KetoNamespace,
+  currentRole: TeamInviteRole,
+  role: TeamInviteRole,
+): Promise<void> {
+  const currentRelation = teamRoleToRelation(currentRole);
+  const nextRelation = teamRoleToRelation(role);
+  if (currentRelation === nextRelation) return;
+
+  await grantTeamRole(fastify, teamId, subjectId, subjectNs, role);
+
+  try {
+    await fastify.relationshipWriter.removeTeamRoleRelation(
+      teamId,
+      subjectId,
+      subjectNs,
+      currentRelation,
+    );
+  } catch (err) {
+    try {
+      await fastify.relationshipWriter.removeTeamRoleRelation(
+        teamId,
+        subjectId,
+        subjectNs,
+        nextRelation,
+      );
+    } catch (rollbackErr) {
+      fastify.log.error(
+        { teamId, subjectId, subjectNs, rollbackErr },
+        'team.role_rewrite_rollback_failed',
+      );
+    }
+    throw err;
+  }
 }
 
 async function resolveMembers(
@@ -126,9 +233,17 @@ async function resolveMembers(
   });
 }
 
+function getAuthContext(request: FastifyRequest) {
+  const authContext = request.authContext;
+  if (!authContext) {
+    throw createProblem('unauthorized');
+  }
+  return authContext;
+}
+
 // ── Routes ─────────────────────────────────────────────────────
 
-export async function teamRoutes(fastify: FastifyInstance) {
+export function teamRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
@@ -153,7 +268,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name, foundingMembers } = request.body;
@@ -268,7 +383,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId } = request.authContext!;
+      const { identityId } = getAuthContext(request);
 
       // Single Keto call: get all team IDs + roles for this subject
       const teamRoles =
@@ -325,7 +440,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -379,7 +494,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -445,7 +560,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -487,7 +602,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -500,9 +615,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!canManageMembers) throw createProblem('forbidden');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
-      const owners = members.filter(
-        (m) => m.relation === (TeamRelation.Owners as string),
-      );
+      const owners = members.filter((m) => m.relation === TeamRelation.Owners);
       const isRemovingOwner = owners.some((o) => o.subjectId === subjectId);
       if (isRemovingOwner && owners.length <= 1) {
         throw createProblem('team-last-owner');
@@ -527,7 +640,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         const postMembers =
           await fastify.relationshipReader.listTeamMembers(id);
         const postOwners = postMembers.filter(
-          (m) => m.relation === (TeamRelation.Owners as string),
+          (m) => m.relation === TeamRelation.Owners,
         );
         if (postOwners.length === 0 && postMembers.length > 0) {
           request.log.error(
@@ -545,6 +658,69 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       return reply.status(200).send({ removed: true });
+    },
+  );
+
+  // ── Update Member Role ───────────────────────────────────────
+  server.patch(
+    '/teams/:id/members/:subjectId',
+    {
+      schema: {
+        operationId: 'updateTeamMemberRole',
+        tags: ['teams'],
+        description:
+          'Update a member role between member and manager. Requires manage_members permission.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        params: TeamMemberParamsSchema,
+        body: UpdateTeamMemberRoleSchema,
+        response: {
+          200: UpdateTeamMemberRoleResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id, subjectId } = request.params;
+      const { identityId, subjectType } = getAuthContext(request);
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+      const canManageMembers =
+        await fastify.permissionChecker.canManageTeamMembers(
+          id,
+          identityId,
+          subjectNs,
+        );
+      if (!canManageMembers) throw createProblem('forbidden');
+
+      const members = await fastify.relationshipReader.listTeamMembers(id);
+      const target = resolveManagedMember(members, subjectId);
+      if (!target) throw createProblem('not-found');
+
+      if (target.currentRole === TEAM_ROLE.Owner) {
+        throw createProblem(
+          'conflict',
+          'Owner role cannot be changed with this endpoint',
+        );
+      }
+
+      const nextRole = request.body.role;
+      if (target.currentRole !== nextRole) {
+        await rewriteTeamRole(
+          fastify,
+          id,
+          subjectId,
+          target.subjectNs,
+          target.currentRole,
+          nextRole,
+        );
+      }
+
+      return reply.status(200).send({ updated: true, role: nextRole });
     },
   );
 
@@ -571,7 +747,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -632,7 +808,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -681,7 +857,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, inviteId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
+      const { identityId, subjectType } = getAuthContext(request);
       const subjectNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
@@ -723,7 +899,8 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId } = request.authContext!;
+      const authContext = getAuthContext(request);
+      const { identityId } = authContext;
       const { code } = request.body;
 
       const invite = await fastify.teamRepository.findInviteByCode(code);
@@ -748,7 +925,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
       const existingMembers = await fastify.relationshipReader.listTeamMembers(
         invite.teamId,
       );
-      if (existingMembers.some((m) => m.subjectId === identityId)) {
+      const existingMember = resolveManagedMember(existingMembers, identityId);
+      if (
+        existingMember?.currentRole === TEAM_ROLE.Owner ||
+        existingMember?.currentRole === invite.role
+      ) {
         throw createProblem('conflict', 'Already a member of this team');
       }
 
@@ -760,21 +941,26 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       const ns =
-        request.authContext!.subjectType === 'human'
+        authContext.subjectType === 'human'
           ? KetoNamespace.Human
           : KetoNamespace.Agent;
       try {
-        if (invite.role === 'manager') {
-          await fastify.relationshipWriter.grantTeamManagers(
+        if (existingMember) {
+          await rewriteTeamRole(
+            fastify,
             invite.teamId,
             identityId,
-            ns,
+            existingMember.subjectNs,
+            existingMember.currentRole,
+            invite.role,
           );
         } else {
-          await fastify.relationshipWriter.grantTeamMembers(
+          await grantTeamRole(
+            fastify,
             invite.teamId,
             identityId,
             ns,
+            invite.role,
           );
         }
       } catch (err) {
@@ -824,7 +1010,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId } = getAuthContext(request);
 
       const team = await fastify.teamRepository.findById(id);
       if (!team) throw createProblem('not-found');

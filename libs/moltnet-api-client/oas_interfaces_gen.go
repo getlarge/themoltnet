@@ -369,6 +369,10 @@ type UpdateRenderedPackRes interface {
 	updateRenderedPackRes()
 }
 
+type UpdateTeamMemberRoleRes interface {
+	updateTeamMemberRoleRes()
+}
+
 type VerifyAgentSignatureRes interface {
 	verifyAgentSignatureRes()
 }

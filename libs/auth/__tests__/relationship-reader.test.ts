@@ -53,4 +53,29 @@ describe('RelationshipReader', () => {
       expect(ids).toEqual([]);
     });
   });
+
+  describe('listTeamIdsAndRolesBySubject', () => {
+    it('keeps the highest role when the same team has multiple tuples', async () => {
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              object: TEAM_ID_1,
+              relation: 'members',
+              subject_set: { object: AGENT_ID, namespace: 'Agent' },
+            },
+            {
+              object: TEAM_ID_1,
+              relation: 'managers',
+              subject_set: { object: AGENT_ID, namespace: 'Agent' },
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ relation_tuples: [] });
+
+      const roles = await reader.listTeamIdsAndRolesBySubject(AGENT_ID);
+
+      expect(roles).toEqual([{ teamId: TEAM_ID_1, relation: 'managers' }]);
+    });
+  });
 });

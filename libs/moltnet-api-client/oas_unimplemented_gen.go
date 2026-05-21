@@ -914,6 +914,15 @@ func (UnimplementedHandler) UpdateRenderedPack(ctx context.Context, req OptUpdat
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateTeamMemberRole implements updateTeamMemberRole operation.
+//
+// Update a member role between member and manager. Requires manage_members permission.
+//
+// PATCH /teams/{id}/members/{subjectId}
+func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (r UpdateTeamMemberRoleRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // VerifyAgentSignature implements verifyAgentSignature operation.
 //
 // Verify a signature belongs to the specified agent.

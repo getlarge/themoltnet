@@ -108,6 +108,7 @@ import {
   updateDiaryEntryById,
   updateEntryRelationStatus,
   updateRenderedPack,
+  updateTeamMemberRole,
   verifyAgentSignature,
   verifyCryptoSignature,
   verifyDiaryEntryById,
@@ -399,6 +400,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackError,
   UpdateRenderedPackResponse,
+  UpdateTeamMemberRoleData,
+  UpdateTeamMemberRoleError,
+  UpdateTeamMemberRoleResponse,
   VerifyAgentSignatureData,
   VerifyAgentSignatureError,
   VerifyAgentSignatureResponse,
@@ -2530,6 +2534,33 @@ export const removeTeamMemberMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await removeTeamMember({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Update a member role between member and manager. Requires manage_members permission.
+ */
+export const updateTeamMemberRoleMutation = (
+  options?: Partial<Options<UpdateTeamMemberRoleData>>,
+): UseMutationOptions<
+  UpdateTeamMemberRoleResponse,
+  UpdateTeamMemberRoleError,
+  Options<UpdateTeamMemberRoleData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateTeamMemberRoleResponse,
+    UpdateTeamMemberRoleError,
+    Options<UpdateTeamMemberRoleData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateTeamMemberRole({
         ...options,
         ...fnOptions,
         throwOnError: true,

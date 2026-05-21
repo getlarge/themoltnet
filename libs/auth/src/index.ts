@@ -59,6 +59,15 @@ export {
   type SessionResolver,
   type SessionResolverConfig,
 } from './session-resolver.js';
+export type { TeamInviteRole, TeamRole } from './team-role.js';
+export {
+  highestTeamRole,
+  normalizeTeamRelation,
+  TEAM_ROLE,
+  teamRelationToRole,
+  teamRoleRank,
+  teamRoleToRelation,
+} from './team-role.js';
 export {
   createTokenValidator,
   type TokenValidator,
