@@ -5,7 +5,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
+import {
+  KetoNamespace,
+  requireAuth,
+  TEAM_HEADER,
+  TeamRelation,
+} from '@moltnet/auth';
 import { DBOS, getDatabase, getExecutor } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -657,7 +662,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           identityId,
         );
       const ownedTeamIds = teamRoles
-        .filter((r) => r.relation === 'owners')
+        .filter((r) => r.relation === TeamRelation.Owners)
         .map((r) => r.teamId);
 
       if (ownedTeamIds.length === 0) return { items: [] };
