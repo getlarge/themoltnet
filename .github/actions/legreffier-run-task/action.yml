@@ -98,15 +98,16 @@ runs:
           echo "::notice::No GitHub App PEM at $PEM — agent gh calls will fall back."
           exit 0
         fi
-        if ! head -1 "$PEM" | grep -q "^-----BEGIN .*PRIVATE KEY-----$"; then
-          echo "::error::GitHub App PEM at $PEM is not a valid PEM — first line is not a BEGIN header. This usually means MOLTNET_GITHUB_APP_PRIVATE_KEY was passed through a composite-action input, which collapses newlines. Set it as a JOB env var instead."
+        # Use openssl to actually parse the PEM. Cheap, definitive, and
+        # immune to grep-anchor edge cases (e.g. a collapsed single-line
+        # PEM where BEGIN/END both appear on the same line would slip
+        # past a regex check).
+        if ! openssl rsa -in "$PEM" -noout -check >/dev/null 2>&1 \
+          && ! openssl pkey -in "$PEM" -noout >/dev/null 2>&1; then
+          echo "::error::GitHub App PEM at $PEM failed openssl parse. This usually means MOLTNET_GITHUB_APP_PRIVATE_KEY was passed through a composite-action input, which collapses newlines. Set it as a JOB env var instead."
           exit 1
         fi
-        if ! tail -1 "$PEM" | grep -q "^-----END .*PRIVATE KEY-----$"; then
-          echo "::error::GitHub App PEM at $PEM is not a valid PEM — last line is not an END footer."
-          exit 1
-        fi
-        echo "::notice::GitHub App PEM at $PEM looks well-formed."
+        echo "::notice::GitHub App PEM at $PEM parses cleanly."
 
     - name: Materialize Pi auth.json
       shell: bash
