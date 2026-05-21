@@ -148,7 +148,11 @@ export function TransferDiaryDialog({
         )}
 
         {errorMessage && (
-          <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>
+          <Text
+            variant="caption"
+            data-testid="transfer-error"
+            style={{ color: theme.color.error.DEFAULT }}
+          >
             {errorMessage}
           </Text>
         )}

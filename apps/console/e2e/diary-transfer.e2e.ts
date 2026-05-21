@@ -112,7 +112,11 @@ test('owner can transfer a diary to another team owner who accepts it', async ({
   await expect(destPage.getByText('Incoming transfers (1)')).toBeVisible();
   await expect(destPage.getByText(`Diary ${diary.id}`)).toBeVisible();
   await destPage.getByTestId(/^accept-transfer-/).click();
-  await destPage.getByRole('button', { name: 'Accept' }).click();
+  // Confirm dialog opens; click the dialog's Accept button (not the card's).
+  await destPage
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Accept' })
+    .click();
 
   // After acceptance: the diary's teamId is the destination team. Verify via REST.
   // (The REST query needs the source owner's session because they're now a
@@ -192,7 +196,11 @@ test('destination owner can reject a pending transfer and the diary stays on the
   await destPage.goto(`${CONSOLE_URL}/teams/${destTeam.id}?tab=diaries`);
   await expect(destPage.getByText('Incoming transfers (1)')).toBeVisible();
   await destPage.getByTestId(/^reject-transfer-/).click();
-  await destPage.getByRole('button', { name: 'Reject' }).click();
+  // Confirm dialog opens; click the dialog's Reject button (not the card's).
+  await destPage
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Reject' })
+    .click();
   await expect(destPage.getByText('Incoming transfers (1)')).not.toBeVisible();
 
   // Diary stays on the source team.
@@ -275,11 +283,10 @@ test('initiating a transfer while one is already pending returns an error', asyn
     .selectOption(destTeam.id);
   await sourcePage.getByTestId('transfer-submit').click();
 
-  // The submit button stays visible and an error message appears.
+  // The submit button stays visible and an error message appears under the
+  // form (the `transfer-error` testid is unique to the dialog's error caption).
   await expect(sourcePage.getByTestId('transfer-submit')).toBeVisible();
-  // The error text is mutation.error.message — we don't assert on the exact
-  // wording, just that some error is shown (caption color, "pending" substring).
-  await expect(sourcePage.getByText(/pending|already|conflict/i)).toBeVisible();
+  await expect(sourcePage.getByTestId('transfer-error')).toBeVisible();
 
   await sourceCtx.close();
   await destCtx.close();
