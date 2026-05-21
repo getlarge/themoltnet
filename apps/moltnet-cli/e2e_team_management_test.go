@@ -148,7 +148,7 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 	}
 	foundInvitee = false
 	for _, m := range members.Items {
-		if m.SubjectId == inviteeAgentID && m.Role == "manager" {
+		if m.SubjectId == inviteeAgentID && m.Role == "managers" {
 			foundInvitee = true
 			break
 		}
@@ -170,6 +170,26 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 	decodeJSON(t, stdout, &updatedRole)
 	if !updatedRole.Updated || updatedRole.Role != "member" {
 		t.Fatalf("demote to member failed: %+v", updatedRole)
+	}
+
+	membersRes, err = e2eClient.ListTeamMembers(context.Background(),
+		moltnetapi.ListTeamMembersParams{ID: teamID})
+	if err != nil {
+		t.Fatalf("list team members after demote: %v", err)
+	}
+	members, ok = membersRes.(*moltnetapi.ListTeamMembersOK)
+	if !ok {
+		t.Fatalf("unexpected team members response after demote: %T", membersRes)
+	}
+	foundInvitee = false
+	for _, m := range members.Items {
+		if m.SubjectId == inviteeAgentID && m.Role == "members" {
+			foundInvitee = true
+			break
+		}
+	}
+	if !foundInvitee {
+		t.Fatalf("invitee agent %s not demoted back to member", inviteeAgentID)
 	}
 
 	// 5. owner grants writer on the shared e2e diary to the invitee
