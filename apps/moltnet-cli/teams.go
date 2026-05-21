@@ -192,6 +192,37 @@ func runTeamsMemberRemoveCmd(apiURL, credPath, teamID, subjectID string) error {
 	return printJSON(ok)
 }
 
+// runTeamsMemberUpdateRoleCmd updates a team member's role.
+func runTeamsMemberUpdateRoleCmd(apiURL, credPath, teamID, subjectID, role string) error {
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
+	}
+	subjectUUID, err := uuid.Parse(subjectID)
+	if err != nil {
+		return fmt.Errorf("invalid subject ID %q: %w", subjectID, err)
+	}
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	req := &moltnetapi.UpdateTeamMemberRoleReq{
+		Role: moltnetapi.UpdateTeamMemberRoleReqRole(role),
+	}
+	res, err := client.UpdateTeamMemberRole(context.Background(), req, moltnetapi.UpdateTeamMemberRoleParams{
+		ID:        teamUUID,
+		SubjectId: subjectUUID,
+	})
+	if err != nil {
+		return fmt.Errorf("teams members update-role: %w", formatTransportError(err))
+	}
+	updated, ok := res.(*moltnetapi.UpdateTeamMemberRoleOK)
+	if !ok {
+		return formatAPIError(res)
+	}
+	return printJSON(updated)
+}
+
 // runTeamsInviteDeleteCmd deletes a team invite code.
 func runTeamsInviteDeleteCmd(apiURL, credPath, teamID, inviteID string) error {
 	teamUUID, err := uuid.Parse(teamID)

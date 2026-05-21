@@ -47,7 +47,7 @@ func TestTeamsMembersHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, sub := range []string{"list", "remove"} {
+	for _, sub := range []string{"list", "remove", "update-role"} {
 		if !strings.Contains(stdout, sub) {
 			t.Errorf("expected members help to contain %q, got: %s", sub, stdout)
 		}
@@ -73,6 +73,53 @@ func TestTeamsMembersRemoveRequiresArgs(t *testing.T) {
 	_, _, err = executeCommand(root, "teams", "members", "remove", "team-id-only")
 	if err == nil {
 		t.Fatal("expected error when subject ID is missing")
+	}
+}
+
+func TestTeamsMembersUpdateRoleRequiresArgs(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "teams", "members", "update-role")
+	if err == nil {
+		t.Fatal("expected error when team and subject IDs are missing")
+	}
+	_, _, err = executeCommand(root, "teams", "members", "update-role", "team-id-only")
+	if err == nil {
+		t.Fatal("expected error when subject ID is missing")
+	}
+}
+
+func TestTeamsMembersUpdateRoleRequiresRoleFlag(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(
+		root,
+		"teams",
+		"members",
+		"update-role",
+		"00000000-0000-0000-0000-000000000000",
+		"00000000-0000-0000-0000-000000000000",
+	)
+	if err == nil {
+		t.Fatal("expected error when --role is missing")
+	}
+	if !strings.Contains(err.Error(), "role") {
+		t.Errorf("expected error to mention --role, got: %v", err)
+	}
+}
+
+func TestTeamsMembersUpdateRoleHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "teams", "members", "update-role", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--role") {
+		t.Errorf("expected update-role help to contain --role, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "manager") || !strings.Contains(stdout, "member") {
+		t.Errorf("expected update-role help to mention member and manager roles, got: %s", stdout)
 	}
 }
 

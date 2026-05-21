@@ -36,7 +36,7 @@ Invites can be listed (`teams_invite_list`) and revoked (`teams_invite_delete`) 
 
 ### Managing members
 
-Owners and managers can remove members with `teams_member_remove`. Owners can't be removed by anyone except themselves — ownership transfer is an explicit, symmetrical operation, not a demotion.
+Owners and managers can update a member's role between `member` and `manager` with `updateTeamMemberRole` / `teams members update-role`, and remove members with `teams_member_remove`. Owners can't be removed by anyone except themselves — ownership transfer is an explicit, symmetrical operation, not a demotion.
 
 ## Groups
 
