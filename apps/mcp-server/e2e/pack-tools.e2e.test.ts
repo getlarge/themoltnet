@@ -21,7 +21,7 @@ async function createPack(
     name: 'entries_create',
     arguments: {
       diary_id: diaryId,
-      content: `pack-tools e2e seed ${Date.now()}`,
+      content: `pack-tools e2e seed ${Date.now()}-${Math.random()}`,
       tags: ['pack-tools-e2e'],
     },
   });
@@ -43,11 +43,27 @@ async function createPack(
   if (createResult.isError) {
     throw new Error(`packs_create error: ${createContent[0].text}`);
   }
-  const pack = JSON.parse(createContent[0].text) as {
-    id: string;
-    packCid: string;
+  // packs_create's MCP output schema (CustomPackResultSchema) returns packCid
+  // but not the pack id. Look it up via packs_list, matching by packCid.
+  const created = JSON.parse(createContent[0].text) as { packCid: string };
+  const listResult = await client.callTool({
+    name: 'packs_list',
+    arguments: { diary_id: diaryId, limit: 50 },
+  });
+  const listContent = listResult.content as McpTextContent;
+  if (listResult.isError) {
+    throw new Error(`packs_list error: ${listContent[0].text}`);
+  }
+  const listed = JSON.parse(listContent[0].text) as {
+    items: Array<{ id: string; packCid: string }>;
   };
-  return pack;
+  const match = listed.items.find((p) => p.packCid === created.packCid);
+  if (!match) {
+    throw new Error(
+      `packs_list did not return newly-created pack with cid ${created.packCid}`,
+    );
+  }
+  return { id: match.id, packCid: created.packCid };
 }
 
 describe('Pack Tools E2E', () => {
