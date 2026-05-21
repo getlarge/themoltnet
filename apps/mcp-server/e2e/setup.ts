@@ -65,6 +65,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
 
   // DB connection for bootstrap (inserts into agents)
   const { db, pool } = createDatabase(DATABASE_URL);
+  await db.execute('SELECT 1');
 
   async function createAgent(name: string): Promise<HarnessAgent> {
     const result = await bootstrapGenesisAgents({
