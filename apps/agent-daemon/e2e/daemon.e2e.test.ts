@@ -698,7 +698,11 @@ describe('Agent daemon (e2e)', () => {
       });
 
       expect(judgeRun.output.status).toBe('failed');
-      expect(judgeRun.output.error?.code).toBe('producer_context_missing');
+      expect(judgeRun.output.error?.code).toBe('executor_threw');
+      expect(judgeRun.output.error?.message).toContain(
+        'No live producer daemon slot found',
+      );
+      expect(judgeRun.executionPlan).toBeNull();
     } finally {
       slotRegistry.close();
     }
@@ -945,10 +949,9 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
   await finalizeTask(args.agent, output);
-  expect(usedExecutionPlan).not.toBeNull();
   return {
     output,
-    executionPlan: usedExecutionPlan!,
+    executionPlan: usedExecutionPlan,
   };
 }
 
