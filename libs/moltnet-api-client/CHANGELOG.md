@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.29.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.28.2...moltnet-api-client-v1.29.0) (2026-05-21)
+
+
+### Features
+
+* **teams:** support role promotion and updates ([cef6ae3](https://github.com/getlarge/themoltnet/commit/cef6ae3622983e40f9b183464a245197f1580267))
+
+
+### Codegen
+
+* **api:** regenerate committed clients ([30c50ec](https://github.com/getlarge/themoltnet/commit/30c50eca0d42536101c7e892d9b3754400f77762))
+
 ## [1.28.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.28.1...moltnet-api-client-v1.28.2) (2026-05-12)
 
 
