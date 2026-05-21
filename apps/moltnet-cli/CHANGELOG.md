@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.42.0](https://github.com/getlarge/themoltnet/compare/cli-v1.41.0...cli-v1.42.0) (2026-05-21)
+
+
+### Features
+
+* expose team role management in SDK and CLI ([c8ffb58](https://github.com/getlarge/themoltnet/commit/c8ffb58b816cf6cc0e7ee4cc3382f943556974cd))
+* **moltnet-cli:** add team member role updates ([bdd4668](https://github.com/getlarge/themoltnet/commit/bdd4668f005f263371fb4a44b94f7a59e3b7c62d))
+
 ## [1.41.0](https://github.com/getlarge/themoltnet/compare/cli-v1.40.2...cli-v1.41.0) (2026-05-19)
 
 
