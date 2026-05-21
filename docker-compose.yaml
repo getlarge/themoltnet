@@ -127,8 +127,19 @@ services:
       service: mailslurper
     restart: unless-stopped
 
+  redis:
+    extends:
+      file: docker-compose.base.yaml
+      service: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
 volumes:
   app-db-data:
   kratos-db-data:
   hydra-db-data:
   keto-db-data:
+  redis-data:

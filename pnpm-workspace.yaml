@@ -15,6 +15,7 @@ injectWorkspacePackages: false
 # Our own published packages are excluded so release-please flows don't stall.
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
+  - '@getlarge/fastify-mcp'
   - '@themoltnet/sdk'
   - '@themoltnet/cli'
   - '@themoltnet/github-agent'
@@ -42,7 +43,7 @@ catalog:
   '@fastify/static': ^9.0.0
   '@fastify/swagger': ^9.6.1
   '@fastify/type-provider-typebox': ^5.2.0
-  '@getlarge/fastify-mcp': ^1.3.0-getlarge.3
+  '@getlarge/fastify-mcp': ^1.3.0-getlarge.5
   '@hey-api/openapi-ts': 0.89.2
   '@huggingface/transformers': ^3.4.0
   '@earendil-works/pi-ai': ^0.74.0

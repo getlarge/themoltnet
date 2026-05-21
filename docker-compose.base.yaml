@@ -198,3 +198,11 @@ services:
       - '1025:1025'
       - '4436:4436'
       - '4437:4437'
+
+  redis:
+    image: valkey/valkey:8-alpine
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
