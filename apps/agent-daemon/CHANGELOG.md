@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.10.1...agent-daemon-v0.10.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **agent-daemon:** bound eval producer-context retention ([b8c1e16](https://github.com/getlarge/themoltnet/commit/b8c1e1646e82ec5ad831ff96e564b380e47d4edd))
+* **agent-daemon:** judge from persisted producer context copy ([58d9bb1](https://github.com/getlarge/themoltnet/commit/58d9bb1e8583d5b1a08cadbf70cd3c8e3128be7a))
+* **agent-daemon:** require live producer slot for judging ([59d8446](https://github.com/getlarge/themoltnet/commit/59d844671a2106876cbd5ff5541296cb292115bd))
+* **pi-extension:** isolate judge scratch workspace copies ([b83e491](https://github.com/getlarge/themoltnet/commit/b83e4916576324d3f662fbc4d39a941281655eff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.18.1
+    * @themoltnet/pi-extension bumped to 0.19.2
+
 ## [0.10.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.10.0...agent-daemon-v0.10.1) (2026-05-19)
 
 
