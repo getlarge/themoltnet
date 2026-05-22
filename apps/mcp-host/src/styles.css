@@ -3,10 +3,7 @@
     radial-gradient(circle at top, rgba(223, 186, 111, 0.14), transparent 40%),
     linear-gradient(180deg, #1b2129 0%, #10141b 100%);
   color: #f4efe6;
-  font-family:
-    'IBM Plex Sans',
-    system-ui,
-    sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
 
 * {

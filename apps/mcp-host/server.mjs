@@ -83,8 +83,9 @@ function createHandler(fallbackFile, isHostServer) {
   };
 }
 
-http.createServer(createHandler('index.html', true)).listen(hostPort, '0.0.0.0');
-http.createServer(createHandler('sandbox.html', false)).listen(
-  sandboxPort,
-  '0.0.0.0',
-);
+http
+  .createServer(createHandler('index.html', true))
+  .listen(hostPort, '0.0.0.0');
+http
+  .createServer(createHandler('sandbox.html', false))
+  .listen(sandboxPort, '0.0.0.0');
