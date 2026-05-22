@@ -154,7 +154,10 @@ test.describe.serial('Diary browser', () => {
     await expect(
       page.getByRole('heading', { name: seeded.populatedDiaryName }),
     ).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Tags' })).toBeVisible();
+    // FilterBar replaces the old "Tags" card; the search input is the anchor.
+    await expect(
+      page.getByRole('searchbox', { name: /search entries/i }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Grid' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timeline' })).toBeVisible();
     await expect(page.getByText(seeded.entryTitle)).toBeVisible();
@@ -165,8 +168,10 @@ test.describe.serial('Diary browser', () => {
     await page.goto(`${CONSOLE_URL}/diaries/${seeded.populatedDiaryId}`);
 
     await page.getByText(seeded.entryTag).first().click();
+    // URL contract changed in PR #1218: tag= → tags= (legacy alias still parsed
+    // on read; serializer always emits tags=).
     await expect(page).toHaveURL(
-      new RegExp(`tag=${encodeURIComponent(seeded.entryTag)}`),
+      new RegExp(`tags=${encodeURIComponent(seeded.entryTag)}`),
     );
     await expect(page.getByText(seeded.entryTitle)).toBeVisible();
 

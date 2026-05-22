@@ -111,20 +111,37 @@ async function seedDiary(sessionToken: string): Promise<SeededDiary> {
   };
 }
 
-test.describe('Diary detail filter bar', () => {
-  test('search, multi-tag include/exclude, types, chips, explore round-trip', async ({
+test.describe.serial('Diary detail filter bar', () => {
+  const user = createTestUser({ prefix: 'filter-bar-e2e' });
+  let seeded: SeededDiary;
+
+  test('register, verify, and seed diary fixtures', async ({ page }) => {
+    await registerViaBrowser(page, user);
+
+    const codeInput = page.locator('input[name="code"]');
+    if (await codeInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const verification = await waitForVerificationData(user.email);
+      if (!verification.code) {
+        throw new Error(
+          'Registration flow did not produce a verification code',
+        );
+      }
+      await codeInput.fill(verification.code);
+      await submitKratosForm(page);
+    }
+
+    await page.goto(CONSOLE_URL);
+
+    const sessionToken = await createNativeSessionToken(user);
+    seeded = await seedDiary(sessionToken);
+  });
+
+  test('search, multi-tag include/exclude, chips, explore round-trip', async ({
     page,
   }) => {
-    const user = await createTestUser();
-    await registerViaBrowser(page, user);
-    await submitKratosForm(page);
-    await waitForVerificationData(page, user);
     await loginViaBrowser(page, user);
-    const sessionToken = await createNativeSessionToken(user);
-
-    const seeded = await seedDiary(sessionToken);
-
     await page.goto(`${CONSOLE_URL}/diaries/${seeded.diaryId}`);
+
     await expect(
       page.getByRole('heading', { name: seeded.diaryName }),
     ).toBeVisible();
