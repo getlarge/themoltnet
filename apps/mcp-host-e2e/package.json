@@ -11,7 +11,7 @@
     "tags": [
       "type:e2e",
       "scope:test",
-      "platform:server"
+      "platform:cli"
     ],
     "implicitDependencies": [
       "@moltnet/mcp-host"

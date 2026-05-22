@@ -11,11 +11,11 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await harness.teardown();
+  await harness?.teardown();
 });
 
 test('loads the tasks MCP app through the host bridge', async ({ page }) => {
-  const url = new URL('/', 'http://127.0.0.1:8080');
+  const url = new URL('/', 'http://127.0.0.1:8082');
   url.searchParams.set('tool', 'tasks_app_open');
   url.searchParams.set('autorun', '1');
   url.searchParams.set('args', '{}');

@@ -3,24 +3,6 @@
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
 import { createDatabase } from '@moltnet/database';
 
-const MCP_SERVER_URL = process.env.MCP_SERVER_URL ?? 'http://localhost:8001';
-const REST_API_URL = process.env.REST_API_URL ?? 'http://localhost:8080';
-
-const DATABASE_URL =
-  process.env.DATABASE_URL ??
-  'postgresql://moltnet:moltnet_secret@localhost:5433/moltnet';
-
-const HYDRA_ADMIN_URL =
-  process.env.ORY_HYDRA_ADMIN_URL ?? 'http://localhost:4445';
-const HYDRA_PUBLIC_URL =
-  process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://localhost:4444';
-const KETO_READ_URL =
-  process.env.ORY_KETO_PUBLIC_URL ?? 'http://localhost:4466';
-const KETO_WRITE_URL =
-  process.env.ORY_KETO_ADMIN_URL ?? 'http://localhost:4467';
-const KRATOS_ADMIN_URL =
-  process.env.ORY_KRATOS_ADMIN_URL ?? 'http://localhost:4434';
-
 const DEFAULT_SCOPES = 'diary:read diary:write crypto:sign agent:profile';
 
 interface HarnessAgent {
@@ -45,20 +27,36 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   // eslint-disable-next-line no-console
   console.log('[MCP E2E] Creating test harness...');
 
-  const { db, pool } = createDatabase(DATABASE_URL);
+  const mcpServerUrl = process.env.MCP_SERVER_URL ?? 'http://127.0.0.1:8001';
+  const restApiUrl = process.env.REST_API_URL ?? 'http://127.0.0.1:8080';
+  const databaseUrl =
+    process.env.DATABASE_URL ??
+    'postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet';
+  const hydraAdminUrl =
+    process.env.ORY_HYDRA_ADMIN_URL ?? 'http://127.0.0.1:4445';
+  const hydraPublicUrl =
+    process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://127.0.0.1:4444';
+  const ketoReadUrl =
+    process.env.ORY_KETO_PUBLIC_URL ?? 'http://127.0.0.1:4466';
+  const ketoWriteUrl =
+    process.env.ORY_KETO_ADMIN_URL ?? 'http://127.0.0.1:4467';
+  const kratosAdminUrl =
+    process.env.ORY_KRATOS_ADMIN_URL ?? 'http://127.0.0.1:4434';
+
+  const { db, pool } = createDatabase(databaseUrl);
   await db.execute('SELECT 1');
 
   async function createAgent(name: string): Promise<HarnessAgent> {
     const result = await bootstrapGenesisAgents({
       config: {
-        databaseUrl: DATABASE_URL,
+        databaseUrl,
         ory: {
           mode: 'split',
-          kratosAdminUrl: KRATOS_ADMIN_URL,
-          hydraAdminUrl: HYDRA_ADMIN_URL,
-          hydraPublicUrl: HYDRA_PUBLIC_URL,
-          ketoReadUrl: KETO_READ_URL,
-          ketoWriteUrl: KETO_WRITE_URL,
+          kratosAdminUrl,
+          hydraAdminUrl,
+          hydraPublicUrl,
+          ketoReadUrl,
+          ketoWriteUrl,
         },
       },
       db,
@@ -75,7 +73,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     }
 
     const agent = result.agents[0];
-    const publicResponse = await fetch(`${REST_API_URL}/diaries`, {
+    const publicResponse = await fetch(`${restApiUrl}/diaries`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -118,8 +116,8 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   );
 
   return {
-    mcpBaseUrl: MCP_SERVER_URL,
-    restApiUrl: REST_API_URL,
+    mcpBaseUrl: mcpServerUrl,
+    restApiUrl,
     agent,
     privateDiaryId,
     publicDiaryId,

@@ -27,7 +27,7 @@
     "tags": [
       "type:runtime",
       "scope:test",
-      "platform:server"
+      "platform:cli"
     ]
   }
 }

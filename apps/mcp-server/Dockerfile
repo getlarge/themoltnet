@@ -3,8 +3,17 @@
 # Build from repo root:
 #   docker build -f apps/mcp-server/Dockerfile .
 
+ARG TARGETARCH
+
 # ---------- base ----------
 FROM node:22.19.0-slim AS base
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL "https://go.dev/dl/go1.25.0.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tgz && \
+    rm -rf /usr/local/go && \
+    tar -C /usr/local -xzf /tmp/go.tgz && \
+    rm /tmp/go.tgz
+ENV PATH="/usr/local/go/bin:${PATH}"
 RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
@@ -25,6 +34,7 @@ COPY libs/design-system/package.json libs/design-system/
 COPY libs/models/package.json libs/models/
 COPY libs/task-mcp-app/package.json libs/task-mcp-app/
 COPY libs/entry-explore-mcp-app/package.json libs/entry-explore-mcp-app/
+COPY libs/mcp-test-harness/package.json libs/mcp-test-harness/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
 COPY libs/api-client/package.json libs/api-client/
@@ -43,7 +53,7 @@ FROM deps AS build
 # Copy all source (needed for workspace resolution since exports point to src)
 COPY . .
 
-RUN pnpm exec nx run @moltnet/mcp-server:build
+RUN pnpm exec nx sync && pnpm exec nx run @moltnet/mcp-server:build
 
 # Extract mcp-server with production-only dependencies
 RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy
