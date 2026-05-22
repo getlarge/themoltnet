@@ -17,6 +17,7 @@ export {
   ImportanceIndicator,
   type ImportanceIndicatorProps,
 } from './components/ImportanceIndicator.js';
+export { SortFacet, type SortFacetProps } from './components/SortFacet.js';
 export { TagChip, type TagChipProps } from './components/TagChip.js';
 export { TagCloud, type TagCloudProps } from './components/TagCloud.js';
 export {
@@ -25,6 +26,7 @@ export {
   type TagsFacetSelection,
 } from './components/TagsFacet.js';
 export { TypeBadge, type TypeBadgeProps } from './components/TypeBadge.js';
+export { TypesFacet, type TypesFacetProps } from './components/TypesFacet.js';
 export {
   type PageArgs,
   toListEntriesArgs,
