@@ -1,9 +1,0 @@
-{
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "// targets": "to see all targets run: nx show project entry-explore-mcp-app --web",
-  "name": "entry-explore-mcp-app",
-  "projectType": "library",
-  "sourceRoot": "libs/entry-explore-mcp-app/src",
-  "tags": ["type:ui", "scope:mcp", "platform:isomorphic"],
-  "targets": {}
-}

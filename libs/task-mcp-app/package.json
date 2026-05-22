@@ -30,9 +30,11 @@
     "vitest": "catalog:"
   },
   "nx": {
+    "sourceRoot": "libs/task-mcp-app/src",
+    "projectType": "library",
     "tags": [
       "type:ui",
-      "scope:mcp",
+      "scope:task",
       "platform:isomorphic"
     ]
   }

@@ -136,8 +136,8 @@ describe('Task MCP App E2E', () => {
     expect(resource._meta).toMatchObject({
       ui: {
         csp: {
-          connectDomains: ['https://esm.sh'],
-          resourceDomains: ['https://esm.sh'],
+          connectDomains: [],
+          resourceDomains: [],
         },
         prefersBorder: false,
       },

@@ -34,10 +34,7 @@ import { structuredResult } from './utils.js';
 export const TASK_APP_RESOURCE_URI = TASK_MCP_APP_RESOURCE_URI;
 export const TASK_APP_MIME_TYPE = MCP_APP_RESOURCE_MIME_TYPE;
 
-const TASK_APP_RESOURCE_META = createMcpAppResourceMeta({
-  connectDomains: ['https://esm.sh'],
-  resourceDomains: ['https://esm.sh'],
-});
+const TASK_APP_RESOURCE_META = createMcpAppResourceMeta();
 
 async function buildTaskAppHtml(): Promise<string> {
   return fs.readFile(

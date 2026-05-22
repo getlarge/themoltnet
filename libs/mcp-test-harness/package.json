@@ -26,7 +26,7 @@
     "projectType": "library",
     "tags": [
       "type:runtime",
-      "scope:test",
+      "scope:tooling",
       "platform:cli"
     ]
   }

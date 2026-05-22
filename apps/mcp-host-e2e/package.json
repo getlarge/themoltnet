@@ -10,7 +10,7 @@
   "nx": {
     "tags": [
       "type:e2e",
-      "scope:test",
+      "scope:tooling",
       "platform:cli"
     ],
     "implicitDependencies": [

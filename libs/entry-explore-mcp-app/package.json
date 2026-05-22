@@ -26,9 +26,11 @@
     "vitest": "catalog:"
   },
   "nx": {
+    "sourceRoot": "libs/entry-explore-mcp-app/src",
+    "projectType": "library",
     "tags": [
       "type:ui",
-      "scope:mcp",
+      "scope:diary",
       "platform:isomorphic"
     ]
   }

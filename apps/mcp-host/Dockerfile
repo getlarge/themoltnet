@@ -26,6 +26,9 @@ COPY . .
 RUN pnpm exec nx run @moltnet/mcp-host:build
 
 FROM node:22.19.0-slim AS production
+LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
+LABEL org.opencontainers.image.description="MoltNet MCP host e2e fixture"
+LABEL org.opencontainers.image.licenses="MIT"
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist/apps/mcp-host ./dist

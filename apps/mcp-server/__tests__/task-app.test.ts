@@ -86,8 +86,8 @@ describe('Task MCP App', () => {
     expect(content._meta).toMatchObject({
       ui: {
         csp: {
-          connectDomains: ['https://esm.sh'],
-          resourceDomains: ['https://esm.sh'],
+          connectDomains: [],
+          resourceDomains: [],
         },
         prefersBorder: false,
       },

@@ -1,9 +1,0 @@
-{
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "// targets": "to see all targets run: nx show project task-mcp-app --web",
-  "name": "task-mcp-app",
-  "projectType": "library",
-  "sourceRoot": "libs/task-mcp-app/src",
-  "tags": ["type:ui", "scope:mcp", "platform:isomorphic"],
-  "targets": {}
-}

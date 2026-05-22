@@ -27,6 +27,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/mcp-server/package.json apps/mcp-server/
 COPY apps/rest-api/package.json apps/rest-api/
 COPY apps/landing/package.json apps/landing/
+COPY apps/console/package.json apps/console/
 COPY libs/observability/package.json libs/observability/
 COPY libs/crypto-service/package.json libs/crypto-service/
 COPY libs/database/package.json libs/database/
@@ -42,6 +43,7 @@ COPY libs/bootstrap/package.json libs/bootstrap/
 COPY libs/embedding-service/package.json libs/embedding-service/
 COPY libs/mcp-auth-proxy/package.json libs/mcp-auth-proxy/
 COPY libs/tasks/package.json libs/tasks/
+COPY libs/task-ui/package.json libs/task-ui/
 COPY tools/package.json tools/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \

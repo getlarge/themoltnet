@@ -11,7 +11,7 @@
   "nx": {
     "tags": [
       "type:app",
-      "scope:test",
+      "scope:tooling",
       "platform:browser"
     ]
   }

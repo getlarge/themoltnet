@@ -35,6 +35,12 @@
       "path": "apps/landing"
     },
     {
+      "path": "apps/mcp-host-e2e"
+    },
+    {
+      "path": "apps/mcp-host"
+    },
+    {
       "path": "apps/mcp-server"
     },
     {
@@ -86,6 +92,9 @@
       "path": "libs/mcp-auth-proxy"
     },
     {
+      "path": "libs/mcp-test-harness"
+    },
+    {
       "path": "libs/models"
     },
     {
@@ -123,9 +132,6 @@
     },
     {
       "path": "docs"
-    },
-    {
-      "path": "libs/mcp-test-harness"
     }
   ]
 }
